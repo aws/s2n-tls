@@ -50,9 +50,6 @@ static bool kyber512r3_avx2_enabled = false;
 #define ECX_BIT_VPCLMUL (1 << 10)
 #define ECX_BIT_PCLMUL  (1 << 1)
 
-/* extra Kyber related CPU features */
-#define ECX_BIT_AVX     (1 << 28)
-
 bool s2n_get_cpuid_count(uint32_t leaf, uint32_t sub_leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
     /* 0x80000000 probes for extended cpuid info */
     uint32_t max_level = __get_cpuid_max(leaf & 0x80000000, 0);
@@ -92,15 +89,6 @@ bool s2n_cpu_supports_avx2() {
     }
 
     return (ebx & EBX_BIT_AVX2);
-}
-
-bool s2n_cpu_supports_avx() {
-    uint32_t eax, ebx, ecx, edx;
-    if (!s2n_get_cpuid_count(EXTENDED_FEATURES_LEAF, EXTENDED_FEATURES_SUBLEAF_ZERO, &eax, &ebx, &ecx, &edx)) {
-        return false;
-    }
-
-    return (ecx & ECX_BIT_AVX);
 }
 
 bool s2n_cpu_supports_sikep434r3_asm() {
@@ -168,7 +156,7 @@ bool s2n_cpu_supports_bike_r3_vpclmul() {
 
 bool s2n_cpu_supports_kyber512r3_avx2() {
 #if defined(S2N_KYBER512R3_AVX2)
-    return s2n_cpu_supports_avx2() && s2n_cpu_supports_avx() && s2n_cpu_supports_bmi2(); //TODO: avx and bmi2 should be added
+    return s2n_cpu_supports_bmi2() && s2n_cpu_supports_avx2();
 #else
     return false;
 #endif
