@@ -463,13 +463,15 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
     }
 
     /* Important: this checks that the stapled ocsp response CAN be verified, not that it has been verified. */
-    const int ocsp_verify_err = OCSP_basic_verify(basic_response, cert_chain, validator->trust_store->trust_store, 0);
-    /* do the crypto checks on the response.*/
-    if (!ocsp_verify_err) {
-        ret_val = S2N_CERT_ERR_UNTRUSTED;
+    const int ocsp_verify_res = OCSP_basic_verify(basic_response, cert_chain, validator->trust_store->trust_store, 0);
+
+    /* OCSP_basic_verify() returns 1 on success, 0 on error, or -1 on fatal error such as malloc failure. */
+    if (ocsp_verify_res != _OSSL_SUCCESS) {
+        ret_val = ocsp_verify_res == 0 ? S2N_CERT_ERR_UNTRUSTED : S2N_CERT_ERR_INTERNAL_ERROR;
         goto clean_up;
     }
 
+    /* do the crypto checks on the response.*/
     int status = 0;
     int reason = 0;
 

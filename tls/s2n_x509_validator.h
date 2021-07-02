@@ -36,7 +36,8 @@ typedef enum {
     S2N_CERT_ERR_EXPIRED = -3,
     S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
     S2N_CERT_ERR_INVALID = -5,
-    S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6
+    S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6,
+    S2N_CERT_ERR_INTERNAL_ERROR = -7
 } s2n_cert_validation_code;
 
 typedef enum {
