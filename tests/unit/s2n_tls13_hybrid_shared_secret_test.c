@@ -334,7 +334,6 @@ int main(int argc, char **argv) {
 #endif
 
 #if EVP_APIS_SUPPORTED
-    EXPECT_EQUAL(6, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
             &aes_128_sha_256_secp256r1_sikep434r3_vector,
             &aes_256_sha_384_secp256r1_sikep434r3_vector,
@@ -350,7 +349,6 @@ int main(int argc, char **argv) {
             &aes_256_sha_384_x25519_kyber512r2_vector,
     };
 #else
-    EXPECT_EQUAL(3, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
             &aes_128_sha_256_secp256r1_sikep434r3_vector,
             &aes_256_sha_384_secp256r1_sikep434r3_vector,
@@ -360,8 +358,6 @@ int main(int argc, char **argv) {
             &aes_256_sha_384_secp256r1_kyber512r2_vector,
     };
 #endif
-
-    EXPECT_EQUAL(2 * S2N_SUPPORTED_KEM_GROUPS_COUNT, s2n_array_len(all_test_vectors));
 
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */

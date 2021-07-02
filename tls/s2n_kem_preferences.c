@@ -39,6 +39,21 @@ const struct s2n_kem *pq_kems_r2r1_2020_07[5] = {
     &s2n_sike_p503_r1,
 };
 
+const struct s2n_kem *pq_kems_r3r2r1_2021_05[7] = {
+    /* Round 3 Algorithms */
+    &s2n_kyber_512_r3,
+    &s2n_bike_l1_r3,
+
+    /* Round 2 Algorithms */
+    &s2n_kyber_512_r2,
+    &s2n_bike1_l1_r2,
+    &s2n_sike_p434_r3,
+
+    /* Round 1 Algorithms */
+    &s2n_bike1_l1_r1,
+    &s2n_sike_p503_r1,
+};
+
 /* Extension list for SIKE P503 Round 1 only (for testing) */
 const struct s2n_kem *pq_kems_sike_r1[1] = {
     &s2n_sike_p503_r1,
@@ -62,6 +77,28 @@ const struct s2n_kem_group *pq_kem_groups_r2[] = {
         &s2n_x25519_sike_p434_r3,
         &s2n_secp256r1_sike_p434_r3,
 #else
+        &s2n_secp256r1_kyber_512_r2,
+        &s2n_secp256r1_bike1_l1_r2,
+        &s2n_secp256r1_sike_p434_r3,
+#endif
+};
+
+
+const struct s2n_kem_group *pq_kem_groups_r3r2[] = {
+#if EVP_APIS_SUPPORTED
+        &s2n_x25519_kyber_512_r3,
+        &s2n_secp256r1_kyber_512_r3,
+        &s2n_x25519_bike_l1_r3,
+        &s2n_secp256r1_bike_l1_r3,
+        &s2n_x25519_kyber_512_r2,
+        &s2n_secp256r1_kyber_512_r2,
+        &s2n_x25519_bike1_l1_r2,
+        &s2n_secp256r1_bike1_l1_r2,
+        &s2n_x25519_sike_p434_r3,
+        &s2n_secp256r1_sike_p434_r3,
+#else
+        &s2n_secp256r1_kyber_512_r3,
+        &s2n_secp256r1_bike_l1_r3,
         &s2n_secp256r1_kyber_512_r2,
         &s2n_secp256r1_bike1_l1_r2,
         &s2n_secp256r1_sike_p434_r3,
@@ -112,6 +149,13 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = {
     .kems = pq_kems_r2r1_2020_07,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r2),
     .tls13_kem_groups = pq_kem_groups_r2,
+};
+
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05 = {
+    .kem_count = s2n_array_len(pq_kems_r3r2r1_2021_05),
+    .kems = pq_kems_r3r2r1_2021_05,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3r2),
+    .tls13_kem_groups = pq_kem_groups_r3r2,
 };
 
 const struct s2n_kem_preferences kem_preferences_null = {
