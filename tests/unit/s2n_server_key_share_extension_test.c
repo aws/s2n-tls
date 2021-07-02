@@ -512,6 +512,7 @@ int main(int argc, char **argv)
     }
 
     {
+        /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
         const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2,
@@ -522,8 +523,6 @@ int main(int argc, char **argv)
                 &s2n_x25519_kyber_512_r2,
 #endif
         };
-
-        EXPECT_EQUAL(S2N_SUPPORTED_KEM_GROUPS_COUNT, s2n_array_len(test_kem_groups));
 
         const struct s2n_kem_preferences test_kem_prefs = {
                 .kem_count = 0,
@@ -536,6 +535,21 @@ int main(int argc, char **argv)
                 .minimum_protocol_version = S2N_SSLv3,
                 .cipher_preferences = &cipher_preferences_test_all_tls13,
                 .kem_preferences = &test_kem_prefs,
+                .signature_preferences = &s2n_signature_preferences_20200207,
+                .ecc_preferences = &s2n_ecc_preferences_20200310,
+        };
+
+        const struct s2n_kem_preferences test_all_supported_kem_prefs = {
+                .kem_count = 0,
+                .kems = NULL,
+                .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
+                .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
+        };
+
+        const struct s2n_security_policy test_all_supported_kems_security_policy = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences_test_all_tls13,
+                .kem_preferences = &test_all_supported_kem_prefs,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
@@ -837,7 +851,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-                conn->security_policy_override = &test_security_policy;
+                conn->security_policy_override = &test_all_supported_kems_security_policy;
 
                 const struct s2n_kem_preferences *kem_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
@@ -894,7 +908,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->security_policy_override = &test_security_policy;
+            conn->security_policy_override = &test_all_supported_kems_security_policy;
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
             conn->handshake.message_number = HELLO_RETRY_MSG_NO;
@@ -942,7 +956,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->security_policy_override = &test_security_policy;
+            conn->security_policy_override = &test_all_supported_kems_security_policy;
 
             const struct s2n_kem_preferences *kem_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));

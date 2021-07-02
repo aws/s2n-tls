@@ -73,14 +73,19 @@
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 28
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
- * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability
- * are defined in https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
-#define TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3 0x2F27
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3 0x2F1F
-#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2 0x2F28
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2 0x2F23
-#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R2 0x2F26
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R2 0x2F0F
+ * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability are defined in
+ * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md */
+#define TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3     0x2F27
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3  0x2F1F
+#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2      0x2F28
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2   0x2F23
+#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R2     0x2F26
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R2  0x2F0F
+#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE_L1_R3       0x2F37
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE_L1_R3    0x2F38
+#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3     0x2F39
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3  0x2F3A
+
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
