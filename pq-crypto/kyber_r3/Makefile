@@ -27,7 +27,7 @@ SRCS=kyber512r3_cbd.c kyber512r3_fips202.c kyber512r3_indcpa.c kyber512r3_kem.c 
 OBJS=$(SRCS:.c=.o)
 
 AVX2_CSRCS=avx2/kyber512r3_cbd_avx2.c avx2/kyber512r3_consts_avx2.c avx2/kyber512r3_fips202x4_avx2.c avx2/kyber512r3_indcpa_avx2.c avx2/kyber512r3_poly_avx2.c avx2/kyber512r3_polyvec_avx2.c avx2/kyber512r3_rejsample_avx2.c
-AVX2_ASRCS=avx2/kyber512r3_basemul_arm_avx2.S avx2/kyber512r3_fq_arm_avx2.S avx2/kyber512r3_invntt_arm_avx2.S avx2/kyber512r3_ntt_arm_avx2.S avx2/kyber512r3_shuffle_arm_avx2.S
+AVX2_ASRCS=avx2/kyber512r3_basemul_avx2.S avx2/kyber512r3_fq_avx2.S avx2/kyber512r3_invntt_avx2.S avx2/kyber512r3_ntt_avx2.S avx2/kyber512r3_shuffle_avx2.S
 
 AVX2_OBJS=$(AVX2_CSRCS:.c=.o)
 AVX2_AOBJS=$(AVX2_ASRCS:.S=.o)
