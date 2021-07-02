@@ -60,6 +60,7 @@ else()
         "pq-crypto/kyber_r2/*.h"
         "pq-crypto/kyber_90s_r2/*.h"
         "pq-crypto/kyber_r3/*.h"
+	"pq-crypto/kyber_r3/avx2/*.h"
         "pq-crypto/sike_r3/*.h")
 
     # The SIKE r1 code #includes .c files directly; including sike_r1/*.c
@@ -76,6 +77,7 @@ else()
         "pq-crypto/kyber_r2/*.c"
         "pq-crypto/kyber_90s_r2/*.c"
         "pq-crypto/kyber_r3/*.c"
+	"pq-crypto/kyber_r3/avx2/*.c"
         "pq-crypto/sike_r3/*.c")
 endif()
 
@@ -172,6 +174,24 @@ else()
 
         if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
             set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
+        endif()
+    endif()
+
+    # Kyber Round-3 code has several different optimizations which require
+    # specific compiler flags to be supported by the compiler.
+    # So for each needed instruction set extension we check if the compiler
+    # supports it and set proper compiler flags to be added later to the
+    # Kyber compilation units.
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
+
+        set(KYBER512R3_AVX2_FLAGS "-mavx2 -mavx -mbmi2")
+        try_compile(KYBER512R3_AVX2_SUPPORTED
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            COMPILE_DEFINITIONS ${KYBER512R3_AVX2_FLAGS})
+
+        if(KYBER512R3_AVX2_SUPPORTED)
+            set(KYBER512R3_AVX2_OPT_SUPPORTED ON)
         endif()
     endif()
 endif()
@@ -302,6 +322,16 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
     endif()
 
     message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
+endif()
+
+if(KYBER512R3_AVX2_OPT_SUPPORTED)
+    if(KYBER512R3_AVX2_SUPPORTED)
+        FILE(GLOB KYBER512R3_AVX2_SRCS "pq-crypto/kyber_r3/avx2/*.c")
+        set_source_files_properties(${KYBER512R3_AVX2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_FLAGS})
+        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2)
+    endif()
+
+    message(STATUS "Enabling Kyber_R3 x86_64 optimizations")
 endif()
 
 if(ADX_SUPPORTED)
