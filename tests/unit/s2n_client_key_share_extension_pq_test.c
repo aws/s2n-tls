@@ -39,22 +39,11 @@ int main() {
     BEGIN_TEST();
     /* PQ hybrid tests for s2n_client_key_share_extension */
     {
-        const struct s2n_kem_group *all_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_bike1_l1_r2,
-                &s2n_secp256r1_kyber_512_r2,
-#if EVP_APIS_SUPPORTED
-                &s2n_x25519_sike_p434_r3,
-                &s2n_x25519_bike1_l1_r2,
-                &s2n_x25519_kyber_512_r2,
-#endif
-        };
-
         const struct s2n_kem_preferences kem_prefs_all = {
                 .kem_count = 0,
                 .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(all_kem_groups),
-                .tls13_kem_groups = all_kem_groups,
+                .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
+                .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
         };
 
         const struct s2n_security_policy security_policy_all = {
@@ -82,8 +71,6 @@ int main() {
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
-
-        EXPECT_EQUAL(S2N_SUPPORTED_KEM_GROUPS_COUNT, s2n_array_len(all_kem_groups));
 
         /* Tests for s2n_client_key_share_extension.send */
         {
@@ -137,7 +124,7 @@ int main() {
                      * correctly. */
                     const struct s2n_kem_group *test_kem_groups[S2N_SUPPORTED_KEM_GROUPS_COUNT];
                     for (size_t j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
-                        test_kem_groups[j] = all_kem_groups[(j + i) % S2N_SUPPORTED_KEM_GROUPS_COUNT];
+                        test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_SUPPORTED_KEM_GROUPS_COUNT];
                     }
 
                     const struct s2n_kem_preferences test_kem_prefs = {
@@ -533,7 +520,7 @@ int main() {
                          * correctly. */
                         const struct s2n_kem_group *test_kem_groups[S2N_SUPPORTED_KEM_GROUPS_COUNT];
                         for (size_t j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
-                            test_kem_groups[j] = all_kem_groups[(j + i) % S2N_SUPPORTED_KEM_GROUPS_COUNT];
+                            test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_SUPPORTED_KEM_GROUPS_COUNT];
                         }
 
                         const struct s2n_kem_preferences test_kem_prefs = {
