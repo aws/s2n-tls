@@ -61,7 +61,7 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const uint16_t max_connection_size = 18700;
+        const uint16_t max_connection_size = 19584;
         const uint16_t min_connection_size = max_connection_size * 0.75;
 
         size_t connection_size = sizeof(struct s2n_connection);
