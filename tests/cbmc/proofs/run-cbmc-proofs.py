@@ -6,10 +6,12 @@
 
 import argparse
 import asyncio
+import json
 import logging
 import math
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -51,7 +53,14 @@ just the CBMC ones. In that case, you would run `litani init`
 yourself; then run `run-cbmc-proofs --no-standalone`; add any
 additional jobs that you want to execute with `litani add-job`; and
 finally run `litani run-build`.
+
+The litani dashboard will be written under the `output` directory; the
+cbmc-viewer reports remain in the `$PROOF_DIR/report` directory. The
+HTML dashboard from the latest Litani run will always be symlinked to
+`output/latest/html/index.html`, so you can keep that page open in
+your browser and reload the page whenever you re-run this script.
 """
+# 70 characters stops here ----------------------------------------> |
 
 
 def get_project_name():
@@ -104,6 +113,22 @@ def get_args():
             "help": (
                 "name of file that marks proof directories. Default: "
                 "%(default)s"),
+    }, {
+            "flags": ["--no-memory-profile"],
+            "action": "store_true",
+            "help": "disable memory profiling, even if Litani supports it"
+    }, {
+            "flags": ["--no-expensive-limit"],
+            "action": "store_true",
+            "help": "do not limit parallelism of 'EXPENSIVE' jobs",
+    }, {
+            "flags": ["--expensive-jobs-parallelism"],
+            "metavar": "N",
+            "default": 1,
+            "type": int,
+            "help": (
+                "how many proof jobs marked 'EXPENSIVE' to run in parallel. "
+                "Default: %(default)s"),
     }, {
             "flags": ["--verbose"],
             "action": "store_true",
@@ -186,13 +211,70 @@ def get_litani_path(proof_root):
     return proc.stdout.strip()
 
 
-async def configure_proof_dirs(queue, counter):
+def get_litani_capabilities(litani_path):
+    cmd = [litani_path, "print-capabilities"]
+    proc = subprocess.run(
+        cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if proc.returncode:
+        return []
+    try:
+        return json.loads(proc.stdout)
+    except RuntimeError:
+        logging.warning("Could not load litani capabilities: '%s'", proc.stdout)
+        return []
+
+
+def check_uid_uniqueness(proof_dir, proof_uids):
+    with (pathlib.Path(proof_dir) / "Makefile").open() as handle:
+        for line in handle:
+            m = re.match(r"^PROOF_UID\s*=\s*(?P<uid>\w+)", line)
+            if not m:
+                continue
+            if m["uid"] not in proof_uids:
+                proof_uids[m["uid"]] = proof_dir
+                return
+
+            logging.critical(
+                "The Makefile in directory '%s' should have a different "
+                "PROOF_UID than the Makefile in directory '%s'",
+                proof_dir, proof_uids[m["uid"]])
+            sys.exit(1)
+
+    logging.critical(
+        "The Makefile in directory '%s' should contain a line like", proof_dir)
+    logging.critical("PROOF_UID = ...")
+    logging.critical("with a unique identifier for the proof.")
+    sys.exit(1)
+
+
+def should_enable_memory_profiling(litani_caps, args):
+    if args.no_memory_profile:
+        return False
+    return "memory_profile" in litani_caps
+
+
+def should_enable_pools(litani_caps, args):
+    if args.no_expensive_limit:
+        return False
+    return "pools" in litani_caps
+
+
+async def configure_proof_dirs(
+    queue, counter, proof_uids, enable_pools, enable_memory_profiling):
     while True:
         print_counter(counter)
         path = str(await queue.get())
 
+        check_uid_uniqueness(path, proof_uids)
+
+        pools = ["ENABLE_POOLS=true"] if enable_pools else []
+        profiling = [
+            "ENABLE_MEMORY_PROFILING=true"] if enable_memory_profiling else []
+
         proc = await asyncio.create_subprocess_exec(
-            "nice", "-n", "15", "make", "-B", "--quiet", "_report", cwd=path)
+            # Allow interactive tasks to preempt proof configuration
+            "nice", "-n", "15", "make", *pools, *profiling, "-B", "--quiet",
+            "_report", cwd=path)
         await proc.wait()
         counter["fail" if proc.returncode else "pass"].append(path)
         counter["complete"] += 1
@@ -208,8 +290,30 @@ async def main():
     proof_root = pathlib.Path(__file__).resolve().parent
     litani = get_litani_path(proof_root)
 
+    litani_caps = get_litani_capabilities(litani)
+    enable_pools = should_enable_pools(litani_caps, args)
+    init_pools = [
+        "--pools", f"expensive:{args.expensive_jobs_parallelism}"
+    ] if enable_pools else []
+
     if not args.no_standalone:
-        cmd = [str(litani), "init", "--project", args.project_name]
+        cmd = [
+            str(litani), "init", *init_pools, "--project", args.project_name,
+        ]
+
+        if "output_directory_flags" in litani_caps:
+            out_prefix = proof_root / "output"
+            out_symlink = out_prefix / "latest"
+            out_index = out_symlink / "html" / "index.html"
+            cmd.extend([
+                "--output-prefix", str(out_prefix),
+                "--output-symlink", str(out_symlink),
+                "--no-print-out-dir",
+            ])
+            print(
+                "\nFor your convenience, the output of this run will be "
+                "symbolically linked to %s\n" % str(out_index))
+
         logging.debug(" ".join(cmd))
         proc = subprocess.run(cmd)
         if proc.returncode:
@@ -234,10 +338,15 @@ async def main():
         "width": int(math.log10(len(proof_dirs))) + 1
     }
 
+    proof_uids = {}
     tasks = []
+
+    enable_memory_profiling = should_enable_memory_profiling(litani_caps, args)
+
     for _ in range(task_pool_size()):
         task = asyncio.create_task(configure_proof_dirs(
-            proof_queue, counter))
+            proof_queue, counter, proof_uids, enable_pools,
+            enable_memory_profiling))
         tasks.append(task)
 
     await proof_queue.join()
@@ -249,6 +358,7 @@ async def main():
         logging.critical(
             "Failed to configure the following proofs:\n%s", "\n".join(
                 [str(f) for f in counter["fail"]]))
+        sys.exit(1)
 
     if not args.no_standalone:
         run_build(litani, args.parallel_jobs)
