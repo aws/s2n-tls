@@ -33,9 +33,9 @@ The tool is roughly equivalent to doing this:
         find . -name cbmc-proof.txt | while read -r proof; do
             pushd $(dirname ${proof});
 
-            # The `make _report` rule adds a single proof to litani
+            # The `make _report2` rule adds a single proof to litani
             # without running it
-            make _report;
+            make _report2;
 
             popd;
         done
@@ -274,7 +274,7 @@ async def configure_proof_dirs(
         proc = await asyncio.create_subprocess_exec(
             # Allow interactive tasks to preempt proof configuration
             "nice", "-n", "15", "make", *pools, *profiling, "-B", "--quiet",
-            "_report", cwd=path)
+            "_report2", cwd=path)
         await proc.wait()
         counter["fail" if proc.returncode else "pass"].append(path)
         counter["complete"] += 1
