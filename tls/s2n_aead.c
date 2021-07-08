@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <byteswap.h>
 #include "error/s2n_errno.h"
 
 #include "utils/s2n_safety.h"
@@ -26,11 +27,28 @@
 S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_stuffer *ad)
 {
     /* ad = seq_num || record_type || version || length */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(ad, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(ad, content_type));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(ad, conn->actual_protocol_version / 10));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(ad, conn->actual_protocol_version % 10));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(ad, record_length));
+    uint32_t aad_len = S2N_TLS_SEQUENCE_NUM_LEN + 1 /* content_type */ + 2 /* protocol_version */ + 2 /* record_length */;
+
+    /* this is a very performance-sensitive function so */
+    /* we use raw write instead of individual writes to */
+    /* reduce the overhead of the stuffer checks */
+    uint8_t *bytes = s2n_stuffer_raw_write(ad, aad_len);
+    RESULT_GUARD_PTR(bytes);
+
+    size_t idx = 0;
+    for (; idx < S2N_TLS_SEQUENCE_NUM_LEN; idx++) {
+        bytes[idx] = sequence_number[idx];
+    }
+
+    bytes[idx++] = content_type;
+    bytes[idx++] = conn->actual_protocol_version / 10;
+    bytes[idx++] = conn->actual_protocol_version % 10;
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    record_length = bswap_16(record_length);
+#endif
+    bytes[idx++] = record_length >> 8;
+    bytes[idx++] = record_length;
 
     return S2N_RESULT_OK;
 }
@@ -70,10 +88,23 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
     uint16_t length = record_length + tag_length;
     RESULT_ENSURE(length <= (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(additional_data, TLS_APPLICATION_DATA)); /* fixed to 0x17 */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(additional_data, 3)); /* TLS record layer              */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(additional_data, 3)); /* version fixed at 1.2 (0x0303) */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(additional_data, length));
+    uint32_t aad_len = 1 /* TLS_APPLICATION_DATA */ + 1 /* record_layer */ + 1 /* version */ + 2 /* record_length */;
+
+    /* this is a very performance-sensitive function so */
+    /* we use raw write instead of individual writes to */
+    /* reduce the overhead of the stuffer checks */
+    uint8_t *bytes = s2n_stuffer_raw_write(additional_data, aad_len);
+    RESULT_GUARD_PTR(bytes);
+
+    size_t idx = 0;
+    bytes[idx++] = TLS_APPLICATION_DATA;
+    bytes[idx++] = 3; /* TLS record layer */
+    bytes[idx++] = 3; /* version fixed at 1.2 (0x0303) */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    length = bswap_16(length);
+#endif
+    bytes[idx++] = length >> 8;
+    bytes[idx++] = length;
 
     return S2N_RESULT_OK;
 }
