@@ -46,8 +46,8 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequen
     bytes[idx++] = conn->actual_protocol_version % 10;
 
     record_length = htobe16(record_length);
-    bytes[idx++] = record_length >> 8;
     bytes[idx++] = record_length;
+    bytes[idx++] = record_length >> 8;
     ad->tainted = was_tainted;
 
     return S2N_RESULT_OK;
