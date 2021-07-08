@@ -48,10 +48,10 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     /* Use a copy of the hash state since the verify digest computation may modify the running hash state we need later. */
     struct s2n_hash_state hash_state = {0};
     POSIX_GUARD(s2n_handshake_get_hash_state(conn, chosen_sig_scheme.hash_alg, &hash_state));
-    POSIX_GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
+    POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &hash_state));
 
     /* Verify the signature */
-    POSIX_GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, &signature));
+    POSIX_GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme.sig_alg, &conn->hash_workspace, &signature));
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
@@ -74,9 +74,9 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     /* Use a copy of the hash state since the verify digest computation may modify the running hash state we need later. */
     struct s2n_hash_state hash_state = {0};
     POSIX_GUARD(s2n_handshake_get_hash_state(conn, chosen_sig_scheme.hash_alg, &hash_state));
-    POSIX_GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
+    POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &hash_state));
 
-    S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, s2n_client_cert_verify_send_complete);
+    S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme.sig_alg, &conn->hash_workspace, s2n_client_cert_verify_send_complete);
 }
 
 static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n_blob *signature)
