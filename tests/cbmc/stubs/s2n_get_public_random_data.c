@@ -20,16 +20,23 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety_macros.h"
 
-
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob) 
 {
-    assert(s2n_blob_validate(blob) == S2N_RESULT_OK);
-    assert(__CPROVER_w_ok(blob->data, blob->size));
-
-    /* FIXME: This is havoking too much it should havoc only 
+    /* FIXME: This is havocing too much it should havoc only 
      * blob->data[0..blob->size-1], but we don't have a good
      * way to do that apparently. */
-    __CPROVER_havok_object(blob->data);
+    /*    __CPROVER_havoc_object(blob->data); */
+
+    if (blob->size != 0) {
+        /* FIXME: Conversely, this doesn't havoc enough,
+         * but at least it havocs something */
+        size_t index = nondet_size_t();
+        __CPROVER_assume(index < blob->size);
+
+        uint8_t value = nondet_uint8_t();
+
+        blob->data[index] = value;
+    }
     
     bool ok = nondet_bool();
     return ok ? S2N_RESULT_OK : S2N_RESULT_ERROR;
