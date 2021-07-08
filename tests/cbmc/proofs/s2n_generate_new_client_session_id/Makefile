@@ -17,8 +17,7 @@ CBMCFLAGS +=
 PROOF_UID = s2n_generate_new_client_session_id
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
-
-CHECK_FUNCTION_CONTRACTS = s2n_generate_new_client_session_id
+CHECK_FUNCTION_CONTRACTS = $(PROOF_UID)
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
