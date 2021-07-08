@@ -694,13 +694,16 @@ static int s2n_advance_message(struct s2n_connection *conn)
 }
 
 int s2n_generate_new_client_session_id(struct s2n_connection *conn)
-    __CPROVER_requires(__CPROVER_is_fresh(conn, sizeof(*conn)))
+    __CPROVER_requires(__CPROVER_is_fresh(conn, sizeof(*conn)) || (conn == NULL))
     __CPROVER_assigns(conn->session_id_len, conn->session_id)
-    __CPROVER_ensures(S2N_IMPLIES(conn->mode == S2N_SERVER && __CPROVER_return_value == 0, conn->session_id_len == S2N_TLS_SESSION_ID_MAX_LEN))
-    __CPROVER_ensures(S2N_IMPLIES(conn->mode != S2N_SERVER, __CPROVER_return_value == 0))
-    /* __CPROVER_ensures(S2N_IMPLIES(conn->mode != S2N_SERVER, *conn == __CPROVER_old(*conn))) */
-    /* __CPROVER_ensures(S2N_IMPLIES(__CPROVER_return_value != 0, *conn == __CPROVER_old(*conn))) */
+    __CPROVER_ensures(S2N_IMPLIES(conn == NULL, __CPROVER_return_value == S2N_FAILURE))
+    __CPROVER_ensures(S2N_IMPLIES(__CPROVER_return_value == 0 && conn->mode == S2N_SERVER, conn->session_id_len == S2N_TLS_SESSION_ID_MAX_LEN))
+    __CPROVER_ensures(S2N_IMPLIES(conn != NULL && conn->mode != S2N_SERVER, __CPROVER_return_value == 0))
+    /* __CPROVER_ensures(S2N_IMPLIES(conn->mode != S2N_SERVER, *conn == __CPROVER_old(*conn)))    */ /* Check does not terminate */
+    /* __CPROVER_ensures(S2N_IMPLIES(__CPROVER_return_value != 0, *conn == __CPROVER_old(*conn))) */ /* Check does not terminate */
 {
+    POSIX_ENSURE_REF(conn);
+
     if (conn->mode == S2N_SERVER) {
         struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
 

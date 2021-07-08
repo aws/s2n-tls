@@ -20,19 +20,14 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CHECK_FUNCTION_CONTRACTS = s2n_generate_new_client_session_id
 
-#OPENSSL_SOURCE = /Users/jmgruj/jim/s2n-tls/tests/cbmc/aws-verification-model-for-libcrypto/source/
-
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_get_public_random_data.c
-#PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_drbg.c
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake_io.c
-#PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
-#PROJECT_SOURCES += $(SRCDIR)/utils/s2n_random.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=
