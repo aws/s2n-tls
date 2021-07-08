@@ -92,8 +92,8 @@ int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u)
     POSIX_GUARD_PTR(data);
 
     u = htobe16(u);
-    data[0] = u;
-    data[1] = u >> (1 * 8);
+    data[0] = (u) & UINT8_MAX;
+    data[1] = (u >> (1 * 8)) & UINT8_MAX;
     stuffer->tainted = was_tainted;
 
     return S2N_SUCCESS;
@@ -127,9 +127,9 @@ int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u)
     POSIX_GUARD_PTR(data);
 
     u = htobe32(u);
-    data[0] = u >> (1 * 8);
-    data[1] = u >> (2 * 8);
-    data[2] = u >> (3 * 8);
+    data[0] = (u >> (1 * 8)) & UINT8_MAX;
+    data[1] = (u >> (2 * 8)) & UINT8_MAX;
+    data[2] = (u >> (3 * 8)) & UINT8_MAX;
     stuffer->tainted = was_tainted;
 
     return S2N_SUCCESS;
@@ -164,10 +164,10 @@ int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u)
     POSIX_GUARD_PTR(data);
 
     u = htobe32(u);
-    data[0] = u;
-    data[1] = u >> (1 * 8);
-    data[2] = u >> (2 * 8);
-    data[3] = u >> (3 * 8);
+    data[0] = (u) & UINT8_MAX;
+    data[1] = (u >> (1 * 8)) & UINT8_MAX;
+    data[2] = (u >> (2 * 8)) & UINT8_MAX;
+    data[3] = (u >> (3 * 8)) & UINT8_MAX;
     stuffer->tainted = was_tainted;
 
     return S2N_SUCCESS;
@@ -201,14 +201,14 @@ int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u)
     POSIX_GUARD_PTR(data);
 
     u = htobe64(u);
-    data[0] = u;
-    data[1] = u >> (1 * 8);
-    data[2] = u >> (2 * 8);
-    data[3] = u >> (3 * 8);
-    data[4] = u >> (4 * 8);
-    data[5] = u >> (5 * 8);
-    data[6] = u >> (6 * 8);
-    data[7] = u >> (7 * 8);
+    data[0] = (u) & UINT8_MAX;
+    data[1] = (u >> (1 * 8)) & UINT8_MAX;
+    data[2] = (u >> (2 * 8)) & UINT8_MAX;
+    data[3] = (u >> (3 * 8)) & UINT8_MAX;
+    data[4] = (u >> (4 * 8)) & UINT8_MAX;
+    data[5] = (u >> (5 * 8)) & UINT8_MAX;
+    data[6] = (u >> (6 * 8)) & UINT8_MAX;
+    data[7] = (u >> (7 * 8)) & UINT8_MAX;
     stuffer->tainted = was_tainted;
 
     return S2N_SUCCESS;
