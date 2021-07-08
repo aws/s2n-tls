@@ -92,7 +92,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
     for (size_t i = 0; i < ecc_pref->count; i++) {
         const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[i];
         if (iana_id == supported_curve->iana_id) {
-            conn->secure.mutually_supported_curves[i] = supported_curve;
+            conn->kex_params.mutually_supported_curves[i] = supported_curve;
             return S2N_SUCCESS;
         }
     }
@@ -109,7 +109,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_kem_group = kem_pref->tls13_kem_groups[i];
         if (iana_id == supported_kem_group->iana_id) {
-            conn->secure.mutually_supported_kem_groups[i] = supported_kem_group;
+            conn->kex_params.mutually_supported_kem_groups[i] = supported_kem_group;
             return S2N_SUCCESS;
         }
     }
@@ -130,28 +130,28 @@ static int s2n_choose_supported_group(struct s2n_connection *conn) {
 
     /* Ensure that only the intended group will be non-NULL (if no group is chosen, everything
      * should be NULL). */
-    conn->secure.server_kem_group_params.kem_group = NULL;
-    conn->secure.server_kem_group_params.ecc_params.negotiated_curve = NULL;
-    conn->secure.server_kem_group_params.kem_params.kem = NULL;
-    conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+    conn->kex_params.server_kem_group_params.kem_group = NULL;
+    conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = NULL;
+    conn->kex_params.server_kem_group_params.kem_params.kem = NULL;
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
 
     /* Prefer to negotiate hybrid PQ over ECC. If PQ is disabled, we will never choose a
      * PQ group because the mutually_supported_kem_groups array will not have been
      * populated with anything. */
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-        const struct s2n_kem_group *candidate_kem_group = conn->secure.mutually_supported_kem_groups[i];
+        const struct s2n_kem_group *candidate_kem_group = conn->kex_params.mutually_supported_kem_groups[i];
         if (candidate_kem_group != NULL) {
-            conn->secure.server_kem_group_params.kem_group = candidate_kem_group;
-            conn->secure.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
-            conn->secure.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;
+            conn->kex_params.server_kem_group_params.kem_group = candidate_kem_group;
+            conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
+            conn->kex_params.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;
             return S2N_SUCCESS;
         }
     }
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        const struct s2n_ecc_named_curve *candidate_curve = conn->secure.mutually_supported_curves[i];
+        const struct s2n_ecc_named_curve *candidate_curve = conn->kex_params.mutually_supported_curves[i];
         if (candidate_curve != NULL) {
-            conn->secure.server_ecc_evp_params.negotiated_curve = candidate_curve;
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = candidate_curve;
             return S2N_SUCCESS;
         }
     }

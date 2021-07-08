@@ -96,10 +96,10 @@ static S2N_RESULT s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     RESULT_ENSURE_REF(ecc_pref);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
 
     uint8_t test_value[SHA256_DIGEST_LENGTH] = "test";
     DEFER_CLEANUP(struct s2n_psk *s2n_test_psk = s2n_external_psk_new(), s2n_psk_free);

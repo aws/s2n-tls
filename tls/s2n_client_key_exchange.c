@@ -53,7 +53,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     const struct s2n_kex *hybrid_kex_1 = conn->secure.cipher_suite->key_exchange_alg->hybrid[1];
 
     /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
-    struct s2n_blob *client_key_exchange_message = &conn->secure.client_key_exchange_message;
+    struct s2n_blob *client_key_exchange_message = &conn->kex_params.client_key_exchange_message;
     client_key_exchange_message->data = stuffer_action(io, 0);
     POSIX_ENSURE_REF(client_key_exchange_message->data);
     const uint32_t start_cursor = *cursor;
@@ -61,7 +61,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     DEFER_CLEANUP(struct s2n_blob shared_key_0 = {0}, s2n_free);
     POSIX_GUARD_RESULT(kex_method(hybrid_kex_0, conn, &shared_key_0));
 
-    struct s2n_blob *shared_key_1 = &(conn->secure.kem_params.shared_secret);
+    struct s2n_blob *shared_key_1 = &(conn->kex_params.kem_params.shared_secret);
     POSIX_GUARD_RESULT(kex_method(hybrid_kex_1, conn, shared_key_1));
 
     const uint32_t end_cursor = *cursor;
@@ -74,7 +74,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
     POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, shared_key_1));
 
-    POSIX_GUARD(s2n_kem_free(&conn->secure.kem_params));
+    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
 
     return 0;
 }
@@ -171,9 +171,9 @@ int s2n_dhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* Get the shared key */
-    POSIX_GUARD(s2n_dh_compute_shared_secret_as_server(&conn->secure.server_dh_params, in, shared_key));
+    POSIX_GUARD(s2n_dh_compute_shared_secret_as_server(&conn->kex_params.server_dh_params, in, shared_key));
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     return 0;
 }
 
@@ -182,16 +182,16 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* Get the shared key */
-    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_server(&conn->secure.server_ecc_evp_params, in, shared_key));
+    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_server(&conn->kex_params.server_ecc_evp_params, in, shared_key));
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
     return 0;
 }
 
 int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* s2n_kem_recv_ciphertext() writes the KEM shared secret directly to
-     * conn->secure.kem_params. However, the calling function
+     * conn->kex_params.kem_params. However, the calling function
      * likely expects *shared_key to point to the shared secret. We 
      * can't reassign *shared_key to point to kem_params.shared_secret,
      * because that would require us to take struct s2n_blob **shared_key
@@ -201,9 +201,9 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
      * So, we assert that the caller already has *shared_key pointing
      * to kem_params.shared_secret. */
     POSIX_ENSURE_REF(shared_key);
-    S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
+    S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    POSIX_GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->secure.kem_params)));
+    POSIX_GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
 
     return 0;
 }
@@ -228,20 +228,20 @@ int s2n_client_key_recv(struct s2n_connection *conn)
 int s2n_dhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    POSIX_GUARD(s2n_dh_compute_shared_secret_as_client(&conn->secure.server_dh_params, out, shared_key));
+    POSIX_GUARD(s2n_dh_compute_shared_secret_as_client(&conn->kex_params.server_dh_params, out, shared_key));
 
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     return 0;
 }
 
 int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_client(&conn->secure.server_ecc_evp_params, out, shared_key));
+    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_client(&conn->kex_params.server_ecc_evp_params, out, shared_key));
 
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
     return 0;
 }
 
@@ -287,7 +287,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* s2n_kem_send_ciphertext() writes the KEM shared secret directly to
-     * conn->secure.kem_params. However, the calling function
+     * conn->kex_params.kem_params. However, the calling function
      * likely expects *shared_key to point to the shared secret. We
      * can't reassign *shared_key to point to kem_params.shared_secret,
      * because that would require us to take struct s2n_blob **shared_key
@@ -297,9 +297,9 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      * So, we assert that the caller already has *shared_key pointing
      * to kem_params.shared_secret. */
     POSIX_ENSURE_REF(shared_key);
-    S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
+    S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->secure.kem_params)));
+    POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
 
     return 0;
 }

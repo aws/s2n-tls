@@ -114,7 +114,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
     POSIX_GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
     POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
-    server_conn->secure.kem_params.kem = NULL;
+    server_conn->kex_params.kem_params.kem = NULL;
 
     /* Send the client hello */
     POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len),record_header_len);
@@ -131,8 +131,8 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
 
     int negotiated_kem_id;
 
-    if (server_conn->secure.kem_params.kem != NULL) {
-        negotiated_kem_id = server_conn->secure.kem_params.kem->kem_extension_id;
+    if (server_conn->kex_params.kem_params.kem != NULL) {
+        negotiated_kem_id = server_conn->kex_params.kem_params.kem->kem_extension_id;
     } else {
         negotiated_kem_id = -1;
     }

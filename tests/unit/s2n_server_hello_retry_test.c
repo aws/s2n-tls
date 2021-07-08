@@ -84,9 +84,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-        server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.client_ecc_evp_params[0]));
 
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
@@ -100,8 +100,8 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
 
-        EXPECT_NOT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_NULL(server_conn->secure.server_ecc_evp_params.evp_pkey);
+        EXPECT_NOT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.evp_pkey);
         EXPECT_TRUE(memcmp(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN) == 0);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -119,9 +119,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
-        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        conn->kex_params.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
 
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
 
@@ -221,18 +221,18 @@ int main(int argc, char **argv)
 
         POSIX_CHECKED_MEMCPY(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-        server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.client_ecc_evp_params[0]));
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, extension_stuffer));
 
         S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, TLS_EXTENSION_KEY_SHARE, uint16);
         /* 4 = S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE */
         S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_extensions_server_key_share_send_size(server_conn) - 4, uint16);
 
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
 
         /* Setup the client to receive a HelloRetryRequest */
         POSIX_CHECKED_MEMCPY(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(extension_stuffer), 0);
 
         /* Server negotiated curve value will be non-null, if the extension succeeded */
-        EXPECT_NOT_NULL(client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NOT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -265,9 +265,9 @@ int main(int argc, char **argv)
 
         conn->server_protocol_version = S2N_TLS13;
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
-        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        conn->kex_params.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
 
         /* This blob is taken from the functional test RFC. That RFC does not actually provide hash transcript
          * values, so the expected hashes are taken from what our hash functions generated and the hash
@@ -385,7 +385,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(ecc_pref);
 
         for (int i=0; i<ecc_pref->count; i++) {
-            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.client_ecc_evp_params[i]));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->kex_params.client_ecc_evp_params[i]));
         }
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
@@ -516,15 +516,15 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
-            conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
 
             /* Server requested key share is NOT present: allow retry */
             EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
 
             /* Server requested key share is present: do NOT allow retry */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
-            conn->secure.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
-            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[0].evp_pkey);
+            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = test_curve;
+            conn->kex_params.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
+            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params[0].evp_pkey);
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn),
                     S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -539,10 +539,10 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
-            conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
-            conn->secure.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
-            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[0].evp_pkey);
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
+            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = test_curve;
+            conn->kex_params.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
+            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params[0].evp_pkey);
 
             /* Early data rejected: allow retry */
             conn->early_data_state = S2N_EARLY_DATA_REJECTED;
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
-            conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
 
             /* All retry conditions met: allow retry */
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
@@ -572,9 +572,9 @@ int main(int argc, char **argv)
 
             /* No retry conditions met: do NOT allow retry */
             conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
-            conn->secure.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
-            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[0].evp_pkey);
+            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = test_curve;
+            conn->kex_params.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
+            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params[0].evp_pkey);
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn),
                     S2N_ERR_INVALID_HELLO_RETRY);
 

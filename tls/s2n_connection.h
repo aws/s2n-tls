@@ -163,6 +163,9 @@ struct s2n_connection {
     struct s2n_crypto_parameters *client;
     struct s2n_crypto_parameters *server;
 
+    /* Contains parameters needed to negotiate a shared secret */
+    struct s2n_kex_parameters kex_params;
+
     /* Contains parameters needed during the handshake phase */
     struct s2n_handshake_parameters handshake_params;
 

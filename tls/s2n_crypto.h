@@ -30,9 +30,7 @@
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc_evp.h"
 
-struct s2n_crypto_parameters {
-    struct s2n_pkey server_public_key;
-    struct s2n_pkey client_public_key;
+struct s2n_kex_parameters {
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_evp_params server_ecc_evp_params;
     const struct s2n_ecc_named_curve *mutually_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
@@ -44,6 +42,11 @@ struct s2n_crypto_parameters {
     struct s2n_kem_params kem_params;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;
+};
+
+struct s2n_crypto_parameters {
+    struct s2n_pkey server_public_key;
+    struct s2n_pkey client_public_key;
 
     struct s2n_signature_scheme conn_sig_scheme;
 

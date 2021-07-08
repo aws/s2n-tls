@@ -435,36 +435,36 @@ int main(int argc, char **argv) {
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, &calculated_shared_secret), S2N_ERR_NULL);
 
             /* Failures because classic (non-hybrid) parameters were configured */
-            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_SAFETY);
-            conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
-            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
+            EXPECT_SUCCESS(read_priv_ecc(&conn->kex_params.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_SAFETY);
-            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
 
             /* Failure because the chosen_client_kem_group_params is NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[0];
+            conn->kex_params.chosen_client_kem_group_params = &conn->kex_params.client_kem_group_params[0];
 
             /* Failures because the kem_group_params aren't set */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            conn->secure.server_kem_group_params.ecc_params.negotiated_curve = test_vector->kem_group->curve;
+            conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = test_vector->kem_group->curve;
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = test_vector->kem_group->curve;
+            conn->kex_params.chosen_client_kem_group_params->ecc_params.negotiated_curve = test_vector->kem_group->curve;
 
             /* Failures because the ECC private keys are NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, test_vector->client_ecc_key));
+            EXPECT_SUCCESS(read_priv_ecc(&conn->kex_params.chosen_client_kem_group_params->ecc_params.evp_pkey, test_vector->client_ecc_key));
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
+            EXPECT_SUCCESS(read_priv_ecc(&conn->kex_params.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
 
             /* Failure because pq_shared_secret is NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
+            EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret));
 
             /* Failure because the kem_group is NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
+            conn->kex_params.server_kem_group_params.kem_group = test_vector->kem_group;
 
             /* Finally, success */
             EXPECT_SUCCESS(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret));
@@ -508,45 +508,45 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
                         const char *client_priv_ecc, const char *server_priv_ecc, const struct s2n_kem_group *kem_group,
                         struct s2n_blob *pq_shared_secret) {
     /* These parameters would normally be set during the handshake */
-    client_conn->secure.chosen_client_kem_group_params = &client_conn->secure.client_kem_group_params[0];
-    server_conn->secure.chosen_client_kem_group_params = &server_conn->secure.client_kem_group_params[0];
+    client_conn->kex_params.chosen_client_kem_group_params = &client_conn->kex_params.client_kem_group_params[0];
+    server_conn->kex_params.chosen_client_kem_group_params = &server_conn->kex_params.client_kem_group_params[0];
 
-    server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
-    server_conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = kem_group->curve;
-    client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
-    client_conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = kem_group->curve;
+    server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
+    server_conn->kex_params.chosen_client_kem_group_params->ecc_params.negotiated_curve = kem_group->curve;
+    client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
+    client_conn->kex_params.chosen_client_kem_group_params->ecc_params.negotiated_curve = kem_group->curve;
 
-    server_conn->secure.server_kem_group_params.kem_group = kem_group;
-    server_conn->secure.chosen_client_kem_group_params->kem_group = kem_group;
-    client_conn->secure.server_kem_group_params.kem_group = kem_group;
-    client_conn->secure.chosen_client_kem_group_params->kem_group = kem_group;
+    server_conn->kex_params.server_kem_group_params.kem_group = kem_group;
+    server_conn->kex_params.chosen_client_kem_group_params->kem_group = kem_group;
+    client_conn->kex_params.server_kem_group_params.kem_group = kem_group;
+    client_conn->kex_params.chosen_client_kem_group_params->kem_group = kem_group;
 
-    server_conn->secure.server_kem_group_params.kem_params.kem = kem_group->kem;
-    server_conn->secure.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
-    client_conn->secure.server_kem_group_params.kem_params.kem = kem_group->kem;
-    client_conn->secure.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
+    server_conn->kex_params.server_kem_group_params.kem_params.kem = kem_group->kem;
+    server_conn->kex_params.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
+    client_conn->kex_params.server_kem_group_params.kem_params.kem = kem_group->kem;
+    client_conn->kex_params.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
 
     /* During an actual handshake, server will generate the shared secret and store it in chosen_client_kem_group_params,
      * client will decapsulate the ciphertext and store the shared secret in chosen_client_kem_group_params. */
-    POSIX_GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
-    POSIX_GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
+    POSIX_GUARD(s2n_dup(pq_shared_secret, &server_conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret));
+    POSIX_GUARD(s2n_dup(pq_shared_secret, &client_conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret));
 
     /* Populate the client's PQ private key with something - it doesn't have to be a
      * legitimate private key since it doesn't get used in the shared secret derivation,
      * but we want to make sure its definitely been freed after shared secret calculation */
-    POSIX_GUARD(s2n_alloc(&client_conn->secure.chosen_client_kem_group_params->kem_params.private_key, 2));
+    POSIX_GUARD(s2n_alloc(&client_conn->kex_params.chosen_client_kem_group_params->kem_params.private_key, 2));
     struct s2n_stuffer private_key_stuffer = {0};
     POSIX_GUARD(s2n_stuffer_init(&private_key_stuffer,
-                           &client_conn->secure.chosen_client_kem_group_params->kem_params.private_key));
+                           &client_conn->kex_params.chosen_client_kem_group_params->kem_params.private_key));
     uint8_t fake_private_key[] = {3, 3};
     POSIX_GUARD(s2n_stuffer_write_bytes(&private_key_stuffer, fake_private_key, 2));
 
     /* "Import" the provided private ECC keys */
     POSIX_ENSURE_EQ(sizeof(char) * strlen(client_priv_ecc), sizeof(char) * strlen(server_priv_ecc));
-    POSIX_GUARD(read_priv_ecc(&client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, client_priv_ecc));
-    POSIX_ENSURE_REF(client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey);
-    POSIX_GUARD(read_priv_ecc(&server_conn->secure.server_kem_group_params.ecc_params.evp_pkey, server_priv_ecc));
-    POSIX_ENSURE_REF(server_conn->secure.server_kem_group_params.ecc_params.evp_pkey);
+    POSIX_GUARD(read_priv_ecc(&client_conn->kex_params.chosen_client_kem_group_params->ecc_params.evp_pkey, client_priv_ecc));
+    POSIX_ENSURE_REF(client_conn->kex_params.chosen_client_kem_group_params->ecc_params.evp_pkey);
+    POSIX_GUARD(read_priv_ecc(&server_conn->kex_params.server_kem_group_params.ecc_params.evp_pkey, server_priv_ecc));
+    POSIX_ENSURE_REF(server_conn->kex_params.server_kem_group_params.ecc_params.evp_pkey);
 
     /* Each peer sends its public ECC key to the other */
     struct s2n_stuffer wire;
@@ -555,13 +555,13 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
 
     POSIX_GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
 
-    POSIX_GUARD(s2n_ecc_evp_write_params_point(&server_conn->secure.server_kem_group_params.ecc_params, &wire));
+    POSIX_GUARD(s2n_ecc_evp_write_params_point(&server_conn->kex_params.server_kem_group_params.ecc_params, &wire));
     POSIX_GUARD(s2n_ecc_evp_read_params_point(&wire, share_size, &server_point_blob));
-    POSIX_GUARD(s2n_ecc_evp_parse_params_point(&server_point_blob, &client_conn->secure.server_kem_group_params.ecc_params));
+    POSIX_GUARD(s2n_ecc_evp_parse_params_point(&server_point_blob, &client_conn->kex_params.server_kem_group_params.ecc_params));
 
-    POSIX_GUARD(s2n_ecc_evp_write_params_point(&client_conn->secure.chosen_client_kem_group_params->ecc_params, &wire));
+    POSIX_GUARD(s2n_ecc_evp_write_params_point(&client_conn->kex_params.chosen_client_kem_group_params->ecc_params, &wire));
     POSIX_GUARD(s2n_ecc_evp_read_params_point(&wire, share_size, &client_point_blob));
-    POSIX_GUARD(s2n_ecc_evp_parse_params_point(&client_point_blob, &server_conn->secure.chosen_client_kem_group_params->ecc_params));
+    POSIX_GUARD(s2n_ecc_evp_parse_params_point(&client_point_blob, &server_conn->kex_params.chosen_client_kem_group_params->ecc_params));
 
     POSIX_GUARD(s2n_stuffer_free(&wire));
 
@@ -569,21 +569,21 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
 }
 
 static int assert_kem_group_params_freed(struct s2n_connection *conn) {
-    POSIX_ENSURE_EQ(NULL,conn->secure.server_kem_group_params.ecc_params.evp_pkey);
-    POSIX_ENSURE_EQ(NULL,conn->secure.server_kem_group_params.kem_params.shared_secret.data);
-    POSIX_ENSURE_EQ(0, conn->secure.server_kem_group_params.kem_params.shared_secret.allocated);
-    POSIX_ENSURE_EQ(NULL, conn->secure.server_kem_group_params.kem_params.private_key.data);
-    POSIX_ENSURE_EQ(0, conn->secure.server_kem_group_params.kem_params.private_key.allocated);
-    POSIX_ENSURE_EQ(NULL, conn->secure.server_kem_group_params.kem_params.public_key.data);
-    POSIX_ENSURE_EQ(0, conn->secure.server_kem_group_params.kem_params.public_key.allocated);
+    POSIX_ENSURE_EQ(NULL,conn->kex_params.server_kem_group_params.ecc_params.evp_pkey);
+    POSIX_ENSURE_EQ(NULL,conn->kex_params.server_kem_group_params.kem_params.shared_secret.data);
+    POSIX_ENSURE_EQ(0, conn->kex_params.server_kem_group_params.kem_params.shared_secret.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.server_kem_group_params.kem_params.private_key.data);
+    POSIX_ENSURE_EQ(0, conn->kex_params.server_kem_group_params.kem_params.private_key.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.server_kem_group_params.kem_params.public_key.data);
+    POSIX_ENSURE_EQ(0, conn->kex_params.server_kem_group_params.kem_params.public_key.allocated);
 
-    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey);
-    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->kem_params.shared_secret.data);
-    POSIX_ENSURE_EQ(0, conn->secure.chosen_client_kem_group_params->kem_params.shared_secret.allocated);
-    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->kem_params.private_key.data);
-    POSIX_ENSURE_EQ(0, conn->secure.chosen_client_kem_group_params->kem_params.private_key.allocated);
-    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->kem_params.public_key.data);
-    POSIX_ENSURE_EQ(0, conn->secure.chosen_client_kem_group_params->kem_params.public_key.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.chosen_client_kem_group_params->ecc_params.evp_pkey);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret.data);
+    POSIX_ENSURE_EQ(0, conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.chosen_client_kem_group_params->kem_params.private_key.data);
+    POSIX_ENSURE_EQ(0, conn->kex_params.chosen_client_kem_group_params->kem_params.private_key.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.chosen_client_kem_group_params->kem_params.public_key.data);
+    POSIX_ENSURE_EQ(0, conn->kex_params.chosen_client_kem_group_params->kem_params.public_key.allocated);
 
     return S2N_SUCCESS;
 }

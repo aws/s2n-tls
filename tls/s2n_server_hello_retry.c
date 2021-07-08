@@ -88,8 +88,8 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      * in the "key_share" extension in the original ClientHello.
      * If either of these checks fails, then the client MUST abort the handshake. */
 
-    const struct s2n_ecc_named_curve *named_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
-    const struct s2n_kem_group *kem_group = conn->secure.server_kem_group_params.kem_group;
+    const struct s2n_ecc_named_curve *named_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
+    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
 
     /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
     POSIX_ENSURE( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
@@ -101,7 +101,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
         for (size_t i = 0; i < ecc_pref->count; i++) {
             if (ecc_pref->ecc_curves[i] == named_curve) {
                 match_found = true;
-                new_key_share_requested = (conn->secure.client_ecc_evp_params[i].evp_pkey == NULL);
+                new_key_share_requested = (conn->kex_params.client_ecc_evp_params[i].evp_pkey == NULL);
                 break;
             }
         }
@@ -116,8 +116,8 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
             if (kem_pref->tls13_kem_groups[i] == kem_group) {
                 match_found = true;
-                new_key_share_requested = (conn->secure.client_kem_group_params[i].kem_params.private_key.size == 0)
-                        && (conn->secure.client_kem_group_params[i].ecc_params.evp_pkey == NULL);
+                new_key_share_requested = (conn->kex_params.client_kem_group_params[i].kem_params.private_key.size == 0)
+                        && (conn->kex_params.client_kem_group_params[i].ecc_params.evp_pkey == NULL);
                 break;
             }
         }
