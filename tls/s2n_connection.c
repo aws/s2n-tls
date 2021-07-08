@@ -266,14 +266,14 @@ S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
-    RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
     for (size_t i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-        RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+        RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.client_ecc_evp_params[i]));
     }
 
-    RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->secure.server_kem_group_params));
+    RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.server_kem_group_params));
     for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
-        RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->secure.client_kem_group_params[i]));
+        RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.client_kem_group_params[i]));
     }
 
     return S2N_RESULT_OK;
@@ -298,9 +298,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     POSIX_GUARD(s2n_pkey_free(&conn->secure.client_public_key));
     POSIX_GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
     s2n_x509_validator_wipe(&conn->x509_validator);
-    POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
-    POSIX_GUARD(s2n_kem_free(&conn->secure.kem_params));
+    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
     POSIX_GUARD(s2n_free(&conn->secure.client_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));
 
@@ -1025,10 +1025,10 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (conn->secure.server_ecc_evp_params.negotiated_curve) {
+    if (conn->kex_params.server_ecc_evp_params.negotiated_curve) {
         /* TLS1.3 currently only uses ECC groups. */
         if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
-            return conn->secure.server_ecc_evp_params.negotiated_curve->name;
+            return conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
         }
     }
 
@@ -1039,22 +1039,22 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->secure.kem_params.kem) {
+    if (!conn->kex_params.kem_params.kem) {
         return "NONE";
     }
 
-    return conn->secure.kem_params.kem->name;
+    return conn->kex_params.kem_params.kem->name;
 }
 
 const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->secure.chosen_client_kem_group_params || !conn->secure.chosen_client_kem_group_params->kem_group) {
+    if (!conn->kex_params.chosen_client_kem_group_params || !conn->kex_params.chosen_client_kem_group_params->kem_group) {
         return "NONE";
     }
 
-    return conn->secure.chosen_client_kem_group_params->kem_group->name;
+    return conn->kex_params.chosen_client_kem_group_params->kem_group->name;
 }
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)

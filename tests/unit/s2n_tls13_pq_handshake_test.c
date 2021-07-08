@@ -83,15 +83,15 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
-        POSIX_ENSURE_EQ(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     } else {
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Server sends ServerHello or HRR */
@@ -147,25 +147,25 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* Assert that the correct group was negotiated (we re-check the server group to assert that
      * nothing unexpected changed between then and now while e.g. processing HRR) */
     if (expected_kem_group) {
-        POSIX_ENSURE_EQ(expected_kem_group, client_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, client_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-        POSIX_ENSURE_EQ(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     } else {
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(expected_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Verify basic properties of secrets */

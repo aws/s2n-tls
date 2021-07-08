@@ -122,12 +122,12 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     POSIX_ENSURE_REF(ecc_preferences);
 
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-        s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+        s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.server_ecc_evp_params);
     }
 
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.kem_params.kem = &s2n_sike_p503_r1;
+        server_conn->kex_params.kem_params.kem = &s2n_sike_p503_r1;
     }
 
     /* Run Test

@@ -119,9 +119,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(ecc_preferences);
         /* configure these parameters so server hello can be sent */
         conn->actual_protocol_version = S2N_TLS13;
-        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+        conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
 
         struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
         EXPECT_SUCCESS(s2n_server_hello_send(conn));
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
         client_conn->client_protocol_version = S2N_TLS13;
 
         /* Set the negotiated curve, otherwise the server might try to respond with a retry */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* The server will respond with TLS1.1 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS11;
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
         client_conn->client_protocol_version = S2N_TLS13;
 
         /* Set the negotiated curve, otherwise the server might try to respond with a retry */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* The server will respond with TLS1.2 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS12;

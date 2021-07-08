@@ -57,12 +57,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_pref);
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
 
-            EXPECT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
-            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
+            EXPECT_NULL(conn->kex_params.client_ecc_evp_params->evp_pkey);
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
+            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params->evp_pkey);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190802")); /* does not contain x25519 */
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-            server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+            server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Server sends HelloRetryMessage */
@@ -202,8 +202,8 @@ int main(int argc, char **argv)
                 POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
-                conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
-                EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+                conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_DISABLED);
 
@@ -220,10 +220,10 @@ int main(int argc, char **argv)
                     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
-                    conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
-                    EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+                    conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                    EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-                    struct s2n_kem_group_params *client_params = &conn->secure.client_kem_group_params[0];
+                    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params[0];
                     client_params->kem_group = kem_pref->tls13_kem_groups[0];
                     client_params->kem_params.kem = kem_pref->tls13_kem_groups[0]->kem;
                     client_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[0]->curve;
@@ -253,8 +253,8 @@ int main(int argc, char **argv)
                     conn->security_policy_override = &test_security_policy;
 
                     /* test_security_policy does not include kyber */
-                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
-                    EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+                    conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
+                    EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -267,13 +267,13 @@ int main(int argc, char **argv)
                     conn->actual_protocol_version = S2N_TLS13;
                     conn->security_policy_override = &test_security_policy;
 
-                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r3;
-                    conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+                    conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r3;
+                    conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
-                    conn->secure.server_kem_group_params.kem_group = NULL;
-                    conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+                    conn->kex_params.server_kem_group_params.kem_group = NULL;
+                    conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* Server sends HelloRetryRequest message, note that s2n_server_hello_retry_recreate_transcript
          * is called within the s2n_server_hello_retry_send function */

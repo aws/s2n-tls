@@ -63,7 +63,7 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
+    struct s2n_blob *proposed_kems = &conn->kex_params.client_pq_kem_extension;
 
     /* Ignore extension if PQ is disabled */
     if (!s2n_pq_is_enabled()) {

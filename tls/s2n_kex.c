@@ -53,7 +53,7 @@ static S2N_RESULT s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, s
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(is_supported);
 
-    *is_supported = conn->secure.server_ecc_evp_params.negotiated_curve != NULL;
+    *is_supported = conn->kex_params.server_ecc_evp_params.negotiated_curve != NULL;
 
     return S2N_RESULT_OK;
 }
@@ -85,7 +85,7 @@ static S2N_RESULT s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, str
         return S2N_RESULT_OK;
     }
 
-    struct s2n_blob *client_kem_pref_list = &(conn->secure.client_pq_kem_extension);
+    struct s2n_blob *client_kem_pref_list = &(conn->kex_params.client_pq_kem_extension);
     const struct s2n_kem *chosen_kem = NULL;
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
@@ -116,7 +116,7 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
     RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     RESULT_ENSURE_REF(kem_preferences);
 
-    struct s2n_blob *proposed_kems = &(conn->secure.client_pq_kem_extension);
+    struct s2n_blob *proposed_kems = &(conn->kex_params.client_pq_kem_extension);
     const struct s2n_kem *chosen_kem = NULL;
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
@@ -128,7 +128,7 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
                 kem_preferences->kem_count, &chosen_kem));
     }
 
-    conn->secure.kem_params.kem = chosen_kem;
+    conn->kex_params.kem_params.kem = chosen_kem;
     return S2N_RESULT_OK;
 }
 

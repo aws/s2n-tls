@@ -405,7 +405,7 @@ int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *p
     uint8_t master_secret_label[] = "hybrid master secret";
     struct s2n_blob label = {.size = sizeof(master_secret_label) - 1, .data = master_secret_label};
 
-    return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &conn->secure.client_key_exchange_message, &master_secret);
+    return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &conn->kex_params.client_key_exchange_message, &master_secret);
 }
 
 static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *md5, struct s2n_hash_state *sha1, uint8_t * out)

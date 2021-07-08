@@ -103,13 +103,13 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->secure.client_random, client_random, CLIENT_RANDOM_LENGTH);
         EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, server_random, SERVER_RANDOM_LENGTH);
 
-        EXPECT_SUCCESS(s2n_alloc(&conn->secure.client_key_exchange_message, client_key_exchange_message_length));
+        EXPECT_SUCCESS(s2n_alloc(&conn->kex_params.client_key_exchange_message, client_key_exchange_message_length));
 
-        EXPECT_MEMCPY_SUCCESS(conn->secure.client_key_exchange_message.data, client_key_exchange_message, client_key_exchange_message_length);
+        EXPECT_MEMCPY_SUCCESS(conn->kex_params.client_key_exchange_message.data, client_key_exchange_message, client_key_exchange_message_length);
 
         EXPECT_SUCCESS(s2n_hybrid_prf_master_secret(conn, &combined_pms));
         EXPECT_BYTEARRAY_EQUAL(expected_master_secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN);
-        EXPECT_SUCCESS(s2n_free(&conn->secure.client_key_exchange_message));
+        EXPECT_SUCCESS(s2n_free(&conn->kex_params.client_key_exchange_message));
         EXPECT_SUCCESS(s2n_connection_free(conn));
 
         free(premaster_kem_secret);
