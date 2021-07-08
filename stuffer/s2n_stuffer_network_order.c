@@ -59,6 +59,8 @@ int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t * u)
 
 int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u)
 {
+    POSIX_ENSURE_REF(stuffer);
+
     bool was_tainted = stuffer->tainted;
     uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
     POSIX_GUARD_PTR(data);
@@ -83,6 +85,8 @@ int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t * u)
 
 int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u)
 {
+    POSIX_ENSURE_REF(stuffer);
+
     bool was_tainted = stuffer->tainted;
     uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
     POSIX_GUARD_PTR(data);
@@ -116,6 +120,8 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
 
 int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u)
 {
+    POSIX_ENSURE_REF(stuffer);
+
     bool was_tainted = stuffer->tainted;
     uint8_t *data = s2n_stuffer_raw_write(stuffer, SIZEOF_UINT24);
     POSIX_GUARD_PTR(data);
@@ -151,6 +157,8 @@ int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t * u)
 
 int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u)
 {
+    POSIX_ENSURE_REF(stuffer);
+
     bool was_tainted = stuffer->tainted;
     uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
     POSIX_GUARD_PTR(data);
@@ -186,6 +194,8 @@ int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
 
 int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u)
 {
+    POSIX_ENSURE_REF(stuffer);
+
     bool was_tainted = stuffer->tainted;
     uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
     POSIX_GUARD_PTR(data);
