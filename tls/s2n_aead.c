@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include <byteswap.h>
 #include "error/s2n_errno.h"
 
+#include "utils/s2n_endian.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
@@ -32,6 +32,7 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequen
     /* this is a very performance-sensitive function so */
     /* we use raw write instead of individual writes to */
     /* reduce the overhead of the stuffer checks */
+    bool was_tainted = ad->tainted;
     uint8_t *bytes = s2n_stuffer_raw_write(ad, aad_len);
     RESULT_GUARD_PTR(bytes);
 
@@ -44,11 +45,10 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequen
     bytes[idx++] = conn->actual_protocol_version / 10;
     bytes[idx++] = conn->actual_protocol_version % 10;
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    record_length = bswap_16(record_length);
-#endif
+    record_length = htobe16(record_length);
     bytes[idx++] = record_length >> 8;
     bytes[idx++] = record_length;
+    ad->tainted = was_tainted;
 
     return S2N_RESULT_OK;
 }
@@ -93,6 +93,7 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
     /* this is a very performance-sensitive function so */
     /* we use raw write instead of individual writes to */
     /* reduce the overhead of the stuffer checks */
+    bool was_tainted = additional_data->tainted;
     uint8_t *bytes = s2n_stuffer_raw_write(additional_data, aad_len);
     RESULT_GUARD_PTR(bytes);
 
@@ -100,11 +101,10 @@ S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, s
     bytes[idx++] = TLS_APPLICATION_DATA;
     bytes[idx++] = 3; /* TLS record layer */
     bytes[idx++] = 3; /* version fixed at 1.2 (0x0303) */
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    length = bswap_16(length);
-#endif
-    bytes[idx++] = length >> 8;
+    length = htobe16(length);
     bytes[idx++] = length;
+    bytes[idx++] = length >> 8;
+    additional_data->tainted = was_tainted;
 
     return S2N_RESULT_OK;
 }

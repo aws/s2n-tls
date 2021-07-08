@@ -42,15 +42,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, 0x00, 0));
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
-        uint8_t byte_length;
-
         /* uint8_t */
         {
-            byte_length = sizeof(uint8_t);
             uint8_t actual_value;
 
             for (int i = 0; i <= UINT8_MAX; i++) {
-                EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, i));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
@@ -58,11 +55,10 @@ int main(int argc, char **argv)
 
         /* uint16_t */
         {
-            byte_length = sizeof(uint16_t);
             uint16_t actual_value;
 
             for (int i = 0; i < UINT16_MAX; i++) {
-                EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, i));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
@@ -70,19 +66,18 @@ int main(int argc, char **argv)
 
         /* uint24 */
         {
-            byte_length = 3;
             uint32_t actual_value;
             uint32_t test_values[] = { 0x000001, 0x0000FF, 0xABCDEF, 0xFFFFFF };
 
             for (int i = 0; i < s2n_array_len(test_values); i++) {
-                EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, test_values[i], byte_length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, test_values[i]));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(test_values[i], actual_value);
             }
 
             uint16_t prime = 257;
             for (uint32_t i = 0; i < 0xFFFFFF - prime; i += prime) {
-                EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, i));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
@@ -90,20 +85,38 @@ int main(int argc, char **argv)
 
         /* uint32_t */
         {
-            byte_length = sizeof(uint32_t);
             uint32_t actual_value;
             uint32_t test_values[] = { 0x00000001, 0x000000FF, 0xABCDEF12, UINT32_MAX };
 
             for (int i = 0; i < s2n_array_len(test_values); i++) {
-                EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, test_values[i], byte_length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&stuffer, test_values[i]));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_value));
                 EXPECT_EQUAL(test_values[i], actual_value);
             }
 
             uint32_t prime = 65537;
             for (uint32_t i = 0; i < UINT32_MAX - prime; i += prime) {
-                EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&stuffer, i));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_value));
+                EXPECT_EQUAL(i, actual_value);
+            }
+        }
+
+        /* uint64_t */
+        {
+            uint64_t actual_value;
+            uint64_t test_values[] = { 0x00000001, 0x000000FF, (uint64_t)UINT32_MAX + 1, UINT64_MAX };
+
+            for (int i = 0; i < s2n_array_len(test_values); i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, test_values[i]));
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&stuffer, &actual_value));
+                EXPECT_EQUAL(test_values[i], actual_value);
+            }
+
+            uint64_t prime = 65537;
+            for (uint64_t i = 0; i < UINT32_MAX - prime; i += prime) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, i));
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
         }
