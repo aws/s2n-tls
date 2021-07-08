@@ -382,9 +382,32 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
-    if (settings.https_server) {
+    bool run_perf = false;
+    bool run_http = false;
+    bool run_echo = false;
+
+    if (!settings.only_negotiate) {
+        const char* alpn = s2n_get_application_protocol(conn);
+        if (alpn != NULL) {
+            /* determine which protocol the client wants */
+            if (strcmp(alpn, "perf") == 0) {
+                run_perf = true;
+            } else if (strcmp(alpn, "http/1.1")) {
+                run_http = true;
+            } else {
+                /* fall back to echo */
+                run_echo = true;
+            }
+        } else {
+            run_echo = true;
+        }
+    }
+
+    if (run_perf) {
+        perf_server_handler(conn);
+    } else if (run_http) {
         https(conn, settings.https_bench);
-    } else if (!settings.only_negotiate) {
+    } else if (run_echo) {
         bool stop_echo = false;
         echo(conn, fd, &stop_echo);
     }

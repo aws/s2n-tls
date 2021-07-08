@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+set -e
+
+DOWNLOAD_MB=${1:-1000}
+UPLOAD_MB=${2:-0}
+VERSION=${3:-default}
+
+TMP=$(mktemp -d -t s2n-tls-perf-XXXXXXXXXX)
+FILE="${DOWNLOAD_MB}MB-down-${UPLOAD_MB}MB-up-${VERSION}"
+TITLE="${DOWNLOAD_MB}MB Download, ${UPLOAD_MB}MB Upload ${VERSION}"
+DOWNLOAD_B=$(($DOWNLOAD_MB * 1000000))
+UPLOAD_B=$(($UPLOAD_MB * 1000000))
+OUT=target/perf/results
+
+mkdir -p $OUT
+
+perf record \
+  --output $TMP/$FILE.perf \
+  --call-graph dwarf \
+  --event cycles \
+  -- \
+  timeout --signal INT 15 \
+  ./build/bin/s2nd \
+  --alpn perf \
+  --parallelize \
+  --ciphers $VERSION \
+  localhost 4433 &
+PERF_PID=$!
+
+function stop_server() {
+  echo "shutting down server"
+  kill $PERF_PID
+  echo $1
+  exit 1
+}
+
+echo "waiting for server to boot"
+sleep 1
+
+echo "executing request"
+for i in {1..10}
+do
+  ./build/bin/s2nc \
+    --perf-send-amount $UPLOAD_B \
+    --perf-receive-amount $DOWNLOAD_B \
+    --alpn perf \
+    --insecure \
+    --ciphers $VERSION \
+    localhost 4433 || stop_server "failed to finish the request"
+done
+
+wait $PERF_PID || true
+
+echo "folding events"
+perf script \
+  --input $TMP/$FILE.perf \
+  2>/dev/null \
+  | inferno-collapse-perf \
+  > $OUT/$FILE.folded
+
+echo "generating flamegraph"
+mkdir -p target/perf/results
+inferno-flamegraph $OUT/$FILE.folded \
+  --title "$TITLE" \
+  > $OUT/$FILE.svg
+
+rm -rf $TMP
+
+echo "flamegraph available in $OUT/$FILE.svg"

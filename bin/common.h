@@ -52,6 +52,9 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len);
 int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
 
+int perf_server_handler(struct s2n_connection *conn);
+int perf_client_handler(struct s2n_connection *conn, uint64_t send_len, uint64_t recv_len);
+
 char *load_file_to_cstring(const char *path);
 int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len);
 int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH], size_t psk_list_len);

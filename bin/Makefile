@@ -20,8 +20,10 @@ include ../s2n.mk
 LDFLAGS += -L../lib/ -L${LIBCRYPTO_ROOT}/lib ../lib/libs2n.a ${CRYPTO_LIBS} ${LIBS}
 CRUFT += s2nc s2nd
 
-s2nc: s2nc.c echo.c
-	${CC} ${CFLAGS} s2nc.c echo.c common.c -o s2nc ${LDFLAGS}
+DEPS = common.c echo.c https.c perf.c
 
-s2nd: s2nd.c echo.c
-	${CC} ${CFLAGS} s2nd.c echo.c https.c common.c -o s2nd ${LDFLAGS}
+s2nc: s2nc.c ${DEPS}
+	${CC} ${CFLAGS} s2nc.c ${DEPS} -o s2nc ${LDFLAGS}
+
+s2nd: s2nd.c ${DEPS}
+	${CC} ${CFLAGS} s2nd.c ${DEPS} -o s2nd ${LDFLAGS}
