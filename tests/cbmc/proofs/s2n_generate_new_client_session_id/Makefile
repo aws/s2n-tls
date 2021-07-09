@@ -20,13 +20,9 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 CHECK_FUNCTION_CONTRACTS = $(PROOF_UID)
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_get_public_random_data.c
 
-PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_drbg.c
 PROJECT_SOURCES += $(SRCDIR)/tls/s2n_handshake_io.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=

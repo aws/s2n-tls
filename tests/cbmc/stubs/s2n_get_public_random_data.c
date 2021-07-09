@@ -13,31 +13,25 @@
  * limitations under the License.
  */
 
-#include <assert.h>
 #include <cbmc_proof/nondet.h>
-#include "api/s2n.h"
-#include "utils/s2n_result.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_safety_macros.h"
 
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob) 
 {
-    /* FIXME: This is havocing too much it should havoc only 
-     * blob->data[0..blob->size-1], but we don't have a good
-     * way to do that apparently. */
-    /*    __CPROVER_havoc_object(blob->data); */
+    /* Note: We want to havoc all bytes in the region
+     * blob->data[0..blob->size-1],
+     * but __CPROVER_havoc_object(blob->data) does more,
+     * it havoc the entire struct containing the blob.
+     * 
+     * Instead we havoc a single byte in that region,
+     * which should be sufficent to catch most issues. */
 
     if (blob->size != 0) {
-        /* FIXME: Conversely, this doesn't havoc enough,
-         * but at least it havocs something */
         size_t index = nondet_size_t();
         __CPROVER_assume(index < blob->size);
 
-        uint8_t value = nondet_uint8_t();
-
-        blob->data[index] = value;
+        blob->data[index] = nondet_uint8_t();
     }
     
-    bool ok = nondet_bool();
-    return ok ? S2N_RESULT_OK : S2N_RESULT_ERROR;
+    return nondet_bool() ? S2N_RESULT_OK : S2N_RESULT_ERROR;
 }
