@@ -100,7 +100,7 @@ def get_args():
     }, {
             "flags": ["--proof-marker"],
             "metavar": "FILE",
-            "default": "cbmc-batch.yaml",
+            "default": "cbmc-proof.txt",
             "help": (
                 "name of file that marks proof directories. Default: "
                 "%(default)s"),
