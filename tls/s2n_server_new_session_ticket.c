@@ -108,7 +108,23 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 {
     RESULT_ENSURE_REF(conn);
 
+    /* Usually tickets are sent immediately after the handshake.
+     * If possible, reuse the handshake IO stuffer before it's wiped.
+     *
+     * Note: handshake.io isn't explicitly dedicated to only reading or only writing,
+     * so we have to be careful using it outside of s2n_negotiate.
+     * If we use it for writing here, we CAN'T use it for reading any post-handshake messages.
+     */
+    struct s2n_stuffer *nst_stuffer = &conn->handshake.io;
+
     if (conn->mode != S2N_SERVER || conn->actual_protocol_version < S2N_TLS13 || !conn->config->use_tickets) {
+        return S2N_RESULT_OK;
+    }
+
+    /* No-op if all tickets already sent.
+     * Clean up the stuffer used for the ticket to conserve memory. */
+    if (conn->tickets_to_send == conn->tickets_sent) {
+        RESULT_GUARD_POSIX(s2n_stuffer_resize(nst_stuffer, 0));
         return S2N_RESULT_OK;
     }
 
@@ -133,26 +149,27 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     size_t session_state_size = 0;
     RESULT_GUARD(s2n_connection_get_session_state_size(conn, &session_state_size));
     const size_t maximum_nst_size = session_state_size + S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE;
-
-    DEFER_CLEANUP(struct s2n_stuffer nst_stuffer = { 0 }, s2n_stuffer_free);
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&nst_stuffer, maximum_nst_size));
+    if (s2n_stuffer_space_remaining(nst_stuffer) < maximum_nst_size) {
+        RESULT_GUARD_POSIX(s2n_stuffer_resize(nst_stuffer, maximum_nst_size));
+    }
 
     while (conn->tickets_to_send - conn->tickets_sent > 0) {
-        if (s2n_result_is_error(s2n_tls13_server_nst_write(conn, &nst_stuffer))) {
+        if (s2n_result_is_error(s2n_tls13_server_nst_write(conn, nst_stuffer))) {
             return S2N_RESULT_OK;
         }
 
         struct s2n_blob nst_blob = { 0 };
-        uint16_t nst_size = s2n_stuffer_data_available(&nst_stuffer);
-        uint8_t *nst_data = s2n_stuffer_raw_read(&nst_stuffer, nst_size);
+        uint16_t nst_size = s2n_stuffer_data_available(nst_stuffer);
+        uint8_t *nst_data = s2n_stuffer_raw_read(nst_stuffer, nst_size);
         RESULT_ENSURE_REF(nst_data);
         RESULT_GUARD_POSIX(s2n_blob_init(&nst_blob, nst_data, nst_size));
 
         RESULT_GUARD_POSIX(s2n_record_write(conn, TLS_HANDSHAKE, &nst_blob));
         RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
-        RESULT_GUARD_POSIX(s2n_stuffer_wipe(&nst_stuffer));
+        RESULT_GUARD_POSIX(s2n_stuffer_wipe(nst_stuffer));
     }
 
+    RESULT_GUARD_POSIX(s2n_stuffer_resize(nst_stuffer, 0));
     return S2N_RESULT_OK;
 }
 
