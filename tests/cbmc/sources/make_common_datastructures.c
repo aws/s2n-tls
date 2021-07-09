@@ -604,7 +604,6 @@ void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypt
     s2n_crypto_parameters->cipher_suite = cbmc_allocate_s2n_cipher_suite();
     cbmc_populate_s2n_session_key(&(s2n_crypto_parameters->client_key));
     cbmc_populate_s2n_session_key(&(s2n_crypto_parameters->server_key));
-    cbmc_populate_s2n_hash_state(&(s2n_crypto_parameters->signature_hash));
     cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->client_record_mac));
     cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->server_record_mac));
 }
@@ -722,10 +721,6 @@ void cbmc_populate_s2n_handshake(struct s2n_handshake *s2n_handshake)
     cbmc_populate_s2n_hash_state(&(s2n_handshake->sha384));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->sha512));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->md5_sha1));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->ccv_hash_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->prf_md5_hash_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->prf_sha1_hash_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->prf_tls12_hash_copy));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->server_hello_copy));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->server_finished_copy));
     /* `s2n_handshake->early_data_async_state.conn` is never allocated.
@@ -798,6 +793,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     cbmc_populate_s2n_blob(&(s2n_connection->application_protocols_overridden));
     cbmc_populate_s2n_stuffer(&(s2n_connection->cookie_stuffer));
     cbmc_populate_s2n_blob(&(s2n_connection->server_early_data_context));
+    cbmc_populate_s2n_hash_state(&(s2n_connection->hash_workspace));
 }
 
 struct s2n_connection *cbmc_allocate_s2n_connection()

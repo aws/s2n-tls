@@ -364,6 +364,9 @@ struct s2n_connection {
     uint32_t server_max_early_data_size;
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
+
+    /* To avoid allocating memory for hash objects, we reuse one temporary hash object. */
+    struct s2n_hash_state hash_workspace;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
