@@ -25,6 +25,35 @@
 #include "utils/s2n_safety.h"
 #include "common.h"
 
+
+uint64_t read_uint64(uint8_t *data)
+{
+    uint64_t u = 0;
+    u |= ((uint64_t) data[0]) << (8);
+    u |= ((uint64_t) data[1]) << (1 * 8);
+    u |= ((uint64_t) data[2]) << (2 * 8);
+    u |= ((uint64_t) data[3]) << (3 * 8);
+    u |= ((uint64_t) data[4]) << (4 * 8);
+    u |= ((uint64_t) data[5]) << (5 * 8);
+    u |= ((uint64_t) data[6]) << (6 * 8);
+    u |= ((uint64_t) data[7]) << (7 * 8);
+    u = be64toh(u);
+    return u;
+}
+
+void write_uint64(uint8_t *data, uint64_t u)
+{
+    u = htobe64(u);
+    data[0] = (u) & UINT8_MAX;
+    data[1] = (u >> (1 * 8)) & UINT8_MAX;
+    data[2] = (u >> (2 * 8)) & UINT8_MAX;
+    data[3] = (u >> (3 * 8)) & UINT8_MAX;
+    data[4] = (u >> (4 * 8)) & UINT8_MAX;
+    data[5] = (u >> (5 * 8)) & UINT8_MAX;
+    data[6] = (u >> (6 * 8)) & UINT8_MAX;
+    data[7] = (u >> (7 * 8)) & UINT8_MAX;
+}
+
 static int send(struct s2n_connection *conn, uint8_t *buffer,  uint32_t left, s2n_blocked_status *blocked_status)
 {
     uint32_t i = 0;
@@ -63,14 +92,12 @@ int perf_server_handler(struct s2n_connection *conn)
     uint8_t buffer[UINT16_MAX] = { 0 };
     uint32_t buffer_len = sizeof(buffer);
     uint64_t send_len = 0;
-    bool recv_remaining = true;
 
     s2n_blocked_status blocked = 0;
 
     /* read the amount the client wants back */
     POSIX_GUARD(s2n_recv(conn, &buffer, 8, &blocked));
-    send_len = *(uint64_t *) &buffer;
-    send_len = be64toh(send_len);
+    send_len = read_uint64(buffer);
 
     while (send_len) {
         uint32_t buffer_remaining = send_len < buffer_len ? send_len : buffer_len;
@@ -95,10 +122,9 @@ int perf_client_handler(struct s2n_connection *conn, uint64_t send_len, uint64_t
     s2n_blocked_status blocked = 0;
 
     /* write the amount the client wants back */
-    *((uint64_t *) buffer) = htobe64(recv_len);
+    write_uint64(buffer, recv_len);
 
     /* account for the length prefix */
-    send_len += 8;
     POSIX_GUARD(send(conn, buffer, 8, &blocked));
 
     clock_t begin = clock();
@@ -110,14 +136,15 @@ int perf_client_handler(struct s2n_connection *conn, uint64_t send_len, uint64_t
     }
 
     /* TODO implement send */
+    /* send_len += 8; */
 
     clock_t end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     double recv_mbps = (double)total_recv_len / time_spent / 1000000.0;
     double send_mbps = (double)total_send_len / time_spent / 1000000.0;
 
-    fprintf(stdout, "Received %dMiB/s.\n", (uint32_t)recv_mbps);
-    fprintf(stdout, "    Sent %dMiB/s.\n\n", (uint32_t)send_mbps);
+    fprintf(stdout, "Received %uMiB/s.\n", (uint32_t)recv_mbps);
+    fprintf(stdout, "    Sent %uMiB/s.\n\n", (uint32_t)send_mbps);
 
     return 0;
 }
