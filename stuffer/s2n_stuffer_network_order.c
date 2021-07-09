@@ -17,7 +17,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 
-#include "utils/s2n_endian.h"
 #include "utils/s2n_annotations.h"
 #include "utils/s2n_safety.h"
 
@@ -59,13 +58,7 @@ int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t * u)
 
 int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u)
 {
-    POSIX_ENSURE_REF(stuffer);
-
-    bool was_tainted = stuffer->tainted;
-    uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
-    POSIX_GUARD_PTR(data);
-    data[0] = u;
-    stuffer->tainted = was_tainted;
+    POSIX_GUARD(s2n_stuffer_write_bytes(stuffer, &u, sizeof(u)));
 
     return S2N_SUCCESS;
 }
@@ -83,20 +76,9 @@ int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t * u)
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u)
+int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u)
 {
-    POSIX_ENSURE_REF(stuffer);
-
-    bool was_tainted = stuffer->tainted;
-    uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
-    POSIX_GUARD_PTR(data);
-
-    u = htobe16(u);
-    data[0] = (u) & UINT8_MAX;
-    data[1] = (u >> (1 * 8)) & UINT8_MAX;
-    stuffer->tainted = was_tainted;
-
-    return S2N_SUCCESS;
+    return s2n_stuffer_write_network_order(stuffer, u, sizeof(u));
 }
 
 int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
@@ -118,21 +100,9 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u)
+int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
 {
-    POSIX_ENSURE_REF(stuffer);
-
-    bool was_tainted = stuffer->tainted;
-    uint8_t *data = s2n_stuffer_raw_write(stuffer, SIZEOF_UINT24);
-    POSIX_GUARD_PTR(data);
-
-    u = htobe32(u);
-    data[0] = (u >> (1 * 8)) & UINT8_MAX;
-    data[1] = (u >> (2 * 8)) & UINT8_MAX;
-    data[2] = (u >> (3 * 8)) & UINT8_MAX;
-    stuffer->tainted = was_tainted;
-
-    return S2N_SUCCESS;
+    return s2n_stuffer_write_network_order(stuffer, u, SIZEOF_UINT24);
 }
 
 int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
@@ -155,22 +125,9 @@ int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t * u)
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u)
+int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u)
 {
-    POSIX_ENSURE_REF(stuffer);
-
-    bool was_tainted = stuffer->tainted;
-    uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
-    POSIX_GUARD_PTR(data);
-
-    u = htobe32(u);
-    data[0] = (u) & UINT8_MAX;
-    data[1] = (u >> (1 * 8)) & UINT8_MAX;
-    data[2] = (u >> (2 * 8)) & UINT8_MAX;
-    data[3] = (u >> (3 * 8)) & UINT8_MAX;
-    stuffer->tainted = was_tainted;
-
-    return S2N_SUCCESS;
+    return s2n_stuffer_write_network_order(stuffer, u, sizeof(u));
 }
 
 int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
@@ -192,26 +149,9 @@ int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u)
+int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
 {
-    POSIX_ENSURE_REF(stuffer);
-
-    bool was_tainted = stuffer->tainted;
-    uint8_t *data = s2n_stuffer_raw_write(stuffer, sizeof(u));
-    POSIX_GUARD_PTR(data);
-
-    u = htobe64(u);
-    data[0] = (u) & UINT8_MAX;
-    data[1] = (u >> (1 * 8)) & UINT8_MAX;
-    data[2] = (u >> (2 * 8)) & UINT8_MAX;
-    data[3] = (u >> (3 * 8)) & UINT8_MAX;
-    data[4] = (u >> (4 * 8)) & UINT8_MAX;
-    data[5] = (u >> (5 * 8)) & UINT8_MAX;
-    data[6] = (u >> (6 * 8)) & UINT8_MAX;
-    data[7] = (u >> (7 * 8)) & UINT8_MAX;
-    stuffer->tainted = was_tainted;
-
-    return S2N_SUCCESS;
+    return s2n_stuffer_write_network_order(stuffer, u, sizeof(u));
 }
 
 static int length_matches_value_check(uint32_t value, uint8_t length)
