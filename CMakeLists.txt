@@ -60,7 +60,6 @@ else()
         "pq-crypto/kyber_r2/*.h"
         "pq-crypto/kyber_90s_r2/*.h"
         "pq-crypto/kyber_r3/*.h"
-	"pq-crypto/kyber_r3/avx2/*.h"
         "pq-crypto/sike_r3/*.h")
 
     # The SIKE r1 code #includes .c files directly; including sike_r1/*.c
@@ -77,7 +76,6 @@ else()
         "pq-crypto/kyber_r2/*.c"
         "pq-crypto/kyber_90s_r2/*.c"
         "pq-crypto/kyber_r3/*.c"
-	"pq-crypto/kyber_r3/avx2/*.c"
         "pq-crypto/sike_r3/*.c")
 endif()
 
