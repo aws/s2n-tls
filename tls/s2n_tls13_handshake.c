@@ -72,7 +72,7 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     POSIX_ENSURE_REF(ecc_preferences);
 
-    struct s2n_ecc_evp_params *server_key = &conn->secure.server_ecc_evp_params;
+    struct s2n_ecc_evp_params *server_key = &conn->kex_params.server_ecc_evp_params;
     POSIX_ENSURE_REF(server_key);
     POSIX_ENSURE_REF(server_key->negotiated_curve);
     /* for now we do this tedious loop to find the matching client key selection.
@@ -80,7 +80,7 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     struct s2n_ecc_evp_params *client_key = NULL;
     for (size_t i = 0; i < ecc_preferences->count; i++) {
         if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
-            client_key = &conn->secure.client_ecc_evp_params[i];
+            client_key = &conn->kex_params.client_ecc_evp_params[i];
             break;
         }
     }
@@ -102,16 +102,16 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(shared_secret);
 
-    /* conn->secure.server_ecc_evp_params should be set only during a classic/non-hybrid handshake */
-    POSIX_ENSURE_EQ(NULL, conn->secure.server_ecc_evp_params.negotiated_curve);
-    POSIX_ENSURE_EQ(NULL, conn->secure.server_ecc_evp_params.evp_pkey);
+    /* conn->kex_params.server_ecc_evp_params should be set only during a classic/non-hybrid handshake */
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.server_ecc_evp_params.negotiated_curve);
+    POSIX_ENSURE_EQ(NULL, conn->kex_params.server_ecc_evp_params.evp_pkey);
 
-    struct s2n_kem_group_params *server_kem_group_params = &conn->secure.server_kem_group_params;
+    struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     POSIX_ENSURE_REF(server_kem_group_params);
     struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(server_ecc_params);
 
-    struct s2n_kem_group_params *client_kem_group_params = conn->secure.chosen_client_kem_group_params;
+    struct s2n_kem_group_params *client_kem_group_params = conn->kex_params.chosen_client_kem_group_params;
     POSIX_ENSURE_REF(client_kem_group_params);
     struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(client_ecc_params);
@@ -129,7 +129,7 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     POSIX_ENSURE_REF(pq_shared_secret);
     POSIX_ENSURE_REF(pq_shared_secret->data);
 
-    const struct s2n_kem_group *negotiated_kem_group = conn->secure.server_kem_group_params.kem_group;
+    const struct s2n_kem_group *negotiated_kem_group = conn->kex_params.server_kem_group_params.kem_group;
     POSIX_ENSURE_REF(negotiated_kem_group);
     POSIX_ENSURE_REF(negotiated_kem_group->kem);
 
@@ -147,7 +147,7 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
 }
 
 static int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn) {
-    return conn->secure.server_kem_group_params.kem_group != NULL;
+    return conn->kex_params.server_kem_group_params.kem_group != NULL;
 }
 
 int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)

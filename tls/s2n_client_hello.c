@@ -246,10 +246,10 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
         /* A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256) */
         /* and SHOULD support key exchange with X25519 [RFC7748]. */
         /* - https://tools.ietf.org/html/rfc8446#section-9.1 */
-        conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
     } else {
         /* P-256 is the preferred fallback option. These prefs don't support it, so choose whatever curve is first. */
-        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     }
 
     POSIX_GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));

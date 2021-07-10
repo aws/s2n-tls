@@ -54,11 +54,11 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(ecc_pref);
 
         /* Select curve and generate key for client */
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
         /* Recreating conditions where negotiated curve was not set */
         struct s2n_ecc_evp_params missing_params = {NULL,NULL};
-        client_conn->secure.server_ecc_evp_params = missing_params;
+        client_conn->kex_params.server_ecc_evp_params = missing_params;
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         /* Compute fails because server's curve and public key are missing. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
@@ -79,11 +79,11 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(ecc_pref);
 
         /* Select curve and generate key for client */
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
 
         /* Set curve server sent in server hello */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        client_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         /* Compute fails because server's public key is missing */
@@ -105,14 +105,14 @@ int main(int argc, char **argv) {
         client_conn->actual_protocol_version = S2N_TLS13;
 
         /* Select curve and generate key for client */
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
 
         /* Set curve server sent in server hello */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        client_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
         /* Generate public key server sent in server hello */
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.server_ecc_evp_params));
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.server_ecc_evp_params));
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
 

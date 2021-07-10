@@ -576,34 +576,36 @@ void cbmc_populate_s2n_session_key(struct s2n_session_key *s2n_session_key)
     s2n_session_key->evp_cipher_ctx = malloc(sizeof(*(s2n_session_key->evp_cipher_ctx)));
 }
 
+void cbmc_populate_s2n_kex_parameters(struct s2n_kex_parameters *s2n_kex_paramters)
+{
+	cbmc_populate_s2n_dh_params(&(s2n_kex_paramters->server_dh_params));
+	cbmc_populate_s2n_ecc_evp_params(&(s2n_kex_paramters->server_ecc_evp_params));
+	/* `s2n_crypto_parameters->mutually_supported_curves`
+	 * `s2n_crypto_parameters->client_ecc_evp_params`
+	 * `s2n_crypto_parameters->client_kem_group_params`
+	 * `s2n_crypto_parameters->mutually_supported_kem_groups` are never allocated.
+	 * If required, these initializations should be done in the proof harness.
+	 */
+	cbmc_populate_s2n_kem_group_params(&(s2n_kex_paramters->server_kem_group_params));
+	s2n_kex_paramters->chosen_client_kem_group_params = cbmc_allocate_s2n_kem_group_params();
+	cbmc_populate_s2n_kem_params(&(s2n_kex_paramters->kem_params));
+	cbmc_populate_s2n_blob(&(s2n_kex_paramters->client_key_exchange_message));
+	cbmc_populate_s2n_blob(&(s2n_kex_paramters->client_pq_kem_extension));
+}
+
 void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypto_parameters)
 {
     CBMC_ENSURE_REF(s2n_crypto_parameters);
     cbmc_populate_s2n_pkey(&(s2n_crypto_parameters->server_public_key));
     cbmc_populate_s2n_pkey(&(s2n_crypto_parameters->client_public_key));
-    cbmc_populate_s2n_dh_params(&(s2n_crypto_parameters->server_dh_params));
-    cbmc_populate_s2n_ecc_evp_params(&(s2n_crypto_parameters->server_ecc_evp_params));
-    /* `s2n_crypto_parameters->mutually_supported_curves`
-     * `s2n_crypto_parameters->client_ecc_evp_params`
-     * `s2n_crypto_parameters->client_kem_group_params`
-     * `s2n_crypto_parameters->mutually_supported_kem_groups` are never allocated.
-     * If required, these initializations should be done in the proof harness.
-     */
-    cbmc_populate_s2n_kem_group_params(&(s2n_crypto_parameters->server_kem_group_params));
-    s2n_crypto_parameters->chosen_client_kem_group_params = cbmc_allocate_s2n_kem_group_params();
-    cbmc_populate_s2n_kem_params(&(s2n_crypto_parameters->kem_params));
-    cbmc_populate_s2n_blob(&(s2n_crypto_parameters->client_key_exchange_message));
-    cbmc_populate_s2n_blob(&(s2n_crypto_parameters->client_pq_kem_extension));
     cbmc_populate_s2n_signature_scheme(&(s2n_crypto_parameters->conn_sig_scheme));
     cbmc_populate_s2n_blob(&(s2n_crypto_parameters->client_cert_chain));
     cbmc_populate_s2n_signature_scheme(&(s2n_crypto_parameters->client_cert_sig_scheme));
     s2n_crypto_parameters->cipher_suite = cbmc_allocate_s2n_cipher_suite();
     cbmc_populate_s2n_session_key(&(s2n_crypto_parameters->client_key));
     cbmc_populate_s2n_session_key(&(s2n_crypto_parameters->server_key));
-    cbmc_populate_s2n_hash_state(&(s2n_crypto_parameters->signature_hash));
     cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->client_record_mac));
     cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->server_record_mac));
-    cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->record_mac_copy_workspace));
 }
 
 struct s2n_crypto_parameters *cbmc_allocate_s2n_crypto_parameters()
@@ -719,10 +721,6 @@ void cbmc_populate_s2n_handshake(struct s2n_handshake *s2n_handshake)
     cbmc_populate_s2n_hash_state(&(s2n_handshake->sha384));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->sha512));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->md5_sha1));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->ccv_hash_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->prf_md5_hash_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->prf_sha1_hash_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->prf_tls12_hash_copy));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->server_hello_copy));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->server_finished_copy));
     /* `s2n_handshake->early_data_async_state.conn` is never allocated.
@@ -768,6 +766,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     s2n_connection->recv_io_context          = malloc(sizeof(*(s2n_connection->secret_cb)));
     cbmc_populate_s2n_crypto_parameters(&(s2n_connection->initial));
     cbmc_populate_s2n_crypto_parameters(&(s2n_connection->secure));
+    cbmc_populate_s2n_kex_parameters(&(s2n_connection->kex_params));
     s2n_connection->client = cbmc_allocate_s2n_crypto_parameters();
     s2n_connection->server = cbmc_allocate_s2n_crypto_parameters();
     cbmc_populate_s2n_handshake_parameters(&(s2n_connection->handshake_params));
@@ -794,6 +793,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     cbmc_populate_s2n_blob(&(s2n_connection->application_protocols_overridden));
     cbmc_populate_s2n_stuffer(&(s2n_connection->cookie_stuffer));
     cbmc_populate_s2n_blob(&(s2n_connection->server_early_data_context));
+    cbmc_populate_s2n_hash_state(&(s2n_connection->hash_workspace));
 }
 
 struct s2n_connection *cbmc_allocate_s2n_connection()

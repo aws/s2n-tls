@@ -49,14 +49,14 @@ static int setup_connection(struct s2n_connection *server_conn)
     POSIX_GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
     POSIX_ENSURE_REF(ecc_preferences);
 
-    server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
-    server_conn->secure.kem_params.kem = &s2n_kyber_512_r2;
+    server_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    server_conn->kex_params.server_ecc_evp_params.evp_pkey = NULL;
+    server_conn->kex_params.kem_params.kem = &s2n_kyber_512_r2;
     server_conn->secure.cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
     server_conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
 
-    POSIX_GUARD(s2n_dup(&server_kem_params.private_key, &server_conn->secure.kem_params.private_key));
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_dup(&server_kem_params.private_key, &server_conn->kex_params.kem_params.private_key));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.server_ecc_evp_params));
 
     return S2N_SUCCESS;
 }

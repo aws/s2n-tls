@@ -68,16 +68,11 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_new(&conn->handshake.sha384));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.sha512));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.md5_sha1));
-    POSIX_GUARD(s2n_hash_new(&conn->handshake.ccv_hash_copy));
-    POSIX_GUARD(s2n_hash_new(&conn->handshake.prf_md5_hash_copy));
-    POSIX_GUARD(s2n_hash_new(&conn->handshake.prf_sha1_hash_copy));
-    POSIX_GUARD(s2n_hash_new(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_new(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.server_finished_copy));
     POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.sha1));
-    POSIX_GUARD(s2n_hash_new(&conn->initial.signature_hash));
-    POSIX_GUARD(s2n_hash_new(&conn->secure.signature_hash));
 
     return 0;
 }
@@ -98,7 +93,7 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
      */
     if (s2n_is_in_fips_mode()) {
         POSIX_GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
+        POSIX_GUARD(s2n_hash_allow_md5_for_fips(&conn->hash_workspace));
 
         /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
          * SHA-1 for both fips and non-fips mode. This is required to perform the
@@ -108,7 +103,6 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     }
 
     POSIX_GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
-    POSIX_GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
 
     POSIX_GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
@@ -116,14 +110,10 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    POSIX_GUARD(s2n_hash_init(&conn->handshake.ccv_hash_copy, S2N_HASH_NONE));
-    POSIX_GUARD(s2n_hash_init(&conn->handshake.prf_tls12_hash_copy, S2N_HASH_NONE));
+    POSIX_GUARD(s2n_hash_init(&conn->hash_workspace, S2N_HASH_NONE));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.server_hello_copy, S2N_HASH_NONE));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.server_finished_copy, S2N_HASH_NONE));
-    POSIX_GUARD(s2n_hash_init(&conn->handshake.prf_sha1_hash_copy, S2N_HASH_SHA1));
     POSIX_GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
-    POSIX_GUARD(s2n_hash_init(&conn->initial.signature_hash, S2N_HASH_NONE));
-    POSIX_GUARD(s2n_hash_init(&conn->secure.signature_hash, S2N_HASH_NONE));
 
     return 0;
 }
@@ -133,10 +123,8 @@ static int s2n_connection_new_hmacs(struct s2n_connection *conn)
     /* Allocate long-term memory for the Connection's HMAC states */
     POSIX_GUARD(s2n_hmac_new(&conn->initial.client_record_mac));
     POSIX_GUARD(s2n_hmac_new(&conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_new(&conn->initial.record_mac_copy_workspace));
     POSIX_GUARD(s2n_hmac_new(&conn->secure.client_record_mac));
     POSIX_GUARD(s2n_hmac_new(&conn->secure.server_record_mac));
-    POSIX_GUARD(s2n_hmac_new(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }
@@ -146,10 +134,8 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
     /* Initialize all of the Connection's HMAC states */
     POSIX_GUARD(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_NONE, NULL, 0));
     POSIX_GUARD(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_NONE, NULL, 0));
-    POSIX_GUARD(s2n_hmac_init(&conn->initial.record_mac_copy_workspace, S2N_HMAC_NONE, NULL, 0));
     POSIX_GUARD(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_NONE, NULL, 0));
     POSIX_GUARD(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_NONE, NULL, 0));
-    POSIX_GUARD(s2n_hmac_init(&conn->secure.record_mac_copy_workspace, S2N_HMAC_NONE, NULL, 0));
 
     return 0;
 }
@@ -270,14 +256,14 @@ S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
-    RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
     for (size_t i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-        RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+        RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.client_ecc_evp_params[i]));
     }
 
-    RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->secure.server_kem_group_params));
+    RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.server_kem_group_params));
     for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
-        RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->secure.client_kem_group_params[i]));
+        RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.client_kem_group_params[i]));
     }
 
     return S2N_RESULT_OK;
@@ -302,9 +288,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     POSIX_GUARD(s2n_pkey_free(&conn->secure.client_public_key));
     POSIX_GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
     s2n_x509_validator_wipe(&conn->x509_validator);
-    POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
-    POSIX_GUARD(s2n_kem_free(&conn->secure.kem_params));
+    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
     POSIX_GUARD(s2n_free(&conn->secure.client_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));
 
@@ -321,16 +307,11 @@ static int s2n_connection_reset_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.sha384));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.sha512));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.ccv_hash_copy));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_reset(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_finished_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.sha1));
-    POSIX_GUARD(s2n_hash_reset(&conn->initial.signature_hash));
-    POSIX_GUARD(s2n_hash_reset(&conn->secure.signature_hash));
 
     return 0;
 }
@@ -340,10 +321,8 @@ static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
     /* Reset all of the Connection's HMAC states */
     POSIX_GUARD(s2n_hmac_reset(&conn->initial.client_record_mac));
     POSIX_GUARD(s2n_hmac_reset(&conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_reset(&conn->initial.record_mac_copy_workspace));
     POSIX_GUARD(s2n_hmac_reset(&conn->secure.client_record_mac));
     POSIX_GUARD(s2n_hmac_reset(&conn->secure.server_record_mac));
-    POSIX_GUARD(s2n_hmac_reset(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }
@@ -389,16 +368,11 @@ static int s2n_connection_free_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_free(&conn->handshake.sha384));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.sha512));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.md5_sha1));
-    POSIX_GUARD(s2n_hash_free(&conn->handshake.ccv_hash_copy));
-    POSIX_GUARD(s2n_hash_free(&conn->handshake.prf_md5_hash_copy));
-    POSIX_GUARD(s2n_hash_free(&conn->handshake.prf_sha1_hash_copy));
-    POSIX_GUARD(s2n_hash_free(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_free(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.server_finished_copy));
     POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.sha1));
-    POSIX_GUARD(s2n_hash_free(&conn->initial.signature_hash));
-    POSIX_GUARD(s2n_hash_free(&conn->secure.signature_hash));
 
     return 0;
 }
@@ -408,10 +382,8 @@ static int s2n_connection_free_hmacs(struct s2n_connection *conn)
     /* Free all of the Connection's HMAC states */
     POSIX_GUARD(s2n_hmac_free(&conn->initial.client_record_mac));
     POSIX_GUARD(s2n_hmac_free(&conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_free(&conn->initial.record_mac_copy_workspace));
     POSIX_GUARD(s2n_hmac_free(&conn->secure.client_record_mac));
     POSIX_GUARD(s2n_hmac_free(&conn->secure.server_record_mac));
-    POSIX_GUARD(s2n_hmac_free(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }
@@ -587,10 +559,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.sha384));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.sha512));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.ccv_hash_copy));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
-    POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_reset(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_finished_copy));
 
@@ -1033,10 +1002,10 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (conn->secure.server_ecc_evp_params.negotiated_curve) {
+    if (conn->kex_params.server_ecc_evp_params.negotiated_curve) {
         /* TLS1.3 currently only uses ECC groups. */
         if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
-            return conn->secure.server_ecc_evp_params.negotiated_curve->name;
+            return conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
         }
     }
 
@@ -1047,22 +1016,22 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->secure.kem_params.kem) {
+    if (!conn->kex_params.kem_params.kem) {
         return "NONE";
     }
 
-    return conn->secure.kem_params.kem->name;
+    return conn->kex_params.kem_params.kem->name;
 }
 
 const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->secure.chosen_client_kem_group_params || !conn->secure.chosen_client_kem_group_params->kem_group) {
+    if (!conn->kex_params.chosen_client_kem_group_params || !conn->kex_params.chosen_client_kem_group_params->kem_group) {
         return "NONE";
     }
 
-    return conn->secure.chosen_client_kem_group_params->kem_group->name;
+    return conn->kex_params.chosen_client_kem_group_params->kem_group->name;
 }
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)

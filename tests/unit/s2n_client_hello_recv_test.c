@@ -486,7 +486,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         /* ensure negotiated_curve == secp256r1 for maximum client compatibility */
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
+        EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
