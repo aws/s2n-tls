@@ -3,7 +3,6 @@
 #include "kyber512r3_params.h"
 #include "kyber512r3_symmetric.h"
 #include "kyber512r3_indcpa.h"
-#include "avx2/kyber512r3_indcpa_avx2.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq_random.h"
