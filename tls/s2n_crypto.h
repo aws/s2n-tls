@@ -45,16 +45,6 @@ struct s2n_kex_parameters {
 };
 
 struct s2n_crypto_parameters {
-    struct s2n_pkey server_public_key;
-    struct s2n_pkey client_public_key;
-
-    struct s2n_signature_scheme conn_sig_scheme;
-
-    struct s2n_blob client_cert_chain;
-    s2n_pkey_type client_cert_pkey_type;
-
-    struct s2n_signature_scheme client_cert_sig_scheme;
-
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;
     struct s2n_session_key server_key;

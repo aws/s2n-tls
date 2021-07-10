@@ -264,7 +264,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     POSIX_CHECKED_MEMCPY(conn->secure.rsa_premaster_secret, client_hello_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     uint32_t encrypted_size = 0;
-    POSIX_GUARD_RESULT(s2n_pkey_size(&conn->secure.server_public_key, &encrypted_size));
+    POSIX_GUARD_RESULT(s2n_pkey_size(&conn->handshake_params.server_public_key, &encrypted_size));
     S2N_ERROR_IF(encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
@@ -277,10 +277,10 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     POSIX_ENSURE_REF(encrypted.data);
 
     /* Encrypt the secret and send it on */
-    POSIX_GUARD(s2n_pkey_encrypt(&conn->secure.server_public_key, shared_key, &encrypted));
+    POSIX_GUARD(s2n_pkey_encrypt(&conn->handshake_params.server_public_key, shared_key, &encrypted));
 
     /* We don't need the key any more, so free it */
-    POSIX_GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+    POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
     return 0;
 }
 

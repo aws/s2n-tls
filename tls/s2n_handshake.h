@@ -82,11 +82,21 @@ typedef enum {
 } s2n_async_state;
 
 struct s2n_handshake_parameters {
+    /* Public keys for server / client */
+    struct s2n_pkey server_public_key;
+    struct s2n_pkey client_public_key;
+    struct s2n_blob client_cert_chain;
+    s2n_pkey_type client_cert_pkey_type;
+
     /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
     struct s2n_sig_scheme_list client_sig_hash_algs;
+    /* Signature scheme chosen by the server */
+    struct s2n_signature_scheme conn_sig_scheme;
 
     /* Signature/hash algorithm pairs offered by the server in the certificate request */
     struct s2n_sig_scheme_list server_sig_hash_algs;
+    /* Signature scheme chosen by the client */
+    struct s2n_signature_scheme client_cert_sig_scheme;
 
     /* The cert chain we will send the peer. */
     struct s2n_cert_chain_and_key *our_chain_and_key;

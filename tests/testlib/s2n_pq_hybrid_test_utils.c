@@ -64,7 +64,7 @@ static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *k
     conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     conn->kex_params.kem_params.kem = kem;
     conn->secure.cipher_suite = cipher_suite;
-    conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    conn->handshake_params.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
     POSIX_GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));
     return S2N_SUCCESS;
 }
@@ -104,7 +104,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
 
     POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs,
-            &server_conn->secure.conn_sig_scheme));
+            &server_conn->handshake_params.conn_sig_scheme));
 
     DEFER_CLEANUP(struct s2n_stuffer certificate_in = {0}, s2n_stuffer_free);
     POSIX_GUARD(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
@@ -119,7 +119,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     temp_blob.size = s2n_stuffer_data_available(&certificate_out);
     temp_blob.data = s2n_stuffer_raw_read(&certificate_out, temp_blob.size);
     s2n_pkey_type pkey_type = {0};
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &temp_blob));
+    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&client_conn->handshake_params.server_public_key, &pkey_type, &temp_blob));
 
     server_conn->handshake_params.our_chain_and_key = chain_and_key;
 
