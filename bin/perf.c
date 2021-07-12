@@ -17,14 +17,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <time.h>
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_endian.h"
 #include "utils/s2n_safety.h"
 #include "common.h"
-
 
 uint64_t read_uint64(uint8_t *data)
 {
@@ -109,7 +107,7 @@ int perf_server_handler(struct s2n_connection *conn)
 
     fprintf(stdout, "Done. Closing connection.\n\n");
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int perf_client_handler(struct s2n_connection *conn, uint64_t send_len, uint64_t recv_len)
@@ -127,8 +125,6 @@ int perf_client_handler(struct s2n_connection *conn, uint64_t send_len, uint64_t
     /* account for the length prefix */
     POSIX_GUARD(send(conn, buffer, 8, &blocked));
 
-    clock_t begin = clock();
-
     while (recv_len) {
         uint32_t buffer_remaining = recv_len < buffer_len ? recv_len : buffer_len;
         POSIX_GUARD(recv(conn, buffer, buffer_remaining, &blocked));
@@ -136,15 +132,9 @@ int perf_client_handler(struct s2n_connection *conn, uint64_t send_len, uint64_t
     }
 
     /* TODO implement send */
-    /* send_len += 8; */
 
-    clock_t end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    double recv_mbps = (double)total_recv_len / time_spent / 1000000.0;
-    double send_mbps = (double)total_send_len / time_spent / 1000000.0;
+    fprintf(stdout, "Received %luB.\n", total_recv_len);
+    fprintf(stdout, "    Sent %luB.\n\n", total_send_len);
 
-    fprintf(stdout, "Received %uMiB/s.\n", (uint32_t)recv_mbps);
-    fprintf(stdout, "    Sent %uMiB/s.\n\n", (uint32_t)send_mbps);
-
-    return 0;
+    return S2N_SUCCESS;
 }
