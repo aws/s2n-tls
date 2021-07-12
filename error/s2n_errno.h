@@ -292,11 +292,7 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
-#ifdef CBMC
-#    define _S2N_ERROR( x )     
-#else
-#    define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
-#endif
+#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
