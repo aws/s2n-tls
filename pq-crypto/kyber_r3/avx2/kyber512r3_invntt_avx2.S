@@ -1,4 +1,16 @@
-#include "kyber512r3_consts_avx2.h"
+//#include "kyber512r3_consts_avx2.h"
+#define _16XQ            0
+#define _16XQINV        16
+#define _16XV           32
+#define _16XFLO         48
+#define _16XFHI         64
+#define _16XMONTSQLO    80
+#define _16XMONTSQHI    96
+#define _16XMASK       112
+#define _REVIDXB       128
+#define _REVIDXD       144
+#define _ZETAS_EXP     160
+#define    _16XSHIFT      624
 
 //.include "shuffle.inc"
 .macro shuffle8 r0,r1,r2,r3
@@ -241,8 +253,8 @@ vmovdqa		%ymm11,(64*\off+176)*2(%rdi)
 .endm
 
 .text
-.global cdecl(invntt_avx2_asm)
-cdecl(kyber512r3_invntt_avx2):
+.global invntt_avx2_asm
+kyber512r3_invntt_avx2:
 vmovdqa         _16XQ*2(%rsi),%ymm0
 
 intt_levels0t5	0

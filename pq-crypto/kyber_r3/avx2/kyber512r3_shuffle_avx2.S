@@ -1,4 +1,17 @@
-#include "kyber512r3_consts_avx2.h"
+//#include "kyber512r3_consts_avx2.h"
+#define _16XQ            0
+#define _16XQINV        16
+#define _16XV           32
+#define _16XFLO         48
+#define _16XFHI         64
+#define _16XMONTSQLO    80
+#define _16XMONTSQHI    96
+#define _16XMASK       112
+#define _REVIDXB       128
+#define _REVIDXD       144
+#define _ZETAS_EXP     160
+#define    _16XSHIFT      624
+
 
 //.include "fq.inc"
 .macro red16 r,rs=0,x=12
@@ -110,8 +123,8 @@ vmovdqa		%ymm11,224(%rdi)
 
 ret
 
-.global cdecl(nttunpack_avx)
-cdecl(nttunpack_avx):
+.global nttunpack_avx
+nttunpack_avx:
 call		nttunpack128_avx
 add		$256,%rdi
 call		nttunpack128_avx
@@ -187,8 +200,8 @@ vmovdqu		%ymm9,160(%rdi)
 
 ret
 
-.global cdecl(ntttobytes_avx)
-cdecl(ntttobytes_avx):
+.global ntttobytes_avx
+ntttobytes_avx:
 #consts
 vmovdqa		_16XQ*2(%rdx),%ymm0
 call		ntttobytes128_avx
@@ -263,8 +276,8 @@ vmovdqa		%ymm1,224(%rdi)
 
 ret
 
-.global cdecl(nttfrombytes_avx)
-cdecl(nttfrombytes_avx):
+.global nttfrombytes_avx
+nttfrombytes_avx:
 #consts
 vmovdqa		_16XMASK*2(%rdx),%ymm0
 call		nttfrombytes128_avx
