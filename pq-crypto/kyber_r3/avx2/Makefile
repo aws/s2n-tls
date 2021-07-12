@@ -27,7 +27,7 @@ SRCS=kyber512r3_cbd_avx2.c kyber512r3_consts_avx2.c kyber512r3_fips202x4_avx2.c 
 ASM_SRCS=kyber512r3_basemul_avx2.S kyber512r3_fq_avx2.S kyber512r3_invntt_avx2.S kyber512r3_ntt_avx2.S kyber512r3_shuffle_avx2.S
 
 OBJS=$(SRCS:.c=.o)
-ASM_OBJS=$(ASRCS:.S=.o)
+ASM_OBJS=$(ASM_SRCS:.S=.o)
 
 $(OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
 $(ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
