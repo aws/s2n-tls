@@ -20,6 +20,10 @@ OBJS=$(SRCS:.c=.o)
 all: $(OBJS)
 	$(MAKE) -C avx2
 	
+.PHONY : avx2_bc
+avx2_bc: $(BCS1)
+	$(MAKE) -C avx2_bc bc
+	
 .PHONY : clean
 clean: decruft
 	$(MAKE) -C avx2 decruft
