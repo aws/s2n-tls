@@ -18,5 +18,10 @@ OBJS=$(SRCS:.c=.o)
 
 .PHONY : all
 all: $(OBJS)
-
+	$(MAKE) -C avx2
+	
+.PHONY : clean
+clean: decruft
+	$(MAKE) -C avx2 decruft
+	
 include ../../s2n.mk
