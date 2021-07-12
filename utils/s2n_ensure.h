@@ -84,3 +84,61 @@ extern void* s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restri
 #else
 extern void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
 #endif
+
+/**
+ * These macros should not be used in validate functions.
+ * All validate functions are also used in assumptions for CBMC proofs,
+ * which should not contain __CPROVER_*_ok primitives. The use of these primitives
+ * in assumptions may lead to spurious results.
+ * When the code is being verified using CBMC, these properties are formally verified;
+ * When the code is built in debug mode, they are checked as much as possible using assertions.
+ * When the code is built in production mode, non-fatal properties are not checked.
+ * Violations of these properties are undefined behaviour.
+ */
+#ifdef CBMC
+#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
+#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
+#else
+/* the C runtime does not give a way to check these properties,
+ * but we can at least check for nullness. */
+#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+#endif /* CBMC */
+
+/**
+ * These macros can safely be used in validate functions.
+ */
+#define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
+#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
+
+#define S2N_IMPLIES(a, b) (!(a) || (b))
+/**
+ * If and only if (iff) is a biconditional logical connective between statements a and b.
+ * Equivalent to (S2N_IMPLIES(a, b) && S2N_IMPLIES(b, a)).
+ */
+#define S2N_IFF(a, b) (!!(a) == !!(b))
+
+/**
+ * These macros are used to specify code contracts in CBMC proofs.
+ * Define function contracts.
+ * When the code is being verified using CBMC, these contracts are formally verified;
+ * When the code is built in production mode, contracts are not checked.
+ * Violations of the function contracts are undefined behaviour.
+ */
+#ifdef CBMC
+#    define CONTRACT_ASSIGNS(...) __CPROVER_assigns(__VA_ARGS__)
+#    define CONTRACT_ASSIGNS_ERR(...) CONTRACT_ASSIGNS(__VA_ARGS__, s2n_debug_str, s2n_errno)
+#    define CONTRACT_REQUIRES(...) __CPROVER_requires(__VA_ARGS__)
+#    define CONTRACT_ENSURES(...) __CPROVER_ensures(__VA_ARGS__)
+#    define CONTRACT_INVARIANT(...) __CPROVER_loop_invariant(__VA_ARGS__)
+#    define CONTRACT_RETURN_VALUE (__CPROVER_return_value)
+#else
+#    define CONTRACT_ASSIGNS(...)
+#    define CONTRACT_ASSIGNS_ERR(...)
+#    define CONTRACT_REQUIRES(...)
+#    define CONTRACT_ENSURES(...)
+#    define CONTRACT_INVARIANT(...)
+#    define CONTRACT_RETURN_VALUE
+#endif
