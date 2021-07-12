@@ -23,8 +23,8 @@ include ../s2n_pq_asm.mk
 # by the compiler. The flags are set in the s2n_pq_asm.mk
 # file and used here to compile the optimized code files.
 
-AVX2_CSRCS=avx2/kyber512r3_cbd_avx2.c avx2/kyber512r3_consts_avx2.c avx2/kyber512r3_fips202x4_avx2.c avx2/kyber512r3_indcpa_avx2.c avx2/kyber512r3_poly_avx2.c avx2/kyber512r3_polyvec_avx2.c avx2/kyber512r3_rejsample_avx2.c
-AVX2_ASRCS=avx2/kyber512r3_basemul_avx2.S avx2/kyber512r3_fq_avx2.S avx2/kyber512r3_invntt_avx2.S avx2/kyber512r3_ntt_avx2.S avx2/kyber512r3_shuffle_avx2.S
+AVX2_CSRCS=kyber512r3_cbd_avx2.c kyber512r3_consts_avx2.c kyber512r3_fips202x4_avx2.c kyber512r3_indcpa_avx2.c kyber512r3_poly_avx2.c kyber512r3_polyvec_avx2.c kyber512r3_rejsample_avx2.c
+AVX2_ASRCS=kyber512r3_basemul_avx2.S kyber512r3_fq_avx2.S kyber512r3_invntt_avx2.S kyber512r3_ntt_avx2.S kyber512r3_shuffle_avx2.S
 
 AVX2_OBJS=$(AVX2_CSRCS:.c=.o)
 AVX2_AOBJS=$(AVX2_ASRCS:.S=.o)
