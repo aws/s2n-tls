@@ -27,7 +27,7 @@
 uint64_t read_uint64(uint8_t *data)
 {
     uint64_t u = 0;
-    u |= ((uint64_t) data[0]) << (8);
+    u |= ((uint64_t) data[0]);
     u |= ((uint64_t) data[1]) << (1 * 8);
     u |= ((uint64_t) data[2]) << (2 * 8);
     u |= ((uint64_t) data[3]) << (3 * 8);
@@ -94,7 +94,7 @@ int perf_server_handler(struct s2n_connection *conn)
     s2n_blocked_status blocked = 0;
 
     /* read the amount the client wants back */
-    POSIX_GUARD(s2n_recv(conn, &buffer, 8, &blocked));
+    POSIX_GUARD(s2n_recv(conn, &buffer, sizeof(uint64_t), &blocked));
     send_len = read_uint64(buffer);
 
     while (send_len) {

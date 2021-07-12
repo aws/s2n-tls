@@ -257,7 +257,6 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
 }
 
-
 int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
