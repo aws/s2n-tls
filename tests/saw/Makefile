@@ -284,6 +284,9 @@ s2n/pq-crypto/kyber_90s_r2 :
 
 s2n/pq-crypto/kyber_r3 :
 	mkdir -p $@
+	
+s2n/pq-crypto/kyber_r3/avx2 :
+	mkdir -p $@
 
 s2n/utils :
 	mkdir -p $@
