@@ -54,7 +54,7 @@ void poly_compress_avx2(uint8_t r[128], const poly * restrict a)
     f2 = _mm256_maddubs_epi16(f2,shift2);
     f0 = _mm256_packus_epi16(f0,f2);
     f0 = _mm256_permutevar8x32_epi32(f0,permdidx);
-    _mm256_storeu_si256((__m256i *)&r[32*i],f0);
+    _mm256_storeu_si256((void *)&r[32*i],f0);
   }
 }
 
@@ -74,7 +74,7 @@ void poly_decompress_avx2(poly * restrict r, const uint8_t a[128])
     f = _mm256_and_si256(f,mask);
     f = _mm256_mullo_epi16(f,shift);
     f = _mm256_mulhrs_epi16(f,q);
-    _mm256_store_si256((__m256i *)&r->coeffs[16*i],f);
+    _mm256_store_si256((void *)&r->coeffs[16*i],f);
   }
 }
 
@@ -146,10 +146,10 @@ void poly_frommsg_avx2(poly * restrict r,
   g2 = _mm256_permute2x128_si256(h0,h1,0x31);			\
   g1 = _mm256_permute2x128_si256(h2,h3,0x20);			\
   g3 = _mm256_permute2x128_si256(h2,h3,0x31);			\
-  _mm256_store_si256((__m256i *)&r->coeffs[  0+32*i+ 0],g0);	\
-  _mm256_store_si256((__m256i *)&r->coeffs[  0+32*i+16],g1);	\
-  _mm256_store_si256((__m256i *)&r->coeffs[128+32*i+ 0],g2);	\
-  _mm256_store_si256((__m256i *)&r->coeffs[128+32*i+16],g3)
+  _mm256_store_si256((void *)&r->coeffs[  0+32*i+ 0],g0);	\
+  _mm256_store_si256((void *)&r->coeffs[  0+32*i+16],g1);	\
+  _mm256_store_si256((void *)&r->coeffs[128+32*i+ 0],g2);	\
+  _mm256_store_si256((void *)&r->coeffs[128+32*i+16],g3)
 
   f = _mm256_load_si256((const void *)msg);
   FROMMSG64(0);
@@ -175,8 +175,8 @@ void poly_tomsg_avx2(uint8_t msg[S2N_KYBER_512_R3_INDCPA_MSGBYTES], poly * restr
   const __m256i hhqs = _mm256_set1_epi16((S2N_KYBER_512_R3_Q - 5)/4);
 
   for(i=0;i<S2N_KYBER_512_R3_N/32;i++) {
-    f0 = _mm256_load_si256((__m256i *)&a->coeffs[32*i]);
-    f1 = _mm256_load_si256((__m256i *)&a->coeffs[32*i+16]);
+    f0 = _mm256_load_si256((void *)&a->coeffs[32*i]);
+    f1 = _mm256_load_si256((void *)&a->coeffs[32*i+16]);
     f0 = _mm256_sub_epi16(hqs, f0);
     f1 = _mm256_sub_epi16(hqs, f1);
     g0 = _mm256_srai_epi16(f0, 15);
@@ -376,7 +376,7 @@ void poly_add_avx2(poly *r, const poly *a, const poly *b)
     f0 = _mm256_load_si256((const void *)&a->coeffs[i]);
     f1 = _mm256_load_si256((const void *)&b->coeffs[i]);
     f0 = _mm256_add_epi16(f0, f1);
-    _mm256_store_si256((__m256i *)&r->coeffs[i], f0);
+    _mm256_store_si256((void *)&r->coeffs[i], f0);
   }
 }
 
@@ -398,6 +398,6 @@ void poly_sub_avx2(poly *r, const poly *a, const poly *b)
     f0 = _mm256_load_si256((const void *)&a->coeffs[i]);
     f1 = _mm256_load_si256((const void *)&b->coeffs[i]);
     f0 = _mm256_sub_epi16(f0, f1);
-    _mm256_store_si256((__m256i *)&r->coeffs[i], f0);
+    _mm256_store_si256((void *)&r->coeffs[i], f0);
   }
 }

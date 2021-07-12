@@ -38,8 +38,8 @@ static void poly_compress10(uint8_t r[320], const poly * restrict a)
     t0 = _mm256_castsi256_si128(f0);
     t1 = _mm256_extracti128_si256(f0,1);
     t0 = _mm_blend_epi16(t0,t1,0xE0);
-    _mm_storeu_si128((__m128i *)&r[20*i+ 0],t0);
-    _mm_store_ss((float *)&r[20*i+16],_mm_castsi128_ps(t1));
+    _mm_storeu_si128((void *)&r[20*i+ 0],t0);
+    _mm_store_ss((void *)&r[20*i+16],_mm_castsi128_ps(t1));
   }
 }
 
@@ -63,7 +63,7 @@ static void poly_decompress10(poly * restrict r, const uint8_t a[320+12])
     f = _mm256_srli_epi16(f,1);
     f = _mm256_and_si256(f,mask);
     f = _mm256_mulhrs_epi16(f,q);
-    _mm256_store_si256((__m256i *)&r->coeffs[16*i],f);
+    _mm256_store_si256((void *)&r->coeffs[16*i],f);
   }
 }
 

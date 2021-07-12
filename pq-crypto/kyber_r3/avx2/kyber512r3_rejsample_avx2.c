@@ -301,10 +301,10 @@ unsigned int rej_uniform_avx2(int16_t * restrict r,
     g0 = _mm256_packs_epi16(g0, g1);
     good = _mm256_movemask_epi8(g0);
 
-    g0 = _mm256_castsi128_si256(_mm_loadl_epi64((__m128i *)&idx[(good >>  0) & 0xFF]));
-    g1 = _mm256_castsi128_si256(_mm_loadl_epi64((__m128i *)&idx[(good >>  8) & 0xFF]));
-    g0 = _mm256_inserti128_si256(g0, _mm_loadl_epi64((__m128i *)&idx[(good >> 16) & 0xFF]), 1);
-    g1 = _mm256_inserti128_si256(g1, _mm_loadl_epi64((__m128i *)&idx[(good >> 24) & 0xFF]), 1);
+    g0 = _mm256_castsi128_si256(_mm_loadl_epi64((const void *)&idx[(good >>  0) & 0xFF]));
+    g1 = _mm256_castsi128_si256(_mm_loadl_epi64((const void *)&idx[(good >>  8) & 0xFF]));
+    g0 = _mm256_inserti128_si256(g0, _mm_loadl_epi64((const void *)&idx[(good >> 16) & 0xFF]), 1);
+    g1 = _mm256_inserti128_si256(g1, _mm_loadl_epi64((const void *)&idx[(good >> 24) & 0xFF]), 1);
 
     g2 = _mm256_add_epi8(g0, ones);
     g3 = _mm256_add_epi8(g1, ones);
@@ -314,13 +314,13 @@ unsigned int rej_uniform_avx2(int16_t * restrict r,
     f0 = _mm256_shuffle_epi8(f0, g0);
     f1 = _mm256_shuffle_epi8(f1, g1);
 
-    _mm_storeu_si128((__m128i *)&r[ctr], _mm256_castsi256_si128(f0));
+    _mm_storeu_si128((void *)&r[ctr], _mm256_castsi256_si128(f0));
     ctr += _mm_popcnt_u32((good >>  0) & 0xFF);
-    _mm_storeu_si128((__m128i *)&r[ctr], _mm256_extracti128_si256(f0, 1));
+    _mm_storeu_si128((void *)&r[ctr], _mm256_extracti128_si256(f0, 1));
     ctr += _mm_popcnt_u32((good >> 16) & 0xFF);
-    _mm_storeu_si128((__m128i *)&r[ctr], _mm256_castsi256_si128(f1));
+    _mm_storeu_si128((void *)&r[ctr], _mm256_castsi256_si128(f1));
     ctr += _mm_popcnt_u32((good >>  8) & 0xFF);
-    _mm_storeu_si128((__m128i *)&r[ctr], _mm256_extracti128_si256(f1, 1));
+    _mm_storeu_si128((void *)&r[ctr], _mm256_extracti128_si256(f1, 1));
     ctr += _mm_popcnt_u32((good >> 24) & 0xFF);
   }
 
@@ -336,12 +336,12 @@ unsigned int rej_uniform_avx2(int16_t * restrict r,
     good = _mm_movemask_epi8(t);
 
     good = _pext_u32(good, 0x5555);
-    pilo = _mm_loadl_epi64((__m128i *)&idx[good]);
+    pilo = _mm_loadl_epi64((const void *)&idx[good]);
 
     pihi = _mm_add_epi8(pilo, _mm256_castsi256_si128(ones));
     pilo = _mm_unpacklo_epi8(pilo, pihi);
     f = _mm_shuffle_epi8(f, pilo);
-    _mm_storeu_si128((__m128i *)&r[ctr], f);
+    _mm_storeu_si128((void *)&r[ctr], f);
     ctr += _mm_popcnt_u32(good);
   }
 

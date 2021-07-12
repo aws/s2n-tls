@@ -49,10 +49,10 @@ static void cbd2(poly *r, const uint8_t buf[4*S2N_KYBER_512_R3_N/8])
     f2 = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(f3));
     f3 = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(f3,1));
 
-    _mm256_store_si256((__m256i *)&r->coeffs[64*i+ 0], f0);
-    _mm256_store_si256((__m256i *)&r->coeffs[64*i+16], f2);
-    _mm256_store_si256((__m256i *)&r->coeffs[64*i+32], f1);
-    _mm256_store_si256((__m256i *)&r->coeffs[64*i+48], f3);
+    _mm256_store_si256((void *)&r->coeffs[64*i+ 0], f0);
+    _mm256_store_si256((void *)&r->coeffs[64*i+16], f2);
+    _mm256_store_si256((void *)&r->coeffs[64*i+32], f1);
+    _mm256_store_si256((void *)&r->coeffs[64*i+48], f3);
   }
 }
 
@@ -114,8 +114,8 @@ static void cbd3(poly *r, const uint8_t buf[6*S2N_KYBER_512_R3_N/8])
     f0 = _mm256_permute2x128_si256(f2,f3,0x20);
     f1 = _mm256_permute2x128_si256(f2,f3,0x31);
 
-    _mm256_store_si256((__m256i *)&r->coeffs[32*i+ 0], f0);
-    _mm256_store_si256((__m256i *)&r->coeffs[32*i+16], f1);
+    _mm256_store_si256((void *)&r->coeffs[32*i+ 0], f0);
+    _mm256_store_si256((void *)&r->coeffs[32*i+16], f1);
   }
 }
 

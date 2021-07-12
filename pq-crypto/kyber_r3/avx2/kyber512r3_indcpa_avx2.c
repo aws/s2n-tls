@@ -181,10 +181,10 @@ void gen_matrix(polyvec *a, const uint8_t seed[32], int transposed)
   keccakx4_state state;
 
   f = _mm256_load_si256((const void *)seed);
-  _mm256_store_si256((__m256i *)buf[0], f);
-  _mm256_store_si256((__m256i *)buf[1], f);
-  _mm256_store_si256((__m256i *)buf[2], f);
-  _mm256_store_si256((__m256i *)buf[3], f);
+  _mm256_store_si256((void *)buf[0], f);
+  _mm256_store_si256((void *)buf[1], f);
+  _mm256_store_si256((void *)buf[2], f);
+  _mm256_store_si256((void *)buf[3], f);
 
   if(transposed) {
     buf[0][S2N_KYBER_512_R3_SYMBYTES+0] = 0;
