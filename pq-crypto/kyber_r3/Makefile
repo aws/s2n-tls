@@ -15,8 +15,8 @@
 
 .DEFAULT_GOAL := all
 
-include ../../../s2n.mk
-include ../../s2n_pq_asm.mk
+include ../../s2n.mk
+include ../s2n_pq_asm.mk
 
 # Kyber Round-3 code has several different optimizations
 # which require specific compiler flags to be supported
