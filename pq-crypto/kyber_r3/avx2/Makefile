@@ -15,42 +15,38 @@
 
 .DEFAULT_GOAL := all
 
-include ../../s2n.mk
-include ../s2n_pq_asm.mk
+include ../../../s2n.mk
+include ../../s2n_pq_asm.mk
 
 # Kyber Round-3 code has several different optimizations
 # which require specific compiler flags to be supported
 # by the compiler. The flags are set in the s2n_pq_asm.mk
 # file and used here to compile the optimized code files.
 
-AVX2_SRCS=avx2/kyber512r3_cbd_avx2.c avx2/kyber512r3_consts_avx2.c avx2/kyber512r3_fips202x4_avx2.c avx2/kyber512r3_indcpa_avx2.c avx2/kyber512r3_poly_avx2.c avx2/kyber512r3_polyvec_avx2.c avx2/kyber512r3_rejsample_avx2.c
-AVX2_ASM_SRCS=avx2/kyber512r3_basemul_avx2.S avx2/kyber512r3_fq_avx2.S avx2/kyber512r3_invntt_avx2.S avx2/kyber512r3_ntt_avx2.S avx2/kyber512r3_shuffle_avx2.S
+SRCS=kyber512r3_cbd_avx2.c kyber512r3_consts_avx2.c kyber512r3_fips202x4_avx2.c kyber512r3_indcpa_avx2.c kyber512r3_poly_avx2.c kyber512r3_polyvec_avx2.c kyber512r3_rejsample_avx2.c
+ASM_SRCS=kyber512r3_basemul_avx2.S kyber512r3_fq_avx2.S kyber512r3_invntt_avx2.S kyber512r3_ntt_avx2.S kyber512r3_shuffle_avx2.S
 
-AVX2_OBJS=$(AVX2_SRCS:.c=.o)
-AVX2_ASM_OBJS=$(AVX2_ASM_SRCS:.S=.o)
+OBJS=$(SRCS:.c=.o)
+ASM_OBJS=$(ASM_SRCS:.S=.o)
 
-$(AVX2_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
-$(AVX2_ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+$(OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+$(ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
 
 #WA for GCC 4.8.5 bug.
 CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
 
 .PHONY : all
-all: $(AVX2_OBJS) $(AVX2_ASM_OBJS)
+all: $(OBJS) $(ASM_OBJS)
 
 CFLAGS_LLVM = -emit-llvm -c -g \
               -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
               -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
 
-AVX2_BCS=$(addprefix $(BITCODE_DIR), $(AVX2_SRCS:.c=.bc))
-AVX2_ASM_BCS=$(addprefix $(BITCODE_DIR), $(AVX2_ASM_SRCS:.c=.bc))
+BCS=$(addprefix $(BITCODE_DIR), $(SRCS:.c=.bc))
+ASM_BCS=$(addprefix $(BITCODE_DIR), $(ASM_SRCS:.c=.bc))
 
-$(AVX2_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
-$(AVX2_ASM_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
+$(BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
+$(ASM_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
 
 .PHONY : bc
-bc: $(AVX2_BCS) $(AVX2_ASM_BCS)
-
-.PHONY : clean
-clean: decruft
-	rm -rf avx2/*.o
+bc: $(BCS) $(ASM_BCS)

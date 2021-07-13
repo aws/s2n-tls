@@ -13,34 +13,19 @@
 # permissions and limitations under the License.
 #
 
-.DEFAULT_GOAL := all
-
-include ../../s2n.mk
-include ../s2n_pq_asm.mk
-
-# Kyber Round-3 code has several different optimizations
-# which require specific compiler flags to be supported
-# by the compiler. The flags are set in the s2n_pq_asm.mk
-# file and used here to compile the optimized code files.
-
-SRCS=kyber512r3_cbd.c kyber512r3_fips202.c kyber512r3_indcpa.c kyber512r3_kem.c kyber512r3_ntt.c kyber512r3_poly.c kyber512r3_polyvec.c kyber512r3_reduce.c kyber512r3_symmetric-shake.c
+SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
-
-#WA for GCC 4.8.5 bug.
-CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
 
 .PHONY : all
 all: $(OBJS)
-
-CFLAGS_LLVM = -emit-llvm -c -g \
-              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
-              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
-
-BCS=$(addprefix $(BITCODE_DIR), $(SRCS:.c=.bc))
-
-.PHONY : bc
-bc: $(BCS)
-
+	$(MAKE) -C avx2
+	
+.PHONY : avx2_bc
+avx2_bc: $(BCS1)
+	$(MAKE) -C avx2_bc bc
+	
 .PHONY : clean
 clean: decruft
-	rm -rf avx2/*.o
+	$(MAKE) -C avx2 decruft
+	
+include ../../s2n.mk
