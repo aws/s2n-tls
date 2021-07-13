@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "../kyber512r3_fips202.h"
+#include "kyber512r3_fips202.h"
 #include "kyber512r3_fips202x4_avx2.h"
 #include <immintrin.h>
 

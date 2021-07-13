@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "../kyber512r3_params.h"
+#include "kyber512r3_params.h"
 #include "kyber512r3_polyvec_avx2.h"
 
 #define gen_matrix_avx2 S2N_KYBER_512_R3_NAMESPACE(gen_matrix_avx2)

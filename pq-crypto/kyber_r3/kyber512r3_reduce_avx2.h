@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "../kyber512r3_params.h"
+#include "kyber512r3_params.h"
 #include <immintrin.h>
 
 #define reduce_avx2_asm S2N_KYBER_512_R3_NAMESPACE(reduce_avx2_asm)

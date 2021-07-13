@@ -26,8 +26,8 @@ include ../s2n_pq_asm.mk
 SRCS=kyber512r3_cbd.c kyber512r3_fips202.c kyber512r3_indcpa.c kyber512r3_kem.c kyber512r3_ntt.c kyber512r3_poly.c kyber512r3_polyvec.c kyber512r3_reduce.c kyber512r3_symmetric-shake.c
 OBJS=$(SRCS:.c=.o)
 
-AVX2_SRCS=avx2/kyber512r3_cbd_avx2.c avx2/kyber512r3_consts_avx2.c avx2/kyber512r3_fips202x4_avx2.c avx2/kyber512r3_indcpa_avx2.c avx2/kyber512r3_poly_avx2.c avx2/kyber512r3_polyvec_avx2.c avx2/kyber512r3_rejsample_avx2.c
-AVX2_ASM_SRCS=avx2/kyber512r3_basemul_avx2.S avx2/kyber512r3_fq_avx2.S avx2/kyber512r3_invntt_avx2.S avx2/kyber512r3_ntt_avx2.S avx2/kyber512r3_shuffle_avx2.S
+AVX2_SRCS=kyber512r3_cbd_avx2.c kyber512r3_consts_avx2.c kyber512r3_fips202x4_avx2.c kyber512r3_indcpa_avx2.c kyber512r3_poly_avx2.c kyber512r3_polyvec_avx2.c kyber512r3_rejsample_avx2.c
+AVX2_ASM_SRCS=kyber512r3_basemul_avx2.S kyber512r3_fq_avx2.S kyber512r3_invntt_avx2.S kyber512r3_ntt_avx2.S kyber512r3_shuffle_avx2.S
 
 AVX2_OBJS=$(AVX2_SRCS:.c=.o)
 AVX2_ASM_OBJS=$(AVX2_ASM_SRCS:.S=.o)
@@ -55,6 +55,3 @@ $(AVX2_ASM_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
 .PHONY : bc
 bc: $(BCS) $(AVX2_BCS) $(AVX2_ASM_BCS)
 
-.PHONY : clean
-clean: decruft
-	rm -rf avx2/*.o

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "../kyber512r3_params.h"
+#include "kyber512r3_params.h"
 #include "kyber512r3_poly_avx2.h"
 
 #define cbd_eta1_avx2 S2N_KYBER_512_R3_NAMESPACE(cbd_eta1_avx2)

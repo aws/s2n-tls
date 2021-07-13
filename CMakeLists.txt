@@ -60,7 +60,6 @@ else()
         "pq-crypto/kyber_r2/*.h"
         "pq-crypto/kyber_90s_r2/*.h"
         "pq-crypto/kyber_r3/*.h"
-        "pq-crypto/kyber_r3/avx2/*.h"
         "pq-crypto/sike_r3/*.h")
 
     # The SIKE r1 code #includes .c files directly; including sike_r1/*.c
@@ -77,7 +76,6 @@ else()
         "pq-crypto/kyber_r2/*.c"
         "pq-crypto/kyber_90s_r2/*.c"
         "pq-crypto/kyber_r3/*.c"
-        "pq-crypto/kyber_r3/avx2/*.c"
         "pq-crypto/sike_r3/*.c")
 endif()
 
@@ -326,7 +324,7 @@ endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
     if(KYBER512R3_AVX2_BMI2_SUPPORTED)
-        FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/avx2/*.c")
+        FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
         set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
     endif()
