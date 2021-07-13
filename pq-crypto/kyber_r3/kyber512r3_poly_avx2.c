@@ -1,12 +1,12 @@
 #include <stdint.h>
 #include <immintrin.h>
-#include "../kyber512r3_params.h"
+#include "kyber512r3_params.h"
 #include "kyber512r3_poly_avx2.h"
 #include "kyber512r3_cbd_avx2.h"
 #include "kyber512r3_consts_avx2.h"
 #include "kyber512r3_reduce_avx2.h"
 #include "kyber512r3_ntt_avx2.h"
-#include "../kyber512r3_symmetric.h"
+#include "kyber512r3_symmetric.h"
 #include "kyber512r3_fips202x4_avx2.h"
 #include <immintrin.h>
 

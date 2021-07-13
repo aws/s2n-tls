@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "../kyber512r3_params.h"
+#include "kyber512r3_params.h"
 
 //#define XOF_BLOCKBYTES S2N_KYBER_512_R3_SHAKE128_RATE
 #define XOF_BLOCKBYTES 168

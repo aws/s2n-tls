@@ -71,7 +71,7 @@ ifndef S2N_NO_PQ_ASM
     # which require specific compiler flags to be supported
     # by the compiler. So for each needed instruction set
     # extension we check if the compiler supports it and
-    # set proper flags to be added in the kyber_r3/avx2 Makefile.
+    # set proper flags to be added in the kyber_r3 Makefile.
     dummy_file := "$(S2N_ROOT)/tests/features/noop_main.c"
     dummy_file_out := "test_kyber512r3_avx2_bmi2_support.o"
     KYBER512R3_AVX2_BMI2_SUPPORTED := $(shell $(CC) -mavx2 -mbmi2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)

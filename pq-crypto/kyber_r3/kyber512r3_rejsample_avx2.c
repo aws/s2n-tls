@@ -1,5 +1,4 @@
 #include <string.h>
-#include "../kyber512r3_params.h"
 #include "kyber512r3_consts_avx2.h"
 #include "kyber512r3_rejsample_avx2.h"
 #include <immintrin.h>

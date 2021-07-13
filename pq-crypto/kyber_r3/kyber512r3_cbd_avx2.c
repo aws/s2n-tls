@@ -1,4 +1,4 @@
-#include "../kyber512r3_params.h"
+#include "kyber512r3_params.h"
 #include "kyber512r3_cbd_avx2.h"
 #include <immintrin.h>
 

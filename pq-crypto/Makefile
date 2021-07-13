@@ -77,7 +77,7 @@ clean: decruft
 	$(MAKE) -C sike_r1 decruft
 	$(MAKE) -C kyber_r2 decruft
 	$(MAKE) -C kyber_90s_r2 decruft
-	$(MAKE) -C kyber_r3 clean
+	$(MAKE) -C kyber_r3 decruft
 	$(MAKE) -C sike_r3 decruft
 
 include ../s2n.mk
