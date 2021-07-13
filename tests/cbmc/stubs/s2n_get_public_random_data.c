@@ -27,10 +27,10 @@ S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
      * which should be sufficent to catch most issues. */
 
     if (blob->size != 0) {
-        size_t index = nondet_size_t();
-        __CPROVER_assume(index < blob->size);
+        size_t i = nondet_size_t();
+        __CPROVER_assume(i < blob->size);
 
-        blob->data[index] = nondet_uint8_t();
+        blob->data[i] = nondet_uint8_t();
     }
     
     return nondet_bool() ? S2N_RESULT_OK : S2N_RESULT_ERROR;
