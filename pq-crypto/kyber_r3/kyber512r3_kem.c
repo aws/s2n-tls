@@ -25,7 +25,7 @@
 int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-#if defined(KYBER512R3_AVX2_BMI2_FLAGS)
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
     if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
         POSIX_GUARD(indcpa_keypair_avx2(pk, sk));
         return;
@@ -73,7 +73,7 @@ int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
     sha3_512(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
-#if defined(KYBER512R3_AVX2_BMI2_FLAGS)
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
     if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
         indcpa_enc_avx2(ct, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
         return;
@@ -114,7 +114,7 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     uint8_t cmp[S2N_KYBER_512_R3_CIPHERTEXT_BYTES];
     const uint8_t *pk = sk+S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES;
 
-#if defined(KYBER512R3_AVX2_BMI2_FLAGS)
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
     if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
         indcpa_dec_avx2(buf, ct, sk);
         return;
@@ -129,7 +129,7 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     sha3_512(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
-#if defined(KYBER512R3_AVX2_BMI2_FLAGS)
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
     if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
         indcpa_enc_avx2(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
         return;
