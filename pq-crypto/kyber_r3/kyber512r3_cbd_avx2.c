@@ -120,12 +120,12 @@ static void cbd3(poly *r, const uint8_t buf[6*S2N_KYBER_512_R3_N/8])
   }
 }
 
-void cbd_eta1(poly *r, const uint8_t buf[S2N_KYBER_512_R3_ETA1*S2N_KYBER_512_R3_N/4])
+void cbd_eta1_avx2(poly *r, const uint8_t buf[S2N_KYBER_512_R3_ETA1*S2N_KYBER_512_R3_N/4])
 {
   cbd3(r, buf);
 }
 
-void cbd_eta2(poly *r, const uint8_t buf[S2N_KYBER_512_R3_ETA2*S2N_KYBER_512_R3_N/4])
+void cbd_eta2_avx2(poly *r, const uint8_t buf[S2N_KYBER_512_R3_ETA2*S2N_KYBER_512_R3_N/4])
 {
   cbd2(r, buf);
 }
