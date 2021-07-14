@@ -182,7 +182,7 @@ else()
     # BIKE compilation units.
     if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
     
-        set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mbmi2")
+        set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mavx -mbmi2")
         try_compile(KYBER512R3_AVX2_BMI2_SUPPORTED
             ${CMAKE_BINARY_DIR}
             "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
