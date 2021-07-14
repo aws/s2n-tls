@@ -1,3 +1,5 @@
+#include "kyber512r3_cdecl_avx2.h"
+
 //#include "kyber512r3_consts_avx2.h"
 #define _16XQ            0
 #define _16XQINV        16
@@ -96,8 +98,8 @@ vmovdqa		%ymm11,(64*\off+48)*2(%rdi)
 .endm
 
 .text
-.global basemul_avx2_asm
-basemul_avx2_asm:
+.global cdecl(basemul_avx2_asm)
+cdecl(basemul_avx2_asm):
 mov		%rsp,%r8
 and		$-32,%rsp
 sub		$32,%rsp

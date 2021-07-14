@@ -5,7 +5,7 @@
 #define ntt_avx2_asm S2N_KYBER_512_R3_NAMESPACE(ntt_avx2_asm)
 void ntt_avx2_asm(int16_t *r, const int16_t *qdata);
 
-#define invntt_avx_asm S2N_KYBER_512_R3_NAMESPACE(invntt_avx_asm)
+#define invntt_avx2_asm S2N_KYBER_512_R3_NAMESPACE(invntt_avx2_asm)
 void invntt_avx2_asm(int16_t *r, const int16_t *qdata);
 
 #define nttunpack_avx2_asm S2N_KYBER_512_R3_NAMESPACE(nttunpack_avx2_asm)

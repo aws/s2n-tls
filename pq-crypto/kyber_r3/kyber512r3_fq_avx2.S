@@ -1,3 +1,5 @@
+#include "kyber512r3_cdecl_avx2.h"
+
 //#include "kyber512r3_consts_avx2.h"
 #define _16XQ            0
 #define _16XQINV        16
@@ -82,8 +84,8 @@ vmovdqa		%ymm9,224(%rdi)
 
 ret
 
-.global reduce_avx2_asm
-reduce_avx2_asm:
+.global cdecl(reduce_avx2_asm)
+cdecl(reduce_avx2_asm):
 #consts
 vmovdqa		_16XQ*2(%rsi),%ymm0
 vmovdqa		_16XV*2(%rsi),%ymm1
@@ -124,8 +126,8 @@ vmovdqa		%ymm8,224(%rdi)
 
 ret
 
-.global csubq_avx2_asm
-csubq_avx2_asm:
+.global cdecl(csubq_avx2_asm)
+cdecl(csubq_avx2_asm):
 #consts
 vmovdqa		_16XQ*2(%rsi),%ymm0
 call		csubq128_avx
@@ -165,8 +167,8 @@ vmovdqa		%ymm10,224(%rdi)
 
 ret
 
-.global tomont_avx2_asm
-tomont_avx2_asm:
+.global cdecl(tomont_avx2_asm)
+cdecl(tomont_avx2_asm):
 #consts
 vmovdqa		_16XQ*2(%rsi),%ymm0
 vmovdqa		_16XMONTSQLO*2(%rsi),%ymm1

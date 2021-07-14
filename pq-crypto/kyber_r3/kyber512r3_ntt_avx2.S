@@ -1,3 +1,5 @@
+#include "kyber512r3_cdecl_avx2.h"
+
 //#include "kyber512r3_consts_avx2.h"
 #define _16XQ            0
 #define _16XQINV        16
@@ -216,8 +218,8 @@ vmovdqa		%ymm11,(128*\off+112)*2(%rdi)
 .endm
 
 .text
-.global ntt_avx2_asm
-ntt_avx2_asm:
+.global cdecl(ntt_avx2_asm)
+cdecl(ntt_avx2_asm):
 vmovdqa		_16XQ*2(%rsi),%ymm0
 
 level0		0
