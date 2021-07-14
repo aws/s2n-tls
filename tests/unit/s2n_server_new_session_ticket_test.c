@@ -835,9 +835,16 @@ int main(int argc, char **argv)
 
         /* 0 tickets are requested */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS13;
+            conn->tickets_to_send = 0;
+            EXPECT_NOT_EQUAL(0, s2n_stuffer_space_remaining(&conn->handshake.io));
 
             /* Setup io */
             struct s2n_stuffer stuffer;
@@ -847,10 +854,15 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
 
+            /* Check no tickets are written */
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+
+            /* Check handshake.io is cleaned up */
+            EXPECT_EQUAL(0, s2n_stuffer_space_remaining(&conn->handshake.io));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
         /* Sends one new session ticket */
@@ -865,6 +877,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->tickets_to_send = 1;
+            EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
             /* Setup io */
             struct s2n_stuffer stuffer;
@@ -880,7 +893,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &record_len));
             EXPECT_TRUE(record_len > 0);
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, record_len));
-            EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) == 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+            /* Check handshake.io is cleaned up */
+            EXPECT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -1201,6 +1217,11 @@ int main(int argc, char **argv)
 
         /* Do handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Check handshake.io was cleaned up.
+         * If a ticket was written, this happens afterwards. */
+        EXPECT_EQUAL(s2n_stuffer_space_remaining(&server_conn->handshake.io), 0);
+        EXPECT_EQUAL(s2n_stuffer_space_remaining(&client_conn->handshake.io), 0);
 
         /* Check there are five records corresponding to five new session tickets
          * not read as part of the handshake */
