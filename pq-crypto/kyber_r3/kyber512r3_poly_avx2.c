@@ -231,10 +231,10 @@ void poly_getnoise_eta1_4x(poly *r0,
   keccakx4_state state;
 
   f = _mm256_load_si256((const void *)seed);
-  _mm256_store_si256((__m256i *)buf[0], f);
-  _mm256_store_si256((__m256i *)buf[1], f);
-  _mm256_store_si256((__m256i *)buf[2], f);
-  _mm256_store_si256((__m256i *)buf[3], f);
+  _mm256_store_si256((void *)buf[0], f);
+  _mm256_store_si256((void *)buf[1], f);
+  _mm256_store_si256((void *)buf[2], f);
+  _mm256_store_si256((void *)buf[3], f);
 
   buf[0][32] = nonce0;
   buf[1][32] = nonce1;
@@ -266,10 +266,10 @@ void poly_getnoise_eta1122_4x(poly *r0,
   keccakx4_state state;
 
   f = _mm256_load_si256((const void *)seed);
-  _mm256_store_si256((__m256i *)buf[0], f);
-  _mm256_store_si256((__m256i *)buf[1], f);
-  _mm256_store_si256((__m256i *)buf[2], f);
-  _mm256_store_si256((__m256i *)buf[3], f);
+  _mm256_store_si256((void *)buf[0], f);
+  _mm256_store_si256((void *)buf[1], f);
+  _mm256_store_si256((void *)buf[2], f);
+  _mm256_store_si256((void *)buf[3], f);
 
   buf[0][32] = nonce0;
   buf[1][32] = nonce1;
