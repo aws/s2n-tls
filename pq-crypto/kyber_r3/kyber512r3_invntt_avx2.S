@@ -255,10 +255,10 @@ vmovdqa		%ymm11,(64*\off+176)*2(%rdi)
 .endm
 
 .text
-.global cdecl(S2N_KYBER_512_R3_invntt_avx2_asm)
-.global _cdecl(S2N_KYBER_512_R3_invntt_avx2_asm)
-cdecl(S2N_KYBER_512_R3_invntt_avx2_asm):
-_cdecl(S2N_KYBER_512_R3_invntt_avx2_asm):
+.global cdecl(invntt_avx2_asm)
+.global _cdecl(invntt_avx2_asm)
+cdecl(invntt_avx2_asm):
+_cdecl(invntt_avx2_asm):
 vmovdqa         _16XQ*2(%rsi),%ymm0
 
 intt_levels0t5	0
