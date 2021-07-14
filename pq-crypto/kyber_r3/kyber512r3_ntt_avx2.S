@@ -218,10 +218,10 @@ vmovdqa		%ymm11,(128*\off+112)*2(%rdi)
 .endm
 
 .text
-.global cdecl(ntt_avx2_asm)
-.global _cdecl(ntt_avx2_asm)
-cdecl(ntt_avx2_asm):
-_cdecl(ntt_avx2_asm):
+.global cdecl(s2n_kyber_512_r3_ntt_avx2_asm)
+.global _cdecl(s2n_kyber_512_r3_ntt_avx2_asm)
+cdecl(s2n_kyber_512_r3_ntt_avx2_asm):
+_cdecl(s2n_kyber_512_r3_ntt_avx2_asm):
 vmovdqa		_16XQ*2(%rsi),%ymm0
 
 level0		0
