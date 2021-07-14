@@ -180,8 +180,8 @@ input_vectors = [
     },
 ]
 
-def hdkf_extract(salt: bytes, key: bytes, hash_alg: str):
-    return hmac.new(salt, key, hash_alg).digest()
+def hkdf_extract(key: bytes, info: bytes, hash_alg: str):
+    return hmac.new(key, info, hash_alg).digest()
 
 def hkdf_expand_label(key: bytes, label: str, context: bytes, hash_alg: str):
     label_arr = [0, hashlib.new(hash_alg).digest_size, len("tls13 ") + len(label)]
@@ -196,7 +196,7 @@ def hkdf_expand_label(key: bytes, label: str, context: bytes, hash_alg: str):
     for c in context:
         label_arr.append(c)
 
-    return hdkf_extract(key, bytearray(label_arr) + bytes([1]), hash_alg)
+    return hkdf_extract(key, bytearray(label_arr) + bytes([1]), hash_alg)
 
 def compute_secrets(input_vector: dict):
     shared_secret = bytes.fromhex(input_vector["ec_shared_secret"] + input_vector["pq_shared_secret"])
@@ -208,9 +208,9 @@ def compute_secrets(input_vector: dict):
     h.update(b"")
     empty_hash = h.digest()
 
-    secrets = {"early_secret": hdkf_extract(zeros, zeros, hash_alg)}
+    secrets = {"early_secret": hkdf_extract(zeros, zeros, hash_alg)}
     secrets["derived_secret"] = hkdf_expand_label(secrets["early_secret"], "derived", empty_hash, hash_alg)
-    secrets["handshake_secret"] = hdkf_extract(secrets["derived_secret"], shared_secret, hash_alg)
+    secrets["handshake_secret"] = hkdf_extract(secrets["derived_secret"], shared_secret, hash_alg)
     secrets["client_traffic_secret"] = hkdf_expand_label(secrets["handshake_secret"], "c hs traffic", transcript_hash, hash_alg)
     secrets["server_traffic_secret"] = hkdf_expand_label(secrets["handshake_secret"], "s hs traffic", transcript_hash, hash_alg)
 
