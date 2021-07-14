@@ -7,12 +7,5 @@
  *
  * This define helps us get around this
  */
-#ifdef __ASSEMBLER__
-#if defined(__WIN32__) || defined(__APPLE__)
-#define decorate(s) ##s
-#define cdecl2(s) decorate(s)
-#define cdecl(s) cdecl2(S2N_KYBER_512_R3_NAMESPACE(##s))
-#else
-#define cdecl(s) S2N_KYBER_512_R3_NAMESPACE(##s)
-#endif
-#endif
+#define _cdecl(s) _##s
+#define cdecl(s) s

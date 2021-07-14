@@ -84,8 +84,10 @@ vmovdqa		%ymm9,224(%rdi)
 
 ret
 
-.global cdecl(reduce_avx2_asm)
-cdecl(reduce_avx2_asm):
+.global cdecl(S2N_KYBER_512_R3_reduce_avx2_asm)
+.global _cdecl(S2N_KYBER_512_R3_reduce_avx2_asm)
+cdecl(S2N_KYBER_512_R3_reduce_avx2_asm):
+_cdecl(S2N_KYBER_512_R3_reduce_avx2_asm):
 #consts
 vmovdqa		_16XQ*2(%rsi),%ymm0
 vmovdqa		_16XV*2(%rsi),%ymm1
@@ -126,8 +128,10 @@ vmovdqa		%ymm8,224(%rdi)
 
 ret
 
-.global cdecl(csubq_avx2_asm)
-cdecl(csubq_avx2_asm):
+.global cdecl(S2N_KYBER_512_R3_csubq_avx2_asm)
+.global _cdecl(S2N_KYBER_512_R3_csubq_avx2_asm)
+cdecl(S2N_KYBER_512_R3_csubq_avx2_asm):
+_cdecl(S2N_KYBER_512_R3_csubq_avx2_asm):
 #consts
 vmovdqa		_16XQ*2(%rsi),%ymm0
 call		csubq128_avx
@@ -167,8 +171,10 @@ vmovdqa		%ymm10,224(%rdi)
 
 ret
 
-.global cdecl(tomont_avx2_asm)
-cdecl(tomont_avx2_asm):
+.global cdecl(S2N_KYBER_512_R3_tomont_avx2_asm)
+.global _cdecl(S2N_KYBER_512_R3_tomont_avx2_asm)
+cdecl(S2N_KYBER_512_R3_tomont_avx2_asm):
+_cdecl(S2N_KYBER_512_R3_tomont_avx2_asm):
 #consts
 vmovdqa		_16XQ*2(%rsi),%ymm0
 vmovdqa		_16XMONTSQLO*2(%rsi),%ymm1
