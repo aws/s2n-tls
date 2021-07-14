@@ -98,10 +98,10 @@ vmovdqa		%ymm11,(64*\off+48)*2(%rdi)
 .endm
 
 .text
-.global cdecl(basemul_avx2_asm)
-.global _cdecl(basemul_avx2_asm)
-cdecl(basemul_avx2_asm):
-_cdecl(basemul_avx2_asm):
+.global cdecl(s2n_kyber_512_r3_basemul_avx2_asm)
+.global _cdecl(s2n_kyber_512_r3_basemul_avx2_asm)
+cdecl(s2n_kyber_512_r3_basemul_avx2_asm):
+_cdecl(s2n_kyber_512_r3_basemul_avx2_asm):
 mov		%rsp,%r8
 and		$-32,%rsp
 sub		$32,%rsp
