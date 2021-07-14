@@ -14,6 +14,7 @@
 **************************************************/
 static void cbd2(poly *r, const uint8_t buf[4*S2N_KYBER_512_R3_N/8])
 {
+    
   unsigned int i;
   __m256i f0, f1, f2, f3;
   const __m256i mask55 = _mm256_set1_epi32(0x55555555);
