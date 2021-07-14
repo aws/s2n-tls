@@ -9,10 +9,10 @@
  */
 #ifdef __ASSEMBLER__
 #if defined(__WIN32__) || defined(__APPLE__)
-#define decorate(s) _##s
+#define decorate(s) ##s
 #define cdecl2(s) decorate(s)
-#define cdecl(s) cdecl2(KYBER_NAMESPACE(_##s))
+#define cdecl(s) cdecl2(S2N_KYBER_512_R3_NAMESPACE(##s))
 #else
-#define cdecl(s) KYBER_NAMESPACE(_##s)
+#define cdecl(s) S2N_KYBER_512_R3_NAMESPACE(##s)
 #endif
 #endif
