@@ -31,6 +31,8 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequen
     uint8_t *data = ad->data;
     RESULT_GUARD_PTR(data);
 
+    /* ad = seq_num || record_type || version || length */
+
     size_t idx = 0;
     for(; idx < S2N_TLS_SEQUENCE_NUM_LEN; idx++) {
         data[idx] = sequence_number[idx];
