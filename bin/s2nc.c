@@ -297,7 +297,6 @@ int main(int argc, char *const *argv)
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
-        {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
@@ -307,7 +306,7 @@ int main(int argc, char *const *argv)
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:P:E:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -325,10 +324,6 @@ int main(int argc, char *const *argv)
             echo_input = 1;
             break;
         case 'h':
-            usage();
-            break;
-        case 'K':
-            fprintf(stderr, "This option is no longer supported. Set the keyshare via the cipher preferences.\n");
             usage();
             break;
         case 'n':
