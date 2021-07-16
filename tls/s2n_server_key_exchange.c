@@ -59,8 +59,8 @@ int s2n_server_key_recv(struct s2n_connection *conn)
         active_sig_scheme = conn->handshake_params.conn_sig_scheme;
     }
     POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme.hash_alg));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Add KEX specific data */
     POSIX_GUARD(s2n_hash_update(signature_hash, data_to_verify.data, data_to_verify.size));
@@ -249,8 +249,8 @@ int s2n_server_key_send(struct s2n_connection *conn)
 
     /* Add the random data to the hash */
     POSIX_GUARD(s2n_hash_init(signature_hash, conn->handshake_params.conn_sig_scheme.hash_alg));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Add KEX specific data to the hash */
     POSIX_GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));

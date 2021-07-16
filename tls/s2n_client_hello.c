@@ -208,7 +208,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     POSIX_GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -396,7 +396,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
 
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
     /* Create the client random data */
     POSIX_GUARD(s2n_stuffer_init(&client_random, &b));
 
@@ -509,7 +509,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     }
 
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;
