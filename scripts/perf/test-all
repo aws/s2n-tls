@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+set -e
+
+./scripts/perf/test 1000 0
+./scripts/perf/test 750 250
+./scripts/perf/test 500 500
+./scripts/perf/test 250 750
+./scripts/perf/test 0 1000
+
+cd target/perf/results
+tree -H "." -L 1 -T "Performance Results" --noreport --charset utf-8 -P "*.svg" > index.html

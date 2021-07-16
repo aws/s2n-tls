@@ -39,6 +39,9 @@
 
 #define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
 
+#define OPT_PERF_SEND_AMOUNT 1000
+#define OPT_PERF_RECEIVE_AMOUNT 1001
+
 void usage()
 {
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
@@ -98,6 +101,10 @@ void usage()
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E ,--early-data <file path>\n");
     fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.");
+    fprintf(stderr, "  --perf-send-amount <bytes>\n");
+    fprintf(stderr, "    Specifies the number of bytes to send to the server in perf mode\n");
+    fprintf(stderr, "  --perf-receive-amount <bytes>\n");
+    fprintf(stderr, "    Specifies the number of bytes to request the server to send in perf mode\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -288,6 +295,8 @@ int main(int argc, char *const *argv)
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len = 0;
     char *early_data = NULL;
+    uint64_t perf_send_amount = 0;
+    uint64_t perf_receive_amount = 1000000; /* 1MB */
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -313,6 +322,8 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
+        {"perf-send-amount", required_argument, 0, OPT_PERF_SEND_AMOUNT},
+        {"perf-receive-amount", required_argument, 0, OPT_PERF_RECEIVE_AMOUNT},
         { 0 },
     };
 
@@ -410,6 +421,20 @@ int main(int argc, char *const *argv)
         case 'E':
             early_data = load_file_to_cstring(optarg);
             GUARD_EXIT_NULL(early_data);
+            break;
+        case OPT_PERF_SEND_AMOUNT:
+            errno = 0;
+            perf_send_amount = strtoull(optarg, 0, 10);
+            if (errno == ERANGE) {
+                perf_send_amount = 0;
+            }
+            break;
+        case OPT_PERF_RECEIVE_AMOUNT:
+            errno = 0;
+            perf_receive_amount = strtoull(optarg, 0, 10);
+            if (errno == ERANGE) {
+                perf_receive_amount = 0;
+            }
             break;
         case '?':
         default:
@@ -531,7 +556,7 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
- 
+
         GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
@@ -605,7 +630,25 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
-        if (echo_input == 1) {
+        bool run_perf = false;
+        bool run_echo = false;
+
+        const char * alpn = s2n_get_application_protocol(conn);
+        if (alpn != NULL) {
+            /* determine which protocol the server chose */
+            if (strcmp(alpn, "perf") == 0) {
+                run_perf = true;
+            } else {
+                /* fall back to echo */
+                run_echo = echo_input == 1;
+            }
+        } else {
+            run_echo = echo_input == 1;
+        }
+
+        if (run_perf) {
+            perf_client_handler(conn, perf_send_amount, perf_receive_amount);
+        } else if (run_echo) {
             bool stop_echo = false;
             fflush(stdout);
             fflush(stderr);

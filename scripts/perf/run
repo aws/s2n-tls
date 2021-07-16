@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+set -e
+
+./scripts/perf/build
+
+mkdir -p target/perf/results
+sudo env "PATH=$PATH" ./scripts/perf/test $@
