@@ -29,6 +29,12 @@ batch:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
 
+    - identifier: s2nInSourceBuildAwsLc
+      buildspec: codebuild/spec/buildspec_ubuntu_insourcebuild_awslc.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+
     - identifier: s2nIntegrationOpenSSL111PlusCoverage
       buildspec: codebuild/spec/buildspec_ubuntu_integ_openssl111.yml
       env:
