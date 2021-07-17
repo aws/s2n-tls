@@ -358,8 +358,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
-        /* Force HRR path by sending an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Send the first CH message */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -445,8 +445,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-        /* Force HRR path by sending an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* setup the client hello callback */
         struct client_hello_context client_hello_ctx = {.invocations = 0,

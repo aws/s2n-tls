@@ -1271,3 +1271,34 @@ int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uin
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }
+
+bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher)
+{
+    if(!cipher) {
+        return false;
+    }
+
+    /* TLS1.3 does not include key exchange algorithms in its cipher suites,
+     * but the elliptic curves extension is always required. */
+    if (cipher->minimum_required_tls_version >= S2N_TLS13) {
+        return true;
+    }
+
+    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_ecdhe)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher)
+{
+    if(!cipher) {
+        return false;
+    }
+
+    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
+        return true;
+    }
+    return false;
+}

@@ -291,7 +291,8 @@ int main(int argc, char **argv)
         s2n_set_config_both_connections(client_conn, server_conn, config_with_certs);
         s2n_set_io_pair_both_connections(client_conn, server_conn, io_pair);
 
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Setup PSKs */
         EXPECT_OK(setup_client_psks(client_conn));
