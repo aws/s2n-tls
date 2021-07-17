@@ -11,6 +11,9 @@
 #include "kyber512r3_fips202x4_avx2.h"
 #include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
+
+#ifdef S2N_KYBER512R3_AVX2_BMI2
+
 #include <immintrin.h>
 
 /*************************************************
@@ -356,3 +359,6 @@ void indcpa_dec_avx2(uint8_t m[S2N_KYBER_512_R3_INDCPA_MSGBYTES],
 
   poly_tomsg_avx2(m, &mp);
 }
+
+
+#endif

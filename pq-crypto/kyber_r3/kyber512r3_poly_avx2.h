@@ -4,6 +4,8 @@
 #include "kyber512r3_align_avx2.h"
 #include "kyber512r3_params.h"
 
+#ifdef S2N_KYBER512R3_AVX2_BMI2
+
 typedef ALIGNED_INT16(S2N_KYBER_512_R3_N) poly;
 
 #define poly_compress_avx2 S2N_KYBER_512_R3_NAMESPACE(poly_compress_avx2)
@@ -75,3 +77,6 @@ void poly_add_avx2(poly *r, const poly *a, const poly *b);
 
 #define poly_sub_avx2 S2N_KYBER_512_R3_NAMESPACE(poly_sub_avx2)
 void poly_sub_avx2(poly *r, const poly *a, const poly *b);
+
+
+#endif

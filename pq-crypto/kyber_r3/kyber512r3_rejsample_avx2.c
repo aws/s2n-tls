@@ -3,6 +3,9 @@
 #include "kyber512r3_params.h"
 #include "kyber512r3_consts_avx2.h"
 #include "kyber512r3_rejsample_avx2.h"
+
+#ifdef S2N_KYBER512R3_AVX2_BMI2
+
 #include <immintrin.h>
 
 #define _mm256_cmpge_epu16(a, b) _mm256_cmpeq_epi16(_mm256_max_epu16(a, b), a)
@@ -120,3 +123,6 @@ unsigned int rej_uniform_avx2(int16_t * restrict r, const uint8_t *buf)
 
   return ctr;
 }
+
+
+#endif

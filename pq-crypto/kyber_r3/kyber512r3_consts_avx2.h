@@ -2,6 +2,8 @@
 
 #include "kyber512r3_params.h"
 
+#ifdef S2N_KYBER512R3_AVX2_BMI2
+
 #define _16XQ            0
 #define _16XQINV        16
 #define _16XV           32
@@ -32,4 +34,6 @@
 typedef ALIGNED_INT16(640) qdata_t;
 #define qdata S2N_KYBER_512_R3_NAMESPACE(qdata)
 extern const qdata_t qdata;
+#endif
+
 #endif

@@ -2,6 +2,8 @@
 #include "kyber512r3_params.h"
 #include "kyber512r3_cbd_avx2.h"
 
+#ifdef S2N_KYBER512R3_AVX2_BMI2
+
 /*************************************************
 * Name:        cbd2
 *
@@ -129,3 +131,5 @@ void poly_cbd_eta2_avx2(poly *r, const __m256i buf[S2N_KYBER_512_R3_ETA2*S2N_KYB
 {
   cbd2(r, buf);
 }
+
+#endif
