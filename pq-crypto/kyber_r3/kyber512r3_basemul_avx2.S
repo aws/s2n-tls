@@ -1,16 +1,4 @@
-//#include "kyber512r3_consts_avx2.h"
-#define _16XQ            0
-#define _16XQINV        16
-#define _16XV           32
-#define _16XFLO         48
-#define _16XFHI         64
-#define _16XMONTSQLO    80
-#define _16XMONTSQHI    96
-#define _16XMASK       112
-#define _REVIDXB       128
-#define _REVIDXD       144
-#define _ZETAS_EXP     160
-#define _16XSHIFT      624
+#include "kyber512r3_cdecl_avx2.h"
 
 .macro schoolbook off
 vmovdqa        _16XQINV*2(%rcx),%ymm0
@@ -95,8 +83,10 @@ vmovdqa        %ymm11,(64*\off+48)*2(%rdi)
 .endm
 
 .text
-.global _basemul_avx2_asm
-_basemul_avx2_asm:
+.global cdecl(basemul_avx2_asm)
+.global _cdecl(basemul_avx2_asm)
+cdecl(basemul_avx2_asm):
+_cdecl(basemul_avx2_asm):
 mov        %rsp,%r8
 and        $-32,%rsp
 sub        $32,%rsp

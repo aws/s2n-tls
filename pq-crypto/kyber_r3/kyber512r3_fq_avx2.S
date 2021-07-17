@@ -1,15 +1,4 @@
-#define _16XQ            0
-#define _16XQINV        16
-#define _16XV           32
-#define _16XFLO         48
-#define _16XFHI         64
-#define _16XMONTSQLO    80
-#define _16XMONTSQHI    96
-#define _16XMASK       112
-#define _REVIDXB       128
-#define _REVIDXD       144
-#define _ZETAS_EXP     160
-#define _16XSHIFT      624
+#include "kyber512r3_cdecl_avx2.h"
 
 /*****.include "fq.inc"*****/
 /***************************/
@@ -79,8 +68,10 @@ vmovdqa         %ymm9,224(%rdi)
 
 ret
 
-.global _reduce_avx2_asm
-_reduce_avx2_asm:
+.global cdecl(reduce_avx2_asm)
+.global _cdecl(reduce_avx2_asm)
+cdecl(reduce_avx2_asm):
+_cdecl(reduce_avx2_asm):
 #consts
 vmovdqa         _16XQ*2(%rsi),%ymm0
 vmovdqa         _16XV*2(%rsi),%ymm1
@@ -121,8 +112,10 @@ vmovdqa         %ymm10,224(%rdi)
 
 ret
 
-.global _tomont_avx2_asm
-_tomont_avx2_asm:
+.global cdecl(tomont_avx2_asm)
+.global _cdecl(tomont_avx2_asm)
+cdecl(tomont_avx2_asm):
+_cdecl(tomont_avx2_asm):
 #consts
 vmovdqa         _16XQ*2(%rsi),%ymm0
 vmovdqa         _16XMONTSQLO*2(%rsi),%ymm1
