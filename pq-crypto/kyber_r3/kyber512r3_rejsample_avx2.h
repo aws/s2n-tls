@@ -2,10 +2,12 @@
 
 #include <stdint.h>
 #include "kyber512r3_params.h"
+#include "kyber512r3_fips202.h"
 
-//#define XOF_BLOCKBYTES S2N_KYBER_512_R3_SHAKE128_RATE
-#define XOF_BLOCKBYTES 168
-#define AVX_REJ_UNIFORM_BUFLEN 504
+#define S2N_KYBER_512_R3_XOF_BLOCKBYTES S2N_KYBER_512_R3_SHAKE128_RATE
+#define S2N_KYBER_512_R3_REJ_UNIFORM_AVX_NBLOCKS ((12*S2N_KYBER_512_R3_N/8*(1 << 12)/S2N_KYBER_512_R3_Q + S2N_KYBER_512_R3_XOF_BLOCKBYTES)/S2N_KYBER_512_R3_XOF_BLOCKBYTES)
+#define S2N_KYBER_512_R3_REJ_UNIFORM_AVX_BUFLEN (S2N_KYBER_512_R3_REJ_UNIFORM_AVX_NBLOCKS*S2N_KYBER_512_R3_XOF_BLOCKBYTES)
 
 #define rej_uniform_avx2 S2N_KYBER_512_R3_NAMESPACE(rej_uniform_avx2)
-unsigned int rej_uniform_avx2(int16_t *r, const unsigned char *buf);
+unsigned int rej_uniform_avx2(int16_t *r, const uint8_t *buf);
+

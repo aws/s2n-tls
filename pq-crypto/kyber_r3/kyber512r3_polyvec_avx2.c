@@ -1,6 +1,8 @@
 #include <stdint.h>
-#include "kyber512r3_consts_avx2.h"
+#include <string.h>
 #include "kyber512r3_polyvec_avx2.h"
+#include "kyber512r3_poly_avx2.h"
+#include "kyber512r3_consts_avx2.h"
 #include <immintrin.h>
 
 static void poly_compress10(uint8_t r[320], const poly * restrict a)
@@ -8,7 +10,7 @@ static void poly_compress10(uint8_t r[320], const poly * restrict a)
   unsigned int i;
   __m256i f0, f1, f2;
   __m128i t0, t1;
-  const __m256i v = _mm256_load_si256((const void *)&qdata[_16XV]);
+  const __m256i v = _mm256_load_si256(&qdata.vec[_16XV/16]);
   const __m256i v8 = _mm256_slli_epi16(v,3);
   const __m256i off = _mm256_set1_epi16(15);
   const __m256i shift1 = _mm256_set1_epi16(1 << 12);
@@ -19,7 +21,7 @@ static void poly_compress10(uint8_t r[320], const poly * restrict a)
                                            -1,-1,-1,-1,-1,-1,12,11,10, 9, 8, 4, 3, 2, 1, 0);
 
   for(i=0;i<S2N_KYBER_512_R3_N/16;i++) {
-    f0 = _mm256_load_si256((const void *)&a->coeffs[16*i]);
+    f0 = _mm256_load_si256(&a->vec[i]);
     f1 = _mm256_mullo_epi16(f0,v8);
     f2 = _mm256_add_epi16(f0,off);
     f0 = _mm256_slli_epi16(f0,3);
@@ -38,7 +40,7 @@ static void poly_compress10(uint8_t r[320], const poly * restrict a)
     t1 = _mm256_extracti128_si256(f0,1);
     t0 = _mm_blend_epi16(t0,t1,0xE0);
     _mm_storeu_si128((void *)&r[20*i+ 0],t0);
-    _mm_store_ss((void *)&r[20*i+16],_mm_castsi128_ps(t1));
+    memcpy(&r[20*i+16],&t1,4);
   }
 }
 
@@ -62,7 +64,7 @@ static void poly_decompress10(poly * restrict r, const uint8_t a[320+12])
     f = _mm256_srli_epi16(f,1);
     f = _mm256_and_si256(f,mask);
     f = _mm256_mulhrs_epi16(f,q);
-    _mm256_store_si256((void *)&r->coeffs[16*i],f);
+    _mm256_store_si256(&r->vec[i],f);
   }
 }
 
@@ -73,10 +75,9 @@ static void poly_decompress10(poly * restrict r, const uint8_t a[320+12])
 *
 * Arguments:   - uint8_t *r: pointer to output byte array
 *                            (needs space for S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES)
-*              - polyvec *a: pointer to input vector of polynomials
+*                       - polyvec *a: pointer to input vector of polynomials
 **************************************************/
-void polyvec_compress_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+2],
-                      polyvec * restrict a)
+void polyvec_compress_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+2], const polyvec *a)
 {
   unsigned int i;
 
@@ -90,12 +91,11 @@ void polyvec_compress_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+2],
 * Description: De-serialize and decompress vector of polynomials;
 *              approximate inverse of polyvec_compress_avx2
 *
-* Arguments:   - polyvec *r:       pointer to output vector of polynomials
-*              - const uint8_t *a: pointer to input byte array
+* Arguments:   - polyvec *r: pointer to output vector of polynomials
+*                       - const uint8_t *a: pointer to input byte array
 *                                  (of length S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES)
 **************************************************/
-void polyvec_decompress_avx2(polyvec * restrict r,
-                        const uint8_t a[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+12])
+void polyvec_decompress_avx2(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+12])
 {
   unsigned int i;
 
@@ -110,9 +110,9 @@ void polyvec_decompress_avx2(polyvec * restrict r,
 *
 * Arguments:   - uint8_t *r: pointer to output byte array
 *                            (needs space for S2N_KYBER_512_R3_POLYVECBYTES)
-*              - polyvec *a: pointer to input vector of polynomials
+*                       - polyvec *a: pointer to input vector of polynomials
 **************************************************/
-void polyvec_tobytes_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], polyvec *a)
+void polyvec_tobytes_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], const polyvec *a)
 {
   unsigned int i;
   for(i=0;i<S2N_KYBER_512_R3_K;i++)
@@ -125,8 +125,8 @@ void polyvec_tobytes_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], polyvec *a)
 * Description: De-serialize vector of polynomials;
 *              inverse of polyvec_tobytes_avx2
 *
-* Arguments:   - uint8_t *r:       pointer to output byte array
-*              - const polyvec *a: pointer to input vector of polynomials
+* Arguments:   - uint8_t *r: pointer to output byte array
+*                       - const polyvec *a: pointer to input vector of polynomials
 *                                  (of length S2N_KYBER_512_R3_POLYVECBYTES)
 **************************************************/
 void polyvec_frombytes_avx2(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECBYTES])
@@ -166,18 +166,16 @@ void polyvec_invntt_tomont_avx2(polyvec *r)
 }
 
 /*************************************************
-* Name:        polyvec_pointwise_acc_montgomery_avx2
+* Name:        polyvec_basemul_acc_montgomery_avx2
 *
-* Description: Pointwise multiply elements of a and b, accumulate into r,
+* Description: Multiply elements in a and b in NTT domain, accumulate into r,
 *              and multiply by 2^-16.
 *
-* Arguments: - poly *r:          pointer to output polynomial
+* Arguments: - poly *r: pointer to output polynomial
 *            - const polyvec *a: pointer to first input vector of polynomials
 *            - const polyvec *b: pointer to second input vector of polynomials
 **************************************************/
-void polyvec_pointwise_acc_montgomery_avx2(poly *r,
-                                      const polyvec *a,
-                                      const polyvec *b)
+void polyvec_basemul_acc_montgomery_avx2(poly *r, const polyvec *a, const polyvec *b)
 {
   unsigned int i;
   poly tmp;
@@ -193,10 +191,10 @@ void polyvec_pointwise_acc_montgomery_avx2(poly *r,
 * Name:        polyvec_reduce_avx2
 *
 * Description: Applies Barrett reduction to each coefficient
-*              of each element of a vector of polynomials
+*              of each element of a vector of polynomials;
 *              for details of the Barrett reduction see comments in reduce.c
 *
-* Arguments:   - poly *r: pointer to input/output polynomial
+* Arguments:   - polyvec *r: pointer to input/output polynomial
 **************************************************/
 void polyvec_reduce_avx2(polyvec *r)
 {

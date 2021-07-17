@@ -32,9 +32,9 @@ ifndef S2N_NO_PQ_ASM
 			ASFLAGS += -DS2N_ADX
 		endif
 
-		SIKEP434R3_ASM_OBJ=$(SIKEP434R3_ASM_SRC:.S=.o)
-		endif
-
+        SIKEP434R3_ASM_OBJ=$(SIKEP434R3_ASM_SRC:.S=.o)
+        endif
+    
 	# BIKE Round-3 code has several different optimizations
 	# which require specific compiler flags to be supported
 	# by the compiler. So for each needed instruction set

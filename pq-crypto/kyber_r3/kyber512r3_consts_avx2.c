@@ -1,3 +1,4 @@
+#include "kyber512r3_align_avx2.h"
 #include "kyber512r3_consts_avx2.h"
 
 #define Q S2N_KYBER_512_R3_Q
@@ -11,50 +12,49 @@
 #define MASK 4095
 #define SHIFT 32
 
-__attribute__((aligned(64)))
-const int16_t qdata[] = {
-//#define _16XQ 0
+const qdata_t qdata = {{
+#define _16XQ 0
   Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, Q,
 
-//#define _16XQINV 16
+#define _16XQINV 16
   QINV, QINV, QINV, QINV, QINV, QINV, QINV, QINV,
   QINV, QINV, QINV, QINV, QINV, QINV, QINV, QINV,
 
-//#define _16XV 32
+#define _16XV 32
   V, V, V, V, V, V, V, V, V, V, V, V, V, V, V, V,
 
-//#define _16XFLO 48
+#define _16XFLO 48
   FLO, FLO, FLO, FLO, FLO, FLO, FLO, FLO,
   FLO, FLO, FLO, FLO, FLO, FLO, FLO, FLO,
 
-//#define _16XFHI 64
+#define _16XFHI 64
   FHI, FHI, FHI, FHI, FHI, FHI, FHI, FHI,
   FHI, FHI, FHI, FHI, FHI, FHI, FHI, FHI,
 
-//#define _16XMONTSQLO 80
+#define _16XMONTSQLO 80
   MONTSQLO, MONTSQLO, MONTSQLO, MONTSQLO,
   MONTSQLO, MONTSQLO, MONTSQLO, MONTSQLO,
   MONTSQLO, MONTSQLO, MONTSQLO, MONTSQLO,
   MONTSQLO, MONTSQLO, MONTSQLO, MONTSQLO,
 
-//#define _16XMONTSQHI 96
+#define _16XMONTSQHI 96
   MONTSQHI, MONTSQHI, MONTSQHI, MONTSQHI,
   MONTSQHI, MONTSQHI, MONTSQHI, MONTSQHI,
   MONTSQHI, MONTSQHI, MONTSQHI, MONTSQHI,
   MONTSQHI, MONTSQHI, MONTSQHI, MONTSQHI,
 
-//#define _16XMASK 112
+#define _16XMASK 112
   MASK, MASK, MASK, MASK, MASK, MASK, MASK, MASK,
   MASK, MASK, MASK, MASK, MASK, MASK, MASK, MASK,
 
-//#define _REVIDXB 128
+#define _REVIDXB 128
   3854, 3340, 2826, 2312, 1798, 1284, 770, 256,
   3854, 3340, 2826, 2312, 1798, 1284, 770, 256,
 
-//#define _REVIDXD 144
+#define _REVIDXD 144
   7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1, 0, 0, 0,
 
-//#define _ZETAS_EXP 160
+#define _ZETAS_EXP 160
    31498,  31498,  31498,  31498,   -758,   -758,   -758,   -758,
     5237,   5237,   5237,   5237,   1397,   1397,   1397,   1397,
    14745,  14745,  14745,  14745,  14745,  14745,  14745,  14745,
@@ -114,7 +114,7 @@ const int16_t qdata[] = {
     1097,    610,  -1285,    384,   -136,  -1335,    220,  -1659,
    -1530,    794,   -854,    478,   -308,    991,  -1460,   1628,
 
-//#define _16XSHIFT 624
+#define _16XSHIFT 624
   SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT,
   SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT
-};
+}};

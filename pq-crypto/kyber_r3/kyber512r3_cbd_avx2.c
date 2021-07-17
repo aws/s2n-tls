@@ -1,6 +1,6 @@
+#include <stdint.h>
 #include "kyber512r3_params.h"
 #include "kyber512r3_cbd_avx2.h"
-#include <immintrin.h>
 
 /*************************************************
 * Name:        cbd2
@@ -9,12 +9,11 @@
 *              polynomial with coefficients distributed according to
 *              a centered binomial distribution with parameter eta=2
 *
-* Arguments:   - poly *r:                  pointer to output polynomial
-*              - const unsigned char *buf: pointer to input byte array
+* Arguments:   - poly *r: pointer to output polynomial
+*              - const __m256i *buf: pointer to aligned input byte array
 **************************************************/
-static void cbd2(poly *r, const uint8_t buf[4*S2N_KYBER_512_R3_N/8])
+static void cbd2(poly * restrict r, const __m256i buf[2*S2N_KYBER_512_R3_N/128])
 {
-    
   unsigned int i;
   __m256i f0, f1, f2, f3;
   const __m256i mask55 = _mm256_set1_epi32(0x55555555);
@@ -23,7 +22,7 @@ static void cbd2(poly *r, const uint8_t buf[4*S2N_KYBER_512_R3_N/8])
   const __m256i mask0F = _mm256_set1_epi32(0x0F0F0F0F);
 
   for(i = 0; i < S2N_KYBER_512_R3_N/64; i++) {
-    f0 = _mm256_load_si256((const void *)&buf[32*i]);
+    f0 = _mm256_load_si256(&buf[i]);
 
     f1 = _mm256_srli_epi16(f0, 1);
     f0 = _mm256_and_si256(mask55, f0);
@@ -50,10 +49,10 @@ static void cbd2(poly *r, const uint8_t buf[4*S2N_KYBER_512_R3_N/8])
     f2 = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(f3));
     f3 = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(f3,1));
 
-    _mm256_store_si256((void *)&r->coeffs[64*i+ 0], f0);
-    _mm256_store_si256((void *)&r->coeffs[64*i+16], f2);
-    _mm256_store_si256((void *)&r->coeffs[64*i+32], f1);
-    _mm256_store_si256((void *)&r->coeffs[64*i+48], f3);
+    _mm256_store_si256(&r->vec[4*i+0], f0);
+    _mm256_store_si256(&r->vec[4*i+1], f2);
+    _mm256_store_si256(&r->vec[4*i+2], f1);
+    _mm256_store_si256(&r->vec[4*i+3], f3);
   }
 }
 
@@ -65,10 +64,10 @@ static void cbd2(poly *r, const uint8_t buf[4*S2N_KYBER_512_R3_N/8])
 *              a centered binomial distribution with parameter eta=3
 *              This function is only needed for Kyber-512
 *
-* Arguments:   - poly *r:            pointer to output polynomial
-*              - const uint8_t *buf: pointer to input byte array
+* Arguments:   - poly *r: pointer to output polynomial
+*              - const __m256i *buf: pointer to aligned input byte array
 **************************************************/
-static void cbd3(poly *r, const uint8_t buf[6*S2N_KYBER_512_R3_N/8])
+static void cbd3(poly * restrict r, const uint8_t buf[3*S2N_KYBER_512_R3_N/4+8])
 {
   unsigned int i;
   __m256i f0, f1, f2, f3;
@@ -115,17 +114,18 @@ static void cbd3(poly *r, const uint8_t buf[6*S2N_KYBER_512_R3_N/8])
     f0 = _mm256_permute2x128_si256(f2,f3,0x20);
     f1 = _mm256_permute2x128_si256(f2,f3,0x31);
 
-    _mm256_store_si256((void *)&r->coeffs[32*i+ 0], f0);
-    _mm256_store_si256((void *)&r->coeffs[32*i+16], f1);
+    _mm256_store_si256(&r->vec[2*i+0], f0);
+    _mm256_store_si256(&r->vec[2*i+1], f1);
   }
 }
 
-void cbd_eta1_avx2(poly *r, const uint8_t buf[S2N_KYBER_512_R3_ETA1*S2N_KYBER_512_R3_N/4])
+/* buf 32 bytes longer for cbd3 */
+void poly_cbd_eta1_avx2(poly *r, const __m256i buf[S2N_KYBER_512_R3_ETA1*S2N_KYBER_512_R3_N/128+1])
 {
-  cbd3(r, buf);
+  cbd3(r, (const void *)buf);
 }
 
-void cbd_eta2_avx2(poly *r, const uint8_t buf[S2N_KYBER_512_R3_ETA2*S2N_KYBER_512_R3_N/4])
+void poly_cbd_eta2_avx2(poly *r, const __m256i buf[S2N_KYBER_512_R3_ETA2*S2N_KYBER_512_R3_N/128])
 {
   cbd2(r, buf);
 }

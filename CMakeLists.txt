@@ -137,6 +137,7 @@ else()
                 "-DS2N_ADX"
         )
     endif()
+    
 
     # BIKE Round-3 code has several different optimizations which require
     # specific compiler flags to be supported by the compiler.
@@ -191,6 +192,13 @@ else()
         if(KYBER512R3_AVX2_BMI2_SUPPORTED)
             set(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED ON)
         endif()
+    endif()
+endif()
+
+if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
+    if(KYBER512R3_AVX2_BMI2_SUPPORTED)
+        FILE(GLOB KYBER512R3_AVX2_BMI2_ASM_SRCS "pq-crypto/kyber_r3/*_avx2.S")
+        list(APPEND PQ_SRC ${KYBER512R3_AVX2_BMI2_ASM_SRCS})
     endif()
 endif()
 
@@ -321,6 +329,7 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
 
     message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()
+
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
     if(KYBER512R3_AVX2_BMI2_SUPPORTED)

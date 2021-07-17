@@ -3,57 +3,64 @@
 #include <string.h>
 #include "kyber512r3_fips202.h"
 #include "kyber512r3_fips202x4_avx2.h"
+#include "align.h"
 #include <immintrin.h>
 
-/*****
+//#define KeccakF1600_StatePermute4x S2N_KYBER_512_R3_NAMESPACE(KeccakP1600times4_PermuteAll_24rounds)
+//extern void KeccakF1600_StatePermute4x(__m256i *s);
+
+/***
  
  Implementation is taken from the Keccak Code Package
         https://github.com/XKCP/XKCP
- *****/
-//#define KeccakF1600_StatePermute4x FIPS202X4_NAMESPACE(_KeccakP1600times4_PermuteAll_24rounds)
-//extern void KeccakF1600_StatePermute4x(__m256i *s);
 
+ ***/
+
+/*****KeccakP-1600-times4-SIMD256.c*****/
+/********************start********************/
 
 typedef __m256i V256;
 
-static const uint64_t KeccakF1600RoundConstants[24] = {
-    0x0000000000000001ULL,
-    0x0000000000008082ULL,
-    0x800000000000808aULL,
-    0x8000000080008000ULL,
-    0x000000000000808bULL,
-    0x0000000080000001ULL,
-    0x8000000080008081ULL,
-    0x8000000000008009ULL,
-    0x000000000000008aULL,
-    0x0000000000000088ULL,
-    0x0000000080008009ULL,
-    0x000000008000000aULL,
-    0x000000008000808bULL,
-    0x800000000000008bULL,
-    0x8000000000008089ULL,
-    0x8000000000008003ULL,
-    0x8000000000008002ULL,
-    0x8000000000000080ULL,
-    0x000000000000800aULL,
-    0x800000008000000aULL,
-    0x8000000080008081ULL,
-    0x8000000000008080ULL,
-    0x0000000080000001ULL,
-    0x8000000080008008ULL};
-
-static const uint64_t rho8[4] = {0x0605040302010007, 0x0E0D0C0B0A09080F, 0x1615141312111017, 0x1E1D1C1B1A19181F};
-static const uint64_t rho56[4] = {0x0007060504030201, 0x080F0E0D0C0B0A09, 0x1017161514131211, 0x181F1E1D1C1B1A19};
 #define ANDnu256(a, b)          _mm256_andnot_si256(a, b)
 #define CONST256(a)             _mm256_load_si256((const void *)&(a))
-#define LOAD256(a)              _mm256_load_si256((const void *)&(a))
-#define STORE256(a, b)          _mm256_store_si256((V256 *)&(a), b)
+#define CONST256_64(a)          _mm256_set1_epi64x(a)
+#define LOAD256(a)              _mm256_load_si256((const V256 *)&(a))
+#define LOAD256u(a)             _mm256_loadu_si256((const V256 *)&(a))
+#define LOAD4_64(a, b, c, d)    _mm256_set_epi64x((uint64_t)(a), (uint64_t)(b), (uint64_t)(c), (uint64_t)(d))
 #define ROL64in256(d, a, o)     d = _mm256_or_si256(_mm256_slli_epi64(a, o), _mm256_srli_epi64(a, 64-(o)))
 #define ROL64in256_8(d, a)      d = _mm256_shuffle_epi8(a, CONST256(rho8))
 #define ROL64in256_56(d, a)     d = _mm256_shuffle_epi8(a, CONST256(rho56))
+static const uint64_t rho8[4] = {0x0605040302010007, 0x0E0D0C0B0A09080F, 0x1615141312111017, 0x1E1D1C1B1A19181F};
+static const uint64_t rho56[4] = {0x0007060504030201, 0x080F0E0D0C0B0A09, 0x1017161514131211, 0x181F1E1D1C1B1A19};
+#define STORE256(a, b)          _mm256_store_si256((V256 *)&(a), b)
+#define STORE256u(a, b)         _mm256_storeu_si256((V256 *)&(a), b)
+#define STORE2_128(ah, al, v)   _mm256_storeu2_m128i(&(ah), &(al), v)
 #define XOR256(a, b)            _mm256_xor_si256(a, b)
 #define XOReq256(a, b)          a = _mm256_xor_si256(a, b)
-#define CONST256_64(a)          _mm256_set1_epi64x(a)
+#define UNPACKL( a, b )         _mm256_unpacklo_epi64((a), (b))
+#define UNPACKH( a, b )         _mm256_unpackhi_epi64((a), (b))
+#define PERM128( a, b, c )      _mm256_permute2f128_si256((a), (b), c)
+#define SHUFFLE64( a, b, c )    _mm256_castpd_si256(_mm256_shuffle_pd(_mm256_castsi256_pd(a), _mm256_castsi256_pd(b), c))
+
+#define declareABCDE \
+    V256 Aba, Abe, Abi, Abo, Abu; \
+    V256 Aga, Age, Agi, Ago, Agu; \
+    V256 Aka, Ake, Aki, Ako, Aku; \
+    V256 Ama, Ame, Ami, Amo, Amu; \
+    V256 Asa, Ase, Asi, Aso, Asu; \
+    V256 Bba, Bbe, Bbi, Bbo, Bbu; \
+    V256 Bga, Bge, Bgi, Bgo, Bgu; \
+    V256 Bka, Bke, Bki, Bko, Bku; \
+    V256 Bma, Bme, Bmi, Bmo, Bmu; \
+    V256 Bsa, Bse, Bsi, Bso, Bsu; \
+    V256 Ca, Ce, Ci, Co, Cu; \
+    V256 Ca1, Ce1, Ci1, Co1, Cu1; \
+    V256 Da, De, Di, Do, Du; \
+    V256 Eba, Ebe, Ebi, Ebo, Ebu; \
+    V256 Ega, Ege, Egi, Ego, Egu; \
+    V256 Eka, Eke, Eki, Eko, Eku; \
+    V256 Ema, Eme, Emi, Emo, Emu; \
+    V256 Esa, Ese, Esi, Eso, Esu; \
 
 #define prepareTheta \
     Ca = XOR256(Aba, XOR256(Aga, XOR256(Aka, XOR256(Ama, Asa)))); \
@@ -183,39 +190,128 @@ static const uint64_t rho56[4] = {0x0007060504030201, 0x080F0E0D0C0B0A09, 0x1017
     XOReq256(Cu, E##su); \
 \
 
+/* --- Theta Rho Pi Chi Iota */
+/* --- 64-bit lanes mapped to 64-bit words */
+#define thetaRhoPiChiIota(i, A, E) \
+    ROL64in256(Ce1, Ce, 1); \
+    Da = XOR256(Cu, Ce1); \
+    ROL64in256(Ci1, Ci, 1); \
+    De = XOR256(Ca, Ci1); \
+    ROL64in256(Co1, Co, 1); \
+    Di = XOR256(Ce, Co1); \
+    ROL64in256(Cu1, Cu, 1); \
+    Do = XOR256(Ci, Cu1); \
+    ROL64in256(Ca1, Ca, 1); \
+    Du = XOR256(Co, Ca1); \
+\
+    XOReq256(A##ba, Da); \
+    Bba = A##ba; \
+    XOReq256(A##ge, De); \
+    ROL64in256(Bbe, A##ge, 44); \
+    XOReq256(A##ki, Di); \
+    ROL64in256(Bbi, A##ki, 43); \
+    E##ba = XOR256(Bba, ANDnu256(Bbe, Bbi)); \
+    XOReq256(E##ba, CONST256_64(KeccakF1600RoundConstants[i])); \
+    XOReq256(A##mo, Do); \
+    ROL64in256(Bbo, A##mo, 21); \
+    E##be = XOR256(Bbe, ANDnu256(Bbi, Bbo)); \
+    XOReq256(A##su, Du); \
+    ROL64in256(Bbu, A##su, 14); \
+    E##bi = XOR256(Bbi, ANDnu256(Bbo, Bbu)); \
+    E##bo = XOR256(Bbo, ANDnu256(Bbu, Bba)); \
+    E##bu = XOR256(Bbu, ANDnu256(Bba, Bbe)); \
+\
+    XOReq256(A##bo, Do); \
+    ROL64in256(Bga, A##bo, 28); \
+    XOReq256(A##gu, Du); \
+    ROL64in256(Bge, A##gu, 20); \
+    XOReq256(A##ka, Da); \
+    ROL64in256(Bgi, A##ka, 3); \
+    E##ga = XOR256(Bga, ANDnu256(Bge, Bgi)); \
+    XOReq256(A##me, De); \
+    ROL64in256(Bgo, A##me, 45); \
+    E##ge = XOR256(Bge, ANDnu256(Bgi, Bgo)); \
+    XOReq256(A##si, Di); \
+    ROL64in256(Bgu, A##si, 61); \
+    E##gi = XOR256(Bgi, ANDnu256(Bgo, Bgu)); \
+    E##go = XOR256(Bgo, ANDnu256(Bgu, Bga)); \
+    E##gu = XOR256(Bgu, ANDnu256(Bga, Bge)); \
+\
+    XOReq256(A##be, De); \
+    ROL64in256(Bka, A##be, 1); \
+    XOReq256(A##gi, Di); \
+    ROL64in256(Bke, A##gi, 6); \
+    XOReq256(A##ko, Do); \
+    ROL64in256(Bki, A##ko, 25); \
+    E##ka = XOR256(Bka, ANDnu256(Bke, Bki)); \
+    XOReq256(A##mu, Du); \
+    ROL64in256_8(Bko, A##mu); \
+    E##ke = XOR256(Bke, ANDnu256(Bki, Bko)); \
+    XOReq256(A##sa, Da); \
+    ROL64in256(Bku, A##sa, 18); \
+    E##ki = XOR256(Bki, ANDnu256(Bko, Bku)); \
+    E##ko = XOR256(Bko, ANDnu256(Bku, Bka)); \
+    E##ku = XOR256(Bku, ANDnu256(Bka, Bke)); \
+\
+    XOReq256(A##bu, Du); \
+    ROL64in256(Bma, A##bu, 27); \
+    XOReq256(A##ga, Da); \
+    ROL64in256(Bme, A##ga, 36); \
+    XOReq256(A##ke, De); \
+    ROL64in256(Bmi, A##ke, 10); \
+    E##ma = XOR256(Bma, ANDnu256(Bme, Bmi)); \
+    XOReq256(A##mi, Di); \
+    ROL64in256(Bmo, A##mi, 15); \
+    E##me = XOR256(Bme, ANDnu256(Bmi, Bmo)); \
+    XOReq256(A##so, Do); \
+    ROL64in256_56(Bmu, A##so); \
+    E##mi = XOR256(Bmi, ANDnu256(Bmo, Bmu)); \
+    E##mo = XOR256(Bmo, ANDnu256(Bmu, Bma)); \
+    E##mu = XOR256(Bmu, ANDnu256(Bma, Bme)); \
+\
+    XOReq256(A##bi, Di); \
+    ROL64in256(Bsa, A##bi, 62); \
+    XOReq256(A##go, Do); \
+    ROL64in256(Bse, A##go, 55); \
+    XOReq256(A##ku, Du); \
+    ROL64in256(Bsi, A##ku, 39); \
+    E##sa = XOR256(Bsa, ANDnu256(Bse, Bsi)); \
+    XOReq256(A##ma, Da); \
+    ROL64in256(Bso, A##ma, 41); \
+    E##se = XOR256(Bse, ANDnu256(Bsi, Bso)); \
+    XOReq256(A##se, De); \
+    ROL64in256(Bsu, A##se, 2); \
+    E##si = XOR256(Bsi, ANDnu256(Bso, Bsu)); \
+    E##so = XOR256(Bso, ANDnu256(Bsu, Bsa)); \
+    E##su = XOR256(Bsu, ANDnu256(Bsa, Bse)); \
+\
 
-#define rounds24 \
-    prepareTheta \
-    for(i=0; i<24; i+=6) { \
-        thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
-        thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
-        thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
-        thetaRhoPiChiIotaPrepareTheta(i+3, E, A) \
-        thetaRhoPiChiIotaPrepareTheta(i+4, A, E) \
-        thetaRhoPiChiIotaPrepareTheta(i+5, E, A) \
-    } \
+static ALIGN(32) const uint64_t KeccakF1600RoundConstants[24] = {
+    0x0000000000000001ULL,
+    0x0000000000008082ULL,
+    0x800000000000808aULL,
+    0x8000000080008000ULL,
+    0x000000000000808bULL,
+    0x0000000080000001ULL,
+    0x8000000080008081ULL,
+    0x8000000000008009ULL,
+    0x000000000000008aULL,
+    0x0000000000000088ULL,
+    0x0000000080008009ULL,
+    0x000000008000000aULL,
+    0x000000008000808bULL,
+    0x800000000000008bULL,
+    0x8000000000008089ULL,
+    0x8000000000008003ULL,
+    0x8000000000008002ULL,
+    0x8000000000000080ULL,
+    0x000000000000800aULL,
+    0x800000008000000aULL,
+    0x8000000080008081ULL,
+    0x8000000000008080ULL,
+    0x0000000080000001ULL,
+    0x8000000080008008ULL};
 
-
-#define declareABCDE \
-    V256 Aba, Abe, Abi, Abo, Abu; \
-    V256 Aga, Age, Agi, Ago, Agu; \
-    V256 Aka, Ake, Aki, Ako, Aku; \
-    V256 Ama, Ame, Ami, Amo, Amu; \
-    V256 Asa, Ase, Asi, Aso, Asu; \
-    V256 Bba, Bbe, Bbi, Bbo, Bbu; \
-    V256 Bga, Bge, Bgi, Bgo, Bgu; \
-    V256 Bka, Bke, Bki, Bko, Bku; \
-    V256 Bma, Bme, Bmi, Bmo, Bmu; \
-    V256 Bsa, Bse, Bsi, Bso, Bsu; \
-    V256 Ca, Ce, Ci, Co, Cu; \
-    V256 Ca1, Ce1, Ci1, Co1, Cu1; \
-    V256 Da, De, Di, Do, Du; \
-    V256 Eba, Ebe, Ebi, Ebo, Ebu; \
-    V256 Ega, Ege, Egi, Ego, Egu; \
-    V256 Eka, Eke, Eki, Eko, Eku; \
-    V256 Ema, Eme, Emi, Emo, Emu; \
-    V256 Esa, Ese, Esi, Eso, Esu; \
-    
 #define copyFromState(X, state) \
     X##ba = LOAD256(state[ 0]); \
     X##be = LOAD256(state[ 1]); \
@@ -270,35 +366,124 @@ static const uint64_t rho56[4] = {0x0007060504030201, 0x080F0E0D0C0B0A09, 0x1017
     STORE256(state[23], X##so); \
     STORE256(state[24], X##su); \
 
+#define copyStateVariables(X, Y) \
+    X##ba = Y##ba; \
+    X##be = Y##be; \
+    X##bi = Y##bi; \
+    X##bo = Y##bo; \
+    X##bu = Y##bu; \
+    X##ga = Y##ga; \
+    X##ge = Y##ge; \
+    X##gi = Y##gi; \
+    X##go = Y##go; \
+    X##gu = Y##gu; \
+    X##ka = Y##ka; \
+    X##ke = Y##ke; \
+    X##ki = Y##ki; \
+    X##ko = Y##ko; \
+    X##ku = Y##ku; \
+    X##ma = Y##ma; \
+    X##me = Y##me; \
+    X##mi = Y##mi; \
+    X##mo = Y##mo; \
+    X##mu = Y##mu; \
+    X##sa = Y##sa; \
+    X##se = Y##se; \
+    X##si = Y##si; \
+    X##so = Y##so; \
+    X##su = Y##su; \
+
+
+// all rounds unrolled, KeccakP-1600-times4/AVX2/ua/SIMD256-config.h
+
+/*****KeccakP-1600-unrolling.macros*****/
+/********************start********************/
+
+#define rounds24 \
+    prepareTheta \
+    thetaRhoPiChiIotaPrepareTheta( 0, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 1, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 2, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 3, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 4, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 5, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 6, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 7, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 8, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 9, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(10, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(11, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(12, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(13, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(14, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(15, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(16, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(17, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(18, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(19, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(20, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(21, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(22, A, E) \
+    thetaRhoPiChiIota(23, E, A) \
+
+#define rounds12 \
+    prepareTheta \
+    thetaRhoPiChiIotaPrepareTheta(12, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(13, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(14, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(15, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(16, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(17, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(18, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(19, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(20, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(21, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(22, A, E) \
+    thetaRhoPiChiIota(23, E, A) \
+
+#define rounds6 \
+    prepareTheta \
+    thetaRhoPiChiIotaPrepareTheta(18, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(19, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(20, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(21, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(22, A, E) \
+    thetaRhoPiChiIota(23, E, A) \
+
+#define rounds4 \
+    prepareTheta \
+    thetaRhoPiChiIotaPrepareTheta(20, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(21, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(22, A, E) \
+    thetaRhoPiChiIota(23, E, A) \
+
 void KeccakP1600times4_PermuteAll_24rounds(void *states)
 {
     V256 *statesAsLanes = (V256 *)states;
     declareABCDE
-        unsigned int i;
+
     copyFromState(A, statesAsLanes)
     rounds24
     copyToState(statesAsLanes, A)
 }
 
+/*****KeccakP-1600-unrolling.macros*****/
+/********************end********************/
+/*****KeccakP-1600-times4-SIMD256.c*****/
+/********************end********************/
 
 
-static inline void store64(uint8_t x[8], uint64_t u) {
-  unsigned int i;
-
-  for(i=0;i<8;i++)
-    x[i] = u >> 8*i;
-}
-
-static void keccakx4_absorb(__m256i s[25],
-                            unsigned int r,
-                            const uint8_t *in0,
-                            const uint8_t *in1,
-                            const uint8_t *in2,
-                            const uint8_t *in3,
-                            size_t inlen,
-                            uint8_t p)
+static void keccakx4_absorb_once(__m256i s[25],
+                                 unsigned int r,
+                                 const uint8_t *in0,
+                                 const uint8_t *in1,
+                                 const uint8_t *in2,
+                                 const uint8_t *in3,
+                                 size_t inlen,
+                                 uint8_t p)
 {
-  size_t i, pos = 0;
+  size_t i;
+  uint64_t pos = 0;
   __m256i t, idx;
 
   for(i = 0; i < 25; ++i)
@@ -311,20 +496,17 @@ static void keccakx4_absorb(__m256i s[25],
       s[i] = _mm256_xor_si256(s[i], t);
       pos += 8;
     }
+    inlen -= r;
 
     KeccakP1600times4_PermuteAll_24rounds(s);
-    inlen -= r;
   }
 
-  i = 0;
-  while(inlen >= 8) {
+  for(i = 0; i < inlen/8; ++i) {
     t = _mm256_i64gather_epi64((long long *)pos, idx, 1);
     s[i] = _mm256_xor_si256(s[i], t);
-
-    i++;
     pos += 8;
-    inlen -= 8;
   }
+  inlen -= 8*i;
 
   if(inlen) {
     t = _mm256_i64gather_epi64((long long *)pos, idx, 1);
@@ -348,38 +530,35 @@ static void keccakx4_squeezeblocks(uint8_t *out0,
                                    __m256i s[25])
 {
   unsigned int i;
-  uint64_t f0,f1,f2,f3;
+  __m128d t;
 
   while(nblocks > 0) {
     KeccakP1600times4_PermuteAll_24rounds(s);
     for(i=0; i < r/8; ++i) {
-      f0 = _mm256_extract_epi64(s[i], 0);
-      f1 = _mm256_extract_epi64(s[i], 1);
-      f2 = _mm256_extract_epi64(s[i], 2);
-      f3 = _mm256_extract_epi64(s[i], 3);
-      store64(out0, f0);
-      store64(out1, f1);
-      store64(out2, f2);
-      store64(out3, f3);
-
-      out0 += 8;
-      out1 += 8;
-      out2 += 8;
-      out3 += 8;
+      t = _mm_castsi128_pd(_mm256_castsi256_si128(s[i]));
+      _mm_storel_pd((__attribute__((__may_alias__)) void *)&out0[8*i], t);
+      _mm_storeh_pd((__attribute__((__may_alias__)) void *)&out1[8*i], t);
+      t = _mm_castsi128_pd(_mm256_extracti128_si256(s[i],1));
+      _mm_storel_pd((__attribute__((__may_alias__)) void *)&out2[8*i], t);
+      _mm_storeh_pd((__attribute__((__may_alias__)) void *)&out3[8*i], t);
     }
 
+    out0 += r;
+    out1 += r;
+    out2 += r;
+    out3 += r;
     --nblocks;
   }
 }
 
-void shake128x4_absorb(keccakx4_state *state,
-                       const uint8_t *in0,
-                       const uint8_t *in1,
-                       const uint8_t *in2,
-                       const uint8_t *in3,
-                       size_t inlen)
+void shake128x4_absorb_once(keccakx4_state *state,
+                            const uint8_t *in0,
+                            const uint8_t *in1,
+                            const uint8_t *in2,
+                            const uint8_t *in3,
+                            size_t inlen)
 {
-  keccakx4_absorb(state->s, S2N_KYBER_512_R3_SHAKE128_RATE, in0, in1, in2, in3, inlen, 0x1F);
+  keccakx4_absorb_once(state->s, S2N_KYBER_512_R3_SHAKE128_RATE, in0, in1, in2, in3, inlen, 0x1F);
 }
 
 void shake128x4_squeezeblocks(uint8_t *out0,
@@ -389,18 +568,17 @@ void shake128x4_squeezeblocks(uint8_t *out0,
                               size_t nblocks,
                               keccakx4_state *state)
 {
-  keccakx4_squeezeblocks(out0, out1, out2, out3, nblocks, S2N_KYBER_512_R3_SHAKE128_RATE,
-                         state->s);
+  keccakx4_squeezeblocks(out0, out1, out2, out3, nblocks, S2N_KYBER_512_R3_SHAKE128_RATE, state->s);
 }
 
-void shake256x4_absorb(keccakx4_state *state,
-                       const uint8_t *in0,
-                       const uint8_t *in1,
-                       const uint8_t *in2,
-                       const uint8_t *in3,
-                       size_t inlen)
+void shake256x4_absorb_once(keccakx4_state *state,
+                            const uint8_t *in0,
+                            const uint8_t *in1,
+                            const uint8_t *in2,
+                            const uint8_t *in3,
+                            size_t inlen)
 {
-  keccakx4_absorb(state->s, S2N_KYBER_512_R3_SHAKE256_RATE, in0, in1, in2, in3, inlen, 0x1F);
+  keccakx4_absorb_once(state->s, S2N_KYBER_512_R3_SHAKE256_RATE, in0, in1, in2, in3, inlen, 0x1F);
 }
 
 void shake256x4_squeezeblocks(uint8_t *out0,
@@ -410,8 +588,7 @@ void shake256x4_squeezeblocks(uint8_t *out0,
                               size_t nblocks,
                               keccakx4_state *state)
 {
-  keccakx4_squeezeblocks(out0, out1, out2, out3, nblocks, S2N_KYBER_512_R3_SHAKE256_RATE,
-                         state->s);
+  keccakx4_squeezeblocks(out0, out1, out2, out3, nblocks, S2N_KYBER_512_R3_SHAKE256_RATE, state->s);
 }
 
 void shake128x4(uint8_t *out0,
@@ -430,7 +607,7 @@ void shake128x4(uint8_t *out0,
   uint8_t t[4][S2N_KYBER_512_R3_SHAKE128_RATE];
   keccakx4_state state;
 
-  shake128x4_absorb(&state, in0, in1, in2, in3, inlen);
+  shake128x4_absorb_once(&state, in0, in1, in2, in3, inlen);
   shake128x4_squeezeblocks(out0, out1, out2, out3, nblocks, &state);
 
   out0 += nblocks*S2N_KYBER_512_R3_SHAKE128_RATE;
@@ -466,7 +643,7 @@ void shake256x4(uint8_t *out0,
   uint8_t t[4][S2N_KYBER_512_R3_SHAKE256_RATE];
   keccakx4_state state;
 
-  shake256x4_absorb(&state, in0, in1, in2, in3, inlen);
+  shake256x4_absorb_once(&state, in0, in1, in2, in3, inlen);
   shake256x4_squeezeblocks(out0, out1, out2, out3, nblocks, &state);
 
   out0 += nblocks*S2N_KYBER_512_R3_SHAKE256_RATE;
