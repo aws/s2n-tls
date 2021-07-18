@@ -24,8 +24,6 @@
 #include "tls/s2n_tls13.h"
 #include "pq-crypto/s2n_pq.h"
 
-#define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
-#define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
  * "The "key_share" extension contains the endpoint's cryptographic parameters."
@@ -61,33 +59,6 @@ const s2n_extension_type s2n_client_key_share_extension = {
     .should_send = s2n_extension_always_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
-
-static int s2n_generate_preferred_ecc_key_shares(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    POSIX_ENSURE_REF(conn);
-    uint8_t preferred_key_shares = conn->preferred_key_shares;
-    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
-
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-
-    /* If lsb is set, skip keyshare generation for all curve */
-    if (S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares)) {
-        return S2N_SUCCESS;
-    }
-
-    for (size_t i = 0; i < ecc_pref->count; i++) {
-        /* If a bit in the bitmap (minus the lsb) is set, generate keyshare for the corresponding curve */
-        if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
-            ecc_evp_params = &conn->kex_params.client_ecc_evp_params[i];
-            ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[i];
-            POSIX_GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
-        }
-    }
-
-    return S2N_SUCCESS;
-}
 
 static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -251,17 +222,6 @@ static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer
     return S2N_SUCCESS;
 }
 
-static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    if (!conn->preferred_key_shares) {
-        POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD(s2n_generate_preferred_ecc_key_shares(conn, out));
-    return S2N_SUCCESS;
-}
-
 static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     struct s2n_stuffer_reservation shares_size = {0};
@@ -271,7 +231,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_send_hrr_keyshare(conn, out));
     } else {
         POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
-        POSIX_GUARD(s2n_ecdhe_supported_curves_send(conn, out));
+        POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
     }
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&shares_size));
