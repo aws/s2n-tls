@@ -1,5 +1,5 @@
-#ifndef INDCPA_H
-#define INDCPA_H
+#ifndef KYBER_90S_INDCPA_H
+#define KYBER_90S_INDCPA_H
 
 #include <stdint.h>
 
