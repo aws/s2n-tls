@@ -596,11 +596,6 @@ void cbmc_populate_s2n_kex_parameters(struct s2n_kex_parameters *s2n_kex_paramte
 void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypto_parameters)
 {
     CBMC_ENSURE_REF(s2n_crypto_parameters);
-    cbmc_populate_s2n_pkey(&(s2n_crypto_parameters->server_public_key));
-    cbmc_populate_s2n_pkey(&(s2n_crypto_parameters->client_public_key));
-    cbmc_populate_s2n_signature_scheme(&(s2n_crypto_parameters->conn_sig_scheme));
-    cbmc_populate_s2n_blob(&(s2n_crypto_parameters->client_cert_chain));
-    cbmc_populate_s2n_signature_scheme(&(s2n_crypto_parameters->client_cert_sig_scheme));
     s2n_crypto_parameters->cipher_suite = cbmc_allocate_s2n_cipher_suite();
     cbmc_populate_s2n_session_key(&(s2n_crypto_parameters->client_key));
     cbmc_populate_s2n_session_key(&(s2n_crypto_parameters->server_key));
@@ -659,6 +654,11 @@ void cbmc_populate_s2n_cert_chain_and_key(struct s2n_cert_chain_and_key *s2n_cer
 void cbmc_populate_s2n_handshake_parameters(struct s2n_handshake_parameters *s2n_handshake_parameters)
 {
     CBMC_ENSURE_REF(s2n_handshake_parameters);
+    cbmc_populate_s2n_pkey(&(s2n_handshake_parameters->server_public_key));
+    cbmc_populate_s2n_pkey(&(s2n_handshake_parameters->client_public_key));
+    cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->conn_sig_scheme));
+    cbmc_populate_s2n_blob(&(s2n_handshake_parameters->client_cert_chain));
+    cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->client_cert_sig_scheme));
     cbmc_populate_s2n_cert_chain_and_key(&(s2n_handshake_parameters->our_chain_and_key));
     /* `s2n_handshake_parameters->exact_sni_matches`
      * `s2n_handshake_parameters->wc_sni_matches` are never allocated.

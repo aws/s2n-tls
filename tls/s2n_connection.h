@@ -158,6 +158,7 @@ struct s2n_connection {
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
     struct s2n_crypto_parameters secure;
+    struct s2n_secrets secrets;
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;

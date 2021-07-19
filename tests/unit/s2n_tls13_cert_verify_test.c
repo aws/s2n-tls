@@ -79,8 +79,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(sending_conn, config));
         sending_conn->handshake_params.our_chain_and_key = cert_chain;
-        sending_conn->secure.conn_sig_scheme = sig_scheme;
-        sending_conn->secure.client_cert_sig_scheme = sig_scheme;
+        sending_conn->handshake_params.conn_sig_scheme = sig_scheme;
+        sending_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
         sending_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
@@ -94,11 +94,11 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.server_public_key, &pkey_type, &b));
-            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->secure.server_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.client_public_key, &pkey_type, &b));
-            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->secure.client_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.client_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
         }
 
         /* Hash initialization */
@@ -160,8 +160,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-        verifying_conn->secure.conn_sig_scheme = sig_scheme;
-        verifying_conn->secure.client_cert_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
         verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
@@ -171,11 +171,11 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.server_public_key, &pkey_type, &b));
-            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->secure.server_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.client_public_key, &pkey_type, &b));
-            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->secure.client_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.client_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
         }
         /* Initialize send hash with hello */
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.sha256, S2N_HASH_SHA256));
@@ -194,7 +194,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
 
-        EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->secure.client_public_key));
+        EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
 
         /* Clean up */
         free(cert_chain_pem);
@@ -228,8 +228,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-        verifying_conn->secure.conn_sig_scheme = sig_scheme;
-        verifying_conn->secure.client_cert_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
         verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
@@ -239,9 +239,9 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.server_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.client_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
         }
 
         /* Initialize send hash with hello */
@@ -261,9 +261,9 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         /* Clean up */
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->secure.server_public_key));
+            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.server_public_key));
         } else {
-            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->secure.client_public_key));
+            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
         }
 
         free(cert_chain_pem);
@@ -298,8 +298,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-        verifying_conn->secure.conn_sig_scheme = sig_scheme;
-        verifying_conn->secure.client_cert_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
         verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
@@ -310,9 +310,9 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.server_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->secure.client_public_key, &pkey_type, &b));
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
         }
 
         /* Hash initialization */
@@ -327,16 +327,16 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.sha256, hello, strlen((char *)hello)));
 
         /* In this case it doesn't matter if we use conn_sig_scheme or client_cert_sig_scheme as they are currently equal */
-        verifying_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA1;
-        EXPECT_FAILURE(s2n_tls13_cert_read_and_verify_signature(verifying_conn, &verifying_conn->secure.conn_sig_scheme));
+        verifying_conn->handshake_params.conn_sig_scheme.hash_alg = S2N_HASH_SHA1;
+        EXPECT_FAILURE(s2n_tls13_cert_read_and_verify_signature(verifying_conn, &verifying_conn->handshake_params.conn_sig_scheme));
 
         /* send and receive with mismatched signature algs */
-        verifying_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
-        verifying_conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
-        verifying_conn->secure.conn_sig_scheme.iana_value = 0xFFFF;
-        verifying_conn->secure.client_cert_sig_scheme.hash_alg = S2N_HASH_SHA256;
-        verifying_conn->secure.client_cert_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
-        verifying_conn->secure.client_cert_sig_scheme.iana_value = 0xFFFF;
+        verifying_conn->handshake_params.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
+        verifying_conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+        verifying_conn->handshake_params.conn_sig_scheme.iana_value = 0xFFFF;
+        verifying_conn->handshake_params.client_cert_sig_scheme.hash_alg = S2N_HASH_SHA256;
+        verifying_conn->handshake_params.client_cert_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+        verifying_conn->handshake_params.client_cert_sig_scheme.iana_value = 0xFFFF;
 
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.sha256, hello, strlen((char *)hello)));
@@ -350,9 +350,9 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         /* Clean up */
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->secure.server_public_key));
+            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.server_public_key));
         } else {
-            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->secure.client_public_key));
+            EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
         }
 
         free(cert_chain_pem);

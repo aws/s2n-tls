@@ -303,7 +303,7 @@ int main(int argc, char **argv)
             }
 
             /* Setup the client to have received a HelloRetryRequest */
-            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
             }
 
             /* Setup the client to have received a HelloRetryRequest with server negotiated curve as x25519 */
-            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
             conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
@@ -436,7 +436,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_preferences);
 
             /* Setup the client to have received a HelloRetryRequest */
-            POSIX_CHECKED_MEMCPY(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            POSIX_CHECKED_MEMCPY(client_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
             client_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             /* Setup the client to have received a HelloRetryRequest */
-            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
             conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
@@ -538,7 +538,7 @@ int main(int argc, char **argv)
             }
 
             /* Setup the client to have received a HelloRetryRequest */
-            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
             conn->early_data_state = S2N_EARLY_DATA_REJECTED;

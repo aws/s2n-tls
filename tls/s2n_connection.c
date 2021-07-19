@@ -283,15 +283,15 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 
     /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
-    POSIX_GUARD(s2n_pkey_free(&conn->secure.server_public_key));
-    POSIX_GUARD(s2n_pkey_zero_init(&conn->secure.server_public_key));
-    POSIX_GUARD(s2n_pkey_free(&conn->secure.client_public_key));
-    POSIX_GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
+    POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
+    POSIX_GUARD(s2n_pkey_zero_init(&conn->handshake_params.server_public_key));
+    POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.client_public_key));
+    POSIX_GUARD(s2n_pkey_zero_init(&conn->handshake_params.client_public_key));
     s2n_x509_validator_wipe(&conn->x509_validator);
     POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
     POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
-    POSIX_GUARD(s2n_free(&conn->secure.client_cert_chain));
+    POSIX_GUARD(s2n_free(&conn->handshake_params.client_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));
 
     return 0;
@@ -749,10 +749,10 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(der_cert_chain_out);
     POSIX_ENSURE_REF(cert_chain_len);
-    POSIX_ENSURE_REF(conn->secure.client_cert_chain.data);
+    POSIX_ENSURE_REF(conn->handshake_params.client_cert_chain.data);
 
-    *der_cert_chain_out = conn->secure.client_cert_chain.data;
-    *cert_chain_len = conn->secure.client_cert_chain.size;
+    *der_cert_chain_out = conn->handshake_params.client_cert_chain.data;
+    *cert_chain_len = conn->handshake_params.client_cert_chain.size;
 
     return 0;
 }
@@ -1530,7 +1530,7 @@ int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->secure.conn_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->handshake_params.conn_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }
@@ -1540,7 +1540,7 @@ int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connecti
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->secure.client_cert_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->handshake_params.client_cert_sig_scheme, converted_scheme));
     return S2N_SUCCESS;
 }
 
@@ -1575,7 +1575,7 @@ int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn,
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->secure.conn_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->handshake_params.conn_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }
@@ -1585,7 +1585,7 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->secure.client_cert_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->handshake_params.client_cert_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }
