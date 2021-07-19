@@ -13,10 +13,41 @@
 # permissions and limitations under the License.
 #
 
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
-
-.PHONY : all
-all: $(OBJS)
+.DEFAULT_GOAL := all
 
 include ../../s2n.mk
+include ../s2n_pq_asm.mk
+
+# Kyber Round-3 code has several different optimizations
+# which require specific compiler flags to be supported
+# by the compiler. The flags are set in the s2n_pq_asm.mk
+# file and used here to compile the optimized code files.
+
+SRCS=kyber512r3_cbd.c kyber512r3_fips202.c kyber512r3_indcpa.c kyber512r3_kem.c kyber512r3_ntt.c kyber512r3_poly.c kyber512r3_polyvec.c kyber512r3_reduce.c kyber512r3_symmetric-shake.c
+OBJS=$(SRCS:.c=.o)
+
+AVX2_SRCS=kyber512r3_indcpa_avx2.c
+AVX2_OBJS=$(AVX2_SRCS:.c=.o)
+
+$(AVX2_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+
+#WA for GCC 4.8.5 bug.
+CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
+
+.PHONY : all
+all: $(OBJS) $(AVX2_OBJS)
+
+CFLAGS_LLVM = -emit-llvm -c -g \
+              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
+              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
+
+BCS=$(addprefix $(BITCODE_DIR), $(SRCS:.c=.bc))
+AVX2_BCS=$(addprefix $(BITCODE_DIR), $(AVX2_SRCS:.c=.bc))
+
+$(AVX2_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
+
+.PHONY : bc
+bc: $(BCS) $(AVX2_BCS)
+
+
+
