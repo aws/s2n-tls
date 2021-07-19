@@ -498,6 +498,9 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(server_ecc_evp_params->negotiated_curve);
                 EXPECT_NOT_NULL(server_ecc_evp_params->evp_pkey);
                 EXPECT_TRUE(s2n_public_ecc_keys_are_equal(server_ecc_evp_params, &client_ecc_evp_params[i]));
+
+                /* Clean up */
+                EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_ecc_evp_params[i]));
             }
             /* No unexpected shares present */
             for (; i < s2n_array_len(server_conn->kex_params.client_ecc_evp_params); i++) {
