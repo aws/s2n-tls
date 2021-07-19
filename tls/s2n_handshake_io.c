@@ -1093,6 +1093,17 @@ static S2N_RESULT s2n_wipe_record(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_finish_read(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    RESULT_GUARD_POSIX(s2n_handshake_conn_update_hashes(conn));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
+    RESULT_GUARD_POSIX(s2n_tls13_handle_secrets(conn));
+    RESULT_GUARD_POSIX(s2n_advance_message(conn));
+    return S2N_RESULT_OK;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -1232,29 +1243,12 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
-        /* At this point we may have already failed.
-         * If the handler fails, we clean up the handshake
-         * and skip processing steps necessary to continue connecting (such as updating the transcript hash.)
-         */
-
-        /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
-         * hash values before they are updated. */
-        if (r >= S2N_SUCCESS || S2N_ERROR_IS_BLOCKING(s2n_errno)) { /* Only do this if we haven't already failed */
-            POSIX_GUARD(s2n_handshake_conn_update_hashes(conn));
-        }
-
-        /* Wipe regardless of whether or not we are successful. */
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         /* Bail with blinding if we have failed. */
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(r));
-        /* At this point we know that we have not failed yet because the prior line would have bailed if we had. */
 
-        /* Update the secrets, if necessary */
-        POSIX_GUARD(s2n_tls13_handle_secrets(conn));
-
-        /* Advance the state machine */
-        POSIX_GUARD(s2n_advance_message(conn));
+        /* If we have not failed, update hashes and wipe the handshake stuffer */
+        POSIX_GUARD_RESULT(s2n_finish_read(conn));
     }
 
     /* We're done with the record, wipe it */
@@ -1302,8 +1296,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
 
         /* The read handler processed the record successfully, we are done with this
          * record. Advance the state machine. */
-        POSIX_GUARD(s2n_tls13_handle_secrets(conn));
-        POSIX_GUARD(s2n_advance_message(conn));
+        POSIX_GUARD_RESULT(s2n_finish_read(conn));
     }
 
     return 0;
