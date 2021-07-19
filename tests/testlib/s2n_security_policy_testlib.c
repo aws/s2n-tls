@@ -15,17 +15,9 @@
 
 #include "s2n_testlib.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_ecc_evp.c"
-
-const struct s2n_ecc_named_curve unsupported_curve = {
-    .iana_id = 0, .name = "unsupported",
-    .libcrypto_nid = NID_X9_62_prime256v1,
-    .share_size = SECP256R1_SHARE_SIZE,
-    .generate_key = s2n_ecc_evp_generate_key_nist_curves,
-};
 
 const struct s2n_ecc_named_curve *const ecc_pref_list_for_retry[] = {
-    &unsupported_curve,
+    &s2n_unsupported_curve,
 #if EVP_APIS_SUPPORTED
     &s2n_ecc_curve_x25519,
 #endif
