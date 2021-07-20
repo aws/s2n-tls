@@ -780,8 +780,6 @@ int s2n_security_policies_init()
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
             POSIX_ENSURE_REF(cipher);
 
-            /* TLS1.3 does not include key exchange algorithms in its cipher suites,
-             * but the elliptic curves extension is always required. */
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 security_policy_selection[i].supports_tls13 = 1;
             }
