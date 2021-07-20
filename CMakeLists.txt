@@ -21,6 +21,8 @@ otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
 indicate danger points where you should verify with the S2N-TLS developers that the security of
 the library is not compromised. Turn this OFF to ignore warnings." ON)
+# Not to be confused with BENCHMARK, which is different.
+option(S2N_HYPERFINE "Run benchmarking on unit tests, OFF by default." OFF)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -385,6 +387,9 @@ if (BUILD_TESTING)
         target_link_libraries(${test_case_name} PRIVATE testss2n)
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        if(S2N_HYPERFINE)
+          add_test(NAME benchmark_${test_case_name} COMMAND hyperfine --warmup 1 --ignore-failure --time-unit millisecond -n ${test_case_name} --export-json bench_${test_case_name}_${CMAKE_HOST_SYSTEM_PROCESSOR}.json $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        endif()
 
         set_property(
         TEST

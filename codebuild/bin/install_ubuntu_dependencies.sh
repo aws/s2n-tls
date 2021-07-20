@@ -16,8 +16,20 @@
 # Shim code to get local docker/ec2 instances bootstraped like a CodeBuild instance.
 # Not actually used by CodeBuild.
 
-set -ex
+set -e
 
+install_hyperfine(){
+	# See https://github.com/sharkdp/hyperfine
+	cd $(mktemp -d)
+	local HFVER="1.11.0"
+	curl -L https://github.com/sharkdp/hyperfine/releases/download/v${HFVER}/hyperfine_${HFVER}_amd64.deb -o "hyperfine_${HFVER}_amd64.deb"
+	dpkg -i hyperfine_${HFVER}_amd64.deb
+	hyperfine --version
+}
+
+export DEBIAN_FRONTEND=noninteractive
+apt update
+apt install -y software-properties-common
 add-apt-repository ppa:ubuntu-toolchain-r/test -y
 add-apt-repository ppa:longsleep/golang-backports -y
 apt-get update -o Acquire::CompressionTypes::Order::=gz
@@ -30,6 +42,7 @@ if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
 fi
 
 apt-get -y install --no-install-recommends ${DEPENDENCIES}
+install_hyperfine
 
 # If prlimit is not on our current PATH, download and compile prlimit manually. s2n needs prlimit to memlock pages
 if ! type prlimit > /dev/null && [[ ! -d "$PRLIMIT_INSTALL_DIR" ]]; then
