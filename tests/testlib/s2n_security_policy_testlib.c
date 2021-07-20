@@ -16,6 +16,8 @@
 #include "s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
+extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
+
 const struct s2n_ecc_named_curve *const ecc_pref_list_for_retry[] = {
     &s2n_unsupported_curve,
 #if EVP_APIS_SUPPORTED

@@ -821,8 +821,8 @@ bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_po
     if (cipher_preferences == NULL) {
         return false;
     }
-    for (int j = 0; j < cipher_preferences->count; j++) {
-        if (s2n_cipher_suite_requires_ecc_extension(cipher_preferences->suites[j])) {
+    for (uint8_t i = 0; i < cipher_preferences->count; i++) {
+        if (s2n_cipher_suite_requires_ecc_extension(cipher_preferences->suites[i])) {
             return true;
         }
     }
@@ -847,8 +847,8 @@ bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security
     if (cipher_preferences == NULL) {
         return false;
     }
-    for (int j = 0; j < cipher_preferences->count; j++) {
-        if (s2n_cipher_suite_requires_pq_extension(cipher_preferences->suites[j])) {
+    for (uint8_t i = 0; i < cipher_preferences->count; i++) {
+        if (s2n_cipher_suite_requires_pq_extension(cipher_preferences->suites[i])) {
             return true;
         }
     }
