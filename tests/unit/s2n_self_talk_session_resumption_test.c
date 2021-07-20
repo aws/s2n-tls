@@ -414,13 +414,12 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -437,8 +436,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Client sets up a resumption connection with the received session ticket data */
         size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);

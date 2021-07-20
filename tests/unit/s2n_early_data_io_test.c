@@ -80,18 +80,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, cert_chain));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_cert));
 
-    const struct s2n_ecc_named_curve *const curves_reversed_order[] = {
-        &s2n_ecc_curve_secp384r1,
-        &s2n_ecc_curve_secp256r1,
-    };
-    const struct s2n_ecc_preferences ecc_prefs_reversed_order = {
-            .count = s2n_array_len(curves_reversed_order),
-            .ecc_curves = curves_reversed_order,
-    };
-    struct s2n_security_policy sec_policy_reversed_order = security_policy_test_all_tls13;
-    sec_policy_reversed_order.ecc_preferences = &ecc_prefs_reversed_order;
-    const struct s2n_security_policy retry_policy = sec_policy_reversed_order;
-
     /* Test s2n_negotiate with early data */
     {
         /* Early data not supported by server */
@@ -420,7 +408,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
-            client_conn->security_policy_override = &retry_policy;
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -473,7 +461,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
                 EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
                 EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
-                client_conn->security_policy_override = &retry_policy;
+                client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));

@@ -1416,30 +1416,6 @@ uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn)
     return conn->server_protocol_version;
 }
 
-int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name)
-{
-    POSIX_ENSURE(S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
-    POSIX_ENSURE_REF(conn);
-
-    if (!strcmp(curve_name, "none")) {
-        S2N_SET_KEY_SHARE_LIST_EMPTY(conn->preferred_key_shares);
-        return S2N_SUCCESS;
-    }
-
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-
-    for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (!strcmp(ecc_pref->ecc_curves[i]->name, curve_name)) {
-            S2N_SET_KEY_SHARE_REQUEST(conn->preferred_key_shares, i);
-            return S2N_SUCCESS;
-        }
-    }
-
-    POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-}
-
 DEFINE_POINTER_CLEANUP_FUNC(struct s2n_cert_chain *, s2n_cert_chain_free);
 
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
