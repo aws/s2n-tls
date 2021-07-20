@@ -459,6 +459,55 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
+        /* Test that s2n_client_key_share_extension.recv can handle a keyshare for
+         * a supported curve that isn't its first choice curve. */
+        {
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->actual_protocol_version = S2N_TLS13;
+
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
+            EXPECT_TRUE(ecc_pref->count >= 2);
+
+            struct s2n_ecc_evp_params client_ecc_evp_params = { .negotiated_curve = ecc_pref->ecc_curves[1] };
+
+            struct s2n_stuffer key_share_extension = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            struct s2n_stuffer_reservation keyshare_list_size = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &keyshare_list_size));
+            EXPECT_SUCCESS(s2n_ecdhe_parameters_send(&client_ecc_evp_params, &key_share_extension));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&keyshare_list_size));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
+
+            /* Does not trigger retries */
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
+            /* Expected share present */
+            struct s2n_ecc_evp_params *server_ecc_evp_params = &server_conn->kex_params.client_ecc_evp_params[1];
+            EXPECT_NOT_NULL(server_ecc_evp_params->negotiated_curve);
+            EXPECT_NOT_NULL(server_ecc_evp_params->evp_pkey);
+            EXPECT_TRUE(s2n_public_ecc_keys_are_equal(server_ecc_evp_params, &client_ecc_evp_params));
+
+            /* No unexpected shares present */
+            for (size_t i = 0; i < s2n_array_len(server_conn->kex_params.client_ecc_evp_params); i++) {
+                if (i == 1) {
+                    continue;
+                }
+                server_ecc_evp_params = &server_conn->kex_params.client_ecc_evp_params[i];
+                EXPECT_NULL(server_ecc_evp_params->negotiated_curve);
+                EXPECT_NULL(server_ecc_evp_params->evp_pkey);
+            }
+
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_ecc_evp_params));
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
         /* Test that s2n_client_key_share_extension.recv can handle multiple keyshares */
         {
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
