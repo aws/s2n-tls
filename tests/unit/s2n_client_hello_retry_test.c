@@ -58,31 +58,11 @@ int main(int argc, char **argv)
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-            EXPECT_NULL(conn->kex_params.client_ecc_evp_params->evp_pkey);
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
-            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params->evp_pkey);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
-
-            EXPECT_SUCCESS(s2n_config_free(config));
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* s2n_server_hello_retry_recv must fail when a matching curve is not found, i.e the selected_group field
-         * does not correspond to a group which was provided in the "supported_groups" extension in the original ClientHello */
-        if (s2n_is_evp_apis_supported()) {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
-
-            EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190802")); /* does not contain x25519 */
-
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
+            EXPECT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
+            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -223,7 +203,7 @@ int main(int argc, char **argv)
                     conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
                     EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-                    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params[0];
+                    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
                     client_params->kem_group = kem_pref->tls13_kem_groups[0];
                     client_params->kem_params.kem = kem_pref->tls13_kem_groups[0]->kem;
                     client_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[0]->curve;
@@ -242,22 +222,6 @@ int main(int argc, char **argv)
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
                     EXPECT_SUCCESS(s2n_free(&client_params->kem_params.public_key));
-                    EXPECT_SUCCESS(s2n_connection_free(conn));
-                }
-                /* s2n_server_hello_retry_recv must fail if the server chose a PQ KEM
-                 * that wasn't in the client's supported_groups */
-                {
-                    struct s2n_connection *conn;
-                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-                    conn->actual_protocol_version = S2N_TLS13;
-                    conn->security_policy_override = &test_security_policy;
-
-                    /* test_security_policy does not include kyber */
-                    conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
-                    EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
-
-                    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
-
                     EXPECT_SUCCESS(s2n_connection_free(conn));
                 }
                 /* Test failure if exactly one of {named_curve, kem_group} isn't non-null */
@@ -430,7 +394,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
-    /* Self-Talk test: the client initiates a handshake with an empty list of keyshares.
+    /* Self-Talk test: the client initiates a handshake with an unknown keyshare.
      * The server sends a HelloRetryRequest that requires the client to generate a
      * key share on the server negotiated curve. */
     {

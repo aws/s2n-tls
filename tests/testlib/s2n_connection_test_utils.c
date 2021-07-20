@@ -273,3 +273,26 @@ S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn)
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
+
+    for(size_t i = 0; i < ecc_pref->count; i++) {
+        conn->kex_params.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+    }
+
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    RESULT_ENSURE_REF(kem_pref);
+
+    for(size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+        conn->kex_params.mutually_supported_kem_groups[i] = kem_pref->tls13_kem_groups[i];
+    }
+
+    return S2N_RESULT_OK;
+}

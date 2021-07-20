@@ -54,9 +54,9 @@ static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
     POSIX_ENSURE_REF(ecc_pref);
 
     conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
     return S2N_SUCCESS;
 }
@@ -170,6 +170,9 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn)
             - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
+
+        /* Server configures the "supported_groups" shared with the client */
+        server_conn->kex_params.mutually_supported_curves[0] = server_ecc_preferences->ecc_curves[0];
 
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
@@ -331,8 +334,8 @@ int main(int argc, char **argv)
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
-            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             const uint8_t psk_data[] = "test identity data";
             const uint8_t secret_data[] = "test secret data";
@@ -378,8 +381,8 @@ int main(int argc, char **argv)
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
-            conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             const uint8_t psk_data[] = "test identity data";
             const uint8_t secret_data[] = "test secret data";

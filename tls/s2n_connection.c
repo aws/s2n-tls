@@ -257,14 +257,10 @@ S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn);
 
     RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
-    for (size_t i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-        RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.client_ecc_evp_params[i]));
-    }
+    RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->kex_params.client_ecc_evp_params));
 
     RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.server_kem_group_params));
-    for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
-        RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.client_kem_group_params[i]));
-    }
+    RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->kex_params.client_kem_group_params));
 
     return S2N_RESULT_OK;
 }
@@ -1027,11 +1023,11 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->kex_params.chosen_client_kem_group_params || !conn->kex_params.chosen_client_kem_group_params->kem_group) {
+    if (!conn->kex_params.client_kem_group_params.kem_group) {
         return "NONE";
     }
 
-    return conn->kex_params.chosen_client_kem_group_params->kem_group->name;
+    return conn->kex_params.client_kem_group_params.kem_group->name;
 }
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)

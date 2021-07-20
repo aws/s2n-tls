@@ -94,34 +94,15 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
     POSIX_ENSURE( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
 
-    bool match_found = false;
     bool new_key_share_requested = false;
-
     if (named_curve != NULL) {
-        for (size_t i = 0; i < ecc_pref->count; i++) {
-            if (ecc_pref->ecc_curves[i] == named_curve) {
-                match_found = true;
-                new_key_share_requested = (conn->kex_params.client_ecc_evp_params[i].evp_pkey == NULL);
-                break;
-            }
-        }
-        POSIX_ENSURE(match_found, S2N_ERR_INVALID_HELLO_RETRY);
+        new_key_share_requested = (named_curve != conn->kex_params.client_ecc_evp_params.negotiated_curve);
     }
-
     if (kem_group != NULL) {
         /* If PQ is disabled, the client should not have sent any PQ IDs
          * in the supported_groups list of the initial ClientHello */
         POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-
-        for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-            if (kem_pref->tls13_kem_groups[i] == kem_group) {
-                match_found = true;
-                new_key_share_requested = (conn->kex_params.client_kem_group_params[i].kem_params.private_key.size == 0)
-                        && (conn->kex_params.client_kem_group_params[i].ecc_params.evp_pkey == NULL);
-                break;
-            }
-        }
-        POSIX_ENSURE(match_found, S2N_ERR_INVALID_HELLO_RETRY);
+        new_key_share_requested = (kem_group != conn->kex_params.client_kem_group_params.kem_group);
     }
 
     /*
