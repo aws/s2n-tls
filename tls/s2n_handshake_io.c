@@ -1242,12 +1242,9 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */
-        r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn)));
 
-        /* Bail with blinding if we have failed. */
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(r));
-
-        /* If we have not failed, update hashes and wipe the handshake stuffer */
+        /* Advance the state machine */
         POSIX_GUARD_RESULT(s2n_finish_read(conn));
     }
 

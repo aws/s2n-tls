@@ -142,7 +142,7 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, vo
     return S2N_SUCCESS;
 }
 
-int client_hello_noop_cb(struct s2n_connection *conn, void *ctx)
+int static s2n_client_hello_no_op_cb(struct s2n_connection *conn, void *ctx)
 {
     return S2N_SUCCESS;
 }
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 
     /* Basic PSK with Client Hello async callback set */
     {
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_noop_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_client_hello_no_op_cb, NULL));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
         s2n_set_config_both_connections(client_conn, server_conn, config);
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 
     /* HRR with PSK and Client Hello async callback set */
     {
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_certs, client_hello_noop_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_certs, s2n_client_hello_no_op_cb, NULL));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config_with_certs, S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
         /* Setup certs */
