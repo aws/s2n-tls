@@ -142,7 +142,7 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, vo
     return S2N_SUCCESS;
 }
 
-int static s2n_client_hello_no_op_cb(struct s2n_connection *conn, void *ctx)
+static int s2n_client_hello_no_op_cb(struct s2n_connection *conn, void *ctx)
 {
     return S2N_SUCCESS;
 }
