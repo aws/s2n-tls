@@ -6,6 +6,7 @@ html
 logs
 property.xml
 
+report/
 proofs/output
 
 .litani_cache_dir

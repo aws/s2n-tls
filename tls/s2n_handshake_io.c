@@ -694,7 +694,15 @@ static int s2n_advance_message(struct s2n_connection *conn)
 }
 
 int s2n_generate_new_client_session_id(struct s2n_connection *conn)
+    CONTRACT_REQUIRES(__CPROVER_is_fresh(conn, sizeof(*conn)) || (conn == NULL))
+    CONTRACT_ASSIGNS_ERR(conn->session_id_len, conn->session_id)
+    CONTRACT_ENSURES((__CPROVER_return_value == S2N_SUCCESS) || (__CPROVER_return_value == S2N_FAILURE))
+    CONTRACT_ENSURES(S2N_IMPLIES(conn == NULL, __CPROVER_return_value == S2N_FAILURE))
+    CONTRACT_ENSURES(S2N_IMPLIES(__CPROVER_return_value == S2N_SUCCESS && conn->mode == S2N_SERVER, conn->session_id_len == S2N_TLS_SESSION_ID_MAX_LEN))
+    CONTRACT_ENSURES(S2N_IMPLIES(conn != NULL && conn->mode != S2N_SERVER, __CPROVER_return_value == S2N_SUCCESS))
 {
+    POSIX_ENSURE_REF(conn);
+
     if (conn->mode == S2N_SERVER) {
         struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
 
@@ -703,7 +711,7 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
         conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
