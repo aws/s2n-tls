@@ -620,7 +620,7 @@ static const char* tls13_handshake_type_names[] = {
     "EARLY_CLIENT_CCS|",
 };
 
-#define IS_TLS13_HANDSHAKE( conn )    (((conn) != NULL) && ((conn)->actual_protocol_version == S2N_TLS13))
+#define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
 
 #define ACTIVE_STATE_MACHINE( conn )  (IS_TLS13_HANDSHAKE(conn) ? tls13_state_machine : state_machine)
 #define ACTIVE_HANDSHAKES( conn )     (IS_TLS13_HANDSHAKE(conn) ? tls13_handshakes : handshakes)
