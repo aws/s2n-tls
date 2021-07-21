@@ -24,5 +24,8 @@ void s2n_connection_get_last_message_name_harness()
     const char* last_message_name = s2n_connection_get_last_message_name(s2n_connection);
 
     /* Post-conditions. */
-    assert(S2N_IMPLIES(last_message_name != NULL, s2n_result_is_ok(s2n_handshake_validate(&(s2n_connection->handshake)))));
+    assert(S2N_IMPLIES(
+      s2n_connection != NULL && s2n_result_is_ok(s2n_handshake_validate(&(s2n_connection->handshake))),
+      last_message_name != NULL
+    ));
 }
