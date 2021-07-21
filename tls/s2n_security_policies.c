@@ -371,6 +371,8 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19 = {
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20 = {
     .minimum_protocol_version = S2N_TLS10,
+    /* Yes, this is the same cipher_preferences as kms_pq_tls_1_0_2020_07. Both allow Kyber, BIKE, SIKE. The difference
+     * between these policies is the kem_preferences, which have been updated to prefer Round 3 over Round 2. */
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_07,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
@@ -381,7 +383,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_21 = {
     .minimum_protocol_version = S2N_TLS11,
     .cipher_preferences = &cipher_preferences_pq_tls_1_1_2021_05_21,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
-    .signature_preferences = &s2n_signature_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
@@ -389,7 +391,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_22,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
-    .signature_preferences = &s2n_signature_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
@@ -397,7 +399,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_23,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
-    .signature_preferences = &s2n_signature_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
@@ -405,7 +407,23 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_25 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_25,
+    .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_26,
+    .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
+    .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
@@ -674,6 +692,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="PQ-TLS-1-0-2021-05-22", .security_policy=&security_policy_pq_tls_1_0_2021_05_22, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-TLS-1-0-2021-05-23", .security_policy=&security_policy_pq_tls_1_0_2021_05_23, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-TLS-1-0-2021-05-24", .security_policy=&security_policy_pq_tls_1_0_2021_05_24, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="PQ-TLS-1-0-2021-05-25", .security_policy=&security_policy_pq_tls_1_0_2021_05_25, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="PQ-TLS-1-0-2021-05-26", .security_policy=&security_policy_pq_tls_1_0_2021_05_26, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-FIPS-TLS-1-2-2018-10", .security_policy=&security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20140601", .security_policy=&security_policy_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20141001", .security_policy=&security_policy_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0 },

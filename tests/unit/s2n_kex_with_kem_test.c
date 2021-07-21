@@ -198,6 +198,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_sike_p434_r3));
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_sike_p503_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_sike_p434_r3));
 
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
@@ -229,6 +233,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_bike1_l1_r2));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_bike_l1_r3));
 
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_kyber_512_r2));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_kyber_512_r2));
@@ -243,10 +253,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_kyber_512_r2));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_kyber_512_r2));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_kyber_512_r2));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_kyber_512_r3));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_kyber_512_r3));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_kyber_512_r3));
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_kyber_512_r3));
 
         /* Test Failure cases */
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);

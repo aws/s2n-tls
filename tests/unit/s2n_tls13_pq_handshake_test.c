@@ -348,6 +348,13 @@ int main() {
                     .expected_curve = NULL,
                     .hrr_expected = false,
             },
+            {
+                    .client_policy = &security_policy_pq_tls_1_0_2021_05_26,
+                    .server_policy = &security_policy_pq_tls_1_0_2021_05_26,
+                    .expected_kem_group = expected_kyber_r3_group,
+                    .expected_curve = NULL,
+                    .hrr_expected = false,
+            },
 
             /* Server supports all KEM groups; client sends a PQ key share and an EC key
              * share; server chooses to negotiate client's first choice PQ without HRR. */
