@@ -24,6 +24,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_prf.h"
 
+#define MASTER_SECRET_LENGTH 48
+
 /*
  * Grabbed from gnutls-cli --insecure -d 9 www.example.com --ciphers AES --macs SHA --protocols TLS1.0
  *
@@ -52,49 +54,89 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    /* s2n_tls_prf_master_secret */
+    {
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-    /* Check the most common PRF */
-    conn->actual_protocol_version = S2N_TLS11;
+        /* Check the most common PRF */
+        conn->actual_protocol_version = S2N_TLS11;
 
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_random_in, client_random_hex_in));
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&server_random_in, server_random_hex_in));
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&premaster_secret_in, premaster_secret_hex_in));
+        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_random_in, client_random_hex_in));
+        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&server_random_in, server_random_hex_in));
+        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&premaster_secret_in, premaster_secret_hex_in));
 
-    EXPECT_SUCCESS(s2n_stuffer_init(&master_secret_hex_out, &master_secret));
+        EXPECT_SUCCESS(s2n_stuffer_init(&master_secret_hex_out, &master_secret));
 
-    /* Parse the hex */
-    for (int i = 0; i < 48; i++) {
-        uint8_t c = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
-        conn->secrets.rsa_premaster_secret[i] = c;
+        /* Parse the hex */
+        for (int i = 0; i < 48; i++) {
+            uint8_t c = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
+            conn->secrets.rsa_premaster_secret[i] = c;
+        }
+        for (int i = 0; i < 32; i++) {
+            uint8_t c = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
+            conn->secrets.client_random[i] = c;
+        }
+        for (int i = 0; i < 32; i++) {
+            uint8_t c = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
+            conn->secrets.server_random[i] = c;
+        }
+
+        pms.data = conn->secrets.rsa_premaster_secret;
+        pms.size = sizeof(conn->secrets.rsa_premaster_secret);
+        EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+
+        /* Convert the master secret to hex */
+        for (int i = 0; i < 48; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secrets.master_secret[i]));
+        }
+
+        EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&client_random_in));
+        EXPECT_SUCCESS(s2n_stuffer_free(&server_random_in));
+        EXPECT_SUCCESS(s2n_stuffer_free(&premaster_secret_in));
     }
-    for (int i = 0; i < 32; i++) {
-        uint8_t c = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-        conn->secrets.client_random[i] = c;
+
+    /* s2n_tls_prf_extended_master_secret */
+    {
+        /* The test premaster secret, hash digest, and resulting
+         * extended master secret were pulled from an OpenSSL TLS1.2 EMS session
+         * using the s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384 ciphersuite.
+         */
+        S2N_BLOB_FROM_HEX(premaster_secret,
+            "05e12675c9264d82b53fa15d589c829af9be1ae3d881ab0b023b7b8cad8bc058");
+
+        S2N_BLOB_FROM_HEX(hash_digest,
+            "e6cbbaa03909ea387714fe70c07546086dedfcee086fd2985dfdd50924393619"
+            "009115758e490e2e3b0c13bebdad5fbb");
+
+        S2N_BLOB_FROM_HEX(extended_master_secret,
+            "aef116e65e2cd77d4e96b1ceeadb7912ddd9aaf3a907aa3344ec3a2de6cc3b69"
+            "9ca768fe389eab3b53c98d8ccd830b06");
+
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS12;
+        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc7627#section-4
+         *= type=test
+         *# When the extended master secret extension is negotiated in a full
+         *# handshake, the "master_secret" is computed as
+         *#
+         *# master_secret = PRF(pre_master_secret, "extended master secret",
+         *#                    session_hash)
+         *#                    [0..47];
+         */
+        EXPECT_SUCCESS(s2n_tls_prf_extended_master_secret(conn, &premaster_secret, &hash_digest));
+        EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.master_secret, MASTER_SECRET_LENGTH);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
-    for (int i = 0; i < 32; i++) {
-        uint8_t c = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
-        conn->secrets.server_random[i] = c;
-    }
-
-    pms.data = conn->secrets.rsa_premaster_secret;
-    pms.size = sizeof(conn->secrets.rsa_premaster_secret);
-    EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
-
-    /* Convert the master secret to hex */
-    for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secrets.master_secret[i]));
-    }
-
-    EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);
-
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-    EXPECT_SUCCESS(s2n_stuffer_free(&client_random_in));
-    EXPECT_SUCCESS(s2n_stuffer_free(&server_random_in));
-    EXPECT_SUCCESS(s2n_stuffer_free(&premaster_secret_in));
 
     END_TEST();
 }
