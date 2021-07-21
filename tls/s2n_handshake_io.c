@@ -733,7 +733,9 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
 
 bool s2n_is_hello_retry_message(struct s2n_connection *conn)
 {
-    return (ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG);
+    return (conn != NULL &&
+            s2n_result_is_ok(s2n_handshake_validate(&(conn->handshake))) &&
+            ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG);
 }
 
 bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
@@ -872,15 +874,16 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
-
+    PTR_GUARD_RESULT(s2n_handshake_validate(&(conn->handshake)));
     return message_names[ACTIVE_MESSAGE(conn)];
 }
 
 const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
+    PTR_PRECONDITION(s2n_handshake_validate(&(conn->handshake)));
 
-    uint16_t handshake_type = conn->handshake.handshake_type;
+    uint32_t handshake_type = conn->handshake.handshake_type;
 
     if (handshake_type == INITIAL) {
         return "INITIAL";

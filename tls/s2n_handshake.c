@@ -347,3 +347,11 @@ S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_
     RESULT_GUARD_POSIX(r);
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake)
+{
+    RESULT_ENSURE_REF(s2n_handshake);
+    RESULT_DEBUG_ENSURE(s2n_handshake->handshake_type < 256, S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(s2n_handshake->message_number >= 0 && s2n_handshake->message_number < 32, S2N_ERR_SAFETY);
+    return S2N_RESULT_OK;
+}
