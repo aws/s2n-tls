@@ -576,21 +576,20 @@ void cbmc_populate_s2n_session_key(struct s2n_session_key *s2n_session_key)
     s2n_session_key->evp_cipher_ctx = malloc(sizeof(*(s2n_session_key->evp_cipher_ctx)));
 }
 
-void cbmc_populate_s2n_kex_parameters(struct s2n_kex_parameters *s2n_kex_paramters)
+void cbmc_populate_s2n_kex_parameters(struct s2n_kex_parameters *s2n_kex_parameters)
 {
-	cbmc_populate_s2n_dh_params(&(s2n_kex_paramters->server_dh_params));
-	cbmc_populate_s2n_ecc_evp_params(&(s2n_kex_paramters->server_ecc_evp_params));
+	cbmc_populate_s2n_dh_params(&(s2n_kex_parameters->server_dh_params));
+	cbmc_populate_s2n_ecc_evp_params(&(s2n_kex_parameters->server_ecc_evp_params));
 	/* `s2n_crypto_parameters->mutually_supported_curves`
 	 * `s2n_crypto_parameters->client_ecc_evp_params`
 	 * `s2n_crypto_parameters->client_kem_group_params`
 	 * `s2n_crypto_parameters->mutually_supported_kem_groups` are never allocated.
 	 * If required, these initializations should be done in the proof harness.
 	 */
-	cbmc_populate_s2n_kem_group_params(&(s2n_kex_paramters->server_kem_group_params));
-	s2n_kex_paramters->chosen_client_kem_group_params = cbmc_allocate_s2n_kem_group_params();
-	cbmc_populate_s2n_kem_params(&(s2n_kex_paramters->kem_params));
-	cbmc_populate_s2n_blob(&(s2n_kex_paramters->client_key_exchange_message));
-	cbmc_populate_s2n_blob(&(s2n_kex_paramters->client_pq_kem_extension));
+	cbmc_populate_s2n_kem_group_params(&(s2n_kex_parameters->server_kem_group_params));
+	cbmc_populate_s2n_kem_params(&(s2n_kex_parameters->kem_params));
+	cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_key_exchange_message));
+	cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_pq_kem_extension));
 }
 
 void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypto_parameters)
