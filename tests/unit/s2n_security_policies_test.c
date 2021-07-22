@@ -19,7 +19,6 @@
 #include "tls/s2n_kem.h"
 #include "pq-crypto/s2n_pq.h"
 
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -71,7 +70,7 @@ int main(int argc, char **argv)
                 int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
                 s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
 
-                if (min >= S2N_TLS13 || max <= S2N_TLS13) {
+                if (min == S2N_TLS13 || max >= S2N_TLS13) {
                     has_tls_13_sig_alg = 1;
                 }
 
