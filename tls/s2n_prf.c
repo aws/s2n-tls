@@ -410,7 +410,6 @@ int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *p
 
 /**
  *= https://tools.ietf.org/rfc/rfc7627#section-4
- *
  *# When the extended master secret extension is negotiated in a full
  *# handshake, the "master_secret" is computed as
  *#
@@ -418,14 +417,17 @@ int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *p
  *#                    session_hash)
  *#                    [0..47];
  */
-int s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash)
+S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash)
 {
     struct s2n_blob extended_master_secret = {.size = sizeof(conn->secrets.master_secret), .data = conn->secrets.master_secret};
 
     uint8_t extended_master_secret_label[] = "extended master secret";
+    /* Subtract one from the label size to remove the "\0" */
     struct s2n_blob label = {.size = sizeof(extended_master_secret_label) - 1, .data = extended_master_secret_label};
 
-    return s2n_prf(conn, premaster_secret, &label, session_hash, NULL, NULL, &extended_master_secret);
+    RESULT_GUARD_POSIX(s2n_prf(conn, premaster_secret, &label, session_hash, NULL, NULL, &extended_master_secret));
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *hash_workspace, uint8_t * out)

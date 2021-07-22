@@ -24,8 +24,6 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_prf.h"
 
-#define MASTER_SECRET_LENGTH 48
-
 /*
  * Grabbed from gnutls-cli --insecure -d 9 www.example.com --ciphers AES --macs SHA --protocols TLS1.0
  *
@@ -132,8 +130,8 @@ int main(int argc, char **argv)
          *#                    session_hash)
          *#                    [0..47];
          */
-        EXPECT_SUCCESS(s2n_tls_prf_extended_master_secret(conn, &premaster_secret, &hash_digest));
-        EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.master_secret, MASTER_SECRET_LENGTH);
+        EXPECT_OK(s2n_tls_prf_extended_master_secret(conn, &premaster_secret, &hash_digest));
+        EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.master_secret, S2N_TLS_SECRET_LEN);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
