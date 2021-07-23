@@ -36,13 +36,13 @@ int main(int argc, char **argv)
             EXPECT_TRUE(security_policy->kem_preferences->tls13_kem_group_count <= S2N_SUPPORTED_KEM_GROUPS_COUNT);
 
             /* Ensure all TLS 1.3 KEM groups in all policies are in the global list of all supported KEM groups */
-            for(int i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
+            for(size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
                 const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
 
-                int kem_group_is_supported = 0;
-                for (int j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
+                bool kem_group_is_supported = false;
+                for (size_t j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
                     if (kem_group->iana_id == ALL_SUPPORTED_KEM_GROUPS[j]->iana_id) {
-                        kem_group_is_supported = 1;
+                        kem_group_is_supported = true;
                         break;
                     }
                 }
@@ -51,10 +51,10 @@ int main(int argc, char **argv)
         }
 
         /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test */
-        int has_tls_13_cipher = 0;
-        for(int i = 0; i < security_policy->cipher_preferences->count; i++){
+        bool has_tls_13_cipher = false;
+        for(size_t i = 0; i < security_policy->cipher_preferences->count; i++){
             if (security_policy->cipher_preferences->suites[i]->minimum_required_tls_version == S2N_TLS13) {
-                has_tls_13_cipher = 1;
+                has_tls_13_cipher = true;
                 break;
             }
         }
@@ -62,20 +62,20 @@ int main(int argc, char **argv)
         /* If a TLS 1.3 Cipher is present in the Security Policy, then the minimum required TLS 1.3 signature algorithms
          * must be present as well. */
         if (has_tls_13_cipher) {
-            int has_tls_13_sig_alg = 0;
-            int has_rsa_pss = 0;
+            bool has_tls_13_sig_alg = false;
+            bool has_rsa_pss = false;
 
-            for(int i = 0; i < security_policy->signature_preferences->count; i++) {
+            for(size_t i = 0; i < security_policy->signature_preferences->count; i++) {
                 int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
                 int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
                 s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
 
                 if (min == S2N_TLS13 || max >= S2N_TLS13) {
-                    has_tls_13_sig_alg = 1;
+                    has_tls_13_sig_alg = true;
                 }
 
                 if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
-                    has_rsa_pss = 1;
+                    has_rsa_pss = true;
                 }
             }
 
