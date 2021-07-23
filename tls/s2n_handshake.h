@@ -181,9 +181,10 @@ struct s2n_handshake {
     unsigned rsa_failed:1;
 };
 
+/* Only used in our test cases. */
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
-extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
-extern int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
+
+/* s2n_handshake */
 extern int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
 extern uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
 extern int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
@@ -192,8 +193,16 @@ extern int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_
 extern int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
 extern int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type);
-int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);
-S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
-S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);
 S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message);
 S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake);
+
+/* s2n_handshake_io */
+extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
+extern int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
+
+/* s2n_handshake_transcript */
+int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);
+
+/* s2n_quic_support */
+S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
+S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);
