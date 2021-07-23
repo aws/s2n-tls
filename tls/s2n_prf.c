@@ -386,9 +386,9 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 
 int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    struct s2n_blob client_random = {.size = sizeof(conn->secure.client_random), .data = conn->secure.client_random};
-    struct s2n_blob server_random = {.size = sizeof(conn->secure.server_random), .data = conn->secure.server_random};
-    struct s2n_blob master_secret = {.size = sizeof(conn->secure.master_secret), .data = conn->secure.master_secret};
+    struct s2n_blob client_random = {.size = sizeof(conn->secrets.client_random), .data = conn->secrets.client_random};
+    struct s2n_blob server_random = {.size = sizeof(conn->secrets.server_random), .data = conn->secrets.server_random};
+    struct s2n_blob master_secret = {.size = sizeof(conn->secrets.master_secret), .data = conn->secrets.master_secret};
 
     uint8_t master_secret_label[] = "master secret";
     struct s2n_blob label = {.size = sizeof(master_secret_label) - 1, .data = master_secret_label};
@@ -398,9 +398,9 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
 
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    struct s2n_blob client_random = {.size = sizeof(conn->secure.client_random), .data = conn->secure.client_random};
-    struct s2n_blob server_random = {.size = sizeof(conn->secure.server_random), .data = conn->secure.server_random};
-    struct s2n_blob master_secret = {.size = sizeof(conn->secure.master_secret), .data = conn->secure.master_secret};
+    struct s2n_blob client_random = {.size = sizeof(conn->secrets.client_random), .data = conn->secrets.client_random};
+    struct s2n_blob server_random = {.size = sizeof(conn->secrets.server_random), .data = conn->secrets.server_random};
+    struct s2n_blob master_secret = {.size = sizeof(conn->secrets.master_secret), .data = conn->secrets.master_secret};
 
     uint8_t master_secret_label[] = "hybrid master secret";
     struct s2n_blob label = {.size = sizeof(master_secret_label) - 1, .data = master_secret_label};
@@ -426,11 +426,11 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
     struct s2n_hash_state *md5 = hash_workspace;
     POSIX_GUARD(s2n_hash_copy(md5, &conn->handshake.md5));
     POSIX_GUARD(s2n_hash_update(md5, prefix, 4));
-    POSIX_GUARD(s2n_hash_update(md5, conn->secure.master_secret, sizeof(conn->secure.master_secret)));
+    POSIX_GUARD(s2n_hash_update(md5, conn->secrets.master_secret, sizeof(conn->secrets.master_secret)));
     POSIX_GUARD(s2n_hash_update(md5, xorpad1, 48));
     POSIX_GUARD(s2n_hash_digest(md5, md5_digest, MD5_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_reset(md5));
-    POSIX_GUARD(s2n_hash_update(md5, conn->secure.master_secret, sizeof(conn->secure.master_secret)));
+    POSIX_GUARD(s2n_hash_update(md5, conn->secrets.master_secret, sizeof(conn->secrets.master_secret)));
     POSIX_GUARD(s2n_hash_update(md5, xorpad2, 48));
     POSIX_GUARD(s2n_hash_update(md5, md5_digest, MD5_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_digest(md5, md5_digest, MD5_DIGEST_LENGTH));
@@ -439,11 +439,11 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
     struct s2n_hash_state *sha1 = hash_workspace;
     POSIX_GUARD(s2n_hash_copy(sha1, &conn->handshake.sha1));
     POSIX_GUARD(s2n_hash_update(sha1, prefix, 4));
-    POSIX_GUARD(s2n_hash_update(sha1, conn->secure.master_secret, sizeof(conn->secure.master_secret)));
+    POSIX_GUARD(s2n_hash_update(sha1, conn->secrets.master_secret, sizeof(conn->secrets.master_secret)));
     POSIX_GUARD(s2n_hash_update(sha1, xorpad1, 40));
     POSIX_GUARD(s2n_hash_digest(sha1, sha_digest, SHA_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_reset(sha1));
-    POSIX_GUARD(s2n_hash_update(sha1, conn->secure.master_secret, sizeof(conn->secure.master_secret)));
+    POSIX_GUARD(s2n_hash_update(sha1, conn->secrets.master_secret, sizeof(conn->secrets.master_secret)));
     POSIX_GUARD(s2n_hash_update(sha1, xorpad2, 40));
     POSIX_GUARD(s2n_hash_update(sha1, sha_digest, SHA_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_digest(sha1, sha_digest, SHA_DIGEST_LENGTH));
@@ -486,8 +486,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     label.data = client_finished_label;
     label.size = sizeof(client_finished_label) - 1;
 
-    master_secret.data = conn->secure.master_secret;
-    master_secret.size = sizeof(conn->secure.master_secret);
+    master_secret.data = conn->secrets.master_secret;
+    master_secret.size = sizeof(conn->secrets.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure.cipher_suite->prf_alg) {
         case S2N_HMAC_SHA256:
@@ -539,8 +539,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     label.data = server_finished_label;
     label.size = sizeof(server_finished_label) - 1;
 
-    master_secret.data = conn->secure.master_secret;
-    master_secret.size = sizeof(conn->secure.master_secret);
+    master_secret.data = conn->secrets.master_secret;
+    master_secret.size = sizeof(conn->secrets.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure.cipher_suite->prf_alg) {
         case S2N_HMAC_SHA256:
@@ -608,9 +608,9 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuff
 
 int s2n_prf_key_expansion(struct s2n_connection *conn)
 {
-    struct s2n_blob client_random = {.data = conn->secure.client_random,.size = sizeof(conn->secure.client_random) };
-    struct s2n_blob server_random = {.data = conn->secure.server_random,.size = sizeof(conn->secure.server_random) };
-    struct s2n_blob master_secret = {.data = conn->secure.master_secret,.size = sizeof(conn->secure.master_secret) };
+    struct s2n_blob client_random = {.data = conn->secrets.client_random,.size = sizeof(conn->secrets.client_random) };
+    struct s2n_blob server_random = {.data = conn->secrets.server_random,.size = sizeof(conn->secrets.server_random) };
+    struct s2n_blob master_secret = {.data = conn->secrets.master_secret,.size = sizeof(conn->secrets.master_secret) };
     struct s2n_blob label, out;
     uint8_t key_expansion_label[] = "key expansion";
     uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];

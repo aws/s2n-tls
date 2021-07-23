@@ -158,6 +158,7 @@ struct s2n_connection {
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
     struct s2n_crypto_parameters secure;
+    struct s2n_secrets secrets;
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;
@@ -343,14 +344,6 @@ struct s2n_connection {
     /* Have we received a close notify alert from the peer. */
     unsigned close_notify_received:1;
 
-    /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
-     * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
-     * Each bit value in the bitmap indicates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
-     * The order of the curves represented in the bitmap is obtained from the security_policy->ecc_preferences.
-     * Setting and manipulating this value requires security_policy to be configured prior.
-     * */
-    uint8_t preferred_key_shares;
-
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing send/receive callbacks.
      */
@@ -392,6 +385,4 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
-/* `none` keyword represents a list of empty keyshares */
-int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name);
 S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);

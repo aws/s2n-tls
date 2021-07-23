@@ -44,31 +44,23 @@ struct s2n_kex_parameters {
     struct s2n_blob client_pq_kem_extension;
 };
 
-struct s2n_crypto_parameters {
-    struct s2n_pkey server_public_key;
-    struct s2n_pkey client_public_key;
-
-    struct s2n_signature_scheme conn_sig_scheme;
-
-    struct s2n_blob client_cert_chain;
-    s2n_pkey_type client_cert_pkey_type;
-
-    struct s2n_signature_scheme client_cert_sig_scheme;
-
-    struct s2n_cipher_suite *cipher_suite;
-    struct s2n_session_key client_key;
-    struct s2n_session_key server_key;
-
+struct s2n_secrets {
     uint8_t rsa_premaster_secret[S2N_TLS_SECRET_LEN];
     uint8_t master_secret[S2N_TLS_SECRET_LEN];
     uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
     uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
-    uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
-    uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
     uint8_t client_app_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t server_app_secret[S2N_TLS13_SECRET_MAX_LEN];
+};
+
+struct s2n_crypto_parameters {
+    struct s2n_cipher_suite *cipher_suite;
+    struct s2n_session_key client_key;
+    struct s2n_session_key server_key;
     struct s2n_hmac_state client_record_mac;
     struct s2n_hmac_state server_record_mac;
+    uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
+    uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
     uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
     uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
 };

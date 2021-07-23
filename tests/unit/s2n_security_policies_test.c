@@ -348,14 +348,15 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
     }
 
-    /* Test failure case */
+    /* Test a security policy not on the official list */
     {
         struct s2n_cipher_suite *fake_suites[] = {
             &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+            &s2n_tls13_chacha20_poly1305_sha256,
         };
 
         const struct s2n_cipher_preferences fake_cipher_preference = {
-            .count = 1,
+            .count = s2n_array_len(fake_suites),
             .suites = fake_suites,
         };
 
@@ -371,9 +372,9 @@ int main(int argc, char **argv)
         };
 
         security_policy = &fake_security_policy;
-        EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
     }
     {
         struct s2n_config *config = s2n_config_new();

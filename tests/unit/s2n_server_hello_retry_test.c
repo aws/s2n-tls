@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.evp_pkey);
-        EXPECT_TRUE(memcmp(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN) == 0);
+        EXPECT_TRUE(memcmp(server_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN) == 0);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
 
-        POSIX_CHECKED_MEMCPY(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMCPY(server_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
 
         /* Setup the client to receive a HelloRetryRequest */
-        POSIX_CHECKED_MEMCPY(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMCPY(client_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
@@ -358,8 +358,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
-        /* Force HRR path by sending an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Send the first CH message */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -445,8 +445,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-        /* Force HRR path by sending an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* setup the client hello callback */
         struct client_hello_context client_hello_ctx = {.invocations = 0,

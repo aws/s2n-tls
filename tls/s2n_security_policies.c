@@ -780,10 +780,7 @@ int s2n_security_policies_init()
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
             POSIX_ENSURE_REF(cipher);
 
-            /* TLS1.3 does not include key exchange algorithms in its cipher suites,
-             * but the elliptic curves extension is always required. */
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
-                security_policy_selection[i].ecc_extension_required = 1;
                 security_policy_selection[i].supports_tls13 = 1;
             }
 
@@ -791,11 +788,11 @@ int s2n_security_policies_init()
             S2N_ERROR_IF(s2n_is_valid_tls13_cipher(cipher->iana_value) ^
                 (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_SECURITY_POLICY);
 
-            if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_ecdhe)) {
+            if (s2n_cipher_suite_requires_ecc_extension(cipher)) {
                 security_policy_selection[i].ecc_extension_required = 1;
             }
 
-            if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
+            if (s2n_cipher_suite_requires_pq_extension(cipher)) {
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
         }
@@ -816,6 +813,18 @@ bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_po
             return 1 == security_policy_selection[i].ecc_extension_required;
         }
     }
+
+    /* If cipher preference is not in the official list, compute the result */
+    const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
+    if (cipher_preferences == NULL) {
+        return false;
+    }
+    for (uint8_t i = 0; i < cipher_preferences->count; i++) {
+        if (s2n_cipher_suite_requires_ecc_extension(cipher_preferences->suites[i])) {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -828,6 +837,17 @@ bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         if (security_policy_selection[i].security_policy == security_policy) {
             return 1 == security_policy_selection[i].pq_kem_extension_required;
+        }
+    }
+
+    /* If cipher preference is not in the official list, compute the result */
+    const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
+    if (cipher_preferences == NULL) {
+        return false;
+    }
+    for (uint8_t i = 0; i < cipher_preferences->count; i++) {
+        if (s2n_cipher_suite_requires_pq_extension(cipher_preferences->suites[i])) {
+            return true;
         }
     }
     return false;
@@ -855,7 +875,7 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
     }
 
     for (uint8_t i = 0; i < cipher_preferences->count; i++) {
-        if (s2n_is_valid_tls13_cipher(cipher_preferences->suites[i]->iana_value)) {
+        if (cipher_preferences->suites[i]->minimum_required_tls_version >= S2N_TLS13) {
             return true;
         }
     }

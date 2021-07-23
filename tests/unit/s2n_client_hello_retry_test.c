@@ -134,8 +134,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-            /* Force the HRR path by sending an empty list of keyshares */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -360,8 +360,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Force the HRR path by sending an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -468,9 +468,8 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-
-        /* Generate keyshare only for Curve x25519 */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -529,9 +528,8 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-
-        /* Generate keyshare only for Curve x25519 */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "x25519"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -575,11 +573,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
-
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Force the client to send an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -623,14 +620,14 @@ int main(int argc, char **argv)
     }
 
     /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
-     * when conn->secure.server_random is not set to the correct hello retry random value
+     * when conn->secrets.server_random is not set to the correct hello retry random value
      * specified in the RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         /* From RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
         const uint8_t not_hello_retry_request_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-        EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, not_hello_retry_request_random,
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, not_hello_retry_request_random,
                               S2N_TLS_RANDOM_DATA_LEN);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);

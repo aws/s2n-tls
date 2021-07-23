@@ -61,7 +61,7 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const uint16_t max_connection_size = 14568;
+        const uint16_t max_connection_size = 14100;
         const uint16_t min_connection_size = max_connection_size * 0.75;
 
         size_t connection_size = sizeof(struct s2n_connection);
@@ -215,8 +215,8 @@ int main(int argc, char **argv)
                                                      S2N_TLS_HASH_NONE };
 
         for (size_t i = S2N_TLS_HASH_NONE; i <= UINT16_MAX; i++) {
-            conn->secure.client_cert_sig_scheme.hash_alg = i;
-            conn->secure.conn_sig_scheme.hash_alg = i;
+            conn->handshake_params.client_cert_sig_scheme.hash_alg = i;
+            conn->handshake_params.conn_sig_scheme.hash_alg = i;
             if (i <= S2N_HASH_SENTINEL) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
                 EXPECT_EQUAL(expected_output[i], output);
@@ -262,8 +262,8 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i <= UINT16_MAX; i++) {
-            conn->secure.client_cert_sig_scheme.sig_alg = i;
-            conn->secure.conn_sig_scheme.sig_alg = i;
+            conn->handshake_params.client_cert_sig_scheme.sig_alg = i;
+            conn->handshake_params.conn_sig_scheme.sig_alg = i;
 
             if (i < s2n_array_len(expected_output)) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));

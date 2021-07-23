@@ -208,7 +208,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     POSIX_GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -312,7 +312,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* And set the signature and hash algorithm used for key exchange signatures */
     POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
         &conn->handshake_params.client_sig_hash_algs,
-        &conn->secure.conn_sig_scheme));
+        &conn->handshake_params.conn_sig_scheme));
 
     /* And finally, set the certs specified by the final auth + sig_alg combo. */
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
@@ -396,7 +396,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
 
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
     /* Create the client random data */
     POSIX_GUARD(s2n_stuffer_init(&client_random, &b));
 
@@ -497,7 +497,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
 
     POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->handshake_params.conn_sig_scheme));
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
@@ -509,7 +509,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     }
 
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;

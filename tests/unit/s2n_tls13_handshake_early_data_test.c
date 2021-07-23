@@ -555,7 +555,7 @@ int main()
             EXPECT_SUCCESS(s2n_tls13_handle_secrets(client_conn));
 
             /* Check early secret secret set correctly */
-            EXPECT_BYTEARRAY_EQUAL(client_conn->secure.rsa_premaster_secret, early_secret.data, early_secret.size);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.rsa_premaster_secret, early_secret.data, early_secret.size);
 
             /* Check IV calculated correctly */
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_implicit_iv, iv.data, iv.size);
