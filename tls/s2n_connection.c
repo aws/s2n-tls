@@ -1023,7 +1023,7 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->kex_params.client_kem_group_params.kem_group) {
+    if (conn->actual_protocol_version < S2N_TLS13 || !conn->kex_params.client_kem_group_params.kem_group) {
         return "NONE";
     }
 
