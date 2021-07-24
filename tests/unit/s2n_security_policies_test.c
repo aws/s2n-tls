@@ -395,6 +395,12 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
             "CloudFront-TLS-1-2-2021",
+            /* AWS Common Runtime SDK */
+            "AWS-CRT-SDK-SSLv3.0",
+            "AWS-CRT-SDK-TLSv1.0",
+            "AWS-CRT-SDK-TLSv1.1",
+            "AWS-CRT-SDK-TLSv1.2",
+            "AWS-CRT-SDK-TLSv1.3",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
@@ -512,6 +518,41 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2019_06);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-SSLv3.0"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_ssl_v3);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_ssl_v3);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.0"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_tls_10);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_default);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.1"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_tls_11);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_default);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.2"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_tls_12);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_default);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.3"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_tls_13);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_tls_13);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
         EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, NULL));
 
