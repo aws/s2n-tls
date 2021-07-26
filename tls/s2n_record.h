@@ -33,7 +33,7 @@
  *# The record layer fragments information blocks into TLSPlaintext
  *# records carrying data in chunks of 2^14 bytes or less.
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-5
+ *= https://tools.ietf.org/rfc/rfc8446#section-5.1
  *# The record layer fragments information blocks into TLSPlaintext
  *# records carrying data in chunks of 2^14 bytes or less.
  */
@@ -49,7 +49,7 @@
 #define S2N_TLS12_MAXIMUM_RECORD_LENGTH         S2N_TLS12_MAX_RECORD_LEN_FOR(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH)
 
 /*
- *= https://tools.ietf.org/rfc/rfc8446#section-5
+ *= https://tools.ietf.org/rfc/rfc8446#section-5.2
  *# An AEAD algorithm used in TLS 1.3 MUST NOT produce an expansion
  *# greater than 255 octets.
  */

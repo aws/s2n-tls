@@ -32,7 +32,7 @@ static int s2n_tls13_conn_copy_hash(struct s2n_connection *conn, struct s2n_hash
     POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
     POSIX_GUARD(s2n_hash_copy(copy, &hash_state));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
@@ -91,7 +91,7 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
         }
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* When a HelloRetryRequest message is used, the hash transcript needs to be recreated.
@@ -133,6 +133,5 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&msg_blob, client_hello1_digest_out, hash_digest_length));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
-    return 0;
+    return S2N_SUCCESS;
 }
-
