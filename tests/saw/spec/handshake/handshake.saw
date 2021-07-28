@@ -38,7 +38,7 @@ let yices_debug = do { yices; print_goal; };
 
 // Workaround for If then else on nat
 let equalNat_ite = core_axiom
-  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+  "(x y z : Nat) -> (b : Bool) -> Eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
 // Low-level handshake_io correspondence proof
 let prove_handshake_io_lowlevel = do {
