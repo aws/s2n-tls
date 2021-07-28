@@ -98,18 +98,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
 
-        /* post_handshake_recv will error when protocol version is not TLS1.3 */ 
-        {   
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-
         /* Functional test: Multiple post handshake messages can be received in the same record */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -136,9 +124,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* No non-post handshake messages can be received.
+        /* No non-post handshake messages can be received, except HelloRetry during TLS1.2.
          * This means that no handshake message that appears in the handshake state machine
-         * should be allowed.
+         * should be allowed, except TLS_HELLO_REQUEST.
          */
         {
             /* For TLS1.2 */
@@ -153,7 +141,12 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+
+                if (state_machine[i].message_type == TLS_HELLO_REQUEST) {
+                    EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+                } else {
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+                }
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }

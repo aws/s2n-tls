@@ -327,6 +327,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     RESULT_ENSURE_REF(input);
     RESULT_ENSURE_REF(conn->config);
 
+    RESULT_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_BAD_MESSAGE);
 
     if (!conn->config->use_tickets) {
