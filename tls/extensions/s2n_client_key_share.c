@@ -118,7 +118,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
 
     struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
     ecc_params->negotiated_curve = kem_group->curve;
-    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(out, ecc_params));
+    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out));
 
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;

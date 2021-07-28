@@ -80,6 +80,8 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     POSIX_ENSURE_REF(client_key);
     POSIX_ENSURE_REF(client_key->negotiated_curve);
 
+    POSIX_ENSURE_EQ(server_key->negotiated_curve, client_key->negotiated_curve);
+
     if (conn->mode == S2N_CLIENT) {
         POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_key, server_key, shared_secret));
     } else {
