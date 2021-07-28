@@ -436,8 +436,9 @@ S2N_RESULT s2n_retrieve_digest_for_ems(struct s2n_connection *conn, struct s2n_b
     RESULT_ENSURE_REF(output);
 
     struct s2n_hash_state hash_state = { 0 };
+    s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
     s2n_hash_algorithm hash_alg = 0;
-    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure.cipher_suite->prf_alg, &hash_alg));
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(prf_alg, &hash_alg));
     RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, conn->secure.cipher_suite->prf_alg, &hash_state));
     RESULT_GUARD_POSIX(s2n_hash_copy(&conn->hash_workspace, &hash_state));
     RESULT_GUARD_POSIX(s2n_hash_update(&conn->hash_workspace, message->data, message->size));
