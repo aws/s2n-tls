@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "kyber512r3_params.h"
 
 #ifdef S2N_KYBER512R3_AVX2_BMI2
 
