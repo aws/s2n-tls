@@ -914,14 +914,10 @@ int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(readfd);
+    POSIX_ENSURE((conn->managed_io && conn->recv_io_context), S2N_ERR_INVALID_STATE);
 
-    /* in case we do not use managed io, or in case read fd was never set we should return invalid fd */
-    if (conn->managed_io && conn->recv_io_context) {
-        const struct s2n_socket_read_io_context *peer_socket_ctx = conn->recv_io_context;
-        *readfd = peer_socket_ctx->fd;
-    } else {
-        *readfd = -1;
-    }
+    const struct s2n_socket_read_io_context *peer_socket_ctx = conn->recv_io_context;
+    *readfd = peer_socket_ctx->fd;
     return S2N_SUCCESS;
 }
 
@@ -959,14 +955,10 @@ int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(writefd);
+    POSIX_ENSURE((conn->managed_io && conn->send_io_context), S2N_ERR_INVALID_STATE);
 
-    /* in case we do not use managed io, or in case write fd was never set we should return invalid fd */
-    if(conn->managed_io && conn->send_io_context) {
-        const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
-        *writefd = peer_socket_ctx->fd;
-    } else {
-        *writefd = -1;
-    }
+    const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
+    *writefd = peer_socket_ctx->fd;
     return S2N_SUCCESS;
 }
 int s2n_connection_set_fd(struct s2n_connection *conn, int fd)

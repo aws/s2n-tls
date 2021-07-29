@@ -384,17 +384,15 @@ int main(int argc, char **argv)
         /* check getter API after s2n_connection_set_read_fd */
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
         EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, READFD));
-        EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_write_fd(conn, &getWriteFd), S2N_ERR_INVALID_STATE);
         EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
         EXPECT_EQUAL(getReadFd, READFD);
-        EXPECT_EQUAL(getWriteFd, -1);
 
         /* check getter API after s2n_connection_set_write_fd */
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, WRITEFD));
         EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
-        EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
-        EXPECT_EQUAL(getReadFd, -1);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_read_fd(conn, &getReadFd), S2N_ERR_INVALID_STATE);
         EXPECT_EQUAL(getWriteFd, WRITEFD);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
