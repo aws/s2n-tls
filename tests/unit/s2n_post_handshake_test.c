@@ -124,7 +124,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* No non-post handshake messages can be received, except HelloRetry during TLS1.2.
+        /* No non-post handshake messages can be received, except HelloRequest during TLS1.2.
          * This means that no handshake message that appears in the handshake state machine
          * should be allowed, except TLS_HELLO_REQUEST.
          */
