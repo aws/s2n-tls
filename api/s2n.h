@@ -333,10 +333,39 @@ S2N_API
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 S2N_API
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
+
+/**
+  * Gets the assigned fd for the read channel of an s2n connection.
+  *
+  * In case the s2n connection was set to managed io on the read channel
+  * via s2n_connecion_set_fd or s2n_connection_set_read_fd.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param readfd pointer to place the used fd. in case the connection was not assigned
+  * a read side managed fd by either calling s2n_connecion_set_fd or s2n_connection_set_read_fd
+  * will set the value of -1 to the resulting fd.
+  * @return In case some error detected in the provided parameters will return S2N_FAILURE,
+  * Otherwise S2N_SUCCESS is returned.
+  */
 S2N_API
 extern int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd);
+
+/**
+  * Gets the assigned fd for the write channel of an s2n connection.
+  *
+  * In case the s2n connection was set to managed io on the write channel
+  * via s2n_connecion_set_fd or s2n_connection_set_write_fd.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param writefd pointer to place the used fd. in case the connection was not assigned
+  * a write side managed fd by either calling s2n_connecion_set_fd or s2n_connection_set_write_fd
+  * will set the value of -1 to the resulting fd.
+  * @return In case some error detected in the provided parameters will return S2N_FAILURE,
+  * Otherwise S2N_SUCCESS is returned.
+  */
 S2N_API
 extern int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd);
+
 S2N_API
 extern int s2n_connection_use_corked_io(struct s2n_connection *conn);
 
