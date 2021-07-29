@@ -1240,6 +1240,17 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             POSIX_GUARD_RESULT(s2n_handshake_type_unset_tls12_flag(conn, OCSP_STATUS));
         }
 
+        /*
+         *= https://tools.ietf.org/rfc/rfc5246#section-7.4
+         *# The one message that is not bound by these ordering rules
+         *# is the HelloRequest message, which can be sent at any time, but which
+         *# SHOULD be ignored by the client if it arrives in the middle of a handshake.
+         */
+        if (message_type == TLS_HELLO_REQUEST) {
+            POSIX_GUARD(s2n_client_hello_request_recv(conn));
+            return S2N_SUCCESS;
+        }
+
         POSIX_ENSURE(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
         POSIX_ENSURE(message_type == EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
         POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
