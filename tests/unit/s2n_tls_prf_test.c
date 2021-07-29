@@ -190,14 +190,14 @@ int main(int argc, char **argv)
         /* Get the Client Key transcript */
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH));
         uint8_t client_key_message_length = s2n_stuffer_data_available(&client_to_server);
+        uint8_t *client_key_message = s2n_stuffer_raw_read(&client_to_server, client_key_message_length);
         struct s2n_blob message = { 0 };
-        message.data = &client_to_server.blob.data[client_to_server.read_cursor];
-        message.size = client_key_message_length;
+        EXPECT_SUCCESS(s2n_blob_init(&message, client_key_message, client_key_message_length));
 
         EXPECT_OK(s2n_prf_get_digest_for_ems(server_conn, &message, &digest_for_ems));
 
         /* Server reads Client Key Exchange message */
-        EXPECT_SUCCESS(s2n_stuffer_rewind_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH));
+        EXPECT_SUCCESS(s2n_stuffer_rewind_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH + client_key_message_length));
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
         /* Calculate the digest message after the Server read the Client Key message */
