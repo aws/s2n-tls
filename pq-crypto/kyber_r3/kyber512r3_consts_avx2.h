@@ -2,8 +2,6 @@
 
 #include "kyber512r3_params.h"
 
-#ifdef S2N_KYBER512R3_AVX2_BMI2
-
 #define _16XQ            0
 #define _16XQINV        16
 #define _16XV           32
@@ -33,6 +31,8 @@
 #define cdecl(s) S2N_KYBER_512_R3_NAMESPACE(##s)
 #endif
 #endif
+
+#ifdef S2N_KYBER512R3_AVX2_BMI2
 
 #ifndef __ASSEMBLER__
 #include "kyber512r3_align_avx2.h"
