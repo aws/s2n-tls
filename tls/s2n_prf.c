@@ -430,7 +430,7 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
         return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_retrieve_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, struct s2n_blob *output)
+S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, struct s2n_blob *output)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(output);
@@ -447,7 +447,6 @@ S2N_RESULT s2n_retrieve_digest_for_ems(struct s2n_connection *conn, struct s2n_b
     RESULT_GUARD_POSIX(s2n_hash_digest_size(conn->hash_workspace.alg, &digest_size));
     RESULT_ENSURE_GTE(output->size, digest_size);
     RESULT_GUARD_POSIX(s2n_hash_digest(&conn->hash_workspace, output->data, digest_size));
-
     return S2N_RESULT_OK;
 }
 

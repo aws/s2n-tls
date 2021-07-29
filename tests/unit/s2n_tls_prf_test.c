@@ -137,7 +137,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* s2n_retrieve_digest_for_ems calculates the correct digest to generate an extended master secret.
+    /* s2n_prf_get_digest_for_ems calculates the correct digest to generate an extended master secret.
      * Here we test that the retrieved digest is the same as the digest after the Client Key Exchange
      * message is added to the transcript hash.
      *
@@ -183,33 +183,37 @@ int main(int argc, char **argv)
         /* Client writes Client Key Exchange message */
         EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
 
-        uint8_t data[SHA256_DIGEST_LENGTH] = { 0 };
+        uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
         struct s2n_blob digest_for_ems = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&digest_for_ems, data, sizeof(data)));
 
-        /* Here we fiddle with the io_stuffers to get the Client Key transcript */
-        DEFER_CLEANUP(struct s2n_stuffer client_key_message = { 0 }, s2n_stuffer_free);
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_key_message, 0));
+        /* Get the Client Key transcript */
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH));
         uint8_t client_key_message_length = s2n_stuffer_data_available(&client_to_server);
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_to_server, &client_key_message, client_key_message_length));
-        client_key_message.blob.size = client_key_message_length;
+        struct s2n_blob message = { 0 };
+        message.data = &client_to_server.blob.data[client_to_server.read_cursor];
+        message.size = client_key_message_length;
 
-        EXPECT_OK(s2n_retrieve_digest_for_ems(server_conn, &client_key_message.blob, &digest_for_ems));
+        EXPECT_OK(s2n_prf_get_digest_for_ems(server_conn, &message, &digest_for_ems));
 
         /* Server reads Client Key Exchange message */
-        EXPECT_SUCCESS(s2n_stuffer_rewind_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH + client_key_message_length));
+        EXPECT_SUCCESS(s2n_stuffer_rewind_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH));
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
         /* Calculate the digest message after the Server read the Client Key message */
-        uint8_t server_digest[SHA256_DIGEST_LENGTH] = { 0 };
-        POSIX_GUARD(s2n_hash_copy(&server_conn->hash_workspace, &server_conn->handshake.sha256));
-        POSIX_GUARD(s2n_hash_digest(&server_conn->hash_workspace, server_digest, SHA256_DIGEST_LENGTH));
+        struct s2n_hash_state current_hash_state = { 0 };
+        uint8_t server_digest[S2N_MAX_DIGEST_LEN] = { 0 };
+        s2n_hmac_algorithm prf_alg = server_conn->secure.cipher_suite->prf_alg;
+        s2n_hash_algorithm hash_alg = 0;
+        EXPECT_SUCCESS(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+        uint8_t digest_size = 0;
+        EXPECT_SUCCESS(s2n_hash_digest_size(hash_alg, &digest_size));
+        EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, hash_alg, &current_hash_state));
+        EXPECT_SUCCESS(s2n_hash_digest(&current_hash_state, server_digest, digest_size));
 
         /* Digest for generating the EMS and digest after reading the Client Key message
          * should be the same. */
-        EXPECT_EQUAL(sizeof(server_digest), digest_for_ems.size);
-        EXPECT_BYTEARRAY_EQUAL(server_digest, digest_for_ems.data, digest_for_ems.size);
+        EXPECT_BYTEARRAY_EQUAL(server_digest, digest_for_ems.data, digest_size);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
