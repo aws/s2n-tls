@@ -1,4 +1,4 @@
-#include "kyber512r3_cdecl_avx2.h"
+#include "kyber512r3_consts_avx2.h"
 
 /*****.include "fq.inc"*****/
 /***************************/
@@ -69,9 +69,7 @@ vmovdqa         %ymm9,224(%rdi)
 ret
 
 .global cdecl(reduce_avx2_asm)
-.global _cdecl(reduce_avx2_asm)
 cdecl(reduce_avx2_asm):
-_cdecl(reduce_avx2_asm):
 #consts
 vmovdqa         _16XQ*2(%rsi),%ymm0
 vmovdqa         _16XV*2(%rsi),%ymm1
@@ -113,9 +111,7 @@ vmovdqa         %ymm10,224(%rdi)
 ret
 
 .global cdecl(tomont_avx2_asm)
-.global _cdecl(tomont_avx2_asm)
 cdecl(tomont_avx2_asm):
-_cdecl(tomont_avx2_asm):
 #consts
 vmovdqa         _16XQ*2(%rsi),%ymm0
 vmovdqa         _16XMONTSQLO*2(%rsi),%ymm1

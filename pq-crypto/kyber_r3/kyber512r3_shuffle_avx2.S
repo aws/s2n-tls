@@ -1,4 +1,4 @@
-#include "kyber512r3_cdecl_avx2.h"
+#include "kyber512r3_consts_avx2.h"
 
 /*****.include "fq.inc"*****/
 /***************************/
@@ -110,9 +110,7 @@ vmovdqa     %ymm11,224(%rdi)
 ret
 
 .global cdecl(nttunpack_avx2_asm)
-.global _cdecl(nttunpack_avx2_asm)
 cdecl(nttunpack_avx2_asm):
-_cdecl(nttunpack_avx2_asm):
 call        nttunpack128_avx
 add         $256,%rdi
 call        nttunpack128_avx
@@ -189,9 +187,7 @@ vmovdqu     %ymm9,160(%rdi)
 ret
 
 .global cdecl(ntttobytes_avx2_asm)
-.global _cdecl(ntttobytes_avx2_asm)
 cdecl(ntttobytes_avx2_asm):
-_cdecl(ntttobytes_avx2_asm):
 #consts
 vmovdqa     _16XQ*2(%rdx),%ymm0
 call        ntttobytes128_avx
@@ -267,9 +263,7 @@ vmovdqa     %ymm1,224(%rdi)
 ret
 
 .global cdecl(nttfrombytes_avx2_asm)
-.global _cdecl(nttfrombytes_avx2_asm)
 cdecl(nttfrombytes_avx2_asm):
-_cdecl(nttfrombytes_avx2_asm):
 #consts
 vmovdqa     _16XMASK*2(%rdx),%ymm0
 call        nttfrombytes128_avx

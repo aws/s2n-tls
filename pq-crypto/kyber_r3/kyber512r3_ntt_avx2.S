@@ -1,4 +1,4 @@
-#include "kyber512r3_cdecl_avx2.h"
+#include "kyber512r3_consts_avx2.h"
 
 /*****.include "shuffle.inc"*****/
 /********************************/
@@ -206,9 +206,7 @@ vmovdqa         %ymm11,(128*\off+112)*2(%rdi)
 
 .text
 .global cdecl(ntt_avx2_asm)
-.global _cdecl(ntt_avx2_asm)
 cdecl(ntt_avx2_asm):
-_cdecl(ntt_avx2_asm):
 vmovdqa         _16XQ*2(%rsi),%ymm0
 
 level0          0

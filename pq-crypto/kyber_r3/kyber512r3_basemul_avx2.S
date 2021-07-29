@@ -1,4 +1,4 @@
-#include "kyber512r3_cdecl_avx2.h"
+#include "kyber512r3_consts_avx2.h"
 
 .macro schoolbook off
 vmovdqa        _16XQINV*2(%rcx),%ymm0
@@ -84,9 +84,7 @@ vmovdqa        %ymm11,(64*\off+48)*2(%rdi)
 
 .text
 .global cdecl(basemul_avx2_asm)
-.global _cdecl(basemul_avx2_asm)
 cdecl(basemul_avx2_asm):
-_cdecl(basemul_avx2_asm):
 mov        %rsp,%r8
 and        $-32,%rsp
 sub        $32,%rsp
