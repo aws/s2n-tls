@@ -40,6 +40,7 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_str.h"
+#include "utils/s2n_bitmap.h"
 
 /* clang-format off */
 struct s2n_handshake_action {
@@ -809,8 +810,21 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     if (conn->config->use_tickets) {
         if (conn->session_ticket_status == S2N_DECRYPT_TICKET) {
-            if (!s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt)) {
+            if (s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt) == S2N_SUCCESS) {
                 return S2N_SUCCESS;
+            }
+
+            s2n_extension_type_id ems_ext_id = 0;
+            POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+            /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+            if (conn->ems_negotiated && S2N_IN_TEST) {
+                /**
+                 *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+                 *# If the original session used the "extended_master_secret"
+                 *# extension but the new ClientHello does not contain it, the server
+                 *# MUST abort the abbreviated handshake.
+                 **/
+                POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id), S2N_ERR_MISSING_EXTENSION);
             }
 
             if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
