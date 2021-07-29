@@ -358,5 +358,47 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* s2n_connection set fd functionality */
+    {
+        static const int READFD = 1;
+        static const int WRITEFD = 2;
+        static int getReadFd, getWriteFd;
+
+        /* Safety checks */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_fd(NULL, READFD), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_read_fd(NULL, READFD), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_write_fd(NULL, WRITEFD), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_write_fd(NULL, &getWriteFd), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_read_fd(NULL, &getReadFd), S2N_ERR_NULL);
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        /* check getter API after s2n_connection_set_fd */
+        EXPECT_SUCCESS(s2n_connection_set_fd(conn, READFD));
+        EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
+        EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
+        EXPECT_EQUAL(getReadFd, READFD);
+        EXPECT_EQUAL(getWriteFd, READFD);
+
+        /* check getter API after s2n_connection_set_read_fd */
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, READFD));
+        EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
+        EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
+        EXPECT_EQUAL(getReadFd, READFD);
+        EXPECT_EQUAL(getWriteFd, -1);
+
+        /* check getter API after s2n_connection_set_write_fd */
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, WRITEFD));
+        EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
+        EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
+        EXPECT_EQUAL(getReadFd, -1);
+        EXPECT_EQUAL(getWriteFd, WRITEFD);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }

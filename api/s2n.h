@@ -334,6 +334,10 @@ extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 S2N_API
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
 S2N_API
+extern int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd);
+S2N_API
+extern int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd);
+S2N_API
 extern int s2n_connection_use_corked_io(struct s2n_connection *conn);
 
 typedef int s2n_recv_fn(void *io_context, uint8_t *buf, uint32_t len);
