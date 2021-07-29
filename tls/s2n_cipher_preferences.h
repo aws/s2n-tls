@@ -90,8 +90,13 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018_legacy;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019_legacy;
 
-extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
+/* AWS Common Runtime Cipher Preferences */
+extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_ssl_v3;
+extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_default;
+extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_tls_13;
 
+/* AWS KMS Cipher Preferences */
+extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_07;
