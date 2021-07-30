@@ -13,8 +13,7 @@ and related or neighboring rights to the source code in this file.
 http://creativecommons.org/publicdomain/zero/1.0/
 */
 
-#ifndef _KeccakP_1600_times4_SnP_h_
-#define _KeccakP_1600_times4_SnP_h_
+#pragma once
 
 /** For the documentation, see PlSnP-documentation.h.
  */
@@ -63,4 +62,3 @@ size_t KeccakF1600times4_FastLoop_Absorb(void *states, unsigned int laneCount, u
 #define KeccakP1600times4_12rounds_FastLoop_Absorb S2N_KYBER_512_R3_NAMESPACE(KeccakP1600times4_12rounds_FastLoop_Absorb)
 size_t KeccakP1600times4_12rounds_FastLoop_Absorb(void *states, unsigned int laneCount, unsigned int laneOffsetParallel, unsigned int laneOffsetSerial, const unsigned char *data, size_t dataByteLen);
 
-#endif

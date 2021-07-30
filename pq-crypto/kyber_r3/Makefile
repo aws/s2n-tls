@@ -29,21 +29,12 @@ OBJS=$(SRCS:.c=.o)
 AVX2_SRCS=kyber512r3_cbd_avx2.c kyber512r3_consts_avx2.c kyber512r3_fips202x4_avx2.c kyber512r3_indcpa_avx2.c kyber512r3_poly_avx2.c kyber512r3_polyvec_avx2.c kyber512r3_rejsample_avx2.c KeccakP-1600-times4-SIMD256_avx2.c
 AVX2_ASM_SRCS=kyber512r3_basemul_avx2.S kyber512r3_fq_avx2.S kyber512r3_invntt_avx2.S kyber512r3_ntt_avx2.S kyber512r3_shuffle_avx2.S
 
-ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-    AVX2_ASM_OBJS=$(AVX2_ASM_SRCS:.S=.o)
-endif
-
 AVX2_OBJS=$(AVX2_SRCS:.c=.o)
-
+AVX2_ASM_OBJS=$(AVX2_ASM_SRCS:.S=.o)
 
 $(OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
 $(AVX2_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
-
-ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-    $(AVX2_ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
-endif
-
-
+$(AVX2_ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
 
 #WA for GCC 4.8.5 bug.
 CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
@@ -57,25 +48,11 @@ CFLAGS_LLVM = -emit-llvm -c -g \
 
 BCS=$(addprefix $(BITCODE_DIR), $(SRCS:.c=.bc))
 AVX2_BCS=$(addprefix $(BITCODE_DIR), $(AVX2_SRCS:.c=.bc))
-ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-    AVX2_ASM_BCS=$(addprefix $(BITCODE_DIR), $(AVX2_ASM_SRCS:.c=.bc))
-endif
-
+AVX2_ASM_BCS=$(addprefix $(BITCODE_DIR), $(AVX2_ASM_SRCS:.S=.bc))
 
 $(BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
 $(AVX2_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
-ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-    $(AVX2_ASM_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
-endif
+$(AVX2_ASM_BCS): CFLAGS_LLVM += $(KYBER512R3_AVX2_BMI2_FLAGS)
 
-
-ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-    .PHONY : bc
-    bc: $(BCS) $(AVX2_BCS) $(AVX2_ASM_BCS)
-else
-    .PHONY : bc
-    bc: $(BCS) $(AVX2_BCS)
-endif
-
-
-
+.PHONY : bc
+bc: $(BCS) $(AVX2_BCS) $(AVX2_ASM_BCS)

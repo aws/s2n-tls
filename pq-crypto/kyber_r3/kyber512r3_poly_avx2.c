@@ -9,9 +9,6 @@
 #include "kyber512r3_fips202.h"
 #include "kyber512r3_fips202x4_avx2.h"
 #include "kyber512r3_symmetric.h"
-
-#ifdef S2N_KYBER512R3_AVX2_BMI2
-
 #include <immintrin.h>
 
 /*************************************************
@@ -441,6 +438,3 @@ void poly_sub_avx2(poly *r, const poly *a, const poly *b)
     _mm256_store_si256(&r->vec[i], f0);
   }
 }
-
-
-#endif

@@ -26,8 +26,7 @@
  Changes for ARM 9/9/2010
 */
 
-#ifndef _KECCAKP_BRG_ENDIAN_H
-#define _KECCAKP_BRG_ENDIAN_H
+#pragma once
 
 #define IS_BIG_ENDIAN      4321 /* byte 0 is most significant (mc68k) */
 #define IS_LITTLE_ENDIAN   1234 /* byte 0 is least significant (i386) */
@@ -135,8 +134,6 @@
 #  define PLATFORM_BYTE_ORDER IS_BIG_ENDIAN
 #else
 #  error Please edit lines 132 or 134 in brg_endian.h to set the platform byte order
-#endif
-
 #endif
 
 #endif
