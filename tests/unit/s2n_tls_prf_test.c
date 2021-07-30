@@ -22,7 +22,8 @@
 
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_prf.h"
+/* To gain access to handshake_read and handshake_write */
+#include "tls/s2n_handshake_io.c"
 
 /*
  * Grabbed from gnutls-cli --insecure -d 9 www.example.com --ciphers AES --macs SHA --protocols TLS1.0
@@ -134,6 +135,91 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.master_secret, S2N_TLS_SECRET_LEN);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_prf_get_digest_for_ems calculates the correct digest to generate an extended master secret.
+     * Here we test that the retrieved digest is the same as the digest after the Client Key Exchange
+     * message is added to the transcript hash.
+     *
+     *= https://tools.ietf.org/rfc/rfc7627#section-3
+     *= type=test
+     *# When a full TLS handshake takes place, we define
+     *#
+     *#       session_hash = Hash(handshake_messages)
+     *#
+     *# where "handshake_messages" refers to all handshake messages sent or
+     *# received, starting at the ClientHello up to and including the
+     *# ClientKeyExchange message, including the type and length fields of
+     *# the handshake messages.
+     */
+    {
+        struct s2n_cert_chain_and_key *tls12_chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls12_chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN,
+                S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls12_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_stuffer client_to_server = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_to_client = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, CLIENT_KEY));
+
+        /* Client writes Client Key Exchange message */
+        EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
+
+        uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
+        struct s2n_blob digest_for_ems = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&digest_for_ems, data, sizeof(data)));
+
+        /* Get the Client Key transcript */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH));
+        uint8_t client_key_message_length = s2n_stuffer_data_available(&client_to_server);
+        uint8_t *client_key_message = s2n_stuffer_raw_read(&client_to_server, client_key_message_length);
+        struct s2n_blob message = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&message, client_key_message, client_key_message_length));
+
+        EXPECT_OK(s2n_prf_get_digest_for_ems(server_conn, &message, &digest_for_ems));
+
+        /* Server reads Client Key Exchange message */
+        EXPECT_SUCCESS(s2n_stuffer_rewind_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH + client_key_message_length));
+        EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
+
+        /* Calculate the digest message after the Server read the Client Key message */
+        struct s2n_hash_state current_hash_state = { 0 };
+        uint8_t server_digest[S2N_MAX_DIGEST_LEN] = { 0 };
+        s2n_hmac_algorithm prf_alg = server_conn->secure.cipher_suite->prf_alg;
+        s2n_hash_algorithm hash_alg = 0;
+        EXPECT_SUCCESS(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+        uint8_t digest_size = 0;
+        EXPECT_SUCCESS(s2n_hash_digest_size(hash_alg, &digest_size));
+        EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, hash_alg, &current_hash_state));
+        EXPECT_SUCCESS(s2n_hash_digest(&current_hash_state, server_digest, digest_size));
+
+        /* Digest for generating the EMS and digest after reading the Client Key message
+         * should be the same. */
+        EXPECT_BYTEARRAY_EQUAL(server_digest, digest_for_ems.data, digest_size);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls12_chain_and_key));
     }
 
     END_TEST();
