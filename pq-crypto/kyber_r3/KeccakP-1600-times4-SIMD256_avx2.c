@@ -20,7 +20,6 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #ifdef S2N_KYBER512R3_AVX2_BMI2
 
 #include <smmintrin.h>
-#include <wmmintrin.h>
 #include <immintrin.h>
 #include <emmintrin.h>
 #include "KeccakP-align_avx2.h"
