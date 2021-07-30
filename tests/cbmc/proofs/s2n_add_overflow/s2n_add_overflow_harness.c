@@ -28,6 +28,6 @@ int s2n_add_overflow_harness()
     if (s2n_add_overflow(a, b, out) == S2N_SUCCESS) {
         assert(*out == a + b);
     } else {
-        assert(( uint64_t )a + ( uint64_t )b > UINT32_MAX || out == NULL);
+        assert(( uint64_t )a + ( uint64_t )b < UINT32_MAX || out == NULL);
     }
 }
