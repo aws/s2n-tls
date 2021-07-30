@@ -19,9 +19,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #ifdef S2N_KYBER512R3_AVX2_BMI2
 
-#include <smmintrin.h>
+//extra headers are removed: smmintrin.h, wmmintrin.h and emmintrin.h
 #include <immintrin.h>
-#include <emmintrin.h>
 #include "KeccakP-align_avx2.h"
 #include "KeccakP-1600-times4-SnP_avx2.h"
 #include "KeccakP-SIMD256-config_avx2.h"
