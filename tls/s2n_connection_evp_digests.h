@@ -30,16 +30,7 @@ struct s2n_connection_prf_handles {
 
 struct s2n_connection_hash_handles {
     /* Handshake hash states */
-    struct s2n_hash_evp_digest md5;
-    struct s2n_hash_evp_digest sha1;
-    struct s2n_hash_evp_digest sha224;
-    struct s2n_hash_evp_digest sha256;
-    struct s2n_hash_evp_digest sha384;
-    struct s2n_hash_evp_digest sha512;
-    struct s2n_hash_evp_digest md5_sha1;
     struct s2n_hash_evp_digest hash_workspace;
-    struct s2n_hash_evp_digest server_hello_copy;
-    struct s2n_hash_evp_digest server_finished_copy;
     struct s2n_hash_evp_digest prf_md5;
 
     /* SSLv3 PRF hash states */
