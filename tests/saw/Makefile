@@ -25,9 +25,7 @@ LOGS=$(patsubst %.saw,tmp/%.log,$(SCRIPTS))
 SHELL:=/bin/bash
 YICES_VERSION=$(shell yices-smt2 --version)
 export LIBCRYPTO_ROOT:=$(shell pwd)/../../libcrypto-root
-export S2N_ROOT=$(shell pwd)/../../../s2n-tls
-include ../../s2n.mk
-include ../../pq-crypto/s2n_pq_asm.mk
+export S2N_ROOT=$(shell pwd)/s2n
 
 .PHONY : all
 all:
@@ -234,6 +232,9 @@ KYBER_R3_COPY = $(addprefix s2n/pq-crypto/kyber_r3/, $(notdir $(KYBER_R3_C)))
 SIKE_R3_C = $(wildcard ../../pq-crypto/sike_r3/*.c) $(wildcard ../../pq-crypto/sike_r3/*.h) ../../pq-crypto/sike_r3/Makefile
 SIKE_R3_COPY = $(addprefix s2n/pq-crypto/sike_r3/, $(notdir $(SIKE_R3_C)))
 
+TESTS_C = $(wildcard ../../tests/features/*.c)
+TESTS_COPY = $(addprefix s2n/tests/features/, $(notdir $(TESTS_C)))
+
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
 
@@ -336,7 +337,7 @@ bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/uti
 	${MAKE} -C bitcode bike_r2_llvm.bc
 	${RM} -r s2n
 
-s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r3 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/pq-crypto/bike_r3 s2n/pq-crypto/kyber_r2 s2n/pq-crypto/kyber_90s_r2 s2n/pq-crypto/kyber_r3 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R3_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(BIKE_R3_COPY) $(KYBER_R2_COPY) $(KYBER_90S_R2_COPY) $(KYBER_R3_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
+s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r3 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/pq-crypto/bike_r3 s2n/pq-crypto/kyber_r2 s2n/pq-crypto/kyber_90s_r2 s2n/pq-crypto/kyber_r3 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R3_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(BIKE_R3_COPY) $(KYBER_R2_COPY) $(KYBER_90S_R2_COPY) $(KYBER_R3_COPY) $(TESTS_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
 	${MAKE} -C s2n libs NO_STACK_PROTECTOR=1 NO_INLINE=1
 
 s2n/%.h : ../../%.h
