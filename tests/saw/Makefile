@@ -18,6 +18,8 @@
 # permissions and limitations under the License.
 ########################
 
+include ../../s2n.mk
+
 #The scripts are all of the saw files in this directory
 SCRIPTS = $(wildcard *.saw)
 #A log file will be created for each test in the temp dir
