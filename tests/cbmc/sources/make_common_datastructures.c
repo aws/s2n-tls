@@ -713,15 +713,15 @@ void cbmc_populate_s2n_handshake(struct s2n_handshake *s2n_handshake)
 {
     CBMC_ENSURE_REF(s2n_handshake);
     cbmc_populate_s2n_stuffer(&(s2n_handshake->io));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->md5));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->sha1));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->sha224));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->sha256));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->sha384));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->sha512));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->md5_sha1));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->server_hello_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->server_finished_copy));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->md5));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha1));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha224));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha256));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha384));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha512));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->md5_sha1));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->server_hello_copy));
+    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->server_finished_copy));
     /* `s2n_handshake->early_data_async_state.conn` is never allocated.
      * If required, this initialization should be done in the validation function.
      */
