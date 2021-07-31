@@ -27,6 +27,7 @@ YICES_VERSION=$(shell yices-smt2 --version)
 export LIBCRYPTO_ROOT:=$(shell pwd)/../../libcrypto-root
 export S2N_ROOT=$(shell pwd)/../../../s2n-tls
 include ../../s2n.mk
+include ../../pq-crypto/s2n_pq_asm.mk
 
 .PHONY : all
 all:
