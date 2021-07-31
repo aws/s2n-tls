@@ -226,7 +226,7 @@ KYBER_R2_COPY = $(addprefix s2n/pq-crypto/kyber_r2/, $(notdir $(KYBER_R2_C)))
 KYBER_90S_R2_C = $(wildcard ../../pq-crypto/kyber_90s_r2/*.c) $(wildcard ../../pq-crypto/kyber_90s_r2/*.h) ../../pq-crypto/kyber_90s_r2/Makefile
 KYBER_90S_R2_COPY = $(addprefix s2n/pq-crypto/kyber_90s_r2/, $(notdir $(KYBER_90S_R2_C)))
 
-KYBER_R3_C = $(wildcard ../../pq-crypto/kyber_r3/*.c) $(wildcard ../../pq-crypto/kyber_r3/*.h) ../../pq-crypto/kyber_r3/Makefile
+KYBER_R3_C = $(wildcard ../../pq-crypto/kyber_r3/*.c) $(wildcard ../../pq-crypto/kyber_r3/*.h) ../../pq-crypto/kyber_r3/Makefile ../../pq-crypto/kyber_r3/KeccakP-1600-unrolling_avx2.macros
 KYBER_R3_COPY = $(addprefix s2n/pq-crypto/kyber_r3/, $(notdir $(KYBER_R3_C)))
 
 SIKE_R3_C = $(wildcard ../../pq-crypto/sike_r3/*.c) $(wildcard ../../pq-crypto/sike_r3/*.h) ../../pq-crypto/sike_r3/Makefile
