@@ -499,6 +499,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
     /* We are done with the handshake */
     POSIX_GUARD(s2n_hash_reset(&conn->hash_workspace));
+    POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
 
     /* Wipe the buffers we are going to free */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
@@ -541,13 +542,17 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_connection_prf_handles prf_handles = {0};
     struct s2n_connection_hash_handles hash_handles = {0};
     struct s2n_connection_hmac_handles hmac_handles = {0};
+
     struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
+    if (!handshake_hashes) {
+        POSIX_GUARD_RESULT(s2n_handshake_hashes_new(&handshake_hashes));
+    }
+    POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(handshake_hashes));
 
     /* Wipe all of the sensitive stuff */
     POSIX_GUARD(s2n_connection_wipe_keys(conn));
     POSIX_GUARD(s2n_connection_reset_hashes(conn));
     POSIX_GUARD(s2n_connection_reset_hmacs(conn));
-    POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(handshake_hashes));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
