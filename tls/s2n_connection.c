@@ -61,7 +61,6 @@
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's hash states */
-    POSIX_GUARD(s2n_hash_new(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.sha1));
 
@@ -76,8 +75,6 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
         /* Only initialize hashes that use MD5 if available. */
         POSIX_GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
     }
-
-    POSIX_GUARD(s2n_hash_init(&conn->hash_workspace, S2N_HASH_NONE));
     POSIX_GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
 
     return 0;
@@ -262,7 +259,6 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 static int s2n_connection_reset_hashes(struct s2n_connection *conn)
 {
     /* Reset all of the Connection's hash states */
-    POSIX_GUARD(s2n_hash_reset(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.sha1));
 
@@ -314,7 +310,6 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
 static int s2n_connection_free_hashes(struct s2n_connection *conn)
 {
     /* Free all of the Connection's hash states */
-    POSIX_GUARD(s2n_hash_free(&conn->hash_workspace));
     POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.sha1));
 
@@ -498,7 +493,6 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
 int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
     /* We are done with the handshake */
-    POSIX_GUARD(s2n_hash_reset(&conn->hash_workspace));
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
 
     /* Wipe the buffers we are going to free */

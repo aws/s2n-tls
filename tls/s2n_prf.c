@@ -440,13 +440,13 @@ S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_bl
     s2n_hash_algorithm hash_alg = 0;
     RESULT_GUARD_POSIX(s2n_hmac_hash_alg(prf_alg, &hash_alg));
     RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, hash_alg, &hash_state));
-    RESULT_GUARD_POSIX(s2n_hash_copy(&conn->hash_workspace, &hash_state));
-    RESULT_GUARD_POSIX(s2n_hash_update(&conn->hash_workspace, message->data, message->size));
+    RESULT_GUARD_POSIX(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_update(&conn->handshake.hashes->hash_workspace, message->data, message->size));
 
     uint8_t digest_size = 0;
-    RESULT_GUARD_POSIX(s2n_hash_digest_size(conn->hash_workspace.alg, &digest_size));
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(conn->handshake.hashes->hash_workspace.alg, &digest_size));
     RESULT_ENSURE_GTE(output->size, digest_size);
-    RESULT_GUARD_POSIX(s2n_hash_digest(&conn->hash_workspace, output->data, digest_size));
+    RESULT_GUARD_POSIX(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, output->data, digest_size));
 
     return S2N_RESULT_OK;
 }
@@ -503,7 +503,7 @@ static int s2n_sslv3_client_finished(struct s2n_connection *conn)
     uint8_t prefix[4] = { 0x43, 0x4c, 0x4e, 0x54 };
 
     POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.client_finished));
-    return s2n_sslv3_finished(conn, prefix, &conn->hash_workspace, conn->handshake.client_finished);
+    return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.client_finished);
 }
 
 static int s2n_sslv3_server_finished(struct s2n_connection *conn)
@@ -511,7 +511,7 @@ static int s2n_sslv3_server_finished(struct s2n_connection *conn)
     uint8_t prefix[4] = { 0x53, 0x52, 0x56, 0x52 };
 
     POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.server_finished));
-    return s2n_sslv3_finished(conn, prefix, &conn->hash_workspace, conn->handshake.server_finished);
+    return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.server_finished);
 }
 
 int s2n_prf_client_finished(struct s2n_connection *conn)
@@ -540,13 +540,13 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure.cipher_suite->prf_alg) {
         case S2N_HMAC_SHA256:
-            POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->sha256));
-            POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, sha_digest, SHA256_DIGEST_LENGTH));
+            POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->sha256));
+            POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, sha_digest, SHA256_DIGEST_LENGTH));
             sha.size = SHA256_DIGEST_LENGTH;
             break;
         case S2N_HMAC_SHA384:
-            POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->sha384));
-            POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, sha_digest, SHA384_DIGEST_LENGTH));
+            POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->sha384));
+            POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, sha_digest, SHA384_DIGEST_LENGTH));
             sha.size = SHA384_DIGEST_LENGTH;
             break;
         default:
@@ -557,13 +557,13 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, NULL, &client_finished);
     }
 
-    POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->md5));
-    POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, md5_digest, MD5_DIGEST_LENGTH));
+    POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->md5));
+    POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, md5_digest, MD5_DIGEST_LENGTH));
     md5.data = md5_digest;
     md5.size = MD5_DIGEST_LENGTH;
 
-    POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->sha1));
-    POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, sha_digest, SHA_DIGEST_LENGTH));
+    POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->sha1));
+    POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, sha_digest, SHA_DIGEST_LENGTH));
     sha.data = sha_digest;
     sha.size = SHA_DIGEST_LENGTH;
 
@@ -596,13 +596,13 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure.cipher_suite->prf_alg) {
         case S2N_HMAC_SHA256:
-            POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->sha256));
-            POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, sha_digest, SHA256_DIGEST_LENGTH));
+            POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->sha256));
+            POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, sha_digest, SHA256_DIGEST_LENGTH));
             sha.size = SHA256_DIGEST_LENGTH;
             break;
         case S2N_HMAC_SHA384:
-            POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->sha384));
-            POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, sha_digest, SHA384_DIGEST_LENGTH));
+            POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->sha384));
+            POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, sha_digest, SHA384_DIGEST_LENGTH));
             sha.size = SHA384_DIGEST_LENGTH;
             break;
         default:
@@ -613,13 +613,13 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, NULL, &server_finished);
     }
 
-    POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->md5));
-    POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, md5_digest, MD5_DIGEST_LENGTH));
+    POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->md5));
+    POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, md5_digest, MD5_DIGEST_LENGTH));
     md5.data = md5_digest;
     md5.size = MD5_DIGEST_LENGTH;
 
-    POSIX_GUARD(s2n_hash_copy(&conn->hash_workspace, &conn->handshake.hashes->sha1));
-    POSIX_GUARD(s2n_hash_digest(&conn->hash_workspace, sha_digest, SHA_DIGEST_LENGTH));
+    POSIX_GUARD(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &conn->handshake.hashes->sha1));
+    POSIX_GUARD(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, sha_digest, SHA_DIGEST_LENGTH));
     sha.data = sha_digest;
     sha.size = SHA_DIGEST_LENGTH;
 

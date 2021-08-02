@@ -30,15 +30,10 @@ struct s2n_connection_prf_handles {
 
 struct s2n_connection_hash_handles {
     /* Handshake hash states */
-    struct s2n_hash_evp_digest hash_workspace;
     struct s2n_hash_evp_digest prf_md5;
 
     /* SSLv3 PRF hash states */
     struct s2n_hash_evp_digest prf_sha1;
-
-    /* Initial signature hash states */
-    struct s2n_hash_evp_digest initial_signature_hash;
-    struct s2n_hash_evp_digest secure_signature_hash;
 };
 
 /* Allocationg new EVP structs is expensive, so we back them up here and reuse them */

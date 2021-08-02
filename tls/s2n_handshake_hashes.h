@@ -33,6 +33,11 @@ struct s2n_handshake_hashes {
      */
     struct s2n_hash_state server_hello_copy;
     struct s2n_hash_state server_finished_copy;
+
+    /* To avoid allocating memory for hash objects, we reuse one temporary hash object.
+     * Do NOT rely on this hash state maintaining its value outside of the current context.
+     */
+    struct s2n_hash_state hash_workspace;
 };
 
 S2N_RESULT s2n_handshake_hashes_new(struct s2n_handshake_hashes **hashes);

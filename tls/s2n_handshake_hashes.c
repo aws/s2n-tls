@@ -33,6 +33,7 @@ static S2N_RESULT s2n_handshake_hashes_new_hashes(struct s2n_handshake_hashes *h
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->md5_sha1));
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->server_hello_copy));
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->server_finished_copy));
+    RESULT_GUARD_POSIX(s2n_hash_new(&hashes->hash_workspace));
     return S2N_RESULT_OK;
 }
 
@@ -48,6 +49,7 @@ static S2N_RESULT s2n_handshake_hashes_reset_hashes(struct s2n_handshake_hashes 
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->md5_sha1));
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->server_hello_copy));
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->server_finished_copy));
+    RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->hash_workspace));
     return S2N_RESULT_OK;
 }
 
@@ -65,6 +67,7 @@ static S2N_RESULT s2n_handshake_hashes_free_hashes(struct s2n_handshake_hashes *
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->md5_sha1));
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->server_hello_copy));
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->server_finished_copy));
+    RESULT_GUARD_POSIX(s2n_hash_free(&hashes->hash_workspace));
     return S2N_RESULT_OK;
 }
 
@@ -76,6 +79,7 @@ static S2N_RESULT s2n_handshake_hashes_init_hashes(struct s2n_handshake_hashes *
      */
     if (s2n_is_in_fips_mode()) {
         RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hashes->md5));
+        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hashes->hash_workspace));
 
         /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
          * SHA-1 for both fips and non-fips mode. This is required to perform the
@@ -93,6 +97,7 @@ static S2N_RESULT s2n_handshake_hashes_init_hashes(struct s2n_handshake_hashes *
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->md5_sha1, S2N_HASH_MD5_SHA1));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->server_hello_copy, S2N_HASH_NONE));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->server_finished_copy, S2N_HASH_NONE));
+    RESULT_GUARD_POSIX(s2n_hash_init(&hashes->hash_workspace, S2N_HASH_NONE));
 
     return S2N_RESULT_OK;
 }
