@@ -32,12 +32,10 @@ struct p_hash_state {
 };
 
 struct s2n_prf_working_space {
-    struct {
-        const struct s2n_p_hash_hmac *p_hash_hmac_impl;
-        struct p_hash_state p_hash;
-        uint8_t digest0[S2N_MAX_DIGEST_LEN];
-        uint8_t digest1[S2N_MAX_DIGEST_LEN];
-    } tls;
+    const struct s2n_p_hash_hmac *p_hash_hmac_impl;
+    struct p_hash_state p_hash;
+    uint8_t digest0[S2N_MAX_DIGEST_LEN];
+    uint8_t digest1[S2N_MAX_DIGEST_LEN];
 };
 
 /* The s2n p_hash implementation is abstracted to allow for separate implementations, using
@@ -54,8 +52,10 @@ struct s2n_p_hash_hmac {
 
 #include "tls/s2n_connection.h"
 
-extern int s2n_prf_new(struct s2n_connection *conn);
-extern int s2n_prf_free(struct s2n_connection *conn);
+S2N_RESULT s2n_prf_new(struct s2n_connection *conn);
+S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn);
+S2N_RESULT s2n_prf_free(struct s2n_connection *conn);
+
 extern int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 extern int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash);

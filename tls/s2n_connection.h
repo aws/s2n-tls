@@ -174,7 +174,7 @@ struct s2n_connection {
     struct s2n_psk_parameters psk_params;
 
     /* The PRF needs some storage elements to work with */
-    struct s2n_prf_working_space prf_space;
+    struct s2n_prf_working_space *prf_space;
 
     /* Whether to use client_cert_auth_type stored in s2n_config or in this s2n_connection.
      *

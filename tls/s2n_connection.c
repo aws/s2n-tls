@@ -137,7 +137,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->initial.server_key));
 
     /* Allocate long term hash and HMAC memory */
-    PTR_GUARD_POSIX(s2n_prf_new(conn));
+    PTR_GUARD_RESULT(s2n_prf_new(conn));
     PTR_GUARD_RESULT(s2n_handshake_hashes_new(&conn->handshake.hashes));
 
     PTR_GUARD_POSIX(s2n_connection_new_hmacs(conn));
@@ -324,8 +324,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_free_keys(conn));
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
 
-    POSIX_GUARD(s2n_prf_free(conn));
-
+    POSIX_GUARD_RESULT(s2n_prf_free(conn));
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
 
     POSIX_GUARD(s2n_connection_reset_hmacs(conn));
@@ -448,6 +447,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
     /* We are done with the handshake */
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
+    POSIX_GUARD_RESULT(s2n_prf_free(conn));
 
     /* Wipe the buffers we are going to free */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
@@ -486,15 +486,24 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_session_key initial_server_key = {0};
     struct s2n_session_key secure_client_key = {0};
     struct s2n_session_key secure_server_key = {0};
-    /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_connection_prf_handles prf_handles = {0};
+    /* Parts of the hmac states will be wiped. Preserve structs to avoid reallocation */
     struct s2n_connection_hmac_handles hmac_handles = {0};
 
-    struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
-    if (!handshake_hashes) {
-        POSIX_GUARD_RESULT(s2n_handshake_hashes_new(&handshake_hashes));
+    /* Some required structures might have been freed to conserve memory between handshakes.
+     * Restore them.
+     */
+
+    if (!conn->handshake.hashes) {
+        POSIX_GUARD_RESULT(s2n_handshake_hashes_new(&conn->handshake.hashes));
     }
-    POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(handshake_hashes));
+    POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(conn->handshake.hashes));
+    struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
+
+    if (!conn->prf_space) {
+        POSIX_GUARD_RESULT(s2n_prf_new(conn));
+    }
+    POSIX_GUARD_RESULT(s2n_prf_wipe(conn));
+    struct s2n_prf_working_space *prf_workspace = conn->prf_space;
 
     /* Wipe all of the sensitive stuff */
     POSIX_GUARD(s2n_connection_wipe_keys(conn));
@@ -556,7 +565,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&initial_server_key, &conn->initial.server_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&secure_client_key, &conn->secure.client_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&secure_server_key, &conn->secure.server_key, sizeof(struct s2n_session_key));
-    POSIX_GUARD(s2n_connection_save_prf_state(&prf_handles, conn));
     POSIX_GUARD(s2n_connection_save_hmac_state(&hmac_handles, conn));
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
@@ -577,9 +585,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&conn->initial.server_key, &initial_server_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&conn->secure.client_key, &secure_client_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&conn->secure.server_key, &secure_server_key, sizeof(struct s2n_session_key));
-    POSIX_GUARD(s2n_connection_restore_prf_state(conn, &prf_handles));
     POSIX_GUARD(s2n_connection_restore_hmac_state(conn, &hmac_handles));
     conn->handshake.hashes = handshake_hashes;
+    conn->prf_space = prf_workspace;
 
     /* Re-initialize hash and hmac states */
     POSIX_GUARD(s2n_connection_init_hmacs(conn));
