@@ -30,7 +30,6 @@ vpblendw    $0xAA,%ymm\r1,%ymm\r0,%ymm\r3
 .endm
 /********************************/
 
-
 /*****.include "fq.inc"*****/
 /***************************/
 .macro red16 r,rs=0,x=12
@@ -64,7 +63,6 @@ vpmulhw     %ymm0,%ymm\x,%ymm\x
 vpsubw      %ymm\x,%ymm\b,%ymm\b
 .endm
 /***************************/
-
 
 .macro butterfly rl0,rl1,rl2,rl3,rh0,rh1,rh2,rh3,zl0=2,zl1=2,zh0=3,zh1=3
 vpsubw      %ymm\rl0,%ymm\rh0,%ymm12

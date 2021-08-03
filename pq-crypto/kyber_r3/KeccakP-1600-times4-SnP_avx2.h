@@ -61,4 +61,3 @@ void KeccakP1600times4_ExtractAndAddLanesAll(const void *states, const unsigned 
 size_t KeccakF1600times4_FastLoop_Absorb(void *states, unsigned int laneCount, unsigned int laneOffsetParallel, unsigned int laneOffsetSerial, const unsigned char *data, size_t dataByteLen);
 #define KeccakP1600times4_12rounds_FastLoop_Absorb S2N_KYBER_512_R3_NAMESPACE(KeccakP1600times4_12rounds_FastLoop_Absorb)
 size_t KeccakP1600times4_12rounds_FastLoop_Absorb(void *states, unsigned int laneCount, unsigned int laneOffsetParallel, unsigned int laneOffsetSerial, const unsigned char *data, size_t dataByteLen);
-

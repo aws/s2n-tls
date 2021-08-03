@@ -35,7 +35,6 @@ vpsubw      %ymm\x,%ymm\b,%ymm\b
 .endm
 /***************************/
 
-
 /*****.include "shuffle.inc"*****/
 /********************************/
 .macro shuffle8 r0,r1,r2,r3
@@ -64,7 +63,6 @@ vpsrld      $16,%ymm\r0,%ymm\r0
 vpblendw    $0xAA,%ymm\r1,%ymm\r0,%ymm\r3
 .endm
 /********************************/
-
 
 .text
 nttunpack128_avx:
