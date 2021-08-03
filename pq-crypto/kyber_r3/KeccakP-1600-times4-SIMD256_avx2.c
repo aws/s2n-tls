@@ -16,7 +16,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//extra headers are removed: smmintrin.h, wmmintrin.h and emmintrin.h
+// extra headers are removed: smmintrin.h, wmmintrin.h and emmintrin.h
 #include <immintrin.h>
 #include "KeccakP-align_avx2.h"
 #include "KeccakP-1600-times4-SnP_avx2.h"
