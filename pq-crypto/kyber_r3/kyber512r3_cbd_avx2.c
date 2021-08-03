@@ -13,7 +13,7 @@
 *              - const __m256i *buf: pointer to aligned input byte array
 **************************************************/
 static void cbd2(poly * restrict r, const __m256i buf[2*S2N_KYBER_512_R3_N/128])
-{
+{ 
   unsigned int i;
   __m256i f0, f1, f2, f3;
   const __m256i mask55 = _mm256_set1_epi32(0x55555555);
