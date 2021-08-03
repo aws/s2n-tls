@@ -27,7 +27,10 @@ unsigned int rej_uniform_avx2(int16_t * restrict r, const uint8_t *buf)
 
   ctr = pos = 0;
   while(ctr <= S2N_KYBER_512_R3_N - 32 && pos <= S2N_KYBER_512_R3_REJ_UNIFORM_AVX_BUFLEN - 48) {
+    // correcting cast-align and cast-qual errors
+    // old version: f0 = _mm256_loadu_si256((__m256i *)&buf[pos]);
     f0 = _mm256_loadu_si256((const void *)&buf[pos]);
+    // old version: f1 = _mm256_loadu_si256((__m256i *)&buf[pos+24]);
     f1 = _mm256_loadu_si256((const void *)&buf[pos+24]);
     f0 = _mm256_permute4x64_epi64(f0, 0x94);
     f1 = _mm256_permute4x64_epi64(f1, 0x94);
@@ -73,17 +76,24 @@ unsigned int rej_uniform_avx2(int16_t * restrict r, const uint8_t *buf)
     f0 = _mm256_shuffle_epi8(f0, g0);
     f1 = _mm256_shuffle_epi8(f1, g1);
 
+    // correcting cast-align errors
+    // old version: _mm_storeu_si128((__m128i *)&r[ctr], _mm256_castsi256_si128(f0));
     _mm_storeu_si128((void *)&r[ctr], _mm256_castsi256_si128(f0));
     ctr += _mm_popcnt_u32((good >>  0) & 0xFF);
+    // old version: _mm_storeu_si128((__m128i *)&r[ctr], _mm256_extracti128_si256(f0, 1));
     _mm_storeu_si128((void *)&r[ctr], _mm256_extracti128_si256(f0, 1));
     ctr += _mm_popcnt_u32((good >> 16) & 0xFF);
+    // old version: _mm_storeu_si128((__m128i *)&r[ctr], _mm256_castsi256_si128(f1));
     _mm_storeu_si128((void *)&r[ctr], _mm256_castsi256_si128(f1));
     ctr += _mm_popcnt_u32((good >>  8) & 0xFF);
+    // old version: _mm_storeu_si128((__m128i *)&r[ctr], _mm256_extracti128_si256(f1, 1));
     _mm_storeu_si128((void *)&r[ctr], _mm256_extracti128_si256(f1, 1));
     ctr += _mm_popcnt_u32((good >> 24) & 0xFF);
   }
 
   while(ctr <= S2N_KYBER_512_R3_N - 8 && pos <= S2N_KYBER_512_R3_REJ_UNIFORM_AVX_BUFLEN - 12) {
+    // correcting cast-align and cast-qual errors
+    // old version: f = _mm_loadu_si128((__m128i *)&buf[pos]);
     f = _mm_loadu_si128((const void *)&buf[pos]);
     f = _mm_shuffle_epi8(f, _mm256_castsi256_si128(idx8));
     t = _mm_srli_epi16(f, 4);
@@ -103,6 +113,8 @@ unsigned int rej_uniform_avx2(int16_t * restrict r, const uint8_t *buf)
     pihi = _mm_add_epi8(pilo, _mm256_castsi256_si128(ones));
     pilo = _mm_unpacklo_epi8(pilo, pihi);
     f = _mm_shuffle_epi8(f, pilo);
+    // correcting cast-align error
+    // old version: _mm_storeu_si128((__m128i *)&r[ctr], f);
     _mm_storeu_si128((void *)&r[ctr], f);
     ctr += _mm_popcnt_u32(good);
   }

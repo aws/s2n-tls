@@ -80,6 +80,8 @@ static void cbd3(poly * restrict r, const uint8_t buf[3*S2N_KYBER_512_R3_N/4+8])
                                            -1,11,10, 9,-1, 8, 7, 6,-1, 5, 4, 3,-1, 2, 1, 0);
 
   for(i = 0; i < S2N_KYBER_512_R3_N/32; i++) {
+    // correcting cast-align and cast-qual errors
+    // old version: f0 = _mm256_loadu_si256((__m256i *)&buf[24*i]);
     f0 = _mm256_loadu_si256((const void *)&buf[24*i]);
     f0 = _mm256_permute4x64_epi64(f0,0x94);
     f0 = _mm256_shuffle_epi8(f0,shufbidx);
@@ -122,6 +124,8 @@ static void cbd3(poly * restrict r, const uint8_t buf[3*S2N_KYBER_512_R3_N/4+8])
 /* buf 32 bytes longer for cbd3 */
 void poly_cbd_eta1_avx2(poly *r, const __m256i buf[S2N_KYBER_512_R3_ETA1*S2N_KYBER_512_R3_N/128+1])
 {
+  // correcting cast-align and cast-qual errors
+  // old version: cbd3(r, (uint8_t *)buf);
   cbd3(r, (const void *)buf);
 }
 

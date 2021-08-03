@@ -56,6 +56,8 @@ void poly_compress_avx2(uint8_t r[128], const poly * restrict a)
     f2 = _mm256_maddubs_epi16(f2,shift2);
     f0 = _mm256_packus_epi16(f0,f2);
     f0 = _mm256_permutevar8x32_epi32(f0,permdidx);
+    // correcting cast-align error
+    // old version: _mm256_storeu_si256((__m256i *)&r[32*i],f0);
     _mm256_storeu_si256((void *)&r[32*i],f0);
   }
 }
@@ -72,6 +74,8 @@ void poly_decompress_avx2(poly * restrict r, const uint8_t a[128])
   const __m256i shift = _mm256_set1_epi32((128 << 16) + 2048);
 
   for(i=0;i<S2N_KYBER_512_R3_N/16;i++) {
+    // correcting cast-align and cast-qual errors
+    // old version: t = _mm_loadl_epi64((__m128i *)&a[8*i]);
     t = _mm_loadl_epi64((const void *)&a[8*i]);
     f = _mm256_broadcastsi128_si256(t);
     f = _mm256_shuffle_epi8(f,shufbidx);
@@ -159,6 +163,8 @@ void poly_frommsg_avx2(poly * restrict r, const uint8_t msg[S2N_KYBER_512_R3_IND
   _mm256_store_si256(&r->vec[8+2*i+0],g2);    \
   _mm256_store_si256(&r->vec[8+2*i+1],g3)
 
+  // correcting cast-align and cast-qual errors
+  // old version: f = _mm256_loadu_si256((__m256i *)msg);
   f = _mm256_loadu_si256((const void *)msg);
   FROMMSG64(0);
   FROMMSG64(1);
@@ -256,6 +262,8 @@ void poly_getnoise_eta1_4x(poly *r0,
   __m256i f;
   keccakx4_state state;
 
+  // correcting cast-align and cast-qual errors
+  // old version: f = _mm256_loadu_si256((__m256i *)seed);
   f = _mm256_loadu_si256((const void *)seed);
   _mm256_store_si256(buf[0].vec, f);
   _mm256_store_si256(buf[1].vec, f);
@@ -290,6 +298,8 @@ void poly_getnoise_eta1122_4x(poly *r0,
   __m256i f;
   keccakx4_state state;
 
+  // correcting cast-align and cast-qual errors
+  // old version: f = _mm256_loadu_si256((__m256i *)seed);
   f = _mm256_loadu_si256((const void *)seed);
   _mm256_store_si256(buf[0].vec, f);
   _mm256_store_si256(buf[1].vec, f);

@@ -4,6 +4,7 @@
 #include "kyber512r3_align_avx2.h"
 #include "kyber512r3_params.h"
 
+#define poly S2N_KYBER_512_R3_NAMESPACE(poly)
 typedef ALIGNED_INT16(S2N_KYBER_512_R3_N) poly;
 
 #define poly_compress_avx2 S2N_KYBER_512_R3_NAMESPACE(poly_compress_avx2)

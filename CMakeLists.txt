@@ -137,7 +137,6 @@ else()
                 "-DS2N_ADX"
         )
     endif()
-    
 
     # BIKE Round-3 code has several different optimizations which require
     # specific compiler flags to be supported by the compiler.
@@ -180,7 +179,7 @@ else()
     # specific compiler flags to be supported by the compiler.
     # So for each needed instruction set extension we check if the compiler
     # supports it and set proper compiler flags to be added later to the
-    # BIKE compilation units.
+    # Kyber compilation units.
     if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
     
         set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mavx -mbmi2")
@@ -196,10 +195,8 @@ else()
 endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
-    if(KYBER512R3_AVX2_BMI2_SUPPORTED)
-        FILE(GLOB KYBER512R3_AVX2_BMI2_ASM_SRCS "pq-crypto/kyber_r3/*_avx2.S")
-        list(APPEND PQ_SRC ${KYBER512R3_AVX2_BMI2_ASM_SRCS})
-    endif()
+    FILE(GLOB KYBER512R3_AVX2_BMI2_ASM_SRCS "pq-crypto/kyber_r3/*_avx2.S")
+    list(APPEND PQ_SRC ${KYBER512R3_AVX2_BMI2_ASM_SRCS})
 endif()
 
 # Probe for execinfo.h extensions (not present on some systems, notably android)
@@ -330,13 +327,10 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
     message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()
 
-
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
-    if(KYBER512R3_AVX2_BMI2_SUPPORTED)
-        FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
-        set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
-        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
-    endif()
+    FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
+    set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
 
     message(STATUS "Enabling Kyber_R3 x86_64 optimizations")
 endif()

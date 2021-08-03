@@ -176,6 +176,8 @@ void gen_matrix_avx2(polyvec *a, const uint8_t seed[32], int transposed)
   __m256i f;
   keccakx4_state state;
 
+  // correcting cast-align and cast-qual errors
+  // old version: f = _mm256_loadu_si256((__m256i *)seed);
   f = _mm256_loadu_si256((const void *)seed);
   _mm256_store_si256(buf[0].vec, f);
   _mm256_store_si256(buf[1].vec, f);

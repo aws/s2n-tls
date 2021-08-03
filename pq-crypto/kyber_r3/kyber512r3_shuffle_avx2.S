@@ -1,5 +1,6 @@
 #include "kyber512r3_consts_avx2.h"
 
+// The small macros (.inc files) are combined with .S files directly
 /*****.include "fq.inc"*****/
 /***************************/
 .macro red16 r,rs=0,x=12

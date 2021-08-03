@@ -36,13 +36,13 @@ typedef __m256i V256;
 
 #if defined(KeccakP1600times4_useAVX2)
     #define ANDnu256(a, b)          _mm256_andnot_si256(a, b)
-    //correcting cast-align error
-    //old version: #define CONST256(a) _mm256_load_si256((const V256 *)&(a))
+    // correcting cast-align error
+    // old version: #define CONST256(a) _mm256_load_si256((const V256 *)&(a))
     #define CONST256(a)             _mm256_load_si256((const void *)&(a))
     #define CONST256_64(a)          (V256)_mm256_broadcast_sd((const double*)(&a))
     #define LOAD256(a)              _mm256_load_si256((const V256 *)&(a))
-    //correcting cast-align error
-    //old version: #define LOAD256u(a) _mm256_loadu_si256((const V256 *)&(a))
+    // correcting cast-align error
+    // old version: #define LOAD256u(a) _mm256_loadu_si256((const V256 *)&(a))
     #define LOAD256u(a)             _mm256_loadu_si256((const void *)&(a))
     #define LOAD4_64(a, b, c, d)    _mm256_set_epi64x((UINT64)(a), (UINT64)(b), (UINT64)(c), (UINT64)(d))
     #define ROL64in256(d, a, o)     d = _mm256_or_si256(_mm256_slli_epi64(a, o), _mm256_srli_epi64(a, 64-(o)))
@@ -51,8 +51,8 @@ typedef __m256i V256;
 static const UINT64 rho8[4] = {0x0605040302010007, 0x0E0D0C0B0A09080F, 0x1615141312111017, 0x1E1D1C1B1A19181F};
 static const UINT64 rho56[4] = {0x0007060504030201, 0x080F0E0D0C0B0A09, 0x1017161514131211, 0x181F1E1D1C1B1A19};
     #define STORE256(a, b)          _mm256_store_si256((V256 *)&(a), b)
-    //correcting cast-align error
-    //old version: #define STORE256u(a, b) _mm256_storeu_si256((V256 *)&(a), b)
+    // correcting cast-align error
+    // old version: #define STORE256u(a, b) _mm256_storeu_si256((V256 *)&(a), b)
     #define STORE256u(a, b)         _mm256_storeu_si256((void *)&(a), b)
     #define STORE2_128(ah, al, v)   _mm256_storeu2_m128d((V128*)&(ah), (V128*)&(al), v)
     #define XOR256(a, b)            _mm256_xor_si256(a, b)
@@ -110,8 +110,8 @@ void KeccakP1600times4_AddBytes(void *states, unsigned int instanceIndex, const 
     }
 
     while(sizeLeft >= SnP_laneLengthInBytes) {
-        //correcting cast-align error
-        //old version: UINT64 lane = *((const UINT64*)curData);
+        // correcting cast-align error
+        // old version: UINT64 lane = *((const UINT64*)curData);
         UINT64 lane = *((const UINT64*)(const void *)curData);
         statesAsLanes[laneIndex(instanceIndex, lanePosition)] ^= lane;
         sizeLeft -= SnP_laneLengthInBytes;
@@ -130,14 +130,14 @@ void KeccakP1600times4_AddLanesAll(void *states, const unsigned char *data, unsi
 {
     V256 *stateAsLanes = (V256 *)states;
     unsigned int i;
-    //correcting cast-align errors
-    //old version: const UINT64 *curData0 = (const UINT64 *)data;
+    // correcting cast-align errors
+    // old version: const UINT64 *curData0 = (const UINT64 *)data;
     const UINT64 *curData0 = (const void *)data;
-    //old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffset*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffset*SnP_laneLengthInBytes);
     const UINT64 *curData1 = (const void *)(data+laneOffset*SnP_laneLengthInBytes);
-    //old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffset*2*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffset*2*SnP_laneLengthInBytes);
     const UINT64 *curData2 = (const void *)(data+laneOffset*2*SnP_laneLengthInBytes);
-    //old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffset*3*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffset*3*SnP_laneLengthInBytes);
     const UINT64 *curData3 = (const void *)(data+laneOffset*3*SnP_laneLengthInBytes);
     V256    lanes0, lanes1, lanes2, lanes3, lanesL01, lanesL23, lanesH01, lanesH23;
 
@@ -195,8 +195,8 @@ void KeccakP1600times4_OverwriteBytes(void *states, unsigned int instanceIndex, 
     }
 
     while(sizeLeft >= SnP_laneLengthInBytes) {
-        //correcting cast-align error
-        //old version: UINT64 lane = *((const UINT64*)curData);
+        // correcting cast-align error
+        // old version: UINT64 lane = *((const UINT64*)curData);
         UINT64 lane = *((const UINT64*)(const void*)curData);
         statesAsLanes[laneIndex(instanceIndex, lanePosition)] = lane;
         sizeLeft -= SnP_laneLengthInBytes;
@@ -213,14 +213,14 @@ void KeccakP1600times4_OverwriteLanesAll(void *states, const unsigned char *data
 {
     V256 *stateAsLanes = (V256 *)states;
     unsigned int i;
-    //correcting cast-align errors
-    //old version: const UINT64 *curData0 = (const UINT64 *)data;
+    // correcting cast-align errors
+    // old version: const UINT64 *curData0 = (const UINT64 *)data;
     const UINT64 *curData0 = (const void *)data;
-    //old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffset*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffset*SnP_laneLengthInBytes);
     const UINT64 *curData1 = (const void *)(data+laneOffset*SnP_laneLengthInBytes);
-    //old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffset*2*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffset*2*SnP_laneLengthInBytes);
     const UINT64 *curData2 = (const void *)(data+laneOffset*2*SnP_laneLengthInBytes);
-    //old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffset*3*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffset*3*SnP_laneLengthInBytes);
     const UINT64 *curData3 = (const void *)(data+laneOffset*3*SnP_laneLengthInBytes);
     V256    lanes0, lanes1, lanes2, lanes3, lanesL01, lanesL23, lanesH01, lanesH23;
 
@@ -288,8 +288,8 @@ void KeccakP1600times4_ExtractBytes(const void *states, unsigned int instanceInd
         unsigned int bytesInLane = SnP_laneLengthInBytes - offsetInLane;
         if (bytesInLane > sizeLeft)
             bytesInLane = sizeLeft;
-        //correcting cast-qual error
-        //old version: memcpy( curData, ((unsigned char *)&statesAsLanes[laneIndex(instanceIndex, lanePosition)]) + offsetInLane, bytesInLane);
+        // correcting cast-qual error
+        // old version: memcpy( curData, ((unsigned char *)&statesAsLanes[laneIndex(instanceIndex, lanePosition)]) + offsetInLane, bytesInLane);
         memcpy( curData, ((const unsigned char *)&statesAsLanes[laneIndex(instanceIndex, lanePosition)]) + offsetInLane, bytesInLane);
         sizeLeft -= bytesInLane;
         lanePosition++;
@@ -297,8 +297,8 @@ void KeccakP1600times4_ExtractBytes(const void *states, unsigned int instanceInd
     }
 
     while(sizeLeft >= SnP_laneLengthInBytes) {
-        //correcting cast-align error
-        //old version: *(UINT64*)curData = statesAsLanes[laneIndex(instanceIndex, lanePosition)];
+        // correcting cast-align error
+        // old version: *(UINT64*)curData = statesAsLanes[laneIndex(instanceIndex, lanePosition)];
         *(UINT64*)(void*)curData = statesAsLanes[laneIndex(instanceIndex, lanePosition)];
         sizeLeft -= SnP_laneLengthInBytes;
         lanePosition++;
@@ -312,14 +312,14 @@ void KeccakP1600times4_ExtractBytes(const void *states, unsigned int instanceInd
 
 void KeccakP1600times4_ExtractLanesAll(const void *states, unsigned char *data, unsigned int laneCount, unsigned int laneOffset)
 {
-    //correcting cast-align errors
-    //old version: UINT64 *curData0 = (UINT64 *)data;
+    // correcting cast-align errors
+    // old version: UINT64 *curData0 = (UINT64 *)data;
     UINT64 *curData0 = (void *)data;
-    //old version: UINT64 *curData1 = (UINT64 *)(data+laneOffset*1*SnP_laneLengthInBytes);
+    // old version: UINT64 *curData1 = (UINT64 *)(data+laneOffset*1*SnP_laneLengthInBytes);
     UINT64 *curData1 = (void *)(data+laneOffset*1*SnP_laneLengthInBytes);
-    //old version: UINT64 *curData2 = (UINT64 *)(data+laneOffset*2*SnP_laneLengthInBytes);
+    // old version: UINT64 *curData2 = (UINT64 *)(data+laneOffset*2*SnP_laneLengthInBytes);
     UINT64 *curData2 = (void *)(data+laneOffset*2*SnP_laneLengthInBytes);
-    //old version: UINT64 *curData3 = (UINT64 *)(data+laneOffset*3*SnP_laneLengthInBytes);
+    // old version: UINT64 *curData3 = (UINT64 *)(data+laneOffset*3*SnP_laneLengthInBytes);
     UINT64 *curData3 = (void *)(data+laneOffset*3*SnP_laneLengthInBytes);
 
     const V256 *stateAsLanes = (const V256 *)states;
@@ -388,8 +388,8 @@ void KeccakP1600times4_ExtractAndAddBytes(const void *states, unsigned int insta
     }
 
     while(sizeLeft >= SnP_laneLengthInBytes) {
-        //correcting cast-align and cast-qual errors
-        //old version: *((UINT64*)curOutput) = *((UINT64*)curInput) ^ statesAsLanes[laneIndex(instanceIndex, lanePosition)];
+        // correcting cast-align and cast-qual errors
+        // old version: *((UINT64*)curOutput) = *((UINT64*)curInput) ^ statesAsLanes[laneIndex(instanceIndex, lanePosition)];
         *((UINT64*)(void*)curOutput) = *((const UINT64*)(const void*)curInput) ^ statesAsLanes[laneIndex(instanceIndex, lanePosition)];
         sizeLeft -= SnP_laneLengthInBytes;
         lanePosition++;
@@ -408,23 +408,23 @@ void KeccakP1600times4_ExtractAndAddBytes(const void *states, unsigned int insta
 
 void KeccakP1600times4_ExtractAndAddLanesAll(const void *states, const unsigned char *input, unsigned char *output, unsigned int laneCount, unsigned int laneOffset)
 {
-    //correcting cast-align and cast-qual errors
-    //old version: const UINT64 *curInput0 = (UINT64 *)input;
+    // correcting cast-align and cast-qual errors
+    // old version: const UINT64 *curInput0 = (UINT64 *)input;
     const UINT64 *curInput0 = (const void *)input;
-    //old version: const UINT64 *curInput1 = (UINT64 *)(input+laneOffset*1*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curInput1 = (UINT64 *)(input+laneOffset*1*SnP_laneLengthInBytes);
     const UINT64 *curInput1 = (const void *)(input+laneOffset*1*SnP_laneLengthInBytes);
-    //old version: const UINT64 *curInput2 = (UINT64 *)(input+laneOffset*2*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curInput2 = (UINT64 *)(input+laneOffset*2*SnP_laneLengthInBytes);
     const UINT64 *curInput2 = (const void *)(input+laneOffset*2*SnP_laneLengthInBytes);
-    //old version: const UINT64 *curInput3 = (UINT64 *)(input+laneOffset*3*SnP_laneLengthInBytes);
+    // old version: const UINT64 *curInput3 = (UINT64 *)(input+laneOffset*3*SnP_laneLengthInBytes);
     const UINT64 *curInput3 = (const void *)(input+laneOffset*3*SnP_laneLengthInBytes);
-    //correcting cast-align errors
-    //old version: UINT64 *curOutput0 = (UINT64 *)output;
+    // correcting cast-align errors
+    // old version: UINT64 *curOutput0 = (UINT64 *)output;
     UINT64 *curOutput0 = (void *)output;
-    //old version: UINT64 *curOutput1 = (UINT64 *)(output+laneOffset*1*SnP_laneLengthInBytes);
+    // old version: UINT64 *curOutput1 = (UINT64 *)(output+laneOffset*1*SnP_laneLengthInBytes);
     UINT64 *curOutput1 = (void *)(output+laneOffset*1*SnP_laneLengthInBytes);
-    //old version: UUINT64 *curOutput2 = (UINT64 *)(output+laneOffset*2*SnP_laneLengthInBytes);
+    // old version: UUINT64 *curOutput2 = (UINT64 *)(output+laneOffset*2*SnP_laneLengthInBytes);
     UINT64 *curOutput2 = (void *)(output+laneOffset*2*SnP_laneLengthInBytes);
-    //old version: UINT64 *curOutput3 = (UINT64 *)(output+laneOffset*3*SnP_laneLengthInBytes);
+    // old version: UINT64 *curOutput3 = (UINT64 *)(output+laneOffset*3*SnP_laneLengthInBytes);
     UINT64 *curOutput3 = (void *)(output+laneOffset*3*SnP_laneLengthInBytes);
 
     const V256 *stateAsLanes = (const V256 *)states;
@@ -836,6 +836,7 @@ static ALIGN(KeccakP1600times4_statesAlignment) const UINT64 KeccakF1600RoundCon
 #else
 #define Unrolling KeccakP1600times4_unrolling
 #endif
+// The macro file is combined with source file directly
 /*****#include "KeccakP-1600-unrolling_avx2.macros"*****/
 /*******************************************************/
 /*
@@ -1109,14 +1110,14 @@ size_t KeccakF1600times4_FastLoop_Absorb(void *states, unsigned int laneCount, u
 #else
 //        unsigned int i;
         const unsigned char *dataStart = data;
-        //correcting cast-align errors
-        //old version: const UINT64 *curData0 = (const UINT64 *)data;
+        // correcting cast-align errors
+        // old version: const UINT64 *curData0 = (const UINT64 *)data;
         const UINT64 *curData0 = (const void *)data;
-        //old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffsetParallel*1*SnP_laneLengthInBytes);
+        // old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffsetParallel*1*SnP_laneLengthInBytes);
         const UINT64 *curData1 = (const void *)(data+laneOffsetParallel*1*SnP_laneLengthInBytes);
-        //old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffsetParallel*2*SnP_laneLengthInBytes);
+        // old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffsetParallel*2*SnP_laneLengthInBytes);
         const UINT64 *curData2 = (const void *)(data+laneOffsetParallel*2*SnP_laneLengthInBytes);
-        //old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffsetParallel*3*SnP_laneLengthInBytes);
+        // old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffsetParallel*3*SnP_laneLengthInBytes);
         const UINT64 *curData3 = (const void *)(data+laneOffsetParallel*3*SnP_laneLengthInBytes);
         V256 *statesAsLanes = (V256 *)states;
         declareABCDE
@@ -1216,14 +1217,14 @@ size_t KeccakP1600times4_12rounds_FastLoop_Absorb(void *states, unsigned int lan
 #else
 //        unsigned int i;
         const unsigned char *dataStart = data;
-        //correcting cast-align errors
-        //old version: const UINT64 *curData0 = (const UINT64 *)data;
+        // correcting cast-align errors
+        // old version: const UINT64 *curData0 = (const UINT64 *)data;
         const UINT64 *curData0 = (const void *)data;
-        //old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffsetParallel*1*SnP_laneLengthInBytes);
+        // old version: const UINT64 *curData1 = (const UINT64 *)(data+laneOffsetParallel*1*SnP_laneLengthInBytes);
         const UINT64 *curData1 = (const void *)(data+laneOffsetParallel*1*SnP_laneLengthInBytes);
-        //old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffsetParallel*2*SnP_laneLengthInBytes);
+        // old version: const UINT64 *curData2 = (const UINT64 *)(data+laneOffsetParallel*2*SnP_laneLengthInBytes);
         const UINT64 *curData2 = (const void *)(data+laneOffsetParallel*2*SnP_laneLengthInBytes);
-        //old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffsetParallel*3*SnP_laneLengthInBytes);
+        // old version: const UINT64 *curData3 = (const UINT64 *)(data+laneOffsetParallel*3*SnP_laneLengthInBytes);
         const UINT64 *curData3 = (const void *)(data+laneOffsetParallel*3*SnP_laneLengthInBytes);
         V256 *statesAsLanes = states;
         declareABCDE

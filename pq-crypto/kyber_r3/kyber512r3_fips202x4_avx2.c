@@ -9,7 +9,7 @@
 extern void KeccakF1600_StatePermute4x(__m256i *s);
 
 /*  Implementation is used from Crystal Kyber Repository
-    See for more details: https://github.com/XKCP/XKCP */
+ *  See for more details: https://github.com/XKCP/XKCP */
  
 static void keccakx4_absorb_once(__m256i s[25],
                                  unsigned int r,
@@ -74,10 +74,15 @@ static void keccakx4_squeezeblocks(uint8_t *out0,
     KeccakF1600_StatePermute4x(s);
     for(i=0; i < r/8; ++i) {
       t = _mm_castsi128_pd(_mm256_castsi256_si128(s[i]));
+      // correcting cast-align errors
+      // old version: _mm_storel_pd((__attribute__((__may_alias__)) double *)&out0[8*i], t);
       _mm_storel_pd((__attribute__((__may_alias__)) void *)&out0[8*i], t);
+      // old version: _mm_storeh_pd((__attribute__((__may_alias__)) double *)&out1[8*i], t);
       _mm_storeh_pd((__attribute__((__may_alias__)) void *)&out1[8*i], t);
       t = _mm_castsi128_pd(_mm256_extracti128_si256(s[i],1));
+      // old version: _mm_storel_pd((__attribute__((__may_alias__)) double *)&out2[8*i], t);
       _mm_storel_pd((__attribute__((__may_alias__)) void *)&out2[8*i], t);
+      // old version: _mm_storeh_pd((__attribute__((__may_alias__)) double *)&out3[8*i], t);
       _mm_storeh_pd((__attribute__((__may_alias__)) void *)&out3[8*i], t);
     }
 

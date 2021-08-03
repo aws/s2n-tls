@@ -39,6 +39,8 @@ static void poly_compress10(uint8_t r[320], const poly * restrict a)
     t0 = _mm256_castsi256_si128(f0);
     t1 = _mm256_extracti128_si256(f0,1);
     t0 = _mm_blend_epi16(t0,t1,0xE0);
+    // correcting cast-align error
+    // old version: _mm_storeu_si128((__m128i *)&r[20*i+ 0],t0);
     _mm_storeu_si128((void *)&r[20*i+ 0],t0);
     memcpy(&r[20*i+16],&t1,4);
   }
@@ -57,6 +59,8 @@ static void poly_decompress10(poly * restrict r, const uint8_t a[320+12])
   const __m256i mask = _mm256_set1_epi32((32736 << 16) + 8184);
 
   for(i=0;i<S2N_KYBER_512_R3_N/16;i++) {
+    // correcting cast-align and cast-qual errors
+    // old version: f = _mm256_loadu_si256((__m256i *)&a[20*i]);
     f = _mm256_loadu_si256((const void *)&a[20*i]);
     f = _mm256_permute4x64_epi64(f,0x94);
     f = _mm256_shuffle_epi8(f,shufbidx);
