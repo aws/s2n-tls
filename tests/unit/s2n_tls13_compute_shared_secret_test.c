@@ -54,8 +54,8 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(ecc_pref);
 
         /* Select curve and generate key for client */
-        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
         /* Recreating conditions where negotiated curve was not set */
         struct s2n_ecc_evp_params missing_params = {NULL,NULL};
         client_conn->kex_params.server_ecc_evp_params = missing_params;
@@ -79,8 +79,8 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(ecc_pref);
 
         /* Select curve and generate key for client */
-        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
         /* Set curve server sent in server hello */
         client_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -105,8 +105,8 @@ int main(int argc, char **argv) {
         client_conn->actual_protocol_version = S2N_TLS13;
 
         /* Select curve and generate key for client */
-        client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
+        client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
         /* Set curve server sent in server hello */
         client_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];

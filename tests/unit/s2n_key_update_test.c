@@ -97,6 +97,25 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(quic_config));
         }
 
+        /* Key update message not allowed in TLS1.2 */
+        {
+            const size_t test_data_len = 10;
+            DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&input, test_data_len));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, test_data_len));
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS12;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
+
+            /* Verify method was a no-op and the message was not read */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&input), test_data_len);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Key update message received contains invalid key update request */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);

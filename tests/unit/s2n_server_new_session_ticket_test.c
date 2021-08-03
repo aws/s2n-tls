@@ -478,6 +478,28 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* Not allowed in TLS1.2 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
+
+            /* Set up input stuffer */
+            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            struct s2n_blob nst_message = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_EQUAL(conn->client_ticket.size, 0);
+            EXPECT_TRUE(s2n_stuffer_data_available(&input) > 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Tests session_ticket_cb correctly serializes session data from an arbitrary new session ticket message */
         {
             struct s2n_config *config = s2n_config_new();
