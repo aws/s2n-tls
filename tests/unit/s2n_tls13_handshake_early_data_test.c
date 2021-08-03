@@ -89,8 +89,8 @@ static int s2n_check_traffic_secret_order(void* context, struct s2n_connection *
 static S2N_RESULT s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
 {
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_hello_copy));
-    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_finished_copy));
+    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_hello_copy));
+    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_finished_copy));
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -547,7 +547,7 @@ int main()
             EXPECT_SUCCESS(s2n_dup(&early_secret, &psk->early_secret));
 
             /* Rewrite hashes with known ClientHello */
-            EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256,
+            EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.hashes->sha256,
                     client_hello_msg.data, client_hello_msg.size));
 
             client_conn->handshake.message_number = 0;

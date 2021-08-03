@@ -36,18 +36,6 @@ int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles
  */
 int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_handles, struct s2n_connection *conn)
 {
-    /* Preserve only the handlers for handshake hash state pointers to avoid re-allocation */
-    hash_handles->md5 = conn->handshake.md5.digest.high_level;
-    hash_handles->sha1 = conn->handshake.sha1.digest.high_level;
-    hash_handles->sha224 = conn->handshake.sha224.digest.high_level;
-    hash_handles->sha256 = conn->handshake.sha256.digest.high_level;
-    hash_handles->sha384 = conn->handshake.sha384.digest.high_level;
-    hash_handles->sha512 = conn->handshake.sha512.digest.high_level;
-    hash_handles->md5_sha1 = conn->handshake.md5_sha1.digest.high_level;
-    hash_handles->hash_workspace = conn->hash_workspace.digest.high_level;
-    hash_handles->server_hello_copy = conn->handshake.server_hello_copy.digest.high_level;
-    hash_handles->server_finished_copy = conn->handshake.server_finished_copy.digest.high_level;
-
     /* Preserve only the handlers for SSLv3 PRF hash state pointers to avoid re-allocation */
     hash_handles->prf_md5 = conn->prf_space.ssl3.md5.digest.high_level;
     hash_handles->prf_sha1 = conn->prf_space.ssl3.sha1.digest.high_level;
@@ -87,18 +75,6 @@ int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_con
  */
 int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_connection_hash_handles *hash_handles)
 {
-    /* Restore s2n_connection handlers for handshake hash states */
-    conn->handshake.md5.digest.high_level = hash_handles->md5;
-    conn->handshake.sha1.digest.high_level = hash_handles->sha1;
-    conn->handshake.sha224.digest.high_level = hash_handles->sha224;
-    conn->handshake.sha256.digest.high_level = hash_handles->sha256;
-    conn->handshake.sha384.digest.high_level = hash_handles->sha384;
-    conn->handshake.sha512.digest.high_level = hash_handles->sha512;
-    conn->handshake.md5_sha1.digest.high_level = hash_handles->md5_sha1;
-    conn->hash_workspace.digest.high_level = hash_handles->hash_workspace;
-    conn->handshake.server_hello_copy.digest.high_level = hash_handles->server_hello_copy;
-    conn->handshake.server_finished_copy.digest.high_level = hash_handles->server_finished_copy;
-
     /* Restore s2n_connection handlers for SSLv3 PRF hash states */
     conn->prf_space.ssl3.md5.digest.high_level = hash_handles->prf_md5;
     conn->prf_space.ssl3.sha1.digest.high_level = hash_handles->prf_sha1;

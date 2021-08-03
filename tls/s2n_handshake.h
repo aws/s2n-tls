@@ -19,6 +19,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_handshake_hashes.h"
 #include "tls/s2n_handshake_type.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_parameters.h"
@@ -132,19 +133,7 @@ struct s2n_handshake_parameters {
 struct s2n_handshake {
     struct s2n_stuffer io;
 
-    struct s2n_hash_state md5;
-    struct s2n_hash_state sha1;
-    struct s2n_hash_state sha224;
-    struct s2n_hash_state sha256;
-    struct s2n_hash_state sha384;
-    struct s2n_hash_state sha512;
-    struct s2n_hash_state md5_sha1;
-
-    /* TLS1.3 does not always use a hash immediately.
-     * We save copies of some states for later use in the key schedule.
-     */
-    struct s2n_hash_state server_hello_copy;
-    struct s2n_hash_state server_finished_copy;
+    struct s2n_handshake_hashes *hashes;
 
     /* Hash algorithms required for this handshake. The set of required hashes can be reduced as session parameters are
      * negotiated, i.e. cipher suite and protocol version.
