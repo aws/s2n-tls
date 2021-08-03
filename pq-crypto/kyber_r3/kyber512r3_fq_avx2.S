@@ -35,7 +35,6 @@ vpsubw      %ymm\x,%ymm\b,%ymm\b
 .endm
 /***************************/
 
-
 .text
 reduce128_avx:
 #load
