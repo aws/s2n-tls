@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <benchmark/benchmark.h>
-#include <iostream>
-#include <sys/wait.h>
 #include <unistd.h>
+#include "s2n_neg_client_benchmark.h"
+#include "s2n_neg_server_benchmark.h"
 
 int main(int argc, char** argv) {
     int pid_server = fork();
     if(pid_server == 0) {
-        int result = system("~/s2n-tls/build/bin/s2n_neg_server_benchmark");
-        printf("%d\n", result);
+        Server s;
+        s.start_benchmark_server(argc, argv);
     }
     else {
-        int result = system("~/s2n-tls/build/bin/s2n_neg_client_benchmark");
-        printf("%d\n", result);
-
+        Client c;
+        c.start_benchmark_client(argc, argv);
     }
     return 0;
 }
