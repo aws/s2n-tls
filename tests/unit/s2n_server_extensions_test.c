@@ -92,7 +92,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -124,7 +126,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_ALPN, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             strcpy(conn->application_protocol, "h2");
@@ -153,7 +157,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_MAX_FRAG_LEN, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -180,7 +186,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SCT_LIST, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -208,7 +216,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_STATUS_REQUEST, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -255,7 +265,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -274,7 +286,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SUPPORTED_VERSIONS, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -318,7 +334,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
+            extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SUPPORTED_VERSIONS, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -361,7 +382,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SUPPORTED_VERSIONS, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -418,7 +445,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SUPPORTED_VERSIONS, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
