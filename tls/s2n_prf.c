@@ -433,6 +433,7 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
 S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, struct s2n_blob *output)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->handshake.hashes);
     RESULT_ENSURE_REF(output);
 
     struct s2n_hash_state hash_state = { 0 };
@@ -500,6 +501,9 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
 
 static int s2n_sslv3_client_finished(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+
     uint8_t prefix[4] = { 0x43, 0x4c, 0x4e, 0x54 };
 
     POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.client_finished));
@@ -508,6 +512,9 @@ static int s2n_sslv3_client_finished(struct s2n_connection *conn)
 
 static int s2n_sslv3_server_finished(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+
     uint8_t prefix[4] = { 0x53, 0x52, 0x56, 0x52 };
 
     POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.server_finished));

@@ -31,6 +31,9 @@ static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, str
 
 int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_signature_scheme chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
 
@@ -61,6 +64,9 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
 int s2n_client_cert_verify_send(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+
     S2N_ASYNC_PKEY_GUARD(conn);
     struct s2n_stuffer *out = &conn->handshake.io;
 
