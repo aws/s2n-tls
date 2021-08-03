@@ -430,6 +430,27 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, struct s2n_blob *output)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(output);
+
+    struct s2n_hash_state hash_state = { 0 };
+    s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
+    s2n_hash_algorithm hash_alg = 0;
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, hash_alg, &hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_copy(&conn->hash_workspace, &hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_update(&conn->hash_workspace, message->data, message->size));
+
+    uint8_t digest_size = 0;
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(conn->hash_workspace.alg, &digest_size));
+    RESULT_ENSURE_GTE(output->size, digest_size);
+    RESULT_GUARD_POSIX(s2n_hash_digest(&conn->hash_workspace, output->data, digest_size));
+
+    return S2N_RESULT_OK;
+}
+
 static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *hash_workspace, uint8_t * out)
 {
     uint8_t xorpad1[48] =
