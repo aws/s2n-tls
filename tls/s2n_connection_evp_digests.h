@@ -28,14 +28,6 @@ struct s2n_connection_prf_handles {
     struct s2n_evp_hmac_state p_hash_evp_hmac;
 };
 
-struct s2n_connection_hash_handles {
-    /* Handshake hash states */
-    struct s2n_hash_evp_digest prf_md5;
-
-    /* SSLv3 PRF hash states */
-    struct s2n_hash_evp_digest prf_sha1;
-};
-
 /* Allocationg new EVP structs is expensive, so we back them up here and reuse them */
 struct s2n_connection_hmac_handles {
     struct s2n_hmac_evp_backup initial_client;
@@ -47,8 +39,6 @@ struct s2n_connection_hmac_handles {
 };
 
 extern int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles, struct s2n_connection *conn);
-extern int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_handles, struct s2n_connection *conn);
 extern int s2n_connection_save_hmac_state(struct s2n_connection_hmac_handles *hmac_handles, struct s2n_connection *conn);
 extern int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_connection_prf_handles *prf_handles);
-extern int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_connection_hash_handles *hash_handles);
 extern int s2n_connection_restore_hmac_state(struct s2n_connection *conn, struct s2n_connection_hmac_handles *hmac_handles);

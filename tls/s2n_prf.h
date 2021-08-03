@@ -38,13 +38,6 @@ struct s2n_prf_working_space {
         uint8_t digest0[S2N_MAX_DIGEST_LEN];
         uint8_t digest1[S2N_MAX_DIGEST_LEN];
     } tls;
-
-    struct {
-        struct s2n_hash_state md5;
-        struct s2n_hash_state sha1;
-        uint8_t md5_digest[MD5_DIGEST_LENGTH];
-        uint8_t sha1_digest[SHA_DIGEST_LENGTH];
-    } ssl3;
 };
 
 /* The s2n p_hash implementation is abstracted to allow for separate implementations, using

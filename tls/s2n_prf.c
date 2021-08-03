@@ -35,19 +35,24 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secret, struct s2n_blob *seed_a,
+static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
-    struct s2n_hash_state *md5 = &ws->ssl3.md5;
-    struct s2n_hash_state *sha1 = &ws->ssl3.sha1;
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    struct s2n_hash_state *workspace = &conn->handshake.hashes->hash_workspace;
 
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
     uint8_t iteration = 1;
 
+    uint8_t md5_digest[MD5_DIGEST_LENGTH] = { 0 }, sha_digest[SHA_DIGEST_LENGTH] = { 0 };
+
     uint8_t A = 'A';
     while (outputlen) {
+        struct s2n_hash_state *sha1 = workspace;
         POSIX_GUARD(s2n_hash_reset(sha1));
+        POSIX_GUARD(s2n_hash_init(sha1, S2N_HASH_SHA1));
 
         for (int i = 0; i < iteration; i++) {
             POSIX_GUARD(s2n_hash_update(sha1, &A, 1));
@@ -63,16 +68,18 @@ static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secr
             }
         }
 
-        POSIX_GUARD(s2n_hash_digest(sha1, ws->ssl3.sha1_digest, sizeof(ws->ssl3.sha1_digest)));
+        POSIX_GUARD(s2n_hash_digest(sha1, sha_digest, sizeof(sha_digest)));
 
+        struct s2n_hash_state *md5 = workspace;
         POSIX_GUARD(s2n_hash_reset(md5));
+        POSIX_GUARD(s2n_hash_init(sha1, S2N_HASH_MD5));
         POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
-        POSIX_GUARD(s2n_hash_update(md5, ws->ssl3.sha1_digest, sizeof(ws->ssl3.sha1_digest)));
-        POSIX_GUARD(s2n_hash_digest(md5, ws->ssl3.md5_digest, sizeof(ws->ssl3.md5_digest)));
+        POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
+        POSIX_GUARD(s2n_hash_digest(md5, md5_digest, sizeof(md5_digest)));
 
-        uint32_t bytes_to_copy = MIN(outputlen, sizeof(ws->ssl3.md5_digest));
+        uint32_t bytes_to_copy = MIN(outputlen, sizeof(md5_digest));
 
-        POSIX_CHECKED_MEMCPY(output, ws->ssl3.md5_digest, bytes_to_copy);
+        POSIX_CHECKED_MEMCPY(output, md5_digest, bytes_to_copy);
 
         outputlen -= bytes_to_copy;
         output += bytes_to_copy;
@@ -81,9 +88,6 @@ static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secr
         A++;
         iteration++;
     }
-
-    POSIX_GUARD(s2n_hash_reset(md5));
-    POSIX_GUARD(s2n_hash_reset(sha1));
 
     return 0;
 }
@@ -354,7 +358,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     S2N_ERROR_IF(seed_b == NULL && seed_c != NULL, S2N_ERR_PRF_INVALID_SEED);
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        return s2n_sslv3_prf(&conn->prf_space, secret, seed_a, seed_b, seed_c, out);
+        return s2n_sslv3_prf(conn, secret, seed_a, seed_b, seed_c, out);
     }
 
     /* We zero the out blob because p_hash works by XOR'ing with the existing

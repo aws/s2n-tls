@@ -31,19 +31,6 @@ int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles
 }
 
 /* On s2n_connection_wipe, save all pointers to OpenSSL EVP digest structs in a temporary
- * s2n_connection_hash_handles struct to avoid re-allocation after zeroing the connection struct.
- * Do not store any additional hash state as it is unnecessary and excessive copying would impact performance.
- */
-int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_handles, struct s2n_connection *conn)
-{
-    /* Preserve only the handlers for SSLv3 PRF hash state pointers to avoid re-allocation */
-    hash_handles->prf_md5 = conn->prf_space.ssl3.md5.digest.high_level;
-    hash_handles->prf_sha1 = conn->prf_space.ssl3.sha1.digest.high_level;
-
-    return 0;
-}
-
-/* On s2n_connection_wipe, save all pointers to OpenSSL EVP digest structs in a temporary
  * s2n_connection_hmac_handles struct to avoid re-allocation after zeroing the connection struct.
  * Do not store any additional HMAC state as it is unnecessary and excessive copying would impact performance.
  */
@@ -65,19 +52,6 @@ int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_con
     /* Restore s2n_connection handlers for TLS PRF p_hash */
     POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&prf_handles->p_hash_s2n_hmac, &conn->prf_space.tls.p_hash.s2n_hmac));
     conn->prf_space.tls.p_hash.evp_hmac = prf_handles->p_hash_evp_hmac;
-
-    return 0;
-}
-
-/* On s2n_connection_wipe, restore all pointers to OpenSSL EVP digest structs after zeroing the connection struct
- * to avoid re-allocation. Do not store any additional hash state as it is unnecessary and excessive copying
- * would impact performance.
- */
-int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_connection_hash_handles *hash_handles)
-{
-    /* Restore s2n_connection handlers for SSLv3 PRF hash states */
-    conn->prf_space.ssl3.md5.digest.high_level = hash_handles->prf_md5;
-    conn->prf_space.ssl3.sha1.digest.high_level = hash_handles->prf_sha1;
 
     return 0;
 }
