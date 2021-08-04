@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#ifndef S2N_NEG_SERVER_BENCHMARK_H
-#define S2N_NEG_SERVER_BENCHMARK_H
+#pragma once
+
 class Server {
 public:
     int start_benchmark_server(int argc, char **argv);
 };
-#endif

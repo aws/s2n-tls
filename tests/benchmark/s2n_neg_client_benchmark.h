@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#ifndef S2N_NEG_CLIENT_BENCHMARK_H
-#define S2N_NEG_CLIENT_BENCHMARK_H
+#pragma once
+
 class Client {
 public:
     int start_benchmark_client(int argc, char **argv);
 };
-#endif
