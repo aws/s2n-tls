@@ -44,7 +44,7 @@ void print_s2n_error(const char *app_error)
 /* Poll the given file descriptor for an event determined by the blocked status */
 int wait_for_event(int fd, s2n_blocked_status blocked)
 {
-    struct pollfd reader = {.fd = fd, .events = 0};
+    struct pollfd reader = { .fd = fd, .events = 0 };
 
     switch (blocked) {
     case S2N_NOT_BLOCKED:
