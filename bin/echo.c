@@ -119,7 +119,7 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     return S2N_SUCCESS;
 }
 
-void print_connection_data(struct s2n_connection *conn,  bool session_resumed)
+int print_connection_data(struct s2n_connection *conn,  bool session_resumed)
 {
     int client_hello_version;
     int client_protocol_version;
@@ -171,6 +171,7 @@ void print_connection_data(struct s2n_connection *conn,  bool session_resumed)
     if (status && length > 0) {
         fprintf(stderr, "OCSP response received, length %u\n", length);
     }
+    return 0;
 }
 
 void psk_early_data(struct s2n_connection *conn,  bool session_resumed)

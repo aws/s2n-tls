@@ -65,7 +65,7 @@ int wait_for_event(int fd, s2n_blocked_status blocked);
 int negotiate(struct s2n_connection *conn, int sockfd);
 int early_data_recv(struct s2n_connection *conn);
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len);
-void print_connection_data(struct s2n_connection *conn, bool session_resumed);
+int print_connection_data(struct s2n_connection *conn, bool session_resumed);
 void psk_early_data(struct s2n_connection *conn, bool session_resumed);
 int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
