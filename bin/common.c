@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <strings.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
