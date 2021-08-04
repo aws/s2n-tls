@@ -44,7 +44,7 @@ void print_s2n_error(const char *app_error)
 /* Poll the given file descriptor for an event determined by the blocked status */
 int wait_for_event(int fd, s2n_blocked_status blocked)
 {
-    struct pollfd reader = {fd, 0};
+    struct pollfd reader = {.fd = fd, .events = 0};
 
     switch (blocked) {
     case S2N_NOT_BLOCKED:
@@ -81,7 +81,7 @@ int early_data_recv(struct s2n_connection *conn)
     ssize_t total_data_recv = 0;
     ssize_t data_recv = 0;
     bool server_success = 0;
-    s2n_blocked_status blocked = (s2n_blocked_status)0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint8_t *early_data_received = (uint8_t*)malloc(max_early_data_size);
     GUARD_EXIT_NULL(early_data_received);
 
@@ -93,7 +93,7 @@ int early_data_recv(struct s2n_connection *conn)
 
     if (total_data_recv > 0) {
         fprintf(stdout, "Early Data received: ");
-        for (size_t i = 0; i < (size_t)total_data_recv; i++) {
+        for (size_t i = 0; i < (ssize_t)total_data_recv; i++) {
             fprintf(stdout, "%c", early_data_received[i]);
         }
         fprintf(stdout, "\n");
@@ -160,16 +160,17 @@ int print_connection_data(struct s2n_connection *conn,  bool session_resumed)
     printf("Curve: %s\n", s2n_connection_get_curve(conn));
     printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
     printf("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
-    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
-
-    if (session_resumed) {
-        printf("Resumed session\n");
-    }
 
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
     if (status && length > 0) {
         fprintf(stderr, "OCSP response received, length %u\n", length);
+    }
+
+    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+
+    if (session_resumed) {
+        printf("Resumed session\n");
     }
     return 0;
 }
