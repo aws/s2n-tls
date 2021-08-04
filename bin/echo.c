@@ -106,7 +106,7 @@ int early_data_recv(struct s2n_connection *conn)
 
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
 {
-    s2n_blocked_status blocked = (s2n_blocked_status)0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     ssize_t total_data_sent = 0;
     ssize_t data_sent = 0;
     bool client_success = 0;
