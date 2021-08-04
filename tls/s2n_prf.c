@@ -364,10 +364,13 @@ S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn)
 S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    if (!conn->prf_space) {
+    if (conn->prf_space == NULL) {
         return S2N_RESULT_OK;
     }
 
+    /* cppcheck-suppress nullPointerRedundantCheck
+     * cppcheck doesn't recognize the early exit if conn->prf_space == NULL.
+     */
     conn->prf_space->p_hash_hmac_impl = s2n_get_hmac_implementation();
     RESULT_GUARD_POSIX(conn->prf_space->p_hash_hmac_impl->free(conn->prf_space));
 

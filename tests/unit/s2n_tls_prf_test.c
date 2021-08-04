@@ -190,33 +190,86 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls12_chain_and_key));
     }
 
-    /* Connection lifecyle */
+    /* PRF lifecyle */
     {
-        struct s2n_blob pms = {0};
-        EXPECT_SUCCESS(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
+        /* Safety */
+        {
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_new(NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_wipe(NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_free(NULL), S2N_ERR_NULL);
 
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
-        EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
-        EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+            struct s2n_connection conn_with_null_prf_space = { 0 };
+            EXPECT_NULL(conn_with_null_prf_space.prf_space);
 
-        EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
-        EXPECT_NULL(conn->prf_space);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls_prf_master_secret(conn, &pms), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_wipe(&conn_with_null_prf_space), S2N_ERR_NULL);
+            EXPECT_OK(s2n_prf_free(&conn_with_null_prf_space));
+        }
 
-        EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
-        EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
-        EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+        /* Basic lifecyle */
+        {
+            struct s2n_connection lconn = { 0 };
+            EXPECT_NULL(lconn.prf_space);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_OK(s2n_prf_new(&lconn));
+            EXPECT_NOT_NULL(lconn.prf_space);
+
+            EXPECT_OK(s2n_prf_wipe(&lconn));
+            EXPECT_NOT_NULL(lconn.prf_space);
+
+            EXPECT_OK(s2n_prf_free(&lconn));
+            EXPECT_NULL(lconn.prf_space);
+        }
+
+        /* PRF freed by s2n_connection_free_handshake */
+        {
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+            EXPECT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Freed PRF restored by s2n_connection_wipe */
+        {
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_OK(s2n_prf_free(conn));
+            EXPECT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            EXPECT_NOT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* PRF useable throughout connection lifecycle */
+        {
+            struct s2n_blob pms = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
+
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+            EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+            EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls_prf_master_secret(conn, &pms), S2N_ERR_NULL);
+
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+            EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+            EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     END_TEST();
