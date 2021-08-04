@@ -350,7 +350,14 @@ S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->prf_space);
-    RESULT_GUARD_POSIX(s2n_hmac_reset(&conn->prf_space->p_hash.s2n_hmac));
+
+    /* If we actually initialized s2n_hmac, wipe it.
+     * A valid, initialized s2n_hmac_state will have a valid block size.
+     */
+    if (conn->prf_space->p_hash.s2n_hmac.hash_block_size != 0) {
+        RESULT_GUARD_POSIX(s2n_hmac_reset(&conn->prf_space->p_hash.s2n_hmac));
+    }
+
     return S2N_RESULT_OK;
 }
 
