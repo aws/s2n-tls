@@ -53,8 +53,6 @@ struct session_cache_entry {
     uint8_t value_len;
 };
 
-struct session_cache_entry session_cache[256];
-
 struct verify_data {
     const char *trusted_host;
 };

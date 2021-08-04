@@ -24,6 +24,8 @@
 #include <error/s2n_errno.h>
 #include "utils/s2n_safety.h"
 
+struct session_cache_entry session_cache[256];
+
 char *load_file_to_cstring(const char *path)
 {
     FILE *pem_file = fopen(path, "rb");

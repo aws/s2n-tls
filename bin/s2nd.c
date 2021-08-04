@@ -150,6 +150,8 @@ uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf
                                   0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
                                   0xb3, 0xe5 };
 
+struct session_cache_entry session_cache[256];
+
 /*
  * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
  * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
