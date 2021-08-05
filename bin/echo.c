@@ -13,23 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <poll.h>
 #include <netdb.h>
 
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include <s2n.h>
-#include <error/s2n_errno.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
 #include "common.h"
 
@@ -93,7 +86,7 @@ int early_data_recv(struct s2n_connection *conn)
 
     if (total_data_recv > 0) {
         fprintf(stdout, "Early Data received: ");
-        for (size_t i = 0; i < (ssize_t)total_data_recv; i++) {
+        for (ssize_t i = 0; i < total_data_recv; i++) {
             fprintf(stdout, "%c", early_data_received[i]);
         }
         fprintf(stdout, "\n");
@@ -119,7 +112,7 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     return S2N_SUCCESS;
 }
 
-int print_connection_data(struct s2n_connection *conn,  bool session_resumed)
+int print_connection_data(struct s2n_connection *conn)
 {
     int client_hello_version;
     int client_protocol_version;
@@ -169,14 +162,16 @@ int print_connection_data(struct s2n_connection *conn,  bool session_resumed)
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
-    if (session_resumed) {
-        printf("Resumed session\n");
-    }
     return 0;
 }
 
-void psk_early_data(struct s2n_connection *conn,  bool session_resumed)
+void psk_early_data(struct s2n_connection *conn)
 {
+    bool session_resumed = s2n_connection_is_session_resumed(conn);
+    if (session_resumed) {
+        printf("Resumed session\n");
+    }
+
     uint16_t identity_length = 0;
     GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length), "Error getting negotiated psk identity length from the connection\n");
     if (identity_length != 0 && !session_resumed) {
@@ -218,11 +213,9 @@ int negotiate(struct s2n_connection *conn, int fd)
         }
     }
 
-    bool session_resumed = s2n_connection_is_session_resumed(conn);
+    print_connection_data(conn);
 
-    print_connection_data(conn, session_resumed);
-
-    psk_early_data(conn, session_resumed);
+    psk_early_data(conn);
 
     printf("s2n is ready\n");
     return 0;

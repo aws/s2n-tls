@@ -13,27 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include <netinet/tcp.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <poll.h>
 #include <netdb.h>
-
-#include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
-#include <signal.h>
-#include <stdio.h>
 #include <getopt.h>
-
 #include <errno.h>
-
-#include <error/s2n_errno.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
