@@ -337,8 +337,21 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     // The Cryptol representations are defined here: tests/saw/spec/handshake/s2n_handshake_io.cry
-    crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    crucible_points_to (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
+    //
+    // Note that we use crucible_points_to_untyped here rather than
+    // crucible_points_to because LLVM 7 and later represent static arrays that
+    // are partially initialized with zeroes as packed structs. For more
+    // information, see
+    // https://llvm.discourse.group/t/array-layout-changed-by-clang-llvm-starting-from-version-7/2271
+    //
+    // Changing the Cryptol definitions of the state machines to match these
+    // new types would be annoying, and moreover, it isn't guaranteed that
+    // future versions of LLVM won't change the types further. Fortunately, the
+    // in-memory representation of the arrays hasn't changed, just the types.
+    // As a result, we can use crucible_points_to_untyped to check if the two
+    // state machines are bitwise equivalent without checking the types.
+    crucible_points_to_untyped (crucible_global "handshakes") (crucible_term {{ handshakes }});
+    crucible_points_to_untyped (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
     
     let messages = [ {{CLIENT_HELLO : [5]}}
                    , {{SERVER_HELLO : [5]}}
