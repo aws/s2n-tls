@@ -14,6 +14,7 @@
  */
 
 #include <unistd.h>
+#include <stdio.h>
 #include "s2n_neg_client_benchmark.h"
 #include "s2n_neg_server_benchmark.h"
 
@@ -24,6 +25,8 @@ int main(int argc, char** argv) {
         s.start_benchmark_server(argc, argv);
     }
     else {
+        unsigned int microsecond = 1000000;
+        usleep(0.1 * microsecond);
         Client c;
         c.start_benchmark_client(argc, argv);
     }
