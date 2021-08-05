@@ -69,7 +69,7 @@ int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
 
 int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
-int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size);
 int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size);
 
 char *load_file_to_cstring(const char *path);
