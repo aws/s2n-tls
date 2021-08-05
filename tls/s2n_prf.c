@@ -72,7 +72,7 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
 
         struct s2n_hash_state *md5 = workspace;
         POSIX_GUARD(s2n_hash_reset(md5));
-        POSIX_GUARD(s2n_hash_init(sha1, S2N_HASH_MD5));
+        POSIX_GUARD(s2n_hash_init(md5, S2N_HASH_MD5));
         POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
         POSIX_GUARD(s2n_hash_digest(md5, md5_digest, sizeof(md5_digest)));
@@ -335,12 +335,13 @@ S2N_RESULT s2n_prf_new(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_EQ(conn->prf_space, NULL);
 
-    DEFER_CLEANUP(struct s2n_blob data = { 0 }, s2n_free);
-    RESULT_GUARD_POSIX(s2n_realloc(&data, sizeof(struct s2n_prf_working_space)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&data));
-    conn->prf_space = (struct s2n_prf_working_space*)(void*) data.data;
-    ZERO_TO_DISABLE_DEFER_CLEANUP(data);
+    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
+    RESULT_GUARD_POSIX(s2n_realloc(&mem, sizeof(struct s2n_prf_working_space)));
+    RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
+    conn->prf_space = (struct s2n_prf_working_space*)(void*) mem.data;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
+    /* Allocate the hmac state */
     conn->prf_space->p_hash_hmac_impl = s2n_get_hmac_implementation();
     RESULT_GUARD_POSIX(conn->prf_space->p_hash_hmac_impl->alloc(conn->prf_space));
     return S2N_RESULT_OK;

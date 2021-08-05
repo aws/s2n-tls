@@ -207,17 +207,17 @@ int main(int argc, char **argv)
 
         /* Basic lifecyle */
         {
-            struct s2n_connection lconn = { 0 };
-            EXPECT_NULL(lconn.prf_space);
+            struct s2n_connection connection = { 0 };
+            EXPECT_NULL(connection.prf_space);
 
-            EXPECT_OK(s2n_prf_new(&lconn));
-            EXPECT_NOT_NULL(lconn.prf_space);
+            EXPECT_OK(s2n_prf_new(&connection));
+            EXPECT_NOT_NULL(connection.prf_space);
 
-            EXPECT_OK(s2n_prf_wipe(&lconn));
-            EXPECT_NOT_NULL(lconn.prf_space);
+            EXPECT_OK(s2n_prf_wipe(&connection));
+            EXPECT_NOT_NULL(connection.prf_space);
 
-            EXPECT_OK(s2n_prf_free(&lconn));
-            EXPECT_NULL(lconn.prf_space);
+            EXPECT_OK(s2n_prf_free(&connection));
+            EXPECT_NULL(connection.prf_space);
         }
 
         /* PRF freed by s2n_connection_free_handshake */
