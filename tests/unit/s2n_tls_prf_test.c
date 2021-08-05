@@ -243,7 +243,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* PRF useable throughout connection lifecycle */
+        /* PRF usable throughout connection lifecycle */
         {
             struct s2n_blob pms = {0};
             EXPECT_SUCCESS(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
