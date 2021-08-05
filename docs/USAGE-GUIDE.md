@@ -474,6 +474,21 @@ int s2n_init();
 before any other s2n-tls functions are called. Failure to call s2n_init() will result
 in errors from other s2n-tls functions.
 
+### s2n\_crypto\_disable\_init
+
+```c
+void s2n_crypto_disable_init();
+```
+
+**s2n_crypto_disable_init** prevents s2n-tls from initializing or tearing down the crypto
+library. This is most useful when s2n-tls is embedded in an application or environment that
+shares usage of the OpenSSL or libcrypto library. Note that if you disable this and are
+using a version of OpenSSL/libcrypto < 1.1.x, you will be responsible for library init
+and cleanup (specifically OPENSSL_add_all_algorithms() or OPENSSL_crypto_init), and
+`EVP_*` APIs will not be usable unless the library is initialized.
+
+This function must be called BEFORE `s2n_init()` to have any effect.
+
 ### s2n\_cleanup
 
 ```c
