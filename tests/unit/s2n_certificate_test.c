@@ -477,6 +477,15 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(is_present, false);
             }
 
+            /* Test failure case for invalid X509 extension OID */
+            {
+                size_t invalid_test_case = s2n_array_len(test_cases) - 1;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
+                                                     &test_cases[i].ext_value_len), S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
+                EXPECT_EQUAL(is_present, true);
+            }
+
+
         }
 
         /* Test s2n_cert_get_x509_extension_value */
