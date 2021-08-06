@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(
         s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    /* Test s2n_cert_chain_get_length */ 
+    /* Test s2n_cert_chain_get_length */
     {
         uint32_t length = 0;
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
         struct s2n_cert *cur_cert = chain_and_key->cert_chain->head;
 
-        /* Test error case for invalid cert_idx, the valid range of cert_idx is 0 to cert_chain_length - 1 */  
+        /* Test error case for invalid cert_idx, the valid range of cert_idx is 0 to cert_chain_length - 1 */
         cert_idx = S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH;
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_get_cert(chain_and_key, &out_cert, cert_idx), S2N_ERR_NO_CERT_FOUND);
 
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 
     }
 
-    /* Test s2n_cert_get_der */ 
+    /* Test s2n_cert_get_der */
     {
         struct s2n_cert *cert = chain_and_key->cert_chain->head;
         const uint8_t *out_cert_der = NULL;
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_cert_get_der(cert, &out_cert_der, &cert_len));
-        EXPECT_EQUAL(cert_len, cert->raw.size); 
+        EXPECT_EQUAL(cert_len, cert->raw.size);
         EXPECT_BYTEARRAY_EQUAL(out_cert_der, cert->raw.data, cert_len);
     }
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(config_with_x509_verification, false));
 
         /* Test s2n_connection_get_peer_cert_chain failure cases with error codes */
-        {            
+        {
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_skip_x509_verification));
             EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 1);
 
@@ -239,10 +239,10 @@ int main(int argc, char **argv)
         /* Test s2n_connection_get_peer_cert_chain success on the server side */
         {
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_skip_x509_verification));
-            EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 1);  
-    
+            EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 1);
+
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_x509_verification));
-            EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 0);  
+            EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 0);
 
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -268,10 +268,10 @@ int main(int argc, char **argv)
         /* Test s2n_connection_get_peer_cert_chain success on the client side */
         {
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_skip_x509_verification));
-            EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 1);  
-    
+            EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 1);
+
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_x509_verification));
-            EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 0);  
+            EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 0);
 
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -406,21 +406,21 @@ int main(int argc, char **argv)
                 .oid = "1.2.3.4.5.6.7890.1.2.100.2",
                 .expected_utf8 = "IP Address:12.345.67.890",
                 .expected_der = custom_oid_2_blob,
-                .critical = false 
+                .critical = false
             },
             {   .oid = "1.2.3.4.5.6.7890.1.2.100.3",
                 .expected_utf8 = "DNS:12.345.67.890.auto.pdx.ec2.substrate",
                 .expected_der = custom_oid_3_blob,
-                .critical = false 
+                .critical = false
             },
             {   .oid = "1.2.3.4.5.6.7890.1.2.100",
                 .critical = false
             },
         };
 
-        /* Test s2n_cert_get_x509_extension_value_length */ 
+        /* Test s2n_cert_get_x509_extension_value_length */
         {
-            /* Safety checks */ 
+            /* Safety checks */
             {
                 const uint8_t oid[] = "Example X509 extension OID";
                 uint32_t ext_value_len = 0;
@@ -445,9 +445,43 @@ int main(int argc, char **argv)
 
         }
 
+        /* Test s2n_cert_get_x509_extension_value_length_exists */
+        {
+            /* Safety checks */
+            {
+                const uint8_t oid[] = "Example X509 extension OID";
+                uint32_t ext_value_len = 0;
+                bool is_present = false;
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length_exists(NULL, oid, &ext_value_len, &is_present), S2N_ERR_NULL);
+                EXPECT_EQUAL(is_present, false);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length_exists(cert, NULL, &ext_value_len, &is_present), S2N_ERR_NULL);
+                EXPECT_EQUAL(is_present, false);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length_exists(cert, oid, NULL, &is_present), S2N_ERR_NULL);
+                EXPECT_EQUAL(is_present, false);
+            }
+
+            /* Test success cases */
+            bool is_present = false;
+            for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
+                EXPECT_SUCCESS(s2n_cert_get_x509_extension_value_length_exists(cert, (const uint8_t *)test_cases[i].oid, &test_cases[i].ext_value_len, &is_present));
+                EXPECT_EQUAL(test_cases[i].ext_value_len, test_cases[i].expected_der.size);
+                EXPECT_EQUAL(is_present, true);
+            }
+
+            /* Test failure case for invalid X509 extension OID */
+            {
+                size_t invalid_test_case = s2n_array_len(test_cases) - 1;
+                EXPECT_SUCCESS(s2n_cert_get_x509_extension_value_length_exists(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
+                                                     &test_cases[i].ext_value_len, &is_present));
+                EXPECT_EQUAL(is_present, false);
+            }
+
+        }
+
         /* Test s2n_cert_get_x509_extension_value */
         {
-            /* Safety checks */ 
+            /* Safety checks */
             {
                 const uint8_t oid[] = "Example X509 extension OID";
                 EXPECT_SUCCESS(s2n_alloc(&ext_value, ext_value_MAX_LEN));
@@ -456,7 +490,7 @@ int main(int argc, char **argv)
                                                     ext_value.data, &ext_value.size, &critical), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, NULL,
                                                     ext_value.data, &ext_value.size, &critical), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid, 
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid,
                                                     NULL, &ext_value.size, &critical), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid,
                                                     ext_value.data, NULL, &critical), S2N_ERR_NULL);
@@ -491,14 +525,14 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_alloc(&test_cases[invalid_test_case].returned_der, ext_value_MAX_LEN));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
                                                     test_cases[invalid_test_case].returned_der.data,
-                                                    &test_cases[invalid_test_case].returned_der.size, &critical), 
+                                                    &test_cases[invalid_test_case].returned_der.size, &critical),
                                                     S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
             }
         }
 
         /* Test s2n_cert_get_utf8_string_from_extension_data_length */
         {
-            /* Safety checks */ 
+            /* Safety checks */
             {
                 const uint8_t der_ext_value[] = "DER encoded X509 extension value";
                 size_t der_ext_value_len = strlen((const char *)der_ext_value);
@@ -518,7 +552,7 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(test_cases[i].utf8_len, strlen((const char *)test_cases[i].expected_utf8));
                 } else {
                     EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(
-                                                  test_cases[i].returned_der.data, 
+                                                  test_cases[i].returned_der.data,
                                                   test_cases[i].returned_der.size,
                                                   &test_cases[i].utf8_len), S2N_ERR_INVALID_X509_EXTENSION_TYPE);
                 }
@@ -531,7 +565,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(
                                                                         test_cases[insuf_test_case].returned_der.data,
                                                                         test_cases[insuf_test_case].returned_der.size,
-                                                                        utf8_str.data, &utf8_str.size), 
+                                                                        utf8_str.data, &utf8_str.size),
                                                                         S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
             }
@@ -540,7 +574,7 @@ int main(int argc, char **argv)
 
         /* Test s2n_cert_get_utf8_string_from_extension_data */
         {
-            /* Safety checks */ 
+            /* Safety checks */
             {
                 const uint8_t der_ext_value[] = "DER encoded X509 extension value";
                 size_t der_ext_value_len = strlen((const char *)der_ext_value);
@@ -577,7 +611,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(
                                                                         test_cases[insuf_test_case].returned_der.data,
                                                                         test_cases[insuf_test_case].returned_der.size,
-                                                                        utf8_str.data, &utf8_str.size), 
+                                                                        utf8_str.data, &utf8_str.size),
                                                                         S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
             }
