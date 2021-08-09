@@ -340,7 +340,9 @@ testConnection = {
             key_exchange_eph = False,
             client_auth_flag = False,
             actual_protocol_version = 0x22,
-            no_client_cert = True
+            no_client_cert = True,
+            early_data_state = zero,
+            chosen_psk_null = True
         }
 
 type Character = [8]
