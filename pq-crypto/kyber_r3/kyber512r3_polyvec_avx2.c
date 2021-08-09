@@ -3,8 +3,6 @@
 #include "kyber512r3_polyvec_avx2.h"
 #include "kyber512r3_poly_avx2.h"
 #include "kyber512r3_consts_avx2.h"
-
-#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #include <immintrin.h>
 
 static void poly_compress10(uint8_t r[320], const poly * restrict a)
@@ -224,4 +222,3 @@ void polyvec_add_avx2(polyvec *r, const polyvec *a, const polyvec *b)
   for(i=0;i<S2N_KYBER_512_R3_K;i++)
     poly_add_avx2(&r->vec[i], &a->vec[i], &b->vec[i]);
 }
-#endif

@@ -32,12 +32,9 @@
 #endif
 #endif
 
-
-#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #ifndef __ASSEMBLER__
 #include "kyber512r3_align_avx2.h"
 typedef ALIGNED_INT16(640) qdata_t;
 #define qdata S2N_KYBER_512_R3_NAMESPACE(qdata)
 extern const qdata_t qdata;
-#endif
 #endif

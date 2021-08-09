@@ -3,8 +3,6 @@
 #include "kyber512r3_params.h"
 #include "kyber512r3_consts_avx2.h"
 #include "kyber512r3_rejsample_avx2.h"
-
-#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #include <immintrin.h>
 
 //#define BMI
@@ -417,4 +415,3 @@ unsigned int rej_uniform_avx2(int16_t * restrict r, const uint8_t *buf)
 
   return ctr;
 }
-#endif
