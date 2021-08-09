@@ -1,6 +1,7 @@
 #include "kyber512r3_align_avx2.h"
 #include "kyber512r3_consts_avx2.h"
 
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #define Q S2N_KYBER_512_R3_Q
 #define MONT -1044 // 2^16 mod q
 #define QINV -3327 // q^-1 mod 2^16
@@ -118,3 +119,4 @@ const qdata_t qdata = {{
   SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT,
   SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT
 }};
+#endif

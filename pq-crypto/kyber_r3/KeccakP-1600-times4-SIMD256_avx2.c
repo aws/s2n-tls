@@ -17,6 +17,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <stdlib.h>
 #include <string.h>
 // extra headers are removed: smmintrin.h, wmmintrin.h and emmintrin.h
+
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #include <immintrin.h>
 #include "KeccakP-align_avx2.h"
 #include "KeccakP-1600-times4-SnP_avx2.h"
@@ -1279,3 +1281,4 @@ size_t KeccakP1600times4_12rounds_FastLoop_Absorb(void *states, unsigned int lan
         return data - dataStart;
     }
 }
+#endif
