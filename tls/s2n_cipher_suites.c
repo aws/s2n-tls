@@ -994,6 +994,11 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
     .suites = s2n_all_tls13_cipher_suites,
 };
 
+static bool should_init_crypto = true;
+void s2n_crypto_disable_init(void) {
+    should_init_crypto = false;
+}
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
@@ -1037,12 +1042,14 @@ int s2n_cipher_suites_init(void)
         }
     }
 
+    if (should_init_crypto) {
 #if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
-    OpenSSL_add_all_algorithms();
+        /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+        OpenSSL_add_all_algorithms();
 #else
-    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+        OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
 #endif
+    }
 
     return 0;
 }
@@ -1063,13 +1070,15 @@ int s2n_cipher_suites_cleanup(void)
         cur_suite->sslv3_cipher_suite = NULL;
     }
 
+    if (should_init_crypto) {
 #if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
-    EVP_cleanup();
+        /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+        EVP_cleanup();
 
-    /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
-     * cleanup in later versions */
+        /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
+        * cleanup in later versions */
 #endif
+    }
 
     return 0;
 }

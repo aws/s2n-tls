@@ -77,6 +77,14 @@ extern int s2n_error_get_type(int error);
 struct s2n_config;
 struct s2n_connection;
 
+/**
+ * Prevents S2N from calling `OPENSSL_crypto_init`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
+ * prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate
+ * with S2N.
+ */
+S2N_API
+extern void s2n_crypto_disable_init(void);
+
 S2N_API
 extern unsigned long s2n_get_openssl_version(void);
 S2N_API
