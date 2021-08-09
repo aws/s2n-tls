@@ -112,7 +112,7 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     return S2N_SUCCESS;
 }
 
-int print_connection_data(struct s2n_connection *conn)
+int print_connection_info(struct s2n_connection *conn)
 {
     int client_hello_version;
     int client_protocol_version;
@@ -162,11 +162,6 @@ int print_connection_data(struct s2n_connection *conn)
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
-    return 0;
-}
-
-void psk_early_data(struct s2n_connection *conn)
-{
     bool session_resumed = s2n_connection_is_session_resumed(conn);
     if (session_resumed) {
         printf("Resumed session\n");
@@ -193,6 +188,8 @@ void psk_early_data(struct s2n_connection *conn)
     }
     GUARD_EXIT_NULL(status_str);
     printf("Early Data status: %s\n", status_str);
+
+    return 0;
 }
 
 int negotiate(struct s2n_connection *conn, int fd)
@@ -213,9 +210,7 @@ int negotiate(struct s2n_connection *conn, int fd)
         }
     }
 
-    print_connection_data(conn);
-
-    psk_early_data(conn);
+    print_connection_info(conn);
 
     printf("s2n is ready\n");
     return 0;
