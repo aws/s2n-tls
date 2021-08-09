@@ -275,7 +275,7 @@ let s2n_connection_get_client_auth_type_spec = do{
 };
 
 // Specification for s2n_conn_set_handshake_type that sets up simulation of it
-// by conn_set_{tls13_}handshake_type (low-level model function)
+// by conn_set_handshake_type (low-level model function)
 let s2n_conn_set_handshake_type_spec chosen_psk_null = do {
     (pconn, conn) <- setup_connection chosen_psk_null;
     // we assume that the handshake struct denotes a valid handshake state
@@ -290,14 +290,12 @@ let s2n_conn_set_handshake_type_spec chosen_psk_null = do {
 
     // Next we check that the changes to s2n_connection fields are
     // simulated by the low-level specification of the function. We do
-    // this by running the model function conn_set_{tls13_}handshake_type on the
+    // this by running the model function conn_set_handshake_type on the
     // deserealized pre-state of the s2n_connection struct and checking
     // that values of the fields of the resulting struct match the fields
     // of the post-state of the s2n_connection struct. In this case only handshake
     // type should change
-    let conn' = {{ if IS_TLS13_HANDSHAKE conn
-                      then conn_set_tls13_handshake_type conn
-                      else conn_set_handshake_type conn }};
+    let conn' = {{ conn_set_handshake_type conn }};
     crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
 

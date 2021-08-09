@@ -5,11 +5,19 @@
 module s2n_handshake_io where
 
 // This function models the update of the s2n_connection struct by the
+// s2n_conn_set_handshake_type function in s2n.
+conn_set_handshake_type : connection -> connection
+conn_set_handshake_type conn =
+  if IS_TLS13_HANDSHAKE conn
+  then conn_set_tls13_handshake_type conn
+  else conn_set_pre_tls13_handshake_type conn
+
+// This function models the update of the s2n_connection struct by the
 // s2n_conn_set_handshake_type function in s2n. This only models the
 // pre-TLS 1.3 code path; see conn_set_tls13_handshake_type for a model of the
 // TLS 1.3 code path.
-conn_set_handshake_type : connection -> connection
-conn_set_handshake_type conn = conn'
+conn_set_pre_tls13_handshake_type : connection -> connection
+conn_set_pre_tls13_handshake_type conn = conn'
   where conn' = {handshake = handshake'
                 ,mode = conn.mode
                 ,corked_io = conn.corked_io
