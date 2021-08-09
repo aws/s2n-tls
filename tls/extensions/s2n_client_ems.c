@@ -21,36 +21,26 @@
 
 #include "utils/s2n_safety.h"
 
-static int s2n_client_ems_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static bool s2n_client_ems_should_send(struct s2n_connection *conn);
 
+/**
+ *= https://tools.ietf.org/rfc/rfc7627#section-5.1
+ *#
+ *#   This document defines a new TLS extension, "extended_master_secret"
+ *#   (with extension type 0x0017), which is used to signal both client and
+ *#   server to use the extended master secret computation.  The
+ *#   "extension_data" field of this extension is empty.  Thus, the entire
+ *#   encoding of the extension is 00 17 00 00 (in hexadecimal.)
+ **/
 const s2n_extension_type s2n_client_ems_extension = {
     .iana_value = TLS_EXTENSION_EMS,
     .is_response = false,
-    .send = s2n_client_ems_send,
+    .send = s2n_extension_send_noop,
     .recv = s2n_client_ems_recv,
     .should_send = s2n_client_ems_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
-
-static int s2n_client_ems_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    POSIX_ENSURE_REF(conn);
-
-    /** Write nothing. The extension just needs to exist.
-     *
-     *= https://tools.ietf.org/rfc/rfc7627#section-5.1
-     *# 
-     *#   This document defines a new TLS extension, "extended_master_secret"
-     *#   (with extension type 0x0017), which is used to signal both client and
-     *#   server to use the extended master secret computation.  The
-     *#   "extension_data" field of this extension is empty.  Thus, the entire
-     *#   encoding of the extension is 00 17 00 00 (in hexadecimal.)
-     **/
-
-    return S2N_SUCCESS;
-}
 
 static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {

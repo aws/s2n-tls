@@ -15,8 +15,7 @@
 
 #include "s2n_test.h"
 
-/* For testing static function s2n_server_ems_should_send */
-#include "tls/extensions/s2n_server_ems.c"
+#include "tls/extensions/s2n_ems.h"
 
 int main(int argc, char **argv)
 {
@@ -29,11 +28,11 @@ int main(int argc, char **argv)
 
         /* Protocol version is too high */
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_FALSE(s2n_server_ems_should_send(conn));
+        EXPECT_FALSE(s2n_server_ems_extension.should_send(conn));
 
         /* Protocol version is less than TLS1.3 */
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_TRUE(s2n_server_ems_should_send(conn));
+        EXPECT_TRUE(s2n_server_ems_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
