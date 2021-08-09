@@ -1,5 +1,6 @@
 #include "kyber512r3_consts_avx2.h"
 
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
 // The small macros (.inc files) are combined with .S files directly
 /*****.include "shuffle.inc"*****/
 /********************************/
@@ -216,3 +217,4 @@ levels1t6   0
 levels1t6   1
 
 ret
+#endif

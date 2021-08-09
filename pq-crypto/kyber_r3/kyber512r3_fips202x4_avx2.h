@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "kyber512r3_params.h"
+
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #include <immintrin.h>
 
 #define keccakx4_state S2N_KYBER_512_R3_NAMESPACE(keccakx4_state)
@@ -65,3 +67,4 @@ void shake256x4(uint8_t *out0,
                 const uint8_t *in2,
                 const uint8_t *in3,
                 size_t inlen);
+#endif

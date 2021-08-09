@@ -3,6 +3,8 @@
 #include <string.h>
 #include "kyber512r3_fips202.h"
 #include "kyber512r3_fips202x4_avx2.h"
+
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
 #include <immintrin.h>
 
 #define KeccakF1600_StatePermute4x S2N_KYBER_512_R3_NAMESPACE(KeccakP1600times4_PermuteAll_24rounds)
@@ -205,3 +207,4 @@ void shake256x4(uint8_t *out0,
     }
   }
 }
+#endif
