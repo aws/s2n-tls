@@ -72,6 +72,9 @@ static int DEBUG_PRINT = 0;
 static int DEBUG_CIPHER = 0;
 static unsigned int ITERATIONS = 50;
 unsigned int corked = 0;
+int fd_bench = 0;
+struct s2n_config *config_once;
+struct conn_settings conn_settings;
 
 static struct s2n_cipher_suite *all_suites[] = {
         &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
@@ -227,9 +230,14 @@ uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void 
     return 1;
 }
 
-static int benchmark_negotiate(struct s2n_connection *conn, int fd) {
+static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state) {
     s2n_blocked_status blocked;
-    if (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
+    int s2n_ret;
+    state.ResumeTiming();
+    benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
+    state.PauseTiming();
+    benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
+    if (s2n_ret != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
                     s2n_strerror(s2n_errno, "EN"),
@@ -246,8 +254,7 @@ static int benchmark_negotiate(struct s2n_connection *conn, int fd) {
     }
 
     if(DEBUG_PRINT) {
-        print_connection_data(conn);
-        psk_early_data(conn);
+        print_connection_info(conn);
     }
 
     if (DEBUG_PRINT) {
@@ -256,86 +263,94 @@ static int benchmark_negotiate(struct s2n_connection *conn, int fd) {
     return 0;
 }
 
-static int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings, int suite_num) {
-    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    if (!conn) {
-        print_s2n_error("Error getting new s2n connection");
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
-
-    if (settings.self_service_blinding) {
-        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
-    }
-
-    if (settings.mutual_auth) {
-        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED),
-                     "Error setting client auth type");
-
-        if (settings.ca_dir || settings.ca_file) {
-            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir),
-                         "Error adding verify location");
+static int ServerBenchmark(benchmark::State& state) {
+    for(auto _ : state) {
+        state.PauseTiming();
+        int fd = fd_bench;
+        struct s2n_config *config = config_once;
+        struct conn_settings settings = conn_settings;
+        //int suite_num = state.range(0);
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        if (!conn) {
+            print_s2n_error("Error getting new s2n connection");
+            S2N_ERROR_PRESERVE_ERRNO();
         }
 
-        if (settings.insecure) {
-            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
+        if (settings.self_service_blinding) {
+            s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
         }
-    }
 
-    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
-
-    if (settings.prefer_throughput) {
-        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
-    }
-
-    if (settings.prefer_low_latency) {
-        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
-    }
-
-    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
-
-    if (settings.use_corked_io) {
-        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
-    }
-
-    GUARD_RETURN(
-            s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
-            "Error setting external psk list");
-
-    GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
-
-    if (benchmark_negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
-            if (!s2n_connection_client_cert_used(conn)) {
-                print_s2n_error("Error: Mutual Auth was required, but not negotiated");
+            GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED),
+                         "Error setting client auth type");
+
+            if (settings.ca_dir || settings.ca_file) {
+                GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir),
+                             "Error adding verify location");
+            }
+
+            if (settings.insecure) {
+                GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
             }
         }
 
-        S2N_ERROR_PRESERVE_ERRNO();
+        GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+        if (settings.prefer_throughput) {
+            GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
+        }
+
+        if (settings.prefer_low_latency) {
+            GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
+        }
+
+        GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
+
+        if (settings.use_corked_io) {
+            GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
+        }
+
+        GUARD_RETURN(
+                s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
+                "Error setting external psk list");
+
+        GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
+
+        if (benchmark_negotiate(conn, fd, state) != S2N_SUCCESS) {
+            if (settings.mutual_auth) {
+                if (!s2n_connection_client_cert_used(conn)) {
+                    print_s2n_error("Error: Mutual Auth was required, but not negotiated");
+                }
+            }
+
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+
+        GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
+        s2n_blocked_status blocked;
+        s2n_shutdown(conn, &blocked);
+
+        GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
+
+        GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
     }
-
-    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
-
-    s2n_blocked_status blocked;
-    s2n_shutdown(conn, &blocked);
-
-    GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
-
-    GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
-
     return 0;
 }
 
 
 int Server::start_benchmark_server(int argc, char **argv) {
     struct addrinfo hints, *ai;
-    int r, sockfd, fd_bench = 0;
+    int r, sockfd = 0;
 
-    struct conn_settings conn_settings = {0};
+    conn_settings = {0};
+
+    //default host/port values
     const char *host = "localhost";
     const char *port = "8000";
 
     while (1) {
-        int c = getopt(argc, argv, "c:i:sD");
+        int c = getopt(argc, argv, "c:i:o:sD");
         if (c == -1) {
             break;
         }
@@ -350,8 +365,15 @@ int Server::start_benchmark_server(int argc, char **argv) {
             case 'i':
                 ITERATIONS = atoi(optarg);
                 break;
+            case 'o':
+                char str[80];
+                strcpy(str, "server_");
+                strcat(str, optarg);
+                freopen(str, "w", stdout);
+                break;
             case 's':
-                conn_settings.insecure = 0;
+                conn_settings.mutual_auth = 1;
+                conn_settings.insecure = 1;
                 break;
             case 'D':
                 DEBUG_PRINT = 1;
@@ -371,6 +393,17 @@ int Server::start_benchmark_server(int argc, char **argv) {
     if (optind < argc) {
         port = argv[optind++];
     }
+
+    char **newv = (char**)malloc((argc + 3) * sizeof(*newv));
+    memmove(newv, argv, sizeof(*newv) * argc);
+    char bench_out[] = "--benchmark_out=server_output.txt";
+    newv[argc] = bench_out;
+    char bench_format[] = "--benchmark_format=json";
+    newv[argc+1] = bench_format;
+    newv[argc+2] = 0;
+    argc+=2;
+    argv = newv;
+
 
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "test_all_tls12";
@@ -424,44 +457,44 @@ int Server::start_benchmark_server(int argc, char **argv) {
         printf("Listening on %s:%s\n", host, port);
     }
 
-    struct s2n_config *config = s2n_config_new();
-    if (!config) {
+    config_once = s2n_config_new();
+    if (!config_once) {
         print_s2n_error("Error getting new s2n config");
         exit(1);
     }
 
-    GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data),
+    GUARD_EXIT(s2n_config_set_server_max_early_data_size(config_once, max_early_data),
                "Error setting max early data");
 
-    GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
+    GUARD_EXIT(s2n_config_add_dhparams(config_once, dhparams), "Error adding DH parameters");
 
-    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
+    GUARD_EXIT(s2n_config_set_cipher_preferences(config_once, cipher_prefs), "Error setting cipher prefs");
 
-    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache),
+    GUARD_EXIT(s2n_config_set_cache_store_callback(config_once, cache_store_callback, session_cache),
                "Error setting cache store callback");
 
-    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache),
+    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config_once, cache_retrieve_callback, session_cache),
                "Error setting cache retrieve callback");
 
-    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache),
+    GUARD_EXIT(s2n_config_set_cache_delete_callback(config_once, cache_delete_callback, session_cache),
                "Error setting cache retrieve callback");
 
     if (conn_settings.enable_mfl) {
-        GUARD_EXIT(s2n_config_accept_max_fragment_length(config),
+        GUARD_EXIT(s2n_config_accept_max_fragment_length(config_once),
                    "Error enabling TLS maximum fragment length extension in server");
     }
 
-    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
+    if (s2n_config_set_verify_host_callback(config_once, unsafe_verify_host_fn, NULL)) {
         print_s2n_error("Failure to set hostname verification callback");
         exit(1);
     }
 
     if (conn_settings.session_ticket) {
-        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config_once, 1), "Error enabling session tickets");
     }
 
     if (conn_settings.session_cache) {
-        GUARD_EXIT(s2n_config_set_session_cache_onoff(config, 1), "Error enabling session cache using id");
+        GUARD_EXIT(s2n_config_set_session_cache_onoff(config_once, 1), "Error enabling session cache using id");
     }
 
     if (conn_settings.session_ticket || conn_settings.session_cache) {
@@ -485,7 +518,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
             st_key_length = sizeof(default_ticket_key);
         }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key,
+        if (s2n_config_add_ticket_crypto_key(config_once, ticket_key_name, strlen((char *) ticket_key_name), st_key,
                                              st_key_length, 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
@@ -498,7 +531,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
             unsigned int len = sizeof(all_suites) / sizeof(all_suites[0]);
             for (unsigned int j = 0; j < len; ++j) {
                 unsigned int suite_num = j;
-                unsigned int repeats = 0;
+                //unsigned int repeats = 0;
                 if (num_user_certificates != num_user_private_keys) {
                     fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates,
                             num_user_private_keys);
@@ -525,18 +558,17 @@ int Server::start_benchmark_server(int argc, char **argv) {
                     GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]),
                                "Error getting certificate/key");
 
-                    GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key),
+                    GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config_once, chain_and_key),
                                "Error setting certificate/key");
                 }
-                int rc;
-                for (repeats = 0; repeats < ITERATIONS; repeats++) {
-                    rc = handle_connection(fd_bench, config, conn_settings, suite_num);
-                }
 
-                stop_listen = true;
-                if (rc < 0) {
-                    exit(rc);
-                }
+                char str[80];
+                strcpy(str, "Server: ");
+                strcat(str, all_suites[j]->name);
+
+                benchmark::RegisterBenchmark(str, ServerBenchmark)->Iterations(ITERATIONS)->Arg(j);
+
+
                 /* If max_conns was set, then exit after it is reached. Otherwise
                  * unlimited connections are allow, so ignore the variable. */
                 if (conn_settings.max_conns > 0) {
@@ -546,7 +578,15 @@ int Server::start_benchmark_server(int argc, char **argv) {
                 }
             }
         }
+        stop_listen = true;
     }
+
+
+    ::benchmark::Initialize(&argc, argv);
+
+    ::benchmark::RunSpecifiedBenchmarks();
+
+    free(newv);
     close(fd_bench);
     close(sockfd);
     s2n_cleanup();

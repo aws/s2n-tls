@@ -152,7 +152,7 @@ static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::S
     }
 
     if(DEBUG_PRINT) {
-        print_connection_data(conn);
+        print_connection_info(conn);
     }
 
     return 0;
@@ -304,16 +304,16 @@ static void ClientBenchmark(benchmark::State& state) {
         GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
 
         free(unsafe_verify_data);
-
-
     }
+    state.SetBytesProcessed(state.iterations() * sizeof(int));
 }
 
 int Client::start_benchmark_client(int argc, char** argv) {
     rc = s2n_init();
+    char file_prefix[100];
 
     while (1) {
-        int c = getopt(argc, argv, "c:i:sD");
+        int c = getopt(argc, argv, "c:i:o:sD");
         if (c == -1) {
             break;
         }
@@ -328,8 +328,11 @@ int Client::start_benchmark_client(int argc, char** argv) {
             case 'i':
                 ITERATIONS = atoi(optarg);
                 break;
+            case 'o':
+                strcpy(file_prefix, optarg);
+                break;
             case 's':
-                insecure = 0;
+                insecure = 1;
                 break;
             case 'D':
                 DEBUG_PRINT = 1;
@@ -350,15 +353,31 @@ int Client::start_benchmark_client(int argc, char** argv) {
         port = argv[optind++];
     }
 
+    char **newv = (char**)malloc((argc + 2) * sizeof(*newv));
+    memmove(newv, argv, sizeof(*newv) * argc);
+    char bench_out[100] = "--benchmark_out=client_";
+    strcat(bench_out, file_prefix);
+    newv[argc] = bench_out;
+    newv[argc+1] = 0;
+    argc++;
+    argv = newv;
+
     setup_config();
     unsigned int len = sizeof(all_suites) / sizeof(all_suites[0]);
     unsigned int i;
     for(i = 0; i < len; i++) {
-        benchmark::RegisterBenchmark(all_suites[i]->name, ClientBenchmark)->Iterations(ITERATIONS)->Arg(i);
+        char str[80];
+        strcpy(str, "Client: ");
+        strcat(str, all_suites[i]->name);
+
+        benchmark::RegisterBenchmark(str, ClientBenchmark)->Iterations(ITERATIONS)->Arg(i);
+
     }
+
     ::benchmark::Initialize(&argc, argv);
 
     ::benchmark::RunSpecifiedBenchmarks();
+    free(newv);
     s2n_cleanup();
     close(sockfd);
     freeaddrinfo(ai_list);
