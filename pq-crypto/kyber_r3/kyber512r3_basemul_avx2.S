@@ -1,6 +1,5 @@
 #include "kyber512r3_consts_avx2.h"
 
-#if defined(S2N_KYBER512R3_AVX2_BMI2)
 .macro schoolbook off
 vmovdqa     _16XQINV*2(%rcx),%ymm0
 vmovdqa     (64*\off+ 0)*2(%rsi),%ymm1       # a0
@@ -104,4 +103,3 @@ schoolbook  3
 
 mov         %r8,%rsp
 ret
-#endif
