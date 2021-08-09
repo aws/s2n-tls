@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-
 #include <sys/param.h>
 #include <netdb.h>
 
