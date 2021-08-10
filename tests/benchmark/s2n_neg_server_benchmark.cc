@@ -22,8 +22,6 @@
 #include "string"
 
 #include <vector>
-#define STDIO_BUFSIZE  10240
-
 
 extern "C" {
 
@@ -53,7 +51,6 @@ extern "C" {
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 
-
 #include "tls/s2n_config.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
@@ -69,7 +66,6 @@ extern "C" {
 }
 
 static int DEBUG_PRINT = 0;
-static int DEBUG_CIPHER = 0;
 static unsigned int ITERATIONS = 50;
 unsigned int corked = 0;
 int fd_bench = 0;
@@ -269,7 +265,6 @@ static int ServerBenchmark(benchmark::State& state) {
         int fd = fd_bench;
         struct s2n_config *config = config_once;
         struct conn_settings settings = conn_settings;
-        //int suite_num = state.range(0);
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         if (!conn) {
             print_s2n_error("Error getting new s2n connection");
@@ -377,7 +372,6 @@ int Server::start_benchmark_server(int argc, char **argv) {
                 break;
             case 'D':
                 DEBUG_PRINT = 1;
-                DEBUG_CIPHER = 1;
                 break;
             case '?':
             default:
@@ -394,14 +388,12 @@ int Server::start_benchmark_server(int argc, char **argv) {
         port = argv[optind++];
     }
 
-    char **newv = (char**)malloc((argc + 3) * sizeof(*newv));
+    char **newv = (char**)malloc((argc + 2) * sizeof(*newv));
     memmove(newv, argv, sizeof(*newv) * argc);
-    char bench_out[] = "--benchmark_out=server_output.txt";
-    newv[argc] = bench_out;
     char bench_format[] = "--benchmark_format=json";
-    newv[argc+1] = bench_format;
-    newv[argc+2] = 0;
-    argc+=2;
+    newv[argc] = bench_format;
+    newv[argc+1] = 0;
+    argc++;
     argv = newv;
 
 
@@ -448,9 +440,9 @@ int Server::start_benchmark_server(int argc, char **argv) {
 
     GUARD_EXIT(getaddrinfo(host, port, &hints, &ai), "getaddrinfo error\n");
     GUARD_EXIT((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)), "socket error\n");
-    GUARD_EXIT(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(int)), "setsockopt error");
+    GUARD_EXIT(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(int)), "setsockopt error\n");
     GUARD_EXIT(bind(sockfd, ai->ai_addr, ai->ai_addrlen), "bind error");
-    GUARD_EXIT(listen(sockfd, 1), "listen error");
+    GUARD_EXIT(listen(sockfd, 1), "listen error\n");
 
 
     if (DEBUG_PRINT) {
@@ -531,7 +523,6 @@ int Server::start_benchmark_server(int argc, char **argv) {
             unsigned int len = sizeof(all_suites) / sizeof(all_suites[0]);
             for (unsigned int j = 0; j < len; ++j) {
                 unsigned int suite_num = j;
-                //unsigned int repeats = 0;
                 if (num_user_certificates != num_user_private_keys) {
                     fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates,
                             num_user_private_keys);
@@ -539,7 +530,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
                 }
 
                 unsigned int num_certificates = 0;
-                if (num_user_certificates == 0) {//use auth_method from suites
+                if (num_user_certificates == 0) {
                     if (all_suites[suite_num]->auth_method == S2N_AUTHENTICATION_RSA) {
                         certificates[0] = rsa_certificate_chain;
                         private_keys[0] = rsa_private_key;
@@ -562,11 +553,11 @@ int Server::start_benchmark_server(int argc, char **argv) {
                                "Error setting certificate/key");
                 }
 
-                char str[80];
-                strcpy(str, "Server: ");
-                strcat(str, all_suites[j]->name);
+                char bench_name[80];
+                strcpy(bench_name, "Server: ");
+                strcat(bench_name, all_suites[suite_num]->name);
 
-                benchmark::RegisterBenchmark(str, ServerBenchmark)->Iterations(ITERATIONS)->Arg(j);
+                benchmark::RegisterBenchmark(bench_name, ServerBenchmark)->Repetitions(ITERATIONS)->Iterations(1)->Arg(suite_num);
 
 
                 /* If max_conns was set, then exit after it is reached. Otherwise

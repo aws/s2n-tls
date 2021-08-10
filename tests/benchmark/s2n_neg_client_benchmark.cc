@@ -22,7 +22,6 @@
 #include <string>
 
 #include <vector>
-#define STDIO_BUFSIZE  10240
 
 extern "C" {
 
@@ -56,10 +55,7 @@ extern "C" {
 
 //able to be modified when running benchmark
 static int DEBUG_PRINT = 0;
-static int DEBUG_CIPHER = 0;
 static unsigned int ITERATIONS = 50;
-
-extern int rc;
 
 const char *host = "localhost";
 const char *port = "8000";
@@ -118,14 +114,9 @@ static struct s2n_cipher_suite *all_suites[] = {
         &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
 };
 
-static unsigned int calls_to_s2n_negotiate = 0;
-struct s2n_blob r;
-int rc;
-
 static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state)
 {
     s2n_blocked_status blocked;
-    calls_to_s2n_negotiate += 1;
     int s2n_ret;
     state.ResumeTiming();
     benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
@@ -133,7 +124,6 @@ static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::S
     benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
 
     if (s2n_ret != S2N_SUCCESS) {
-        calls_to_s2n_negotiate += 1;
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
                     s2n_strerror(s2n_errno, "EN"),
@@ -171,31 +161,29 @@ static void setup_config() {
     }
 
     int connected = 0;
-    for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
-        if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
-            continue;
-        }
+    while(connected == 0) {
+        for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
+            if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
+                continue;
+            }
 
-        if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == -1) {
-            close(sockfd);
-            continue;
-        }
+            if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == -1) {
+                close(sockfd);
+                continue;
+            }
 
-        connected = 1;
-        if (DEBUG_PRINT) {
-            printf("Connected to s2nd\n");
+            connected = 1;
+            if (DEBUG_PRINT) {
+                printf("Connected to s2nd\n");
+            }
+            break;
         }
-        break;
-    }
-    if (connected == 0) {
-        fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
-        printf("Error: %s\n", strerror(errno));
-        exit(1);
     }
     return;
 }
 
 static void ClientBenchmark(benchmark::State& state) {
+
     for (auto _ : state) {
         state.PauseTiming();
 
@@ -207,7 +195,7 @@ static void ClientBenchmark(benchmark::State& state) {
             print_s2n_error("Error getting new config");
             exit(1);
         }
-        if (DEBUG_CIPHER) {
+        if (DEBUG_PRINT) {
             printf("Cipher preference = %s\n", cipher_prefs);
         }
 
@@ -309,7 +297,7 @@ static void ClientBenchmark(benchmark::State& state) {
 }
 
 int Client::start_benchmark_client(int argc, char** argv) {
-    rc = s2n_init();
+    s2n_init();
     char file_prefix[100];
 
     while (1) {
@@ -336,7 +324,6 @@ int Client::start_benchmark_client(int argc, char** argv) {
                 break;
             case 'D':
                 DEBUG_PRINT = 1;
-                DEBUG_CIPHER = 1;
                 break;
             case '?':
             default:
@@ -353,24 +340,26 @@ int Client::start_benchmark_client(int argc, char** argv) {
         port = argv[optind++];
     }
 
-    char **newv = (char**)malloc((argc + 2) * sizeof(*newv));
+    char **newv = (char**)malloc((argc + 3) * sizeof(*newv));
     memmove(newv, argv, sizeof(*newv) * argc);
     char bench_out[100] = "--benchmark_out=client_";
     strcat(bench_out, file_prefix);
     newv[argc] = bench_out;
-    newv[argc+1] = 0;
-    argc++;
+    char aggregate[100] = "--benchmark_display_aggregates_only=true";
+    newv[argc+1] = aggregate;
+    newv[argc+2] = 0;
+    argc+=2;
     argv = newv;
 
     setup_config();
     unsigned int len = sizeof(all_suites) / sizeof(all_suites[0]);
     unsigned int i;
     for(i = 0; i < len; i++) {
-        char str[80];
-        strcpy(str, "Client: ");
-        strcat(str, all_suites[i]->name);
+        char bench_name[80];
+        strcpy(bench_name, "Client: ");
+        strcat(bench_name, all_suites[i]->name);
 
-        benchmark::RegisterBenchmark(str, ClientBenchmark)->Iterations(ITERATIONS)->Arg(i);
+        benchmark::RegisterBenchmark(bench_name, ClientBenchmark)->Repetitions(ITERATIONS)->Iterations(1)->Arg(i);
 
     }
 
