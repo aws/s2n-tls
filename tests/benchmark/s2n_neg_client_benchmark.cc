@@ -55,6 +55,7 @@ extern "C" {
 
 //able to be modified when running benchmark
 static int DEBUG_PRINT = 0;
+static int WARMUP_ITERS = 1;
 static unsigned int ITERATIONS = 50;
 
 const char *host = "localhost";
@@ -114,13 +115,17 @@ static struct s2n_cipher_suite *all_suites[] = {
         &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
 };
 
-static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state)
+static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup)
 {
     s2n_blocked_status blocked;
     int s2n_ret;
-    state.ResumeTiming();
+    if(!warmup) {
+        state.ResumeTiming();
+    }
     benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
-    state.PauseTiming();
+    if(!warmup) {
+        state.PauseTiming();
+    }
     benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
 
     if (s2n_ret != S2N_SUCCESS) {
@@ -182,116 +187,122 @@ static void setup_config() {
     return;
 }
 
-static void ClientBenchmark(benchmark::State& state) {
+static void client_benchmark(benchmark::State& state, bool warmup) {
+    struct s2n_config *config = s2n_config_new();
 
+    struct verify_data *unsafe_verify_data = (verify_data *) malloc(sizeof(verify_data));;
+
+    if (config == NULL) {
+        print_s2n_error("Error getting new config");
+        exit(1);
+    }
+    if (DEBUG_PRINT) {
+        printf("Cipher preference = %s\n", cipher_prefs);
+    }
+
+    struct s2n_cipher_suite *cipher_suites_benchmark[] = {
+            all_suites[state.range(0)]
+    };
+
+    const struct s2n_cipher_preferences cipher_preferences_benchmark = {
+            s2n_array_len(cipher_suites_benchmark),
+            cipher_suites_benchmark,
+    };
+
+    const struct s2n_security_policy security_policy_benchmark = {
+            S2N_SSLv3,
+            &cipher_preferences_benchmark,
+            &kem_preferences_kms_pq_tls_1_0_2020_07,
+            &s2n_signature_preferences_20201021,
+            NULL,
+            &s2n_ecc_preferences_20201021,
+    };
+
+    config->security_policy = &security_policy_benchmark;
+
+    GUARD_EXIT(s2n_config_set_status_request_type(config, type),
+               "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) < 0) {
+        print_s2n_error("Error setting host name verification function.");
+    }
+
+    if (type == S2N_STATUS_REQUEST_OCSP) {
+        if (s2n_config_set_check_stapled_ocsp_response(config, 1)) {
+            print_s2n_error(
+                    "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        }
+    }
+
+    unsafe_verify_data->trusted_host = host;
+
+    uint8_t mfl_code = 0;
+
+    GUARD_EXIT(s2n_config_send_max_fragment_length(config, (s2n_max_frag_len) mfl_code),
+               "Error setting maximum fragment length");
+
+
+    if (insecure) {
+        GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
+    }
+
+    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+
+    if (conn == NULL) {
+        print_s2n_error("Error getting new connection");
+        exit(1);
+    }
+
+    GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+    GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
+
+    GUARD_EXIT(s2n_connection_set_fd(conn, sockfd), "Error setting file descriptor");
+
+    GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
+               "Error setting ClientAuth optional");
+
+    if (use_corked_io) {
+        GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
+    GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
+
+    if (benchmark_negotiate(conn, sockfd, state, warmup) != 0) {
+        state.SkipWithError("Negotiate Failed\n");
+        if (DEBUG_PRINT) {
+            printf("Error in negotiate!\n");
+        }
+    }
+
+    if (DEBUG_PRINT) {
+        printf("Connected to %s:%s\n", host, port);
+    }
+
+    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
+    s2n_blocked_status blocked;
+    int shutdown_rc = s2n_shutdown(conn, &blocked);
+    if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
+        fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
+        exit(1);
+    }
+
+    GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
+
+    GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
+
+    free(unsafe_verify_data);
+}
+
+static void ClientBenchmark(benchmark::State& state) {
+    int i;
+    for(i = 0; i < WARMUP_ITERS; i++) {
+        client_benchmark(state, true);
+    }
     for (auto _ : state) {
         state.PauseTiming();
-
-        struct s2n_config *config = s2n_config_new();
-
-        struct verify_data *unsafe_verify_data = (verify_data *) malloc(sizeof(verify_data));;
-
-        if (config == NULL) {
-            print_s2n_error("Error getting new config");
-            exit(1);
-        }
-        if (DEBUG_PRINT) {
-            printf("Cipher preference = %s\n", cipher_prefs);
-        }
-
-        struct s2n_cipher_suite *cipher_suites_benchmark[] = {
-                all_suites[state.range(0)]
-        };
-
-        const struct s2n_cipher_preferences cipher_preferences_benchmark = {
-                s2n_array_len(cipher_suites_benchmark),
-                cipher_suites_benchmark,
-        };
-
-        const struct s2n_security_policy security_policy_benchmark = {
-                S2N_SSLv3,
-                &cipher_preferences_benchmark,
-                &kem_preferences_kms_pq_tls_1_0_2020_07,
-                &s2n_signature_preferences_20201021,
-                NULL,
-                &s2n_ecc_preferences_20201021,
-        };
-
-        config->security_policy = &security_policy_benchmark;
-
-        GUARD_EXIT(s2n_config_set_status_request_type(config, type),
-                   "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-
-        if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) < 0) {
-            print_s2n_error("Error setting host name verification function.");
-        }
-
-        if (type == S2N_STATUS_REQUEST_OCSP) {
-            if (s2n_config_set_check_stapled_ocsp_response(config, 1)) {
-                print_s2n_error(
-                        "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-            }
-        }
-
-        unsafe_verify_data->trusted_host = host;
-
-        uint8_t mfl_code = 0;
-
-        GUARD_EXIT(s2n_config_send_max_fragment_length(config, (s2n_max_frag_len) mfl_code),
-                   "Error setting maximum fragment length");
-
-
-        if (insecure) {
-            GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
-        }
-
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-
-        if (conn == NULL) {
-            print_s2n_error("Error getting new connection");
-            exit(1);
-        }
-
-        GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
-
-        GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
-
-        GUARD_EXIT(s2n_connection_set_fd(conn, sockfd), "Error setting file descriptor");
-
-        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
-                   "Error setting ClientAuth optional");
-
-        if (use_corked_io) {
-            GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
-        }
-
-        GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
-
-        if (benchmark_negotiate(conn, sockfd, state) != 0) {
-            state.SkipWithError("Negotiate Failed\n");
-            if (DEBUG_PRINT) {
-                printf("Error in negotiate!\n");
-            }
-        }
-
-        if (DEBUG_PRINT) {
-            printf("Connected to %s:%s\n", host, port);
-        }
-
-        GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
-
-        s2n_blocked_status blocked;
-        int shutdown_rc = s2n_shutdown(conn, &blocked);
-        if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
-            fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
-            exit(1);
-        }
-
-        GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
-
-        GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
-
-        free(unsafe_verify_data);
+        client_benchmark(state, false);
     }
     state.SetBytesProcessed(state.iterations() * sizeof(int));
 }
@@ -299,9 +310,10 @@ static void ClientBenchmark(benchmark::State& state) {
 int Client::start_benchmark_client(int argc, char** argv) {
     s2n_init();
     char file_prefix[100];
+    char bench_format[100] = "--benchmark_out_format=";
 
     while (1) {
-        int c = getopt(argc, argv, "c:i:o:sD");
+        int c = getopt(argc, argv, "c:i:w:o:t:sD");
         if (c == -1) {
             break;
         }
@@ -316,8 +328,14 @@ int Client::start_benchmark_client(int argc, char** argv) {
             case 'i':
                 ITERATIONS = atoi(optarg);
                 break;
+            case 'w':
+                WARMUP_ITERS = atoi(optarg);
+                break;
             case 'o':
                 strcpy(file_prefix, optarg);
+                break;
+            case 't':
+                strcat(bench_format, optarg);
                 break;
             case 's':
                 insecure = 1;
@@ -340,15 +358,16 @@ int Client::start_benchmark_client(int argc, char** argv) {
         port = argv[optind++];
     }
 
-    char **newv = (char**)malloc((argc + 3) * sizeof(*newv));
+    char **newv = (char**)malloc((argc + 4) * sizeof(*newv));
     memmove(newv, argv, sizeof(*newv) * argc);
     char bench_out[100] = "--benchmark_out=client_";
     strcat(bench_out, file_prefix);
     newv[argc] = bench_out;
     char aggregate[100] = "--benchmark_display_aggregates_only=true";
     newv[argc+1] = aggregate;
-    newv[argc+2] = 0;
-    argc+=2;
+    newv[argc+2] = bench_format;
+    newv[argc+3] = 0;
+    argc+=3;
     argv = newv;
 
     setup_config();

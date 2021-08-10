@@ -66,6 +66,7 @@ extern "C" {
 }
 
 static int DEBUG_PRINT = 0;
+static int WARMUP_ITERS = 1;
 static unsigned int ITERATIONS = 50;
 unsigned int corked = 0;
 int fd_bench = 0;
@@ -116,7 +117,6 @@ static struct s2n_cipher_suite *all_suites[] = {
         &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
         &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
 };
-
 
 static uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
@@ -226,12 +226,16 @@ uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void 
     return 1;
 }
 
-static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state) {
+static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup) {
     s2n_blocked_status blocked;
     int s2n_ret;
-    state.ResumeTiming();
+    if(!warmup){
+        state.ResumeTiming();
+    }
     benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
-    state.PauseTiming();
+    if(!warmup){
+        state.PauseTiming();
+    }
     benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
     if (s2n_ret != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
@@ -259,76 +263,86 @@ static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::S
     return 0;
 }
 
+static int server_benchmark(benchmark::State& state, bool warmup) {
+    int fd = fd_bench;
+    struct s2n_config *config = config_once;
+    struct conn_settings settings = conn_settings;
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+    if (!conn) {
+        print_s2n_error("Error getting new s2n connection");
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    if (settings.self_service_blinding) {
+        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
+    }
+
+    if (settings.mutual_auth) {
+        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED),
+                     "Error setting client auth type");
+
+        if (settings.ca_dir || settings.ca_file) {
+            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir),
+                         "Error adding verify location");
+        }
+
+        if (settings.insecure) {
+            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
+        }
+    }
+
+    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+    if (settings.prefer_throughput) {
+        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
+    }
+
+    if (settings.prefer_low_latency) {
+        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
+    }
+
+    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
+
+    if (settings.use_corked_io) {
+        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
+    GUARD_RETURN(
+            s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
+            "Error setting external psk list");
+
+    GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
+
+    if (benchmark_negotiate(conn, fd, state, warmup) != S2N_SUCCESS) {
+        if (settings.mutual_auth) {
+            if (!s2n_connection_client_cert_used(conn)) {
+                print_s2n_error("Error: Mutual Auth was required, but not negotiated");
+            }
+        }
+
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
+    s2n_blocked_status blocked;
+    s2n_shutdown(conn, &blocked);
+
+    GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
+
+    GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
+
+    return 0;
+}
+
 static int ServerBenchmark(benchmark::State& state) {
+    int i;
+    for(i = 0; i < WARMUP_ITERS; i++) {
+        server_benchmark(state, true);
+    }
     for(auto _ : state) {
         state.PauseTiming();
-        int fd = fd_bench;
-        struct s2n_config *config = config_once;
-        struct conn_settings settings = conn_settings;
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        if (!conn) {
-            print_s2n_error("Error getting new s2n connection");
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        if (settings.self_service_blinding) {
-            s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
-        }
-
-        if (settings.mutual_auth) {
-            GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED),
-                         "Error setting client auth type");
-
-            if (settings.ca_dir || settings.ca_file) {
-                GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir),
-                             "Error adding verify location");
-            }
-
-            if (settings.insecure) {
-                GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
-            }
-        }
-
-        GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
-
-        if (settings.prefer_throughput) {
-            GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
-        }
-
-        if (settings.prefer_low_latency) {
-            GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
-        }
-
-        GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
-
-        if (settings.use_corked_io) {
-            GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
-        }
-
-        GUARD_RETURN(
-                s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
-                "Error setting external psk list");
-
-        GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
-
-        if (benchmark_negotiate(conn, fd, state) != S2N_SUCCESS) {
-            if (settings.mutual_auth) {
-                if (!s2n_connection_client_cert_used(conn)) {
-                    print_s2n_error("Error: Mutual Auth was required, but not negotiated");
-                }
-            }
-
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
-
-        s2n_blocked_status blocked;
-        s2n_shutdown(conn, &blocked);
-
-        GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
-
-        GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
+        server_benchmark(state, false);
     }
     return 0;
 }
@@ -344,8 +358,10 @@ int Server::start_benchmark_server(int argc, char **argv) {
     const char *host = "localhost";
     const char *port = "8000";
 
+    char bench_format[100] = "--benchmark_format=";
+
     while (1) {
-        int c = getopt(argc, argv, "c:i:o:sD");
+        int c = getopt(argc, argv, "c:i:w:o:t:sD");
         if (c == -1) {
             break;
         }
@@ -360,11 +376,17 @@ int Server::start_benchmark_server(int argc, char **argv) {
             case 'i':
                 ITERATIONS = atoi(optarg);
                 break;
+            case 'w':
+                WARMUP_ITERS = atoi(optarg);
+                break;
             case 'o':
                 char str[80];
                 strcpy(str, "server_");
                 strcat(str, optarg);
                 freopen(str, "w", stdout);
+                break;
+            case 't':
+                strcat(bench_format, optarg);
                 break;
             case 's':
                 conn_settings.mutual_auth = 1;
@@ -390,7 +412,6 @@ int Server::start_benchmark_server(int argc, char **argv) {
 
     char **newv = (char**)malloc((argc + 2) * sizeof(*newv));
     memmove(newv, argv, sizeof(*newv) * argc);
-    char bench_format[] = "--benchmark_format=json";
     newv[argc] = bench_format;
     newv[argc+1] = 0;
     argc++;
