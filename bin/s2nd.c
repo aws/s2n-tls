@@ -13,27 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include <netinet/tcp.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <poll.h>
 #include <netdb.h>
-
-#include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
-#include <signal.h>
-#include <stdio.h>
 #include <getopt.h>
-
 #include <errno.h>
-
-#include <error/s2n_errno.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -149,6 +136,8 @@ uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf
                                   0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
                                   0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
                                   0xb3, 0xe5 };
+
+struct session_cache_entry session_cache[256];
 
 /*
  * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,

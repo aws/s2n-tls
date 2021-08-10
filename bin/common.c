@@ -16,6 +16,7 @@
 #include "common.h"
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
@@ -132,7 +133,6 @@ int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t 
         }
         out_bytes[i] = high_nibble << 4 | low_nibble;
 
-        i++;
         i++;
         j+=2;
     }

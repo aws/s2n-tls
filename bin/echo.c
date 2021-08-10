@@ -13,23 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <poll.h>
 #include <netdb.h>
 
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include <s2n.h>
-#include <error/s2n_errno.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
 #include "common.h"
 
@@ -44,7 +37,7 @@ void print_s2n_error(const char *app_error)
 /* Poll the given file descriptor for an event determined by the blocked status */
 int wait_for_event(int fd, s2n_blocked_status blocked)
 {
-    struct pollfd reader = {fd, 0};
+    struct pollfd reader = { .fd = fd, .events = 0 };
 
     switch (blocked) {
     case S2N_NOT_BLOCKED:
@@ -81,7 +74,7 @@ int early_data_recv(struct s2n_connection *conn)
     ssize_t total_data_recv = 0;
     ssize_t data_recv = 0;
     bool server_success = 0;
-    s2n_blocked_status blocked = (s2n_blocked_status)0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     uint8_t *early_data_received = (uint8_t*)malloc(max_early_data_size);
     GUARD_EXIT_NULL(early_data_received);
 
@@ -93,7 +86,7 @@ int early_data_recv(struct s2n_connection *conn)
 
     if (total_data_recv > 0) {
         fprintf(stdout, "Early Data received: ");
-        for (size_t i = 0; i < (size_t)total_data_recv; i++) {
+        for (ssize_t i = 0; i < total_data_recv; i++) {
             fprintf(stdout, "%c", early_data_received[i]);
         }
         fprintf(stdout, "\n");
@@ -106,7 +99,7 @@ int early_data_recv(struct s2n_connection *conn)
 
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
 {
-    s2n_blocked_status blocked = (s2n_blocked_status)0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     ssize_t total_data_sent = 0;
     ssize_t data_sent = 0;
     bool client_success = 0;
@@ -119,7 +112,7 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     return S2N_SUCCESS;
 }
 
-void print_connection_data(struct s2n_connection *conn,  bool session_resumed)
+int print_connection_info(struct s2n_connection *conn)
 {
     int client_hello_version;
     int client_protocol_version;
@@ -160,21 +153,20 @@ void print_connection_data(struct s2n_connection *conn,  bool session_resumed)
     printf("Curve: %s\n", s2n_connection_get_curve(conn));
     printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
     printf("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
-    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
-
-    if (session_resumed) {
-        printf("Resumed session\n");
-    }
 
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
     if (status && length > 0) {
         fprintf(stderr, "OCSP response received, length %u\n", length);
     }
-}
 
-void psk_early_data(struct s2n_connection *conn,  bool session_resumed)
-{
+    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+
+    bool session_resumed = s2n_connection_is_session_resumed(conn);
+    if (session_resumed) {
+        printf("Resumed session\n");
+    }
+
     uint16_t identity_length = 0;
     GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length), "Error getting negotiated psk identity length from the connection\n");
     if (identity_length != 0 && !session_resumed) {
@@ -196,6 +188,8 @@ void psk_early_data(struct s2n_connection *conn,  bool session_resumed)
     }
     GUARD_EXIT_NULL(status_str);
     printf("Early Data status: %s\n", status_str);
+
+    return 0;
 }
 
 int negotiate(struct s2n_connection *conn, int fd)
@@ -216,11 +210,7 @@ int negotiate(struct s2n_connection *conn, int fd)
         }
     }
 
-    bool session_resumed = s2n_connection_is_session_resumed(conn);
-
-    print_connection_data(conn, session_resumed);
-
-    psk_early_data(conn, session_resumed);
+    print_connection_info(conn);
 
     printf("s2n is ready\n");
     return 0;

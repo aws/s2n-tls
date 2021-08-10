@@ -13,21 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
-#include <poll.h>
 #include <netdb.h>
 
-#include <stdlib.h>
-#include <signal.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <getopt.h>
-#include <strings.h>
-#include <errno.h>
 #include <fcntl.h>
 
 #include <s2n.h>
@@ -35,7 +25,6 @@
 #include <error/s2n_errno.h>
 
 #include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
 
 void usage()
 {
