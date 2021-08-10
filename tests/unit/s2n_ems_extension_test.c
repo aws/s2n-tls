@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 
 #include "tls/extensions/s2n_ems.h"
+#include "tls/extensions/s2n_extension_list.h"
+#include "tls/s2n_connection.h"
 
 int main(int argc, char **argv)
 {
@@ -35,6 +37,34 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_ems_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test that the ems_negotiated flag is set when the EMS extension is received */
+    {
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+
+        /* This extension is only relevant for TLS1.2 */
+        server_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->actual_protocol_version = S2N_TLS12;
+
+        DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+        EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, client_conn, &stuffer));
+        EXPECT_FALSE(client_conn->ems_negotiated);
+
+        EXPECT_SUCCESS(s2n_extension_list_recv(S2N_EXTENSION_LIST_CLIENT_HELLO, server_conn, &stuffer));
+        EXPECT_TRUE(server_conn->ems_negotiated);
+
+        EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, server_conn, &stuffer));
+        EXPECT_SUCCESS(s2n_extension_list_recv(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, client_conn, &stuffer));
+        EXPECT_TRUE(client_conn->ems_negotiated);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
     END_TEST();
