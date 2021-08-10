@@ -13,21 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
-#include <poll.h>
 #include <netdb.h>
 
-#include <stdlib.h>
-#include <signal.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <getopt.h>
-#include <strings.h>
-#include <errno.h>
 #include <fcntl.h>
 
 #include <s2n.h>
@@ -35,7 +25,6 @@
 #include <error/s2n_errno.h>
 
 #include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
 
 void usage()
 {
@@ -95,25 +84,7 @@ void usage()
     exit(1);
 }
 
-struct verify_data {
-    const char *trusted_host;
-};
 
-static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
-    struct verify_data *verify_data = (struct verify_data *)data;
-
-    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
-        char *suffix = strstr(verify_data->trusted_host, ".");
-        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
-    }
-
-    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
-        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
-                || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
-    }
-
-    return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
-}
 
 size_t session_state_length = 0;
 uint8_t *session_state = NULL;

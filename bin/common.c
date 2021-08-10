@@ -16,10 +16,13 @@
 #include "common.h"
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
 #include <s2n.h>
+#include <error/s2n_errno.h>
+#include "utils/s2n_safety.h"
 
 char *load_file_to_cstring(const char *path)
 {
@@ -200,4 +203,81 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
         GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk\n");
     } 
     return S2N_SUCCESS;
+}
+
+
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, value_size, MAX_VAL_LEN);
+
+    uint8_t idx = ((const uint8_t *)key)[0];
+
+    memcpy(cache[idx].key, key, key_size);
+    memcpy(cache[idx].value, value, value_size);
+
+    cache[idx].key_len = key_size;
+    cache[idx].value_len = value_size;
+
+    return 0;
+}
+
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+
+    uint8_t idx = ((const uint8_t *)key)[0];
+
+    POSIX_ENSURE(cache[idx].key_len == key_size, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(memcmp(cache[idx].key, key, key_size) == 0, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(*value_size >= cache[idx].value_len, S2N_ERR_INVALID_ARGUMENT);
+
+    *value_size = cache[idx].value_len;
+    memcpy(value, cache[idx].value, cache[idx].value_len);
+
+    for (uint64_t i = 0; i < key_size; i++) {
+        printf("%02x", ((const uint8_t *)key)[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+
+    uint8_t idx = ((const uint8_t *)key)[0];
+
+    if (cache[idx].key_len != 0) {
+        POSIX_ENSURE(cache[idx].key_len == key_size, S2N_ERR_INVALID_ARGUMENT);
+        POSIX_ENSURE(memcmp(cache[idx].key, key, key_size) == 0, S2N_ERR_INVALID_ARGUMENT);
+    }
+
+    cache[idx].key_len = 0;
+    cache[idx].value_len = 0;
+
+    return 0;
+}
+
+uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
+    struct verify_data *verify_data = (struct verify_data *)data;
+
+    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        char *suffix = strstr(verify_data->trusted_host, ".");
+        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
+    }
+
+    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
+        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
+                          || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    }
+
+    return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
 }
