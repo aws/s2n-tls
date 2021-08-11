@@ -45,6 +45,15 @@ file(GLOB UTILS_SRC "utils/*.c")
 file(GLOB PQ_HEADERS "pq-crypto/*.h")
 file(GLOB PQ_SRC "pq-crypto/*.c")
 
+message(STATUS "Detected CMAKE_SYSTEM_PROCESSOR as ${CMAKE_SYSTEM_PROCESSOR}")
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+  message(STATUS "Detected 32-Bit system - disabling PQ crypto assembly optimizations")
+  set(S2N_NO_PQ_ASM ON)
+else()
+    message(STATUS "Detected 64-Bit system")
+endif()
+
 if(S2N_NO_PQ)
     # PQ is disabled, so we do not include any PQ crypto code
     message(STATUS "S2N_NO_PQ flag was detected - disabling PQ crypto")
@@ -328,7 +337,7 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
 endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
-    FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
+    FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*.c")
     set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
 
