@@ -12,146 +12,32 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include <tests/benchmark/s2n_neg_client_benchmark.h>
+#include <tests/benchmark/s2n_negotiate_client_benchmark.h>
+#include <tests/benchmark/shared_info.h>
 #include <benchmark/benchmark.h>
-#include <iostream>
-
-#include <stdlib.h>
-#include <string.h>
-#include <cstring>
-#include <string>
-
-#include <vector>
 
 extern "C" {
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/param.h>
-#include <poll.h>
-#include <netdb.h>
-
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <getopt.h>
-#include <strings.h>
-#include <errno.h>
-#include <fcntl.h>
-
-#include <s2n.h>
 #include "bin/common.h"
 #include <error/s2n_errno.h>
 
 #include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
 
 #include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_random.h"
-}
 
-//able to be modified when running benchmark
-static int DEBUG_PRINT = 0;
-static int WARMUP_ITERS = 1;
-static unsigned int ITERATIONS = 50;
+}
 
 const char *host = "localhost";
 const char *port = "8000";
 struct addrinfo hints, *ai_list, *ai;
-int add, sockfd = 0;
+int add, use_corked_io, sockfd = 0;
 const char *server_name = "localhost";
 const char *cipher_prefs = "test_all_tls12";
 s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
-int use_corked_io = 0;
 char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
 size_t psk_list_len = 0;
 uint8_t insecure = 1;
 
-static struct s2n_cipher_suite *all_suites[] = {
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_rsa_with_rc4_128_md5,
-        &s2n_rsa_with_rc4_128_sha,
-        &s2n_rsa_with_3des_ede_cbc_sha,
-        &s2n_dhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_rsa_with_aes_128_cbc_sha,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha,
-        &s2n_rsa_with_aes_256_cbc_sha,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha,
-        &s2n_rsa_with_aes_128_cbc_sha256,
-        &s2n_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_rsa_with_aes_128_gcm_sha256,
-        &s2n_rsa_with_aes_256_gcm_sha384,
-        &s2n_dhe_rsa_with_aes_128_gcm_sha256,
 
-        &s2n_ecdhe_rsa_with_rc4_128_sha,
-        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-
-
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
-
-        &s2n_dhe_rsa_with_chacha20_poly1305_sha256,
-        &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
-
-        &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
-};
-
-static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup)
-{
-    s2n_blocked_status blocked;
-    int s2n_ret;
-    if(!warmup) {
-        state.ResumeTiming();
-    }
-    benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
-    if(!warmup) {
-        state.PauseTiming();
-    }
-    benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
-
-    if (s2n_ret != S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
-                    s2n_strerror(s2n_errno, "EN"),
-                    s2n_strerror_debug(s2n_errno, "EN"));
-            fprintf(stderr, "Alert: %d\n",
-                    s2n_connection_get_alert(conn));
-            printf("Client errno: %s\n", strerror(errno));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        if (wait_for_event(fd, blocked) != S2N_SUCCESS) {
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        state.SkipWithError("Negotiate Failed\n");
-    }
-
-    if(DEBUG_PRINT) {
-        print_connection_info(conn);
-    }
-
-    return 0;
-}
 
 static void setup_config() {
     memset(&hints, 0, sizeof(hints));

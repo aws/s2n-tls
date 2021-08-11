@@ -12,40 +12,13 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include <tests/benchmark/s2n_neg_server_benchmark.h>
+#include <tests/benchmark/s2n_negotiate_server_benchmark.h>
 #include <benchmark/benchmark.h>
-#include <iostream>
+#include <tests/benchmark/shared_info.h>
 
-#include <stdlib.h>
-#include <string.h>
-#include <cstring>
-#include "string"
-
-#include <vector>
 
 extern "C" {
 
-#include <netinet/tcp.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/param.h>
-#include <poll.h>
-#include <netdb.h>
-
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <getopt.h>
-#include <strings.h>
-#include <errno.h>
-#include <fcntl.h>
-
-#include <s2n.h>
 #include "bin/common.h"
 #include <error/s2n_errno.h>
 #include <openssl/err.h>
@@ -53,11 +26,8 @@ extern "C" {
 
 #include "tls/s2n_config.h"
 #include "tls/s2n_cipher_suites.h"
-#include "utils/s2n_safety.h"
-#include <error/s2n_errno.h>
 
 #include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_random.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "server_info.h"
@@ -65,67 +35,10 @@ extern "C" {
 #define MAX_CERTIFICATES 50
 }
 
-static int DEBUG_PRINT = 0;
-static int WARMUP_ITERS = 1;
-static unsigned int ITERATIONS = 50;
 unsigned int corked = 0;
 int fd_bench = 0;
 struct s2n_config *config_once;
 struct conn_settings conn_settings;
-
-static struct s2n_cipher_suite *all_suites[] = {
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_rsa_with_rc4_128_md5,
-        &s2n_rsa_with_rc4_128_sha,
-        &s2n_rsa_with_3des_ede_cbc_sha,
-        &s2n_dhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_rsa_with_aes_128_cbc_sha,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha,
-        &s2n_rsa_with_aes_256_cbc_sha,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha,
-        &s2n_rsa_with_aes_128_cbc_sha256,
-        &s2n_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_rsa_with_aes_128_gcm_sha256,
-        &s2n_rsa_with_aes_256_gcm_sha384,
-        &s2n_dhe_rsa_with_aes_128_gcm_sha256,
-
-        &s2n_ecdhe_rsa_with_rc4_128_sha,
-        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-
-
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
-
-        &s2n_dhe_rsa_with_chacha20_poly1305_sha256,
-        &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
-
-        &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
-};
-
-static uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-
-static uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
-                                         0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
-                                         0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
-                                         0xb3, 0xe5 };
-
-
 struct session_cache_entry session_cache[256];
 
 //rsa_2048_sha384_client_cert.pem - Expires: Jul 8th, 2117
@@ -226,43 +139,6 @@ uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void 
     return 1;
 }
 
-static int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup) {
-    s2n_blocked_status blocked;
-    int s2n_ret;
-    if(!warmup){
-        state.ResumeTiming();
-    }
-    benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
-    if(!warmup){
-        state.PauseTiming();
-    }
-    benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
-    if (s2n_ret != S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
-                    s2n_strerror(s2n_errno, "EN"),
-                    s2n_strerror_debug(s2n_errno, "EN"));
-            fprintf(stderr, "Alert: %d\n",
-                    s2n_connection_get_alert(conn));
-            printf("Server errno: %s\n", strerror(errno));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        if (wait_for_event(fd, blocked) != S2N_SUCCESS) {
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-    }
-
-    if(DEBUG_PRINT) {
-        print_connection_info(conn);
-    }
-
-    if (DEBUG_PRINT) {
-        printf("s2n is ready\n");
-    }
-    return 0;
-}
-
 static int server_benchmark(benchmark::State& state, bool warmup) {
     int fd = fd_bench;
     struct s2n_config *config = config_once;
@@ -344,6 +220,7 @@ static int ServerBenchmark(benchmark::State& state) {
         state.PauseTiming();
         server_benchmark(state, false);
     }
+    state.SetBytesProcessed(state.iterations() * sizeof(int));
     return 0;
 }
 

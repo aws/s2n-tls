@@ -14,8 +14,8 @@
  */
 
 #include <unistd.h>
-#include "s2n_neg_client_benchmark.h"
-#include "s2n_neg_server_benchmark.h"
+#include "s2n_negotiate_client_benchmark.h"
+#include "s2n_negotiate_server_benchmark.h"
 
 int main(int argc, char** argv) {
     int pid_server = fork();
@@ -24,7 +24,6 @@ int main(int argc, char** argv) {
         s.start_benchmark_server(argc, argv);
     }
     else {
-
         Client c;
         c.start_benchmark_client(argc, argv);
     }
