@@ -34,5 +34,9 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_avx2(void);
 S2N_RESULT s2n_try_enable_bike_r3_opt_avx512(void);
 S2N_RESULT s2n_try_enable_bike_r3_opt_vpclmul(void);
 
+bool s2n_kyber512r3_is_avx2_bmi2_enabled(void);
+S2N_RESULT s2n_try_enable_kyber512r3_opt_avx2_bmi2(void);
+S2N_RESULT s2n_disable_kyber512r3_opt_avx2_bmi2(void);
+ 
 bool s2n_pq_is_enabled(void);
 S2N_RESULT s2n_pq_init(void);

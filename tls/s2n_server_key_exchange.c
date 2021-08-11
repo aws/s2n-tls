@@ -40,8 +40,9 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure.cipher_suite);
     POSIX_ENSURE_REF(conn->secure.cipher_suite->key_exchange_alg);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
 
-    struct s2n_hash_state *signature_hash = &conn->hash_workspace;
+    struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = {0};
@@ -232,9 +233,12 @@ int s2n_hybrid_server_key_recv_parse_data(struct s2n_connection *conn, struct s2
 
 int s2n_server_key_send(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+
     S2N_ASYNC_PKEY_GUARD(conn);
 
-    struct s2n_hash_state *signature_hash = &conn->hash_workspace;
+    struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob data_to_sign = {0};

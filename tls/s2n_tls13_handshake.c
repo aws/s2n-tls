@@ -75,17 +75,12 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     struct s2n_ecc_evp_params *server_key = &conn->kex_params.server_ecc_evp_params;
     POSIX_ENSURE_REF(server_key);
     POSIX_ENSURE_REF(server_key->negotiated_curve);
-    /* for now we do this tedious loop to find the matching client key selection.
-     * this can be simplified if we get an index or a pointer to a specific key */
-    struct s2n_ecc_evp_params *client_key = NULL;
-    for (size_t i = 0; i < ecc_preferences->count; i++) {
-        if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
-            client_key = &conn->kex_params.client_ecc_evp_params[i];
-            break;
-        }
-    }
 
-    POSIX_ENSURE(client_key != NULL, S2N_ERR_BAD_KEY_SHARE);
+    struct s2n_ecc_evp_params *client_key  = &conn->kex_params.client_ecc_evp_params;
+    POSIX_ENSURE_REF(client_key);
+    POSIX_ENSURE_REF(client_key->negotiated_curve);
+
+    POSIX_ENSURE_EQ(server_key->negotiated_curve, client_key->negotiated_curve);
 
     if (conn->mode == S2N_CLIENT) {
         POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_key, server_key, shared_secret));
@@ -111,7 +106,7 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(server_ecc_params);
 
-    struct s2n_kem_group_params *client_kem_group_params = conn->kex_params.chosen_client_kem_group_params;
+    struct s2n_kem_group_params *client_kem_group_params = &conn->kex_params.client_kem_group_params;
     POSIX_ENSURE_REF(client_kem_group_params);
     struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
     POSIX_ENSURE_REF(client_ecc_params);
@@ -298,7 +293,8 @@ int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_m
         conn->server = &conn->secure;
     }
 
-    POSIX_GUARD(s2n_tls13_derive_handshake_traffic_secret(&secrets, &conn->handshake.server_hello_copy, &hs_secret, mode));
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    POSIX_GUARD(s2n_tls13_derive_handshake_traffic_secret(&secrets, &conn->handshake.hashes->server_hello_copy, &hs_secret, mode));
 
     /* trigger secret callbacks */
     if (conn->secret_cb && conn->config->quic_enabled) {
@@ -357,8 +353,8 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
     }
 
     /* use frozen hashes during the server finished state */
-    struct s2n_hash_state *hash_state;
-    POSIX_GUARD_PTR(hash_state = &conn->handshake.server_finished_copy);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->server_finished_copy;
 
     /* calculate secret */
     struct s2n_blob app_secret = { .data = app_secret_data, .size = keys.size };

@@ -174,7 +174,7 @@ struct s2n_connection {
     struct s2n_psk_parameters psk_params;
 
     /* The PRF needs some storage elements to work with */
-    struct s2n_prf_working_space prf_space;
+    struct s2n_prf_working_space *prf_space;
 
     /* Whether to use client_cert_auth_type stored in s2n_config or in this s2n_connection.
      *
@@ -344,6 +344,9 @@ struct s2n_connection {
     /* Have we received a close notify alert from the peer. */
     unsigned close_notify_received:1;
 
+    /* Connection negotiated an EMS */
+    unsigned ems_negotiated:1;
+
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing send/receive callbacks.
      */
@@ -357,9 +360,6 @@ struct s2n_connection {
     uint32_t server_max_early_data_size;
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
-
-    /* To avoid allocating memory for hash objects, we reuse one temporary hash object. */
-    struct s2n_hash_state hash_workspace;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
