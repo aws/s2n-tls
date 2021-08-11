@@ -344,6 +344,9 @@ struct s2n_connection {
     /* Have we received a close notify alert from the peer. */
     unsigned close_notify_received:1;
 
+    /* Connection negotiated an EMS */
+    unsigned ems_negotiated:1;
+
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing send/receive callbacks.
      */
