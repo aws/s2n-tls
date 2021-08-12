@@ -471,13 +471,17 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
+    s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+
+    if(S2N_PKEY_TYPE_RSA == cert_type) {
+        config->is_rsa_cert_configured = 1;
+    }
 
     POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
-        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
             config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         }
@@ -525,6 +529,11 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
     for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+
+        if(S2N_PKEY_TYPE_RSA == cert_type) {
+            config->is_rsa_cert_configured = 1;
+        }
+
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
 

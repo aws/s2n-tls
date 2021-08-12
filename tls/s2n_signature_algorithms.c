@@ -99,7 +99,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
 }
 
 /* similar to s2n_choose_sig_scheme() without matching client's preference */
-static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
+int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
     const struct s2n_signature_preferences *signature_preferences = NULL;
