@@ -340,7 +340,7 @@ int main(int argc, char **argv)
      * Check for both the server and client certificates, because they use different negotiation logic.
      */
     {
-        /* TlS1.3 */
+        /* TLS1.3 */
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* TlS1.2 */
+        /* TLS1.2 */
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
