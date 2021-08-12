@@ -35,9 +35,6 @@ s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
 char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
 size_t psk_list_len = 0;
 
-
-
-
 static void setup_config() {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;

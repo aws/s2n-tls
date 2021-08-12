@@ -123,21 +123,6 @@ static char ecdsa_private_key[] =
         "uHMW/qLZVZYYWz82qMeBFbYSxMSWbpsfIA=="
         "-----END EC PRIVATE KEY-----";
 
-//dhparams_2048.pem
-static char dhparams[] =
-        "-----BEGIN DH PARAMETERS-----\n"
-        "MIIBCAKCAQEAy1+hVWCfNQoPB+NA733IVOONl8fCumiz9zdRRu1hzVa2yvGseUSq\n"
-        "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
-        "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
-        "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-        "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
-        "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
-        "-----END DH PARAMETERS-----\n";
-
-uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
-    return 1;
-}
-
 static int server_benchmark(benchmark::State& state, bool warmup) {
     int fd = fd_bench;
     struct s2n_config *config = config_once;
@@ -148,45 +133,7 @@ static int server_benchmark(benchmark::State& state, bool warmup) {
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    if (settings.self_service_blinding) {
-        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
-    }
-
-    if (settings.mutual_auth) {
-        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED),
-                     "Error setting client auth type");
-
-        if (settings.ca_dir || settings.ca_file) {
-            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir),
-                         "Error adding verify location");
-        }
-
-        if (settings.insecure) {
-            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
-        }
-    }
-
-    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
-
-    if (settings.prefer_throughput) {
-        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
-    }
-
-    if (settings.prefer_low_latency) {
-        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
-    }
-
-    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
-
-    if (settings.use_corked_io) {
-        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
-    }
-
-    GUARD_RETURN(
-            s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
-            "Error setting external psk list");
-
-    GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
+    s2n_setup_server_connection(conn, fd, config, settings);
 
     if (benchmark_negotiate(conn, fd, state, warmup) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
@@ -228,10 +175,6 @@ int Server::start_benchmark_server(int argc, char **argv) {
     int r, sockfd= 0;
 
     conn_settings = {0};
-
-    //default host/port values
-
-
     argument_parse(argc, argv);
 
     char str[80];
@@ -306,67 +249,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
         exit(1);
     }
 
-    GUARD_EXIT(s2n_config_set_server_max_early_data_size(config_once, max_early_data),
-               "Error setting max early data");
-
-    GUARD_EXIT(s2n_config_add_dhparams(config_once, dhparams), "Error adding DH parameters");
-
-    GUARD_EXIT(s2n_config_set_cipher_preferences(config_once, cipher_prefs), "Error setting cipher prefs");
-
-    GUARD_EXIT(s2n_config_set_cache_store_callback(config_once, cache_store_callback, session_cache),
-               "Error setting cache store callback");
-
-    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config_once, cache_retrieve_callback, session_cache),
-               "Error setting cache retrieve callback");
-
-    GUARD_EXIT(s2n_config_set_cache_delete_callback(config_once, cache_delete_callback, session_cache),
-               "Error setting cache retrieve callback");
-
-    if (conn_settings.enable_mfl) {
-        GUARD_EXIT(s2n_config_accept_max_fragment_length(config_once),
-                   "Error enabling TLS maximum fragment length extension in server");
-    }
-
-    if (s2n_config_set_verify_host_callback(config_once, unsafe_verify_host_fn, NULL)) {
-        print_s2n_error("Failure to set hostname verification callback");
-        exit(1);
-    }
-
-    if (conn_settings.session_ticket) {
-        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config_once, 1), "Error enabling session tickets");
-    }
-
-    if (conn_settings.session_cache) {
-        GUARD_EXIT(s2n_config_set_session_cache_onoff(config_once, 1), "Error enabling session cache using id");
-    }
-
-    if (conn_settings.session_ticket || conn_settings.session_cache) {
-        /* Key initialization */
-        uint8_t *st_key;
-        uint32_t st_key_length;
-
-        if (session_ticket_key_file_path) {
-            int fd = open(session_ticket_key_file_path, O_RDONLY);
-            GUARD_EXIT(fd, "Error opening session ticket key file");
-
-            struct stat st;
-            GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
-
-            st_key = (uint8_t *) mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            st_key_length = st.st_size;
-
-            close(fd);
-        } else {
-            st_key = default_ticket_key;
-            st_key_length = sizeof(default_ticket_key);
-        }
-
-        if (s2n_config_add_ticket_crypto_key(config_once, ticket_key_name, strlen((char *) ticket_key_name), st_key,
-                                             st_key_length, 0) != 0) {
-            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
-        }
-    }
+    s2n_set_common_server_config(max_early_data, config_once, conn_settings, cipher_prefs, session_ticket_key_file_path);
 
     bool stop_listen = false;
     while ((!stop_listen) && (fd_bench = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
