@@ -137,11 +137,13 @@ int main(int argc, char **argv)
         /* Server receives GREASE values.
          *
          *= https://www.rfc-editor.org/rfc/rfc8701#section-3.1
+         *= type=test
          *# A client MAY select one or more GREASE PskKeyExchangeMode values
          *# and advertise them in the "psk_key_exchange_modes" extension, if
          *# sent.
          *
          *= https://www.rfc-editor.org/rfc/rfc8701#section-3.2
+         *= type=test
          *# When processing a ClientHello, servers MUST NOT treat GREASE values
          *# differently from any unknown value.  Servers MUST NOT negotiate any
          *# GREASE value when offered in a ClientHello.  Servers MUST correctly
@@ -157,6 +159,7 @@ int main(int argc, char **argv)
 
             /*
              *= https://www.rfc-editor.org/rfc/rfc8701#section-2
+             *= type=test
              *# The following values are reserved as GREASE values for
              *# PskKeyExchangeModes:
              *#
