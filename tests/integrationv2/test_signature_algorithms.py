@@ -23,7 +23,7 @@ all_sigs = [
     Signatures.RSA_SHA384,
     Signatures.RSA_SHA512,
     Signatures.ECDSA_SECP256r1_SHA256,
-    Signatures.RSA_PSS_SHA256,
+    Signatures.RSA_PSS_RSAE_SHA256,
 ]
 
 # These ciphers don't print out the proper debugging information from s_client,
@@ -34,9 +34,12 @@ unsupported_ciphers = [
     Ciphers.AES256_SHA,
     Ciphers.AES128_SHA256,
     Ciphers.AES256_SHA256,
-    Ciphers.AES128_GCM_SHA256,
-    Ciphers.AES256_GCM_SHA384,
 ]
+
+
+def signature_marker(mode, signature):
+    return to_bytes("{mode} signature negotiated: {type}+{digest}" \
+        .format(mode=mode.title(), type=signature.sig_type, digest=signature.sig_digest))
 
 
 def skip_ciphers(*args, **kwargs):
@@ -51,7 +54,7 @@ def skip_ciphers(*args, **kwargs):
     if not cert.compatible_with_sigalg(sigalg):
         return True
 
-    if protocol is Protocols.TLS13 and sigalg.min_protocol is not Protocols.TLS13:
+    if protocol > sigalg.max_protocol:
         return True
 
     if protocol < sigalg.min_protocol:
@@ -98,14 +101,14 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, prot
 
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes('Peer signing digest: {}'.format(signature.sig_digest)) in results.stdout
-        assert to_bytes('Peer signature type: {}'.format(signature.sig_type)) in results.stdout
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in server.get_results():
         results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert signature_marker(Provider.ServerMode, signature) in results.stdout
+        assert (signature_marker(Provider.ClientMode, signature) in results.stdout) == client_auth
         assert random_bytes in results.stdout
 
 
@@ -139,26 +142,11 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
     server_options.trust_store = certificate.cert
     server_options.extra_flags=['-sigalgs', signature.name]
 
-    if client_auth is True:
-        client_options.trust_store = Certificates.RSA_2048_SHA256_WILDCARD.cert
-        server_options.key = Certificates.RSA_2048_SHA256_WILDCARD.key
-        server_options.cert = Certificates.RSA_2048_SHA256_WILDCARD.cert
-
-        if signature.sig_type == 'RSA-PSS':
-            client_options.trust_store = Certificates.RSA_PSS_2048_SHA256.cert
-            server_options.key = Certificates.RSA_PSS_2048_SHA256.key
-            server_options.cert = Certificates.RSA_PSS_2048_SHA256.cert
-        elif signature.sig_type == 'ECDSA':
-            client_options.trust_store = Certificates.ECDSA_256.cert
-            server_options.key = Certificates.ECDSA_256.key
-            server_options.cert = Certificates.ECDSA_256.cert
-
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes('Shared Signature Algorithms: {}+{}'.format(signature.sig_type, signature.sig_digest)) in results.stdout
         assert random_bytes in results.stdout
 
     expected_version = get_expected_s2n_version(protocol, provider)
@@ -166,3 +154,5 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
     for results in client.get_results():
         results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert signature_marker(Provider.ServerMode, signature) in results.stdout
+        assert (signature_marker(Provider.ClientMode, signature) in results.stdout) == client_auth
