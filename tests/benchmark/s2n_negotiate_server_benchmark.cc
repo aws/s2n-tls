@@ -35,7 +35,6 @@ extern "C" {
 #define MAX_CERTIFICATES 50
 }
 
-unsigned int corked = 0;
 int fd_bench = 0;
 struct s2n_config *config_once;
 struct conn_settings conn_settings;
@@ -220,72 +219,25 @@ static int ServerBenchmark(benchmark::State& state) {
         state.PauseTiming();
         server_benchmark(state, false);
     }
-    state.SetBytesProcessed(state.iterations() * sizeof(int));
     return 0;
 }
 
 
 int Server::start_benchmark_server(int argc, char **argv) {
     struct addrinfo hints, *ai;
-    int r, sockfd = 0;
+    int r, sockfd= 0;
 
     conn_settings = {0};
 
     //default host/port values
-    const char *host = "localhost";
-    const char *port = "8000";
 
-    char bench_format[100] = "--benchmark_format=";
 
-    while (1) {
-        int c = getopt(argc, argv, "c:i:w:o:t:sD");
-        if (c == -1) {
-            break;
-        }
+    argument_parse(argc, argv);
 
-        switch (c) {
-            case 0:
-                /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
-                break;
-            case 'c':
-                corked = atoi(optarg);
-                break;
-            case 'i':
-                ITERATIONS = atoi(optarg);
-                break;
-            case 'w':
-                WARMUP_ITERS = atoi(optarg);
-                break;
-            case 'o':
-                char str[80];
-                strcpy(str, "server_");
-                strcat(str, optarg);
-                freopen(str, "w", stdout);
-                break;
-            case 't':
-                strcat(bench_format, optarg);
-                break;
-            case 's':
-                conn_settings.mutual_auth = 1;
-                conn_settings.insecure = 1;
-                break;
-            case 'D':
-                DEBUG_PRINT = 1;
-                break;
-            case '?':
-            default:
-                fprintf(stdout, "getopt returned: %d", c);
-                break;
-        }
-    }
-
-    if (optind < argc) {
-        host = argv[optind++];
-    }
-
-    if (optind < argc) {
-        port = argv[optind++];
-    }
+    char str[80];
+    strcpy(str, "server_");
+    strcat(str, file_prefix);
+    freopen(str, "w", stdout);
 
     char **newv = (char**)malloc((argc + 2) * sizeof(*newv));
     memmove(newv, argv, sizeof(*newv) * argc);
@@ -311,8 +263,9 @@ int Server::start_benchmark_server(int argc, char **argv) {
     conn_settings.session_cache = 0;
     conn_settings.max_conns = -1;
     conn_settings.psk_list_len = 0;
+    conn_settings.insecure = insecure;
 
-    conn_settings.use_corked_io = corked;
+    conn_settings.use_corked_io = use_corked_io;
 
     int max_early_data = 0;
 
@@ -418,8 +371,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
     bool stop_listen = false;
     while ((!stop_listen) && (fd_bench = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         if (!parallelize) {
-            unsigned int len = sizeof(all_suites) / sizeof(all_suites[0]);
-            for (unsigned int j = 0; j < len; ++j) {
+            for (unsigned int j = 0; j < num_suites; ++j) {
                 unsigned int suite_num = j;
                 if (num_user_certificates != num_user_private_keys) {
                     fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates,
@@ -427,29 +379,21 @@ int Server::start_benchmark_server(int argc, char **argv) {
                     exit(1);
                 }
 
-                unsigned int num_certificates = 0;
-                if (num_user_certificates == 0) {
-                    if (all_suites[suite_num]->auth_method == S2N_AUTHENTICATION_RSA) {
-                        certificates[0] = rsa_certificate_chain;
-                        private_keys[0] = rsa_private_key;
-                        num_certificates = 1;
-                    } else {
-                        certificates[0] = ecdsa_certificate_chain;
-                        private_keys[0] = ecdsa_private_key;
-                        num_certificates = 1;
-                    }
-                } else {
-                    num_certificates = num_user_certificates;
+                if (all_suites[suite_num]->auth_method == S2N_AUTHENTICATION_RSA) {
+                    certificates[0] = rsa_certificate_chain;
+                    private_keys[0] = rsa_private_key;
+                }
+                else {
+                    certificates[0] = ecdsa_certificate_chain;
+                    private_keys[0] = ecdsa_private_key;
                 }
 
-                for (unsigned int i = 0; i < num_certificates; i++) {
-                    struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-                    GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]),
-                               "Error getting certificate/key");
+                struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
+                GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[0], private_keys[0]),
+                           "Error getting certificate/key");
 
-                    GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config_once, chain_and_key),
-                               "Error setting certificate/key");
-                }
+                GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config_once, chain_and_key),
+                           "Error setting certificate/key");
 
                 char bench_name[80];
                 strcpy(bench_name, "Server: ");

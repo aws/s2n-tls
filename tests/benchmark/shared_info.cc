@@ -5,50 +5,8 @@ extern "C" {
 
 }
 
-struct s2n_cipher_suite *all_suites[] = {
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_rsa_with_rc4_128_md5,
-    &s2n_rsa_with_rc4_128_sha,
-    &s2n_rsa_with_3des_ede_cbc_sha,
-    &s2n_dhe_rsa_with_3des_ede_cbc_sha,
-    &s2n_rsa_with_aes_128_cbc_sha,
-    &s2n_dhe_rsa_with_aes_128_cbc_sha,
-    &s2n_rsa_with_aes_256_cbc_sha,
-    &s2n_dhe_rsa_with_aes_256_cbc_sha,
-    &s2n_rsa_with_aes_128_cbc_sha256,
-    &s2n_rsa_with_aes_256_cbc_sha256,
-    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-    &s2n_rsa_with_aes_128_gcm_sha256,
-    &s2n_rsa_with_aes_256_gcm_sha384,
-    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
-
-    &s2n_ecdhe_rsa_with_rc4_128_sha,
-    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-
-
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
-
-    &s2n_dhe_rsa_with_chacha20_poly1305_sha256,
-    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
-
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
-};
+struct s2n_cipher_suite **all_suites = cipher_preferences_test_all_tls12.suites;
+unsigned int num_suites = cipher_preferences_test_all_tls12.count;
 
 uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
@@ -60,6 +18,12 @@ uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf
 int DEBUG_PRINT = 0;
 int WARMUP_ITERS = 1;
 unsigned int ITERATIONS = 50;
+int use_corked_io = 0;
+char bench_format[100] = "--benchmark_out_format=";
+char file_prefix[100];
+const char *host = "localhost";
+const char *port = "8000";
+uint8_t insecure = 1;
 
 int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup) {
     s2n_blocked_status blocked;
@@ -80,7 +44,7 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
                     s2n_strerror_debug(s2n_errno, "EN"));
             fprintf(stderr, "Alert: %d\n",
                     s2n_connection_get_alert(conn));
-            printf("Client errno: %s\n", strerror(errno));
+            printf("errno: %s\n", strerror(errno));
             S2N_ERROR_PRESERVE_ERRNO();
         }
 
@@ -96,4 +60,52 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
     }
 
     return 0;
+}
+
+
+void argument_parse(int argc, char** argv) {
+    while (1) {
+        int c = getopt(argc, argv, "c:i:w:o:t:sD");
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+            case 0:
+                /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
+                break;
+            case 'c':
+                use_corked_io = atoi(optarg);
+                break;
+            case 'i':
+                ITERATIONS = atoi(optarg);
+                break;
+            case 'w':
+                WARMUP_ITERS = atoi(optarg);
+                break;
+            case 'o':
+                strcpy(file_prefix, optarg);
+                break;
+            case 't':
+                strcat(bench_format, optarg);
+                break;
+            case 's':
+                insecure = 1;
+                break;
+            case 'D':
+                DEBUG_PRINT = 1;
+                break;
+            case '?':
+            default:
+                fprintf(stdout, "getopt returned: %d", c);
+                break;
+        }
+    }
+
+    if (optind < argc) {
+        host = argv[optind++];
+    }
+
+    if (optind < argc) {
+        port = argv[optind++];
+    }
 }

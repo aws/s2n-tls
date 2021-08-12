@@ -26,16 +26,15 @@ extern "C" {
 
 }
 
-const char *host = "localhost";
-const char *port = "8000";
+
 struct addrinfo hints, *ai_list, *ai;
-int add, use_corked_io, sockfd = 0;
+int add, sockfd = 0;
 const char *server_name = "localhost";
 const char *cipher_prefs = "test_all_tls12";
 s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
 char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
 size_t psk_list_len = 0;
-uint8_t insecure = 1;
+
 
 
 
@@ -186,63 +185,20 @@ static void ClientBenchmark(benchmark::State& state) {
     for(i = 0; i < WARMUP_ITERS; i++) {
         client_benchmark(state, true);
     }
+    int counter = 0;
     for (auto _ : state) {
+        counter++;
+        if(DEBUG_PRINT){
+            printf("Count: %d\n", counter);
+        }
         state.PauseTiming();
         client_benchmark(state, false);
     }
-    state.SetBytesProcessed(state.iterations() * sizeof(int));
 }
 
 int Client::start_benchmark_client(int argc, char** argv) {
     s2n_init();
-    char file_prefix[100];
-    char bench_format[100] = "--benchmark_out_format=";
-
-    while (1) {
-        int c = getopt(argc, argv, "c:i:w:o:t:sD");
-        if (c == -1) {
-            break;
-        }
-
-        switch (c) {
-            case 0:
-                /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
-                break;
-            case 'c':
-                use_corked_io = atoi(optarg);
-                break;
-            case 'i':
-                ITERATIONS = atoi(optarg);
-                break;
-            case 'w':
-                WARMUP_ITERS = atoi(optarg);
-                break;
-            case 'o':
-                strcpy(file_prefix, optarg);
-                break;
-            case 't':
-                strcat(bench_format, optarg);
-                break;
-            case 's':
-                insecure = 1;
-                break;
-            case 'D':
-                DEBUG_PRINT = 1;
-                break;
-            case '?':
-            default:
-                fprintf(stdout, "getopt returned: %d", c);
-                break;
-        }
-    }
-
-    if (optind < argc) {
-        host = argv[optind++];
-    }
-
-    if (optind < argc) {
-        port = argv[optind++];
-    }
+    argument_parse(argc, argv);
 
     char **newv = (char**)malloc((argc + 4) * sizeof(*newv));
     memmove(newv, argv, sizeof(*newv) * argc);
@@ -257,9 +213,8 @@ int Client::start_benchmark_client(int argc, char** argv) {
     argv = newv;
 
     setup_config();
-    unsigned int len = sizeof(all_suites) / sizeof(all_suites[0]);
     unsigned int i;
-    for(i = 0; i < len; i++) {
+    for(i = 0; i < num_suites; i++) {
         char bench_name[80];
         strcpy(bench_name, "Client: ");
         strcat(bench_name, all_suites[i]->name);
