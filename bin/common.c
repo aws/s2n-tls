@@ -27,9 +27,6 @@
 #include "utils/s2n_safety.h"
 #include <sys/stat.h>
 #include <sys/mman.h>
-
-
-
 uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
 uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
