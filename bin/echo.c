@@ -28,6 +28,25 @@
 
 #define STDIO_BUFSIZE  10240
 
+const char* sig_alg_strs[] = {
+    [S2N_TLS_SIGNATURE_ANONYMOUS]       = "None",
+    [S2N_TLS_SIGNATURE_RSA]             = "RSA",
+    [S2N_TLS_SIGNATURE_ECDSA]           = "ECDSA",
+    [S2N_TLS_SIGNATURE_RSA_PSS_RSAE]    = "RSA-PSS-RSAE",
+    [S2N_TLS_SIGNATURE_RSA_PSS_PSS]     = "RSA-PSS-PSS",
+};
+
+const char* sig_hash_strs[] = {
+    [S2N_TLS_HASH_NONE]                 = "None",
+    [S2N_TLS_HASH_MD5]                  = "MD5",
+    [S2N_TLS_HASH_SHA1]                 = "SHA1",
+    [S2N_TLS_HASH_SHA224]               = "SHA224",
+    [S2N_TLS_HASH_SHA256]               = "SHA256",
+    [S2N_TLS_HASH_SHA384]               = "SHA384",
+    [S2N_TLS_HASH_SHA512]               = "SHA512",
+    [S2N_TLS_HASH_MD5_SHA1]             = "MD5_SHA1",
+};
+
 void print_s2n_error(const char *app_error)
 {
     fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
@@ -161,6 +180,21 @@ int print_connection_info(struct s2n_connection *conn)
     }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+
+    s2n_tls_signature_algorithm server_sig_alg = 0, client_sig_alg = 0;
+    s2n_tls_hash_algorithm server_sig_hash = 0, client_sig_hash = 0;
+    GUARD_EXIT(s2n_connection_get_selected_signature_algorithm(conn, &server_sig_alg),
+            "Error getting server signature algorithm");
+    GUARD_EXIT(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &client_sig_alg),
+            "Error getting client signature algorithm");
+    GUARD_EXIT(s2n_connection_get_selected_digest_algorithm(conn, &server_sig_hash),
+            "Error getting server signature hash algorithm");
+    GUARD_EXIT(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &client_sig_hash),
+            "Error getting client signature hash algorithm");
+    printf("Server signature negotiated: %s+%s\n", sig_alg_strs[server_sig_alg], sig_hash_strs[server_sig_hash]);
+    if (client_sig_alg != S2N_TLS_SIGNATURE_ANONYMOUS) {
+        printf("Client signature negotiated: %s+%s\n", sig_alg_strs[client_sig_alg], sig_hash_strs[client_sig_hash]);
+    }
 
     bool session_resumed = s2n_connection_is_session_resumed(conn);
     if (session_resumed) {
