@@ -200,7 +200,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    setup_s2n_connection(conn, fd, config, settings);
+    s2n_setup_server_connection(conn, fd, config, settings);
 
     if (negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
@@ -556,7 +556,7 @@ int main(int argc, char *const *argv)
         close(fd);
     }
 
-    s2n_config_settings(max_early_data, config, conn_settings, cipher_prefs, session_ticket_key_file_path);
+    s2n_set_common_server_config(max_early_data, config, conn_settings, cipher_prefs, session_ticket_key_file_path);
 
     if (parallelize) {
         struct sigaction sa;

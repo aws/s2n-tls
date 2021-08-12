@@ -240,7 +240,7 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
     return S2N_SUCCESS;
 }
 
-int s2n_config_settings(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path) {
+int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path) {
     GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
 
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
@@ -301,7 +301,7 @@ int s2n_config_settings(int max_early_data, struct s2n_config *config, struct co
     return 0;
 }
 
-int setup_s2n_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings) {
+int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings) {
     if (settings.self_service_blinding) {
         s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
     }

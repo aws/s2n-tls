@@ -95,5 +95,5 @@ char *load_file_to_cstring(const char *path);
 int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len);
 int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH], size_t psk_list_len);
 uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data);
-int setup_s2n_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings);
-int s2n_config_settings(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path);
+int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings);
+int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path);
