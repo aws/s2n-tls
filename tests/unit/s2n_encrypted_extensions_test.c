@@ -222,13 +222,27 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
         EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, long_alpn, sizeof(long_alpn));
 
-        /* Wipe any pending CCS messages. We don't need the complication. */
+        /* Reset the stuffer, potentially wiping any pending CCS messages.
+         * We don't need the complication of accidentally rereading old messages.
+         */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_to_client));
 
         /* Write unencrypted EncryptedExtensions message */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), ENCRYPTED_EXTENSIONS);
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(server_conn), ENCRYPTED_EXTENSIONS);
+
+        /* Verify message is unencrypted handshake message instead of
+         * encrypted APPLICATION_DATA message.
+         */
+        uint8_t type = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_to_client, &type));
+        EXPECT_EQUAL(type, TLS_HANDSHAKE); /* Record type not APPLICATION_DATA */
+        EXPECT_SUCCESS(s2n_stuffer_reread(&server_to_client));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&server_to_client, S2N_TLS_RECORD_HEADER_LENGTH));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_to_client, &type));
+        EXPECT_EQUAL(type, TLS_ENCRYPTED_EXTENSIONS); /* Actual handshake type not encrypted */
+        EXPECT_SUCCESS(s2n_stuffer_reread(&server_to_client));
 
         /* Client fails to parse the EncryptedExtensions */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
