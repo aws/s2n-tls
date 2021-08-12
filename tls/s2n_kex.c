@@ -173,7 +173,7 @@ const struct s2n_kex s2n_rsa = {
     .server_key_send = NULL,
     .client_key_recv = &s2n_rsa_client_key_recv,
     .client_key_send = &s2n_rsa_client_key_send,
-    .prf = &s2n_tls_prf_master_secret,
+    .prf = &s2n_prf_calculate_master_secret,
 };
 
 const struct s2n_kex s2n_dhe = {
@@ -185,7 +185,7 @@ const struct s2n_kex s2n_dhe = {
     .server_key_send = &s2n_dhe_server_key_send,
     .client_key_recv = &s2n_dhe_client_key_recv,
     .client_key_send = &s2n_dhe_client_key_send,
-    .prf = &s2n_tls_prf_master_secret,
+    .prf = &s2n_prf_calculate_master_secret,
 };
 
 const struct s2n_kex s2n_ecdhe = {
@@ -197,7 +197,7 @@ const struct s2n_kex s2n_ecdhe = {
     .server_key_send = &s2n_ecdhe_server_key_send,
     .client_key_recv = &s2n_ecdhe_client_key_recv,
     .client_key_send = &s2n_ecdhe_client_key_send,
-    .prf = &s2n_tls_prf_master_secret,
+    .prf = &s2n_prf_calculate_master_secret,
 };
 
 const struct s2n_kex s2n_hybrid_ecdhe_kem = {
