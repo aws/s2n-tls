@@ -341,6 +341,25 @@ S2N_API
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 S2N_API
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
+
+/**
+  * Gets the assigned file descriptor for the read channel of an s2n connection.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param readfd pointer to place the used file descriptor.
+ */
+S2N_API
+extern int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd);
+
+/**
+  * Gets the assigned file descriptor for the write channel of an s2n connection.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param writefd pointer to place the used file descriptor.
+ */
+S2N_API
+extern int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd);
+
 S2N_API
 extern int s2n_connection_use_corked_io(struct s2n_connection *conn);
 
