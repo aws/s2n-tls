@@ -192,10 +192,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
 
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "test_all_tls12";
-
-
-    int num_user_certificates = 0;
-    int num_user_private_keys = 0;
+    
     const char *certificates[MAX_CERTIFICATES] = {0};
     const char *private_keys[MAX_CERTIFICATES] = {0};
 
@@ -251,32 +248,31 @@ int Server::start_benchmark_server(int argc, char **argv) {
 
     s2n_set_common_server_config(max_early_data, config_once, conn_settings, cipher_prefs, session_ticket_key_file_path);
 
+
+    certificates[0] = rsa_certificate_chain;
+    private_keys[0] = rsa_private_key;
+    struct s2n_cert_chain_and_key *chain_and_key_rsa = s2n_cert_chain_and_key_new();
+    GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key_rsa, certificates[0], private_keys[0]),
+               "Error getting certificate/key");
+
+    GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config_once, chain_and_key_rsa),
+               "Error setting certificate/key");
+
+    certificates[0] = ecdsa_certificate_chain;
+    private_keys[0] = ecdsa_private_key;
+
+    struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
+    GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[0], private_keys[0]),
+               "Error getting certificate/key");
+
+    GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config_once, chain_and_key),
+               "Error setting certificate/key");
+
     bool stop_listen = false;
     while ((!stop_listen) && (fd_bench = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         if (!parallelize) {
             for (unsigned int j = 0; j < num_suites; ++j) {
                 unsigned int suite_num = j;
-                if (num_user_certificates != num_user_private_keys) {
-                    fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates,
-                            num_user_private_keys);
-                    exit(1);
-                }
-
-                if (all_suites[suite_num]->auth_method == S2N_AUTHENTICATION_RSA) {
-                    certificates[0] = rsa_certificate_chain;
-                    private_keys[0] = rsa_private_key;
-                }
-                else {
-                    certificates[0] = ecdsa_certificate_chain;
-                    private_keys[0] = ecdsa_private_key;
-                }
-
-                struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-                GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[0], private_keys[0]),
-                           "Error getting certificate/key");
-
-                GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config_once, chain_and_key),
-                           "Error setting certificate/key");
 
                 char bench_name[80];
                 strcpy(bench_name, "Server: ");
