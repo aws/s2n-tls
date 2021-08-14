@@ -142,7 +142,7 @@ class Certificates(object):
     ECDSA_384 = Cert("ECDSA_384", "ecdsa_p384_pkcs1")
 
     RSA_2048_SHA256_WILDCARD = Cert("RSA_2048_SHA256_WILDCARD", "rsa_2048_sha256_wildcard")
-    RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "localhost_rsa_pss_2048_sha256")
+    RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "rsa_pss_2048_sha256_CA")
 
 
 class Protocol(object):
@@ -306,6 +306,8 @@ class Signature(object):
 
         if 'RSA' in name.upper():
             self.algorithm = 'RSA'
+        if 'PSS_PSS' in name.upper():
+            self.algorithm = 'RSAPSS'
         if 'EC' in name.upper() or 'ED' in name.upper():
             self.algorithm = 'EC'
 
@@ -331,6 +333,12 @@ class Signatures(object):
     RSA_PSS_RSAE_SHA256 = Signature(
         'RSA-PSS+SHA256',
         sig_type='RSA-PSS-RSAE',
+        sig_digest='SHA256')
+
+    RSA_PSS_PSS_SHA256 = Signature(
+        'rsa_pss_pss_sha256',
+        min_protocol=Protocols.TLS13,
+        sig_type='RSA-PSS-PSS',
         sig_digest='SHA256')
 
     ECDSA_SECP256r1_SHA256 = Signature(
