@@ -58,12 +58,12 @@ mod mem {
 
     unsafe extern "C" fn mem_init_callback() -> s2n_status_code::Type {
         // no-op: the global allocator is already initialized
-        0
+        s2n_status_code::SUCCESS
     }
 
     unsafe extern "C" fn mem_cleanup_callback() -> s2n_status_code::Type {
         // no-op: the global allocator is already initialized
-        0
+        s2n_status_code::SUCCESS
     }
 
     unsafe extern "C" fn mem_malloc_callback(
@@ -74,15 +74,15 @@ mod mem {
         let layout = if let Some(layout) = layout(requested_len) {
             layout
         } else {
-            return -1;
+            return s2n_status_code::SUCCESS;
         };
         *ptr = alloc(layout) as *mut _;
 
         if ptr.is_null() {
-            -1
+            s2n_status_code::FAILURE
         } else {
             *allocated_len = requested_len;
-            0
+            s2n_status_code::SUCCESS
         }
     }
 
@@ -90,12 +90,12 @@ mod mem {
         let layout = if let Some(layout) = layout(len) {
             layout
         } else {
-            return -1;
+            return s2n_status_code::FAILURE;
         };
 
         dealloc(ptr as *mut _, layout);
 
-        0
+        s2n_status_code::SUCCESS
     }
 
     unsafe fn layout(len: u32) -> Option<Layout> {

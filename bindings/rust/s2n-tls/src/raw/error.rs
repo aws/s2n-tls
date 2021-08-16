@@ -3,13 +3,13 @@
 
 use core::fmt;
 use core::ptr::NonNull;
-use libc::{c_char, c_int};
+use libc::c_char;
 use s2n_tls_sys::*;
 use std::ffi::CStr;
 
 pub enum Error {
     InvalidInput,
-    Code(c_int),
+    Code(s2n_status_code::Type),
 }
 
 pub trait Fallible {
@@ -18,11 +18,11 @@ pub trait Fallible {
     fn into_result(self) -> Result<Self::Output, Error>;
 }
 
-impl Fallible for c_int {
-    type Output = c_int;
+impl Fallible for s2n_status_code::Type {
+    type Output = s2n_status_code::Type;
 
     fn into_result(self) -> Result<Self::Output, Error> {
-        if self >= 0 {
+        if self >= s2n_status_code::SUCCESS {
             Ok(self)
         } else {
             Err(Error::capture())
