@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::error::Error;
+use crate::raw::error::{Error, Fallible};
 use s2n_tls_sys::*;
 use std::sync::Once;
 
@@ -12,7 +12,7 @@ static S2N_INIT: Once = Once::new();
 /// This function should only be called once
 unsafe fn global_init() -> Result<(), Error> {
     mem::init()?;
-    call!(s2n_init())?;
+    s2n_init().into_result()?;
     Ok(())
 }
 
@@ -32,7 +32,7 @@ impl Drop for Thread {
     fn drop(&mut self) {
         // https://doc.rust-lang.org/std/thread/struct.LocalKey.html#platform-specific-behavior
         // Note that a "best effort" is made to ensure that destructors for types stored in thread local storage are run, but not all platforms can guarantee that destructors will be run for all types in thread local storage.
-        let _ = call!(s2n_cleanup());
+        let _ = unsafe { s2n_cleanup().into_result() };
     }
 }
 
@@ -46,12 +46,13 @@ mod mem {
     use core::{ffi::c_void, mem::size_of};
 
     pub unsafe fn init() -> Result<(), Error> {
-        call!(s2n_mem_set_callbacks(
+        s2n_mem_set_callbacks(
             Some(mem_init_callback),
             Some(mem_cleanup_callback),
             Some(mem_malloc_callback),
             Some(mem_free_callback),
-        ))?;
+        )
+        .into_result()?;
         Ok(())
     }
 

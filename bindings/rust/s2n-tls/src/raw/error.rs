@@ -2,18 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::fmt;
+use core::ptr::NonNull;
 use libc::{c_char, c_int};
 use s2n_tls_sys::*;
 use std::ffi::CStr;
-
-// Ensures errors are converted
-#[macro_export]
-macro_rules! call {
-    ($expr:expr) => {{
-        #[allow(unused_unsafe)]
-        $crate::raw::error::Error::new(unsafe { $expr })
-    }};
-}
 
 pub enum Error {
     InvalidInput,
@@ -21,34 +13,50 @@ pub enum Error {
 }
 
 pub trait Fallible {
-    fn is_err(&self) -> bool;
+    type Output;
+
+    fn into_result(self) -> Result<Self::Output, Error>;
 }
 
 impl Fallible for c_int {
-    fn is_err(&self) -> bool {
-        (*self) < 0
+    type Output = c_int;
+
+    fn into_result(self) -> Result<Self::Output, Error> {
+        if self >= 0 {
+            Ok(self)
+        } else {
+            Err(Error::capture())
+        }
     }
 }
 
 impl<T> Fallible for *mut T {
-    fn is_err(&self) -> bool {
-        <*mut T>::is_null(*self)
+    type Output = NonNull<T>;
+
+    fn into_result(self) -> Result<Self::Output, Error> {
+        if let Some(value) = NonNull::new(self) {
+            Ok(value)
+        } else {
+            Err(Error::capture())
+        }
     }
 }
 
 impl<T> Fallible for *const T {
-    fn is_err(&self) -> bool {
-        <*const T>::is_null(*self)
+    type Output = *const T;
+
+    fn into_result(self) -> Result<Self::Output, Error> {
+        if !self.is_null() {
+            Ok(self)
+        } else {
+            Err(Error::capture())
+        }
     }
 }
 
 impl Error {
-    pub fn new<T: Fallible>(value: T) -> Result<T, Self> {
-        if value.is_err() {
-            Err(Self::capture())
-        } else {
-            Ok(value)
-        }
+    pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
+        value.into_result()
     }
 
     fn capture() -> Self {
@@ -57,7 +65,7 @@ impl Error {
 
             let code = *s2n_errno;
 
-            // https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md#error-handling
+            // https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#error-handling
             //# To avoid possible confusion, s2n_errno should be cleared after processing
             //# an error: s2n_errno = S2N_ERR_T_OK
             *s2n_errno = s2n_error_type::OK as _;
