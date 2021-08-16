@@ -52,14 +52,13 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */
-    struct s2n_signature_scheme active_sig_scheme;
+    struct s2n_signature_scheme *active_sig_scheme = &conn->handshake_params.conn_sig_scheme;
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* Verify the SigScheme picked by the Server was in the preference list we sent (or is the default SigScheme) */
-        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &active_sig_scheme));
-    } else {
-        active_sig_scheme = conn->handshake_params.conn_sig_scheme;
+        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, active_sig_scheme));
     }
-    POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme.hash_alg));
+
+    POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
     POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
     POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
@@ -74,7 +73,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(signature.data);
     POSIX_ENSURE_GT(signature_length, 0);
 
-    S2N_ERROR_IF(s2n_pkey_verify(&conn->handshake_params.server_public_key, active_sig_scheme.sig_alg,signature_hash, &signature) < 0,
+    S2N_ERROR_IF(s2n_pkey_verify(&conn->handshake_params.server_public_key, active_sig_scheme->sig_alg, signature_hash, &signature) < 0,
             S2N_ERR_BAD_MESSAGE);
 
     /* We don't need the key any more, so free it */

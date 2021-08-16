@@ -124,6 +124,7 @@ struct s2n_stuffer_reservation {
 };
 /* Check basic validity constraints on the s2n_stuffer_reservation: e.g. stuffer validity. */
 extern S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation* reservation);
+int s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation);

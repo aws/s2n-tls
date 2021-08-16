@@ -618,24 +618,28 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
 int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
 {
+    POSIX_ENSURE_REF(conn);
     conn->recv_io_context = ctx;
     return 0;
 }
 
 int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
 {
+    POSIX_ENSURE_REF(conn);
     conn->send_io_context = ctx;
     return 0;
 }
 
 int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
 {
+    POSIX_ENSURE_REF(conn);
     conn->recv = recv;
     return 0;
 }
 
 int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
 {
+    POSIX_ENSURE_REF(conn);
     conn->send = send;
     return 0;
 }
@@ -787,6 +791,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     struct s2n_blob ctx_mem = {0};
     struct s2n_socket_read_io_context *peer_socket_ctx;
 
+    POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
     POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
@@ -805,11 +810,23 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     return 0;
 }
 
+int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(readfd);
+    POSIX_ENSURE((conn->managed_io && conn->recv_io_context), S2N_ERR_INVALID_STATE);
+
+    const struct s2n_socket_read_io_context *peer_socket_ctx = conn->recv_io_context;
+    *readfd = peer_socket_ctx->fd;
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem = {0};
     struct s2n_socket_write_io_context *peer_socket_ctx;
 
+    POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
     peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
@@ -834,6 +851,16 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     return 0;
 }
 
+int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(writefd);
+    POSIX_ENSURE((conn->managed_io && conn->send_io_context), S2N_ERR_INVALID_STATE);
+
+    const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
+    *writefd = peer_socket_ctx->fd;
+    return S2N_SUCCESS;
+}
 int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 {
     POSIX_GUARD(s2n_connection_set_read_fd(conn, fd));
