@@ -45,15 +45,6 @@ file(GLOB UTILS_SRC "utils/*.c")
 file(GLOB PQ_HEADERS "pq-crypto/*.h")
 file(GLOB PQ_SRC "pq-crypto/*.c")
 
-message(STATUS "Detected CMAKE_SYSTEM_PROCESSOR as ${CMAKE_SYSTEM_PROCESSOR}")
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-  message(STATUS "Detected 32-Bit system - disabling PQ crypto assembly optimizations")
-  set(S2N_NO_PQ_ASM ON)
-else()
-    message(STATUS "Detected 64-Bit system")
-endif()
-
 if(S2N_NO_PQ)
     # PQ is disabled, so we do not include any PQ crypto code
     message(STATUS "S2N_NO_PQ flag was detected - disabling PQ crypto")
@@ -183,29 +174,6 @@ else()
             set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
         endif()
     endif()
-
-    # Kyber Round-3 code has several different optimizations which require
-    # specific compiler flags to be supported by the compiler.
-    # So for each needed instruction set extension we check if the compiler
-    # supports it and set proper compiler flags to be added later to the
-    # Kyber compilation units.
-    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
-    
-        set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mavx -mbmi2")
-        try_compile(KYBER512R3_AVX2_BMI2_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            COMPILE_DEFINITIONS ${KYBER512R3_AVX2_BMI2_FLAGS})
-            
-        if(KYBER512R3_AVX2_BMI2_SUPPORTED)
-            set(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED ON)
-        endif()
-    endif()
-endif()
-
-if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
-    FILE(GLOB KYBER512R3_AVX2_BMI2_ASM_SRCS "pq-crypto/kyber_r3/*_avx2.S")
-    list(APPEND PQ_SRC ${KYBER512R3_AVX2_BMI2_ASM_SRCS})
 endif()
 
 # Probe for execinfo.h extensions (not present on some systems, notably android)
@@ -336,14 +304,6 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
     message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()
 
-if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
-    FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*.c")
-    set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
-
-    message(STATUS "Enabling Kyber_R3 x86_64 optimizations")
-endif()
-
 if(ADX_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_ADX)
     message(STATUS "Support for ADX assembly instructions detected")
@@ -455,35 +415,21 @@ if (BUILD_TESTING)
     if(BENCHMARK)
         find_package(benchmark REQUIRED)
         file(GLOB BENCHMARK_SRC "tests/benchmark/*.cc")
+        file(GLOB BENCHMARK_UTILS "tests/benchmark/utils/*.cc")
         enable_language(CXX)
         foreach(benchmark ${BENCHMARK_SRC})
-            if(NOT((benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_negotiate_client_benchmark.cc") OR (benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_negotiate_server_benchmark.cc") OR (benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_negotiate_benchmark.cc") OR (benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_server_benchmark.cc") OR (benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_client_benchmark.cc") OR (benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_benchmark.cc") OR (benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/shared_info.cc")))
-                message(${benchmark})
-                string(REGEX REPLACE ".+\\/(.+)\\.cc" "\\1" benchmark_name ${benchmark})
-                add_executable(${benchmark_name} ${benchmark} "bin/echo.c" "bin/common.c")
-                target_include_directories(${benchmark_name} PRIVATE api)
-                target_include_directories(${benchmark_name} PRIVATE tests)
-                target_link_libraries(${benchmark_name} PUBLIC ${PROJECT_NAME} testss2n benchmark::benchmark)
+            message(${benchmark})
+            string(REGEX REPLACE ".+\\/(.+)\\.cc" "\\1" benchmark_name ${benchmark})
+            add_executable(${benchmark_name} ${benchmark} "bin/echo.c" "bin/common.c" ${BENCHMARK_UTILS})
+            target_include_directories(${benchmark_name} PRIVATE api)
+            target_include_directories(${benchmark_name} PRIVATE tests)
+            target_link_libraries(${benchmark_name} PUBLIC ${PROJECT_NAME} testss2n benchmark::benchmark)
 
-                # Based off the flags in tests/benchmark/Makefile
-                target_compile_options(${benchmark_name} PRIVATE -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
-                        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
-                        -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
-                        -Wno-unused-but-set-variable)
-            elseif(benchmark STREQUAL "/home/ubuntu/s2n-tls/tests/benchmark/s2n_negotiate_benchmark.cc")
-                message(${benchmark})
-                string(REGEX REPLACE ".+\\/(.+)\\.cc" "\\1" benchmark_name ${benchmark})
-                add_executable(${benchmark_name} ${benchmark} "bin/echo.c" "bin/common.c" "tests/benchmark/shared_info.cc" "tests/benchmark/s2n_negotiate_client_benchmark.cc" "tests/benchmark/s2n_negotiate_server_benchmark.cc")
-                target_include_directories(${benchmark_name} PRIVATE api)
-                target_include_directories(${benchmark_name} PRIVATE tests)
-                target_link_libraries(${benchmark_name} PUBLIC ${PROJECT_NAME} testss2n benchmark::benchmark)
-
-                # Based off the flags in tests/benchmark/Makefile
-                target_compile_options(${benchmark_name} PRIVATE -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
-                        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
-                        -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
-                        -Wno-unused-but-set-variable)
-            endif()
+            # Based off the flags in tests/benchmark/Makefile
+            target_compile_options(${benchmark_name} PRIVATE -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
+                    -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
+                    -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
+                    -Wno-unused-but-set-variable)
         endforeach(benchmark)
 
     endif()

@@ -12,8 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include <tests/benchmark/s2n_negotiate_client_benchmark.h>
-#include <tests/benchmark/shared_info.h>
+#include <tests/benchmark/utils/s2n_negotiate_client_benchmark.h>
+#include <tests/benchmark/utils/shared_info.h>
 #include <benchmark/benchmark.h>
 
 extern "C" {

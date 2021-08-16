@@ -12,10 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include <tests/benchmark/s2n_negotiate_server_benchmark.h>
+#include <tests/benchmark/utils/s2n_negotiate_server_benchmark.h>
 #include <benchmark/benchmark.h>
-#include <tests/benchmark/shared_info.h>
-
+#include <tests/benchmark/utils/shared_info.h>
 
 extern "C" {
 
@@ -30,7 +29,6 @@ extern "C" {
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "server_info.h"
 
 #define MAX_CERTIFICATES 50
 }
@@ -192,7 +190,7 @@ int Server::start_benchmark_server(int argc, char **argv) {
 
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "test_all_tls12";
-    
+
     const char *certificates[MAX_CERTIFICATES] = {0};
     const char *private_keys[MAX_CERTIFICATES] = {0};
 

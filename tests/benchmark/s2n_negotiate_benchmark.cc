@@ -14,8 +14,8 @@
  */
 
 #include <unistd.h>
-#include "s2n_negotiate_client_benchmark.h"
-#include "s2n_negotiate_server_benchmark.h"
+#include "utils/s2n_negotiate_client_benchmark.h"
+#include "utils/s2n_negotiate_server_benchmark.h"
 
 int main(int argc, char** argv) {
     int pid_server = fork();
