@@ -1,5 +1,8 @@
 # s2n-tls rust bindings
 
+**NOTICE: These bindings are currently subject to change and should not be used without the expectation
+of future breakage.**
+
 ## Installation
 
 In order to generate rust bindings for s2n-tls, you need to have the following installed:
