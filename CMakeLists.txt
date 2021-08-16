@@ -48,8 +48,8 @@ file(GLOB PQ_SRC "pq-crypto/*.c")
 message(STATUS "Detected CMAKE_SYSTEM_PROCESSOR as ${CMAKE_SYSTEM_PROCESSOR}")
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    message(STATUS "Detected 32-Bit system - disabling PQ crypto assembly optimizations")
-    set(S2N_NO_PQ_ASM ON)
+  message(STATUS "Detected 32-Bit system - disabling PQ crypto assembly optimizations")
+  set(S2N_NO_PQ_ASM ON)
 else()
     message(STATUS "Detected 64-Bit system")
 endif()
@@ -61,31 +61,31 @@ if(S2N_NO_PQ)
 else()
     # PQ is enabled, so include all of the PQ crypto code
     file(GLOB PQ_HEADERS
-            "pq-crypto/*.h"
-            "pq-crypto/bike_r1/*.h"
-            "pq-crypto/bike_r2/*.h"
-            "pq-crypto/bike_r3/*.h"
-            "pq-crypto/sike_r1/*.h"
-            "pq-crypto/kyber_r2/*.h"
-            "pq-crypto/kyber_90s_r2/*.h"
-            "pq-crypto/kyber_r3/*.h"
-            "pq-crypto/sike_r3/*.h")
+        "pq-crypto/*.h"
+        "pq-crypto/bike_r1/*.h"
+        "pq-crypto/bike_r2/*.h"
+        "pq-crypto/bike_r3/*.h"
+        "pq-crypto/sike_r1/*.h"
+        "pq-crypto/kyber_r2/*.h"
+        "pq-crypto/kyber_90s_r2/*.h"
+        "pq-crypto/kyber_r3/*.h"
+        "pq-crypto/sike_r3/*.h")
 
     # The SIKE r1 code #includes .c files directly; including sike_r1/*.c
     # here breaks the build due to duplicates. The SIKE r3 code does not have this issue.
     file(GLOB PQ_SRC
-            "pq-crypto/*.c"
-            "pq-crypto/bike_r1/*.c"
-            "pq-crypto/bike_r2/*.c"
-            "pq-crypto/bike_r3/*.c"
-            "pq-crypto/sike_r1/fp_generic_r1.c"
-            "pq-crypto/sike_r1/P503_r1.c"
-            "pq-crypto/sike_r1/sike_r1_kem.c"
-            "pq-crypto/sike_r1/fips202_r1.c"
-            "pq-crypto/kyber_r2/*.c"
-            "pq-crypto/kyber_90s_r2/*.c"
-            "pq-crypto/kyber_r3/*.c"
-            "pq-crypto/sike_r3/*.c")
+        "pq-crypto/*.c"
+        "pq-crypto/bike_r1/*.c"
+        "pq-crypto/bike_r2/*.c"
+        "pq-crypto/bike_r3/*.c"
+        "pq-crypto/sike_r1/fp_generic_r1.c"
+        "pq-crypto/sike_r1/P503_r1.c"
+        "pq-crypto/sike_r1/sike_r1_kem.c"
+        "pq-crypto/sike_r1/fips202_r1.c"
+        "pq-crypto/kyber_r2/*.c"
+        "pq-crypto/kyber_90s_r2/*.c"
+        "pq-crypto/kyber_r3/*.c"
+        "pq-crypto/sike_r3/*.c")
 endif()
 
 ##be nice to visual studio users
@@ -157,27 +157,27 @@ else()
         # extensions. For example, gcc-4 doesn't fully support AVX-512, while
         # gcc-7 doesn't support VPCLMUL extension.
         try_compile(BIKE_R3_AVX2_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                COMPILE_DEFINITIONS "-mavx2")
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            COMPILE_DEFINITIONS "-mavx2")
 
         set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_AVX512_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
 
         set(BIKE_R3_PCLMUL_FLAGS "-mpclmul -msse2")
         try_compile(BIKE_R3_PCLMUL_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_PCLMUL_FLAGS})
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            COMPILE_DEFINITIONS ${BIKE_R3_PCLMUL_FLAGS})
 
         set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_VPCLMUL_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_VPCLMUL_FLAGS})
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            COMPILE_DEFINITIONS ${BIKE_R3_VPCLMUL_FLAGS})
 
         if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
             set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
@@ -193,9 +193,9 @@ else()
 
         set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mavx -mbmi2")
         try_compile(KYBER512R3_AVX2_BMI2_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                COMPILE_DEFINITIONS ${KYBER512R3_AVX2_BMI2_FLAGS})
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            COMPILE_DEFINITIONS ${KYBER512R3_AVX2_BMI2_FLAGS})
 
         if(KYBER512R3_AVX2_BMI2_SUPPORTED)
             set(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED ON)
@@ -254,23 +254,23 @@ else()
 endif()
 
 file(GLOB S2N_HEADERS
-        ${API_HEADERS}
-        ${CRYPTO_HEADERS}
-        ${ERROR_HEADERS}
-        ${PQ_HEADERS}
-        ${STUFFER_HEADERS}
-        ${TLS_HEADERS}
-        ${UTILS_HEADERS}
-        )
+    ${API_HEADERS}
+    ${CRYPTO_HEADERS}
+    ${ERROR_HEADERS}
+    ${PQ_HEADERS}
+    ${STUFFER_HEADERS}
+    ${TLS_HEADERS}
+    ${UTILS_HEADERS}
+)
 
 file(GLOB S2N_SRC
-        ${CRYPTO_SRC}
-        ${ERROR_SRC}
-        ${PQ_SRC}
-        ${STUFFER_SRC}
-        ${TLS_SRC}
-        ${UTILS_SRC}
-        )
+    ${CRYPTO_SRC}
+    ${ERROR_SRC}
+    ${PQ_SRC}
+    ${STUFFER_SRC}
+    ${TLS_SRC}
+    ${UTILS_SRC}
+)
 
 add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
@@ -280,7 +280,7 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -Wa,--noexecstack
-        )
+)
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
@@ -427,16 +427,16 @@ if (BUILD_TESTING)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
         set_property(
-                TEST
-                ${test_case_name}
-                PROPERTY
-                ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+        TEST
+            ${test_case_name}
+        PROPERTY
+            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
 
         set_property(
-                TEST
-                ${test_case_name}
-                PROPERTY
-                ENVIRONMENT S2N_DONT_MLOCK=1)
+        TEST
+            ${test_case_name}
+        PROPERTY
+            ENVIRONMENT S2N_DONT_MLOCK=1)
 
     endforeach(test_case)
 
@@ -498,9 +498,9 @@ configure_file("cmake/${PROJECT_NAME}-config.cmake"
         @ONLY)
 
 if (BUILD_SHARED_LIBS)
-    set (TARGET_DIR "shared")
+   set (TARGET_DIR "shared")
 else()
-    set (TARGET_DIR "static")
+   set (TARGET_DIR "static")
 endif()
 
 install(EXPORT "${PROJECT_NAME}-targets"
@@ -515,4 +515,3 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
 install(FILES "cmake/modules/FindLibCrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)
-        
