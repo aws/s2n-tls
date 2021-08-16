@@ -196,7 +196,7 @@ else()
             ${CMAKE_BINARY_DIR}
             "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS ${KYBER512R3_AVX2_BMI2_FLAGS})
-
+            
         if(KYBER512R3_AVX2_BMI2_SUPPORTED)
             set(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED ON)
         endif()
