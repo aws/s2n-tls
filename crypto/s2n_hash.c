@@ -96,6 +96,7 @@ static int s2n_low_level_hash_new(struct s2n_hash_state *state)
 
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
+    memset(&state->digest,0,sizeof(state->digest));
     return S2N_SUCCESS;
 }
 
