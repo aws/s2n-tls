@@ -703,7 +703,14 @@ valid_connection conn = valid_handshake (conn.handshake)
 initial_connection : connection -> Bit
 initial_connection conn = conn.handshake.handshake_type == INITIAL /\ conn.handshake.message_number == 0
     /\ (conn.corked == 0 \/ conn.corked == 1)
-    
+       // For now, we assume that any handshake in the state machine that uses
+       // WITH_EARLY_DATA but not EARLY_CLIENT_CCS is unreachable. This only
+       // affects the TLS 1.3 state machine, which is the only state machine
+       // which uses WITH_EARLY_DATA or EARLY_CLIENT_CCS.
+    /\ ((IS_TLS13_HANDSHAKE conn /\ ((conn2.handshake.handshake_type && WITH_EARLY_DATA) != zero)) ==>
+           ((conn2.handshake.handshake_type && EARLY_CLIENT_CCS) != zero))
+  where conn2 = s2nTrans conn
+
 // Logical implication
 implies : Bit -> Bit -> Bit
 implies l r = if r then True else ~l
@@ -797,4 +804,7 @@ S2N_CERT_AUTH_NONE = 0
 S2N_CERT_AUTH_REQUIRED = 1
 
 //S2N early data states
+S2N_UNKNOWN_EARLY_DATA_STATE = 0
+S2N_EARLY_DATA_NOT_REQUESTED = 2
 S2N_EARLY_DATA_ACCEPTED = 3
+S2N_EARLY_DATA_STATES_COUNT = 6

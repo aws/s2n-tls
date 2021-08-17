@@ -26,9 +26,7 @@
 
 include "handshake_io_lowlevel.saw";
 import "rfc_handshake_tls12.cry";
-
-// TLS1.3 is temporarily removed from SAW testing.
-// import "rfc_handshake_tls13.cry";
+import "rfc_handshake_tls13.cry";
 
 import "cork_uncork.cry";
 
@@ -83,9 +81,8 @@ let prove_state_machine = do {
     print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
     prove_print abc {{ tls12rfcSimulatesS2N `{16} }};
 
-    // TLS1.3 is temporarily removed from SAW testing.
-    // print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
-    // prove_print z3 {{ tls13rfcSimulatesS2N `{16} }};
+    print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
+    prove_print z3 {{ tls13rfcSimulatesS2N `{16} }};
 
     return ();
 };

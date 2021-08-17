@@ -70,7 +70,8 @@ type Parameters = {
     retry : Bit,
     client_auth : Bit,
     no_client_cert : Bit,
-    zero_rtt : Bit
+    zero_rtt : Bit,
+    early_ccs : Bit
 }
 
 /**
@@ -85,12 +86,14 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ params.no_client_cert == (conn_no_client_cert /\ params.client_auth)
                                    /\ params.zero_rtt == (conn_zero_rtt /\ params.psk_mode)
                                    /\ params.compat_mode == [ conn.mode != S2N_CLIENT, conn.mode == S2N_CLIENT ]
+                                   /\ params.early_ccs == conn_early_ccs
                                    /\ conn.actual_protocol_version == S2N_TLS13
-  where conn_psk_mode =         False /* Not supported yet */
-        conn_retry =            False /* Not supported yet */
+  where conn_psk_mode =         ~conn.chosen_psk_null
+        conn_retry =            (conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero
         conn_client_auth =      conn.client_auth_flag
         conn_no_client_cert =   conn.no_client_cert
-        conn_zero_rtt =         False /* Not supported yet */
+        conn_early_ccs =        (conn.handshake.handshake_type && EARLY_CLIENT_CCS) != zero
+        conn_zero_rtt =         (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED)
 
 type Action = {
     message : Message,
@@ -237,13 +240,13 @@ stateMachine params = iterate (\s -> stateFor s.next) CLIENT_START_STATE
 
         CLIENT_START_STATE = state 1 [
             action clientHello client True,
-            action changeCipherSpec client (params.zero_rtt /\ compatMode client)
+            action changeCipherSpec client (params.zero_rtt /\ params.early_ccs /\ compatMode client)
         ] (if params.retry then HELLO_RETRY_STATE else SERVER_HELLO_STATE)
 
         HELLO_RETRY_STATE = state 2 [
             action helloRetryRequest server True,
             action changeCipherSpec server (compatMode server),
-            action changeCipherSpec client (~params.zero_rtt /\ compatMode client),
+            action changeCipherSpec client (~params.zero_rtt /\ params.early_ccs /\ compatMode client),
             action clientHello client True
         ] SERVER_HELLO_STATE
 
@@ -324,7 +327,8 @@ testParameters = {
             retry = False,
             client_auth = False,
             no_client_cert = False,
-            zero_rtt = False
+            zero_rtt = False,
+            early_ccs = False
         }
 
 testConnection : connection
