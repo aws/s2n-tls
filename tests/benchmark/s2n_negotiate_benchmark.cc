@@ -21,14 +21,11 @@ int main(int argc, char** argv) {
     int pid_server = fork();
     if(pid_server == 0) {
         Server s;
-        s.start_benchmark_server(argc, argv);
+        s.start_negotiate_benchmark_server(argc, argv);
     }
     else {
         Client c;
-        c.start_benchmark_client(argc, argv);
+        c.start_negotiate_benchmark_client(argc, argv);
     }
     return 0;
 }
-
-
-
