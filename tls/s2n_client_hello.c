@@ -219,8 +219,8 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
+    POSIX_GUARD(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, conn->session_id_len), conn->session_id_len));
+    POSIX_CHECKED_MEMCPY(conn->session_id, client_hello->session_id.data, conn->session_id_len);
 
     uint16_t cipher_suites_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
@@ -501,11 +501,10 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    POSIX_GUARD(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, session_id_length), session_id_length));
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
-        POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
+        POSIX_CHECKED_MEMCPY(conn->session_id, client_hello->session_id.data, session_id_length);
         conn->session_id_len = (uint8_t) session_id_length;
-    } else {
-        POSIX_GUARD(s2n_stuffer_skip_read(in, session_id_length));
     }
 
     struct s2n_blob b = {0};
@@ -561,4 +560,25 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
     uint32_t len = min_size(&parsed_extension->extension, max_length);
     POSIX_CHECKED_MEMCPY(out, parsed_extension->extension.data, len);
     return len;
+}
+
+int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out_length);
+    *out_length = ch->session_id.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(out_length);
+
+    uint32_t len = min_size(&ch->session_id, max_length);
+    POSIX_CHECKED_MEMCPY(out, ch->session_id.data, len);
+    *out_length = len;
+
+    return S2N_SUCCESS;
 }
