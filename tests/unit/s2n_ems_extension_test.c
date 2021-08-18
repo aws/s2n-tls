@@ -67,5 +67,45 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* s2n_server_ems_is_missing */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= type=test
+         *#    If the original session used the extension but the new ServerHello
+         *#    does not contain the extension, the client MUST abort the
+         *#    handshake.
+         **/
+        conn->ems_negotiated = true;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_ems_extension.if_missing(conn), S2N_ERR_MISSING_EXTENSION);
+
+        conn->ems_negotiated = false;
+        EXPECT_SUCCESS(s2n_server_ems_extension.if_missing(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_client_ems_should_send */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_TRUE(s2n_client_ems_extension.should_send(conn));
+
+        uint8_t test_ticket[] = "test data";
+        EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(test_ticket)));
+        conn->ems_negotiated = true;
+        EXPECT_TRUE(s2n_client_ems_extension.should_send(conn));
+
+        /* Don't send this extension if the previous session did not negotiate EMS */
+        conn->ems_negotiated = false;
+        EXPECT_FALSE(s2n_client_ems_extension.should_send(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }
