@@ -142,7 +142,7 @@ class Certificates(object):
     ECDSA_384 = Cert("ECDSA_384", "ecdsa_p384_pkcs1")
 
     RSA_2048_SHA256_WILDCARD = Cert("RSA_2048_SHA256_WILDCARD", "rsa_2048_sha256_wildcard")
-    RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "rsa_pss_2048_sha256_CA")
+    RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "localhost_rsa_pss_2048_sha256")
 
 
 class Protocol(object):
