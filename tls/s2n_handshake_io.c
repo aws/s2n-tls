@@ -814,10 +814,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
                 return S2N_SUCCESS;
             }
 
-            s2n_extension_type_id ems_ext_id = 0;
-            POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
             /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
             if (conn->ems_negotiated && S2N_IN_TEST) {
+                s2n_extension_type_id ems_ext_id = 0;
+                POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
                 /**
                  *= https://tools.ietf.org/rfc/rfc7627#section-5.3
                  *# If the original session used the "extended_master_secret"

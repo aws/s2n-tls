@@ -91,7 +91,6 @@ typedef enum {
 typedef enum {
     S2N_TLS12_SERIALIZED_FORMAT_VERSION = 1,
     S2N_TLS13_SERIALIZED_FORMAT_VERSION,
-    S2N_TLS12_SERIALIZED_FORMAT_VERSION_WITH_EMS,
 } s2n_serial_format_version;
 
 extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);

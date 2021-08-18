@@ -56,8 +56,8 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     /* Get the time */
     POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
+    /* Write the entry */
     POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_TLS12_SERIALIZED_FORMAT_VERSION));
-
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
@@ -338,7 +338,6 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
-
     return S2N_RESULT_OK;
 }
 
