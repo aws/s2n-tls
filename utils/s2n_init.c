@@ -86,7 +86,7 @@ int s2n_cleanup(void)
      * so ensure that whatever clean ups we have here are thread safe */
     POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
 
-    /* If this is the main thread and atexit cleanup is unavailable,
+    /* If this is the main thread and atexit cleanup is disabled,
      * perform final cleanup now */
     if (pthread_self() == main_thread && !atexit_cleanup) {
         POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
