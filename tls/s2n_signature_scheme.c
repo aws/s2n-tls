@@ -348,7 +348,6 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20210816[] = {
 
         /* ECDSA - TLS 1.2 */
         &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
-        &s2n_ecdsa_secp384r1_sha384,
         &s2n_ecdsa_sha512,
 };
 
