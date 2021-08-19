@@ -619,7 +619,7 @@ const struct s2n_security_policy security_policy_20201021 = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
-const struct s2n_security_policy security_policy_minvertls2_2021_08 = {
+const struct s2n_security_policy security_policy_20210816 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20210816,
     .kem_preferences = &kem_preferences_null,
@@ -627,7 +627,7 @@ const struct s2n_security_policy security_policy_minvertls2_2021_08 = {
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };
 
-const struct s2n_security_policy security_policy_minvertls2_2021_08_gcm = {
+const struct s2n_security_policy security_policy_20210816_gcm = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20210816_gcm,
     .kem_preferences = &kem_preferences_null,
@@ -780,8 +780,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="20190802", .security_policy=&security_policy_20190802, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20200207", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20201021", .security_policy=&security_policy_20201021, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20210816", .security_policy=&security_policy_minvertls2_2021_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20210816_GCM", .security_policy=&security_policy_minvertls2_2021_08_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20210816", .security_policy=&security_policy_20210816, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20210816_GCM", .security_policy=&security_policy_20210816_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all", .security_policy=&security_policy_test_all, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_fips", .security_policy=&security_policy_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_ecdsa", .security_policy=&security_policy_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0 },
