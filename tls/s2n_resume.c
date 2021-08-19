@@ -174,6 +174,11 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
          *# MUST abort the abbreviated handshake.
          **/
         if (conn->ems_negotiated != ems_negotiated) {
+            /* The session ticket needs to have the same EMS state as the current session. If it doesn't
+             * have the same state, the current session takes the state of the session ticket and errors.
+             * If the deserialization process errors, we will use this state in a few extra checks
+             * to determine if we can fallback to a full handshake.
+             */
             conn->ems_negotiated = ems_negotiated;
             POSIX_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
         }
