@@ -15,7 +15,4 @@
 
 #pragma once
 
-class Client {
-public:
-    int start_benchmark_client(int argc, char **argv);
-};
+int start_negotiate_benchmark_client(int argc, char **argv);

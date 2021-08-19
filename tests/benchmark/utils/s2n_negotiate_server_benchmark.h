@@ -15,7 +15,4 @@
 
 #pragma once
 
-class Server {
-public:
-    int start_benchmark_server(int argc, char **argv);
-};
+int start_negotiate_benchmark_server(int argc, char **argv);
