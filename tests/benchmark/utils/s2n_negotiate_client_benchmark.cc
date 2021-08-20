@@ -139,20 +139,16 @@ static void benchmark_single_suite_client(benchmark::State& state) {
     if (!conn_settings.insecure) {
         const char *ca_dir = NULL;
         if(all_suites[state.range(0)]->auth_method == S2N_AUTHENTICATION_RSA) {
-            char pem_file_location[200] = "";
-            const char ca_file[33] = "rsa_2048_sha384_client_cert.pem";
-            strcat(pem_file_location, pem_dir);
-            strcat(pem_file_location, ca_file);
-            if (s2n_config_set_verification_ca_location(config, pem_file_location, ca_dir) < 0) {
+            std::string ca_file = "rsa_2048_sha384_client_cert.pem";
+            std::string pem_file_location = pem_dir + ca_file;
+            if (s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
         }
         else {
-            char pem_file_location[200] = "";
-            const char ca_file[100] = "ecdsa_p256_pkcs1_cert.pem";
-            strcat(pem_file_location, pem_dir);
-            strcat(pem_file_location, ca_file);
-            if (s2n_config_set_verification_ca_location(config,pem_file_location, ca_dir) < 0) {
+            std::string ca_file = "ecdsa_p256_pkcs1_cert.pem";
+            std::string pem_file_location = pem_dir + ca_file;
+            if (s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
         }
@@ -195,7 +191,9 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
     char file_prefix[100];
     size_t WARMUP_ITERS = 1;
     size_t ITERATIONS = 1;
-    struct addrinfo hints, *ai_list, *ai;
+    struct addrinfo hints;
+    struct addrinfo *ai_list = nullptr;
+    struct addrinfo *ai = nullptr;
 
     argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, WARMUP_ITERS, ITERATIONS);
 
