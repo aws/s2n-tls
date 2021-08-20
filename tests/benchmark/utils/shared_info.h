@@ -25,6 +25,7 @@ extern unsigned int num_suites;
 extern int DEBUG_PRINT;
 extern const char *host;
 extern const char *port;
+extern const char *pem_dir;
 extern int sockfd, fd_bench;
 extern struct s2n_config *config;
 extern struct conn_settings conn_settings;

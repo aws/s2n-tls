@@ -29,8 +29,6 @@ extern "C" {
 
 #define MAX_CERTIFICATES 50
 
-struct session_cache_entry session_cache[256];
-
 static int server_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn) {
     if (!conn) {
         print_s2n_error("Error getting new s2n connection");
@@ -101,7 +99,7 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
 
     const char *session_ticket_key_file_path = NULL;
 
-    int setsockopt_value = 0;
+    int setsockopt_value = 1;
     int max_early_data = 0;
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 0;
@@ -130,7 +128,7 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     GUARD_EXIT(getaddrinfo(host, port, &hints, &ai), "getaddrinfo error\n");
     GUARD_EXIT((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)), "socket error\n");
     GUARD_EXIT(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &setsockopt_value, sizeof(int)), "setsockopt error\n");
-    GUARD_EXIT(bind(sockfd, ai->ai_addr, ai->ai_addrlen), "bind error");
+    GUARD_EXIT(bind(sockfd, ai->ai_addr, ai->ai_addrlen), "Server bind error\n");
     GUARD_EXIT(listen(sockfd, 1), "listen error\n");
 
     if (DEBUG_PRINT) {
@@ -151,7 +149,6 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
 
     GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key_rsa),
                "Error setting certificate/key");
-
 
     struct s2n_cert_chain_and_key *chain_and_key_ecdsa = s2n_cert_chain_and_key_new();
     GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key_ecdsa, ecdsa_certificate_chain, ecdsa_private_key),

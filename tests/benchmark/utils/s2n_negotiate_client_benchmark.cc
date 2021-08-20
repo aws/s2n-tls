@@ -67,44 +67,8 @@ static int setup_socket(struct addrinfo hints, struct addrinfo *ai_list, struct 
 }
 
 static void client_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn) {
-    struct verify_data *unsafe_verify_data = (verify_data *) malloc(sizeof(verify_data));
-    s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
-
-    GUARD_EXIT(s2n_config_set_status_request_type(config, type),
-               "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-
-    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) != S2N_SUCCESS) {
-        print_s2n_error("Error setting host name verification function.");
-    }
-
-    unsafe_verify_data->trusted_host = host;
-
-    if (!conn_settings.insecure) {
-        GUARD_EXIT(s2n_config_add_pem_to_trust_store(config, rsa_certificate_chain), "Failing RSA public key");
-        GUARD_EXIT(s2n_config_add_pem_to_trust_store(config, ecdsa_certificate_chain), "Failing ECDSA public key");
-
-    }
-    else {
-        GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
-    }
-
-    if (conn == NULL) {
-        print_s2n_error("Error getting new connection");
-        exit(1);
-    }
-
-    GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
-
     GUARD_EXIT(s2n_set_server_name(conn, host), "Error setting server name");
-
     GUARD_EXIT(s2n_connection_set_fd(conn, sockfd), "Error setting file descriptor");
-
-    GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
-               "Error setting ClientAuth optional");
-
-    if (conn_settings.use_corked_io) {
-        GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
-    }
 
     if (benchmark_negotiate(conn, sockfd, state, warmup) != S2N_SUCCESS) {
         state.SkipWithError("Negotiate Failed\n");
@@ -127,8 +91,6 @@ static void client_handshake(benchmark::State& state, bool warmup, struct s2n_co
     }
 
     GUARD_EXIT(s2n_connection_wipe(conn), "Error wiping connection");
-
-    free(unsafe_verify_data);
 }
 
 static void benchmark_single_suite_client(benchmark::State& state) {
@@ -162,6 +124,57 @@ static void benchmark_single_suite_client(benchmark::State& state) {
 
     config->security_policy = &security_policy_benchmark;
 
+    struct verify_data *unsafe_verify_data = (verify_data *) malloc(sizeof(verify_data));
+    s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
+
+    GUARD_EXIT(s2n_config_set_status_request_type(config, type),
+               "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) != S2N_SUCCESS) {
+        print_s2n_error("Error setting host name verification function.");
+    }
+
+    unsafe_verify_data->trusted_host = host;
+
+    if (!conn_settings.insecure) {
+        const char *ca_dir = NULL;
+        if(all_suites[state.range(0)]->auth_method == S2N_AUTHENTICATION_RSA) {
+            char pem_file_location[200] = "";
+            const char ca_file[33] = "rsa_2048_sha384_client_cert.pem";
+            strcat(pem_file_location, pem_dir);
+            strcat(pem_file_location, ca_file);
+            if (s2n_config_set_verification_ca_location(config, pem_file_location, ca_dir) < 0) {
+                print_s2n_error("Error setting CA file for trust store.");
+            }
+        }
+        else {
+            char pem_file_location[200] = "";
+            const char ca_file[100] = "ecdsa_p256_pkcs1_cert.pem";
+            strcat(pem_file_location, pem_dir);
+            strcat(pem_file_location, ca_file);
+            if (s2n_config_set_verification_ca_location(config,pem_file_location, ca_dir) < 0) {
+                print_s2n_error("Error setting CA file for trust store.");
+            }
+        }
+    }
+    else {
+        GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
+    }
+
+    if (conn == NULL) {
+        print_s2n_error("Error getting new connection");
+        exit(1);
+    }
+
+    GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+    GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
+               "Error setting ClientAuth optional");
+
+    if (conn_settings.use_corked_io) {
+        GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
     for (size_t i = 0; i < WARMUP_ITERS; i++) {
         client_handshake(state, true, conn);
     }
@@ -169,6 +182,7 @@ static void benchmark_single_suite_client(benchmark::State& state) {
         state.PauseTiming();
         client_handshake(state, false, conn);
     }
+    free(unsafe_verify_data);
     GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
     GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 }
