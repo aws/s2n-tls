@@ -31,6 +31,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
         uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+        /**
+         *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
+         *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
+         *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
+         **/
         S2N_BLOB_FROM_HEX(ticket_key, 
             "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
