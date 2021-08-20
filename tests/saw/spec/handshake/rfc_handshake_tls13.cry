@@ -295,7 +295,7 @@ rfc2S2N msg = mkAct recordType messageType writer
         messageType = if recordType != TLS_HANDSHAKE then noMessageType
                       |  msg.messageType == clientHello then TLS_CLIENT_HELLO
                       |  msg.messageType == serverHello then TLS_SERVER_HELLO
-                      |  msg.messageType == helloRetryRequest then TLS_HELLO_RETRY_REQUEST
+                      |  msg.messageType == helloRetryRequest then TLS_SERVER_HELLO
                       |  msg.messageType == encryptedExtensions then TLS_ENCRYPTED_EXTENSIONS
                       |  msg.messageType == certificateRequest then TLS_CERTIFICATE_REQ
                       |  msg.messageType == certificate then TLS_CERTIFICATE
@@ -367,7 +367,6 @@ s2nToWords action = name # [ '(', action.writer, ')']
                |  action.record_type == TLS_APPLICATION_DATA then padded      "Data"
                |  action.message_type == TLS_CLIENT_HELLO then padded         "ClientHello"
                |  action.message_type == TLS_SERVER_HELLO then padded         "ServerHello"
-               |  action.message_type == TLS_HELLO_RETRY_REQUEST then padded  "HelloRetryRequest"
                |  action.message_type == TLS_ENCRYPTED_EXTENSIONS then padded "EncryptedExtensions"
                |  action.message_type == TLS_CERTIFICATE_REQ then padded      "CertRequest"
                |  action.message_type == TLS_CERTIFICATE then padded          "Cert"
