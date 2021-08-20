@@ -192,8 +192,8 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
     size_t WARMUP_ITERS = 1;
     size_t ITERATIONS = 1;
     struct addrinfo hints;
-    struct addrinfo *ai_list = nullptr;
     struct addrinfo *ai = nullptr;
+    struct addrinfo *ai_list = nullptr;
 
     argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, WARMUP_ITERS, ITERATIONS);
 
