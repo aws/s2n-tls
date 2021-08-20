@@ -24,6 +24,7 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_safety_macros.h"
 
 #include "openssl/opensslv.h"
 
@@ -38,12 +39,15 @@ unsigned long s2n_get_openssl_version(void)
     return OPENSSL_VERSION_NUMBER;
 }
 
-static bool atexit_cleanup = true;
-void s2n_disable_atexit(void) {
-    atexit_cleanup = false;
-}
-
 static pthread_t main_thread = 0;
+
+static bool atexit_cleanup = true;
+int s2n_disable_atexit(void) {
+    const bool already_initialized = (main_thread != 0);
+    POSIX_ENSURE(!already_initialized, S2N_ERR_INITIALIZED);
+    atexit_cleanup = false;
+    return S2N_SUCCESS;
+}
 
 int s2n_init(void)
 {
@@ -65,7 +69,7 @@ int s2n_init(void)
         s2n_stack_traces_enabled_set(true);
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static bool s2n_cleanup_atexit_impl(void)
