@@ -137,7 +137,6 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2
-     *
      *# Implementations MUST NOT send extension responses if the remote
      *# endpoint did not send the corresponding extension requests, with the
      *# exception of the "cookie" extension in the HelloRetryRequest.  Upon
