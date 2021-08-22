@@ -185,11 +185,9 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
 
     if (auth_method == S2N_AUTHENTICATION_ECDSA) {
         *sig_scheme_out = s2n_ecdsa_sha1;
-    }
-
-    /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
-    if ((conn->actual_protocol_version >= S2N_TLS12 || s2n_is_in_fips_mode())
-            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
+    } else if (conn->actual_protocol_version >= S2N_TLS12) {
+        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
+    } else if (s2n_is_in_fips_mode() && signer == S2N_SERVER) {
         *sig_scheme_out = s2n_rsa_pkcs1_sha1;
     }
 

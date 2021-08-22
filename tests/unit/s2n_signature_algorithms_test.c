@@ -387,7 +387,7 @@ int main(int argc, char **argv)
                     {
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_default_rsa.iana_value);
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
                     }
 
                     /* Choose ECDSA for a ECDSA certificate */
