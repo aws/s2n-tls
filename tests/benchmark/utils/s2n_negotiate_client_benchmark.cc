@@ -90,7 +90,8 @@ static void client_handshake(benchmark::State& state, bool warmup, struct s2n_co
     GUARD_EXIT(s2n_connection_wipe(conn), "Error wiping connection");
 }
 
-static void benchmark_single_suite_client(benchmark::State& state, int sockfd) {
+static void benchmark_single_suite_client(benchmark::State& state) {
+    int sockfd = state.range(2);
     config = s2n_config_new();
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
     size_t warmup_iters = state.range(1);
@@ -190,16 +191,18 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
     char file_prefix[100];
     long int warmup_iters = 1;
     size_t iterations = 1;
+    size_t repetitions = 1;
 
-    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations);
+    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
 
     strcat(bench_out, file_prefix);
-    argc += 2;
 
     std::vector<char*> argv_bench(argv, argv + argc);
     argv_bench.push_back(bench_out);
     argv_bench.push_back(bench_format);
     argv_bench.push_back(nullptr);
+    argv = argv_bench.data();
+    argc += 2;
 
     conn_settings.use_corked_io = use_corked_io;
     conn_settings.insecure = insecure;
@@ -213,10 +216,10 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
         strcpy(bench_name, "Client: ");
         strcat(bench_name, all_suites[current_suite]->name);
 
-        benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_client, sockfd)->Repetitions(iterations)
-        ->ReportAggregatesOnly()->Iterations(1)->Args({current_suite, warmup_iters});
+        benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_client)->Repetitions(repetitions)
+        ->ReportAggregatesOnly()->Iterations(iterations)->Args({current_suite, warmup_iters, sockfd});
     }
-    ::benchmark::Initialize(&argc, argv_bench.data());
+    ::benchmark::Initialize(&argc, argv);
     ::benchmark::RunSpecifiedBenchmarks();
     s2n_cleanup();
     close(sockfd);

@@ -59,7 +59,8 @@ static int server_handshake(benchmark::State& state, bool warmup, struct s2n_con
     return 0;
 }
 
-static int benchmark_single_suite_server(benchmark::State& state, int connectionfd) {
+static int benchmark_single_suite_server(benchmark::State& state) {
+    int connectionfd = state.range(2);
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     size_t warmup_iters = state.range(1);
 
@@ -86,13 +87,14 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     char file_prefix[100];
     long int warmup_iters = 1;
     size_t iterations = 1;
+    size_t repetitions = 1;
 
-    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations);
+    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
 
     char log_output_name[80];
     strcpy(log_output_name, "server_");
     strcat(log_output_name, file_prefix);
-    freopen(log_output_name, "w", stdout);
+    FILE* write_log = freopen(log_output_name, "w", stdout);
     argc++;
 
     std::vector<char*> argv_bench(argv, argv + argc);
@@ -164,8 +166,8 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
             strcpy(bench_name, "Server: ");
             strcat(bench_name, all_suites[suite_num]->name);
 
-            benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_server, connectionfd)->Repetitions(iterations)
-            ->Iterations(1)->Args({suite_num, warmup_iters});
+            benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_server)->Repetitions(repetitions)
+            ->Iterations(iterations)->Args({suite_num, warmup_iters, connectionfd});
 
             if (conn_settings.max_conns > 0) {
                 if (conn_settings.max_conns-- == 1) {
@@ -181,6 +183,7 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
 
     close(connectionfd);
     close(sockfd);
+    fclose(write_log);
     s2n_cleanup();
     return 0;
 }

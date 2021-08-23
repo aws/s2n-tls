@@ -135,9 +135,9 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
 }
 
 void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    char* file_prefix, long int& warmup_iters, size_t& iterations) {
+                    char* file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions) {
     while (1) {
-        int c = getopt(argc, argv, "c:i:w:o:t:p:sD");
+        int c = getopt(argc, argv, "c:i:r:w:o:t:p:sD");
         if (c == -1) {
             break;
         }
@@ -150,6 +150,9 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
                 break;
             case 'i':
                 iterations = atoi(optarg);
+                break;
+            case 'r':
+                repetitions = atoi(optarg);
                 break;
             case 'w':
                 warmup_iters = atoi(optarg);
