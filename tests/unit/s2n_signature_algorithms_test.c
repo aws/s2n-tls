@@ -49,6 +49,7 @@ const struct s2n_signature_preferences test_preferences = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_cert_chain_and_key *rsa_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
@@ -188,7 +189,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = s2n_config_new();
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
 
         const struct s2n_security_policy *security_policy = NULL;
