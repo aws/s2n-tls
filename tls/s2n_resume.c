@@ -62,8 +62,9 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+    POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->ems_negotiated));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static S2N_RESULT s2n_tls13_serialize_keying_material_expiration(struct s2n_connection *conn,
@@ -153,10 +154,37 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     S2N_ERROR_IF(then > now, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     S2N_ERROR_IF(now - then > conn->config->session_state_lifetime_in_nanos, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
-    /* Last but not least, put the master secret in place */
     POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
 
-    return 0;
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if (S2N_IN_TEST && s2n_stuffer_data_available(from)) {
+        uint8_t ems_negotiated = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint8(from, &ems_negotiated));
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *# If the original session did not use the "extended_master_secret"
+         *# extension but the new ClientHello contains the extension, then the
+         *# server MUST NOT perform the abbreviated handshake.  Instead, it
+         *# SHOULD continue with a full handshake (as described in
+         *# Section 5.2) to negotiate a new session.
+         *#
+         *# If the original session used the "extended_master_secret"
+         *# extension but the new ClientHello does not contain it, the server
+         *# MUST abort the abbreviated handshake.
+         **/
+        if (conn->ems_negotiated != ems_negotiated) {
+            /* The session ticket needs to have the same EMS state as the current session. If it doesn't
+             * have the same state, the current session takes the state of the session ticket and errors.
+             * If the deserialization process errors, we will use this state in a few extra checks
+             * to determine if we can fallback to a full handshake.
+             */
+            conn->ems_negotiated = ems_negotiated;
+            POSIX_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+        }
+    }
+
+    return S2N_SUCCESS;
 }
 
 static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
@@ -185,9 +213,6 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
 
-    RESULT_ENSURE(s2n_stuffer_data_available(from) == (S2N_TLS12_STATE_SIZE_IN_BYTES - S2N_STATE_FORMAT_LEN), 
-        S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
-
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &conn->actual_protocol_version));
 
     uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(from, S2N_TLS_CIPHER_SUITE_LEN);
@@ -197,9 +222,14 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     uint64_t then = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &then));
 
-    /* Last but not least, put the master secret in place */
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
 
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if (S2N_IN_TEST && s2n_stuffer_data_available(from)) {
+        uint8_t ems_negotiated = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &ems_negotiated));
+        conn->ems_negotiated = ems_negotiated;
+    }
     return S2N_RESULT_OK;
 }
 
@@ -301,7 +331,7 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
             RESULT_GUARD_POSIX(s2n_tls12_deserialize_resumption_state(conn, from));
         } else {
             RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
-        }  
+        }
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
         if (conn->mode == S2N_CLIENT) {
