@@ -149,9 +149,8 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     /* We require an exact match in TLS 1.3, but all previous versions can fall back to the default SignatureScheme.
      * This means that an s2n client will accept the default SignatureScheme from a TLS server, even if the client did
      * not send it in it's ClientHello. This pre-TLS1.3 behavior is an intentional choice to maximize support. */
-    s2n_mode peer_mode = (conn->mode + 1) % 2;
     struct s2n_signature_scheme default_scheme = { 0 };
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &default_scheme, peer_mode));
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &default_scheme, S2N_PEER_MODE(conn->mode)));
 
     if ((conn->actual_protocol_version <= S2N_TLS12)
             && (s2n_signature_scheme_valid_to_accept(conn, &default_scheme) == S2N_SUCCESS)
