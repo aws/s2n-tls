@@ -9,7 +9,6 @@ unsigned int num_suites = cipher_preferences_test_all_tls12.count;
 const char *host = "localhost";
 const char *port = "8000";
 char const *pem_dir = "";
-int sockfd, fd_bench = 0;
 int DEBUG_PRINT = 0;
 struct s2n_config *config;
 struct conn_settings conn_settings;
@@ -136,7 +135,7 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
 }
 
 void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    char* file_prefix, size_t& WARMUP_ITERS, size_t& ITERATIONS) {
+                    char* file_prefix, long int& warmup_iters, size_t& iterations) {
     while (1) {
         int c = getopt(argc, argv, "c:i:w:o:t:p:sD");
         if (c == -1) {
@@ -150,10 +149,10 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
                 use_corked_io = atoi(optarg);
                 break;
             case 'i':
-                ITERATIONS = atoi(optarg);
+                iterations = atoi(optarg);
                 break;
             case 'w':
-                WARMUP_ITERS = atoi(optarg);
+                warmup_iters = atoi(optarg);
                 break;
             case 'o':
                 strcpy(file_prefix, optarg);
@@ -165,7 +164,7 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
                 pem_dir = optarg;
                 break;
             case 's':
-                insecure = 0;
+                insecure = 1;
                 break;
             case 'D':
                 DEBUG_PRINT = 1;

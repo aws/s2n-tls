@@ -26,7 +26,6 @@ extern int DEBUG_PRINT;
 extern const char *host;
 extern const char *port;
 extern const char *pem_dir;
-extern int sockfd, fd_bench;
 extern struct s2n_config *config;
 extern struct conn_settings conn_settings;
 
@@ -37,4 +36,4 @@ extern const char *ecdsa_private_key;
 
 int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup);
 void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    char* file_prefix, size_t& WARMUP_ITERS, size_t& ITERATIONS);
+                    char* file_prefix, long int& warmup_iters, size_t& iterations);

@@ -27,17 +27,15 @@ extern "C" {
 #include "tls/s2n_connection.h"
 }
 
-#define MAX_CERTIFICATES 50
-
-static int server_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn) {
+static int server_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn, int connectionfd) {
     if (!conn) {
         print_s2n_error("Error getting new s2n connection");
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    s2n_setup_server_connection(conn, fd_bench, config, conn_settings);
+    s2n_setup_server_connection(conn, connectionfd, config, conn_settings);
 
-    if (benchmark_negotiate(conn, fd_bench, state, warmup) != S2N_SUCCESS) {
+    if (benchmark_negotiate(conn, connectionfd, state, warmup) != S2N_SUCCESS) {
         if (conn_settings.mutual_auth) {
             if (!s2n_connection_client_cert_used(conn)) {
                 print_s2n_error("Error: Mutual Auth was required, but not negotiated");
@@ -50,23 +48,27 @@ static int server_handshake(benchmark::State& state, bool warmup, struct s2n_con
     GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
     s2n_blocked_status blocked;
-    s2n_shutdown(conn, &blocked);
+    int shutdown_rc = s2n_shutdown(conn, &blocked);
+    if (shutdown_rc == S2N_FAILURE && blocked != S2N_BLOCKED_ON_READ) {
+        fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
+        exit(1);
+    }
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
     return 0;
 }
 
-static int benchmark_single_suite_server(benchmark::State& state) {
+static int benchmark_single_suite_server(benchmark::State& state, int connectionfd) {
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    size_t WARMUP_ITERS = state.range(1);
+    size_t warmup_iters = state.range(1);
 
-    for (size_t i = 0; i < WARMUP_ITERS; i++) {
-        server_handshake(state, true, conn);
+    for (size_t i = 0; i < warmup_iters; i++) {
+        server_handshake(state, true, conn, connectionfd);
     }
     for (auto _ : state) {
         state.PauseTiming();
-        server_handshake(state, false, conn);
+        server_handshake(state, false, conn, connectionfd);
     }
 
     GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
@@ -76,16 +78,16 @@ static int benchmark_single_suite_server(benchmark::State& state) {
 
 int start_negotiate_benchmark_server(int argc, char **argv) {
     const char *cipher_prefs = "test_all_tls12";
-    struct addrinfo hints, *ai;
+    struct addrinfo hints = {};
+    struct addrinfo *ai;
     conn_settings = {0};
-    int use_corked_io = 0;
-    int insecure = 0;
+    int use_corked_io, insecure, connectionfd, sockfd = 0;
     char bench_format[100] = "--benchmark_out_format=";
     char file_prefix[100];
-    size_t WARMUP_ITERS = 1;
-    size_t ITERATIONS = 1;
+    long int warmup_iters = 1;
+    size_t iterations = 1;
 
-    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, WARMUP_ITERS, ITERATIONS);
+    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations);
 
     char log_output_name[80];
     strcpy(log_output_name, "server_");
@@ -114,8 +116,6 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
         exit(1);
     }
-
-    memset(&hints, 0, sizeof(hints));
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -158,13 +158,14 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
                "Error setting certificate/key");
 
     bool stop_listen = false;
-    while ((!stop_listen) && (fd_bench = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-        for (size_t suite_num = 0; suite_num < num_suites; ++suite_num) {
+    while ((!stop_listen) && (connectionfd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
+        for (long int suite_num = 0; suite_num < num_suites; ++suite_num) {
             char bench_name[80];
             strcpy(bench_name, "Server: ");
             strcat(bench_name, all_suites[suite_num]->name);
 
-            benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_server)->Repetitions(ITERATIONS)->Iterations(1)->Args({(long int)suite_num, (long int)WARMUP_ITERS});
+            benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_server, connectionfd)->Repetitions(iterations)
+            ->Iterations(1)->Args({suite_num, warmup_iters});
 
             if (conn_settings.max_conns > 0) {
                 if (conn_settings.max_conns-- == 1) {
@@ -178,7 +179,7 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     ::benchmark::Initialize(&argc, argv_bench.data());
     ::benchmark::RunSpecifiedBenchmarks();
 
-    close(fd_bench);
+    close(connectionfd);
     close(sockfd);
     s2n_cleanup();
     return 0;

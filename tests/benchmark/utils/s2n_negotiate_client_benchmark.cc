@@ -16,24 +16,23 @@
 #include "tests/benchmark/utils/s2n_negotiate_client_benchmark.h"
 #include "tests/benchmark/utils/shared_info.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_random.h"
 #include <openssl/err.h>
-#include <openssl/crypto.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <iostream>
-#include <poll.h>
 #include <vector>
 #include <stdlib.h>
 
 extern "C" {
 #include "bin/common.h"
-#include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 }
 
-static int setup_socket(struct addrinfo hints, struct addrinfo *ai_list, struct addrinfo *ai) {
-    memset(&hints, 0, sizeof(hints));
+static int setup_socket(int& sockfd) {
+    struct addrinfo hints = {};
+    struct addrinfo *ai = nullptr;
+    struct addrinfo *ai_list = nullptr;
+
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     int add = 0;
@@ -62,26 +61,25 @@ static int setup_socket(struct addrinfo hints, struct addrinfo *ai_list, struct 
     }
 
     freeaddrinfo(ai_list);
-    GUARD_EXIT(sockfd, "Socket setup failed\n");
+    if(sockfd < 0)
+    {
+        fprintf(stderr, "Socket setup failed: Error: %d\n", errno);
+        exit(1);
+    }
     return 0;
 }
 
-static void client_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn) {
+static void client_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn, int sockfd) {
     GUARD_EXIT(s2n_set_server_name(conn, host), "Error setting server name");
     GUARD_EXIT(s2n_connection_set_fd(conn, sockfd), "Error setting file descriptor");
 
     if (benchmark_negotiate(conn, sockfd, state, warmup) != S2N_SUCCESS) {
         state.SkipWithError("Negotiate Failed\n");
-        if (DEBUG_PRINT) {
-            printf("Error in negotiate!\n");
-        }
     }
 
     if (DEBUG_PRINT) {
         printf("Connected to %s:%s\n", host, port);
     }
-
-    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
     s2n_blocked_status blocked;
     int shutdown_rc = s2n_shutdown(conn, &blocked);
@@ -93,10 +91,10 @@ static void client_handshake(benchmark::State& state, bool warmup, struct s2n_co
     GUARD_EXIT(s2n_connection_wipe(conn), "Error wiping connection");
 }
 
-static void benchmark_single_suite_client(benchmark::State& state) {
+static void benchmark_single_suite_client(benchmark::State& state, int sockfd) {
     config = s2n_config_new();
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-    size_t WARMUP_ITERS = state.range(1);
+    size_t warmup_iters = state.range(1);
 
     GUARD_EXIT_NULL(config);
 
@@ -168,15 +166,15 @@ static void benchmark_single_suite_client(benchmark::State& state) {
                "Error setting ClientAuth optional");
 
     if (conn_settings.use_corked_io) {
-        GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
+        GUARD_EXIT(s2n_connection_use_corked_io(conn), "Client: Error setting corked io");
     }
 
-    for (size_t i = 0; i < WARMUP_ITERS; i++) {
-        client_handshake(state, true, conn);
+    for (size_t i = 0; i < warmup_iters; i++) {
+        client_handshake(state, true, conn, sockfd);
     }
     for (auto _ : state) {
         state.PauseTiming();
-        client_handshake(state, false, conn);
+        client_handshake(state, false, conn, sockfd);
     }
     free(unsafe_verify_data);
     GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
@@ -185,19 +183,17 @@ static void benchmark_single_suite_client(benchmark::State& state) {
 
 int start_negotiate_benchmark_client(int argc, char** argv) {
     int use_corked_io = 0;
-    int insecure = 1;
+    int insecure = 0;
+    int sockfd = 0;
     conn_settings = {0};
     char bench_format[100] = "--benchmark_out_format=";
-    char file_prefix[100];
-    size_t WARMUP_ITERS = 1;
-    size_t ITERATIONS = 1;
-    struct addrinfo hints;
-    struct addrinfo *ai = nullptr;
-    struct addrinfo *ai_list = nullptr;
-
-    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, WARMUP_ITERS, ITERATIONS);
-
     char bench_out[100] = "--benchmark_out=client_";
+    char file_prefix[100];
+    long int warmup_iters = 1;
+    size_t iterations = 1;
+
+    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations);
+
     strcat(bench_out, file_prefix);
     argc += 2;
 
@@ -211,15 +207,15 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
 
     s2n_init();
 
-    GUARD_EXIT(setup_socket(hints, ai_list, ai), "setup failed");
+    GUARD_EXIT(setup_socket(sockfd), "Client socket setup failed: Error in getaddrinfo\n");
 
-    for (size_t current_suite = 0; current_suite < num_suites; current_suite++) {
+    for (long int current_suite = 0; current_suite < num_suites; current_suite++) {
         char bench_name[80];
         strcpy(bench_name, "Client: ");
         strcat(bench_name, all_suites[current_suite]->name);
 
-        benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_client)->Repetitions(ITERATIONS)
-        ->ReportAggregatesOnly()->Iterations(1)->Args({(long int)current_suite, (long int)WARMUP_ITERS});
+        benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_client, sockfd)->Repetitions(iterations)
+        ->ReportAggregatesOnly()->Iterations(1)->Args({current_suite, warmup_iters});
     }
     ::benchmark::Initialize(&argc, argv_bench.data());
     ::benchmark::RunSpecifiedBenchmarks();
