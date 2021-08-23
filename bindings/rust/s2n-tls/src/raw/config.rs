@@ -104,6 +104,13 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_disable_x509_verification(self.as_mut_ptr()).into_result()
+        }?;
+        Ok(self)
+    }
+
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::InvalidInput)?;
         let private_key = CString::new(private_key).map_err(|_| Error::InvalidInput)?;

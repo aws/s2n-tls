@@ -11,6 +11,7 @@ use core::ptr::NonNull;
 use core::{convert::TryInto, fmt, task::Poll};
 use libc::c_void;
 use s2n_tls_sys::*;
+use std::ffi::CString;
 
 pub use s2n_tls_sys::s2n_mode;
 
@@ -40,6 +41,20 @@ impl Connection {
             connection,
             config: None,
         }
+    }
+    pub fn new_client() -> Self {
+        Self::new(s2n_mode::CLIENT)
+    }
+    pub fn new_server() -> Self {
+        Self::new(s2n_mode::SERVER)
+    }
+
+    pub fn get_openssl_version(&mut self) -> Result<String, Error> {
+        let result:u64;
+        unsafe {
+            result = s2n_get_openssl_version();
+        };
+        Ok(format!("{:#08x}", result))
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
@@ -72,6 +87,18 @@ impl Connection {
             s2n_connection_set_config(self.connection.as_ptr(), config.as_mut_ptr()).into_result()
         }?;
         self.config = Some(config);
+        Ok(self)
+    }
+
+    pub fn set_cipher_preference(&mut self, name: &str) -> Result<&mut Self, Error> {
+        let name = CString::new(name).map_err(|_| Error::InvalidInput)?;
+        unsafe {
+            s2n_connection_set_cipher_preferences(
+                self.connection.as_ptr(),
+                name.as_ptr() as *const _,
+            )
+            .into_result()
+        }?;
         Ok(self)
     }
 

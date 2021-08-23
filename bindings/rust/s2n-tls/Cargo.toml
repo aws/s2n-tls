@@ -10,5 +10,12 @@ default = []
 quic = []
 
 [dependencies]
+errno = "0.2"
 libc = "0.2"
 s2n-tls-sys = { version = "0.1", path = "../s2n-tls-sys" }
+criterion = "0.3.5"
+bytes = { version = "1", default-features = false }
+pem = "0.8"
+[[bench]]
+name = "handshake"
+harness = false
