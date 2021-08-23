@@ -477,7 +477,7 @@ in errors from other s2n-tls functions.
 ### s2n\_crypto\_disable\_init
 
 ```c
-void s2n_crypto_disable_init();
+int s2n_crypto_disable_init();
 ```
 
 **s2n_crypto_disable_init** prevents s2n-tls from initializing or tearing down the crypto
@@ -487,7 +487,23 @@ using a version of OpenSSL/libcrypto < 1.1.x, you will be responsible for librar
 and cleanup (specifically OPENSSL_add_all_algorithms() or OPENSSL_crypto_init), and
 `EVP_*` APIs will not be usable unless the library is initialized.
 
-This function must be called BEFORE `s2n_init()` to have any effect.
+This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
+if s2n is already initialized.
+
+### s2n\_disable\_atexit
+
+```c
+int s2n_disable_atexit();
+```
+
+**s2n_disable_atexit** prevents s2n-tls from installing an atexit() handler to clean itself
+up. This is most useful when s2n-tls is embedded in an application or environment that
+shares usage of the OpenSSL or libcrypto library. Note that this will cause `s2n_cleanup` to
+do complete cleanup of s2n-tls when called from the main thread (the thread `s2n_init` was
+called from).
+
+This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
+if s2n is already initialized.
 
 ### s2n\_cleanup
 

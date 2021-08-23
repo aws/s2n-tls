@@ -83,7 +83,14 @@ struct s2n_connection;
  * with S2N.
  */
 S2N_API
-extern void s2n_crypto_disable_init(void);
+extern int s2n_crypto_disable_init(void);
+
+/**
+ * Prevents S2N from installing an atexit handler, which allows safe shutdown of S2N from within a
+ * re-entrant shared library
+ */
+S2N_API
+extern int s2n_disable_atexit(void);
 
 S2N_API
 extern unsigned long s2n_get_openssl_version(void);
