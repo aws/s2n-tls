@@ -61,8 +61,7 @@ static int setup_socket(int& sockfd) {
     }
 
     freeaddrinfo(ai_list);
-    if(sockfd < 0)
-    {
+    if (sockfd < 0) {
         fprintf(stderr, "Socket setup failed: Error: %d\n", errno);
         exit(1);
     }
