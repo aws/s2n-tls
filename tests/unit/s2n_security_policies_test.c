@@ -70,7 +70,7 @@ int main(int argc, char **argv)
                                                              s2n_tls13_aes_256_gcm_sha384,
                                                              s2n_tls13_chacha20_poly1305_sha256 };
 
-                for (int i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
+                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
                     char *cert_chain;
                     char *private_key;
                     struct s2n_cert_chain_and_key *default_cert;
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
                                                              s2n_tls13_aes_256_gcm_sha384,
                                                              s2n_tls13_chacha20_poly1305_sha256 };
 
-                for (int i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
+                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
                     char *cert_chain;
                     char *private_key;
                     struct s2n_cert_chain_and_key *default_cert;

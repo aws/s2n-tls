@@ -278,13 +278,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    if (s2n_is_tls_12_self_downgrade_required(conn)) {
-        conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
-        conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
-    }
-
-    /* Ensure that highest supported version is set correctly */
-    if (!s2n_security_policy_supports_tls13(security_policy)) {
+    if (s2n_is_tls_12_self_downgrade_required(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
