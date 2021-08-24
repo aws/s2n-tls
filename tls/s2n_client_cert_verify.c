@@ -38,7 +38,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     struct s2n_signature_scheme *chosen_sig_scheme = &conn->handshake_params.client_cert_sig_scheme;
 
     if (conn->actual_protocol_version < S2N_TLS12) {
-        *chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
+        POSIX_GUARD(s2n_choose_default_sig_scheme(conn, chosen_sig_scheme, S2N_CLIENT));
     } else {
         /* Verify the SigScheme picked by the Client was in the preference list we sent (or is the default SigScheme) */
         POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, chosen_sig_scheme));
@@ -75,7 +75,7 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
 
     struct s2n_signature_scheme *chosen_sig_scheme = &conn->handshake_params.client_cert_sig_scheme;
     if (conn->actual_protocol_version < S2N_TLS12) {
-        *chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
+        POSIX_GUARD(s2n_choose_default_sig_scheme(conn, chosen_sig_scheme, S2N_CLIENT));
     } else {
         POSIX_GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.client_cert_sig_scheme.iana_value));
     }
