@@ -356,6 +356,11 @@ static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain
 
 int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
 {
+    POSIX_ENSURE_REF(chain_and_key);
+    POSIX_ENSURE_REF(chain_and_key->cert_chain);
+    POSIX_ENSURE_REF(chain_and_key->cert_chain->head);
+    POSIX_ENSURE_REF(chain_and_key->private_key);
+
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
@@ -364,7 +369,9 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     POSIX_GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
-    POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
+    if (s2n_pkey_check_key_exists(chain_and_key->private_key) == S2N_SUCCESS) {
+        POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
+    }
 
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
@@ -381,6 +388,13 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
     POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
 
+    return S2N_SUCCESS;
+}
+
+int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len)
+{
+    POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
+    POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
     return S2N_SUCCESS;
 }
 

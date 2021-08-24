@@ -42,6 +42,11 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
     return verify_data->allow;
 }
 
+static int s2n_noop_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+{
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key *test_peer_chain)
 {
     RESULT_ENSURE_REF(conn);
@@ -98,6 +103,35 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(
         s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    /* Test s2n_cert_chain_and_key_load_public_pem_bytes */
+    {
+        uint32_t pem_len = 0;
+        uint8_t pem[S2N_CERT_DER_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, pem, &pem_len, sizeof(pem)));
+
+        /* Load only a public certificate */
+        struct s2n_cert_chain_and_key *cert_only_chain = s2n_cert_chain_and_key_new();
+        EXPECT_NOT_NULL(cert_only_chain);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_public_pem_bytes(cert_only_chain, pem, pem_len));
+        EXPECT_FAILURE(s2n_pkey_check_key_exists(cert_only_chain->private_key));
+
+        /* Add cert chain to config */
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_FALSE(config->no_signing_key);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_only_chain));
+        EXPECT_TRUE(config->no_signing_key);
+
+        /* Add config to connection */
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_NO_PRIVATE_KEY);
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_noop_async_pkey_fn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_only_chain));
+    }
 
     /* Test s2n_cert_chain_get_length */ 
     {

@@ -400,8 +400,17 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         conn->psk_mode_overridden = false;
     }
 
+    /* If at least one certificate does not have a private key configured,
+     * the config must provide an async pkey callback.
+     * The handshake could still fail if the callback doesn't offload the
+     * signature, but this is at least catches most mistakes.
+     */
+    if (!config->async_pkey_cb) {
+        POSIX_ENSURE(!config->no_signing_key, S2N_ERR_NO_PRIVATE_KEY);
+    }
+
     conn->config = config;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_server_name_extension_used(struct s2n_connection *conn)
