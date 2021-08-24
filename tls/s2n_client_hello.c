@@ -271,6 +271,8 @@ bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn) {
 
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* Client hello is parsed and config is finalized.
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;

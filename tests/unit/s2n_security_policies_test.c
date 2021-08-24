@@ -82,7 +82,6 @@ int main(int argc, char **argv)
                     EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
 
-
                     struct s2n_config *config = s2n_config_new();
                     EXPECT_NOT_NULL(config);
                     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, default_cert));
@@ -92,12 +91,9 @@ int main(int argc, char **argv)
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(client_conn);
                     EXPECT_NOT_NULL(server_conn);
-
-
                     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
                     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
                     EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_RSA]);
-
                     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
                     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -156,12 +152,9 @@ int main(int argc, char **argv)
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(client_conn);
                     EXPECT_NOT_NULL(server_conn);
-
-
                     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
                     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, NULL));
                     EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_ECDSA]);
-
                     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
                     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
