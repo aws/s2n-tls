@@ -40,11 +40,10 @@ unsigned long s2n_get_openssl_version(void)
 }
 
 static pthread_t main_thread = 0;
-
+static bool initialized = false;
 static bool atexit_cleanup = true;
 int s2n_disable_atexit(void) {
-    const bool already_initialized = (main_thread != 0);
-    POSIX_ENSURE(!already_initialized, S2N_ERR_INITIALIZED);
+    POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
     atexit_cleanup = false;
     return S2N_SUCCESS;
 }
@@ -69,6 +68,8 @@ int s2n_init(void)
         s2n_stack_traces_enabled_set(true);
     }
 
+    initialized = true;
+
     return S2N_SUCCESS;
 }
 
@@ -92,7 +93,7 @@ int s2n_cleanup(void)
 
     /* If this is the main thread and atexit cleanup is disabled,
      * perform final cleanup now */
-    if (pthread_self() == main_thread && !atexit_cleanup) {
+    if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
         POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
     }
     return 0;
