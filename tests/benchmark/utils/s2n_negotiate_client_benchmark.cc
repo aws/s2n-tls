@@ -126,13 +126,13 @@ static void benchmark_single_suite_client(benchmark::State& state) {
             std::string ca_file = "rsa_2048_sha384_client_cert.pem";
             std::string pem_file_location = pem_dir + ca_file;
             GUARD_EXIT(s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir),
-                       "Error setting CA file for trust store\n");
+                       "Error setting CA file for RSA trust store\n");
         }
         else {
             std::string ca_file = "ecdsa_p256_pkcs1_cert.pem";
             std::string pem_file_location = pem_dir + ca_file;
             GUARD_EXIT(s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir),
-                       "Error setting CA file for trust store\n");
+                       "Error setting CA file for ECDSA trust store\n");
         }
     }
     else {
