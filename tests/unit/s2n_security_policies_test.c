@@ -71,16 +71,8 @@ int main(int argc, char **argv)
                                                              s2n_tls13_chacha20_poly1305_sha256 };
 
                 for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
-                    char *cert_chain;
-                    char *private_key;
                     struct s2n_cert_chain_and_key *default_cert;
-
-                    EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
-                    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
+                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&default_cert, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
                     struct s2n_config *config = s2n_config_new();
                     EXPECT_NOT_NULL(config);
@@ -120,8 +112,6 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_connection_free(server_conn));
                     EXPECT_SUCCESS(s2n_config_free(config));
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
-                    free(cert_chain);
-                    free(private_key);
                 }
             }
 
@@ -132,16 +122,8 @@ int main(int argc, char **argv)
                                                              s2n_tls13_chacha20_poly1305_sha256 };
 
                 for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
-                    char *cert_chain;
-                    char *private_key;
                     struct s2n_cert_chain_and_key *default_cert;
-
-                    EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-                    EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
-                    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
+                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&default_cert, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
                     struct s2n_config *config = s2n_config_new();
                     EXPECT_NOT_NULL(config);
@@ -174,8 +156,6 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_connection_free(server_conn));
                     EXPECT_SUCCESS(s2n_config_free(config));
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
-                    free(cert_chain);
-                    free(private_key);
                 }
             }
 
