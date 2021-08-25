@@ -48,6 +48,9 @@ extern const struct s2n_cipher_preferences cipher_preferences_20190121;
 extern const struct s2n_cipher_preferences cipher_preferences_20190122;
 extern const struct s2n_cipher_preferences cipher_preferences_20210816;
 extern const struct s2n_cipher_preferences cipher_preferences_20210816_gcm;
+extern const struct s2n_cipher_preferences cipher_preferences_20210825;
+extern const struct s2n_cipher_preferences cipher_preferences_20210825_gcm;
+
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls12;
@@ -99,6 +102,9 @@ extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_tls_13
 
 /* AWS KMS Cipher Preferences */
 extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
+extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2021_08;
+extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10;
+extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2021_08;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_07;
@@ -115,6 +121,5 @@ extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_25;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26;
 
-extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10;
 extern const struct s2n_cipher_preferences cipher_preferences_null;
 
