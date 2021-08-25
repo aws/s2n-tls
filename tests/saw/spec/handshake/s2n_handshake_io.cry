@@ -709,8 +709,9 @@ initial_connection conn =
     /\ (conn.corked == 0 \/ conn.corked == 1)
        // Currently, this is the only valid handshake that uses WITH_EARLY_DATA
        // TODO RGS: Figure out a better constraint than this
+    /\ ((conn.early_data_state == S2N_EARLY_DATA_ACCEPTED) ==> ~conn.chosen_psk_null)
     /\ ((IS_TLS13_HANDSHAKE conn /\ ((conn2.handshake.handshake_type && WITH_EARLY_DATA) != zero)) ==>
-           (conn2.handshake.handshake_type == (NEGOTIATED || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS || WITH_EARLY_DATA)))
+           ((conn2.handshake.handshake_type && EARLY_CLIENT_CCS) != zero))
   where conn2 = s2nTrans conn
 
 // Logical implication
