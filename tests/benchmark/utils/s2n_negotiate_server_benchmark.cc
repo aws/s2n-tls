@@ -15,7 +15,6 @@
 
 #include "tests/benchmark/utils/s2n_negotiate_server_benchmark.h"
 #include "tests/benchmark/utils/shared_info.h"
-#include "utils/s2n_safety.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <vector>
@@ -35,23 +34,19 @@ static int server_handshake(benchmark::State& state, bool warmup, struct s2n_con
 
     s2n_setup_server_connection(conn, connectionfd, config, conn_settings);
 
-    if (benchmark_negotiate(conn, connectionfd, state, warmup) != S2N_SUCCESS) {
-        if (conn_settings.mutual_auth) {
-            if (!s2n_connection_client_cert_used(conn)) {
-                print_s2n_error("Error: Mutual Auth was required, but not negotiated");
-            }
+    GUARD_EXIT(benchmark_negotiate(conn, connectionfd, state, warmup), "Server negotiation failed\n");
+    if (conn_settings.mutual_auth) {
+        if (!s2n_connection_client_cert_used(conn)) {
+            print_s2n_error("Error: Mutual Auth was required, but not negotiated");
         }
-
-        S2N_ERROR_PRESERVE_ERRNO();
     }
 
     GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
     s2n_blocked_status blocked;
     int shutdown_rc = s2n_shutdown(conn, &blocked);
-    if (shutdown_rc == S2N_FAILURE && blocked != S2N_BLOCKED_ON_READ) {
-        fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
-        exit(1);
+    while(shutdown_rc != 0) {
+        shutdown_rc = s2n_shutdown(conn, &blocked);
     }
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
@@ -84,22 +79,20 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     conn_settings = {0};
     int use_corked_io, insecure, connectionfd, sockfd = 0;
     char bench_format[100] = "--benchmark_out_format=";
-    char file_prefix[100];
+    std::string file_prefix;
     long int warmup_iters = 1;
     size_t iterations = 1;
     size_t repetitions = 1;
 
     argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
 
-    char log_output_name[80];
-    strcpy(log_output_name, "server_");
-    strcat(log_output_name, file_prefix);
-    FILE* write_log = freopen(log_output_name, "w", stdout);
-    argc++;
+    std::string log_output_name = std::string("server_") + file_prefix;
+    FILE* write_log = freopen(log_output_name.c_str(), "w", stdout);
 
     std::vector<char*> argv_bench(argv, argv + argc);
     argv_bench.push_back(bench_format);
     argv_bench.push_back(nullptr);
+    argc = argv_bench.size();
 
     const char *session_ticket_key_file_path = NULL;
 
@@ -114,11 +107,6 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
 
     s2n_init();
 
-    if (conn_settings.prefer_throughput && conn_settings.prefer_low_latency) {
-        fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
-        exit(1);
-    }
-
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
@@ -130,7 +118,7 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     GUARD_EXIT(getaddrinfo(host, port, &hints, &ai), "getaddrinfo error\n");
     GUARD_EXIT((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)), "socket error\n");
     GUARD_EXIT(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &setsockopt_value, sizeof(int)), "setsockopt error\n");
-    GUARD_EXIT(bind(sockfd, ai->ai_addr, ai->ai_addrlen), "Server bind error\n");
+    bind(sockfd, ai->ai_addr, ai->ai_addrlen);
     GUARD_EXIT(listen(sockfd, 1), "listen error\n");
 
     if (DEBUG_PRINT) {
@@ -147,33 +135,25 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
 
     struct s2n_cert_chain_and_key *chain_and_key_rsa = s2n_cert_chain_and_key_new();
     GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key_rsa, rsa_certificate_chain, rsa_private_key),
-               "Error getting certificate/key");
+               "Error loading RSA certificate/key");
 
     GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key_rsa),
-               "Error setting certificate/key");
+               "Error adding RSA chain and key");
 
     struct s2n_cert_chain_and_key *chain_and_key_ecdsa = s2n_cert_chain_and_key_new();
     GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key_ecdsa, ecdsa_certificate_chain, ecdsa_private_key),
-               "Error getting certificate/key");
+               "Error loading ECDSA certificate/key");
 
     GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key_ecdsa),
-               "Error setting certificate/key");
+               "Error adding ECDSA chain and key");
 
     bool stop_listen = false;
     while ((!stop_listen) && (connectionfd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         for (long int suite_num = 0; suite_num < num_suites; ++suite_num) {
-            char bench_name[80];
-            strcpy(bench_name, "Server: ");
-            strcat(bench_name, all_suites[suite_num]->name);
+            std::string bench_name = std::string("Server: ") + all_suites[suite_num]->name;
 
-            benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_server)->Repetitions(repetitions)
+            benchmark::RegisterBenchmark(bench_name.c_str(), benchmark_single_suite_server)->Repetitions(repetitions)
             ->Iterations(iterations)->Args({suite_num, warmup_iters, connectionfd});
-
-            if (conn_settings.max_conns > 0) {
-                if (conn_settings.max_conns-- == 1) {
-                    exit(0);
-                }
-            }
         }
         stop_listen = true;
     }

@@ -96,6 +96,32 @@ const char *ecdsa_private_key =
         "uHMW/qLZVZYYWz82qMeBFbYSxMSWbpsfIA=="
         "-----END EC PRIVATE KEY-----";
 
+void usage() {
+    fprintf(stderr, "usage: s2n_benchmark [options] host port\n");
+    fprintf(stderr, " host: hostname or IP address to connect to\n");
+    fprintf(stderr, " port: port to connect to\n");
+    fprintf(stderr, "\n Options:\n");
+    fprintf(stderr, "  -c\n");
+    fprintf(stderr, "   sets use_corked_io to true\n");
+    fprintf(stderr, "  -i [# of iterations]\n");
+    fprintf(stderr, "   sets the number of iterations to run each repetition\n");
+    fprintf(stderr, "  -r [# of repetitions]\n");
+    fprintf(stderr, "   sets the number of repetitions to run each benchmark\n");
+    fprintf(stderr, "  -w [# of warmup iterations]\n");
+    fprintf(stderr, "   sets the number of warmup runs for each benchmark\n");
+    fprintf(stderr, "  -o [output file name]\n");
+    fprintf(stderr, "   sets the name of the output file\n");
+    fprintf(stderr, "  -t [json|csv|console]\n");
+    fprintf(stderr, "   sets the output format of the output file\n");
+    fprintf(stderr, "  -p [file path to pem directory]\n");
+    fprintf(stderr, "   if using secure mode, must set pem directory\n");
+    fprintf(stderr, "  -s\n");
+    fprintf(stderr, "   run benchmarks in insecure mode\n");
+    fprintf(stderr, "  -D\n");
+    fprintf(stderr, "   print debug output to terminal\n");
+    fprintf(stderr, "\n");
+    exit(1);
+}
 
 int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup) {
     s2n_blocked_status blocked;
@@ -135,9 +161,9 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
 }
 
 void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    char* file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions) {
+                    std::string& file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions) {
     while (1) {
-        int c = getopt(argc, argv, "c:i:r:w:o:t:p:sD");
+        int c = getopt(argc, argv, "ci:r:w:o:t:p:sD");
         if (c == -1) {
             break;
         }
@@ -146,7 +172,7 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
                 /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
                 break;
             case 'c':
-                use_corked_io = atoi(optarg);
+                use_corked_io = 1;
                 break;
             case 'i':
                 iterations = atoi(optarg);
@@ -158,7 +184,7 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
                 warmup_iters = atoi(optarg);
                 break;
             case 'o':
-                strcpy(file_prefix, optarg);
+                file_prefix = std::string(optarg);
                 break;
             case 't':
                 strcat(bench_format, optarg);
@@ -175,6 +201,7 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
             case '?':
             default:
                 fprintf(stdout, "getopt returned: %d", c);
+                usage();
                 break;
         }
     }

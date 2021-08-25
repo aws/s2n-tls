@@ -36,4 +36,4 @@ extern const char *ecdsa_private_key;
 
 int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup);
 void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    char* file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions);
+                    std::string& file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions);

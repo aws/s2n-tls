@@ -16,7 +16,7 @@
 #include "tests/benchmark/utils/s2n_negotiate_client_benchmark.h"
 #include "tests/benchmark/utils/shared_info.h"
 #include "utils/s2n_safety.h"
-#include <openssl/err.h>
+#include "s2n_test.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <iostream>
@@ -35,36 +35,24 @@ static int setup_socket(int& sockfd) {
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    int add = 0;
 
-    if ((add = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
-        fprintf(stderr, "getaddrinfo error: %s\nError: %d\nErrno: %s\n", gai_strerror(add), add, strerror(errno));
-        return -1;
-    }
+    GUARD_EXIT(getaddrinfo(host, port, &hints, &ai_list), "getaddrinfo error\n");
 
     bool connected = false;
     while (!connected) {
         for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
-            if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
-                continue;
-            }
+            if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) { continue; }
             if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == -1) {
                 close(sockfd);
                 continue;
             }
             connected = true;
-            if (DEBUG_PRINT) {
-                printf("Connected to s2nd\n");
-            }
+            if (DEBUG_PRINT) { printf("Connected to s2nd\n"); }
             break;
         }
     }
 
     freeaddrinfo(ai_list);
-    if (sockfd < 0) {
-        fprintf(stderr, "Socket setup failed: Error: %d\n", errno);
-        exit(1);
-    }
     return 0;
 }
 
@@ -82,9 +70,8 @@ static void client_handshake(benchmark::State& state, bool warmup, struct s2n_co
 
     s2n_blocked_status blocked;
     int shutdown_rc = s2n_shutdown(conn, &blocked);
-    if (shutdown_rc == S2N_FAILURE && blocked != S2N_BLOCKED_ON_READ) {
-        fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
-        exit(1);
+    while(shutdown_rc != 0) {
+        shutdown_rc = s2n_shutdown(conn, &blocked);
     }
 
     GUARD_EXIT(s2n_connection_wipe(conn), "Error wiping connection");
@@ -128,9 +115,8 @@ static void benchmark_single_suite_client(benchmark::State& state) {
     GUARD_EXIT(s2n_config_set_status_request_type(config, type),
                "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 
-    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) != S2N_SUCCESS) {
-        print_s2n_error("Error setting host name verification function.");
-    }
+    GUARD_EXIT(s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data),
+               "Error setting host name verification function\n");
 
     unsafe_verify_data->trusted_host = host;
 
@@ -139,16 +125,14 @@ static void benchmark_single_suite_client(benchmark::State& state) {
         if(all_suites[state.range(0)]->auth_method == S2N_AUTHENTICATION_RSA) {
             std::string ca_file = "rsa_2048_sha384_client_cert.pem";
             std::string pem_file_location = pem_dir + ca_file;
-            if (s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir) < 0) {
-                print_s2n_error("Error setting CA file for trust store.");
-            }
+            GUARD_EXIT(s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir),
+                       "Error setting CA file for trust store\n");
         }
         else {
             std::string ca_file = "ecdsa_p256_pkcs1_cert.pem";
             std::string pem_file_location = pem_dir + ca_file;
-            if (s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir) < 0) {
-                print_s2n_error("Error setting CA file for trust store.");
-            }
+            GUARD_EXIT(s2n_config_set_verification_ca_location(config, pem_file_location.c_str(), ca_dir),
+                       "Error setting CA file for trust store\n");
         }
     }
     else {
@@ -188,35 +172,32 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
     conn_settings = {0};
     char bench_format[100] = "--benchmark_out_format=";
     char bench_out[100] = "--benchmark_out=client_";
-    char file_prefix[100];
+    std::string file_prefix;
     long int warmup_iters = 1;
     size_t iterations = 1;
     size_t repetitions = 1;
 
     argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
 
-    strcat(bench_out, file_prefix);
-
+    strcat(bench_out, file_prefix.c_str());
     std::vector<char*> argv_bench(argv, argv + argc);
     argv_bench.push_back(bench_out);
     argv_bench.push_back(bench_format);
     argv_bench.push_back(nullptr);
     argv = argv_bench.data();
-    argc += 2;
+    argc = argv_bench.size();
 
     conn_settings.use_corked_io = use_corked_io;
     conn_settings.insecure = insecure;
 
     s2n_init();
 
-    GUARD_EXIT(setup_socket(sockfd), "Client socket setup failed: Error in getaddrinfo\n");
+    GUARD_EXIT(setup_socket(sockfd), "Client socket setup failed\n");
 
     for (long int current_suite = 0; current_suite < num_suites; current_suite++) {
-        char bench_name[80];
-        strcpy(bench_name, "Client: ");
-        strcat(bench_name, all_suites[current_suite]->name);
+        std::string bench_name = std::string("Client: ") + all_suites[current_suite]->name;
 
-        benchmark::RegisterBenchmark(bench_name, benchmark_single_suite_client)->Repetitions(repetitions)
+        benchmark::RegisterBenchmark(bench_name.c_str(), benchmark_single_suite_client)->Repetitions(repetitions)
         ->ReportAggregatesOnly()->Iterations(iterations)->Args({current_suite, warmup_iters, sockfd});
     }
     ::benchmark::Initialize(&argc, argv);
