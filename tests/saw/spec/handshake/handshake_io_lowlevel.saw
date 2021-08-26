@@ -64,13 +64,12 @@ let config_cca_type config = (crucible_field config "client_cert_auth_type");
 let ocsp_status_size cert_and_key =
     crucible_field (crucible_field (cert_and_key) "ocsp_status") "size";
 
-//conn->config->use_tickets and conn->config->quic_enabled are the fields we
-// care about, but they are in a bitfield. For now, we only care about them, so
-// we point at the entire bitfield and say it must all be initialized to
-// a value of 0 for the proof to go through. This is a stronger
-// statement than we stricly need to make, and will limit
-// compositional proofs in the future, but we can make more
-// precise statements at that time
+// conn->config->use_tickets and conn->config->quic_enabled are the fields we
+// care about, but they are in a bitfield. We currently handle this by
+// initializing the entire bitfield with a symbolic value and imposing a
+// precondition that bit 3 (i.e., use_tickets) must be equal to 0.
+// Bit 9 (i.e., quic_enabled), on the other hand, is allowed to be either
+// 0 or 1.
 
 // It's also noteworthy that we use the crucible_elem here, which will
 // cause problems if the fields are reordered. This is reasonably unlikely
@@ -171,9 +170,14 @@ let setup_connection chosen_psk_null = do {
 
    config_bitfield_value <- crucible_fresh_var "config_bitfield" (llvm_int 16);
    crucible_points_to (config_bitfield config) (crucible_term config_bitfield_value);
-   // The following line could be made more precise, we only care that the use_tickets
-   // bit is zero 
-   crucible_equal (crucible_term config_bitfield_value) (crucible_term {{zero : [16]}});
+   // We currently require that the use_tickets bit is zero. Because
+   // use_tickets is the third field in a bitfield, we force it to be zero by
+   // requiring that bit 3 in the bitfield (corresponding to a bitmask of
+   // 2^(3 - 1) = 4) be set to zero.
+   crucible_equal (crucible_term {{ config_bitfield_value && 4 }}) (crucible_term {{ zero : [16] }});
+   // quic_enabled is bit 9 in the bitfield, corresponding to a bitmask of
+   // 2^(9 - 1) = 256.
+   let quic_enabled_bit = {{ (config_bitfield_value && 256) != zero }};
 
    session_ticket_status <- crucible_fresh_var "session_ticket_status" (llvm_int 32);
    crucible_points_to (conn_session_ticket_status pconn) (crucible_term session_ticket_status);
@@ -214,6 +218,7 @@ let setup_connection chosen_psk_null = do {
                      ,actual_protocol_version = version
                      ,early_data_state = early_data_state
                      ,chosen_psk_null = chosen_psk_null_bit
+                     ,quic_enabled = quic_enabled_bit
                      }
                   }}); 
 };

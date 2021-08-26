@@ -31,6 +31,7 @@ conn_set_pre_tls13_handshake_type conn = conn'
                 ,no_client_cert = conn.no_client_cert
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
@@ -69,21 +70,25 @@ conn_set_tls13_handshake_type conn = conn'
                 ,no_client_cert = conn.no_client_cert
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
                                    }
-        handshake_type' = (conn.handshake.handshake_type && (HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS))
-                          || NEGOTIATED || full_handshake || with_early_data || client_auth || MIDDLEBOX_COMPAT
-        full_handshake  = if conn.chosen_psk_null
-                          then FULL_HANDSHAKE
-                          else zero
-        with_early_data = if conn.early_data_state == S2N_EARLY_DATA_ACCEPTED
-                          then WITH_EARLY_DATA
-                          else zero
-        client_auth     = if conn.client_auth_flag /\ (full_handshake != 0)
-                          then CLIENT_AUTH
-                          else zero
+        handshake_type'  = (conn.handshake.handshake_type && (HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS))
+                           || NEGOTIATED || full_handshake || with_early_data || client_auth || middlebox_compat
+        full_handshake   = if conn.chosen_psk_null
+                           then FULL_HANDSHAKE
+                           else zero
+        with_early_data  = if conn.early_data_state == S2N_EARLY_DATA_ACCEPTED
+                           then WITH_EARLY_DATA
+                           else zero
+        client_auth      = if conn.client_auth_flag /\ (full_handshake != 0)
+                           then CLIENT_AUTH
+                           else zero
+        middlebox_compat = if conn.quic_enabled
+                           then zero
+                           else MIDDLEBOX_COMPAT
 
 // This function models the update of the s2n_connection struct by the
 // s2n_advance_message function in s2n.
@@ -102,6 +107,7 @@ advance_message conn = conn2
                 ,no_client_cert = conn.no_client_cert
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake2 : handshake) = { handshake_type = conn.handshake.handshake_type,
                                      message_number = message_number2 }
@@ -130,6 +136,7 @@ conn_set_handshake_no_client_cert conn = conn2
                 ,no_client_cert = conn.no_client_cert
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
@@ -207,6 +214,7 @@ type connection = {handshake : handshake
                   ,no_client_cert : Bit
                   ,early_data_state : [32]
                   ,chosen_psk_null : Bit
+                  ,quic_enabled : Bit
                   }
 
 type handshake = {handshake_type : [32]

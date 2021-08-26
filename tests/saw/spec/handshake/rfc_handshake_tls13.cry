@@ -346,7 +346,8 @@ testConnection = {
             actual_protocol_version = 0x22,
             no_client_cert = True,
             early_data_state = zero,
-            chosen_psk_null = True
+            chosen_psk_null = True,
+            quic_enabled = False
         }
 
 type Character = [8]
