@@ -260,13 +260,10 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn) {
     /* RSA PSS is required for TLS 1.3 connections. So if there's a possibility that an RSA Certificate could be picked
      * by a client connection, then downgrade connection to TLS 1.2 if our libcrypto doesn't support RSA PSS. */
-    if ((conn->mode == S2N_SERVER)
-            && conn->config->is_rsa_cert_configured
-            && !s2n_is_rsa_pss_signing_supported()) {
-        return true;
-    }
+    return ((conn->mode == S2N_SERVER)
+              && conn->config->is_rsa_cert_configured
+              && !s2n_is_rsa_pss_signing_supported());
 
-    return false;
 }
 
 int s2n_process_client_hello(struct s2n_connection *conn)
