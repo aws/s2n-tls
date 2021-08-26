@@ -360,13 +360,14 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     POSIX_ENSURE_REF(chain_and_key->cert_chain);
     POSIX_ENSURE_REF(chain_and_key->cert_chain->head);
     POSIX_ENSURE_REF(chain_and_key->private_key);
+    struct s2n_cert *head = chain_and_key->cert_chain->head;
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
+    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &head->raw));
     S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-    POSIX_GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
+    POSIX_GUARD(s2n_cert_set_cert_type(head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
     if (s2n_pkey_check_key_exists(chain_and_key->private_key) == S2N_SUCCESS) {
@@ -374,7 +375,15 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     }
 
     /* Populate name information from the SAN/CN for the leaf certificate */
-    POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
+    POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &head->raw));
+
+    /* Populate ec curve libcrypto nid */
+    if (pkey_type == S2N_PKEY_TYPE_ECDSA) {
+        int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(public_key.key.ecdsa_key.ec_key));
+        POSIX_ENSURE(nid > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(nid < UINT16_MAX, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        head->ec_curve_nid = nid;
+    }
 
     return S2N_SUCCESS;
 }
