@@ -21,8 +21,8 @@
 #include "crypto/s2n_fips.h"
 
 #include "error/s2n_errno.h"
-
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_rsa_signing.h"
 
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
@@ -257,8 +257,19 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn) {
+    /* RSA PSS is required for TLS 1.3 connections. So if there's a possibility that an RSA Certificate could be picked
+     * by a client connection, then downgrade connection to TLS 1.2 if our libcrypto doesn't support RSA PSS. */
+    return ((conn->mode == S2N_SERVER)
+              && conn->config->is_rsa_cert_configured
+              && !s2n_is_rsa_pss_signing_supported());
+
+}
+
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* Client hello is parsed and config is finalized.
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;
@@ -266,8 +277,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    /* Ensure that highest supported version is set correctly */
-    if (!s2n_security_policy_supports_tls13(security_policy)) {
+    if (s2n_is_tls_12_self_downgrade_required(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }

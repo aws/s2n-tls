@@ -314,7 +314,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        int expected_server_tls_version = s2n_is_tls_12_self_downgrade_required(server_conn) ? S2N_TLS12 : S2N_TLS13;
+
+        EXPECT_EQUAL(server_conn->server_protocol_version, expected_server_tls_version);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
