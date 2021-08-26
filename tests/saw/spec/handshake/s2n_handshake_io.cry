@@ -710,7 +710,9 @@ initial_connection conn =
        // If using early data, a full handshake (i.e., chosen_psk being null)
        // cannot happen
     /\ ((conn.early_data_state == S2N_EARLY_DATA_ACCEPTED) ==> ~conn.chosen_psk_null)
-  where conn2 = s2nTrans conn
+       // HelloRetryRequest and EarlyData cannot both happen simultaneously
+    /\ ~(((conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero)
+            /\ (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED))
 
 // Logical implication
 implies : Bit -> Bit -> Bit

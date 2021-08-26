@@ -87,7 +87,6 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ params.zero_rtt == (conn_zero_rtt /\ params.psk_mode)
                                    /\ params.compat_mode == [ conn.mode != S2N_CLIENT, conn.mode == S2N_CLIENT ]
                                    /\ params.early_ccs == conn_early_ccs
-                                   /\ ~(params.retry /\ params.zero_rtt)
                                    /\ conn.actual_protocol_version == S2N_TLS13
   where conn_psk_mode =         ~conn.chosen_psk_null
         conn_retry =            (conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero
