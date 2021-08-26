@@ -40,7 +40,7 @@
  * TLS1.2 cipher suites.
  */
 
-static int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
+int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
 {
     switch(cert_type) {
         case S2N_PKEY_TYPE_RSA:

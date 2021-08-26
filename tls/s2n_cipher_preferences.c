@@ -1611,4 +1611,28 @@ const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 
     .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
 };
 
+struct s2n_cipher_suite *cipher_suites_20210816[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210816 = {
+    .count = s2n_array_len(cipher_suites_20210816),
+    .suites = cipher_suites_20210816,
+};
+
+struct s2n_cipher_suite *cipher_suites_20210816_gcm[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210816_gcm = {
+    .count = s2n_array_len(cipher_suites_20210816_gcm),
+    .suites = cipher_suites_20210816_gcm,
+};
+
 /* clang-format on */

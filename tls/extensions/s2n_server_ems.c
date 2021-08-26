@@ -23,6 +23,7 @@
 
 static int s2n_server_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static bool s2n_server_ems_should_send(struct s2n_connection *conn);
+static int s2n_server_ems_if_missing(struct s2n_connection *conn);
 
 /**
  *= https://tools.ietf.org/rfc/rfc7627#section-5.1
@@ -39,7 +40,7 @@ const s2n_extension_type s2n_server_ems_extension = {
     .send = s2n_extension_send_noop,
     .recv = s2n_server_ems_recv,
     .should_send = s2n_server_ems_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing = s2n_server_ems_if_missing,
 };
 
 static int s2n_server_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
@@ -58,4 +59,19 @@ static bool s2n_server_ems_should_send(struct s2n_connection *conn)
      * We gate on the unit tests because the feature
      * isn't complete and will mess up our integ tests. */
     return conn && s2n_in_unit_test() && conn->actual_protocol_version < S2N_TLS13;
+}
+
+static int s2n_server_ems_if_missing(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *#    If the original session used the extension but the new ServerHello
+     *#    does not contain the extension, the client MUST abort the
+     *#    handshake.
+     **/
+    POSIX_ENSURE(!conn->ems_negotiated, S2N_ERR_MISSING_EXTENSION);
+
+    return S2N_SUCCESS;
 }

@@ -54,8 +54,11 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 
 static bool s2n_client_ems_should_send(struct s2n_connection *conn)
 {
-    /* TODO: https://github.com/aws/s2n-tls/issues/2990 
-     * We gate on the unit tests because the feature
-     * isn't complete and will mess up our integ tests. */
-    return conn && s2n_in_unit_test();
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    /* Don't send this extension if the previous session did not negotiate EMS */
+    if ((conn->client_ticket.size > 0 && !conn->ems_negotiated) || !s2n_in_unit_test()) {
+        return false;
+    } else {
+        return true;
+    }
 }

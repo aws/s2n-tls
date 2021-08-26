@@ -45,6 +45,8 @@
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
 
+#define S2N_PEER_MODE(our_mode) ((our_mode + 1) % 2)
+
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
 typedef enum {

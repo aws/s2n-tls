@@ -995,8 +995,11 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
 };
 
 static bool should_init_crypto = true;
-void s2n_crypto_disable_init(void) {
+static bool crypto_initialized = false;
+int s2n_crypto_disable_init(void) {
+    POSIX_ENSURE(!crypto_initialized, S2N_ERR_INITIALIZED);
     should_init_crypto = false;
+    return S2N_SUCCESS;
 }
 
 /* Determines cipher suite availability and selects record algorithms */
@@ -1051,7 +1054,9 @@ int s2n_cipher_suites_init(void)
 #endif
     }
 
-    return 0;
+    crypto_initialized = true;
+
+    return S2N_SUCCESS;
 }
 
 /* Reset any selected record algorithms */

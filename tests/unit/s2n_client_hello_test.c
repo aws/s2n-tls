@@ -580,6 +580,11 @@ int main(int argc, char **argv)
         /* Verify s2n_client_hello_get_extensions_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), 0);
 
+        /* Verify s2n_client_hello_get_session_id_length correct */
+        uint32_t ch_session_id_length;
+        EXPECT_SUCCESS(s2n_client_hello_get_session_id_length(client_hello, &ch_session_id_length));
+        EXPECT_EQUAL(ch_session_id_length, 0);
+
         /* Free all handshake data */
         EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
 
@@ -853,6 +858,22 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
         free(ext_data);
         ext_data = NULL;
+
+        /* Verify s2n_client_hello_get_session_id is what we received in ClientHello */
+        uint8_t expected_ch_session_id[] = {ZERO_TO_THIRTY_ONE};
+        uint8_t ch_session_id[sizeof(expected_ch_session_id)];
+        uint32_t ch_session_id_length;
+        EXPECT_SUCCESS(s2n_client_hello_get_session_id_length(client_hello, &ch_session_id_length));
+        EXPECT_EQUAL(ch_session_id_length, sizeof(ch_session_id));
+        EXPECT_SUCCESS(s2n_client_hello_get_session_id(client_hello, ch_session_id, &ch_session_id_length, sizeof(ch_session_id)));
+        EXPECT_EQUAL(ch_session_id_length, sizeof(ch_session_id));
+        EXPECT_BYTEARRAY_EQUAL(ch_session_id, expected_ch_session_id, sizeof(expected_ch_session_id));
+
+        /* Verify s2n_connection_get_session_id is different from the one we received in ClientHello, as we generated a new one in ServerHello */
+        uint8_t conn_session_id[sizeof(expected_ch_session_id)];
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(server_conn), sizeof(conn_session_id));
+        EXPECT_SUCCESS(s2n_connection_get_session_id(server_conn, conn_session_id, sizeof(conn_session_id)));
+        EXPECT_BYTEARRAY_NOT_EQUAL(conn_session_id, ch_session_id, sizeof(expected_ch_session_id));
 
         /* Free all handshake data */
         EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
