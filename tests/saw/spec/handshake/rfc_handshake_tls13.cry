@@ -85,7 +85,9 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ params.client_auth == (conn_client_auth /\ ~params.psk_mode)
                                    /\ params.no_client_cert == (conn_no_client_cert /\ params.client_auth)
                                    /\ params.zero_rtt == (conn_zero_rtt /\ params.psk_mode)
-                                   /\ params.compat_mode == [ conn.mode != S2N_CLIENT, conn.mode == S2N_CLIENT ]
+                                   /\ params.compat_mode ==
+                                        [ when_middlebox_compat (conn.mode != S2N_CLIENT)
+                                        , when_middlebox_compat (conn.mode == S2N_CLIENT) ]
                                    /\ params.early_ccs == conn_early_ccs
                                    /\ conn.actual_protocol_version == S2N_TLS13
   where conn_psk_mode =         ~conn.chosen_psk_null
@@ -94,6 +96,9 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
         conn_no_client_cert =   conn.no_client_cert
         conn_early_ccs =        (conn.handshake.handshake_type && EARLY_CLIENT_CCS) != zero
         conn_zero_rtt =         (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED)
+
+        conn_middlebox_compat   = ~conn.quic_enabled \/ ((conn.handshake.handshake_type && MIDDLEBOX_COMPAT) != zero)
+        when_middlebox_compat b = conn_middlebox_compat /\ b
 
 type Action = {
     message : Message,
