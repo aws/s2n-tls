@@ -721,6 +721,9 @@ initial_connection conn =
        // HelloRetryRequest and EarlyData cannot both happen simultaneously
     /\ ~(((conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero)
             /\ (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED))
+       // EarlyClientCCS implies MiddleboxCompat
+    /\ (((conn.handshake.handshake_type && EARLY_CLIENT_CCS) != zero) ==>
+         (~conn.quic_enabled \/ ((conn.handshake.handshake_type && MIDDLEBOX_COMPAT) != zero)))
 
 // Logical implication
 implies : Bit -> Bit -> Bit
