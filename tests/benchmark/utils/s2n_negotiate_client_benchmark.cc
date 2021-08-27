@@ -47,7 +47,9 @@ static int setup_socket(int& sockfd) {
                 continue;
             }
             connected = true;
-            if (DEBUG_PRINT) { printf("Connected to s2nd\n"); }
+            if (DEBUG_PRINT) {
+                printf("Connected to s2nd\n");
+            }
             break;
         }
     }

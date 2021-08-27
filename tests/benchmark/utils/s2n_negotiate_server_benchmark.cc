@@ -22,14 +22,13 @@
 
 extern "C" {
 #include "bin/common.h"
-#include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 }
 
 static int server_handshake(benchmark::State& state, bool warmup, struct s2n_connection *conn, int connectionfd) {
     if (!conn) {
         print_s2n_error("Error getting new s2n connection");
-        S2N_ERROR_PRESERVE_ERRNO();
+        exit(1);
     }
 
     s2n_setup_server_connection(conn, connectionfd, config, conn_settings);
@@ -38,10 +37,9 @@ static int server_handshake(benchmark::State& state, bool warmup, struct s2n_con
     if (conn_settings.mutual_auth) {
         if (!s2n_connection_client_cert_used(conn)) {
             print_s2n_error("Error: Mutual Auth was required, but not negotiated");
+            exit(1);
         }
     }
-
-    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
     s2n_blocked_status blocked;
     int shutdown_rc = s2n_shutdown(conn, &blocked);
@@ -86,7 +84,7 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
 
     argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
 
-    std::string log_output_name = std::string("server_") + file_prefix;
+    std::string log_output_name = "server_" + file_prefix;
     FILE* write_log = freopen(log_output_name.c_str(), "w", stdout);
 
     std::vector<char*> argv_bench(argv, argv + argc);
