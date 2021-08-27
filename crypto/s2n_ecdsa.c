@@ -57,7 +57,7 @@ int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, 
 
     unsigned int signature_size = signature->size;
     POSIX_GUARD_OSSL(ECDSA_sign(0, digest->data, digest->size, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
-    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
     return S2N_SUCCESS;
@@ -66,13 +66,14 @@ int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, 
 static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
+    POSIX_ENSURE_REF(digest);
     sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
 
-    uint8_t digest_length;
+    uint8_t digest_length = 0;
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     struct s2n_blob digest_blob = { 0 };
@@ -81,7 +82,7 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm s
 
     POSIX_GUARD(s2n_hash_reset(digest));
     
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,

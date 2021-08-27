@@ -1848,19 +1848,21 @@ int negotiate(int fd, uint8_t *public_pem_bytes, size_t public_pem_size) {
             continue;
         }
 
-        uint8_t input_buffer[1000] = { 0 };
         uint32_t input_size = 0;
         s2n_async_pkey_op_get_input_size(pkey_op, &input_size);
-        s2n_async_pkey_op_get_input(pkey_op, input_buffer, sizeof(input_buffer));
+        uint8_t *input_buffer = malloc(input_size);
+        s2n_async_pkey_op_get_input(pkey_op, input_buffer, input_size);
 
         s2n_async_pkey_op_type op_type = 0;
         s2n_async_pkey_op_get_op_type(pkey_op, &op_type);
 
-        uint8_t output_buffer[1000] = { 0 };
-        size_t output_size = sizeof(output_buffer);
+        uint8_t *output_buffer = NULL;
+        size_t output_size = 0;
         user_sign_or_decrypt(op_type, input_buffer, input_size, output_buffer, &output_size);
+        free(input_buffer);
 
         s2n_async_pkey_op_set_output(pkey_op, output_buffer, output_size);
+        free(output_buffer);
         s2n_async_pkey_op_apply(pkey_op, conn);
         s2n_async_pkey_op_free(pkey_op);
     }

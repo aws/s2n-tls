@@ -56,6 +56,10 @@ int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
 int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg,
         struct s2n_blob *digest, struct s2n_blob *signature)
 {
+    POSIX_ENSURE_REF(priv);
+    POSIX_ENSURE_REF(digest);
+    POSIX_ENSURE_REF(signature);
+
     int NID_type = 0;
     POSIX_GUARD(s2n_hash_NID_type(hash_alg, &NID_type));
 
@@ -63,7 +67,7 @@ int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm
 
     unsigned int signature_size = signature->size;
     POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
-    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
     return S2N_SUCCESS;
@@ -71,18 +75,20 @@ int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm
 
 int s2n_rsa_pkcs1v15_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
+    POSIX_ENSURE_REF(digest);
+
     uint8_t digest_length = 0;
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     struct s2n_blob digest_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&digest_blob, digest_out, digest_length));
     POSIX_GUARD(s2n_rsa_pkcs1v15_sign_digest(priv, digest->alg, &digest_blob, signature));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
@@ -168,7 +174,7 @@ int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash
 
     /* Calling EVP_PKEY_sign() with NULL will only update the signature_len parameter so users can validate sizes. */
     POSIX_GUARD_OSSL(EVP_PKEY_sign(ctx, NULL, &signature_len, digest_in->data, digest_in->size), S2N_ERR_SIGN);
-    S2N_ERROR_IF(signature_len > signature_out->size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE(signature_len <= signature_out->size, S2N_ERR_SIZE_MISMATCH);
 
     /* Actually sign the digest */
     POSIX_GUARD_OSSL(EVP_PKEY_sign(ctx, signature_out->data, &signature_len, digest_in->data, digest_in->size), S2N_ERR_SIGN);
@@ -179,18 +185,18 @@ int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash
 
 int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature_out)
 {
-    POSIX_ENSURE_REF(priv);
     POSIX_ENSURE_REF(digest);
-    POSIX_ENSURE_REF(signature_out);
 
-    uint8_t digest_length;
-    uint8_t digest_data[S2N_MAX_DIGEST_LEN];
+    uint8_t digest_length = 0;
+    uint8_t digest_data[S2N_MAX_DIGEST_LEN] = { 0 };
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_GUARD(s2n_hash_digest(digest, digest_data, digest_length));
 
     struct s2n_blob digest_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&digest_blob, digest_data, digest_length));
-    return s2n_rsa_pss_sign_digest(priv, digest->alg, &digest_blob, signature_out);
+    POSIX_GUARD(s2n_rsa_pss_sign_digest(priv, digest->alg, &digest_blob, signature_out));
+
+    return S2N_SUCCESS;
 }
 
 int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature_in)
