@@ -1009,6 +1009,17 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
 **private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
 **private_key_pem_len** is the length of the private key.
 
+### s2n\_cert\_chain\_and\_key\_load\_public\_pem\_bytes
+
+```c
+int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+```
+
+**s2n_cert_chain_and_key_load_public_pem_bytes** associates a public certificate chain with a **s2n_cert_chain_and_key** object. It does NOT set a private key, so the connection will need to be configured to [offload private key operations](#offloading-asynchronous-private-key-operations).
+
+**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
+**chain_pem_len** is the length in bytes of the PEM encoded certificate chain.
+
 ### s2n\_cert\_chain\_and\_key\_set\_ctx
 
 ```c
@@ -1766,8 +1777,11 @@ be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
 
 ### Offloading asynchronous private key operations
-**The s2n_async_pkey_op_\*** API can be used to perform a private key operation
-outside of the S2N context. The application can query the type of private
+
+The **s2n_async_pkey_op_\*** API can be used to perform a private key operation
+outside of the S2N context, without copying the private key into S2N memory.
+
+The application can query the type of private
 key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
 an operation, the application must ask S2N to copy the operation's input into an
 application supplied buffer. The appropriate buffer size can be determined by calling
@@ -1778,7 +1792,6 @@ finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_out
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
 to apply the operation and free the op object.
-
 
 ```c
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
@@ -1796,10 +1809,68 @@ extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint
 The **op** will copy the data into a buffer passed in through the **data** parameter.
 This buffer is owned by the application, and it is the responsibility of the
 application to free it.
-**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it
+**s2n_async_pkey_op_set_output** copies the input data buffer and uses it
 to complete the private key operation. The data buffer is owned by the application.
 Once **s2n_async_pkey_op_set_output** has returned, the application is free to
 release the data buffer.
+
+Example:
+```C
+int user_sign_or_decrypt(s2n_async_pkey_op_type op_type, uint8_t *input_buffer, size_t input_size,
+    uint8_t *output_buffer, size_t *output_size);
+
+struct user_async_pkey_op *pkey_op = NULL;
+static int user_async_pkey_cb(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+{
+    pkey_op = op;
+    return S2N_SUCCESS;
+}
+
+int negotiate(int fd, uint8_t *public_pem_bytes, size_t public_pem_size) {
+    struct s2n_cert_chain_and_key *cert_chain = s2n_cert_chain_and_key_new();
+    s2n_cert_chain_and_key_load_public_pem_bytes(cert_chain, public_pem_bytes, public_pem_size);
+
+    struct s2n_config *config = s2n_config_new();
+    s2n_config_add_cert_chain_and_key_to_store(config, cert_chain);
+    s2n_config_set_async_pkey_callback(config, user_async_pkey_cb);
+
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+    s2n_connection_set_fd(conn, fd);
+    s2n_connection_set_config(conn, config);
+
+    s2n_blocked_status status = S2N_NOT_BLOCKED;
+    while (s2n_negotiate(conn, &status) != S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            exit(1);
+        }
+
+        if (status != S2N_BLOCKED_ON_APPLICATION_INPUT) {
+            continue;
+        }
+
+        uint8_t input_buffer[1000] = { 0 };
+        uint32_t input_size = 0;
+        s2n_async_pkey_op_get_input_size(pkey_op, &input_size);
+        s2n_async_pkey_op_get_input(pkey_op, input_buffer, sizeof(input_buffer));
+
+        s2n_async_pkey_op_type op_type = 0;
+        s2n_async_pkey_op_get_op_type(pkey_op, &op_type);
+
+        uint8_t output_buffer[1000] = { 0 };
+        size_t output_size = sizeof(output_buffer);
+        user_sign_or_decrypt(op_type, input_buffer, input_size, output_buffer, &output_size);
+
+        s2n_async_pkey_op_set_output(pkey_op, output_buffer, output_size);
+        s2n_async_pkey_op_apply(pkey_op, conn);
+        s2n_async_pkey_op_free(pkey_op);
+    }
+
+    s2n_cert_chain_and_key_free(cert_chain);
+    s2n_config_free(config);
+    s2n_connection_free(conn);
+    return S2N_SUCCESS;
+}
+```
 
 ### s2n\_connection\_free\_handshake
 
