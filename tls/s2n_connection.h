@@ -79,10 +79,11 @@ struct s2n_connection {
 
     /* Has the user set their own I/O callbacks or is this connection using the
      * default socket-based I/O set by s2n */
-    uint8_t managed_io;
+    uint8_t managed_send_io;
+    uint8_t managed_recv_io;
 
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
-     * managed_io
+     * managed_send/recv_io
      */
     unsigned corked_io:1;
 

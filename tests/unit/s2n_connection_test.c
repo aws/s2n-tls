@@ -16,12 +16,14 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "tls/s2n_connection.h"
-
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_client_server_name.h"
-#include "crypto/s2n_hash.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+
+#include "crypto/s2n_hash.h"
+
+#include "utils/s2n_socket.h"
 
 const uint8_t actual_version = 1, client_version = 2, server_version = 3;
 static int s2n_set_test_protocol_versions(struct s2n_connection *conn)
@@ -518,6 +520,68 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_read_fd(conn, &getReadFd), S2N_ERR_INVALID_STATE);
         EXPECT_EQUAL(getWriteFd, WRITEFD);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_connection_set_fd can be called twice in a row */
+    {
+        static const int OLDFD = 1;
+        static const int NEWFD = 2;
+        static int getReadFd, getWriteFd;
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_fd(conn, OLDFD));
+        EXPECT_SUCCESS(s2n_connection_set_fd(conn, NEWFD));
+
+        EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
+        EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
+        EXPECT_EQUAL(getReadFd, NEWFD);
+        EXPECT_EQUAL(getWriteFd, NEWFD);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_connection_set_read_fd and s2n_connection_set_write_fd can be called 
+     * after s2n_connection_set_fd */
+    {
+        static const int OLDFD = 1;
+        static const int NEWFD = 2;
+        static int getReadFd, getWriteFd;
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_fd(conn, OLDFD));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, NEWFD));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, NEWFD));
+
+        EXPECT_SUCCESS(s2n_connection_get_write_fd(conn, &getWriteFd));
+        EXPECT_SUCCESS(s2n_connection_get_read_fd(conn, &getReadFd));
+        EXPECT_EQUAL(getReadFd, NEWFD);
+        EXPECT_EQUAL(getWriteFd, NEWFD);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* The default s2n socket read/write setup can be used with a user-defined send/recv context */
+    {
+        static const int READFD = 1;
+        static const int WRITEFD = 2;
+        uint8_t socket_ctx[] = { "Some test context" };
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, READFD));
+        s2n_connection_set_send_ctx(conn, socket_ctx);
+
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, WRITEFD));
+        s2n_connection_set_recv_ctx(conn, socket_ctx);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
