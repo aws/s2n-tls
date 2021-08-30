@@ -21,6 +21,6 @@ void s2n_socket_was_corked_harness()
   int result = s2n_socket_was_corked(s2n_connection);
 
   /* Post-condition. */
-  assert(S2N_IMPLIES(s2n_connection != NULL && (!s2n_connection->managed_io || !s2n_connection->send), result == 0)); /* false */
+  assert(S2N_IMPLIES(s2n_connection != NULL && (!s2n_connection->managed_send_io || !s2n_connection->send), result == 0)); /* false */
   assert(S2N_IMPLIES(s2n_connection == NULL, result != 0));
 }
