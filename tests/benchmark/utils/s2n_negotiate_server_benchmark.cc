@@ -78,11 +78,14 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     int use_corked_io, insecure, connectionfd, sockfd = 0;
     char bench_format[100] = "--benchmark_out_format=";
     std::string file_prefix;
+    std::string gb_options;
+    std::vector<int> data_sizes;
     long int warmup_iters = 1;
     size_t iterations = 1;
     size_t repetitions = 1;
 
-    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
+    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions,
+                   gb_options, data_sizes);
 
     std::string log_output_name = "server_" + file_prefix;
     FILE* write_log = freopen(log_output_name.c_str(), "w", stdout);
@@ -145,15 +148,12 @@ int start_negotiate_benchmark_server(int argc, char **argv) {
     GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key_ecdsa),
                "Error adding ECDSA chain and key");
 
-    bool stop_listen = false;
-    while ((!stop_listen) && (connectionfd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-        for (long int suite_num = 0; suite_num < num_suites; ++suite_num) {
-            std::string bench_name = std::string("Server: ") + all_suites[suite_num]->name;
+    connectionfd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen);
+    for (long int suite_num = 0; suite_num < num_suites; ++suite_num) {
+        std::string bench_name = std::string("Server: ") + all_suites[suite_num]->name;
 
-            benchmark::RegisterBenchmark(bench_name.c_str(), benchmark_single_suite_server)->Repetitions(repetitions)
-            ->Iterations(iterations)->Args({suite_num, warmup_iters, connectionfd});
-        }
-        stop_listen = true;
+        benchmark::RegisterBenchmark(bench_name.c_str(), benchmark_single_suite_server)->Repetitions(repetitions)
+        ->Iterations(iterations)->Args({suite_num, warmup_iters, connectionfd});
     }
 
     ::benchmark::Initialize(&argc, argv_bench.data());

@@ -175,11 +175,14 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
     char bench_format[100] = "--benchmark_out_format=";
     char bench_out[100] = "--benchmark_out=client_";
     std::string file_prefix;
+    std::string gb_options;
+    std::vector<int> data_sizes;
     long int warmup_iters = 1;
     size_t iterations = 1;
     size_t repetitions = 1;
 
-    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions);
+    argument_parse(argc, argv, use_corked_io, insecure, bench_format, file_prefix, warmup_iters, iterations, repetitions,
+                   gb_options, data_sizes);
 
     strcat(bench_out, file_prefix.c_str());
     std::vector<char*> argv_bench(argv, argv + argc);
@@ -204,6 +207,7 @@ int start_negotiate_benchmark_client(int argc, char** argv) {
     }
     ::benchmark::Initialize(&argc, argv);
     ::benchmark::RunSpecifiedBenchmarks();
+
     s2n_cleanup();
     close(sockfd);
     return 0;
