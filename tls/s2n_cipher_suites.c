@@ -263,7 +263,7 @@ struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha = /* 0x00,0x0A */ {
 
 struct s2n_cipher_suite s2n_dhe_rsa_with_3des_ede_cbc_sha = /* 0x00,0x16 */ {
     .available = 0,
-    .name = "EDH-RSA-DES-CBC3-SHA",
+    .name = "DHE-RSA-DES-CBC3-SHA",
     .iana_value = { TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA },
     .key_exchange_alg = &s2n_dhe,
     .auth_method = S2N_AUTHENTICATION_RSA,
