@@ -39,8 +39,8 @@ LIBS += ../testlib/libtests2n.a ../../lib/libs2n.a
 CPPFLAGS += -Wno-unreachable-code -I../ -isystem ${GB_INSTALL_DIR}/include -Drestrict=__restrict__
 LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} ${BENCHMARK_LDFLAGS} -lm -ldl -lrt -pthread
 
-$(BM_TESTS):: bin/echo.c bin/common.c
-	${CXX} ${CPPFLAGS} bin/echo.c bin/common.c -o $@ $@.cc ${LDFLAGS} 2>&1
+$(BM_TESTS)::
+	${CXX} ${CPPFLAGS} -o $@ $@.cc ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	./$@
