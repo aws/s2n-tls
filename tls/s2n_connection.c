@@ -241,15 +241,32 @@ static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
+static int s2n_connection_free_recv_io_context(struct s2n_connection *conn)
 {
-    /* Free the I/O context if it was allocated by s2n. Don't touch user-controlled contexts. */
-    if (conn->managed_send_io) {
-        POSIX_GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
-    }
+    POSIX_ENSURE_REF(conn);
+
     if (conn->managed_recv_io) {
         POSIX_GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
+        conn->managed_recv_io = false;
     }
+    return S2N_SUCCESS;
+}
+
+static int s2n_connection_free_send_io_context(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+
+    if (conn->managed_send_io) {
+        POSIX_GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
+        conn->managed_send_io = false;
+    }
+    return S2N_SUCCESS;
+}
+
+static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
+{
+    POSIX_GUARD(s2n_connection_free_recv_io_context(conn));
+    POSIX_GUARD(s2n_connection_free_send_io_context(conn));
     return S2N_SUCCESS;
 }
 
@@ -264,8 +281,6 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
 
     /* Remove all I/O-related members */
     POSIX_GUARD(s2n_connection_free_io_contexts(conn));
-    conn->managed_send_io = 0;
-    conn->managed_recv_io = 0;
     conn->send = NULL;
     conn->recv = NULL;
 
@@ -618,6 +633,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_recv_io_context(conn));
     conn->recv_io_context = ctx;
     return 0;
 }
@@ -625,6 +641,7 @@ int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
 int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_send_io_context(conn));
     conn->send_io_context = ctx;
     return 0;
 }
@@ -787,26 +804,19 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
+    struct s2n_blob ctx_mem = {0};
+    struct s2n_socket_read_io_context *peer_socket_ctx;
+
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
+    POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
-    if (conn->managed_recv_io) {
-        struct s2n_socket_read_io_context *socket_ctx = conn->recv_io_context;
-        socket_ctx->fd = rfd;
-    } else {
-        struct s2n_blob ctx_mem = {0};
-        struct s2n_socket_read_io_context *peer_socket_ctx;
-
-        POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
-        POSIX_GUARD(s2n_blob_zero(&ctx_mem));
-
-        peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
-        peer_socket_ctx->fd = rfd;
-
-        s2n_connection_set_recv_ctx(conn, peer_socket_ctx);
-        conn->managed_recv_io = 1;
-    }
+    peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx->fd = rfd;
 
     s2n_connection_set_recv_cb(conn, s2n_socket_read);
+    POSIX_GUARD(s2n_connection_set_recv_ctx(conn, peer_socket_ctx));
+    conn->managed_recv_io = 1;
 
     /* This is only needed if the user is using corked io.
      * Take the snapshot in case optimized io is enabled after setting the fd.
@@ -829,25 +839,18 @@ int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
 
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
+    struct s2n_blob ctx_mem = {0};
+    struct s2n_socket_write_io_context *peer_socket_ctx;
+
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
-    if (conn->managed_send_io) {
-        struct s2n_socket_write_io_context *socket_ctx = conn->send_io_context;
-        socket_ctx->fd = wfd;
-    } else {
-        struct s2n_blob ctx_mem = {0};
-        struct s2n_socket_write_io_context *peer_socket_ctx;
-
-        POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
-
-        peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
-        peer_socket_ctx->fd = wfd;
-
-        s2n_connection_set_send_ctx(conn, peer_socket_ctx);
-        conn->managed_send_io = 1;
-    }
+    peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx->fd = wfd;
 
     s2n_connection_set_send_cb(conn, s2n_socket_write);
+    POSIX_GUARD(s2n_connection_set_send_ctx(conn, peer_socket_ctx));
+    conn->managed_send_io = 1;
 
     /* This is only needed if the user is using corked io.
      * Take the snapshot in case optimized io is enabled after setting the fd.

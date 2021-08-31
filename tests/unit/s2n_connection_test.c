@@ -576,12 +576,27 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, READFD));
-        s2n_connection_set_send_ctx(conn, socket_ctx);
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, socket_ctx));
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, WRITEFD));
-        s2n_connection_set_recv_ctx(conn, socket_ctx);
+        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, socket_ctx));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* The default s2n socket read/write setup can be overwritten by custom socket setup */
+    {
+        static const int READFD = 1;
+        uint8_t socket_ctx[] = { "Some test context" };
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_fd(conn, READFD));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, socket_ctx));
+        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, socket_ctx));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
