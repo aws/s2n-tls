@@ -130,6 +130,10 @@ void usage() {
     fprintf(stderr, "   sets the output format of the output file\n");
     fprintf(stderr, "  -p [file path to pem directory]\n");
     fprintf(stderr, "   if using secure mode, must set pem directory\n");
+    fprintf(stderr, "  -g [google benchmark options]\n");
+    fprintf(stderr, "   sets the google benchmark options\n");
+    fprintf(stderr, "  -d #;#;#\n");
+    fprintf(stderr, "   sets the size of the data that should be sent in send/recv benchmarks\n");
     fprintf(stderr, "  -s\n");
     fprintf(stderr, "   run benchmarks in insecure mode\n");
     fprintf(stderr, "  -D\n");

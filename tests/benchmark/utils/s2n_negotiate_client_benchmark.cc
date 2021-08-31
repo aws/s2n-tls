@@ -84,6 +84,7 @@ static void benchmark_single_suite_client(benchmark::State& state) {
     config = s2n_config_new();
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
     size_t warmup_iters = state.range(1);
+
     GUARD_EXIT_NULL(config);
 
     /* In order to specify each cipher suite from the cipher_preferences_test_all_tls12
