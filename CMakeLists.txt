@@ -21,6 +21,9 @@ otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
 indicate danger points where you should verify with the S2N-TLS developers that the security of
 the library is not compromised. Turn this OFF to ignore warnings." ON)
+option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed with a specific
+version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
+loaded in an application with an otherwise conflicting libcrypto version." OFF)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -391,7 +394,67 @@ else()
         message(FATAL_ERROR "Target crypto is not defined, failed to find libcrypto")
     endif()
 endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC crypto ${OS_LIBS} m)
+
+if (S2N_INTERN_LIBCRYPTO)
+    if(NOT LibCrypto_STATIC_LIBRARY)
+        message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
+    endif()
+
+    add_custom_command(
+        OUTPUT libcrypto.symbols
+        COMMAND
+          # copy the static version of libcrypto
+          cp ${LibCrypto_STATIC_LIBRARY} libcrypto.a &&
+          # dump all of the symbols and prefix them with `s2n$`
+          bash -c "nm libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
+          # redefine the libcrypto libary symbols
+          objcopy --redefine-syms libcrypto.symbols libcrypto.a &&
+          rm -rf libcrypto &&
+          mkdir libcrypto &&
+          cd libcrypto &&
+          # extract libcrypto objects from the archive
+          ar x ../libcrypto.a &&
+          # rename all of the object files so we don't have any object name collisions
+          bash -c "find . -name '*.o' -type f -print0 | xargs -0 -n1 -- basename | xargs -I{} mv {} s2n_crypto__{}"
+        VERBATIM
+    )
+
+    add_custom_target(libcrypto ALL
+      DEPENDS libcrypto.symbols
+    )
+    add_dependencies(${PROJECT_NAME} libcrypto)
+
+    add_custom_command(
+        TARGET ${PROJECT_NAME} PRE_LINK
+        DEPENDS libcrypto.symbols
+        COMMAND
+        find ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir -name '*.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
+    )
+
+    # copy the static libcrypto into the final artifact
+    if (BUILD_SHARED_LIBS)
+        # if we're building for testing, we export the prefixed symbols so tests can link to them
+        if (BUILD_TESTING)
+          set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
+              "-Wl,--whole-archive libcrypto.a -Wl,--no-whole-archive")
+        else()
+          set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
+              "-Wl,--whole-archive libcrypto.a -Wl,--no-whole-archive -Wl,--exclude-libs=ALL")
+        endif()
+    else()
+        add_custom_command(
+            TARGET ${PROJECT_NAME} POST_BUILD
+            DEPENDS libcrypto.symbols
+            COMMAND
+              bash -c "ar -r lib/libs2n.a libcrypto/*.o"
+            VERBATIM
+        )
+    endif()
+else()
+    target_link_libraries(${PROJECT_NAME} PUBLIC crypto)
+endif()
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
@@ -410,6 +473,15 @@ if (BUILD_TESTING)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
     target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
+    if (S2N_INTERN_LIBCRYPTO)
+        # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
+        add_custom_command(
+            TARGET testss2n POST_BUILD
+            COMMAND
+                objcopy --redefine-syms libcrypto.symbols lib/libtestss2n.a
+        )
+    endif()
+
     #run unit tests
     file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
@@ -423,6 +495,14 @@ if (BUILD_TESTING)
         target_include_directories(${test_case_name} PRIVATE ./)
         target_include_directories(${test_case_name} PRIVATE tests)
         target_link_libraries(${test_case_name} PRIVATE testss2n)
+        if (S2N_INTERN_LIBCRYPTO)
+            # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
+            add_custom_command(
+                TARGET ${test_case_name} PRE_LINK
+                COMMAND
+                  find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
+            )
+        endif()
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
@@ -451,6 +531,12 @@ if (BUILD_TESTING)
     target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
+
+    # if we've interned libcrypto, trying linking to the public version here to ensure we don't get any symbol collisions
+    if (S2N_INTERN_LIBCRYPTO)
+        target_link_libraries(s2nd crypto)
+        target_link_libraries(s2nc crypto)
+    endif()
 
     if(BENCHMARK)
         find_package(benchmark REQUIRED)
