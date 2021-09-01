@@ -62,7 +62,6 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     _exit(0);
 }
 
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
