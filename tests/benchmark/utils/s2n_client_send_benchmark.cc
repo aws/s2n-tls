@@ -43,15 +43,12 @@ int send_data(struct s2n_connection *conn, benchmark::State& state, bool warmup)
      * called until all data has been send and s2n is no longer blocked.
      */
     int written = 0;
+    if (!warmup) {
+        state.ResumeTiming();
+    }
     do {
         int written_bytes = 0;
-        if (!warmup) {
-            state.ResumeTiming();
-        }
         benchmark::DoNotOptimize(written_bytes = s2n_send(conn, send + written, number_bytes_receiving - written, &blocked));
-        if (!warmup) {
-            state.PauseTiming();
-        }
         if (written_bytes < 0) {
             fprintf(stderr, "Error writing to connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"),
                     s2n_connection_get_alert(conn));
@@ -59,6 +56,9 @@ int send_data(struct s2n_connection *conn, benchmark::State& state, bool warmup)
         }
         written += written_bytes;
     } while (blocked != S2N_NOT_BLOCKED);
+    if (!warmup) {
+        state.PauseTiming();
+    }
     free(send);
     return 0;
 }
@@ -243,7 +243,7 @@ int start_benchmark_send_client(int argc, char** argv) {
     for(long int current_suite = 0; current_suite < num_suites; current_suite++) {
         std::string bench_name = std::string("Client: ") + all_suites[current_suite]->name;
 
-        for (int current_data_index = 0; current_data_index < (int)data_sizes.size(); current_data_index++) {
+        for (size_t current_data_index = 0; current_data_index < data_sizes.size(); current_data_index++) {
             benchmark::RegisterBenchmark(bench_name.c_str(), benchmark_send_single_suite_client)
                 ->ReportAggregatesOnly()
                 ->Repetitions(repetitions)

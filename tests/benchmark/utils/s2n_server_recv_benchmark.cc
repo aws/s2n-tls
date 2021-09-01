@@ -39,15 +39,12 @@ int recv_data(struct s2n_connection *conn, int sockfd2, benchmark::State& state,
 
     poll_output = poll(readers, 1, -1);
     int bytes_read = 0;
+    if (!warmup) {
+        state.ResumeTiming();
+    }
     do {
         int received_bytes = 0;
-        if (!warmup) {
-            state.ResumeTiming();
-        }
         benchmark::DoNotOptimize(received_bytes = s2n_recv(conn, recieved + bytes_read, number_bytes_sending - bytes_read, &blocked));
-        if (!warmup) {
-            state.PauseTiming();
-        }
         if (received_bytes < 0) {
             fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"),
                     s2n_connection_get_alert(conn));
@@ -55,6 +52,9 @@ int recv_data(struct s2n_connection *conn, int sockfd2, benchmark::State& state,
         }
         bytes_read += received_bytes;
     } while (bytes_read < number_bytes_sending);
+    if (!warmup) {
+        state.PauseTiming();
+    }
     free(recieved);
     return 0;
 }
@@ -189,7 +189,7 @@ int start_benchmark_recv_server(int argc, char **argv) {
     for (unsigned int suite_num = 0; suite_num < num_suites; ++suite_num) {
         std::string bench_name = std::string("Server: ") + all_suites[ suite_num ]->name;
 
-        for (int current_data_index = 0; current_data_index < (int)data_sizes.size(); current_data_index++) {
+        for (size_t current_data_index = 0; current_data_index < data_sizes.size(); current_data_index++) {
             benchmark::RegisterBenchmark(bench_name.c_str(), benchmark_recv_single_suite_server)
                 ->ReportAggregatesOnly()
                 ->Repetitions(repetitions)
