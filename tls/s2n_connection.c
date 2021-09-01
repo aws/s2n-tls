@@ -814,9 +814,9 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = rfd;
 
-    s2n_connection_set_recv_cb(conn, s2n_socket_read);
+    POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_socket_read));
     POSIX_GUARD(s2n_connection_set_recv_ctx(conn, peer_socket_ctx));
-    conn->managed_recv_io = 1;
+    conn->managed_recv_io = true;
 
     /* This is only needed if the user is using corked io.
      * Take the snapshot in case optimized io is enabled after setting the fd.
@@ -848,9 +848,9 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = wfd;
 
-    s2n_connection_set_send_cb(conn, s2n_socket_write);
+    POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_socket_write));
     POSIX_GUARD(s2n_connection_set_send_ctx(conn, peer_socket_ctx));
-    conn->managed_send_io = 1;
+    conn->managed_send_io = true;
 
     /* This is only needed if the user is using corked io.
      * Take the snapshot in case optimized io is enabled after setting the fd.
@@ -886,10 +886,10 @@ int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 
 int s2n_connection_use_corked_io(struct s2n_connection *conn)
 {
-    if (!conn->managed_send_io) {
-        /* Caller shouldn't be trying to set s2n IO corked on non-s2n-managed IO */
-        POSIX_BAIL(S2N_ERR_CORK_SET_ON_UNMANAGED);
-    }
+    POSIX_ENSURE_REF(conn);
+
+    /* Caller shouldn't be trying to set s2n IO corked on non-s2n-managed IO */
+    POSIX_ENSURE(conn->managed_send_io, S2N_ERR_CORK_SET_ON_UNMANAGED);
     conn->corked_io = 1;
 
     return 0;

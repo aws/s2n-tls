@@ -87,15 +87,26 @@ static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 /* The connection will read/write to/from a stuffer, instead of sockets */
 int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn)
 {
-    /* Set Up Callbacks*/
-    POSIX_GUARD(s2n_connection_set_recv_cb(conn, &buffer_read));
-    POSIX_GUARD(s2n_connection_set_send_cb(conn, &buffer_write));
+    POSIX_GUARD(s2n_connection_set_recv_io_stuffer(input, conn));
+    POSIX_GUARD(s2n_connection_set_send_io_stuffer(output, conn));
 
-    /* Set up Callback Contexts to use stuffers */
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn)
+{
+    POSIX_GUARD(s2n_connection_set_recv_cb(conn, &buffer_read));
     POSIX_GUARD(s2n_connection_set_recv_ctx(conn, input));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn)
+{
+    POSIX_GUARD(s2n_connection_set_send_cb(conn, &buffer_write));
     POSIX_GUARD(s2n_connection_set_send_ctx(conn, output));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
