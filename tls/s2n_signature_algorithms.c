@@ -99,7 +99,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
 }
 
 /* similar to s2n_choose_sig_scheme() without matching client's preference */
-static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
+int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
     const struct s2n_signature_preferences *signature_preferences = NULL;
@@ -149,8 +149,8 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     /* We require an exact match in TLS 1.3, but all previous versions can fall back to the default SignatureScheme.
      * This means that an s2n client will accept the default SignatureScheme from a TLS server, even if the client did
      * not send it in it's ClientHello. This pre-TLS1.3 behavior is an intentional choice to maximize support. */
-    struct s2n_signature_scheme default_scheme;
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &default_scheme));
+    struct s2n_signature_scheme default_scheme = { 0 };
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &default_scheme, S2N_PEER_MODE(conn->mode)));
 
     if ((conn->actual_protocol_version <= S2N_TLS12)
             && (s2n_signature_scheme_valid_to_accept(conn, &default_scheme) == S2N_SUCCESS)
@@ -163,13 +163,18 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
-int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out)
+int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out, s2n_mode signer)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
     POSIX_ENSURE_REF(sig_scheme_out);
 
-    s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
+    s2n_authentication_method auth_method = 0;
+    if (signer == S2N_CLIENT) {
+        POSIX_GUARD(s2n_get_auth_method_for_cert_type(conn->handshake_params.client_cert_pkey_type, &auth_method));
+    } else {
+        POSIX_ENSURE_REF(conn->secure.cipher_suite);
+        auth_method = conn->secure.cipher_suite->auth_method;
+    }
 
     /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
      * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
@@ -177,13 +182,11 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
      */
     *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
 
-    if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) {
+    if (auth_method == S2N_AUTHENTICATION_ECDSA) {
         *sig_scheme_out = s2n_ecdsa_sha1;
-    }
-
-    /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
-    if ((conn->actual_protocol_version >= S2N_TLS12 || s2n_is_in_fips_mode())
-            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
+    } else if (conn->actual_protocol_version >= S2N_TLS12) {
+        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
+    } else if (s2n_is_in_fips_mode() && signer == S2N_SERVER) {
         *sig_scheme_out = s2n_rsa_pkcs1_sha1;
     }
 
@@ -196,10 +199,9 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(sig_scheme_out);
 
-    struct s2n_signature_scheme chosen_scheme;
-
+    struct s2n_signature_scheme chosen_scheme = { 0 };
     if (conn->actual_protocol_version < S2N_TLS13) {
-        POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
+        POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme, conn->mode));
     } else {
         /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
         POSIX_GUARD(s2n_tls13_default_sig_scheme(conn, &chosen_scheme));
@@ -212,7 +214,6 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     }
 
     *sig_scheme_out = chosen_scheme;
-
     return S2N_SUCCESS;
 }
 

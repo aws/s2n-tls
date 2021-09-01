@@ -46,9 +46,6 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
 def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol, certificate, client_certificate):
     port = next(available_ports)
 
-    if protocol < Protocols.TLS12 and client_certificate.algorithm == 'EC':
-        pytest.xfail("Client auth with ECDSA certs is currently broken for versions < TLS1.2")
-
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -95,9 +92,6 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, cipher, provider, protocol, certificate, client_certificate):
     port = next(available_ports)
-
-    if protocol < Protocols.TLS12 and client_certificate.algorithm == 'EC':
-        pytest.xfail("Client auth with ECDSA certs is current broken for versions < TLS1.2")
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -195,9 +189,6 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, 
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, protocol, provider, certificate, client_certificate):
     port = next(available_ports)
-
-    if protocol < Protocols.TLS12 and client_certificate.algorithm == 'EC':
-        pytest.xfail("Client auth with ECDSA certs is currently broken for versions < TLS1.2")
 
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(

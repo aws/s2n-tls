@@ -83,7 +83,14 @@ struct s2n_connection;
  * with S2N.
  */
 S2N_API
-extern void s2n_crypto_disable_init(void);
+extern int s2n_crypto_disable_init(void);
+
+/**
+ * Prevents S2N from installing an atexit handler, which allows safe shutdown of S2N from within a
+ * re-entrant shared library
+ */
+S2N_API
+extern int s2n_disable_atexit(void);
 
 S2N_API
 extern unsigned long s2n_get_openssl_version(void);
@@ -334,6 +341,10 @@ S2N_API
 extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
 S2N_API
 extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+S2N_API
+extern int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
+S2N_API
+extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 S2N_API
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);

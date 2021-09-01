@@ -263,7 +263,7 @@ struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha = /* 0x00,0x0A */ {
 
 struct s2n_cipher_suite s2n_dhe_rsa_with_3des_ede_cbc_sha = /* 0x00,0x16 */ {
     .available = 0,
-    .name = "EDH-RSA-DES-CBC3-SHA",
+    .name = "DHE-RSA-DES-CBC3-SHA",
     .iana_value = { TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA },
     .key_exchange_alg = &s2n_dhe,
     .auth_method = S2N_AUTHENTICATION_RSA,
@@ -995,8 +995,11 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
 };
 
 static bool should_init_crypto = true;
-void s2n_crypto_disable_init(void) {
+static bool crypto_initialized = false;
+int s2n_crypto_disable_init(void) {
+    POSIX_ENSURE(!crypto_initialized, S2N_ERR_INITIALIZED);
     should_init_crypto = false;
+    return S2N_SUCCESS;
 }
 
 /* Determines cipher suite availability and selects record algorithms */
@@ -1051,7 +1054,9 @@ int s2n_cipher_suites_init(void)
 #endif
     }
 
-    return 0;
+    crypto_initialized = true;
+
+    return S2N_SUCCESS;
 }
 
 /* Reset any selected record algorithms */
