@@ -125,12 +125,12 @@
 #define TLS_PSK_DHE_KE_MODE 1
 
 /**
- *= https://tools.ietf.org/id/draft-ietf-quic-tls-32.txt#8.2
+ *= https://tools.ietf.org/rfc/rfc9001.txt#8.2
  *#   enum {
- *#      quic_transport_parameters(0xffa5), (65535)
+ *#      quic_transport_parameters(0x39), (65535)
  *#   } ExtensionType;
  */
-#define TLS_QUIC_TRANSPORT_PARAMETERS      0xffa5
+#define TLS_QUIC_TRANSPORT_PARAMETERS      0x39
 
 /* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
 /* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
