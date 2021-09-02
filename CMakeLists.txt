@@ -532,7 +532,7 @@ if (BUILD_TESTING)
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
-    # if we've interned libcrypto, trying linking to the public version here to ensure we don't get any symbol collisions
+    # if we've interned libcrypto, try linking to the public version here to ensure we don't get any symbol collisions
     if (S2N_INTERN_LIBCRYPTO)
         target_link_libraries(s2nd crypto)
         target_link_libraries(s2nc crypto)
