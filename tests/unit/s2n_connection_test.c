@@ -92,6 +92,16 @@ S2N_RESULT s2n_test_all_signature_schemes_valid(s2n_tls_signature_algorithm expe
     return S2N_RESULT_OK;
 }
 
+int s2n_noop_recv_cb(void *io_context, uint8_t *buf, uint32_t len)
+{
+    return 0;
+}
+
+int s2n_noop_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -566,7 +576,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* The default s2n socket read/write setup can be used with a user-defined send/recv context */
+    /* The default s2n socket read/write setup can be used with a user-defined send/recv setup */
     {
         static const int READFD = 1;
         static const int WRITEFD = 2;
@@ -576,11 +586,13 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, READFD));
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_noop_send_cb));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, socket_ctx));
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, WRITEFD));
+        EXPECT_SUCCESS(s2n_connection_set_recv_cb(conn, s2n_noop_recv_cb));
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, socket_ctx));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -594,9 +606,27 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
 
+        /* Connection sets up the default socket functions */
         EXPECT_SUCCESS(s2n_connection_set_fd(conn, READFD));
+        EXPECT_NOT_NULL(conn->send);
+        EXPECT_NOT_NULL(conn->recv);
+
+        /* Setting up custom socket contexts will remove default socket functions */
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, socket_ctx));
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, socket_ctx));
+        EXPECT_NULL(conn->send);
+        EXPECT_NULL(conn->recv);
+
+        /* Setup default socket functions again */
+        EXPECT_SUCCESS(s2n_connection_set_fd(conn, READFD));
+        EXPECT_NOT_NULL(conn->send_io_context);
+        EXPECT_NOT_NULL(conn->recv_io_context);
+
+        /* Setting up custom socket functions will remove default socket contexts */
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_noop_send_cb));
+        EXPECT_SUCCESS(s2n_connection_set_recv_cb(conn, s2n_noop_recv_cb));
+        EXPECT_NULL(conn->send_io_context);
+        EXPECT_NULL(conn->recv_io_context);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

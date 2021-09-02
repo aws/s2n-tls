@@ -241,32 +241,34 @@ static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_free_recv_io_context(struct s2n_connection *conn)
+static int s2n_connection_free_managed_recv_io(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
     if (conn->managed_recv_io) {
         POSIX_GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
         conn->managed_recv_io = false;
+        conn->recv = NULL;
     }
     return S2N_SUCCESS;
 }
 
-static int s2n_connection_free_send_io_context(struct s2n_connection *conn)
+static int s2n_connection_free_managed_send_io(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
     if (conn->managed_send_io) {
         POSIX_GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
         conn->managed_send_io = false;
+        conn->send = NULL;
     }
     return S2N_SUCCESS;
 }
 
-static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
+static int s2n_connection_free_managed_io(struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_connection_free_recv_io_context(conn));
-    POSIX_GUARD(s2n_connection_free_send_io_context(conn));
+    POSIX_GUARD(s2n_connection_free_managed_recv_io(conn));
+    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
     return S2N_SUCCESS;
 }
 
@@ -280,9 +282,7 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
     }
 
     /* Remove all I/O-related members */
-    POSIX_GUARD(s2n_connection_free_io_contexts(conn));
-    conn->send = NULL;
-    conn->recv = NULL;
+    POSIX_GUARD(s2n_connection_free_managed_io(conn));
 
     return 0;
 }
@@ -344,7 +344,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_reset_hmacs(conn));
     POSIX_GUARD(s2n_connection_free_hmacs(conn));
 
-    POSIX_GUARD(s2n_connection_free_io_contexts(conn));
+    POSIX_GUARD(s2n_connection_free_managed_io(conn));
 
     POSIX_GUARD(s2n_free(&conn->client_ticket));
     POSIX_GUARD(s2n_free(&conn->status_response));
@@ -633,15 +633,15 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD(s2n_connection_free_recv_io_context(conn));
+    POSIX_GUARD(s2n_connection_free_managed_recv_io(conn));
     conn->recv_io_context = ctx;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD(s2n_connection_free_send_io_context(conn));
+    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
     conn->send_io_context = ctx;
     return 0;
 }
@@ -649,15 +649,17 @@ int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
 int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_managed_recv_io(conn));
     conn->recv = recv;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
     conn->send = send;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len)
