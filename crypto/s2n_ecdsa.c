@@ -31,6 +31,8 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 
+#define S2N_ECDSA_TYPE 0
+
 S2N_RESULT s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
     RESULT_ENSURE_REF(pkey);
@@ -56,7 +58,7 @@ int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, 
     POSIX_ENSURE_REF(key->ec_key);
 
     unsigned int signature_size = signature->size;
-    POSIX_GUARD_OSSL(ECDSA_sign(0, digest->data, digest->size, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
+    POSIX_GUARD_OSSL(ECDSA_sign(S2N_ECDSA_TYPE, digest->data, digest->size, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 

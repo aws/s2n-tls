@@ -366,7 +366,7 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
     POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &head->raw));
-    S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     POSIX_GUARD(s2n_cert_set_cert_type(head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */

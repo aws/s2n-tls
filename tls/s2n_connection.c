@@ -405,8 +405,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * The handshake could still fail if the callback doesn't offload the
      * signature, but this at least catches configuration mistakes.
      */
-    if (!config->async_pkey_cb) {
-        POSIX_ENSURE(!config->no_signing_key, S2N_ERR_NO_PRIVATE_KEY);
+    if (config->no_signing_key) {
+        POSIX_ENSURE(config->async_pkey_cb, S2N_ERR_NO_PRIVATE_KEY);
     }
 
     conn->config = config;
