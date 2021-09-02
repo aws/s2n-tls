@@ -396,7 +396,7 @@ else()
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
-    if(NOT LibCrypto_STATIC_LIBRARY)
+    if (NOT LibCrypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
