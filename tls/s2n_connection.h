@@ -77,12 +77,8 @@ struct s2n_connection {
     void *send_io_context;
     void *recv_io_context;
 
-    /* Has the user set their own I/O callbacks or is this connection using the
-     * default socket-based I/O set by s2n */
-    uint8_t managed_io;
-
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
-     * managed_io
+     * managed_send_io
      */
     unsigned corked_io:1;
 
@@ -325,6 +321,11 @@ struct s2n_connection {
 
     /* Cookie extension data */
     struct s2n_stuffer cookie_stuffer;
+
+    /* Has the user set their own I/O callbacks or is this connection using the
+     * default socket-based I/O set by s2n */
+    unsigned managed_send_io:1;
+    unsigned managed_recv_io:1;
 
     /* Key update data */
     unsigned key_update_pending:1;
