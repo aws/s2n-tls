@@ -24,6 +24,7 @@
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
 
 #include "utils/s2n_safety.h"
 
@@ -32,11 +33,8 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
     /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
     POSIX_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
-    /* QUIC only supports TLS1.3 */
-    POSIX_ENSURE_REF(conn->config);
-    if (conn->config->quic_enabled
-            && scheme->maximum_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
-        POSIX_ENSURE_GTE(scheme->maximum_protocol_version, S2N_TLS13);
+    if (s2n_is_version_fallback_disabled(conn) && scheme->maximum_protocol_version) {
+        POSIX_ENSURE_GTE(scheme->maximum_protocol_version, s2n_highest_protocol_version);
     }
 
     if (!s2n_is_rsa_pss_signing_supported()) {

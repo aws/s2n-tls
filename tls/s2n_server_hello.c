@@ -124,6 +124,10 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_server_extensions_recv(conn, in));
 
+    if (s2n_is_version_fallback_disabled(conn)) {
+        POSIX_ENSURE(conn->server_protocol_version == s2n_highest_protocol_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    }
+
     if (conn->server_protocol_version >= S2N_TLS13) {
         S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
@@ -132,7 +136,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
         S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
-        POSIX_ENSURE(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         /*
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3

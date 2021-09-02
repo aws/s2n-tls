@@ -82,3 +82,8 @@ bool s2n_is_middlebox_compat_enabled(struct s2n_connection *conn)
     return s2n_connection_get_protocol_version(conn) >= S2N_TLS13
             && conn && conn->config && !conn->config->quic_enabled;
 }
+
+bool s2n_is_version_fallback_disabled(struct s2n_connection *conn)
+{
+    return conn && conn->config && conn->config->quic_enabled;
+}

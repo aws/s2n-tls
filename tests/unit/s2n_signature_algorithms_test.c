@@ -49,7 +49,6 @@ const struct s2n_signature_preferences test_preferences = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_cert_chain_and_key *rsa_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
@@ -235,6 +234,7 @@ int main(int argc, char **argv)
             s2n_stuffer_wipe(&choice);
             s2n_stuffer_write_uint16(&choice, s2n_rsa_pkcs1_sha256.iana_value);
 
+            conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
             EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha256.iana_value);
             EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha256, sizeof(struct s2n_signature_scheme));

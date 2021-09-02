@@ -70,9 +70,8 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Generate the session id for TLS1.3 if in middlebox compatibility mode.
-     * For now, we default to middlebox compatibility mode unless using QUIC. */
-    if (conn->config->quic_enabled) {
+    /* Generate the session id for TLS1.3 if in middlebox compatibility mode. */
+    if (conn->client_protocol_version >= S2N_TLS13 && !s2n_is_middlebox_compat_enabled(conn)) {
         return S2N_RESULT_OK;
     }
 
@@ -303,8 +302,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
-    if (conn->config->quic_enabled) {
-        POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    if (s2n_is_version_fallback_disabled(conn)) {
+        POSIX_ENSURE(conn->actual_protocol_version == s2n_highest_protocol_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
     /* Find potential certificate matches before we choose the cipher. */
@@ -389,7 +388,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
 static bool s2n_cipher_suite_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
 {
-    if (!conn || !cipher || !conn->config) {
+    if (!conn || !cipher) {
         return false;
     }
 
@@ -401,7 +400,7 @@ static bool s2n_cipher_suite_available(struct s2n_connection *conn, struct s2n_c
         return false;
     }
 
-    if (conn->config->quic_enabled && cipher->minimum_required_tls_version < S2N_TLS13) {
+    if (s2n_is_version_fallback_disabled(conn) && !s2n_is_valid_tls13_cipher(cipher->iana_value)) {
         return false;
     }
 
