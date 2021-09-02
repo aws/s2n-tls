@@ -186,7 +186,7 @@ let setup_connection chosen_psk_null = do {
    crucible_points_to (conn_status_type pconn) (crucible_term ocsp_flag);
 
    if chosen_psk_null
-      then crucible_equal (conn_chosen_psk pconn) crucible_null
+      then crucible_points_to (conn_chosen_psk pconn) crucible_null
       else do { chosen_psk <- crucible_alloc (llvm_struct "struct.s2n_psk");
                 crucible_points_to (conn_chosen_psk pconn) chosen_psk;
               };
