@@ -75,7 +75,7 @@ corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer the
                       else 0
 
 trace_advance_message : {n} (fin n) => connection -> [n]connection
-trace_advance_message conn = take (iterate advance_message conn)
+trace_advance_message conn = take (iterate s2nTrans conn)
 
 trace_corking : {n} (fin n, n >= 2) => State -> [n-1][8] -> [n]State
 trace_corking s writers = scanl cork_transition s writers
