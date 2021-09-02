@@ -1814,66 +1814,6 @@ to complete the private key operation. The data buffer is owned by the applicati
 Once **s2n_async_pkey_op_set_output** has returned, the application is free to
 release the data buffer.
 
-Example:
-```C
-int user_sign_or_decrypt(s2n_async_pkey_op_type op_type, uint8_t *input_buffer, size_t input_size,
-    uint8_t *output_buffer, size_t *output_size);
-
-struct user_async_pkey_op *pkey_op = NULL;
-static int user_async_pkey_cb(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
-{
-    pkey_op = op;
-    return S2N_SUCCESS;
-}
-
-int negotiate(int fd, uint8_t *public_pem_bytes, size_t public_pem_size) {
-    struct s2n_cert_chain_and_key *cert_chain = s2n_cert_chain_and_key_new();
-    s2n_cert_chain_and_key_load_public_pem_bytes(cert_chain, public_pem_bytes, public_pem_size);
-
-    struct s2n_config *config = s2n_config_new();
-    s2n_config_add_cert_chain_and_key_to_store(config, cert_chain);
-    s2n_config_set_async_pkey_callback(config, user_async_pkey_cb);
-
-    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    s2n_connection_set_fd(conn, fd);
-    s2n_connection_set_config(conn, config);
-
-    s2n_blocked_status status = S2N_NOT_BLOCKED;
-    while (s2n_negotiate(conn, &status) != S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            exit(1);
-        }
-
-        if (status != S2N_BLOCKED_ON_APPLICATION_INPUT) {
-            continue;
-        }
-
-        uint32_t input_size = 0;
-        s2n_async_pkey_op_get_input_size(pkey_op, &input_size);
-        uint8_t *input_buffer = malloc(input_size);
-        s2n_async_pkey_op_get_input(pkey_op, input_buffer, input_size);
-
-        s2n_async_pkey_op_type op_type = 0;
-        s2n_async_pkey_op_get_op_type(pkey_op, &op_type);
-
-        uint8_t *output_buffer = NULL;
-        size_t output_size = 0;
-        user_sign_or_decrypt(op_type, input_buffer, input_size, output_buffer, &output_size);
-        free(input_buffer);
-
-        s2n_async_pkey_op_set_output(pkey_op, output_buffer, output_size);
-        free(output_buffer);
-        s2n_async_pkey_op_apply(pkey_op, conn);
-        s2n_async_pkey_op_free(pkey_op);
-    }
-
-    s2n_cert_chain_and_key_free(cert_chain);
-    s2n_config_free(config);
-    s2n_connection_free(conn);
-    return S2N_SUCCESS;
-}
-```
-
 ### s2n\_connection\_free\_handshake
 
 ```c
