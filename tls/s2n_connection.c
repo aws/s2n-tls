@@ -643,7 +643,7 @@ int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
     conn->send_io_context = ctx;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
