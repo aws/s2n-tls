@@ -1009,6 +1009,17 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
 **private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
 **private_key_pem_len** is the length of the private key.
 
+### s2n\_cert\_chain\_and\_key\_load\_public\_pem\_bytes
+
+```c
+int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+```
+
+**s2n_cert_chain_and_key_load_public_pem_bytes** associates a public certificate chain with a **s2n_cert_chain_and_key** object. It does NOT set a private key, so the connection will need to be configured to [offload private key operations](#offloading-asynchronous-private-key-operations).
+
+**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
+**chain_pem_len** is the length in bytes of the PEM encoded certificate chain.
+
 ### s2n\_cert\_chain\_and\_key\_set\_ctx
 
 ```c
@@ -1766,8 +1777,11 @@ be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
 
 ### Offloading asynchronous private key operations
-**The s2n_async_pkey_op_\*** API can be used to perform a private key operation
-outside of the S2N context. The application can query the type of private
+
+The **s2n_async_pkey_op_\*** API can be used to perform a private key operation
+outside of the S2N context, without copying the private key into S2N memory.
+
+The application can query the type of private
 key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
 an operation, the application must ask S2N to copy the operation's input into an
 application supplied buffer. The appropriate buffer size can be determined by calling
@@ -1778,7 +1792,6 @@ finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_out
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
 to apply the operation and free the op object.
-
 
 ```c
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
@@ -1796,7 +1809,7 @@ extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint
 The **op** will copy the data into a buffer passed in through the **data** parameter.
 This buffer is owned by the application, and it is the responsibility of the
 application to free it.
-**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it
+**s2n_async_pkey_op_set_output** copies the input data buffer and uses it
 to complete the private key operation. The data buffer is owned by the application.
 Once **s2n_async_pkey_op_set_output** has returned, the application is free to
 release the data buffer.

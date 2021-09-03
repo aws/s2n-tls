@@ -483,7 +483,11 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
         }
     }
 
-    return 0;
+    if (s2n_pkey_check_key_exists(cert_key_pair->private_key) != S2N_SUCCESS) {
+        config->no_signing_key = true;
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn)
