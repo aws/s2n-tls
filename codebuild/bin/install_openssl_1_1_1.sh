@@ -31,6 +31,7 @@ OS_NAME=$3
 source codebuild/bin/jobs.sh
 RELEASE=1_1_1k
 
+mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
 curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
 unzip OpenSSL_${RELEASE}.zip
@@ -45,8 +46,9 @@ else
     usage
 fi
 
+mkdir -p $INSTALL_DIR
 # Use g3 to get debug symbols in libcrypto to chase memory leaks
-$CONFIGURE -g3 -fPIC              \
+$CONFIGURE shared -g3 -fPIC              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
          no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
