@@ -258,11 +258,26 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 }
 
 bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn) {
-    /* RSA PSS is required for TLS 1.3 connections. So if there's a possibility that an RSA Certificate could be picked
-     * by a client connection, then downgrade connection to TLS 1.2 if our libcrypto doesn't support RSA PSS. */
-    return ((conn->mode == S2N_SERVER)
-              && conn->config->is_rsa_cert_configured
-              && !s2n_is_rsa_pss_signing_supported());
+    if ((conn->mode == S2N_SERVER)
+          && (conn->config != NULL)
+          && conn->config->is_rsa_cert_configured
+          && !s2n_is_tls13_fully_supported()) {
+        /* RSA PSS is required for TLS 1.3 connections if RSA is used. So if we are a server that doesn't support RSA PSS,
+         * and there's a possibility that an RSA Certificate could be picked by a client connection, then self-downgrade
+         * connection to TLS 1.2. */
+        return true;
+    }
+
+    if ((conn->mode == S2N_CLIENT) && !s2n_is_tls13_fully_supported()) {
+        /* There are some TLS Servers in the wild that will always choose RSA PSS if the client claims to support TLS 1.3
+         * even if the client does not advertise support for RSA PSS in the SignatureScheme extension. In order to work
+         * around this issue, our client should self-downgrade to TLS 1.2 so that a successful TLS 1.2 connection can be
+         * made instead of rejecting a TLS 1.3 ServerHello with RSA PSS due to it containing algorithms that we don't
+         * support. */
+        return true;
+    }
+
+  return false;
 
 }
 
@@ -388,15 +403,15 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
     POSIX_ENSURE_REF(cipher_preferences);
 
-    /* Check whether cipher preference supports TLS 1.3. If it doesn't,
-       our highest supported version is S2N_TLS12 */
-    if (!s2n_security_policy_supports_tls13(security_policy)) {
+    if (s2n_is_tls_12_self_downgrade_required(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }
