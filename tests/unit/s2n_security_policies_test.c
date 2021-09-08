@@ -83,29 +83,38 @@ int main(int argc, char **argv)
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(client_conn);
                     EXPECT_NOT_NULL(server_conn);
-                    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
-                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-                    EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_RSA]);
-                    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-                    client_conn->actual_protocol_version = S2N_TLS13;
-                    server_conn->actual_protocol_version = S2N_TLS13;
-                    client_conn->secure.cipher_suite = &tls_13_ciphers[i];
-                    server_conn->secure.cipher_suite = &tls_13_ciphers[i];
-
-                    struct s2n_signature_scheme chosen_scheme = {0};
-
-                    if (s2n_is_rsa_pss_signing_supported()) {
-                        /* If RSA PSS signing is supported, then we should always be able to select a default Signature
-                         * Scheme for RSA Certs for TLS 1.3 */
-                        EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
-                        EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
+                    if (security_policy_selection[policy_index].security_policy->minimum_protocol_version == S2N_TLS13
+                            && !s2n_is_tls13_fully_supported()) {
+                        /* We purposefully do not allow users to configure Security Policies with a minimum allowed TLS
+                         * Version of TLS 1.3, if TLS 1.3 algorithms aren't fully supported by the libcrypto we're using */
+                        EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
                     } else {
-                        /* We can't pick a default TLS 1.3 signature scheme when configured with an RSA Cert when we
-                         * do not support RSA PSS signing since RSA PSS signing is required for TLS 1.3 */
-                        EXPECT_FAILURE(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
-                        EXPECT_FAILURE(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
+
+                        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
+                        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+                        EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_RSA]);
+                        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+                        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+                        client_conn->actual_protocol_version = S2N_TLS13;
+                        server_conn->actual_protocol_version = S2N_TLS13;
+                        client_conn->secure.cipher_suite = &tls_13_ciphers[i];
+                        server_conn->secure.cipher_suite = &tls_13_ciphers[i];
+
+                        struct s2n_signature_scheme chosen_scheme = {0};
+
+                        if (s2n_is_rsa_pss_signing_supported()) {
+                            /* If RSA PSS signing is supported, then we should always be able to select a default Signature
+                             * Scheme for RSA Certs for TLS 1.3 */
+                            EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
+                            EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
+                        } else {
+                            /* We can't pick a default TLS 1.3 signature scheme when configured with an RSA Cert when we
+                             * do not support RSA PSS signing since RSA PSS signing is required for TLS 1.3 */
+                            EXPECT_FAILURE(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
+                            EXPECT_FAILURE(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
+                        }
                     }
 
                     EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -134,23 +143,32 @@ int main(int argc, char **argv)
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(client_conn);
                     EXPECT_NOT_NULL(server_conn);
-                    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
-                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, NULL));
-                    EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_ECDSA]);
-                    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-                    client_conn->actual_protocol_version = S2N_TLS13;
-                    server_conn->actual_protocol_version = S2N_TLS13;
-                    client_conn->secure.cipher_suite = &tls_13_ciphers[i];
-                    server_conn->secure.cipher_suite = &tls_13_ciphers[i];
+                    if (security_policy_selection[policy_index].security_policy->minimum_protocol_version == S2N_TLS13
+                            && !s2n_is_tls13_fully_supported()) {
+                        /* We purposefully do not allow users to configure Security Policies with a minimum allowed TLS
+                         * Version of TLS 1.3, if TLS 1.3 algorithms aren't fully supported by the libcrypto we're using */
+                        EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
+                    } else {
 
-                    struct s2n_signature_scheme chosen_scheme = {0};
+                        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
+                        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, NULL));
+                        EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_ECDSA]);
+                        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+                        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-                    /* If an ECDSA Certificate is configured, then we should always be able to pick a default Signature
-                     * Scheme (even if RSA PSS is not supported by the libcrypto) */
-                    EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
-                    EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
+                        client_conn->actual_protocol_version = S2N_TLS13;
+                        server_conn->actual_protocol_version = S2N_TLS13;
+                        client_conn->secure.cipher_suite = &tls_13_ciphers[i];
+                        server_conn->secure.cipher_suite = &tls_13_ciphers[i];
+
+                        struct s2n_signature_scheme chosen_scheme = {0};
+
+                        /* If an ECDSA Certificate is configured, then we should always be able to pick a default Signature
+                         * Scheme (even if RSA PSS is not supported by the libcrypto) */
+                        EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
+                        EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
+                    }
 
                     EXPECT_SUCCESS(s2n_connection_free(client_conn));
                     EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -560,8 +578,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_20201110);
-        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20190801);
+        EXPECT_EQUAL(config->security_policy, &security_policy_default_tls13);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20210831);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
         EXPECT_EQUAL(config->security_policy->certificate_signature_preferences, &s2n_certificate_signature_preferences_20201110);
@@ -644,12 +662,16 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.3"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_tls_13);
-        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_tls_13);
-        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
-        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
-        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+        if (s2n_is_tls13_fully_supported()) {
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.3"));
+            EXPECT_EQUAL(config->security_policy, &security_policy_aws_crt_sdk_tls_13);
+            EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_aws_crt_sdk_tls_13);
+            EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+        } else {
+            EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, "AWS-CRT-SDK-TLSv1.3"));
+        }
 
         EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, NULL));
 
@@ -682,8 +704,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_EQUAL(security_policy, &security_policy_20201110);
-        EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_20190801);
+        EXPECT_EQUAL(security_policy, &security_policy_default_tls13);
+        EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_20210831);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
         EXPECT_EQUAL(security_policy->certificate_signature_preferences, &s2n_certificate_signature_preferences_20201110);

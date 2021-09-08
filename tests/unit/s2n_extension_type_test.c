@@ -444,7 +444,7 @@ int main()
             uint16_t key_shares_id = s2n_extension_iana_value_to_id(TLS_EXTENSION_KEY_SHARE);
 
             /* Both TLS1.3 */
-            {
+            if (s2n_is_tls13_fully_supported()) {
                 struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
                 EXPECT_NOT_NULL(client_conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
@@ -517,7 +517,12 @@ int main()
 
                 /* Expected CLIENT_HELLO extensions sent, but not received */
                 EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
-                EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
+                if (s2n_is_tls13_fully_supported()) {
+                    EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
+                } else {
+                    EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
+                }
+
                 EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_received, key_shares_id));
 
                 /* No expected SERVER_HELLO extensions sent and received */

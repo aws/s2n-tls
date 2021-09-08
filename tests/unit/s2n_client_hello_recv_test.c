@@ -249,13 +249,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(client_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
@@ -281,8 +281,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
@@ -314,9 +314,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        int expected_server_tls_version = s2n_is_tls_12_self_downgrade_required(server_conn) ? S2N_TLS12 : S2N_TLS13;
-
-        EXPECT_EQUAL(server_conn->server_protocol_version, expected_server_tls_version);
+        EXPECT_EQUAL(server_conn->server_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
@@ -405,7 +403,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            if (s2n_is_tls_12_self_downgrade_required(client_conn)) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            } else {
+                EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            }
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);
@@ -425,7 +427,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+            if (s2n_is_tls_12_self_downgrade_required(client_conn)) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            } else {
+                EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            }
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);
@@ -440,6 +447,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
 
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,

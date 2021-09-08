@@ -15,6 +15,7 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_ecc_preferences.h"
@@ -209,6 +210,10 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
 int main() {
     BEGIN_TEST();
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
 
     /* Additional KEM preferences/security policies to test against. These policies can only be used
      * as the server's policy in this test: when generating the ClientHello, the client relies on

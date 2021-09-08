@@ -143,6 +143,11 @@ static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* Test: TLS 1.3 key and secrets generation is symmetrical */
@@ -574,7 +579,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
 
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, 0);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
 
         s2n_tls13_connection_keys(server_secrets_0, server_conn);
         EXPECT_EQUAL(server_secrets_0.size, 0);
@@ -589,7 +594,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | MIDDLEBOX_COMPAT);
 
         s2n_tls13_connection_keys(server_secrets, server_conn);
-        EXPECT_EQUAL(server_secrets.size, 48);
+        EXPECT_EQUAL(server_secrets.size, SHA256_DIGEST_LENGTH);
 
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
 
@@ -625,7 +630,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
 
         s2n_tls13_connection_keys(client_secrets, client_conn);
-        EXPECT_EQUAL(client_secrets.size, 48);
+        EXPECT_EQUAL(client_secrets.size, SHA256_DIGEST_LENGTH);
 
         /* Verify that derive and extract secrets match */
         S2N_BLOB_EXPECT_EQUAL(server_secrets.derive_secret, client_secrets.derive_secret);

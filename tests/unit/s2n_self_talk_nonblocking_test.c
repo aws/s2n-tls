@@ -267,7 +267,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
 
     /* Make sure we negotiated the expected version */
     if (use_tls13) {
-        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+        int expected_protocol_version = (s2n_is_tls13_fully_supported() ? S2N_TLS13 : S2N_TLS12);
+        EXPECT_EQUAL(conn->actual_protocol_version, expected_protocol_version);
     } else {
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
     }

@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "crypto/s2n_rsa_signing.h"
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
@@ -173,7 +175,7 @@ int main(int argc, char **argv)
     }
 
     /* Functional: Unencrypted EncryptedExtensions rejected */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
         struct s2n_cert_chain_and_key *chain_and_key;

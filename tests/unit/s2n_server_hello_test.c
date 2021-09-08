@@ -522,7 +522,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(non_quic_config, chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, non_quic_config));
 
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
@@ -613,8 +613,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
-        /* Fails when negotiating TLS1.2 */
-        {
+        /* TLS 1.3 Client Early Data is rejected when server only supports TLS1.2 */
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
