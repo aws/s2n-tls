@@ -13,15 +13,13 @@
 # permissions and limitations under the License.
 #
 
+import argparse
 import os
+import subprocess
 import sys
 import time
-import socket
-import subprocess
-import itertools
-import argparse
-from s2n_test_constants import *
 
+from s2n_test_constants import *
 
 # If a cipher_preference_version is specified, we will use it while attempting the handshake;
 # otherwise, s2n will use the default. If an expected_cipher is specified, the test will pass
@@ -32,7 +30,6 @@ well_known_endpoints = [
     {"endpoint": "facebook.com"},
     {"endpoint": "google.com"},
     {"endpoint": "s3.amazonaws.com"},
-    {"endpoint": "twitter.com"},
     {"endpoint": "wikipedia.org"},
     {"endpoint": "yahoo.com"},
 ]
