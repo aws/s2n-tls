@@ -95,5 +95,5 @@ typedef enum {
 
 extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
-extern int s2n_store_to_cache(struct s2n_connection *conn);
+S2N_RESULT s2n_store_to_cache(struct s2n_connection *conn);
 S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, size_t *state_size);

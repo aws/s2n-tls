@@ -425,25 +425,25 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_store_to_cache(struct s2n_connection *conn)
+S2N_RESULT s2n_store_to_cache(struct s2n_connection *conn)
 {
     uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {0};
-    POSIX_GUARD(s2n_blob_init(&entry, data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+    RESULT_GUARD_POSIX(s2n_blob_init(&entry, data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     struct s2n_stuffer to = {0};
 
     /* session_id_len should always be >0 since either the Client provided a SessionId or the Server generated a new
      * one for the Client */
-    S2N_ERROR_IF(conn->session_id_len == 0, S2N_ERR_SESSION_ID_TOO_SHORT);
-    S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
+    RESULT_ENSURE(conn->session_id_len > 0, S2N_ERR_SESSION_ID_TOO_SHORT);
+    RESULT_ENSURE(conn->session_id_len <= S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
 
-    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    POSIX_GUARD(s2n_encrypt_session_cache(conn, &to));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&to, &entry));
+    RESULT_GUARD_POSIX(s2n_encrypt_session_cache(conn, &to));
 
     /* Store to the cache */
     conn->config->cache_store(conn, conn->config->cache_store_data, S2N_TLS_SESSION_CACHE_TTL, conn->session_id, conn->session_id_len, entry.data, entry.size);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length)
