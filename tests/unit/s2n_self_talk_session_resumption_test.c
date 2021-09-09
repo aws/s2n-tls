@@ -694,14 +694,14 @@ int main(int argc, char **argv)
         /* Setup config without session ticket key */
         struct s2n_config *no_key_config = s2n_config_new();
         EXPECT_NOT_NULL(no_key_config);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_key_config, "AWS-CRT-SDK-TLSv1.0"));
+        no_key_config->security_policy = server_config->security_policy;
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config, true));
 
         struct s2n_config *no_key_config_with_cache = s2n_config_new();
         EXPECT_NOT_NULL(no_key_config_with_cache);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_key_config_with_cache, "AWS-CRT-SDK-TLSv1.0"));
+        no_key_config_with_cache->security_policy = server_config->security_policy;
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config_with_cache));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config_with_cache, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config_with_cache, true));
