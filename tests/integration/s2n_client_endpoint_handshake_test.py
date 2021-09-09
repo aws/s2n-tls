@@ -19,7 +19,6 @@ import subprocess
 import sys
 import time
 
-from common.s2n_test_scenario import get_libcrypto
 from s2n_test_constants import *
 
 # If a cipher_preference_version is specified, we will use it while attempting the handshake;
@@ -31,18 +30,15 @@ well_known_endpoints = [
     {"endpoint": "facebook.com"},
     {"endpoint": "google.com"},
     {"endpoint": "s3.amazonaws.com"},
-    {"endpoint": "twitter.com"},
+    # twitter.com offers RSA certificates even when the client does not include RSA PSS
+    # in the the Signature Schemes extension. Disabling twitter for now since this prevents
+    # s2n from negotiating a handshake if the libcrypto does not support RSA PSS signature
+    # algorithms with RSA Certificates
+    # See https://github.com/aws/s2n-tls/pull/3030
+    # {"endpoint": "twitter.com"},
     {"endpoint": "wikipedia.org"},
     {"endpoint": "yahoo.com"},
 ]
-
-# twitter.com offers RSA certificates even when the client does not include RSA PSS
-# in the the Signature Schemes extension. Since OpenSSL 1.0.2 does not support
-# RSA PSS signature algorithms with RSA Certificates, we are unable to negotiate a
-# handshake with twitter.com in this case.
-# See https://github.com/aws/s2n-tls/pull/3030
-if get_libcrypto() in ["openssl-1.0.2", "openssl-1.0.2-fips"]:
-    well_known_endpoints.remove({"endpoint": "twitter.com"})
 
 if os.getenv("S2N_NO_PQ") is None:
     # If PQ was compiled into S2N, test the PQ preferences against KMS
