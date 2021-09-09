@@ -18,12 +18,18 @@
 
 #include "utils/s2n_bitmap.h"
 
+#define IS_EMS_NEGOTIATED(client, server) \
+    (client->ems_negotiated && server->ems_negotiated)
+
+#define IS_TLS12_CONNECTION(client, server) \
+    ((client->actual_protocol_version == S2N_TLS12) && (server->actual_protocol_version == S2N_TLS12))
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
     /* Test s2n_conn_set_handshake_type is processing EMS data correctly */    
-    {       
+    {
         struct s2n_config *config;
         uint64_t current_time = 0;
         EXPECT_NOT_NULL(config = s2n_config_new());
@@ -162,6 +168,140 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));   
         }
 
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Connection where the client supports EMS but the server does not support EMS */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        /* TLS1.2 cipher preferences */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "ELBSecurityPolicy-2016-08"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate until server has read the Client Hello message */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, SERVER_HELLO));
+
+        /* s2n servers by default support EMS. We turn it off by manually setting ems_negotiated to false
+         * and removing the EMS extension from our received extensions. */
+        server_conn->ems_negotiated = false;
+        s2n_extension_type_id ems_ext_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+        S2N_CBIT_CLR(server_conn->extension_requests_received, ems_ext_id);
+
+        /* Connection is a successful and EMS is not negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
+        EXPECT_FALSE(IS_EMS_NEGOTIATED(client_conn, server_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Connection where the server supports EMS but the client does not support EMS */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        /* TLS1.2 cipher preferences */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "ELBSecurityPolicy-2016-08"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* s2n clients support EMS by default. To manually prevent them from sending the EMS extension, add a 
+         * resumption ticket to the connection, which indicates the previous session did not negotiate
+         * EMS and therefore this session shouldn't either. The resumption ticket does not have to be valid
+         * as this test is only interested in EMS. */
+        const uint8_t client_ticket[] = { "some ticket" };
+        EXPECT_SUCCESS(s2n_realloc(&client_conn->client_ticket, sizeof(client_ticket)));
+        EXPECT_MEMCPY_SUCCESS(client_conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+        /* Connection is a successful and EMS is not negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
+        EXPECT_FALSE(IS_EMS_NEGOTIATED(client_conn, server_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Connection where both client and server support EMS */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        /* TLS1.2 cipher preferences */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "ELBSecurityPolicy-2016-08"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Connection is successful and EMS is negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
+        EXPECT_TRUE(IS_EMS_NEGOTIATED(client_conn, server_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 

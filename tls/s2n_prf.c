@@ -453,7 +453,7 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 
     /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (conn->ems_negotiated && s2n_in_unit_test()) {
+    if (conn->ems_negotiated && S2N_IN_TEST) {
         /* Only the client writes the Client Key Exchange message */
         if (conn->mode == S2N_CLIENT) {
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
