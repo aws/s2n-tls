@@ -715,12 +715,20 @@ initial_connection conn =
        conn.handshake.handshake_type < `(S2N_HANDSHAKES_COUNT)
     /\ conn.handshake.message_number == 0
     /\ (conn.corked == 0 \/ conn.corked == 1)
+
+       // The assumptions below specifically pertain to TLS 1.3 handshakes.
+       // Some of the logic that decides which TLS 1.3 handshake types are
+       // reachable has moved out of the functions that we're verifying, so
+       // we use the preconditions below instead.
+
        // If using early data, a full handshake (i.e., chosen_psk being null)
        // cannot happen
     /\ ((conn.early_data_state == S2N_EARLY_DATA_ACCEPTED) ==> ~conn.chosen_psk_null)
+
        // HelloRetryRequest and EarlyData cannot both happen simultaneously
     /\ ~(((conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero)
             /\ (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED))
+
        // EarlyClientCCS implies MiddleboxCompat
     /\ (((conn.handshake.handshake_type && EARLY_CLIENT_CCS) != zero) ==>
          ((conn.handshake.handshake_type && MIDDLEBOX_COMPAT) != zero))
