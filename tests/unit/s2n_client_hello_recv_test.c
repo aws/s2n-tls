@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     /* Test that S2N will accept a ClientHello with legacy_session_id set when running with QUIC.
      * Since this requirement is a SHOULD, we're accepting it for non-compliant endpoints.
      * https://tools.ietf.org/html/draft-ietf-quic-tls-32#section-8.4*/
-    {
+    if (s2n_is_tls13_fully_supported()) {
         EXPECT_SUCCESS(s2n_reset_tls13());
 
         const size_t test_session_id_len = 10;
@@ -403,11 +403,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            if (s2n_is_tls_12_self_downgrade_required(client_conn)) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-            } else {
-                EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-            }
+
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);
@@ -427,12 +425,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-
-            if (s2n_is_tls_12_self_downgrade_required(client_conn)) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-            } else {
-                EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-            }
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);

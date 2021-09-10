@@ -84,13 +84,11 @@ int main(int argc, char **argv)
                     EXPECT_NOT_NULL(client_conn);
                     EXPECT_NOT_NULL(server_conn);
 
-                    if (security_policy_selection[policy_index].security_policy->minimum_protocol_version == S2N_TLS13
-                            && !s2n_is_tls13_fully_supported()) {
+                    if (security_policy_selection[policy_index].security_policy->minimum_protocol_version > s2n_get_highest_fully_supported_tls_version()) {
                         /* We purposefully do not allow users to configure Security Policies with a minimum allowed TLS
-                         * Version of TLS 1.3, if TLS 1.3 algorithms aren't fully supported by the libcrypto we're using */
+                         * versions that are greater than what libcrypto supports. */
                         EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
                     } else {
-
                         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
                         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
                         EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_RSA]);
