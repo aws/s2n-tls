@@ -86,9 +86,11 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
 
     /* Expand the keys */
     POSIX_GUARD(s2n_prf_key_expansion(conn));
-    /* Save the master secret in the cache */
+    /* Save the master secret in the cache.
+     * Failing to cache the session should not affect the current handshake.
+     */
     if (s2n_allowed_to_cache_connection(conn)) {
-        POSIX_GUARD(s2n_store_to_cache(conn));
+        s2n_result_ignore(s2n_store_to_cache(conn));
     }
     /* log the secret, if needed */
     s2n_result_ignore(s2n_key_log_tls12_secret(conn));
