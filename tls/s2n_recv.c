@@ -124,7 +124,7 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
     }
     *blocked = S2N_BLOCKED_ON_READ;
 
-    S2N_ERROR_IF(conn->config->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
     POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
 
     while (size && !conn->closed) {

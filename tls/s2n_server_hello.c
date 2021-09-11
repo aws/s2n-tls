@@ -131,8 +131,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     } else {
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
-        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
-        POSIX_ENSURE(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        POSIX_ENSURE(!s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         /*
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3

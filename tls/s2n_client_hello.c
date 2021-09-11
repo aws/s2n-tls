@@ -70,9 +70,8 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Generate the session id for TLS1.3 if in middlebox compatibility mode.
-     * For now, we default to middlebox compatibility mode unless using QUIC. */
-    if (conn->config->quic_enabled) {
+    /* Only generate the session id for TLS1.3 if in middlebox compatibility mode */
+    if (conn->client_protocol_version >= S2N_TLS13 && !s2n_is_middlebox_compat_enabled(conn)) {
         return S2N_RESULT_OK;
     }
 
@@ -303,7 +302,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
-    if (conn->config->quic_enabled) {
+    if (s2n_connection_is_quic_enabled(conn)) {
         POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
