@@ -855,7 +855,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     POSIX_ENSURE_REF(security_policy->signature_preferences);
     POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
-    /* If the Security Policies Minimum version is higher than what libcrypto supports, return an error. */
+    /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     config->security_policy = security_policy;
