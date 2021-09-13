@@ -80,5 +80,5 @@ bool s2n_is_valid_tls13_cipher(const uint8_t version[2]) {
 bool s2n_is_middlebox_compat_enabled(struct s2n_connection *conn)
 {
     return s2n_connection_get_protocol_version(conn) >= S2N_TLS13
-            && conn && conn->config && !conn->config->quic_enabled;
+            && !s2n_connection_is_quic_enabled(conn);
 }

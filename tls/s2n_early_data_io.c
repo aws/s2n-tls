@@ -34,6 +34,7 @@ int s2n_end_of_early_data_send(struct s2n_connection *conn)
 
 int s2n_end_of_early_data_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
     return S2N_SUCCESS;
 }

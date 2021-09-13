@@ -36,22 +36,31 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
         EXPECT_FALSE(config->quic_enabled);
 
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
+
         /* Check error handling */
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_enable_quic(NULL), S2N_ERR_NULL);
             EXPECT_FALSE(config->quic_enabled);
+            EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
         }
 
         /* Check success */
         {
             EXPECT_SUCCESS(s2n_config_enable_quic(config));
             EXPECT_TRUE(config->quic_enabled);
+            EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
 
             /* Enabling QUIC again still succeeds */
             EXPECT_SUCCESS(s2n_config_enable_quic(config));
             EXPECT_TRUE(config->quic_enabled);
+            EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
         }
 
+        EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
