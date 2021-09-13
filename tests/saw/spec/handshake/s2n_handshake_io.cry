@@ -719,7 +719,9 @@ initial_connection conn =
        // The assumptions below specifically pertain to TLS 1.3 handshakes.
        // Some of the logic that decides which TLS 1.3 handshake types are
        // reachable has moved out of the functions that we're verifying, so
-       // we use the preconditions below instead.
+       // we use the preconditions below instead. Issue
+       // https://github.com/aws/s2n-tls/issues/3047 is about moving this logic
+       // into the C code itself.
 
        // If using early data, a full handshake (i.e., chosen_psk being null)
        // cannot happen
