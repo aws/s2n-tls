@@ -18,9 +18,6 @@
 
 #include "utils/s2n_bitmap.h"
 
-#define IS_EMS_NEGOTIATED(client, server) \
-    (client->ems_negotiated && server->ems_negotiated)
-
 #define IS_TLS12_CONNECTION(client, server) \
     ((client->actual_protocol_version == S2N_TLS12) && (server->actual_protocol_version == S2N_TLS12))
 
@@ -177,11 +174,11 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
 
         /* TLS1.2 cipher preferences */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "ELBSecurityPolicy-2016-08"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
-                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -209,10 +206,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
         S2N_CBIT_CLR(server_conn->extension_requests_received, ems_ext_id);
 
-        /* Connection is a successful and EMS is not negotiated */
+        /* Connection is successful and EMS is not negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
-        EXPECT_FALSE(IS_EMS_NEGOTIATED(client_conn, server_conn));
+        EXPECT_FALSE(server_conn->ems_negotiated);
+        EXPECT_FALSE(client_conn->ems_negotiated);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -226,12 +224,11 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        /* TLS1.2 cipher preferences */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "ELBSecurityPolicy-2016-08"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
-                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -255,10 +252,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_realloc(&client_conn->client_ticket, sizeof(client_ticket)));
         EXPECT_MEMCPY_SUCCESS(client_conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
-        /* Connection is a successful and EMS is not negotiated */
+        /* Connection is successful and EMS is not negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
-        EXPECT_FALSE(IS_EMS_NEGOTIATED(client_conn, server_conn));
+        EXPECT_FALSE(server_conn->ems_negotiated);
+        EXPECT_FALSE(client_conn->ems_negotiated);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -272,12 +270,11 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        /* TLS1.2 cipher preferences */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "ELBSecurityPolicy-2016-08"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
-                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -296,7 +293,8 @@ int main(int argc, char **argv)
         /* Connection is successful and EMS is negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
-        EXPECT_TRUE(IS_EMS_NEGOTIATED(client_conn, server_conn));
+        EXPECT_TRUE(server_conn->ems_negotiated);
+        EXPECT_TRUE(client_conn->ems_negotiated);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

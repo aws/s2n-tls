@@ -452,8 +452,13 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 
+    if(!conn->ems_negotiated) {
+        POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
+        return S2N_SUCCESS;
+    }
+
     /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (conn->ems_negotiated && S2N_IN_TEST) {
+    if (S2N_IN_TEST) {
         /* Only the client writes the Client Key Exchange message */
         if (conn->mode == S2N_CLIENT) {
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
@@ -481,8 +486,6 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
             POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, hash_alg, &digest));
             POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, NULL));
         }
-    } else {
-        POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
     }
     return S2N_SUCCESS;
 }
