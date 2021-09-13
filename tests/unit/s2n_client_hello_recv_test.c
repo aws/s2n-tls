@@ -403,9 +403,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);

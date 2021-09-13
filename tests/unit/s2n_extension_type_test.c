@@ -518,7 +518,6 @@ int main()
                 /* Expected CLIENT_HELLO extensions sent, but not received */
                 EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
                 EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
-
                 EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_received, key_shares_id));
 
                 /* No expected SERVER_HELLO extensions sent and received */

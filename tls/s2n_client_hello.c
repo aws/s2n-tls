@@ -268,6 +268,17 @@ bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn) {
         return true;
     }
 
+    s2n_cert_auth_type client_auth_status = S2N_CERT_AUTH_NONE;
+    s2n_connection_get_client_auth_type(conn, &client_auth_status);
+
+    if ((conn->mode == S2N_SERVER)
+        && (client_auth_status != S2N_CERT_AUTH_NONE)
+        && !s2n_is_tls13_fully_supported()) {
+        /* If we're a Server that is going to request a client certificate, and we don't support RSA PSS, then
+         * downgrade to TLS 1.2 in case the client attempts to send an RSA PSS Certificate. */
+       return true;
+    }
+
     if ((conn->mode == S2N_CLIENT) && !s2n_is_tls13_fully_supported()) {
         /* There are some TLS Servers in the wild that will always choose RSA PSS if the client claims to support TLS 1.3
          * even if the client does not advertise support for RSA PSS in the SignatureScheme extension. In order to work

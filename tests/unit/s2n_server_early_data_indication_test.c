@@ -44,7 +44,6 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
-
     const uint32_t nonzero_max_early_data = 10;
 
     /* Test s2n_server_early_data_indication_should_send */
