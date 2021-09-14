@@ -42,9 +42,17 @@ int s2n_config_enable_quic(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
+int s2n_connection_enable_quic(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->quic_enabled = true;
+    return S2N_SUCCESS;
+}
+
 bool s2n_connection_is_quic_enabled(struct s2n_connection *conn)
 {
-    return conn && conn->config && conn->config->quic_enabled;
+    return (conn && conn->quic_enabled) ||
+           (conn && conn->config && conn->config->quic_enabled);
 }
 
 int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
