@@ -16,6 +16,7 @@
 #include "api/s2n.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
 
 bool s2n_use_default_tls13_config_flag = false;
@@ -23,6 +24,15 @@ bool s2n_use_default_tls13_config_flag = false;
 bool s2n_use_default_tls13_config()
 {
     return s2n_use_default_tls13_config_flag;
+}
+
+bool s2n_is_tls13_fully_supported() {
+    /* Older versions of Openssl (eg 1.0.2) do not support RSA PSS, which is required for TLS 1.3. */
+    return s2n_is_rsa_pss_signing_supported() && s2n_is_rsa_pss_certs_supported();
+}
+
+int s2n_get_highest_fully_supported_tls_version() {
+    return s2n_is_tls13_fully_supported() ? S2N_TLS13 : S2N_TLS12;
 }
 
 /* Allow TLS1.3 to be negotiated, and use the default TLS1.3 security policy.

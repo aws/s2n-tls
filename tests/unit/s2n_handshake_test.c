@@ -344,8 +344,7 @@ int main(int argc, char **argv)
         }
 
         /*  Test: RSA cert with RSA PSS signatures */
-        if (s2n_is_rsa_pss_signing_supported())
-        {
+        if (s2n_is_rsa_pss_signing_supported()) {
             const struct s2n_signature_scheme* const rsa_pss_rsae_sig_schemes[] = {
                     /* RSA PSS */
                     &s2n_rsa_pss_rsae_sha256,

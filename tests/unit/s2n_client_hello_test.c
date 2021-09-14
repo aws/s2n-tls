@@ -166,7 +166,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13());
 
         /* With TLS1.3 */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_enable_tls13());
 
             /* Generate a session id by default */
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
         }
 
         /* When TLS 1.3 supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_enable_tls13());
 
             struct s2n_config *config;
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -427,8 +427,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
-            EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
-            EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+            EXPECT_EQUAL(conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -467,9 +467,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-
-            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
-            EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+            EXPECT_EQUAL(client_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
 
             /* Server configured with TLS 1.2 negotiates TLS12 version */

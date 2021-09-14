@@ -632,14 +632,14 @@ int main(int argc, char **argv)
         }
 
         /* Client sends TLS1.3 cipher suites, server selects correct TLS1.3 ciphersuite */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct test_case {
                 const char *cipher_pref;
                 const struct s2n_cipher_suite *expected_cipher_wire;
             };
 
             struct test_case test_cases[] = {
-                { .cipher_pref = "default_tls13", .expected_cipher_wire = &s2n_tls13_aes_256_gcm_sha384 },
+                { .cipher_pref = "default_tls13", .expected_cipher_wire = &s2n_tls13_aes_128_gcm_sha256 },
                 { .cipher_pref = "test_all", .expected_cipher_wire = &s2n_tls13_aes_128_gcm_sha256 },
                 { .cipher_pref = "test_all_tls13", .expected_cipher_wire = &s2n_tls13_aes_128_gcm_sha256 },
             };

@@ -81,6 +81,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     const uint8_t test_data[] = "hello world";
 
     /* Malformed record: empty handshake record */
@@ -109,6 +113,7 @@ int main(int argc, char **argv)
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
+            conn.mode = S2N_CLIENT;
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t data_size = 0;
             uint8_t data = 0;

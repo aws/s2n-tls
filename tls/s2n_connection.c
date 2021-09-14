@@ -800,6 +800,7 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
     if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
     } else {
+        POSIX_ENSURE_REF(conn->config);
         *client_cert_auth_type = conn->config->client_cert_auth_type;
     }
 

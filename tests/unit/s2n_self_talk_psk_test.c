@@ -151,6 +151,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     /* Setup connections */
     struct s2n_connection *client_conn = NULL;
     struct s2n_connection *server_conn = NULL;

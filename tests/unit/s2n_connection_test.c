@@ -353,7 +353,7 @@ int main(int argc, char **argv)
      */
     {
         /* TLS1.3 */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));

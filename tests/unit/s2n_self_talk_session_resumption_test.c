@@ -170,6 +170,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     /* For some session resumption test cases, we want to test all possible configurations of 0-RTT support. */
     size_t test_case_i = 0;
     struct s2n_early_data_test_case early_data_test_cases[ 2 * 2 * 2 ] = { 0 };

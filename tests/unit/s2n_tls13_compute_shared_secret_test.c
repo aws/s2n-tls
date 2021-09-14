@@ -29,6 +29,10 @@ int main(int argc, char **argv) {
 
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     struct s2n_cert_chain_and_key *cert_chain = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
