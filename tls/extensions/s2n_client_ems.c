@@ -56,7 +56,7 @@ static bool s2n_client_ems_should_send(struct s2n_connection *conn)
 {
     /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
     /* Don't send this extension if the previous session did not negotiate EMS */
-    if ((conn->client_ticket.size > 0 && !conn->ems_negotiated) || !s2n_in_unit_test()) {
+    if ((conn->client_ticket.size > 0 && !conn->ems_negotiated) || !S2N_IN_TEST) {
         return false;
     } else {
         return true;
