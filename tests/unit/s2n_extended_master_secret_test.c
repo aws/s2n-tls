@@ -18,9 +18,6 @@
 
 #include "utils/s2n_bitmap.h"
 
-#define IS_TLS12_CONNECTION(client, server) \
-    ((client->actual_protocol_version == S2N_TLS12) && (server->actual_protocol_version == S2N_TLS12))
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
