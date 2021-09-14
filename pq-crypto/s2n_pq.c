@@ -267,9 +267,10 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_avx512() {
 }
 
 S2N_RESULT s2n_try_enable_bike_r3_opt_vpclmul() {
-    /* When VPCLMUL is available, AVX512 is too by default. */
     RESULT_ENSURE_OK(s2n_try_enable_bike_r3_opt_avx512(), S2N_ERR_SAFETY);
-    if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_vpclmul()) {
+    /* Only Enable VPCLMUL if AVX512 is also supported. This is to because the BIKE R3 VPCLMUL requires 512-bit version
+     * of VPCLMUL, and not the 256-bit version that is available on AMD Zen 3 processors. */
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_vpclmul() && s2n_bike_r3_is_avx512_enabled()) {
         bike_r3_vpclmul_enabled = true;
     }
     return S2N_RESULT_OK;
