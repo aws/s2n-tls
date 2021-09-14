@@ -208,7 +208,8 @@ int main(int argc, char **argv)
 
         /* Connection is successful and EMS is not negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_FALSE(server_conn->ems_negotiated);
         EXPECT_FALSE(client_conn->ems_negotiated);
 
@@ -254,7 +255,8 @@ int main(int argc, char **argv)
 
         /* Connection is successful and EMS is not negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_FALSE(server_conn->ems_negotiated);
         EXPECT_FALSE(client_conn->ems_negotiated);
 
@@ -292,7 +294,8 @@ int main(int argc, char **argv)
 
         /* Connection is successful and EMS is negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_TRUE(IS_TLS12_CONNECTION(client_conn, server_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_TRUE(server_conn->ems_negotiated);
         EXPECT_TRUE(client_conn->ems_negotiated);
 

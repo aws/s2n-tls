@@ -458,34 +458,36 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
     }
 
     /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (S2N_IN_TEST) {
-        /* Only the client writes the Client Key Exchange message */
-        if (conn->mode == S2N_CLIENT) {
-            POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
-        }
-        struct s2n_stuffer client_key_message = conn->handshake.io;
-        POSIX_GUARD(s2n_stuffer_reread(&client_key_message));
-        uint32_t client_key_message_size = s2n_stuffer_data_available(&client_key_message);
-        struct s2n_blob client_key_blob = { 0 };
-        POSIX_GUARD(s2n_blob_init(&client_key_blob, client_key_message.blob.data, client_key_message_size));
+    if (!S2N_IN_TEST) {
+        return S2N_SUCCESS;
+    }
 
-        uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
-        struct s2n_blob digest = { 0 };
-        POSIX_GUARD(s2n_blob_init(&digest, data, sizeof(data)));
-        if (conn->actual_protocol_version < S2N_TLS12) {
-            uint8_t sha1_data[S2N_MAX_DIGEST_LEN] = { 0 };
-            struct s2n_blob sha1_digest = { 0 };
-            POSIX_GUARD(s2n_blob_init(&sha1_digest, sha1_data, sizeof(sha1_data)));
-            POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_MD5, &digest));
-            POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_SHA1, &sha1_digest));
-            POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, &sha1_digest));
-        } else {
-            s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
-            s2n_hash_algorithm hash_alg = 0;
-            POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
-            POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, hash_alg, &digest));
-            POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, NULL));
-        }
+    /* Only the client writes the Client Key Exchange message */
+    if (conn->mode == S2N_CLIENT) {
+        POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
+    }
+    struct s2n_stuffer client_key_message = conn->handshake.io;
+    POSIX_GUARD(s2n_stuffer_reread(&client_key_message));
+    uint32_t client_key_message_size = s2n_stuffer_data_available(&client_key_message);
+    struct s2n_blob client_key_blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_key_blob, client_key_message.blob.data, client_key_message_size));
+
+    uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
+    struct s2n_blob digest = { 0 };
+    POSIX_GUARD(s2n_blob_init(&digest, data, sizeof(data)));
+    if (conn->actual_protocol_version < S2N_TLS12) {
+        uint8_t sha1_data[S2N_MAX_DIGEST_LEN] = { 0 };
+        struct s2n_blob sha1_digest = { 0 };
+        POSIX_GUARD(s2n_blob_init(&sha1_digest, sha1_data, sizeof(sha1_data)));
+        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_MD5, &digest));
+        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_SHA1, &sha1_digest));
+        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, &sha1_digest));
+    } else {
+        s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
+        s2n_hash_algorithm hash_alg = 0;
+        POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, hash_alg, &digest));
+        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, NULL));
     }
     return S2N_SUCCESS;
 }
