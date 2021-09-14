@@ -452,13 +452,9 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 
-    if(!conn->ems_negotiated) {
-        POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
-        return S2N_SUCCESS;
-    }
-
     /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (!S2N_IN_TEST) {
+    if(!conn->ems_negotiated || !S2N_IN_TEST) {
+        POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
         return S2N_SUCCESS;
     }
 
