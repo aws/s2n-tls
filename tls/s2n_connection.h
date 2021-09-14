@@ -350,6 +350,9 @@ struct s2n_connection {
     /* Connection negotiated an EMS */
     unsigned ems_negotiated:1;
 
+    /* Connection can be used by a QUIC implementation */
+    unsigned quic_enabled:1;
+
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing send/receive callbacks.
      */
