@@ -1727,7 +1727,8 @@ const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2021_08[] = {
-    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
