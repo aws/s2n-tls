@@ -55,8 +55,7 @@ static int s2n_server_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 
 static bool s2n_server_ems_should_send(struct s2n_connection *conn)
 {
-    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    return conn && S2N_IN_TEST && conn->actual_protocol_version < S2N_TLS13;
+    return conn && conn->actual_protocol_version < S2N_TLS13;
 }
 
 static int s2n_server_ems_if_missing(struct s2n_connection *conn)

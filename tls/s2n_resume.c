@@ -156,8 +156,7 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
 
     POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
 
-    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (S2N_IN_TEST && s2n_stuffer_data_available(from)) {
+    if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8(from, &ems_negotiated));
 
@@ -224,8 +223,7 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
 
-    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (S2N_IN_TEST && s2n_stuffer_data_available(from)) {
+    if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &ems_negotiated));
         conn->ems_negotiated = ems_negotiated;
