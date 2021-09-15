@@ -30,12 +30,7 @@ well_known_endpoints = [
     {"endpoint": "facebook.com"},
     {"endpoint": "google.com"},
     {"endpoint": "s3.amazonaws.com"},
-    # twitter.com offers RSA certificates even when the client does not include RSA PSS
-    # in the the Signature Schemes extension. Disabling twitter for now since this prevents
-    # s2n from negotiating a handshake if the libcrypto does not support RSA PSS signature
-    # algorithms with RSA Certificates
-    # See https://github.com/aws/s2n-tls/pull/3030
-    # {"endpoint": "twitter.com"},
+    {"endpoint": "twitter.com"},
     {"endpoint": "wikipedia.org"},
     {"endpoint": "yahoo.com"},
 ]
