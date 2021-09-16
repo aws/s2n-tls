@@ -52,6 +52,7 @@ well_known_endpoints = [
     {"endpoint": "www.microsoft.com"},
     {"endpoint": "www.mozilla.org"},
     {"endpoint": "www.netflix.com"},
+    {"endpoint": "www.openssl.org"},
     {"endpoint": "www.samsung.com"},
     {"endpoint": "www.t-mobile.com"},
     {"endpoint": "www.twitter.com"},
