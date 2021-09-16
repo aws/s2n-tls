@@ -65,6 +65,7 @@ int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_s
         /* We only support OCSP */
         return S2N_SUCCESS;
     }
+    conn->status_type = S2N_STATUS_REQUEST_OCSP;
 
     uint32_t status_size;
     POSIX_GUARD(s2n_stuffer_read_uint24(in, &status_size));
