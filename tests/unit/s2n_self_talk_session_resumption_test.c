@@ -26,11 +26,7 @@
     (((client->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
      && ((server->handshake.handshake_type) & HELLO_RETRY_REQUEST))
 
-#define EXPECT_TICKETS_SENT(conn, count) do { \
-    uint16_t _tickets_sent = 0; \
-    EXPECT_SUCCESS(s2n_connection_get_tickets_sent(conn, &_tickets_sent)); \
-    EXPECT_EQUAL(_tickets_sent, count); \
-} while(0);
+#define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
 
 struct s2n_early_data_test_case {
     bool ticket_supported;
@@ -38,6 +34,14 @@ struct s2n_early_data_test_case {
     bool server_supported;
     bool expect_success;
 };
+
+static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
+{
+    uint16_t tickets_sent = 0;
+    RESULT_GUARD_POSIX(s2n_connection_get_tickets_sent(conn, &tickets_sent));
+    RESULT_ENSURE_EQ(tickets_sent, expected_tickets_sent);
+    return S2N_RESULT_OK;
+}
 
 static S2N_RESULT s2n_wipe_connections(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
         struct s2n_test_io_pair *io_pair)
