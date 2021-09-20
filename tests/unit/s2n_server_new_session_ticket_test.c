@@ -839,7 +839,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
 
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
-            EXPECT_TICKETS_SENT(conn, 0);
+            EXPECT_ERROR_WITH_ERRNO(s2n_assert_tickets_sent(conn, 0), S2N_ERR_CLIENT_MODE);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
