@@ -959,7 +959,8 @@ int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num) {
+int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num)
+{
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_psk_validate_keying_material(conn));
 
@@ -967,6 +968,15 @@ int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t 
     POSIX_ENSURE(out <= UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
     conn->tickets_to_send = out;
 
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_tickets_sent(struct s2n_connection *conn, uint16_t *num)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(num);
+    POSIX_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_CLIENT_MODE);
+    *num = conn->tickets_sent;
     return S2N_SUCCESS;
 }
 

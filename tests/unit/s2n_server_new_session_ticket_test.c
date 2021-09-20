@@ -36,6 +36,16 @@
 
 #define MAX_TEST_SESSION_SIZE 300
 
+#define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
+
+static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
+{
+    uint16_t tickets_sent = 0;
+    RESULT_GUARD_POSIX(s2n_connection_get_tickets_sent(conn, &tickets_sent));
+    RESULT_ENSURE_EQ(tickets_sent, expected_tickets_sent);
+    return S2N_RESULT_OK;
+}
+
 size_t cb_session_data_len = 0;
 uint8_t cb_session_data[MAX_TEST_SESSION_SIZE] = { 0 };
 uint32_t cb_session_lifetime = 0;
@@ -829,6 +839,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
 
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_ERROR_WITH_ERRNO(s2n_assert_tickets_sent(conn, 0), S2N_ERR_CLIENT_MODE);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -850,6 +861,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
 
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_TICKETS_SENT(conn, 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -878,6 +890,7 @@ int main(int argc, char **argv)
 
             /* Check no tickets are written */
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_TICKETS_SENT(conn, 0);
 
             /* Check handshake.io is cleaned up */
             EXPECT_EQUAL(0, s2n_stuffer_space_remaining(&conn->handshake.io));
@@ -908,6 +921,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
 
             /* Check only one record was written */
             uint16_t record_len = 0;
@@ -952,6 +966,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->tickets_sent = current_tickets;
             conn->tickets_to_send = current_tickets;
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             struct s2n_stuffer stuffer;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -961,6 +976,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, new_tickets));
             EXPECT_EQUAL(conn->tickets_sent, current_tickets);
             EXPECT_EQUAL(conn->tickets_to_send, current_tickets + new_tickets);
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             /* Add expired keying material */
             DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
@@ -975,12 +991,14 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
             EXPECT_EQUAL(conn->tickets_sent, current_tickets);
             EXPECT_EQUAL(conn->tickets_to_send, current_tickets);
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             /* Can't request more tickets */
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, new_tickets),
                     S2N_ERR_KEYING_MATERIAL_EXPIRED);
             EXPECT_EQUAL(conn->tickets_sent, current_tickets);
             EXPECT_EQUAL(conn->tickets_to_send, current_tickets);
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -1012,12 +1030,14 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
             EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
 
             /* Request more tickets */
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, 1));
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 2);
             EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
 
@@ -1027,6 +1047,7 @@ int main(int argc, char **argv)
             /* Request more tickets */
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, 1));
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 2);
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -1059,6 +1080,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
             EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -1088,6 +1110,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, tickets_to_send);
 
             /* Check five records were written */
             uint16_t record_len = 0;
@@ -1239,6 +1262,7 @@ int main(int argc, char **argv)
 
         /* Do handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TICKETS_SENT(server_conn, tickets_to_send);
 
         /* Check handshake.io was cleaned up.
          * If a ticket was written, this happens afterwards. */
@@ -1259,6 +1283,7 @@ int main(int argc, char **argv)
         /* Call s2n_negotiate again to ensure no more tickets are sent */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_EQUAL(0, s2n_stuffer_data_available(&server_to_client));
+        EXPECT_TICKETS_SENT(server_conn, tickets_to_send);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
         EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));

@@ -495,6 +495,20 @@ S2N_API
 extern int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
 
 /**
+ * Returns the number of session tickets issued by the server.
+ *
+ * In TLS1.3, this number can be up to the limit configured by s2n_config_set_initial_ticket_count
+ * and s2n_connection_add_new_tickets_to_send. In earlier versions of TLS, this number will be either 0 or 1.
+ *
+ * This method only works for server connections.
+ *
+ * @param conn A pointer to the connection object.
+ * @param num The number of additional session tickets sent.
+ */
+S2N_API
+extern int s2n_connection_get_tickets_sent(struct s2n_connection *conn, uint16_t *num);
+
+/**
  * Sets the keying material lifetime for >=TLS1.3 session tickets so that one session doesn't get re-used ad infinitum.
  * The default value is one week.
  *
