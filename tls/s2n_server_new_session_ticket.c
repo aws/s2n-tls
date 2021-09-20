@@ -184,7 +184,8 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_MUT(ticket_lifetime);
 
-    uint32_t key_lifetime_in_secs = conn->config->decrypt_key_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    uint32_t key_lifetime_in_secs =
+            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
     /** 

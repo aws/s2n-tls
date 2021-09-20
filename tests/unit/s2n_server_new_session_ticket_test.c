@@ -26,7 +26,6 @@
 #define TEST_TICKET          0x01, 0xFF, 0x23
 
 #define ONE_HOUR_IN_NANOS   3600000000000
-#define TWO_HOURS_IN_NANOS  ONE_HOUR_IN_NANOS * 2
 
 #define TICKET_AGE_ADD_MARKER sizeof(uint8_t)  + /* message id  */ \
                               SIZEOF_UINT24    + /* message len */ \
@@ -134,7 +133,8 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
-            uint32_t key_lifetime_in_secs = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS;
+            uint32_t key_lifetime_in_secs =
+                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
 
             /* Skipping random data */
@@ -322,19 +322,21 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        /* Test: Decrypt key has shortest lifetime */
+        /* Test: encrypt + decrypt key has shortest lifetime */
+        conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
-        conn->config->session_state_lifetime_in_nanos = TWO_HOURS_IN_NANOS;
+        conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, conn->config->decrypt_key_lifetime_in_nanos / ONE_SEC_IN_NANOS);
+        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
-        conn->config->decrypt_key_lifetime_in_nanos = TWO_HOURS_IN_NANOS;
+        conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
+        conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS);        
+        EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
          *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
@@ -348,7 +350,8 @@ int main(int argc, char **argv)
         uint64_t one_week_in_sec = ONE_WEEK_IN_SEC;
         uint64_t one_sec_in_nanos = ONE_SEC_IN_NANOS;
         uint64_t one_week_in_nanos = one_week_in_sec * one_sec_in_nanos;
-        conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos + 1;
+        conn->config->encrypt_decrypt_key_lifetime_in_nanos = one_week_in_nanos;
+        conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->session_state_lifetime_in_nanos = one_week_in_nanos + 1;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
