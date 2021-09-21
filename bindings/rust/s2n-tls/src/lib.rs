@@ -5,5 +5,5 @@ extern crate alloc;
 
 pub mod raw;
 
-//TODO: feature
+#[cfg(any(feature = "testing", test))]
 pub mod testing;
