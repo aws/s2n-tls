@@ -45,6 +45,7 @@ impl Connection {
     pub fn new_client() -> Self {
         Self::new(s2n_mode::CLIENT)
     }
+
     pub fn new_server() -> Self {
         Self::new(s2n_mode::SERVER)
     }
