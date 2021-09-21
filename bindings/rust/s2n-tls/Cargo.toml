@@ -8,15 +8,17 @@ license = "Apache-2.0"
 [features]
 default = []
 quic = []
-testing = ["bytes", "errno", "pem"]
+testing = ["errno","bytes"]
 
 [dependencies]
-errno = "0.2"
 libc = "0.2"
 s2n-tls-sys = { version = "0.1", path = "../s2n-tls-sys" }
-criterion = "0.3.5"
-bytes = { version = "1", default-features = false }
-pem = "0.8"
+errno = { version = "0.2", optional = true }
+bytes = { version = "1", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
 [[bench]]
 name = "handshake"
 harness = false

@@ -198,19 +198,12 @@ pub mod tests {
 
     const SAMPLES: usize = 100;
 
-    #[allow(unused_variables)]
-    struct HostVerifyData {
-        callback_invoked: bool,
-        allow: bool,
-        host: &'static str,
-    }
-
     struct CertKeyPair {
         cert: &'static [u8],
         key: &'static [u8],
     }
-    #[allow(unused_variables, dead_code)]
-    impl CertKeyPair {
+
+    impl Default for CertKeyPair {
         fn default() -> Self {
             CertKeyPair {
                 cert: include_str!("../../../../../tests/pems/rsa_4096_sha512_client_cert.pem")
@@ -219,17 +212,13 @@ pub mod tests {
                     .as_bytes(),
             }
         }
-        fn ecdsa() -> Self {
-            CertKeyPair {
-                cert: include_str!("../../../../../tests/pems/ecdsa_p256_pkcs1_cert.pem")
-                    .as_bytes(),
-                key: include_str!("../../../../../tests/pems/ecdsa_p256_pkcs1_key.pem")
-                    .as_bytes(),
-            }
-        }
+    }
+
+    impl CertKeyPair {
         fn cert(&mut self) -> &'static [u8] {
             self.cert
         }
+
         fn key(&mut self) -> &'static [u8] {
             self.key
         }
@@ -246,19 +235,14 @@ pub mod tests {
             .load_pem(keypair.cert(), keypair.key())
             .expect("Unable to load cert/pem");
         unsafe {
-            let mut ctx = HostVerifyData {
-                allow: true,
-                callback_invoked: false,
-                host: "127.0.0.1",
-            };
-            let ctx_ptr: *mut core::ffi::c_void = &mut ctx as *mut _ as *mut core::ffi::c_void;
+            let ctx: *mut core::ffi::c_void = std::ptr::null_mut();
             builder
-                .set_verify_host_callback(Some(verify_host_cb), ctx_ptr)
+                .set_verify_host_callback(Some(verify_host_cb), ctx)
                 .expect("Unable to set a host verify callback.");
-        }
-        builder
-            .disable_x509_verification()
-            .expect("Unable to disable x509 verification");
+            builder
+                .disable_x509_verification()
+                .expect("Unable to disable x509 verification");
+        };
         Ok(builder.build().expect("Unable to build server config"))
     }
 
@@ -267,18 +251,15 @@ pub mod tests {
     unsafe extern "C" fn verify_host_cb(
         hostname: *const i8,
         hostname_len: usize,
-        context: *mut core::ffi::c_void,
+        _context: *mut core::ffi::c_void,
     ) -> u8 {
         let host_str = ::std::str::from_utf8(::std::slice::from_raw_parts(
             hostname as *const u8,
             hostname_len,
         ));
-        let _ctx: &mut HostVerifyData = &mut *(context as *mut HostVerifyData);
         match host_str {
             Err(_) => 0,
-            Ok(host) => {
-                1
-            }
+            Ok(_host) => 1,
         }
     }
 
@@ -296,7 +277,7 @@ pub mod tests {
         // create a client connection
         let mut client = Connection::new_client();
         client
-            .set_config(config.clone())
+            .set_config(config)
             .expect("Unabel to set client config");
         let client = Harness::new(client);
 
@@ -310,7 +291,7 @@ pub mod tests {
                 Poll::Pending => continue,
             }
         }
-        
+
         // TODO add assertions to make sure the handshake actually succeeded
     }
     #[test]
