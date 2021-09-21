@@ -310,6 +310,8 @@ pub mod tests {
                 Poll::Pending => continue,
             }
         }
+        
+        // TODO add assertions to make sure the handshake actually succeeded
     }
     #[test]
     fn handshake_defaulttls13() {
