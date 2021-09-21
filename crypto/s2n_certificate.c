@@ -619,6 +619,11 @@ void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key
 
 s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key *chain_and_key)
 {
+    if (chain_and_key == NULL
+         || chain_and_key->cert_chain == NULL
+         || chain_and_key->cert_chain->head == NULL) {
+        return S2N_PKEY_TYPE_UNKNOWN;
+    }
     return chain_and_key->cert_chain->head->pkey_type;
 }
 
