@@ -183,7 +183,6 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 
         if let Some(chunk) = self.context.receive(max_len) {
             let len = chunk.len();
-            //dbg!(len);
             data[..len].copy_from_slice(&chunk);
             len
         } else {
