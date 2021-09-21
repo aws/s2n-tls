@@ -8,6 +8,7 @@ license = "Apache-2.0"
 [features]
 default = []
 quic = []
+testing = ["bytes", "errno", "pem"]
 
 [dependencies]
 errno = "0.2"
