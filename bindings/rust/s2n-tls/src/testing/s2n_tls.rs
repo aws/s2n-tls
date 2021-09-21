@@ -204,6 +204,7 @@ pub mod tests {
         allow: bool,
         host: &'static str,
     }
+
     struct CertKeyPair {
         cert: &'static [u8],
         key: &'static [u8],
