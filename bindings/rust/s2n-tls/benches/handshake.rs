@@ -5,7 +5,7 @@ use s2n_tls::testing::s2n_tls::tests::{build_config, s2n_tls_pair};
 use criterion::{criterion_group, criterion_main, Criterion};
 
 pub fn handshake(c: &mut Criterion) {
-    let mut group = c.benchmark_group("s2n-tls");
+    let mut group = c.benchmark_group("s2n-tls (client) - s2n-tls (server)");
 
     group.bench_function("handshake_20200207", |b| {
         let config = build_config("20200207").unwrap();
