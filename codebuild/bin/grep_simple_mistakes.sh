@@ -33,8 +33,8 @@ KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_resume.c"]=2
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_connection.c"]=1
-# KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=2 # 3
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 KNOWN_MEMCMP_USAGE["$PWD/stuffer/s2n_stuffer_text.c"]=1
 
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do
