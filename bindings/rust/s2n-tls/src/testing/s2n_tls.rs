@@ -305,7 +305,7 @@ pub mod tests {
             match pair.poll() {
                 Poll::Ready(result) => {
                     result.unwrap();
-                    break; //or return
+                    break;
                 }
                 Poll::Pending => continue,
             }
