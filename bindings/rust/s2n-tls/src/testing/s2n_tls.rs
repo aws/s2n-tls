@@ -314,7 +314,7 @@ pub mod tests {
         // TODO add assertions to make sure the handshake actually succeeded
     }
     #[test]
-    fn handshake_defaulttls13() {
+    fn handshake_default_tls13() {
         let config = build_config("default_tls13").unwrap();
         s2n_tls_pair(config);
     }
