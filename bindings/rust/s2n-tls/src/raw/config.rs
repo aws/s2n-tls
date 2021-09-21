@@ -104,7 +104,7 @@ impl Builder {
         Ok(self)
     }
 
-    pub fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
+    pub unsafe fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_disable_x509_verification(self.as_mut_ptr()).into_result()
         }?;
