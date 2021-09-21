@@ -96,5 +96,4 @@ impl Context for MemoryContext {
     fn send(&mut self, data: Bytes) {
         self.tx.push_back(data);
     }
-
 }
