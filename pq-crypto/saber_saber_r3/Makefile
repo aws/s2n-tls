@@ -5,7 +5,9 @@ include ../../s2n.mk
 	-O3 -fomit-frame-pointer -march=native 
 NISTFLAGS  = -Wno-unused-result -O3 -fomit-frame-pointer -march=native -std=c99 -I$(S2N_ROOT) -I$(S2N_ROOT)/api
 
-SRCS = pack_unpack.c poly.c fips202.c verify.c cbd.c SABER_indcpa.c kem.c
+#removing fips202.c as it is covered by other PQ suits
+
+SRCS = pack_unpack.c poly.c  verify.c cbd.c SABER_indcpa.c kem.c
 HEADERS = SABER_params.h pack_unpack.h poly.h rng.h fips202.h verify.h cbd.h SABER_indcpa.h 
 OBJS=$(SRCS:.c=.o)
 
