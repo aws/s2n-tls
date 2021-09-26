@@ -1,5 +1,5 @@
-#ifndef PARAMS_H
-#define PARAMS_H
+#ifndef SABER_PARAMS_H
+#define SABER_PARAMS_H
 
 /* Change this for different security strengths */
 // #define SABER_L 2 /* LightSaber */

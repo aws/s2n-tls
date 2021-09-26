@@ -1,5 +1,5 @@
-#ifndef INDCPA_H
-#define INDCPA_H
+#ifndef SABER_INDCPA_H
+#define SABER_INDCPA_H
 
 #include "SABER_params.h"
 
