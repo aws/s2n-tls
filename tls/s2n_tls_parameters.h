@@ -74,7 +74,7 @@
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_90S_R2 24
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 28
 /* SABER ID are placeholder until community defined it */
-#define TLS_PQ_KEM_EXTENSION_ID_SABER_SABER_R2 31 
+#define TLS_PQ_KEM_EXTENSION_ID_SABER_SABER_R3 31 
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
  * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability are defined in
@@ -90,8 +90,8 @@
 #define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3     0x2F39
 #define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3  0x2F3A
 /* SABER ID are placeholder until community defined it */
-#define TLS_PQ_KEM_GROUP_ID_X25519_SABER_SABER_R2 0x2F29 
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_SABER_SABER_R2 0x2F19 
+#define TLS_PQ_KEM_GROUP_ID_X25519_SABER_SABER_R3 0x2F29 
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_SABER_SABER_R3 0x2F19 
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00

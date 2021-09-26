@@ -35,6 +35,7 @@ all: $(OBJS)
 	$(MAKE) -C kyber_90s_r2
 	$(MAKE) -C kyber_r3
 	$(MAKE) -C sike_r3 try_include_asm
+	$(MAKE) -C saber_saber_r3 
 endif
 
 .PHONY : sike_r1_bc
@@ -58,6 +59,7 @@ run-gcov: gcov
 	$(MAKE) -C bike_r3 gcov
 	$(MAKE) -C kyber_r2 gcov
 	$(MAKE) -C kyber_r3 gcov
+	$(MAKE) -C saber_saber_r3 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
@@ -68,6 +70,7 @@ run-lcov: lcov
 	$(MAKE) -C bike_r3 lcov
 	$(MAKE) -C kyber_r2 lcov
 	$(MAKE) -C kyber_r3 lcov
+	$(MAKE) -C saber_saber_r3 lcov
 
 .PHONY : clean
 clean: decruft
@@ -79,6 +82,7 @@ clean: decruft
 	$(MAKE) -C kyber_90s_r2 decruft
 	$(MAKE) -C kyber_r3 decruft
 	$(MAKE) -C sike_r3 decruft
+	$(MAKE) -C saber_saber_r3 decruft
 
 include ../s2n.mk
 include ./s2n_pq_asm.mk
