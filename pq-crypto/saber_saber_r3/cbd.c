@@ -11,7 +11,7 @@ Vadim Lyubashevsky, John M. Schanck, Peter Schwabe & Damien stehle
 #include "cbd.h"
 #include <stdint.h>
 
-static uint64_t load_littleendian(const uint8_t *x, int bytes)
+static uint64_t load_littleendian(uint8_t *x, int bytes)
 {
   int i;
   uint64_t r = x[0];
@@ -20,7 +20,7 @@ static uint64_t load_littleendian(const uint8_t *x, int bytes)
   return r;
 }
 
-void cbd(uint16_t s[SABER_N], const uint8_t buf[SABER_POLYCOINBYTES])
+void cbd(uint16_t s[SABER_N], uint8_t buf[SABER_POLYCOINBYTES])
 {
 #if SABER_MU == 6
   uint32_t t, d, a[4], b[4];

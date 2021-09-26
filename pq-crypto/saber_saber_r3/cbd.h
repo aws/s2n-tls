@@ -10,6 +10,6 @@ Vadim Lyubashevsky, John M. Schanck, Peter Schwabe & Damien stehle
 
 #include <stdint.h>
 
-void cbd(uint16_t s[SABER_N], const uint8_t buf[SABER_POLYCOINBYTES]);
+void cbd(uint16_t s[SABER_N], uint8_t buf[SABER_POLYCOINBYTES]);
 
 #endif

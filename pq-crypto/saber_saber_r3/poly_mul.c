@@ -11,7 +11,7 @@
 #define OVERFLOWING_MUL(X, Y) ((uint16_t)((uint32_t)(X) * (uint32_t)(Y)))
 
 #define KARATSUBA_N 64
-static void karatsuba_simple(const uint16_t *a_1, const uint16_t *b_1, uint16_t *result_final) {
+static void karatsuba_simple(uint16_t *a_1, uint16_t *b_1, uint16_t *result_final) {
     uint16_t d01[KARATSUBA_N / 2 - 1];
     uint16_t d0123[KARATSUBA_N / 2 - 1];
     uint16_t d23[KARATSUBA_N / 2 - 1];
@@ -110,7 +110,7 @@ static void karatsuba_simple(const uint16_t *a_1, const uint16_t *b_1, uint16_t 
 
 
 
-static void toom_cook_4way (const uint16_t *a1, const uint16_t *b1, uint16_t *result) {
+static void toom_cook_4way (uint16_t *a1, uint16_t *b1, uint16_t *result) {
     uint16_t inv3 = 43691, inv9 = 36409, inv15 = 61167;
 
     uint16_t aw1[N_SB], aw2[N_SB], aw3[N_SB], aw4[N_SB], aw5[N_SB], aw6[N_SB], aw7[N_SB];
@@ -229,7 +229,7 @@ static void toom_cook_4way (const uint16_t *a1, const uint16_t *b1, uint16_t *re
 }
 
 /* res += a*b */
-void poly_mul_acc(const uint16_t a[SABER_N], const uint16_t b[SABER_N], uint16_t res[SABER_N])
+void poly_mul_acc(uint16_t a[SABER_N], uint16_t b[SABER_N], uint16_t res[SABER_N])
 {
 	uint16_t c[2 * SABER_N] = {0};
 	int i;
