@@ -222,6 +222,7 @@ type handshake = {handshake_type : [32]
                  }
 
 type S2N_HANDSHAKES_COUNT = 256
+type S2N_MAX_HANDSHAKE_LENGTH = 32
 
 // functions model the corresponding macros in C
 
@@ -231,7 +232,7 @@ IS_TLS13_HANDSHAKE conn = conn.actual_protocol_version == S2N_TLS13
 ACTIVE_STATE_MACHINE : connection -> [20]handshake_action
 ACTIVE_STATE_MACHINE conn = if IS_TLS13_HANDSHAKE conn then tls13_state_machine else state_machine # zero
 
-ACTIVE_HANDSHAKES : connection -> [S2N_HANDSHAKES_COUNT][32][32]
+ACTIVE_HANDSHAKES : connection -> [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
 ACTIVE_HANDSHAKES conn = if IS_TLS13_HANDSHAKE conn then tls13_handshakes else handshakes
 
 ACTIVE_MESSAGE : connection -> [32]
@@ -320,7 +321,7 @@ state_machine_fn m =
   else zero
 
 // A model of the tls1.3 handshake state machine (array handshakes in C)
-tls13_handshakes : [S2N_HANDSHAKES_COUNT][32][32]
+tls13_handshakes : [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
 tls13_handshakes = [tls13_handshakes_fn h | h <- [0..255]]
 
 // A function that gives the tls1.3 handshake sequence for each valid handshake_type.
@@ -531,7 +532,7 @@ tls13_handshakes_fn handshk =
   zero
 
 // A model of the handshake state machine (array handshakes in C)
-handshakes : [S2N_HANDSHAKES_COUNT][32][32]
+handshakes : [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
 handshakes = [handshakes_fn h | h <- [0..255]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
