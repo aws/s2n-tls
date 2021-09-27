@@ -45,6 +45,14 @@ struct s2n_config {
     /* Whether to add dss cert type during a server certificate request.
      * See https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md */
     unsigned cert_req_dss_legacy_compat_enabled:1;
+    /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
+     * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does
+     * not support RSA PSS signing (which is required for TLS 1.3). */
+    unsigned is_rsa_cert_configured:1;
+    /* It's possible to use a certificate without loading the private key,
+     * but async signing must be enabled. Use this flag to enforce that restriction.
+     */
+    unsigned no_signing_key:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is

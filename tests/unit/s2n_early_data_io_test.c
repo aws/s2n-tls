@@ -56,6 +56,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     const uint8_t test_data[] = "hello world";
 
     DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_external_psk_new(), s2n_psk_free);
@@ -79,18 +83,6 @@ int main(int argc, char **argv)
     struct s2n_config *config_with_cert = s2n_config_new();
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, cert_chain));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_cert));
-
-    const struct s2n_ecc_named_curve *const curves_reversed_order[] = {
-        &s2n_ecc_curve_secp384r1,
-        &s2n_ecc_curve_secp256r1,
-    };
-    const struct s2n_ecc_preferences ecc_prefs_reversed_order = {
-            .count = s2n_array_len(curves_reversed_order),
-            .ecc_curves = curves_reversed_order,
-    };
-    struct s2n_security_policy sec_policy_reversed_order = security_policy_test_all_tls13;
-    sec_policy_reversed_order.ecc_preferences = &ecc_prefs_reversed_order;
-    const struct s2n_security_policy retry_policy = sec_policy_reversed_order;
 
     /* Test s2n_negotiate with early data */
     {
@@ -116,6 +108,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
@@ -142,6 +135,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
@@ -205,6 +199,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
@@ -252,6 +247,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -280,6 +276,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
@@ -322,6 +319,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -358,7 +356,10 @@ int main(int argc, char **argv)
             EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
+            EXPECT_FALSE(client_conn->closed);
+            EXPECT_FALSE(server_conn->closed);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
@@ -411,7 +412,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
-            client_conn->security_policy_override = &retry_policy;
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -426,6 +427,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
@@ -463,7 +465,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
                 EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
                 EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
-                client_conn->security_policy_override = &retry_policy;
+                client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -481,7 +483,10 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
                 EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
                 EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+                EXPECT_FALSE(client_conn->closed);
+                EXPECT_FALSE(server_conn->closed);
 
+                EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
                 EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
                 EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             }
@@ -515,6 +520,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }

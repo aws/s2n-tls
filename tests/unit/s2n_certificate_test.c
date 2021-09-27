@@ -42,6 +42,11 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
     return verify_data->allow;
 }
 
+static int s2n_noop_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+{
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key *test_peer_chain)
 {
     RESULT_ENSURE_REF(conn);
@@ -93,9 +98,40 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    const uint8_t ocsp_data[] = "ocsp data";
+
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(
         s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    /* Test s2n_cert_chain_and_key_load_public_pem_bytes */
+    {
+        uint32_t pem_len = 0;
+        uint8_t pem[S2N_CERT_DER_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, pem, &pem_len, sizeof(pem)));
+
+        /* Load only a public certificate */
+        struct s2n_cert_chain_and_key *cert_only_chain = s2n_cert_chain_and_key_new();
+        EXPECT_NOT_NULL(cert_only_chain);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_public_pem_bytes(cert_only_chain, pem, pem_len));
+        EXPECT_FAILURE(s2n_pkey_check_key_exists(cert_only_chain->private_key));
+
+        /* Add cert chain to config */
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_FALSE(config->no_signing_key);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_only_chain));
+        EXPECT_TRUE(config->no_signing_key);
+
+        /* Add config to connection */
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_NO_PRIVATE_KEY);
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_noop_async_pkey_fn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_only_chain));
+    }
 
     /* Test s2n_cert_chain_get_length */ 
     {
@@ -194,6 +230,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config_with_x509_verification, verify_host_fn, &verify_data));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config_with_x509_verification, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, NULL));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_x509_verification, s2n_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(config_with_x509_verification, false));
 
         /* Test s2n_connection_get_peer_cert_chain failure cases with error codes */
         {            
@@ -275,6 +312,39 @@ int main(int argc, char **argv)
             /* Negotiate handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(client_conn->x509_validator.state, VALIDATED);
+
+            struct s2n_cert_chain_and_key *test_peer_chain = s2n_cert_chain_and_key_new();
+            EXPECT_NOT_NULL(test_peer_chain);
+
+            EXPECT_SUCCESS(s2n_connection_get_peer_cert_chain(client_conn, test_peer_chain));
+
+            EXPECT_OK(s2n_compare_cert_chain(client_conn, test_peer_chain));
+
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+            /* Clean-up */
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_peer_chain));
+            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        }
+
+        /* Test s2n_connection_get_peer_cert_chain with OCSP */
+        if (s2n_x509_ocsp_stapling_supported()) {
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(s2n_chain_and_key,
+                    ocsp_data, s2n_array_len(ocsp_data)));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(config_with_x509_verification, S2N_STATUS_REQUEST_OCSP));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_skip_x509_verification));
+            EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 1);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_x509_verification));
+            EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 0);
+
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Negotiate handshake */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(client_conn->x509_validator.state, OCSP_VALIDATED);
 
             struct s2n_cert_chain_and_key *test_peer_chain = s2n_cert_chain_and_key_new();
             EXPECT_NOT_NULL(test_peer_chain);

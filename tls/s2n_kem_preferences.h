@@ -34,8 +34,10 @@ extern const struct s2n_kem *pq_kems_r2r1[4];
 extern const struct s2n_kem *pq_kems_r2r1_2020_07[5];
 extern const struct s2n_kem *pq_kems_sike_r1[1];
 extern const struct s2n_kem *pq_kems_sike_r2r1[2];
+extern const struct s2n_kem *pq_kems_r3r2r1_2021_05[7];
 
 extern const struct s2n_kem_group *pq_kem_groups_r2[];
+extern const struct s2n_kem_group *pq_kem_groups_r3r2[];
 
 extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02;
@@ -43,6 +45,7 @@ extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07;
 extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11;
 extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12;
+extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05;
 extern const struct s2n_kem_preferences kem_preferences_null;
 
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,

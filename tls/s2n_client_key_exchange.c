@@ -53,7 +53,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     const struct s2n_kex *hybrid_kex_1 = conn->secure.cipher_suite->key_exchange_alg->hybrid[1];
 
     /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
-    struct s2n_blob *client_key_exchange_message = &conn->secure.client_key_exchange_message;
+    struct s2n_blob *client_key_exchange_message = &conn->kex_params.client_key_exchange_message;
     client_key_exchange_message->data = stuffer_action(io, 0);
     POSIX_ENSURE_REF(client_key_exchange_message->data);
     const uint32_t start_cursor = *cursor;
@@ -61,7 +61,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     DEFER_CLEANUP(struct s2n_blob shared_key_0 = {0}, s2n_free);
     POSIX_GUARD_RESULT(kex_method(hybrid_kex_0, conn, &shared_key_0));
 
-    struct s2n_blob *shared_key_1 = &(conn->secure.kem_params.shared_secret);
+    struct s2n_blob *shared_key_1 = &(conn->kex_params.kem_params.shared_secret);
     POSIX_GUARD_RESULT(kex_method(hybrid_kex_1, conn, shared_key_1));
 
     const uint32_t end_cursor = *cursor;
@@ -74,7 +74,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
     POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, shared_key_1));
 
-    POSIX_GUARD(s2n_kem_free(&conn->secure.kem_params));
+    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
 
     return 0;
 }
@@ -83,16 +83,14 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
 {
     /* Turn the pre-master secret into a master secret */
     POSIX_GUARD_RESULT(s2n_kex_tls_prf(conn->secure.cipher_suite->key_exchange_alg, conn, shared_key));
-    /* Erase the pre-master secret */
-    POSIX_GUARD(s2n_blob_zero(shared_key));
-    if (shared_key->allocated) {
-        POSIX_GUARD(s2n_free(shared_key));
-    }
+
     /* Expand the keys */
     POSIX_GUARD(s2n_prf_key_expansion(conn));
-    /* Save the master secret in the cache */
+    /* Save the master secret in the cache.
+     * Failing to cache the session should not affect the current handshake.
+     */
     if (s2n_allowed_to_cache_connection(conn)) {
-        POSIX_GUARD(s2n_store_to_cache(conn));
+        s2n_result_ignore(s2n_store_to_cache(conn));
     }
     /* log the secret, if needed */
     s2n_result_ignore(s2n_key_log_tls12_secret(conn));
@@ -103,7 +101,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 {
     /* Set shared_key before async guard to pass the proper shared_key to the caller upon async completion */
     POSIX_ENSURE_REF(shared_key);
-    shared_key->data = conn->secure.rsa_premaster_secret;
+    shared_key->data = conn->secrets.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
 
     S2N_ASYNC_PKEY_GUARD(conn);
@@ -135,8 +133,8 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* First: use a random pre-master secret */
     POSIX_GUARD_RESULT(s2n_get_private_random_data(shared_key));
-    conn->secure.rsa_premaster_secret[0] = client_hello_protocol_version[0];
-    conn->secure.rsa_premaster_secret[1] = client_hello_protocol_version[1];
+    conn->secrets.rsa_premaster_secret[0] = client_hello_protocol_version[0];
+    conn->secrets.rsa_premaster_secret[1] = client_hello_protocol_version[1];
 
     S2N_ASYNC_PKEY_DECRYPT(conn, &encrypted, shared_key, s2n_rsa_client_key_recv_complete);
 }
@@ -146,9 +144,9 @@ int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_faile
     S2N_ERROR_IF(decrypted->size != S2N_TLS_SECRET_LEN, S2N_ERR_SIZE_MISMATCH);
 
     /* Avoid copying the same buffer for the case where async pkey is not used */
-    if (conn->secure.rsa_premaster_secret != decrypted->data) {
+    if (conn->secrets.rsa_premaster_secret != decrypted->data) {
         /* Copy (maybe) decrypted data into shared key */
-        POSIX_CHECKED_MEMCPY(conn->secure.rsa_premaster_secret, decrypted->data, S2N_TLS_SECRET_LEN);
+        POSIX_CHECKED_MEMCPY(conn->secrets.rsa_premaster_secret, decrypted->data, S2N_TLS_SECRET_LEN);
     }
 
     /* Get client hello protocol version for comparison with decrypted data */
@@ -161,7 +159,7 @@ int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_faile
 
     /* Set rsa_failed to true, if it isn't already, if the protocol version isn't what we expect */
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version,
-            conn->secure.rsa_premaster_secret, S2N_TLS_PROTOCOL_VERSION_LEN);
+            conn->secrets.rsa_premaster_secret, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     return 0;
 }
@@ -171,9 +169,9 @@ int s2n_dhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* Get the shared key */
-    POSIX_GUARD(s2n_dh_compute_shared_secret_as_server(&conn->secure.server_dh_params, in, shared_key));
+    POSIX_GUARD(s2n_dh_compute_shared_secret_as_server(&conn->kex_params.server_dh_params, in, shared_key));
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     return 0;
 }
 
@@ -182,16 +180,16 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* Get the shared key */
-    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_server(&conn->secure.server_ecc_evp_params, in, shared_key));
+    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_server(&conn->kex_params.server_ecc_evp_params, in, shared_key));
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
     return 0;
 }
 
 int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* s2n_kem_recv_ciphertext() writes the KEM shared secret directly to
-     * conn->secure.kem_params. However, the calling function
+     * conn->kex_params.kem_params. However, the calling function
      * likely expects *shared_key to point to the shared secret. We 
      * can't reassign *shared_key to point to kem_params.shared_secret,
      * because that would require us to take struct s2n_blob **shared_key
@@ -201,9 +199,9 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
      * So, we assert that the caller already has *shared_key pointing
      * to kem_params.shared_secret. */
     POSIX_ENSURE_REF(shared_key);
-    S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
+    S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    POSIX_GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->secure.kem_params)));
+    POSIX_GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
 
     return 0;
 }
@@ -217,8 +215,7 @@ int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *com
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
-    struct s2n_blob shared_key = {0};
-
+    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
     POSIX_GUARD_RESULT(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
     POSIX_GUARD(s2n_calculate_keys(conn, &shared_key));
@@ -228,20 +225,20 @@ int s2n_client_key_recv(struct s2n_connection *conn)
 int s2n_dhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    POSIX_GUARD(s2n_dh_compute_shared_secret_as_client(&conn->secure.server_dh_params, out, shared_key));
+    POSIX_GUARD(s2n_dh_compute_shared_secret_as_client(&conn->kex_params.server_dh_params, out, shared_key));
 
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_free(&conn->kex_params.server_dh_params));
     return 0;
 }
 
 int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_client(&conn->secure.server_ecc_evp_params, out, shared_key));
+    POSIX_GUARD(s2n_ecc_evp_compute_shared_secret_as_client(&conn->kex_params.server_ecc_evp_params, out, shared_key));
 
     /* We don't need the server params any more */
-    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
     return 0;
 }
 
@@ -252,7 +249,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
     client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
-    shared_key->data = conn->secure.rsa_premaster_secret;
+    shared_key->data = conn->secrets.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
 
     POSIX_GUARD_RESULT(s2n_get_private_random_data(shared_key));
@@ -261,10 +258,10 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      * The latest version supported by client (as seen from the the client hello version) are <= TLS1.2
      * for all clients, because TLS 1.3 clients freezes the TLS1.2 legacy version in client hello.
      */
-    POSIX_CHECKED_MEMCPY(conn->secure.rsa_premaster_secret, client_hello_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
+    POSIX_CHECKED_MEMCPY(conn->secrets.rsa_premaster_secret, client_hello_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     uint32_t encrypted_size = 0;
-    POSIX_GUARD_RESULT(s2n_pkey_size(&conn->secure.server_public_key, &encrypted_size));
+    POSIX_GUARD_RESULT(s2n_pkey_size(&conn->handshake_params.server_public_key, &encrypted_size));
     S2N_ERROR_IF(encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
@@ -277,17 +274,17 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     POSIX_ENSURE_REF(encrypted.data);
 
     /* Encrypt the secret and send it on */
-    POSIX_GUARD(s2n_pkey_encrypt(&conn->secure.server_public_key, shared_key, &encrypted));
+    POSIX_GUARD(s2n_pkey_encrypt(&conn->handshake_params.server_public_key, shared_key, &encrypted));
 
     /* We don't need the key any more, so free it */
-    POSIX_GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+    POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
     return 0;
 }
 
 int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* s2n_kem_send_ciphertext() writes the KEM shared secret directly to
-     * conn->secure.kem_params. However, the calling function
+     * conn->kex_params.kem_params. However, the calling function
      * likely expects *shared_key to point to the shared secret. We
      * can't reassign *shared_key to point to kem_params.shared_secret,
      * because that would require us to take struct s2n_blob **shared_key
@@ -297,9 +294,9 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      * So, we assert that the caller already has *shared_key pointing
      * to kem_params.shared_secret. */
     POSIX_ENSURE_REF(shared_key);
-    S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
+    S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->secure.kem_params)));
+    POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
 
     return 0;
 }
@@ -313,7 +310,7 @@ int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *com
 int s2n_client_key_send(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
-    struct s2n_blob shared_key = {0};
+    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
 
     POSIX_GUARD_RESULT(s2n_kex_client_key_send(key_exchange, conn, &shared_key));
 

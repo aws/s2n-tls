@@ -16,10 +16,45 @@
 #include "common.h"
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
 #include <s2n.h>
+#include <error/s2n_errno.h>
+#include "utils/s2n_safety.h"
+#include <sys/stat.h>
+#include <sys/mman.h>
+uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+
+uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+                                  0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+                                  0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+                                  0xb3, 0xe5 };
+
+struct session_cache_entry session_cache[256];
+
+static char dhparams[] =
+        "-----BEGIN DH PARAMETERS-----\n"
+        "MIIBCAKCAQEAy1+hVWCfNQoPB+NA733IVOONl8fCumiz9zdRRu1hzVa2yvGseUSq\n"
+        "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
+        "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
+        "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
+        "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
+        "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
+        "-----END DH PARAMETERS-----\n";
+
+/*
+ * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
+ * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
+ * the client (e.g. a reverse DNS lookup), you would plug that in here.
+ */
+static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
+    return 1;
+}
 
 char *load_file_to_cstring(const char *path)
 {
@@ -200,4 +235,182 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
         GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk\n");
     } 
     return S2N_SUCCESS;
+}
+
+int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path) {
+    GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
+
+    GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
+
+    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs),"Error setting cipher prefs");
+
+    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache), "Error setting cache store callback");
+
+    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache), "Error setting cache retrieve callback");
+
+    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache), "Error setting cache retrieve callback");
+
+    if (conn_settings.enable_mfl) {
+        GUARD_EXIT(s2n_config_accept_max_fragment_length(config), "Error enabling TLS maximum fragment length extension in server");
+    }
+
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
+        print_s2n_error("Failure to set hostname verification callback");
+        exit(1);
+    }
+
+    if (conn_settings.session_ticket) {
+        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+    }
+
+    if (conn_settings.session_cache) {
+        GUARD_EXIT(s2n_config_set_session_cache_onoff(config, 1), "Error enabling session cache using id");
+    }
+
+    if (conn_settings.session_ticket || conn_settings.session_cache) {
+        /* Key initialization */
+        uint8_t *st_key;
+        uint32_t st_key_length;
+
+        if (session_ticket_key_file_path) {
+            int fd = open(session_ticket_key_file_path, O_RDONLY);
+            GUARD_EXIT(fd, "Error opening session ticket key file");
+
+            struct stat st;
+            GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
+
+            st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            POSIX_ENSURE(st_key != MAP_FAILED, S2N_ERR_MMAP);
+
+            st_key_length = st.st_size;
+
+            close(fd);
+        } else {
+            st_key = default_ticket_key;
+            st_key_length = sizeof(default_ticket_key);
+        }
+
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), st_key, st_key_length, 0) != 0) {
+            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+    }
+    return 0;
+}
+
+int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings) {
+    if (settings.self_service_blinding) {
+        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
+    }
+
+    if (settings.mutual_auth) {
+        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED), "Error setting client auth type");
+
+        if (settings.ca_dir || settings.ca_file) {
+            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir), "Error adding verify location");
+        }
+
+        if (settings.insecure) {
+            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
+        }
+    }
+
+    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+    if (settings.prefer_throughput) {
+        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
+    }
+
+    if (settings.prefer_low_latency) {
+        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
+    }
+
+    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
+
+    if (settings.use_corked_io) {
+        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
+    GUARD_RETURN(
+            s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
+            "Error setting external psk list");
+
+    GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
+    return 0;
+}
+
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, value_size, MAX_VAL_LEN);
+
+    uint8_t idx = ((const uint8_t *)key)[0];
+
+    memcpy(cache[idx].key, key, key_size);
+    memcpy(cache[idx].value, value, value_size);
+
+    cache[idx].key_len = key_size;
+    cache[idx].value_len = value_size;
+
+    return 0;
+}
+
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+
+    uint8_t idx = ((const uint8_t *)key)[0];
+
+    POSIX_ENSURE(cache[idx].key_len == key_size, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(memcmp(cache[idx].key, key, key_size) == 0, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(*value_size >= cache[idx].value_len, S2N_ERR_INVALID_ARGUMENT);
+
+    *value_size = cache[idx].value_len;
+    memcpy(value, cache[idx].value, cache[idx].value_len);
+
+    for (uint64_t i = 0; i < key_size; i++) {
+        printf("%02x", ((const uint8_t *)key)[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+
+    uint8_t idx = ((const uint8_t *)key)[0];
+
+    if (cache[idx].key_len != 0) {
+        POSIX_ENSURE(cache[idx].key_len == key_size, S2N_ERR_INVALID_ARGUMENT);
+        POSIX_ENSURE(memcmp(cache[idx].key, key, key_size) == 0, S2N_ERR_INVALID_ARGUMENT);
+    }
+
+    cache[idx].key_len = 0;
+    cache[idx].value_len = 0;
+
+    return 0;
+}
+
+uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
+    struct verify_data *verify_data = (struct verify_data *)data;
+
+    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        char *suffix = strstr(verify_data->trusted_host, ".");
+        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
+    }
+
+    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
+        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
+                          || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    }
+
+    return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
 }

@@ -316,47 +316,165 @@ int main(int argc, char **argv)
 
     /* s2n_choose_default_sig_scheme */
     {
-        struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+        /* This method is used by both the client and server to choose default schemes
+         * for both themselves and for their peers, so it needs to behave the same regardless
+         * of the connection mode.
+         */
+        s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
+        for (size_t i = 0; i < s2n_array_len(modes); i++) {
+            struct s2n_config *config = s2n_config_new();
+            struct s2n_connection *conn = s2n_connection_new(modes[i]);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            const struct s2n_security_policy *security_policy = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
 
-        const struct s2n_security_policy *security_policy = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
+            struct s2n_security_policy test_security_policy = {
+                .minimum_protocol_version = security_policy->minimum_protocol_version,
+                .cipher_preferences = security_policy->cipher_preferences,
+                .kem_preferences = security_policy->kem_preferences,
+                .signature_preferences = &test_preferences,
+                .ecc_preferences = security_policy->ecc_preferences,
+            };
 
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
-        };
+            config->security_policy = &test_security_policy;
 
-        config->security_policy = &test_security_policy;
+            struct s2n_signature_scheme result = { 0 };
 
-        struct s2n_signature_scheme result;
+            /*
+             * For pre-TLS1.2, always choose either RSA or ECDSA depending on the auth method.
+             * Only use RSA-SHA1 if forced to by FIPS.
+             */
+            {
+                conn->actual_protocol_version = S2N_TLS10;
+                struct s2n_signature_scheme s2n_default_rsa = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
 
-        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS10;
-        struct s2n_signature_scheme expected = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
-        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-        EXPECT_EQUAL(result.iana_value, expected.iana_value);
+                /* For the server signature, the auth method must match the cipher suite. */
+                {
+                    /* Choose RSA for an RSA cipher suite. */
+                    {
+                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_default_rsa.iana_value);
+                    }
 
-        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS10;
-        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    /* Choose ECDSA for a ECDSA cipher suite. */
+                    {
+                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
 
-        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                    /* Ignore the type of the client certificate. */
+                    {
+                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
 
-        s2n_connection_free(conn);
-        s2n_config_free(config);
+                    /* When in doubt, choose RSA. */
+                    {
+                        conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_default_rsa.iana_value);
+                    }
+                }
+
+                /* For the client signature, the auth type must match the type of the client certificate */
+                {
+                    /* Choose RSA for an RSA certificate */
+                    {
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
+                    }
+
+                    /* Choose ECDSA for a ECDSA certificate */
+                    {
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
+
+                    /* Ignore the auth type of the cipher suite */
+                    {
+                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
+                }
+            }
+
+            /*
+             * For TLS1.2, always choose either RSA-SHA1 or ECDSA depending on the auth method.
+             */
+            {
+                conn->actual_protocol_version = S2N_TLS12;
+
+                /* For the server signature, the auth method must match the cipher suite. */
+                {
+                    /* Choose RSA for an RSA cipher suite. */
+                    {
+                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                    }
+
+                    /* Choose ECDSA for a ECDSA cipher suite. */
+                    {
+                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
+
+                    /* Ignore the type of the client certificate. */
+                    {
+                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
+
+                    /* When in doubt, choose RSA. */
+                    {
+                        conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                    }
+                }
+
+                /* For the client signature, the auth type must match the type of the client certificate */
+                {
+                    /* Choose RSA for an RSA certificate */
+                    {
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                    }
+
+                    /* Choose ECDSA for a ECDSA certificate */
+                    {
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
+
+                    /* Ignore the auth type of the cipher suite */
+                    {
+                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
+                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                    }
+                }
+            }
+
+            s2n_connection_free(conn);
+            s2n_config_free(config);
+        }
     }
 
     /* s2n_choose_sig_scheme_from_peer_preference_list */
@@ -445,7 +563,7 @@ int main(int argc, char **argv)
              * with the peer, then calling s2n_choose_sig_scheme_from_peer_preference_list
              * is equivalent to calling s2n_choose_default_sig_scheme. */
             struct s2n_signature_scheme default_scheme;
-            EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &default_scheme));
+            EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &default_scheme, S2N_SERVER));
             EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
         }
 

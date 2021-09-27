@@ -44,6 +44,7 @@ int s2n_sslv2_record_header_parse(
     POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Adjust to account for the 3 bytes of payload data we consumed in the header */
+    POSIX_ENSURE_GTE(*fragment_length, 3);
     *fragment_length -= 3;
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, record_type));

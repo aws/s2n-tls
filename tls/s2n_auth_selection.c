@@ -40,7 +40,7 @@
  * TLS1.2 cipher suites.
  */
 
-static int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
+int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
 {
     switch(cert_type) {
         case S2N_PKEY_TYPE_RSA:
@@ -122,7 +122,7 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
         POSIX_ENSURE_REF(cert->cert_chain);
         POSIX_ENSURE_REF(cert->cert_chain->head);
         POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
-        POSIX_GUARD(s2n_ecdsa_pkey_matches_curve(&cert->private_key->key.ecdsa_key, sig_scheme->signature_curve));
+        POSIX_ENSURE_EQ(cert->cert_chain->head->ec_curve_nid, sig_scheme->signature_curve->libcrypto_nid);
     }
 
     return S2N_SUCCESS;
@@ -222,7 +222,7 @@ int s2n_select_certs_for_server_auth(struct s2n_connection *conn, struct s2n_cer
     POSIX_ENSURE_REF(conn);
 
     s2n_pkey_type cert_type;
-    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(conn->secure.conn_sig_scheme.sig_alg, &cert_type));
+    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(conn->handshake_params.conn_sig_scheme.sig_alg, &cert_type));
 
     *chosen_certs = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     S2N_ERROR_IF(*chosen_certs == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);

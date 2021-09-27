@@ -46,17 +46,17 @@
 static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
 {
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_hello_copy));
-    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_finished_copy));
+    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_hello_copy));
+    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_finished_copy));
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
     return S2N_SUCCESS;
 }
@@ -143,6 +143,11 @@ static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* Test: TLS 1.3 key and secrets generation is symmetrical */
@@ -171,10 +176,13 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn)
             - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
 
+        /* Server configures the "supported_groups" shared with the client */
+        server_conn->kex_params.mutually_supported_curves[0] = server_ecc_preferences->ecc_curves[0];
+
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
         /* Server configures the "negotiated_curve" */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[0];
 
         /* Server sends ServerHello key_share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
@@ -185,14 +193,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, &server_hello_key_share));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_hello_key_share), 0);
 
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         /* populating server hello hash is now a requirement for s2n_tls13_handle_handshake_traffic_secret */
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.server_hello_copy));
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.server_hello_copy));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.hashes->server_hello_copy));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.hashes->server_hello_copy));
 
         EXPECT_SUCCESS(s2n_tls13_handle_early_secret(server_conn));
         EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(server_conn));
@@ -266,8 +274,8 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, TLS_APPLICATION_DATA, uint8);
 
         /* populating server finished hash is now a requirement for s2n_tls13_handle_application_secrets */
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.server_finished_copy));
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.server_finished_copy));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.hashes->server_finished_copy));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.hashes->server_finished_copy));
 
         EXPECT_SUCCESS(s2n_tls13_handle_master_secret(client_conn));
         EXPECT_SUCCESS(s2n_tls13_handle_master_secret(server_conn));
@@ -329,10 +337,10 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_preferences);
 
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             const uint8_t psk_data[] = "test identity data";
             const uint8_t secret_data[] = "test secret data";
@@ -376,10 +384,10 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_preferences);
 
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             const uint8_t psk_data[] = "test identity data";
             const uint8_t secret_data[] = "test secret data";
@@ -571,7 +579,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
 
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, 0);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
 
         s2n_tls13_connection_keys(server_secrets_0, server_conn);
         EXPECT_EQUAL(server_secrets_0.size, 0);
@@ -586,7 +594,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | MIDDLEBOX_COMPAT);
 
         s2n_tls13_connection_keys(server_secrets, server_conn);
-        EXPECT_EQUAL(server_secrets.size, 48);
+        EXPECT_EQUAL(server_secrets.size, SHA256_DIGEST_LENGTH);
 
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
 
@@ -622,7 +630,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
 
         s2n_tls13_connection_keys(client_secrets, client_conn);
-        EXPECT_EQUAL(client_secrets.size, 48);
+        EXPECT_EQUAL(client_secrets.size, SHA256_DIGEST_LENGTH);
 
         /* Verify that derive and extract secrets match */
         S2N_BLOB_EXPECT_EQUAL(server_secrets.derive_secret, client_secrets.derive_secret);

@@ -13,28 +13,53 @@
 # permissions and limitations under the License.
 #
 
+import argparse
 import os
+import subprocess
 import sys
 import time
-import socket
-import subprocess
-import itertools
-import argparse
-from s2n_test_constants import *
 
+from s2n_test_constants import *
 
 # If a cipher_preference_version is specified, we will use it while attempting the handshake;
 # otherwise, s2n will use the default. If an expected_cipher is specified, the test will pass
 # if and only if the handshake is negotiated with that cipher; otherwise, the test will pass
 # if the handshake is negotiated with any cipher.
 well_known_endpoints = [
-    {"endpoint": "amazon.com"},
-    {"endpoint": "facebook.com"},
-    {"endpoint": "google.com"},
-    {"endpoint": "s3.amazonaws.com"},
-    {"endpoint": "twitter.com"},
-    {"endpoint": "wikipedia.org"},
-    {"endpoint": "yahoo.com"},
+    {"endpoint": "www.akamai.com"},
+    {"endpoint": "www.amazon.com"},
+    {"endpoint": "s3.us-west-2.amazonaws.com"},
+    {"endpoint": "www.apple.com"},
+    {"endpoint": "www.att.com"},
+    {"endpoint": "www.badssl.com"},
+    {"endpoint": "mozilla-intermediate.badssl.com"},
+    {"endpoint": "mozilla-modern.badssl.com"},
+    {"endpoint": "rsa2048.badssl.com"},
+    {"endpoint": "rsa4096.badssl.com"},
+    {"endpoint": "sha256.badssl.com"},
+    {"endpoint": "sha384.badssl.com"},
+    {"endpoint": "sha512.badssl.com"},
+    {"endpoint": "tls-v1-0.badssl.com"},
+    {"endpoint": "tls-v1-1.badssl.com"},
+    {"endpoint": "tls-v1-2.badssl.com"},
+    {"endpoint": "www.cloudflare.com"},
+    {"endpoint": "www.ebay.com"},
+    {"endpoint": "www.f5.com"},
+    {"endpoint": "www.facebook.com"},
+    {"endpoint": "www.google.com"},
+    {"endpoint": "www.github.com"},
+    {"endpoint": "www.ibm.com"},
+    {"endpoint": "www.microsoft.com"},
+    {"endpoint": "www.mozilla.org"},
+    {"endpoint": "www.netflix.com"},
+    {"endpoint": "www.openssl.org"},
+    {"endpoint": "www.samsung.com"},
+    {"endpoint": "www.t-mobile.com"},
+    {"endpoint": "www.twitter.com"},
+    {"endpoint": "www.verizon.com"},
+    {"endpoint": "www.wikipedia.org"},
+    {"endpoint": "www.yahoo.com"},
+    {"endpoint": "www.youtube.com"},
 ]
 
 if os.getenv("S2N_NO_PQ") is None:

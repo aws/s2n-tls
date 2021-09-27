@@ -31,6 +31,7 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/extensions/s2n_client_psk.h"
+#include "tls/extensions/s2n_ems.h"
 #include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
@@ -51,7 +52,13 @@
 
 static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_supported_versions_extension,
+
+        /* We MUST process key_share after supported_groups,
+         * because we need to choose the keyshare based on the
+         * mutually supported groups. */
+        &s2n_client_supported_groups_extension,
         &s2n_client_key_share_extension,
+
         &s2n_client_signature_algorithms_extension,
         &s2n_client_server_name_extension,
         &s2n_client_alpn_extension,
@@ -59,7 +66,6 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_sct_list_extension,
         &s2n_client_max_frag_len_extension,
         &s2n_client_session_ticket_extension,
-        &s2n_client_supported_groups_extension,
         &s2n_client_ec_point_format_extension,
         &s2n_client_pq_kem_extension,
         &s2n_client_renegotiation_info_extension,
@@ -67,6 +73,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_quic_transport_parameters_extension,
         &s2n_psk_key_exchange_modes_extension,
         &s2n_client_early_data_indication_extension,
+        &s2n_client_ems_extension,
         &s2n_client_psk_extension /* MUST be last */
 };
 
@@ -80,6 +87,7 @@ static const s2n_extension_type *const tls12_server_hello_extensions[] = {
         &s2n_server_sct_list_extension,
         &s2n_server_max_fragment_length_extension,
         &s2n_server_session_ticket_extension,
+        &s2n_server_ems_extension,
 };
 
 /**

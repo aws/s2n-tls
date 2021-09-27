@@ -190,7 +190,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             EXPECT_STRING_EQUAL(s2n_connection_get_cipher(server_conn), expected_cipher->name);
 
             EXPECT_EQUAL(server_conn->handshake_params.our_chain_and_key, expected_cert_chain);
-            EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.sig_alg, expected_sig_alg);
+            EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.sig_alg, expected_sig_alg);
 
             EXPECT_TRUE(IS_NEGOTIATED(server_conn));
             EXPECT_TRUE(IS_NEGOTIATED(client_conn));
@@ -344,8 +344,7 @@ int main(int argc, char **argv)
         }
 
         /*  Test: RSA cert with RSA PSS signatures */
-        if (s2n_is_rsa_pss_signing_supported())
-        {
+        if (s2n_is_rsa_pss_signing_supported()) {
             const struct s2n_signature_scheme* const rsa_pss_rsae_sig_schemes[] = {
                     /* RSA PSS */
                     &s2n_rsa_pss_rsae_sha256,

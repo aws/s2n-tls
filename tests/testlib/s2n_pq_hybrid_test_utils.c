@@ -61,10 +61,10 @@ static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *k
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     POSIX_GUARD_PTR(ecc_preferences);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    conn->secure.kem_params.kem = kem;
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    conn->kex_params.kem_params.kem = kem;
     conn->secure.cipher_suite = cipher_suite;
-    conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    conn->handshake_params.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
     POSIX_GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));
     return S2N_SUCCESS;
 }
@@ -104,7 +104,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
 
     POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs,
-            &server_conn->secure.conn_sig_scheme));
+            &server_conn->handshake_params.conn_sig_scheme));
 
     DEFER_CLEANUP(struct s2n_stuffer certificate_in = {0}, s2n_stuffer_free);
     POSIX_GUARD(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
@@ -119,7 +119,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     temp_blob.size = s2n_stuffer_data_available(&certificate_out);
     temp_blob.data = s2n_stuffer_raw_read(&certificate_out, temp_blob.size);
     s2n_pkey_type pkey_type = {0};
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &temp_blob));
+    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&client_conn->handshake_params.server_public_key, &pkey_type, &temp_blob));
 
     server_conn->handshake_params.our_chain_and_key = chain_and_key;
 
@@ -185,7 +185,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
 
     /* Part 4.1 verify results as best we can, the client and server should at least have the same master secret */
     /* Compare byte arrays for equality */
-    POSIX_ENSURE_EQ(memcmp(server_conn->secure.master_secret, client_conn->secure.master_secret, S2N_TLS_SECRET_LEN), 0);
+    POSIX_ENSURE_EQ(memcmp(server_conn->secrets.master_secret, client_conn->secrets.master_secret, S2N_TLS_SECRET_LEN), 0);
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Part 4.1.1 if we're running in known answer mode check that both the client and server got the expected master secret
@@ -193,8 +193,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     uint8_t expected_master_secret[S2N_TLS_SECRET_LEN];
     POSIX_GUARD(ReadHex(kat_file, expected_master_secret, S2N_TLS_SECRET_LEN, "expected_master_secret = "));
     /* Compare byte arrays for equality */
-    POSIX_ENSURE_EQ(memcmp(expected_master_secret, client_conn->secure.master_secret, S2N_TLS_SECRET_LEN), 0);
-    POSIX_ENSURE_EQ(memcmp(expected_master_secret, server_conn->secure.master_secret, S2N_TLS_SECRET_LEN), 0);
+    POSIX_ENSURE_EQ(memcmp(expected_master_secret, client_conn->secrets.master_secret, S2N_TLS_SECRET_LEN), 0);
+    POSIX_ENSURE_EQ(memcmp(expected_master_secret, server_conn->secrets.master_secret, S2N_TLS_SECRET_LEN), 0);
 #endif
 
     POSIX_GUARD(s2n_cert_chain_and_key_free(chain_and_key));

@@ -1,0 +1,9 @@
+[package]
+name = "integration"
+version = "0.1.0"
+authors = ["AWS s2n"]
+edition = "2018"
+publish = false
+
+[dependencies]
+s2n-tls-sys = { version = "0.1", path = "../s2n-tls-sys" }

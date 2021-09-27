@@ -18,6 +18,8 @@
 #include <s2n.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <utils/s2n_ensure.h>
+
 /*
  * To easily retrieve error types, we split error values into two parts.
  * The upper 6 bits describe the error type and the lower bits describe the value within the category.
@@ -121,6 +123,7 @@ typedef enum {
     S2N_ERR_UNSUPPORTED_EXTENSION,
     S2N_ERR_DUPLICATE_EXTENSION,
     S2N_ERR_MAX_EARLY_DATA_SIZE,
+    S2N_ERR_EARLY_DATA_TRIAL_DECRYPT,
     S2N_ERR_T_PROTO_END,
 
     /* S2N_ERR_T_INTERNAL */
@@ -273,6 +276,7 @@ typedef enum {
     S2N_ERR_EARLY_DATA_NOT_ALLOWED,
     S2N_ERR_NO_CERT_FOUND,
     S2N_ERR_CERT_NOT_VALIDATED,
+    S2N_ERR_NO_PRIVATE_KEY,
     S2N_ERR_PSK_MODE,
     S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND,
     S2N_ERR_INVALID_X509_EXTENSION_TYPE,
@@ -288,49 +292,13 @@ extern __thread const char *s2n_debug_str;
 #define STRING_(s) TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
-#define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
+#define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ ":" STRING__LINE__
 #define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IS_BLOCKING( x )    ( s2n_error_get_type(x) == S2N_ERR_T_BLOCKED )
-
-/**
- * These macros should not be used in validate functions.
- * All validate functions are also used in assumptions for CBMC proofs,
- * which should not contain __CPROVER_*_ok primitives. The use of these primitives
- * in assumptions may lead to spurious results.
- * Define function contracts.
- * When the code is being verified using CBMC these contracts are formally verified;
- * When the code is built in debug mode, they are checked as much as possible using assertions
- * When the code is built in production mode, non-fatal contracts are not checked.
- * Violations of the function contracts are undefined behaviour.
- */
-#ifdef CBMC
-#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
-#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
-#else
-/* the C runtime does not give a way to check these properties,
- * but we can at least check that the pointer is valid */
-#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
-#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
-#endif /* CBMC */
-
-/**
- * These macros can safely be used in validate functions.
- */
-#define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
-#define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
-#define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
-#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
-
-#define S2N_IMPLIES(a, b) (!(a) || (b))
-/**
- * If and only if (iff) is a biconditional logical connective between statements a and b.
- * Equivalent to (S2N_IMPLIES(a, b) && S2N_IMPLIES(b, a)).
- */
-#define S2N_IFF(a, b) (!!(a) == !!(b))
 
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {

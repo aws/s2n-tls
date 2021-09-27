@@ -7,11 +7,12 @@
 
 #pragma once
 
-#include <openssl/sha.h>
 #include "cleanup.h"
 #include "error.h"
 #include "types.h"
 #include "utilities.h"
+
+#include <openssl/sha.h>
 
 #define SHA384_DGST_BYTES  48ULL
 #define SHA384_DGST_QWORDS (SHA384_DGST_BYTES / 8)
@@ -40,4 +41,3 @@ _INLINE_ ret_t sha(OUT sha_dgst_t *  dgst,
 
   return FAIL;
 }
-

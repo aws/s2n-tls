@@ -5,7 +5,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, AL
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version, to_bytes
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -20,7 +20,6 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     random_bytes = data_bytes(24)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -42,20 +41,18 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     actual_version = get_expected_s2n_version(protocol, provider)
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Client protocol version: {}".format(client_version).encode('utf-8')) in results.stdout
-        assert bytes("Actual protocol version: {}".format(actual_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Client protocol version: {}".format(client_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         if provider is S2N:
             # The server is only TLS12, so it reads the version from the CLIENT_HELLO, which is never above TLS12
             # This check only cares about S2N. Trying to maintain expected output of other providers doesn't
             # add benefit to whether the S2N client was able to negotiate a lower TLS version.
-            assert bytes("Client protocol version: {}".format(actual_version).encode('utf-8')) in results.stdout
-            assert bytes("Actual protocol version: {}".format(actual_version).encode('utf-8')) in results.stdout
+            assert to_bytes("Client protocol version: {}".format(actual_version)) in results.stdout
+            assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
 
         assert random_bytes in results.stdout
 
@@ -72,7 +69,6 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     random_bytes = data_bytes(24)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -96,21 +92,19 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     actual_version = get_expected_s2n_version(protocol, provider)
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         if provider is S2N:
             # The client will get the server version from the SERVER HELLO, which will be the negotiated version
-            assert bytes("Server protocol version: {}".format(actual_version).encode('utf-8')) in results.stdout
-            assert bytes("Actual protocol version: {}".format(actual_version).encode('utf-8')) in results.stdout
+            assert to_bytes("Server protocol version: {}".format(actual_version)) in results.stdout
+            assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
         elif provider is OpenSSL:
             # This check cares about other providers because we want to know that they did negotiate the version
             # that our S2N server intended to negotiate.
             openssl_version = get_expected_openssl_version(protocol)
-            assert bytes("Protocol  : {}".format(openssl_version).encode('utf-8')) in results.stdout
+            assert to_bytes("Protocol  : {}".format(openssl_version)) in results.stdout
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Server protocol version: {}".format(server_version).encode('utf-8')) in results.stdout
-        assert bytes("Actual protocol version: {}".format(actual_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Server protocol version: {}".format(server_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
         assert random_bytes in results.stdout

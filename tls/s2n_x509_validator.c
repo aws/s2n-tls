@@ -30,7 +30,7 @@
 #include <openssl/asn1.h>
 #include <openssl/x509.h>
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
+#if !defined(OPENSSL_IS_BORINGSSL)
 #include <openssl/ocsp.h>
 #endif
 
@@ -97,7 +97,10 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_free_pointer);
         S2N_ERROR_IF(ca_cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-        POSIX_GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
+        if (!X509_STORE_add_cert(store->trust_store, ca_cert)) {
+            unsigned long error = ERR_get_error();
+            POSIX_ENSURE(ERR_GET_REASON(error) == X509_R_CERT_ALREADY_IN_HASH_TABLE, S2N_ERR_DECODE_CERTIFICATE);
+        }
     } while (s2n_stuffer_data_available(&pem_in_stuffer));
 
     return 0;
@@ -460,13 +463,15 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
     }
 
     /* Important: this checks that the stapled ocsp response CAN be verified, not that it has been verified. */
-    const int ocsp_verify_err = OCSP_basic_verify(basic_response, cert_chain, validator->trust_store->trust_store, 0);
-    /* do the crypto checks on the response.*/
-    if (!ocsp_verify_err) {
-        ret_val = S2N_CERT_ERR_UNTRUSTED;
+    const int ocsp_verify_res = OCSP_basic_verify(basic_response, cert_chain, validator->trust_store->trust_store, 0);
+
+    /* OCSP_basic_verify() returns 1 on success, 0 on error, or -1 on fatal error such as malloc failure. */
+    if (ocsp_verify_res != _OSSL_SUCCESS) {
+        ret_val = ocsp_verify_res == 0 ? S2N_CERT_ERR_UNTRUSTED : S2N_CERT_ERR_INTERNAL_ERROR;
         goto clean_up;
     }
 
+    /* do the crypto checks on the response.*/
     int status = 0;
     int reason = 0;
 
@@ -603,4 +608,9 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
     }
 
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+}
+
+bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
+{
+    return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
 }

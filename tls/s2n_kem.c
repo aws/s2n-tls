@@ -70,18 +70,6 @@ const struct s2n_kem s2n_sike_p503_r1 = {
         .decapsulate = &SIKE_P503_r1_crypto_kem_dec,
 };
 
-const struct s2n_kem s2n_sike_p434_r2 = {
-        .name = "SIKEp434r2-KEM",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
-        .public_key_length = SIKE_P434_R2_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P434_R2_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P434_R2_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P434_R2_CIPHERTEXT_BYTES,
-        .generate_keypair = &SIKE_P434_r2_crypto_kem_keypair,
-        .encapsulate = &SIKE_P434_r2_crypto_kem_enc,
-        .decapsulate = &SIKE_P434_r2_crypto_kem_dec,
-};
-
 const struct s2n_kem s2n_kyber_512_r2 = {
         .name = "kyber512r2",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2,
@@ -142,7 +130,6 @@ const struct s2n_kem *bike_kems[] = {
 
 const struct s2n_kem *sike_kems[] = {
         &s2n_sike_p503_r1,
-        &s2n_sike_p434_r2,
         &s2n_sike_p434_r3,
 };
 
@@ -175,26 +162,25 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
  * community to use values in the proposed reserved range defined in
  * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design.
  * Values for interoperability are defined in
- * https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0.
+ * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md
  *
  * The structure of the hybrid share is:
  *    size of ECC key share (2 bytes)
  * || ECC key share (variable bytes)
  * || size of PQ key share (2 bytes)
  * || PQ key share (variable bytes) */
-const struct s2n_kem_group s2n_secp256r1_sike_p434_r2 = {
-        .name = "secp256r1_sike-p434-r2",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2,
+const struct s2n_kem_group s2n_secp256r1_sike_p434_r3 = {
+        .name = "secp256r1_sike-p434-r3",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_PUBLIC_KEY_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES),
         .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_CIPHERTEXT_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_CIPHERTEXT_BYTES),
         .curve = &s2n_ecc_curve_secp256r1,
-        .kem = &s2n_sike_p434_r2,
+        .kem = &s2n_sike_p434_r3,
 };
 
 const struct s2n_kem_group s2n_secp256r1_bike1_l1_r2 = {
-        /* The name string follows the convention in the above google doc */
         .name = "secp256r1_bike-1l1fo-r2",
         .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
@@ -216,20 +202,41 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r2 = {
         .kem = &s2n_kyber_512_r2,
 };
 
+const struct s2n_kem_group s2n_secp256r1_bike_l1_r3 = {
+        .name = "secp256r1_bike-l1-r3",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE_L1_R3,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + BIKE_L1_R3_PUBLIC_KEY_BYTES),
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + BIKE_L1_R3_CIPHERTEXT_BYTES),
+        .curve = &s2n_ecc_curve_secp256r1,
+        .kem = &s2n_bike_l1_r3,
+};
+
+const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
+        .name = "secp256r1_kyber-512-r3",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
+        .curve = &s2n_ecc_curve_secp256r1,
+        .kem = &s2n_kyber_512_r3,
+};
+
 #if EVP_APIS_SUPPORTED
-const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
-        .name = "x25519_sike-p434-r2",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2,
+const struct s2n_kem_group s2n_x25519_sike_p434_r3 = {
+        .name = "x25519_sike-p434-r3",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_PUBLIC_KEY_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES),
         .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_CIPHERTEXT_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_CIPHERTEXT_BYTES),
         .curve = &s2n_ecc_curve_x25519,
-        .kem = &s2n_sike_p434_r2,
+        .kem = &s2n_sike_p434_r3,
 };
 
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = {
-        /* The name string follows the convention in the above google doc */
         .name = "x25519_bike-1l1fo-r2",
         .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
@@ -250,11 +257,53 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r2 = {
         .curve = &s2n_ecc_curve_x25519,
         .kem = &s2n_kyber_512_r2,
 };
+
+const struct s2n_kem_group s2n_x25519_bike_l1_r3 = {
+        .name = "x25519_bike-l1-r3",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_BIKE_L1_R3,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + BIKE_L1_R3_PUBLIC_KEY_BYTES),
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + BIKE_L1_R3_CIPHERTEXT_BYTES),
+        .curve = &s2n_ecc_curve_x25519,
+        .kem = &s2n_bike_l1_r3,
+};
+
+const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
+        .name = "x25519_kyber-512-r3",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
+        .curve = &s2n_ecc_curve_x25519,
+        .kem = &s2n_kyber_512_r3,
+};
+
+
 #else
-const struct s2n_kem_group s2n_x25519_sike_p434_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
+const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
+const struct s2n_kem_group s2n_x25519_bike_l1_r3 = { 0 };
+const struct s2n_kem_group s2n_x25519_kyber_512_r3 = { 0 };
 #endif
+
+const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
+        &s2n_secp256r1_bike_l1_r3,
+        &s2n_secp256r1_sike_p434_r3,
+        &s2n_secp256r1_kyber_512_r3,
+        &s2n_secp256r1_bike1_l1_r2,
+        &s2n_secp256r1_kyber_512_r2,
+/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
+#if EVP_APIS_SUPPORTED
+        &s2n_x25519_bike_l1_r3,
+        &s2n_x25519_sike_p434_r3,
+        &s2n_x25519_kyber_512_r3,
+        &s2n_x25519_bike1_l1_r2,
+        &s2n_x25519_kyber_512_r2
+#endif
+};
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
  * functions may return any non-zero value to indicate failure. */
@@ -525,10 +574,6 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 int SIKE_P503_r1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int SIKE_P503_r1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN  const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int SIKE_P503_r1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-/* sikep434r2 */
-int SIKE_P434_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-int SIKE_P434_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-int SIKE_P434_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 /* bike1l1r1 */
 int BIKE1_L1_R1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int BIKE1_L1_R1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }

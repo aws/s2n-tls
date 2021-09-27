@@ -19,4 +19,6 @@
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
+#define PSK_KEY_EXCHANGE_MODE_SIZE sizeof(uint8_t)
+
 extern const s2n_extension_type s2n_psk_key_exchange_modes_extension;

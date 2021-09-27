@@ -249,13 +249,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(client_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
@@ -281,8 +281,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->server_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     /* Test that S2N will accept a ClientHello with legacy_session_id set when running with QUIC.
      * Since this requirement is a SHOULD, we're accepting it for non-compliant endpoints.
      * https://tools.ietf.org/html/draft-ietf-quic-tls-32#section-8.4*/
-    {
+    if (s2n_is_tls13_fully_supported()) {
         EXPECT_SUCCESS(s2n_reset_tls13());
 
         const size_t test_session_id_len = 10;
@@ -438,6 +438,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
 
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
@@ -448,7 +450,7 @@ int main(int argc, char **argv)
         server_conn->psk_params.chosen_psk = &chosen_psk;
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, 0);
+        EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.iana_value, 0);
         EXPECT_NULL(server_conn->handshake_params.our_chain_and_key);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -486,7 +488,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         /* ensure negotiated_curve == secp256r1 for maximum client compatibility */
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
+        EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
