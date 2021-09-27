@@ -73,7 +73,10 @@ let ocsp_status_size cert_and_key =
 
 // It's also noteworthy that we use the crucible_elem here, which will
 // cause problems if the fields are reordered. This is reasonably unlikely
-// because it makes sense to have the bitfield at the start
+// because it makes sense to have the bitfield at the start, but it is a bit
+// fragile nonetheless. If https://github.com/GaloisInc/saw-script/issues/1461
+// were implemented, we could reference the names of bitfields instead of their
+// offsets, which would avoid this issue.
 let config_bitfield config = (crucible_elem config 0);
 
 //conn->session_ticket_status
