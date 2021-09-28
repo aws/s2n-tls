@@ -133,6 +133,13 @@ void s2n_on_fork(void)
     zero_if_forked = 0;
 }
 
+static inline s2n_random_sanitize_flag (void)
+{
+    if (zero_if_forked_ptr != &zero && zero_if_forked_ptr != zeroed_when_forked_page) {
+        zero_if_forked_ptr = &zero;
+    }
+}
+
 static inline S2N_RESULT s2n_defend_if_forked(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
@@ -140,6 +147,7 @@ static inline S2N_RESULT s2n_defend_if_forked(void)
     struct s2n_blob public = {.data = s2n_public_drbg,.size = sizeof(s2n_public_drbg) };
     struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
 
+    s2n_random_sanitize_flag();
     if (zero_if_forked == 0) {
         /* Clean up the old drbg first */
         RESULT_GUARD(s2n_rand_cleanup_thread());
@@ -353,6 +361,7 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_ENSURE(zeroed_when_forked_page != NULL, S2N_ERR_OPEN_RANDOM);
 
     /* Initialized to zero to ensure that we seed our DRBGs */
+    s2n_random_sanitize_flag();
     zero_if_forked = 0;
 
     /* INHERIT_ZERO and WIPEONFORK reset a page to all-zeroes when a fork occurs */
