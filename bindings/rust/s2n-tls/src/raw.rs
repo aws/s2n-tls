@@ -7,5 +7,6 @@ pub mod error;
 pub mod config;
 pub mod connection;
 pub mod init;
+pub mod securitypolicy;
 
 pub use s2n_tls_sys as fii;

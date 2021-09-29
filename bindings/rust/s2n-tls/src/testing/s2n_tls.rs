@@ -1,6 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-use crate::raw::connection::Connection;
+use crate::raw::{connection::Connection, securitypolicy::*};
 use crate::testing::{Context, Error, Result};
 use bytes::BytesMut;
 use core::task::Poll;
@@ -224,12 +224,12 @@ pub mod tests {
         }
     }
 
-    pub fn build_config(cipher_prefs: &str) -> Result<crate::raw::config::Config, Error> {
+    pub fn build_config(cipher_prefs: SecurityPolicy) -> Result<crate::raw::config::Config, Error> {
         let mut builder = Builder::new();
         let mut keypair = CertKeyPair::default();
         // Build a config
         builder
-            .set_cipher_preference(cipher_prefs)
+            .set_cipher_preference(cipher_prefs.version)
             .expect("Unable to set config cipher preferences");
         builder
             .load_pem(keypair.cert(), keypair.key())
@@ -296,13 +296,13 @@ pub mod tests {
     }
     #[test]
     fn handshake_default_tls13() {
-        let config = build_config("default_tls13").unwrap();
+        let config = build_config(DEFAULT).unwrap();
         s2n_tls_pair(config);
     }
 
     #[test]
     fn handshake_default() {
-        let config = build_config("default").unwrap();
+        let config = build_config(DEFAULT_TLS13).unwrap();
         s2n_tls_pair(config)
     }
 }
