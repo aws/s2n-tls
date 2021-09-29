@@ -6,6 +6,7 @@
 use crate::raw::{
     config::Config,
     error::{Error, Fallible},
+    securitypolicy::*,
 };
 use core::ptr::NonNull;
 use core::{convert::TryInto, fmt, task::Poll};
@@ -91,8 +92,8 @@ impl Connection {
         Ok(self)
     }
 
-    pub fn set_cipher_preference(&mut self, name: &str) -> Result<&mut Self, Error> {
-        let name = CString::new(name).map_err(|_| Error::InvalidInput)?;
+    pub fn set_cipher_preference(&mut self, name: SecurityPolicy) -> Result<&mut Self, Error> {
+        let name = CString::new(name.version).map_err(|_| Error::InvalidInput)?;
         unsafe {
             s2n_connection_set_cipher_preferences(
                 self.connection.as_ptr(),
