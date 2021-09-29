@@ -206,8 +206,7 @@ pub mod tests {
     impl Default for CertKeyPair {
         fn default() -> Self {
             CertKeyPair {
-                cert: include_str!("../../../../../tests/pems/rsa_4096_sha512_client_cert.pem")
-                    .as_bytes(),
+                cert: &include_bytes!("../../../../../tests/pems/rsa_4096_sha512_client_cert.pem")[..],
                 key: include_str!("../../../../../tests/pems/rsa_4096_sha512_client_key.pem")
                     .as_bytes(),
             }
