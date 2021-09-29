@@ -70,7 +70,8 @@ type Parameters = {
     retry : Bit,
     client_auth : Bit,
     no_client_cert : Bit,
-    zero_rtt : Bit
+    zero_rtt : Bit,
+    early_ccs : Bit
 }
 
 /**
@@ -84,13 +85,20 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ params.client_auth == (conn_client_auth /\ ~params.psk_mode)
                                    /\ params.no_client_cert == (conn_no_client_cert /\ params.client_auth)
                                    /\ params.zero_rtt == (conn_zero_rtt /\ params.psk_mode)
-                                   /\ params.compat_mode == [ conn.mode != S2N_CLIENT, conn.mode == S2N_CLIENT ]
+                                   /\ params.compat_mode ==
+                                        [ when_middlebox_compat (conn.mode != S2N_CLIENT)
+                                        , when_middlebox_compat (conn.mode == S2N_CLIENT) ]
+                                   /\ params.early_ccs == conn_early_ccs
                                    /\ conn.actual_protocol_version == S2N_TLS13
-  where conn_psk_mode =         False /* Not supported yet */
-        conn_retry =            False /* Not supported yet */
+  where conn_psk_mode =         ~conn.chosen_psk_null
+        conn_retry =            (conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero
         conn_client_auth =      conn.client_auth_flag
         conn_no_client_cert =   conn.no_client_cert
-        conn_zero_rtt =         False /* Not supported yet */
+        conn_early_ccs =        (conn.handshake.handshake_type && EARLY_CLIENT_CCS) != zero
+        conn_zero_rtt =         (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED)
+
+        conn_middlebox_compat   = ~conn.quic_enabled \/ ((conn.handshake.handshake_type && MIDDLEBOX_COMPAT) != zero)
+        when_middlebox_compat b = conn_middlebox_compat /\ b
 
 type Action = {
     message : Message,
@@ -237,19 +245,19 @@ stateMachine params = iterate (\s -> stateFor s.next) CLIENT_START_STATE
 
         CLIENT_START_STATE = state 1 [
             action clientHello client True,
-            action changeCipherSpec client (params.zero_rtt /\ compatMode client)
+            action changeCipherSpec client (params.early_ccs /\ compatMode client)
         ] (if params.retry then HELLO_RETRY_STATE else SERVER_HELLO_STATE)
 
         HELLO_RETRY_STATE = state 2 [
             action helloRetryRequest server True,
             action changeCipherSpec server (compatMode server),
-            action changeCipherSpec client (~params.zero_rtt /\ compatMode client),
+            action changeCipherSpec client (~params.early_ccs /\ compatMode client),
             action clientHello client True
         ] SERVER_HELLO_STATE
 
         SERVER_HELLO_STATE = state 3 [
             action serverHello server True,
-            action changeCipherSpec server (~params.retry /\ ~params.zero_rtt /\ compatMode server),
+            action changeCipherSpec server (~params.retry /\ compatMode server),
             action encryptedExtensions server True
         ] (if params.psk_mode then SERVER_FINISH_STATE else SERVER_AUTH_STATE)
 
@@ -261,7 +269,7 @@ stateMachine params = iterate (\s -> stateFor s.next) CLIENT_START_STATE
 
         SERVER_FINISH_STATE = state 5 [
             action finished server True,
-            action changeCipherSpec client (~params.retry /\ ~params.zero_rtt /\ compatMode client),
+            action changeCipherSpec client (~params.retry /\ ~params.early_ccs /\ compatMode client),
             action endOfEarlyData client params.zero_rtt
         ] (if params.client_auth then CLIENT_AUTH_STATE else CLIENT_FINISH_STATE)
 
@@ -292,7 +300,7 @@ rfc2S2N msg = mkAct recordType messageType writer
         messageType = if recordType != TLS_HANDSHAKE then noMessageType
                       |  msg.messageType == clientHello then TLS_CLIENT_HELLO
                       |  msg.messageType == serverHello then TLS_SERVER_HELLO
-                      |  msg.messageType == helloRetryRequest then TLS_HELLO_RETRY_REQUEST
+                      |  msg.messageType == helloRetryRequest then TLS_SERVER_HELLO
                       |  msg.messageType == encryptedExtensions then TLS_ENCRYPTED_EXTENSIONS
                       |  msg.messageType == certificateRequest then TLS_CERTIFICATE_REQ
                       |  msg.messageType == certificate then TLS_CERTIFICATE
@@ -324,7 +332,8 @@ testParameters = {
             retry = False,
             client_auth = False,
             no_client_cert = False,
-            zero_rtt = False
+            zero_rtt = False,
+            early_ccs = False
         }
 
 testConnection : connection
@@ -340,7 +349,10 @@ testConnection = {
             key_exchange_eph = False,
             client_auth_flag = False,
             actual_protocol_version = 0x22,
-            no_client_cert = True
+            no_client_cert = True,
+            early_data_state = zero,
+            chosen_psk_null = True,
+            quic_enabled = False
         }
 
 type Character = [8]
@@ -361,7 +373,6 @@ s2nToWords action = name # [ '(', action.writer, ')']
                |  action.record_type == TLS_APPLICATION_DATA then padded      "Data"
                |  action.message_type == TLS_CLIENT_HELLO then padded         "ClientHello"
                |  action.message_type == TLS_SERVER_HELLO then padded         "ServerHello"
-               |  action.message_type == TLS_HELLO_RETRY_REQUEST then padded  "HelloRetryRequest"
                |  action.message_type == TLS_ENCRYPTED_EXTENSIONS then padded "EncryptedExtensions"
                |  action.message_type == TLS_CERTIFICATE_REQ then padded      "CertRequest"
                |  action.message_type == TLS_CERTIFICATE then padded          "Cert"
