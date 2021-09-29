@@ -207,8 +207,7 @@ pub mod tests {
         fn default() -> Self {
             CertKeyPair {
                 cert: &include_bytes!("../../../../../tests/pems/rsa_4096_sha512_client_cert.pem")[..],
-                key: include_str!("../../../../../tests/pems/rsa_4096_sha512_client_key.pem")
-                    .as_bytes(),
+                key: &include_bytes!("../../../../../tests/pems/rsa_4096_sha512_client_key.pem")[..],
             }
         }
     }
@@ -294,13 +293,13 @@ pub mod tests {
         // TODO add assertions to make sure the handshake actually succeeded
     }
     #[test]
-    fn handshake_default_tls13() {
+    fn handshake_default() {
         let config = build_config(DEFAULT).unwrap();
         s2n_tls_pair(config);
     }
 
     #[test]
-    fn handshake_default() {
+    fn handshake_default_tls13() {
         let config = build_config(DEFAULT_TLS13).unwrap();
         s2n_tls_pair(config)
     }
