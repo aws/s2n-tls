@@ -3,11 +3,16 @@
 use bytes::Bytes;
 use core::task::Poll;
 use std::collections::VecDeque;
+use crate::testing::s2n_tls::Harness;
+use crate::raw::securitypolicy::*;
+use crate::raw::config::*;
 
 pub mod s2n_tls;
 
 type Error = Box<dyn std::error::Error>;
 type Result<T, E = Error> = core::result::Result<T, E>;
+
+const SAMPLES: usize = 100;
 
 pub trait Connection: core::fmt::Debug {
     fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
@@ -97,4 +102,101 @@ impl Context for MemoryContext {
     fn send(&mut self, data: Bytes) {
         self.tx.push_back(data);
     }
+}
+
+
+
+struct CertKeyPair {
+    cert: &'static [u8],
+    key: &'static [u8],
+}
+
+impl Default for CertKeyPair {
+    fn default() -> Self {
+        CertKeyPair {
+            cert: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_cert.pem")[..],
+            key: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_key.pem")[..],
+        }
+    }
+}
+
+impl CertKeyPair {
+    fn cert(&mut self) -> &'static [u8] {
+        self.cert
+    }
+
+    fn key(&mut self) -> &'static [u8] {
+        self.key
+    }
+}
+
+pub fn build_config(cipher_prefs: SecurityPolicy) -> Result<crate::raw::config::Config, Error> {
+    let mut builder = Builder::new();
+    let mut keypair = CertKeyPair::default();
+    // Build a config
+    builder
+        .set_cipher_preference(cipher_prefs.version)
+        .expect("Unable to set config cipher preferences");
+    builder
+        .load_pem(keypair.cert(), keypair.key())
+        .expect("Unable to load cert/pem");
+    unsafe {
+        let ctx: *mut core::ffi::c_void = std::ptr::null_mut();
+        builder
+            .set_verify_host_callback(Some(verify_host_cb), ctx)
+            .expect("Unable to set a host verify callback.");
+        builder
+            .disable_x509_verification()
+            .expect("Unable to disable x509 verification");
+    };
+    Ok(builder.build().expect("Unable to build server config"))
+}
+
+// host verify callback for x509
+// see: https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#s2n_verify_host_fn
+unsafe extern "C" fn verify_host_cb(
+    hostname: *const i8,
+    hostname_len: usize,
+    _context: *mut core::ffi::c_void,
+) -> u8 {
+    let host_str = ::std::str::from_utf8(::std::slice::from_raw_parts(
+        hostname as *const u8,
+        hostname_len,
+    ));
+    match host_str {
+        Err(_) => 0,
+        Ok(_host) => 1,
+    }
+}
+
+pub fn s2n_tls_pair(config: crate::raw::config::Config) {
+    // create and configure a server connection
+    let mut server = crate::raw::connection::Connection::new_server();
+    server
+        .set_config(config.clone())
+        .expect("Failed to bind config to server connection");
+    server
+        .set_client_auth_type(s2n_tls_sys::s2n_cert_auth_type::NONE)
+        .expect("Unable to set server client auth type");
+    let server = Harness::new(server);
+
+    // create a client connection
+    let mut client = crate::raw::connection::Connection::new_client();
+    client
+        .set_config(config)
+        .expect("Unabel to set client config");
+    let client = Harness::new(client);
+
+    let mut pair = Pair::new(server, client, SAMPLES);
+    loop {
+        match pair.poll() {
+            Poll::Ready(result) => {
+                result.unwrap();
+                break;
+            }
+            Poll::Pending => continue,
+        }
+    }
+
+    // TODO add assertions to make sure the handshake actually succeeded
 }
