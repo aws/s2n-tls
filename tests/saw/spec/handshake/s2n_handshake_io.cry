@@ -7,7 +7,17 @@ module s2n_handshake_io where
 // This function models the update of the s2n_connection struct by the
 // s2n_conn_set_handshake_type function in s2n.
 conn_set_handshake_type : connection -> connection
-conn_set_handshake_type conn = conn'
+conn_set_handshake_type conn =
+  if IS_TLS13_HANDSHAKE conn
+  then conn_set_tls13_handshake_type conn
+  else conn_set_pre_tls13_handshake_type conn
+
+// This function models the update of the s2n_connection struct by the
+// s2n_conn_set_handshake_type function in s2n. This only models the
+// pre-TLS 1.3 code path; see conn_set_tls13_handshake_type for a model of the
+// TLS 1.3 code path.
+conn_set_pre_tls13_handshake_type : connection -> connection
+conn_set_pre_tls13_handshake_type conn = conn'
   where conn' = {handshake = handshake'
                 ,mode = conn.mode
                 ,corked_io = conn.corked_io
@@ -19,6 +29,9 @@ conn_set_handshake_type conn = conn'
                 ,client_auth_flag = conn.client_auth_flag
                 ,actual_protocol_version = conn.actual_protocol_version
                 ,no_client_cert = conn.no_client_cert
+                ,early_data_state = conn.early_data_state
+                ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
@@ -27,18 +40,55 @@ conn_set_handshake_type conn = conn'
                             (if (full_handshake != 0) then
                               perfect_forward_secrecy || ocsp_status || client_auth
                               else zero)
-        full_handshake  = if (conn.is_caching_enabled /\ ~conn.resume_from_cache /\ ~IS_TLS13_HANDSHAKE conn)
+        full_handshake  = if (conn.is_caching_enabled /\ ~conn.resume_from_cache)
                           then zero
                           else FULL_HANDSHAKE
-        perfect_forward_secrecy = if (conn.key_exchange_eph /\ ~IS_TLS13_HANDSHAKE conn)
+        perfect_forward_secrecy = if conn.key_exchange_eph
                                   then PERFECT_FORWARD_SECRECY
                                   else zero
-        ocsp_status = if (conn.server_can_send_ocsp /\ ~IS_TLS13_HANDSHAKE conn)
+        ocsp_status = if conn.server_can_send_ocsp
                       then OCSP_STATUS
                       else zero
         client_auth = if conn.client_auth_flag
                       then CLIENT_AUTH
                       else zero
+
+// This function models the update of the s2n_connection struct by the
+// s2n_conn_set_tls13_handshake_type function in s2n.
+conn_set_tls13_handshake_type : connection -> connection
+conn_set_tls13_handshake_type conn = conn'
+  where conn' = {handshake = handshake'
+                ,mode = conn.mode
+                ,corked_io = conn.corked_io
+                ,corked = conn.corked
+                ,is_caching_enabled = conn.is_caching_enabled
+                ,resume_from_cache = conn.resume_from_cache
+                ,server_can_send_ocsp = conn.server_can_send_ocsp
+                ,key_exchange_eph = conn.key_exchange_eph
+                ,client_auth_flag = conn.client_auth_flag
+                ,actual_protocol_version = conn.actual_protocol_version
+                ,no_client_cert = conn.no_client_cert
+                ,early_data_state = conn.early_data_state
+                ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
+                }
+        (handshake' : handshake) = {handshake_type = handshake_type'
+                                   ,message_number = conn.handshake.message_number
+                                   }
+        handshake_type'  = (conn.handshake.handshake_type && (HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS))
+                           || NEGOTIATED || full_handshake || with_early_data || client_auth || middlebox_compat
+        full_handshake   = if conn.chosen_psk_null
+                           then FULL_HANDSHAKE
+                           else zero
+        with_early_data  = if conn.early_data_state == S2N_EARLY_DATA_ACCEPTED
+                           then WITH_EARLY_DATA
+                           else zero
+        client_auth      = if conn.client_auth_flag /\ (full_handshake != 0)
+                           then CLIENT_AUTH
+                           else zero
+        middlebox_compat = if conn.quic_enabled
+                           then zero
+                           else MIDDLEBOX_COMPAT
 
 // This function models the update of the s2n_connection struct by the
 // s2n_advance_message function in s2n.
@@ -55,6 +105,9 @@ advance_message conn = conn2
                 ,client_auth_flag = conn.client_auth_flag
                 ,actual_protocol_version = conn.actual_protocol_version
                 ,no_client_cert = conn.no_client_cert
+                ,early_data_state = conn.early_data_state
+                ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake2 : handshake) = { handshake_type = conn.handshake.handshake_type,
                                      message_number = message_number2 }
@@ -81,6 +134,9 @@ conn_set_handshake_no_client_cert conn = conn2
                 ,client_auth_flag = conn.client_auth_flag
                 ,actual_protocol_version = conn.actual_protocol_version
                 ,no_client_cert = conn.no_client_cert
+                ,early_data_state = conn.early_data_state
+                ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
@@ -156,11 +212,17 @@ type connection = {handshake : handshake
                   ,client_auth_flag : Bit //whether the server will request client cert
                   ,actual_protocol_version : [8]
                   ,no_client_cert : Bit
+                  ,early_data_state : [32]
+                  ,chosen_psk_null : Bit
+                  ,quic_enabled : Bit
                   }
 
 type handshake = {handshake_type : [32]
                  ,message_number : [32]
                  }
+
+type S2N_HANDSHAKES_COUNT = 256
+type S2N_MAX_HANDSHAKE_LENGTH = 32
 
 // functions model the corresponding macros in C
 
@@ -170,7 +232,7 @@ IS_TLS13_HANDSHAKE conn = conn.actual_protocol_version == S2N_TLS13
 ACTIVE_STATE_MACHINE : connection -> [20]handshake_action
 ACTIVE_STATE_MACHINE conn = if IS_TLS13_HANDSHAKE conn then tls13_state_machine else state_machine # zero
 
-ACTIVE_HANDSHAKES : connection -> [256][32][32]
+ACTIVE_HANDSHAKES : connection -> [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
 ACTIVE_HANDSHAKES conn = if IS_TLS13_HANDSHAKE conn then tls13_handshakes else handshakes
 
 ACTIVE_MESSAGE : connection -> [32]
@@ -218,14 +280,16 @@ tls13_state_machine_fn : [5] -> handshake_action
 tls13_state_machine_fn m =
   if      m == CLIENT_HELLO then mkAct TLS_HANDSHAKE TLS_CLIENT_HELLO 'C'
   else if m == SERVER_HELLO then mkAct TLS_HANDSHAKE TLS_SERVER_HELLO 'S'
+  else if m == HELLO_RETRY_MSG then mkAct TLS_HANDSHAKE TLS_SERVER_HELLO 'S'
   else if m == ENCRYPTED_EXTENSIONS then mkAct TLS_HANDSHAKE TLS_ENCRYPTED_EXTENSIONS 'S'
-  else if m == SERVER_CERT then mkAct TLS_HANDSHAKE TLS_CERTIFICATE 'S'
   else if m == SERVER_CERT_REQ then mkAct TLS_HANDSHAKE TLS_CERTIFICATE_REQ 'S'
+  else if m == SERVER_CERT then mkAct TLS_HANDSHAKE TLS_CERTIFICATE 'S'
   else if m == SERVER_CERT_VERIFY then mkAct TLS_HANDSHAKE TLS_CERT_VERIFY 'S'
   else if m == SERVER_FINISHED then mkAct TLS_HANDSHAKE TLS_FINISHED 'S'
   else if m == CLIENT_CERT then mkAct TLS_HANDSHAKE TLS_CERTIFICATE 'C'
   else if m == CLIENT_CERT_VERIFY then mkAct TLS_HANDSHAKE TLS_CERT_VERIFY 'C'
   else if m == CLIENT_FINISHED then mkAct TLS_HANDSHAKE TLS_FINISHED 'C'
+  else if m == END_OF_EARLY_DATA then mkAct TLS_HANDSHAKE TLS_END_OF_EARLY_DATA 'C'
   else if m == CLIENT_CHANGE_CIPHER_SPEC then mkAct TLS_CHANGE_CIPHER_SPEC 0 'C'
   else if m == SERVER_CHANGE_CIPHER_SPEC then mkAct TLS_CHANGE_CIPHER_SPEC 0 'S'
   else if m == APPLICATION_DATA then mkAct TLS_APPLICATION_DATA 0 'B'
@@ -257,35 +321,218 @@ state_machine_fn m =
   else zero
 
 // A model of the tls1.3 handshake state machine (array handshakes in C)
-tls13_handshakes : [256][32][32]
+tls13_handshakes : [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
 tls13_handshakes = [tls13_handshakes_fn h | h <- [0..255]]
 
 // A function that gives the tls1.3 handshake sequence for each valid handshake_type.
 tls13_handshakes_fn: [32] -> [32][32]
 tls13_handshakes_fn handshk =
-  if handshk == INITIAL then [CLIENT_HELLO, SERVER_HELLO] # zero
-  else if handshk == (NEGOTIATED || FULL_HANDSHAKE) then
-    [ CLIENT_HELLO,
-      SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
-      CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-      APPLICATION_DATA
-    ] # zero
-  else if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH) then
-    [ CLIENT_HELLO,
-      SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
-      CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
-      APPLICATION_DATA
-    ] # zero
-  else if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH || NO_CLIENT_CERT) then
-    [ CLIENT_HELLO,
-      SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT,SERVER_CERT_VERIFY, SERVER_FINISHED,
-      CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
-      APPLICATION_DATA
-    ] # zero
-  else zero
+  if handshk == INITIAL
+    then [ CLIENT_HELLO,
+           SERVER_HELLO
+         ] # zero else
+  if handshk == (INITIAL || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           SERVER_HELLO
+         ] # zero else
+  if handshk == (INITIAL || HELLO_RETRY_REQUEST)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG
+         ] # zero else
+  if handshk == (INITIAL || HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           HELLO_RETRY_MSG
+         ] # zero else
+  if handshk == NEGOTIATED
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || WITH_EARLY_DATA)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           END_OF_EARLY_DATA, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || MIDDLEBOX_COMPAT || WITH_EARLY_DATA)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_CHANGE_CIPHER_SPEC, END_OF_EARLY_DATA, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS || WITH_EARLY_DATA)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           END_OF_EARLY_DATA, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || HELLO_RETRY_REQUEST)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || CLIENT_AUTH)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || CLIENT_AUTH || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || CLIENT_AUTH || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || CLIENT_AUTH || NO_CLIENT_CERT)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || CLIENT_AUTH || NO_CLIENT_CERT || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST || CLIENT_AUTH || NO_CLIENT_CERT || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+           CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH || NO_CLIENT_CERT)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH || NO_CLIENT_CERT || MIDDLEBOX_COMPAT)
+    then [ CLIENT_HELLO,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH || NO_CLIENT_CERT || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS)
+    then [ CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+           SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+           CLIENT_CERT, CLIENT_FINISHED,
+           APPLICATION_DATA
+         ] # zero else
+  zero
 
 // A model of the handshake state machine (array handshakes in C)
-handshakes : [256][32][32]
+handshakes : [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
 handshakes = [handshakes_fn h | h <- [0..255]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
@@ -465,9 +712,31 @@ valid_connection conn = valid_handshake (conn.handshake)
 
 // Tells if the connection struct is in a valid initial state
 initial_connection : connection -> Bit
-initial_connection conn = conn.handshake.handshake_type == INITIAL /\ conn.handshake.message_number == 0
+initial_connection conn =
+       conn.handshake.handshake_type < `(S2N_HANDSHAKES_COUNT)
+    /\ conn.handshake.message_number == 0
     /\ (conn.corked == 0 \/ conn.corked == 1)
-    
+
+       // The assumptions below specifically pertain to TLS 1.3 handshakes.
+       // Some of the logic that decides which TLS 1.3 handshake types are
+       // reachable has moved out of the functions that we're verifying, so
+       // we use the preconditions below instead. Issue
+       // https://github.com/aws/s2n-tls/issues/3047 is about consolidating
+       // this logic into the `s2n_conn_set_tls13_handshake_type` function
+       // instead.
+
+       // If using early data, a full handshake (i.e., chosen_psk being null)
+       // cannot happen
+    /\ ((conn.early_data_state == S2N_EARLY_DATA_ACCEPTED) ==> ~conn.chosen_psk_null)
+
+       // HelloRetryRequest and EarlyData cannot both happen simultaneously
+    /\ ~(((conn.handshake.handshake_type && HELLO_RETRY_REQUEST) != zero)
+            /\ (conn.early_data_state == S2N_EARLY_DATA_ACCEPTED))
+
+       // EarlyClientCCS implies MiddleboxCompat
+    /\ (((conn.handshake.handshake_type && EARLY_CLIENT_CCS) != zero) ==>
+         ((conn.handshake.handshake_type && MIDDLEBOX_COMPAT) != zero))
+
 // Logical implication
 implies : Bit -> Bit -> Bit
 implies l r = if r then True else ~l
@@ -493,6 +762,19 @@ OCSP_STATUS = zero # 0x20
 WITH_SESSION_TICKET : [32]
 WITH_SESSION_TICKET = zero # 0x40
 
+HELLO_RETRY_REQUEST : [32]
+HELLO_RETRY_REQUEST = zero # 0x10
+MIDDLEBOX_COMPAT : [32]
+MIDDLEBOX_COMPAT = zero # 0x20
+WITH_EARLY_DATA : [32]
+WITH_EARLY_DATA = zero # 0x40
+EARLY_CLIENT_CCS : [32]
+EARLY_CLIENT_CCS = zero # 0x80
+
+S2N_UNKNOWN_PROTOCOL_VERSION : [8]
+S2N_UNKNOWN_PROTOCOL_VERSION = 0
+S2N_TLS12 : [8]
+S2N_TLS12 = 33
 S2N_TLS13 : [8]
 S2N_TLS13 = 34
 
@@ -513,6 +795,8 @@ SERVER_CHANGE_CIPHER_SPEC = 13
 SERVER_FINISHED = 14
 ENCRYPTED_EXTENSIONS = 15
 SERVER_CERT_VERIFY = 16
+HELLO_RETRY_MSG = 17
+END_OF_EARLY_DATA = 18
 APPLICATION_DATA = 19
 
 //TLS record type
@@ -527,7 +811,6 @@ TLS_CLIENT_HELLO              = 1
 TLS_SERVER_HELLO              = 2
 TLS_END_OF_EARLY_DATA         = 5
 TLS_SERVER_NEW_SESSION_TICKET = 4
-TLS_HELLO_RETRY_REQUEST       = 6
 TLS_ENCRYPTED_EXTENSIONS      = 8
 TLS_CERTIFICATE               = 11
 TLS_SERVER_KEY                = 12
@@ -540,3 +823,10 @@ TLS_CERTIFICATE_STATUS        = 22
 
 S2N_SERVER = 0
 S2N_CLIENT = 1
+
+//S2N cert auth types
+S2N_CERT_AUTH_NONE = 0
+S2N_CERT_AUTH_REQUIRED = 1
+
+//S2N early data states
+S2N_EARLY_DATA_ACCEPTED = 3
