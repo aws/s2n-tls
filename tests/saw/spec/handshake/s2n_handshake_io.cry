@@ -203,7 +203,7 @@ s2nTrans conn = conn3
 // uses. The names of the fields are the same as in C.
 type connection = {handshake : handshake
                   ,mode : [32]
-                  ,corked_io : [8]
+                  ,corked_io : Bit
                   ,corked : [2]
                   ,is_caching_enabled : Bit
                   ,resume_from_cache : Bit

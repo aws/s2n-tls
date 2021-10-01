@@ -341,7 +341,7 @@ testConnection = {
             handshake = {handshake_type = 0x00000000,
                 message_number = 0x00000000},
             mode = 0x00000000,
-            corked_io = '\NUL',
+            corked_io = False,
             corked = zero,
             is_caching_enabled = False,
             resume_from_cache = False,
