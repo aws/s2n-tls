@@ -39,7 +39,7 @@ ifndef S2N_NO_PQ
 TESTS += pq_handshake
 endif
 
-ifneq (S2N_NO_SSLYZE, "true")
+ifndef S2N_NO_SSLYZE
 TESTS += sslyze
 endif
 
