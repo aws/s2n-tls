@@ -45,6 +45,10 @@ int main()
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     const uint8_t test_psk_data[] = "very secret";
     DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_external_psk_new(), s2n_psk_free);
     EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, test_psk_data, sizeof(test_psk_data)));

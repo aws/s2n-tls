@@ -452,25 +452,37 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 
-    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (conn->ems_negotiated && s2n_in_unit_test()) {
-        /* Only the client writes the Client Key Exchange message */
-        if (conn->mode == S2N_CLIENT) {
-            POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
-        }
-        struct s2n_stuffer client_key_message = conn->handshake.io;
-        POSIX_GUARD(s2n_stuffer_reread(&client_key_message));
-        uint8_t client_key_message_size = s2n_stuffer_data_available(&client_key_message);
-        struct s2n_blob client_key_blob = { 0 };
-        POSIX_GUARD(s2n_blob_init(&client_key_blob, client_key_message.blob.data, client_key_message_size));
-
-        uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
-        struct s2n_blob digest = { 0 };
-        POSIX_GUARD(s2n_blob_init(&digest, data, sizeof(data)));
-        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, &digest));
-        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest));
-    } else {
+    if(!conn->ems_negotiated) {
         POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
+        return S2N_SUCCESS;
+    }
+
+    /* Only the client writes the Client Key Exchange message */
+    if (conn->mode == S2N_CLIENT) {
+        POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
+    }
+    struct s2n_stuffer client_key_message = conn->handshake.io;
+    POSIX_GUARD(s2n_stuffer_reread(&client_key_message));
+    uint32_t client_key_message_size = s2n_stuffer_data_available(&client_key_message);
+    struct s2n_blob client_key_blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_key_blob, client_key_message.blob.data, client_key_message_size));
+
+    uint8_t data[S2N_MAX_DIGEST_LEN] = { 0 };
+    struct s2n_blob digest = { 0 };
+    POSIX_GUARD(s2n_blob_init(&digest, data, sizeof(data)));
+    if (conn->actual_protocol_version < S2N_TLS12) {
+        uint8_t sha1_data[S2N_MAX_DIGEST_LEN] = { 0 };
+        struct s2n_blob sha1_digest = { 0 };
+        POSIX_GUARD(s2n_blob_init(&sha1_digest, sha1_data, sizeof(sha1_data)));
+        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_MD5, &digest));
+        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, S2N_HASH_SHA1, &sha1_digest));
+        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, &sha1_digest));
+    } else {
+        s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
+        s2n_hash_algorithm hash_alg = 0;
+        POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+        POSIX_GUARD_RESULT(s2n_prf_get_digest_for_ems(conn, &client_key_blob, hash_alg, &digest));
+        POSIX_GUARD_RESULT(s2n_tls_prf_extended_master_secret(conn, premaster_secret, &digest, NULL));
     }
     return S2N_SUCCESS;
 }
@@ -484,7 +496,7 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
  *#                    session_hash)
  *#                    [0..47];
  */
-S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash)
+S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash)
 {
     struct s2n_blob extended_master_secret = {.size = sizeof(conn->secrets.master_secret), .data = conn->secrets.master_secret};
 
@@ -492,21 +504,18 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
     /* Subtract one from the label size to remove the "\0" */
     struct s2n_blob label = {.size = sizeof(extended_master_secret_label) - 1, .data = extended_master_secret_label};
 
-    RESULT_GUARD_POSIX(s2n_prf(conn, premaster_secret, &label, session_hash, NULL, NULL, &extended_master_secret));
+    RESULT_GUARD_POSIX(s2n_prf(conn, premaster_secret, &label, session_hash, sha1_hash, NULL, &extended_master_secret));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, struct s2n_blob *output)
+S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, s2n_hash_algorithm hash_alg, struct s2n_blob *output)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->handshake.hashes);
     RESULT_ENSURE_REF(output);
 
     struct s2n_hash_state hash_state = { 0 };
-    s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
-    s2n_hash_algorithm hash_alg = 0;
-    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(prf_alg, &hash_alg));
     RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, hash_alg, &hash_state));
     RESULT_GUARD_POSIX(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &hash_state));
     RESULT_GUARD_POSIX(s2n_hash_update(&conn->handshake.hashes->hash_workspace, message->data, message->size));

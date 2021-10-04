@@ -60,7 +60,7 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
 {
     /* If running in QUIC mode, QUIC handles alerting.
      * S2N should not send or receive alerts. */
-    return conn && conn->config && !conn->config->quic_enabled;
+    return !s2n_connection_is_quic_enabled(conn);
 }
 
 static bool s2n_handle_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)

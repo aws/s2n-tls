@@ -101,7 +101,11 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_encrypt_session_ticket(conn, &to));
     POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
 
-    return 0;
+    /* For parity with TLS1.3, track the single ticket sent.
+     * This simplifies s2n_connection_get_tickets_sent.
+     */
+    conn->tickets_sent++;
+    return S2N_SUCCESS;
 }
 
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
@@ -184,7 +188,8 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_MUT(ticket_lifetime);
 
-    uint32_t key_lifetime_in_secs = conn->config->decrypt_key_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    uint32_t key_lifetime_in_secs =
+            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
     /** 

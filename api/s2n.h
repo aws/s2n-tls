@@ -195,6 +195,8 @@ extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_
 S2N_API
 extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
 S2N_API
+extern int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+S2N_API
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 S2N_API
 extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
@@ -491,6 +493,20 @@ extern int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_
  */
 S2N_API
 extern int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+
+/**
+ * Returns the number of session tickets issued by the server.
+ *
+ * In TLS1.3, this number can be up to the limit configured by s2n_config_set_initial_ticket_count
+ * and s2n_connection_add_new_tickets_to_send. In earlier versions of TLS, this number will be either 0 or 1.
+ *
+ * This method only works for server connections.
+ *
+ * @param conn A pointer to the connection object.
+ * @param num The number of additional session tickets sent.
+ */
+S2N_API
+extern int s2n_connection_get_tickets_sent(struct s2n_connection *conn, uint16_t *num);
 
 /**
  * Sets the keying material lifetime for >=TLS1.3 session tickets so that one session doesn't get re-used ad infinitum.

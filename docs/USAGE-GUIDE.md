@@ -564,7 +564,7 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190120"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
 |   "20190121"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
 |   "20190122"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
 |   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
@@ -1009,6 +1009,17 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
 **private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
 **private_key_pem_len** is the length of the private key.
 
+### s2n\_cert\_chain\_and\_key\_load\_public\_pem\_bytes
+
+```c
+int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+```
+
+**s2n_cert_chain_and_key_load_public_pem_bytes** associates a public certificate chain with a **s2n_cert_chain_and_key** object. It does NOT set a private key, so the connection will need to be configured to [offload private key operations](#offloading-asynchronous-private-key-operations).
+
+**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
+**chain_pem_len** is the length in bytes of the PEM encoded certificate chain.
+
 ### s2n\_cert\_chain\_and\_key\_set\_ctx
 
 ```c
@@ -1333,7 +1344,7 @@ number actually used by s2n-tls for the connection. **s2n_connection_get_client_
 returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
-**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
+**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11**, **S2N_TLS12**, and **S2N_TLS13**.
 
 ### s2n\_connection\_set\_verify\_host\_callback
 ```c
@@ -1613,7 +1624,7 @@ handshake.
 
 **s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
 
-**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
+**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly. Note that s2n-tls session tickets are versioned and this function will error if it receives a ticket version it doesn't understand. Therefore users need to handle errors for this function in case the inputted ticket is an unrecognized version, which could occur during a long deployment.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of copied bytes. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
@@ -1629,7 +1640,7 @@ If the first byte in **session** is 0, then the next byte will contain session i
 
 **s2n_connection_get_session_id** gets the latest session id from the connection, copies it into the **session_id** buffer, and returns the number of copied bytes. The session id may change between s2n receiving the ClientHello and sending the ServerHello, but this function will always describe the latest session id. See **s2n_client_hello_get_session_id** to get the session id as it was sent by the client in the ClientHello message.
 
-**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
+**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 
 ## TLS1.3 Session Resumption Related Calls
 
@@ -1766,8 +1777,11 @@ be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
 
 ### Offloading asynchronous private key operations
-**The s2n_async_pkey_op_\*** API can be used to perform a private key operation
-outside of the S2N context. The application can query the type of private
+
+The **s2n_async_pkey_op_\*** API can be used to perform a private key operation
+outside of the S2N context, without copying the private key into S2N memory.
+
+The application can query the type of private
 key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
 an operation, the application must ask S2N to copy the operation's input into an
 application supplied buffer. The appropriate buffer size can be determined by calling
@@ -1778,7 +1792,6 @@ finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_out
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
 to apply the operation and free the op object.
-
 
 ```c
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
@@ -1796,7 +1809,7 @@ extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint
 The **op** will copy the data into a buffer passed in through the **data** parameter.
 This buffer is owned by the application, and it is the responsibility of the
 application to free it.
-**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it
+**s2n_async_pkey_op_set_output** copies the input data buffer and uses it
 to complete the private key operation. The data buffer is owned by the application.
 Once **s2n_async_pkey_op_set_output** has returned, the application is free to
 release the data buffer.
