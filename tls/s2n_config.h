@@ -30,18 +30,28 @@
 struct s2n_cipher_preferences;
 
 struct s2n_config {
+    /* The following bitfield flags are used in SAW proofs. The position of
+     * these flags is important to SAW, so make sure that any new flags are
+     * added after these ones.
+     *
+     * START OF SAW-TRACKED BITFIELD FLAGS */
+
+    unsigned use_tickets:1;
+
+    /* Whether a connection can be used by a QUIC implementation.
+     * See s2n_quic_support.h */
+    unsigned quic_enabled:1;
+
+    /* END OF SAW-TRACKED BITFIELD FLAGS */
+
     unsigned cert_allocated:1;
     unsigned default_certs_are_explicit:1;
-    unsigned use_tickets:1;
     unsigned use_session_cache:1;
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     unsigned accept_mfl:1;
     unsigned check_ocsp:1;
     unsigned disable_x509_validation:1;
     unsigned max_verify_cert_chain_depth_set:1;
-    /* Whether a connection can be used by a QUIC implementation.
-     * See s2n_quic_support.h */
-    unsigned quic_enabled:1;
     /* Whether to add dss cert type during a server certificate request.
      * See https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md */
     unsigned cert_req_dss_legacy_compat_enabled:1;

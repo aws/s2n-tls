@@ -56,6 +56,12 @@ typedef enum {
 } s2n_session_ticket_status;
 
 struct s2n_connection {
+    /* The following bitfield flags are used in SAW proofs. The position of
+     * these flags is important to SAW, so make sure that any new flags are
+     * added after these ones.
+     *
+     * START OF SAW-TRACKED BITFIELD FLAGS */
+
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
      * managed_send_io
      */
@@ -63,6 +69,11 @@ struct s2n_connection {
 
     /* Session resumption indicator on client side */
     unsigned client_session_resumed:1;
+
+    /* Connection can be used by a QUIC implementation */
+    unsigned quic_enabled:1;
+
+    /* END OF SAW-TRACKED BITFIELD FLAGS */
 
     /* Determines if we're currently sending or receiving in s2n_shutdown */
     unsigned close_notify_queued:1;
@@ -116,9 +127,6 @@ struct s2n_connection {
 
     /* Connection negotiated an EMS */
     unsigned ems_negotiated:1;
-
-    /* Connection can be used by a QUIC implementation */
-    unsigned quic_enabled:1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;

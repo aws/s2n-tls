@@ -101,15 +101,15 @@ conn_client_session_resumed_index : [conn_bitfield_size]
 conn_client_session_resumed_index = 1
 
 conn_quic_enabled_index : [conn_bitfield_size]
-conn_quic_enabled_index = 16
+conn_quic_enabled_index = 2
 
 // The position (0-indexed) of each field of interest in
 // s2n_config's bitfield.
 config_use_tickets_index : [config_bitfield_size]
-config_use_tickets_index = 2
+config_use_tickets_index = 0
 
 config_quic_enabled_index : [config_bitfield_size]
-config_quic_enabled_index = 8
+config_quic_enabled_index = 1
 
 // Check if a field at a particular index in a bitfield is set.
 bitfield_is_set : {n} (fin n, n >= 1) => [n] -> [n] -> Bit
