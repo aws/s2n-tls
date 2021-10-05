@@ -29,9 +29,9 @@ from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
 from awacs.sts import AssumeRole
 from botocore import exceptions
 from troposphere import GetAtt, Template, Ref, Output
-from troposphere.codebuild import Artifacts, Environment, Source, Project
+from troposphere.codebuild import Artifacts, Environment, LogsConfig, S3Logs, Source, Project
 from troposphere.events import Rule, Target
-from troposphere.iam import Role, Policy
+from troposphere.iam import Role, Policy, PolicyType
 
 logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -115,6 +115,53 @@ def build_cw_cb_role(template, config, role_name="s2nEventsInvokeCodeBuildRole")
     )
     return role_id
 
+
+def build_codebuild_public_role(template, config, role_name="s2nCodeBuildPublicRole"):
+    """
+    Create a role for CodeBuild to use to display log resources publicly.
+    Note this role/policy are not attached to the CodeBuild project via troposphere.
+    """
+    region = config.get("Global", "aws_region")
+    account_number = config.get("CFNRole", "account_number")
+    role_id = template.add_resource(
+        Role(
+            role_name,
+            Path='/',
+            AssumeRolePolicyDocument=PolicyDocument(
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Principal=Principal("Service", ["codebuild.amazonaws.com"]),
+                        Action=[Action("sts", "AssumeRole")],
+                    )
+                ]
+            ),
+        )
+    )
+    template.add_resource([PolicyType("CodeBuildPublicPolicy",
+        PolicyName=f"CodeBuildPublicPolicy",
+        PolicyDocument=PolicyDocument(
+            Statement=[
+                Statement(
+                    Effect=Allow,
+                    Action=[Action("s3", "GetObject"),
+                            Action("s3", "GetObjectVersion")],
+                    Resource=[
+                        "arn:aws:s3:::s2n-build-artifacts/*",
+                    ]
+                ),
+                Statement(
+                    Effect=Allow,
+                    Action=[Action("logs", "GetLogEvents")],
+                    Resource=[
+                        "arn:aws:logs:{region}:{account_number}:log-group:/aws/codebuild/*:*".format(
+                            region=region, account_number=account_number),
+                    ]
+                ),
+            ]
+        ),
+        Roles=[Ref(role_id)]
+    )])
 
 def build_github_role(template, config, role_name="s2nCodeBuildGithubRole"):
     """
@@ -204,6 +251,12 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         BuildSpec=config.get(section, 'buildspec'),
         ReportBuildStatus=True
     )
+    logsconfig = LogsConfig(
+        S3Logs = S3Logs(
+            Location=config.get(section, "buildlogs_s3"),
+            Status="ENABLED"
+        )
+    )
 
     # Artifact is required; SecondaryArtifact is optional.
     if secondary_artifacts:
@@ -219,6 +272,7 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
             SourceVersion=config.get(section, 'source_version'),
             BadgeEnabled=True,
             DependsOn=service_role,
+            LogsConfig=logsconfig,
         )
     else:
         project = Project(
@@ -232,6 +286,7 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
             SourceVersion=config.get(section, 'source_version'),
             BadgeEnabled=True,
             DependsOn=service_role,
+            LogsConfig=logsconfig,
         )
     template.add_resource(project)
     template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project))])
@@ -330,7 +385,7 @@ def display_change_set(description):
         logging.info("Summary of changes: {}".format("".join(items)))
 
 
-def modify_existing_stack(client, config, codebuild):
+def modify_existing_stack(client, config, yml_s3_url):
     """Modify and exist Codebuild project's CloudFormation stack"""
     stack_name = config.get("Global", "stack_name")
 
@@ -340,7 +395,7 @@ def modify_existing_stack(client, config, codebuild):
 
     client.create_change_set(
         StackName=stack_name,
-        TemplateBody=codebuild.to_yaml(),
+        TemplateURL=yml_s3_url,
         Capabilities=["CAPABILITY_IAM"],
         ChangeSetName=change_set_name)
 
@@ -367,12 +422,12 @@ def modify_existing_stack(client, config, codebuild):
     logging.info(f"Update completed: {exc}")
 
 
-def create_new_stack(client, config, codebuild):
+def create_new_stack(client, config, yml_s3_url):
     """Create a new CloudFormation stack for the Codebuild project"""
     try:
         result = client.create_stack(
             StackName=config.get("Global", "stack_name"),
-            TemplateBody=codebuild.to_yaml(),
+            TemplateURL=yml_s3_url,
             Capabilities=["CAPABILITY_IAM"])
         logging.info("Creating stack {}".format(result['StackId']))
     except client.exceptions.AlreadyExistsException as e:
@@ -382,7 +437,7 @@ def create_new_stack(client, config, codebuild):
 def validate_cfn(boto_client: boto3.client, cfn_template: str):
     """ Call validate_template with boto. """
     try:
-        response = boto_client.validate_template(TemplateBody=cfn_template)
+        response = boto_client.validate_template(TemplateURL=cfn_template, )
         logging.debug(f"CloudFormation Template validation response: {response}")
         logging.info('CloudFormation template validation complete.')
     except exceptions.ClientError as e:
@@ -393,6 +448,22 @@ def get_account_number():
     # Look up the AWS account number.
     return boto3.client('sts').get_caller_identity().get('Account')
 
+def upload_template(s3client, config, yaml_file):
+    bucket_name = config.get('Global','cfn_bucket')
+    file_name = "{}.yml".format(config.get('Global','stack_name'))
+    try:
+        s3client.upload_file(
+            yaml_file,
+            bucket_name,
+            file_name
+        )
+    except exceptions.ClientError as e:
+        raise SystemError("Failed to upload to s3: {}",e)
+
+    # Construct the url
+    location = s3client.get_bucket_location(Bucket=bucket_name)['LocationConstraint']
+    url = "https://s3-%s.amazonaws.com/%s/%s" % (location, bucket_name, file_name)
+    return url
 
 def main(args, config):
     """ Create the CFN template and do stuff with said template. """
@@ -406,6 +477,10 @@ def main(args, config):
     # Role used by GitHub Actions.
     if config.has_option('Global', 'create_github_role') and config.getboolean('Global', 'create_github_role'):
         build_github_role(codebuild, config)
+
+    # Role used for public access to CodeBuild logs
+    if config.has_option('Global', 'create_codebuild_public_role') and config.getboolean('Global', 'create_codebuild_public_role'):
+        build_codebuild_public_role(codebuild, config, )
 
     # Walk the config file, adding each stanza to the Troposphere template.
     for job in config.sections():
@@ -470,7 +545,7 @@ def main(args, config):
                                minute=random.randrange(0,9),
                                input_json=cw_input.replace('TESTNAME', test_name))
 
-    # Write out a CloudFormation template.  This is ephemeral and is not used again.
+    # Write out a CloudFormation template.
     with(open(temp_yaml_filename, 'w')) as fh:
         fh.write(codebuild.to_yaml())
         logging.info(f"Wrote cfn yaml file to {temp_yaml_filename}")
@@ -480,9 +555,11 @@ def main(args, config):
         return
     else:
         # Fire up the boto, exit gracefully if the user doesn't have creds setup.
+        s3client = boto3.client('s3', region_name=config.get('Global', 'aws_region'))
+        s3_url = upload_template(s3client, config, temp_yaml_filename)
         client = boto3.client('cloudformation', region_name=config.get('Global', 'aws_region'))
         try:
-            validate_cfn(client, codebuild.to_yaml())
+            validate_cfn(client, s3_url)
         except exceptions.NoCredentialsError:
             raise SystemExit(f"Something went wrong with your AWS credentials;  Exiting.")
 
@@ -492,9 +569,9 @@ def main(args, config):
             return
 
         if args.modify_existing is True:
-            modify_existing_stack(client, config, codebuild)
+            modify_existing_stack(client, config, s3_url)
         else:
-            create_new_stack(client, config, codebuild)
+            create_new_stack(client, config, s3_url)
 
 
 if __name__ == '__main__':
