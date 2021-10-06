@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use s2n_tls::raw::security;
-use s2n_tls::testing::{build_config, s2n_tls_pair};
+use s2n_tls::{
+    raw::security,
+    testing::{build_config, s2n_tls_pair},
+};
 
 pub fn handshake(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2n-tls (client) - s2n-tls (server)");

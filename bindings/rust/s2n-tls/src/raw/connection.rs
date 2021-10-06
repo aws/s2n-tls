@@ -8,8 +8,7 @@ use crate::raw::{
     error::{Error, Fallible},
     security,
 };
-use core::ptr::NonNull;
-use core::{convert::TryInto, fmt, task::Poll};
+use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use libc::c_void;
 use s2n_tls_sys::*;
 

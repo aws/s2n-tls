@@ -1,7 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-use crate::raw::connection::Connection;
-use crate::testing::{Context, Error, Result};
+
+use crate::{
+    raw::connection::Connection,
+    testing::{Context, Error, Result},
+};
 use bytes::BytesMut;
 use core::task::Poll;
 use libc::c_void;
