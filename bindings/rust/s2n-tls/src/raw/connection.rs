@@ -6,13 +6,12 @@
 use crate::raw::{
     config::Config,
     error::{Error, Fallible},
-    securitypolicy::*,
+    security,
 };
 use core::ptr::NonNull;
 use core::{convert::TryInto, fmt, task::Poll};
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::ffi::CString;
 
 pub use s2n_tls_sys::s2n_mode;
 
@@ -51,14 +50,6 @@ impl Connection {
         Self::new(s2n_mode::SERVER)
     }
 
-    pub fn get_openssl_version(&mut self) -> Result<String, Error> {
-        let result:u64;
-        unsafe {
-            result = s2n_get_openssl_version();
-        };
-        Ok(format!("{:#08x}", result))
-    }
-
     /// can be used to configure s2n to either use built-in blinding (set blinding
     /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
     /// S2N_SELF_SERVICE_BLINDING).
@@ -92,14 +83,10 @@ impl Connection {
         Ok(self)
     }
 
-    pub fn set_security_policy(&mut self, name: security::Policy) -> Result<&mut Self, Error> {
-        let name = CString::new(name.version).map_err(|_| Error::InvalidInput)?;
+    pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
         unsafe {
-            s2n_connection_set_cipher_preferences(
-                self.connection.as_ptr(),
-                name.as_ptr() as *const _,
-            )
-            .into_result()
+            s2n_connection_set_cipher_preferences(self.connection.as_ptr(), policy.as_cstr().as_ptr())
+                .into_result()
         }?;
         Ok(self)
     }

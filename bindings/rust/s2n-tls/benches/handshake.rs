@@ -2,22 +2,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use s2n_tls::raw::securitypolicy::{DEFAULT, DEFAULT_TLS13};
+use s2n_tls::raw::security;
 use s2n_tls::testing::{build_config, s2n_tls_pair};
 
 pub fn handshake(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2n-tls (client) - s2n-tls (server)");
 
-    let config = build_config(DEFAULT).unwrap();
-    group.bench_function("handshake_default", |b| {
-        b.iter(|| s2n_tls_pair(config.clone()))
-    });
-    let config = build_config(DEFAULT_TLS13).unwrap();
-    group.bench_function("handshake_default_tls13", |b| {
-        b.iter(|| s2n_tls_pair(config.clone()))
-    });
+    for policy in security::ALL_POLICIES {
+        let config = build_config(policy).unwrap();
+        group.bench_function(format!("handshake {:?}", policy), move |b| {
+        // This does include connection initalization overhead.
+        // TODO: create a separate benchamrk that excludes this step.
+            b.iter(|| s2n_tls_pair(config.clone()));
+        });
+    }
+
     group.finish();
 }
 
 criterion_group!(benches, handshake);
 criterion_main!(benches);
+
+
+

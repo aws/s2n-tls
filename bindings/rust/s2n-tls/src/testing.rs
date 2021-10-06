@@ -4,7 +4,7 @@ use bytes::Bytes;
 use core::task::Poll;
 use std::collections::VecDeque;
 use crate::testing::s2n_tls::Harness;
-use crate::raw::securitypolicy::*;
+use crate::raw::security;
 use crate::raw::config::*;
 
 pub mod s2n_tls;
@@ -133,12 +133,12 @@ impl CertKeyPair {
     }
 }
 
-pub fn build_config(cipher_prefs: SecurityPolicy) -> Result<crate::raw::config::Config, Error> {
+pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
     let mut builder = Builder::new();
     let mut keypair = CertKeyPair::default();
     // Build a config
     builder
-        .set_cipher_preference(cipher_prefs.version)
+        .set_security_policy(cipher_prefs)
         .expect("Unable to set config cipher preferences");
     builder
         .load_pem(keypair.cert(), keypair.key())

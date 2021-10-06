@@ -181,6 +181,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
     fn on_read(&mut self, data: &mut [u8]) -> usize {
         let max_len = Some(data.len());
 
+        // TODO: loop until data buffer is full.
         if let Some(chunk) = self.context.receive(max_len) {
             let len = chunk.len();
             data[..len].copy_from_slice(&chunk);
@@ -197,13 +198,13 @@ mod tests {
 
     #[test]
     fn handshake_default() {
-        let config = build_config(DEFAULT).unwrap();
+        let config = build_config(&security::DEFAULT).unwrap();
         s2n_tls_pair(config);
     }
 
     #[test]
     fn handshake_default_tls13() {
-        let config = build_config(DEFAULT_TLS13).unwrap();
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
         s2n_tls_pair(config)
     }
 }
