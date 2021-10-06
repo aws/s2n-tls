@@ -104,9 +104,11 @@ impl Builder {
         Ok(self)
     }
 
-    /// # Safety
+    /// Turns off x509 verification
     ///
-    /// Turns off x509 verification in the config.
+    /// # Safety
+    /// This functionality will weaken the security of the connections. As such, it should only
+    /// be used in development environments where obtaining a valid certificate would not be possible.
     pub unsafe fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
         s2n_config_disable_x509_verification(self.as_mut_ptr());
         Ok(self)
