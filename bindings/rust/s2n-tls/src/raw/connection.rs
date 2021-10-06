@@ -92,7 +92,7 @@ impl Connection {
         Ok(self)
     }
 
-    pub fn set_cipher_preference(&mut self, name: SecurityPolicy) -> Result<&mut Self, Error> {
+    pub fn set_security_policy(&mut self, name: security::Policy) -> Result<&mut Self, Error> {
         let name = CString::new(name.version).map_err(|_| Error::InvalidInput)?;
         unsafe {
             s2n_connection_set_cipher_preferences(
