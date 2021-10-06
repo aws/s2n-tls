@@ -11,8 +11,8 @@ pub fn handshake(c: &mut Criterion) {
     for policy in security::ALL_POLICIES {
         let config = build_config(policy).unwrap();
         group.bench_function(format!("handshake {:?}", policy), move |b| {
-        // This does include connection initalization overhead.
-        // TODO: create a separate benchamrk that excludes this step.
+            // This does include connection initalization overhead.
+            // TODO: create a separate benchamrk that excludes this step.
             b.iter(|| s2n_tls_pair(config.clone()));
         });
     }
@@ -22,6 +22,3 @@ pub fn handshake(c: &mut Criterion) {
 
 criterion_group!(benches, handshake);
 criterion_main!(benches);
-
-
-

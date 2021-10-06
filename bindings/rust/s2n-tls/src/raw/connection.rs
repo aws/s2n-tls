@@ -85,8 +85,11 @@ impl Connection {
 
     pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
         unsafe {
-            s2n_connection_set_cipher_preferences(self.connection.as_ptr(), policy.as_cstr().as_ptr())
-                .into_result()
+            s2n_connection_set_cipher_preferences(
+                self.connection.as_ptr(),
+                policy.as_cstr().as_ptr(),
+            )
+            .into_result()
         }?;
         Ok(self)
     }

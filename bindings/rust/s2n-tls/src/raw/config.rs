@@ -1,7 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{raw::security, raw::error::{Error, Fallible}};
+use crate::{
+    raw::error::{Error, Fallible},
+    raw::security,
+};
 use alloc::sync::Arc;
 use core::{convert::TryInto, ptr::NonNull};
 use s2n_tls_sys::*;

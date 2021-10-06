@@ -1,11 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
+use crate::raw::config::*;
+use crate::raw::security;
+use crate::testing::s2n_tls::Harness;
 use bytes::Bytes;
 use core::task::Poll;
 use std::collections::VecDeque;
-use crate::testing::s2n_tls::Harness;
-use crate::raw::security;
-use crate::raw::config::*;
 
 pub mod s2n_tls;
 
@@ -106,8 +106,6 @@ impl Context for MemoryContext {
         self.tx.push_back(data);
     }
 }
-
-
 
 struct CertKeyPair {
     cert: &'static [u8],
