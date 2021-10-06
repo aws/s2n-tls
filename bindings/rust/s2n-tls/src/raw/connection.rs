@@ -6,9 +6,9 @@
 use crate::raw::{
     config::Config,
     error::{Error, Fallible},
+    security,
 };
-use core::ptr::NonNull;
-use core::{convert::TryInto, fmt, task::Poll};
+use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use libc::c_void;
 use s2n_tls_sys::*;
 
@@ -41,6 +41,13 @@ impl Connection {
             config: None,
         }
     }
+    pub fn new_client() -> Self {
+        Self::new(s2n_mode::CLIENT)
+    }
+
+    pub fn new_server() -> Self {
+        Self::new(s2n_mode::SERVER)
+    }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
     /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
@@ -72,6 +79,17 @@ impl Connection {
             s2n_connection_set_config(self.connection.as_ptr(), config.as_mut_ptr()).into_result()
         }?;
         self.config = Some(config);
+        Ok(self)
+    }
+
+    pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_cipher_preferences(
+                self.connection.as_ptr(),
+                policy.as_cstr().as_ptr(),
+            )
+            .into_result()
+        }?;
         Ok(self)
     }
 
