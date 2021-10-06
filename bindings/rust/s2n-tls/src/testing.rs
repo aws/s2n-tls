@@ -12,6 +12,9 @@ pub mod s2n_tls;
 type Error = Box<dyn std::error::Error>;
 type Result<T, E = Error> = core::result::Result<T, E>;
 
+/// The number of iterations that will be executed until the handshake exits with an error
+///
+/// This is to prevent endless looping without making progress on the connection.
 const SAMPLES: usize = 100;
 
 pub trait Connection: core::fmt::Debug {
