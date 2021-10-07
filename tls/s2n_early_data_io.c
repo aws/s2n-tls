@@ -156,7 +156,7 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
     *data_sent = 0;
 
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_SERVER_MODE);
-    RESULT_ENSURE(!s2n_is_tls_12_self_downgrade_required(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    RESULT_ENSURE(s2n_connection_supports_tls13(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     if (!s2n_early_data_can_continue(conn)) {
         return S2N_RESULT_OK;
@@ -208,10 +208,6 @@ int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_
         ssize_t *data_sent, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
-
-    /* If we are going to downgrade ourself to TLS 1.2, do not allow users to send TLS 1.3 Early data. */
-    POSIX_ENSURE((conn->mode == S2N_CLIENT), S2N_ERR_SERVER_MODE);
-    POSIX_ENSURE(!s2n_is_tls_12_self_downgrade_required(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     /* Calling this method indicates that we expect early data. */
     POSIX_GUARD(s2n_connection_set_early_data_expected(conn));

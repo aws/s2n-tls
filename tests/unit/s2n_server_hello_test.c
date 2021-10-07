@@ -509,7 +509,7 @@ int main(int argc, char **argv)
     }
 
     /* Test that negotiating TLS1.2 with QUIC-enabled client fails */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         EXPECT_SUCCESS(s2n_reset_tls13());
 
         struct s2n_config *quic_config = s2n_config_new();

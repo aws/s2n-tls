@@ -47,6 +47,8 @@ int s2n_get_highest_fully_supported_tls_version();
 int s2n_disable_tls13();
 int s2n_reset_tls13();
 bool s2n_is_valid_tls13_cipher(const uint8_t version[2]);
+S2N_RESULT s2n_connection_validate_tls13_support(struct s2n_connection *conn);
+bool s2n_connection_supports_tls13(struct s2n_connection *conn);
 
 bool s2n_is_middlebox_compat_enabled(struct s2n_connection *conn);
 
