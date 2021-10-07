@@ -356,7 +356,7 @@ int main(int argc, char **argv)
         }
 
         /* TLS_EMPTY_RENEGOTIATION_INFO_SCSV only included if TLS1.2 ciphers included */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_reset_tls13());
             const uint8_t empty_renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
 
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
-            bool quic_enabled[] = { false, true };
+            bool quic_enabled[] = { false, s2n_is_tls13_fully_supported() };
 
             /* TLS 1.2 cipher suites only written if QUIC not enabled */
             for (size_t i = 0; i < s2n_array_len(quic_enabled); i++) {

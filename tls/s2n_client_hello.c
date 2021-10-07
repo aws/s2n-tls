@@ -414,7 +414,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
 static bool s2n_cipher_suite_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
 {
-    if (!conn || !cipher || !conn->config) {
+    if (!conn || !cipher) {
         return false;
     }
 
@@ -426,7 +426,7 @@ static bool s2n_cipher_suite_available(struct s2n_connection *conn, struct s2n_c
         return false;
     }
 
-    if (conn->config->quic_enabled && cipher->minimum_required_tls_version < S2N_TLS13) {
+    if (s2n_connection_is_quic_enabled(conn) && cipher->minimum_required_tls_version < S2N_TLS13) {
         return false;
     }
 

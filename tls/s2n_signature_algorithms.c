@@ -33,9 +33,7 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
     POSIX_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
     /* QUIC only supports TLS1.3 */
-    POSIX_ENSURE_REF(conn->config);
-    if (conn->config->quic_enabled
-            && scheme->maximum_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
+    if (s2n_connection_is_quic_enabled(conn) && scheme->maximum_protocol_version) {
         POSIX_ENSURE_GTE(scheme->maximum_protocol_version, S2N_TLS13);
     }
 
