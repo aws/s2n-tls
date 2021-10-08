@@ -412,25 +412,16 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 }
 
 
-static bool s2n_cipher_suite_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
+S2N_RESULT s2n_cipher_suite_validate_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
 {
-    if (!conn || !cipher) {
-        return false;
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_EQ(cipher->available, true);
+    RESULT_ENSURE_LTE(cipher->minimum_required_tls_version, conn->client_protocol_version);
+    if (s2n_connection_is_quic_enabled(conn)) {
+        RESULT_ENSURE_GTE(cipher->minimum_required_tls_version, S2N_TLS13);
     }
-
-    if (!cipher->available) {
-        return false;
-    }
-
-    if (cipher->minimum_required_tls_version > conn->client_protocol_version) {
-        return false;
-    }
-
-    if (s2n_connection_is_quic_enabled(conn) && cipher->minimum_required_tls_version < S2N_TLS13) {
-        return false;
-    }
-
-    return true;
+    return S2N_RESULT_OK;
 }
 
 int s2n_client_hello_send(struct s2n_connection *conn)
@@ -485,7 +476,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     bool legacy_renegotiation_signal_required = false;
     for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
         cipher = cipher_preferences->suites[i];
-        if (!s2n_cipher_suite_available(conn, cipher)) {
+        if (s2n_result_is_error(s2n_cipher_suite_validate_available(conn, cipher))) {
             continue;
         }
         if (cipher->minimum_required_tls_version < S2N_TLS13) {
