@@ -1,10 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::error::{Error, Fallible};
+use crate::raw::{
+    error::{Error, Fallible},
+    security,
+};
 use alloc::sync::Arc;
-use core::convert::TryInto;
-use core::ptr::NonNull;
+use core::{convert::TryInto, ptr::NonNull};
 use s2n_tls_sys::*;
 use std::ffi::CString;
 
@@ -70,10 +72,9 @@ impl Builder {
         Ok(self)
     }
 
-    pub fn set_cipher_preference(&mut self, name: &str) -> Result<&mut Self, Error> {
-        let name = CString::new(name).map_err(|_| Error::InvalidInput)?;
+    pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
         unsafe {
-            s2n_config_set_cipher_preferences(self.as_mut_ptr(), name.as_ptr() as *const _)
+            s2n_config_set_cipher_preferences(self.as_mut_ptr(), policy.as_cstr().as_ptr())
                 .into_result()
         }?;
         Ok(self)
@@ -101,6 +102,16 @@ impl Builder {
             self.append_alpn_preference(protocol.as_ref())?;
         }
 
+        Ok(self)
+    }
+
+    /// Turns off x509 verification
+    ///
+    /// # Safety
+    /// This functionality will weaken the security of the connections. As such, it should only
+    /// be used in development environments where obtaining a valid certificate would not be possible.
+    pub unsafe fn disable_x509_verification(&mut self) -> Result<&mut Self, Error> {
+        s2n_config_disable_x509_verification(self.as_mut_ptr()).into_result()?;
         Ok(self)
     }
 

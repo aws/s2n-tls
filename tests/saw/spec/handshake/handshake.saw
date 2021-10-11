@@ -26,9 +26,7 @@
 
 include "handshake_io_lowlevel.saw";
 import "rfc_handshake_tls12.cry";
-
-// TLS1.3 is temporarily removed from SAW testing.
-// import "rfc_handshake_tls13.cry";
+import "rfc_handshake_tls13.cry";
 
 import "cork_uncork.cry";
 
@@ -38,7 +36,7 @@ let yices_debug = do { yices; print_goal; };
 
 // Workaround for If then else on nat
 let equalNat_ite = core_axiom
-  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+  "(x y z : Nat) -> (b : Bool) -> Eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
 // Low-level handshake_io correspondence proof
 let prove_handshake_io_lowlevel = do {
@@ -68,8 +66,19 @@ let prove_handshake_io_lowlevel = do {
     auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
     print "Proving correctness of s2n_advance_message";
     s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec yices;
-    print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] false s2n_conn_set_handshake_type_spec yices;
+    // To prove s2n_conn_set_handshake_type's correctness, we invoke its
+    // specification (s2n_conn_set_handshake_type_spec) twice: once where
+    // chosen_psk is assumed to be NULL, and once again where chosen_psk is
+    // assumed to be non-NULL. This is needed to ensure all code paths are
+    // tested if TLS 1.3 is used, as whether FULL_HANDSHAKE is enabled or not
+    // depends on whether chosen_psk is NULL.
+    //
+    // Issue #3052 is about removing the need to invoke the specification twice.
+    let s2n_conn_set_handshake_type_ovs = [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket];
+    print "Proving correctness of s2n_conn_set_handshake_type (NULL chosen_psk)";
+    s2n_conn_set_handshake_type_chosen_psk_null_proof     <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec true)  yices;
+    print "Proving correctness of s2n_conn_set_handshake_type (non-NULL chosen_psk)";
+    s2n_conn_set_handshake_type_chosen_psk_non_null_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec false) yices;
 
     print "Done: Verified that the low-level specification corresponds to the C code";
 
@@ -80,22 +89,21 @@ let prove_state_machine = do {
     print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
     prove_print abc {{ tls12rfcSimulatesS2N `{16} }};
 
-    // TLS1.3 is temporarily removed from SAW testing.
-    // print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
-    // prove_print z3 {{ tls13rfcSimulatesS2N `{16} }};
+    print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
+    prove_print z3 {{ tls13rfcSimulatesS2N `{16} }};
 
     return ();
 };
 
 let prove_cork_uncork = do {
     print "Verifying the low-level->high-level cork-uncork simulation";
-    prove_print abc {{ highLevelSimulatesLowLevel `{16} }};
+    prove_print z3 {{ highLevelSimulatesLowLevel `{16} }};
 
     print "Verifying that double uncorking or corking cannot occur in server mode";
-    prove_print abc {{ noDoubleCorkUncork `{16} }};
+    prove_print z3 {{ noDoubleCorkUncork `{16} }};
 
     print "Expecting failure when proving low-high simulation without the server mode assumption";
-    sat abc {{ ~highLevelDoesNotSimulateLowLevel `{16} }};
+    sat z3 {{ ~highLevelDoesNotSimulateLowLevel `{16} }};
 
     return ();
 };

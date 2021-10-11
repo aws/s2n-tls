@@ -1,8 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use core::fmt;
-use core::ptr::NonNull;
+use core::{fmt, ptr::NonNull};
 use libc::c_char;
 use s2n_tls_sys::*;
 use std::ffi::CStr;
