@@ -1543,5 +1543,30 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn.server_keying_material_lifetime, UINT32_MAX);
     }
 
+    /* s2n_allowed_to_cache_connection */
+    {
+        struct s2n_connection *conn = NULL;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        struct s2n_config *config = NULL;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+        /* Turn session caching on */
+        config->use_session_cache = 1;
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Cannot cache connection if client auth is required */
+        EXPECT_FALSE(s2n_allowed_to_cache_connection(conn));
+
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_NONE));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Allowed to cache connection if client auth is not required */
+        EXPECT_TRUE(s2n_allowed_to_cache_connection(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
     END_TEST();
 }
