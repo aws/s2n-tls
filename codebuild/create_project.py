@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from troposphere.iam import Role, Policy, PolicyType
+from troposphere.events import Rule, Target
+from troposphere.codebuild import Artifacts, Environment, LogsConfig, CloudWatchLogs, Source, Project
+from troposphere import GetAtt, Template, Ref, Output
+from botocore import exceptions
+from awacs.sts import AssumeRole
+from awacs.aws import Action, Allow, Deny, Statement, Principal, PolicyDocument
+import boto3
+import time
+import sys
+import random
+import os
+import logging
+import json
+import hashlib
+import configparser
+import argparse
 copywrite = """# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
@@ -14,24 +31,6 @@ copywrite = """# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserv
 # limitations under the License.
 """
 
-import argparse
-import configparser
-import hashlib
-import json
-import logging
-import os
-import random
-import sys
-import time
-
-import boto3
-from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
-from awacs.sts import AssumeRole
-from botocore import exceptions
-from troposphere import GetAtt, Template, Ref, Output
-from troposphere.codebuild import Artifacts, Environment, LogsConfig, S3Logs, Source, Project
-from troposphere.events import Rule, Target
-from troposphere.iam import Role, Policy, PolicyType
 
 logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +89,8 @@ def build_cw_cb_role(template, config, role_name="s2nEventsInvokeCodeBuildRole")
                         Effect=Allow,
                         Action=[Action("sts", "AssumeRole"),
                                 ],
-                        Principal=Principal("Service", ["events.amazonaws.com"])
+                        Principal=Principal(
+                            "Service", ["events.amazonaws.com"])
                     )
                 ]
             ),
@@ -131,7 +131,8 @@ def build_codebuild_public_role(template, config, role_name="s2nCodeBuildPublicR
                 Statement=[
                     Statement(
                         Effect=Allow,
-                        Principal=Principal("Service", ["codebuild.amazonaws.com"]),
+                        Principal=Principal(
+                            "Service", ["codebuild.amazonaws.com"]),
                         Action=[Action("sts", "AssumeRole")],
                     )
                 ]
@@ -139,29 +140,33 @@ def build_codebuild_public_role(template, config, role_name="s2nCodeBuildPublicR
         )
     )
     template.add_resource([PolicyType("CodeBuildPublicPolicy",
-        PolicyName=f"CodeBuildPublicPolicy",
-        PolicyDocument=PolicyDocument(
-            Statement=[
-                Statement(
-                    Effect=Allow,
-                    Action=[Action("s3", "GetObject"),
-                            Action("s3", "GetObjectVersion")],
-                    Resource=[
-                        "arn:aws:s3:::s2n-build-artifacts/*",
-                    ]
-                ),
-                Statement(
-                    Effect=Allow,
-                    Action=[Action("logs", "GetLogEvents")],
-                    Resource=[
-                        "arn:aws:logs:{region}:{account_number}:log-group:/aws/codebuild/*:*".format(
-                            region=region, account_number=account_number),
-                    ]
-                ),
-            ]
-        ),
-        Roles=[Ref(role_id)]
-    )])
+                                      PolicyName=f"CodeBuildPublicPolicy",
+                                      PolicyDocument=PolicyDocument(
+                                          Statement=[
+                                              # Omnibus could contain sensitive build runs, so explicitly deny.
+                                              Statement(
+                                                  Effect=Deny,
+                                                  Action=[
+                                                      Action("logs", "GetLogEvents")],
+                                                  Resource=[
+                                                      "arn:aws:logs:{region}:{account_number}:log-group:/aws/codebuild/s2nOmnibus".format(
+                                                          region=region, account_number=account_number),
+                                                  ]
+                                              ),
+                                              Statement(
+                                                  Effect=Allow,
+                                                  Action=[
+                                                      Action("logs", "GetLogEvents")],
+                                                  Resource=[
+                                                      "arn:aws:logs:{region}:{account_number}:log-group:/aws/codebuild/*:*".format(
+                                                          region=region, account_number=account_number),
+                                                  ]
+                                              ),
+                                          ]
+                                      ),
+                                      Roles=[Ref(role_id)]
+                                      )])
+
 
 def build_github_role(template, config, role_name="s2nCodeBuildGithubRole"):
     """
@@ -176,7 +181,8 @@ def build_github_role(template, config, role_name="s2nCodeBuildGithubRole"):
                 Statement=[
                     Statement(
                         Effect=Allow,
-                        Principal=Principal("Service", ["codebuild.amazonaws.com"]),
+                        Principal=Principal(
+                            "Service", ["codebuild.amazonaws.com"]),
                         Action=[Action("sts", "AssumeRole")],
                     )
                 ]
@@ -212,7 +218,8 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         if 'artifact_secondary_identifiers' in config[section]:
             # There can be N number of secondary artifacts
             for arti in config.get(section, 'artifact_secondary_identifiers').split(','):
-                secondary_artifacts.append(build_artifacts(arti, config.get(section, 'artifact_s3_bucket')))
+                secondary_artifacts.append(build_artifacts(
+                    arti, config.get(section, 'artifact_s3_bucket')))
 
     else:
         # One blank Artifact object required.
@@ -234,7 +241,8 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
 
     # Put the current account number into the ECR image path.
     if 'AWS_AN' in config.get(section, 'image'):
-        config.set(section, 'image', config.get(section, 'image').replace('AWS_AN', get_account_number()))
+        config.set(section, 'image', config.get(
+            section, 'image').replace('AWS_AN', get_account_number()))
 
     environment = Environment(
         ComputeType=config.get(section, 'compute_type'),
@@ -251,9 +259,10 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         BuildSpec=config.get(section, 'buildspec'),
         ReportBuildStatus=True
     )
+    # Enable storing logs in CloudWatch, with the GroupName from the config.
     logsconfig = LogsConfig(
-        S3Logs = S3Logs(
-            Location=config.get(section, "buildlogs_s3"),
+        CloudWatchLogs=CloudWatchLogs(
+            GroupName=config.get(section, "buildlogs_cw"),
             Status="ENABLED"
         )
     )
@@ -289,7 +298,8 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
             LogsConfig=logsconfig,
         )
     template.add_resource(project)
-    template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project))])
+    template.add_output(
+        [Output(f"CodeBuildProject{project_name}", Value=Ref(project))])
 
 
 def build_codebuild_role(config, template=Template(), project_name: str = None, **kwargs) -> Ref:
@@ -361,7 +371,8 @@ def build_codebuild_role(config, template=Template(), project_name: str = None, 
                     Statement(
                         Effect=Allow,
                         Action=[AssumeRole],
-                        Principal=Principal("Service", ["codebuild.amazonaws.com"])
+                        Principal=Principal(
+                            "Service", ["codebuild.amazonaws.com"])
                     )
                 ]
             )
@@ -391,7 +402,8 @@ def modify_existing_stack(client, config, yml_s3_url):
 
     # ChangeSetNames are required to start with an Alphabetic character, and to be unique.
     # Prefixing the hashed timed with an 'A' gets it done.
-    change_set_name = "A" + hashlib.sha256(bytes(time.asctime().encode('utf-8'))).hexdigest()
+    change_set_name = "A" + \
+        hashlib.sha256(bytes(time.asctime().encode('utf-8'))).hexdigest()
 
     client.create_change_set(
         StackName=stack_name,
@@ -401,15 +413,18 @@ def modify_existing_stack(client, config, yml_s3_url):
 
     logging.info(f"Waiting for change set {change_set_name}")
     waiter = client.get_waiter('change_set_create_complete')
-    waiter.wait(StackName=stack_name, ChangeSetName=change_set_name, WaiterConfig={"Delay": 3, "MaxAttempt": 3})
+    waiter.wait(StackName=stack_name, ChangeSetName=change_set_name,
+                WaiterConfig={"Delay": 3, "MaxAttempt": 3})
 
-    description = client.describe_change_set(StackName=stack_name, ChangeSetName=change_set_name)
+    description = client.describe_change_set(
+        StackName=stack_name, ChangeSetName=change_set_name)
     display_change_set(description)
 
     key = input('\nDo these changes make sense? [Y/n]')
     if key != "Y":
         logging.info("Exiting without executing change set")
-        client.delete_change_set(StackName=stack_name, ChangeSetName=change_set_name)
+        client.delete_change_set(StackName=stack_name,
+                                 ChangeSetName=change_set_name)
         return
 
     logging.info(f"Executing {change_set_name}")
@@ -418,7 +433,8 @@ def modify_existing_stack(client, config, yml_s3_url):
         ChangeSetName=change_set_name)
 
     waiter = client.get_waiter('stack_update_complete')
-    waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 5, "MaxAttempt": 6})
+    waiter.wait(StackName=stack_name, WaiterConfig={
+                "Delay": 5, "MaxAttempt": 6})
     logging.info(f"Update completed: {exc}")
 
 
@@ -431,14 +447,16 @@ def create_new_stack(client, config, yml_s3_url):
             Capabilities=["CAPABILITY_IAM"])
         logging.info("Creating stack {}".format(result['StackId']))
     except client.exceptions.AlreadyExistsException as e:
-        logging.error("Stack already exists, you must use the --modify-existing flag to update a stack")
+        logging.error(
+            "Stack already exists, you must use the --modify-existing flag to update a stack")
 
 
 def validate_cfn(boto_client: boto3.client, cfn_template: str):
     """ Call validate_template with boto. """
     try:
         response = boto_client.validate_template(TemplateURL=cfn_template, )
-        logging.debug(f"CloudFormation Template validation response: {response}")
+        logging.debug(
+            f"CloudFormation Template validation response: {response}")
         logging.info('CloudFormation template validation complete.')
     except exceptions.ClientError as e:
         raise SystemExit(f"Failed: {e}")
@@ -448,9 +466,10 @@ def get_account_number():
     # Look up the AWS account number.
     return boto3.client('sts').get_caller_identity().get('Account')
 
+
 def upload_template(s3client, config, yaml_file):
-    bucket_name = config.get('Global','cfn_bucket')
-    file_name = "{}.yml".format(config.get('Global','stack_name'))
+    bucket_name = config.get('Global', 'cfn_bucket')
+    file_name = "{}.yml".format(config.get('Global', 'stack_name'))
     try:
         s3client.upload_file(
             yaml_file,
@@ -458,12 +477,15 @@ def upload_template(s3client, config, yaml_file):
             file_name
         )
     except exceptions.ClientError as e:
-        raise SystemError("Failed to upload to s3: {}",e)
+        raise SystemError("Failed to upload to s3: {}", e)
 
     # Construct the url
-    location = s3client.get_bucket_location(Bucket=bucket_name)['LocationConstraint']
-    url = "https://s3-%s.amazonaws.com/%s/%s" % (location, bucket_name, file_name)
+    location = s3client.get_bucket_location(Bucket=bucket_name)[
+        'LocationConstraint']
+    url = "https://s3-%s.amazonaws.com/%s/%s" % (
+        location, bucket_name, file_name)
     return url
+
 
 def main(args, config):
     """ Create the CFN template and do stuff with said template. """
@@ -487,7 +509,8 @@ def main(args, config):
         if ':' in job:
             job_title = job.split(':')[1]
         if 'CodeBuild:' in job:
-            service_role = build_codebuild_role(config, template=codebuild, project_name=job_title).to_dict()
+            service_role = build_codebuild_role(
+                config, template=codebuild, project_name=job_title).to_dict()
 
             # Pull the env out of the section, and use the snippet for the other values.
             # Note: only env is over-ridden with snippets.
@@ -495,10 +518,12 @@ def main(args, config):
                 build_project(template=codebuild, project_name=job_title, section=config.get(job, 'snippet'),
                               service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
             else:
-                build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
+                build_project(template=codebuild, project_name=job_title,
+                              section=job, service_role=service_role['Ref'])
 
             # Scheduled runs triggered by CloudWatch.
-            build_cw_event(template=codebuild, project_name=job_title, role=cw_event_role)
+            build_cw_event(template=codebuild,
+                           project_name=job_title, role=cw_event_role)
         if 'CloudWatchEvent' in job:
             # CloudWatch input allows us to over-ride environment variables passed to codebuild.
             cw_input = json.loads(config.get(job, 'input'))
@@ -538,11 +563,12 @@ def main(args, config):
                 casefix = 's2n' + casefix
                 # Randomize the minute, between 0-9, that schedule jobs start to avoid being throttled.
                 build_cw_event(template=codebuild,
-                               project_name=str(casefix + config.get(job, 'job_name_suffix').title()),
+                               project_name=str(
+                                   casefix + config.get(job, 'job_name_suffix').title()),
                                target_job=config.get(job, 'build_job_name'),
                                role=cw_event_role,
                                hour=config.get(job, 'start_time'),
-                               minute=random.randrange(0,9),
+                               minute=random.randrange(0, 9),
                                input_json=cw_input.replace('TESTNAME', test_name))
 
     # Write out a CloudFormation template.
@@ -555,17 +581,21 @@ def main(args, config):
         return
     else:
         # Fire up the boto, exit gracefully if the user doesn't have creds setup.
-        s3client = boto3.client('s3', region_name=config.get('Global', 'aws_region'))
+        s3client = boto3.client(
+            's3', region_name=config.get('Global', 'aws_region'))
         s3_url = upload_template(s3client, config, temp_yaml_filename)
-        client = boto3.client('cloudformation', region_name=config.get('Global', 'aws_region'))
+        client = boto3.client(
+            'cloudformation', region_name=config.get('Global', 'aws_region'))
         try:
             validate_cfn(client, s3_url)
         except exceptions.NoCredentialsError:
-            raise SystemExit(f"Something went wrong with your AWS credentials;  Exiting.")
+            raise SystemExit(
+                f"Something went wrong with your AWS credentials;  Exiting.")
 
         # Default to not making changes
         if not args.production:
-            logging.info('Production flag not set, skipping mutating behavior.')
+            logging.info(
+                'Production flag not set, skipping mutating behavior.')
             return
 
         if args.modify_existing is True:
@@ -591,7 +621,8 @@ if __name__ == '__main__':
                         help='Modify existing stack.')
     parser.add_argument('--noop', dest='noop', action='store_true',
                         help='Create a local CFN yaml- but do no validation.')
-    parser.add_argument('--output-dir', dest='output_dir', default='cfn', help="Directory to write CFN files")
+    parser.add_argument('--output-dir', dest='output_dir',
+                        default='cfn', help="Directory to write CFN files")
     args = parser.parse_args()
     if not os.path.exists(args.config):
         raise FileNotFoundError(f"Config file not found {args.config}")
@@ -602,7 +633,8 @@ if __name__ == '__main__':
     config.read('common.config')
     config.read(args.config)
     if not config.get('CFNRole', 'account_number'):
-        raise configparser.NoSectionError("Couldn't read the common.config, run from the codebuild dir.")
+        raise configparser.NoSectionError(
+            "Couldn't read the common.config, run from the codebuild dir.")
 
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
