@@ -127,8 +127,9 @@ fi
 
 TEST_INFO=$(
     grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | \
-    awk -v timeout=$FUZZ_TIMEOUT_SEC '{count += $2; rate = count / timeout} END {print count, "tests, " rate " test/sec"}' \
+    awk -v timeout=$FUZZ_TIMEOUT_SEC '{count += int($2); rate = int(count / timeout)} END {print count, "tests, " rate " test/sec"}' \
 )
+TESTS_PER_SEC=$(echo "$TEST_INFO" | cut -d ' ' -f 3)
 FEATURE_COVERAGE=`grep -o "ft: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}' | sort | tail -1`
 TARGET_FUNCS=''
 declare -i TARGET_TOTAL=0
@@ -167,7 +168,7 @@ fi
 
 if [ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ];
 then
-    printf "\033[32;1mPASSED\033[0m %s" $TEST_INFO
+    printf "\033[32;1mPASSED\033[0m %s" "$TEST_INFO"
 
     # Output target function coverage percentage if target functions are defined and fuzzing coverage is enabled
     # Otherwise, print number of features covered
