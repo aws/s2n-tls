@@ -44,6 +44,8 @@
 #define TLS12_LENGTH_TO_CIPHER_LIST (LENGTH_TO_SESSION_ID + 1)
 #define TLS13_LENGTH_TO_CIPHER_LIST (TLS12_LENGTH_TO_CIPHER_LIST + S2N_TLS_SESSION_ID_MAX_LEN)
 
+int s2n_parse_client_hello(struct s2n_connection *conn);
+
 int main(int argc, char **argv)
 {
     struct s2n_cert_chain_and_key *chain_and_key, *ecdsa_chain_and_key;
@@ -352,6 +354,87 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13());
         }
+
+        /* TLS_EMPTY_RENEGOTIATION_INFO_SCSV only included if TLS1.2 ciphers included */
+        if (s2n_is_tls13_fully_supported()) {
+            EXPECT_SUCCESS(s2n_reset_tls13());
+            const uint8_t empty_renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+
+            struct {
+                const char* security_policy;
+                bool expect_renegotiation_info;
+            } test_cases[] = {
+                { .security_policy = "test_all_tls13",  .expect_renegotiation_info = false },
+                { .security_policy = "default_tls13",   .expect_renegotiation_info = true },
+                { .security_policy = "default",         .expect_renegotiation_info = true },
+            };
+
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_cases[i].security_policy));
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_parse_client_hello(conn));
+
+                struct s2n_blob *cipher_suites = &conn->client_hello.cipher_suites;
+                EXPECT_TRUE(cipher_suites->size > 0);
+
+                uint8_t *iana = cipher_suites->data;
+                bool found_renegotiation_info = false;
+                for (size_t j = 0; j < cipher_suites->size; j+=S2N_TLS_CIPHER_SUITE_LEN) {
+                    if (memcmp(iana + j, empty_renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+                        found_renegotiation_info = true;
+                    }
+                }
+
+                EXPECT_EQUAL(found_renegotiation_info, test_cases[i].expect_renegotiation_info);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+        }
+
+        /* TLS1.2 cipher suites not written if QUIC enabled */
+        {
+            EXPECT_SUCCESS(s2n_reset_tls13());
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+
+            bool quic_enabled[] = { false, s2n_is_tls13_fully_supported() };
+
+            /* TLS 1.2 cipher suites only written if QUIC not enabled */
+            for (size_t i = 0; i < s2n_array_len(quic_enabled); i++) {
+                config->quic_enabled = quic_enabled[i];
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_parse_client_hello(conn));
+
+                struct s2n_blob *cipher_suites = &conn->client_hello.cipher_suites;
+                EXPECT_TRUE(cipher_suites->size > 0);
+
+                bool tls12_cipher_found = false;
+                uint8_t *iana = cipher_suites->data;
+                for (size_t j = 0; j < cipher_suites->size; j+=S2N_TLS_CIPHER_SUITE_LEN) {
+                    /* All TLS1.3 cipher suites have IANAs starting with 0x13 */
+                    if (iana[j] != 0x13) {
+                        tls12_cipher_found = true;
+                    }
+                }
+
+                /* TLS1.2 and QUIC are mutually exclusive */
+                EXPECT_TRUE(tls12_cipher_found != quic_enabled[i]);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     /* Test that negotiating TLS1.2 with QUIC-enabled server fails */
@@ -386,7 +469,6 @@ int main(int argc, char **argv)
         /* Fails when negotiating TLS1.2 */
         {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all_tls12"));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);

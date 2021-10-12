@@ -190,7 +190,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     return 0;
 }
 
-static int s2n_parse_client_hello(struct s2n_connection *conn)
+int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
@@ -376,6 +376,19 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
+
+S2N_RESULT s2n_cipher_suite_validate_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_EQ(cipher->available, true);
+    RESULT_ENSURE_LTE(cipher->minimum_required_tls_version, conn->client_protocol_version);
+    if (s2n_connection_is_quic_enabled(conn)) {
+        RESULT_ENSURE_GTE(cipher->minimum_required_tls_version, S2N_TLS13);
+    }
+    return S2N_RESULT_OK;
+}
+
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -424,16 +437,24 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &available_cipher_suites_size));
 
     /* Now, write the IANA values of every available cipher suite in our list */
+    struct s2n_cipher_suite *cipher = NULL;
+    bool legacy_renegotiation_signal_required = false;
     for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
-        if (cipher_preferences->suites[i]->available &&
-                cipher_preferences->suites[i]->minimum_required_tls_version <= conn->client_protocol_version) {
-            POSIX_GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+        cipher = cipher_preferences->suites[i];
+        if (s2n_result_is_error(s2n_cipher_suite_validate_available(conn, cipher))) {
+            continue;
         }
+        if (cipher->minimum_required_tls_version < S2N_TLS13) {
+            legacy_renegotiation_signal_required = true;
+        }
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     }
 
-    /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
-    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
-    POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
+    if (legacy_renegotiation_signal_required) {
+        /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
+        uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
+    }
 
     /* Write size of the list of available ciphers */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&available_cipher_suites_size));
