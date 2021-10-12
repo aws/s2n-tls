@@ -205,6 +205,6 @@ then
 
 else
     cat ${TEST_NAME}_output.txt
-    printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" $TEST_INFO $FEATURE_COVERAGE
+    printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
     exit -1
 fi
