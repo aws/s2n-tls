@@ -94,11 +94,14 @@ static int s2n_config_init(struct s2n_config *config)
     config->session_state_lifetime_in_nanos = S2N_STATE_LIFETIME_IN_NANOS;
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
+    config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
+
+    config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
     POSIX_GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
@@ -421,6 +424,15 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
+int s2n_config_wipe_trust_store(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+
+    s2n_x509_trust_store_wipe(&config->trust_store);
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem)
 {
     POSIX_ENSURE_REF(config);
@@ -459,19 +471,23 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
-
+    s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+    config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
     POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
-        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
             config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         }
     }
 
-    return 0;
+    if (s2n_pkey_check_key_exists(cert_key_pair->private_key) != S2N_SUCCESS) {
+        config->no_signing_key = true;
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn)
@@ -503,7 +519,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 
     /* Validate certs being set before clearing auto-chosen defaults or previously set defaults */
     struct certs_by_type new_defaults = {{ 0 }};
-    for (int i = 0; i < num_cert_key_pairs; i++) {
+    for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         POSIX_ENSURE_REF(cert_key_pairs[i]);
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
         S2N_ERROR_IF(new_defaults.certs[cert_type] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
@@ -511,8 +527,9 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     }
 
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
-    for (int i = 0; i < num_cert_key_pairs; i++) {
+    for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
 
@@ -630,10 +647,21 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
 
 int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
 {
+    POSIX_ENSURE_REF(config);
+
     config->client_hello_cb = client_hello_cb;
     config->client_hello_cb_ctx = ctx;
-
     return 0;
+}
+
+int s2n_config_set_client_hello_cb_mode(struct s2n_config *config, s2n_client_hello_cb_mode cb_mode)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE(cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING ||
+            cb_mode == S2N_CLIENT_HELLO_CB_NONBLOCKING, S2N_ERR_INVALID_STATE);
+
+    config->client_hello_cb_mode = cb_mode;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code)
@@ -674,6 +702,13 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     }
 
     config->use_tickets = enabled;
+
+    if (config->initial_tickets_to_send == 0) {
+        /* Normally initial_tickets_to_send is set via s2n_config_set_initial_ticket_count.
+         * However, s2n_config_set_initial_ticket_count calls this method.
+         * So we set initial_tickets_to_send directly to avoid infinite recursion. */
+        config->initial_tickets_to_send = 1;
+    }
 
     /* session ticket || session id is enabled */
     if (enabled) {
@@ -833,11 +868,11 @@ int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb)
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE_REF(cb);
     config->psk_selection_cb = cb;
+    config->psk_selection_ctx = context;
     return S2N_SUCCESS;
 }
 
@@ -848,4 +883,17 @@ int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback
     config->key_log_ctx = ctx;
 
     return S2N_SUCCESS;
+}
+
+int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode) {
+    POSIX_ENSURE_REF(config);
+
+    switch(mode) {
+        case S2N_ASYNC_PKEY_VALIDATION_FAST:
+        case S2N_ASYNC_PKEY_VALIDATION_STRICT:
+            config->async_pkey_validation_mode = mode;
+            return S2N_SUCCESS;
+    }
+
+    POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }

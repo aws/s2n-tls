@@ -39,7 +39,7 @@ const s2n_extension_type s2n_client_server_name_extension = {
 
 static bool s2n_client_server_name_should_send(struct s2n_connection *conn)
 {
-    return conn && strlen(conn->server_name) > 0;
+    return conn && conn->server_name[0] != '\0';
 }
 
 static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -58,6 +58,9 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
     return S2N_SUCCESS;
 }
 
+/* Read the extension up to the first item in ServerNameList. Store the first entry's length in server_name_len.
+ * For now s2n ignores all subsequent items in ServerNameList.
+ */
 static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension, uint16_t *server_name_len)
 {
     POSIX_ENSURE_REF(conn);

@@ -15,41 +15,101 @@
 
 #include "testlib/s2n_testlib.h"
 
-static int s2n_try_negotiate(struct s2n_connection *conn, bool *is_done, bool peer_is_done)
+static S2N_RESULT s2n_validate_negotiate_result(bool success, bool peer_is_done, bool *is_done)
 {
-    s2n_blocked_status blocked;
-    int rc = s2n_negotiate(conn, &blocked);
-
     /* If we succeeded, we're done. */
-    if(rc == S2N_SUCCESS) {
-        *is_done = true;
-        return S2N_SUCCESS;
+    if(success) {
+       *is_done = true;
+       return S2N_RESULT_OK;
     }
 
     /* If we failed for any error other than 'blocked', propagate the error. */
     if(s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-        S2N_ERROR_PRESERVE_ERRNO();
+        return S2N_RESULT_ERROR;
+    }
+
+    if(s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+        return S2N_RESULT_ERROR;
     }
 
     /* If we're blocked but our peer is done writing, propagate the error. */
     if(peer_is_done) {
-        S2N_ERROR_PRESERVE_ERRNO();
+        return S2N_RESULT_ERROR;
     }
 
     *is_done = false;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
-    bool server_done = 0, client_done = 0;
+    bool server_done = false, client_done = false;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    bool rc = false;
 
     do {
-        POSIX_GUARD(s2n_try_negotiate(client_conn, &client_done, server_done));
-        POSIX_GUARD(s2n_try_negotiate(server_conn, &server_done, client_done));
+        rc = (s2n_negotiate(client_conn, &blocked) >= S2N_SUCCESS);
+        POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, server_done, &client_done));
+
+        rc = (s2n_negotiate(server_conn, &blocked) >= S2N_SUCCESS);
+        POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, client_done, &server_done));
     } while (!client_done || !server_done);
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
+        struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received)
+{
+    bool server_done = false, client_done = false;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    ssize_t total_data_sent = 0, total_data_recv = 0;
+    ssize_t data_sent = 0, data_recv = 0;
+
+    /* We call s2n_send_early_data and s2n_recv_early_data to handle the early data before
+     * calling s2n_negotiate to complete the handshake.
+     *
+     * s2n_recv_early_data does not indicate success until it receives the EndOfEarlyData message,
+     * indicating that the client is done sending early data. However, the client does not send the
+     * EndOfEarlyData message until s2n_negotiate is called. So we need to exit the early data loop
+     * once the client is done, ignoring whether or not the server is done.
+     */
+    do {
+        bool client_success = (s2n_send_early_data(client_conn, early_data_to_send->data + total_data_sent,
+                early_data_to_send->size - total_data_sent, &data_sent, &blocked) >= S2N_SUCCESS);
+        total_data_sent += data_sent;
+        RESULT_GUARD(s2n_validate_negotiate_result(client_success, server_done, &client_done));
+
+        bool server_success = (s2n_recv_early_data(server_conn, early_data_received->data + total_data_recv,
+                early_data_received->size - total_data_recv, &data_recv, &blocked) >= S2N_SUCCESS);
+        total_data_recv += data_recv;
+        /* We pass in client_done==false to avoid the server erroring on blocked IO.
+         * The s2n_negotiate calls later will resolve that blocked condition. */
+        RESULT_GUARD(s2n_validate_negotiate_result(server_success, false, &server_done));
+    } while (total_data_sent < early_data_to_send->size && !client_done);
+
+    /* Finish the handshake */
+    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connection *server_conn,
+        struct s2n_connection *client_conn, message_type_t message_type)
+{
+    bool server_done = false, client_done = false;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    bool rc = false;
+
+    do {
+        rc = s2n_result_is_ok(s2n_negotiate_until_message(client_conn, &blocked, message_type));
+        RESULT_GUARD(s2n_validate_negotiate_result(rc, server_done, &client_done));
+
+        rc = s2n_result_is_ok(s2n_negotiate_until_message(server_conn, &blocked, message_type));
+        RESULT_GUARD(s2n_validate_negotiate_result(rc, client_done, &server_done));
+    } while (!client_done || !server_done);
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)

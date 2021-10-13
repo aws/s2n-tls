@@ -12,8 +12,8 @@
 # limitations under the License.
 
 # Enough to get full coverage with 10 seconds of runtime.
-BLOB_SIZE = 10
-DEFINES += -DBLOB_SIZE=$(BLOB_SIZE)
+MAX_BLOB_SIZE = 10
+DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CBMCFLAGS +=
 
@@ -24,13 +24,12 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_text.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
-UNWINDSET += s2n_stuffer_skip_expected_char.4:$(call addone,$(BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_expected_char.4:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common

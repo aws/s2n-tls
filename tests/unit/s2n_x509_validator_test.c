@@ -142,9 +142,14 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         int err_code = s2n_x509_trust_store_add_pem(&trust_store, cert_chain);
-        free(cert_chain);
         EXPECT_EQUAL(0, err_code);
         EXPECT_TRUE(s2n_x509_trust_store_has_certs(&trust_store));
+
+        /* s2n_x509_trust_store_add_pem returns success when trying to add a
+         * certificate that already exists in the trust store */
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, cert_chain));
+
+        free(cert_chain);
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
@@ -1547,6 +1552,78 @@ int main(int argc, char **argv) {
         s2n_config_free(config);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* Test trust store can be wiped */
+    {
+        /* Wipe new s2n_config, which is initialized with certs from the system default locations. */
+        {
+            struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+            s2n_config_free(cfg);
+        }
+
+        /* Wipe repeatedly without crash */
+        {
+            struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+            s2n_config_free(cfg);
+        }
+
+        /* Wipe after setting verification location */
+        {
+            struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(cfg, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+            s2n_config_free(cfg);
+        }
+
+        /* Set verification location after wipe */
+        {
+            struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(cfg, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+            s2n_config_free(cfg);
+        }
+
+        /* Wipe after adding PEM */
+        {
+            struct s2n_config *cfg = s2n_config_new();
+            char *cert_chain = NULL;
+            EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(cfg, cert_chain));
+            EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+            free(cert_chain);
+            s2n_config_free(cfg);
+        }
+
+        /* Add PEM after wipe */
+        {
+            struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
+            EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+
+            char *cert_chain = NULL;
+            EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(cfg, cert_chain));
+            EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
+            free(cert_chain);
+            s2n_config_free(cfg);
+        }
     }
 
     END_TEST();

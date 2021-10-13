@@ -17,17 +17,9 @@
 #include "utils/s2n_str.h"
 
 char *s2n_strcpy(char *buf, char *last, const char *str) {
-
-/* CBMC pointer checks need to be disabled to compare buf and last for
- * the case where they are the same. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-
     if (buf >= last) {
         return buf;
     }
-
-#pragma CPROVER check pop
 
     if (NULL == str) {
         *buf = '\0';

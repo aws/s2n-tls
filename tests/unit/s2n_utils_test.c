@@ -38,7 +38,7 @@ int requested_bigger_than_max() {
     return 0;
 }
 
-int succesful_stack_blob() {
+int successful_stack_blob() {
     s2n_stack_blob(foo, 10, 10);
     POSIX_ENSURE_EQ(foo.size, 10);
     POSIX_ENSURE_EQ(foo.allocated, 0);
@@ -55,6 +55,6 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
     EXPECT_FAILURE(requested_bigger_than_max());
-    EXPECT_SUCCESS(succesful_stack_blob());
+    EXPECT_SUCCESS(successful_stack_blob());
     END_TEST();
 }

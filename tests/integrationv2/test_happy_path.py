@@ -5,7 +5,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, AL
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL, JavaSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -25,7 +25,6 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     random_bytes = data_bytes(65519)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         cert=certificate.cert,
@@ -49,21 +48,19 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # just want to make sure there was no exception and that
     # the client exited cleanly.
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     # The server is always S2N in this test, so we can examine
     # the stdout reliably.
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
         assert random_bytes in results.stdout
 
         if provider is not S2N:
-            assert bytes("Cipher negotiated: {}".format(cipher.name).encode('utf-8')) in results.stdout
+            assert to_bytes("Cipher negotiated: {}".format(cipher.name)) in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -83,7 +80,6 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     random_bytes = data_bytes(4096)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -107,15 +103,13 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     # The client is always S2N in this test, so we can examine
     # the stdout reliably.
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
 
     # The server will be one of all supported providers. We
     # just want to make sure there was no exception and that
     # the client exited cleanly.
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character
         assert random_bytes[1:] in results.stdout

@@ -46,9 +46,18 @@ const uint8_t tls11_downgrade_protection_check_bytes[] = {
 
 static S2N_RESULT s2n_test_client_hello(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
+    /* We have to "write" the handshake header for the PSK binder calculation, which expects a complete
+     * ClientHello message. We'll skip these bytes later.
+     */
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&client_conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
+
     RESULT_GUARD_POSIX(s2n_client_hello_send(client_conn));
     RESULT_GUARD_POSIX(s2n_stuffer_copy(&client_conn->handshake.io,
             &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+    /* Skip the handshake header bytes */
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&server_conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
+
     RESULT_GUARD_POSIX(s2n_client_hello_recv(server_conn));
 
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&client_conn->handshake.io));
@@ -110,9 +119,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(ecc_preferences);
         /* configure these parameters so server hello can be sent */
         conn->actual_protocol_version = S2N_TLS13;
-        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+        conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
         struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
         EXPECT_SUCCESS(s2n_server_hello_send(conn));
@@ -273,7 +282,7 @@ int main(int argc, char **argv)
         client_conn->client_protocol_version = S2N_TLS13;
 
         /* Set the negotiated curve, otherwise the server might try to respond with a retry */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* The server will respond with TLS1.1 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS11;
@@ -317,7 +326,7 @@ int main(int argc, char **argv)
         client_conn->client_protocol_version = S2N_TLS13;
 
         /* Set the negotiated curve, otherwise the server might try to respond with a retry */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* The server will respond with TLS1.2 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -513,7 +522,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(non_quic_config, chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, non_quic_config));
 
@@ -560,6 +569,81 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(quic_config));
         EXPECT_SUCCESS(s2n_config_free(non_quic_config));
+    }
+
+    /* Test that negotiating TLS1.2 with an early data enabled client fails.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
+     *= type=test
+     *# A client that attempts to send 0-RTT data MUST fail a connection if
+     *# it receives a ServerHello with TLS 1.2 or older.
+     */
+    if (s2n_is_tls13_fully_supported()) {
+        EXPECT_SUCCESS(s2n_reset_tls13());
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        /* Succeeds when negotiating TLS1.3 */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
+
+            EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io,
+                    &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+            EXPECT_EQUAL(client_conn->server_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* TLS 1.3 Client Early Data is rejected when server only supports TLS1.2 */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
+
+            EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io,
+                    &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+            EXPECT_EQUAL(client_conn->server_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

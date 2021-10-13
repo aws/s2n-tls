@@ -36,13 +36,15 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_EXTERNAL);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
-        EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
+        EXPECT_EQUAL(psk.ticket_age_add, 0);
+        EXPECT_EQUAL(psk.ticket_issue_time, 0);
         EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
 
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_RESUMPTION);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
-        EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
+        EXPECT_EQUAL(psk.ticket_age_add, 0);
+        EXPECT_EQUAL(psk.ticket_issue_time, 0);
         EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
     }
 
@@ -756,7 +758,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_psk->secret.size, input_psk->secret.size);
             EXPECT_BYTEARRAY_EQUAL(actual_psk->secret.data, input_psk->secret.data, input_psk->secret.size);
             EXPECT_EQUAL(actual_psk->hmac_alg, S2N_HMAC_SHA384);
-            EXPECT_EQUAL(actual_psk->obfuscated_ticket_age, 0);
+            EXPECT_EQUAL(actual_psk->ticket_age_add, 0);
+            EXPECT_EQUAL(actual_psk->ticket_issue_time, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -863,11 +866,12 @@ int main(int argc, char **argv)
 
             uint32_t offered_psks_size = 0;
             struct s2n_psk *test_psk = NULL;
+            EXPECT_SUCCESS(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_EXTERNAL));
             while(offered_psks_size < UINT16_MAX) {
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &test_psk));
                 EXPECT_NOT_NULL(test_psk);
 
-                EXPECT_OK(s2n_psk_init(test_psk, S2N_PSK_TYPE_RESUMPTION));
+                EXPECT_OK(s2n_psk_init(test_psk, S2N_PSK_TYPE_EXTERNAL));
                 EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, identity_1, sizeof(identity_1)));
                 EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
             }
@@ -891,36 +895,43 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* PSK matches existing resumption PSK */
+        /* PSK matches existing external PSK */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_psk *test_psk = NULL;
-            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &test_psk));
-            EXPECT_NOT_NULL(test_psk);
-            EXPECT_OK(s2n_psk_init(test_psk, S2N_PSK_TYPE_RESUMPTION));
-            EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, input_psk->identity.data, input_psk->identity.size));
-
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, input_psk));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, input_psk),
                     S2N_ERR_DUPLICATE_PSK_IDENTITIES);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* PSK matches existing external PSK */
+        /* Can't mix resumption and external PSKs */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
 
-            struct s2n_psk *test_psk = NULL;
-            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &test_psk));
-            EXPECT_NOT_NULL(test_psk);
-            EXPECT_OK(s2n_psk_init(test_psk, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, input_psk->identity.data, input_psk->identity.size));
+            DEFER_CLEANUP(struct s2n_psk *test_external_psk = s2n_test_psk_new(conn), s2n_psk_free);
+            test_external_psk->type = S2N_PSK_TYPE_EXTERNAL;
+            DEFER_CLEANUP(struct s2n_psk *test_resumption_psk = s2n_test_psk_new(conn), s2n_psk_free);
+            test_resumption_psk->type = S2N_PSK_TYPE_RESUMPTION;
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, input_psk),
-                    S2N_ERR_DUPLICATE_PSK_IDENTITIES);
+            /* Add resumption to list that contains external */
+            {
+                EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_external_psk));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, test_resumption_psk),
+                        S2N_ERR_PSK_MODE);
+            }
+
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+            /* Add external to a list that contains resumption */
+            {
+                EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_resumption_psk));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, test_external_psk),
+                        S2N_ERR_PSK_MODE);
+            }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -928,7 +939,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_psk_set_hmac */
     {
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(NULL, S2N_PSK_HMAC_SHA224), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(NULL, S2N_PSK_HMAC_SHA256), S2N_ERR_NULL);
 
         DEFER_CLEANUP(struct s2n_psk psk, s2n_psk_wipe);
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
@@ -937,14 +948,159 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(&psk, -1), S2N_ERR_HMAC_INVALID_ALGORITHM);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
 
-        EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA224));
-        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA224);
+        EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA384));
+        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA384);
 
         EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA256));
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
+    }
 
-        EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA384));
-        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA384);
+    /* Test: s2n_config_set_psk_mode */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_RESUMPTION);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_mode(NULL, S2N_PSK_MODE_EXTERNAL), S2N_ERR_NULL);
+        EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_RESUMPTION);
+
+        EXPECT_SUCCESS(s2n_config_set_psk_mode(config, S2N_PSK_MODE_EXTERNAL));
+        EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_EXTERNAL);
+
+        EXPECT_SUCCESS(s2n_config_set_psk_mode(config, S2N_PSK_MODE_RESUMPTION));
+        EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_RESUMPTION);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Test: s2n_connection_set_psk_mode */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_psk_mode(NULL, S2N_PSK_MODE_EXTERNAL), S2N_ERR_NULL);
+        EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
+        EXPECT_FALSE(conn->psk_mode_overridden);
+
+        EXPECT_SUCCESS(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_RESUMPTION));
+        EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
+        EXPECT_TRUE(conn->psk_mode_overridden);
+
+        EXPECT_SUCCESS(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_EXTERNAL));
+        EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
+        EXPECT_TRUE(conn->psk_mode_overridden);
+
+        DEFER_CLEANUP(struct s2n_psk *test_external_psk = s2n_test_psk_new(conn), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_external_psk));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_RESUMPTION), S2N_ERR_PSK_MODE);
+        EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: s2n_connection_get_negotiated_psk_identity_length */
+    {
+        const uint8_t psk_identity[] = "identity";
+        struct s2n_connection *conn = NULL;
+        uint16_t identity_length = 0;
+
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity_length(NULL, &identity_length), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity_length(conn, NULL), S2N_ERR_NULL);
+    
+        EXPECT_NULL(conn->psk_params.chosen_psk);
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length));
+        EXPECT_EQUAL(identity_length, 0);
+
+        DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_identity, sizeof(psk_identity)));
+        conn->psk_params.chosen_psk = psk;
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length));
+        EXPECT_EQUAL(identity_length, sizeof(psk_identity));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: s2n_connection_get_negotiated_psk_identity */
+    {
+        const uint8_t psk_identity[] = "identity";
+        const uint8_t empty_identity[sizeof(psk_identity)] = { 0 };
+        struct s2n_connection *conn = NULL;
+        uint8_t identity[sizeof(psk_identity)] = { 0 };
+        uint16_t max_identity_length = 0;
+
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(NULL, identity, max_identity_length), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, NULL, max_identity_length), S2N_ERR_NULL);
+    
+        EXPECT_NULL(conn->psk_params.chosen_psk);
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, max_identity_length));
+        EXPECT_EQUAL(max_identity_length, 0);
+        EXPECT_BYTEARRAY_EQUAL(identity, empty_identity, sizeof(empty_identity));  
+
+        DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_identity, sizeof(psk_identity)));
+        conn->psk_params.chosen_psk = psk;
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &max_identity_length));
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, max_identity_length));
+        EXPECT_BYTEARRAY_EQUAL(identity, psk_identity, sizeof(psk_identity));          
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, identity, 0), S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_psk_validate_keying_material */
+    {
+        uint64_t current_time = 100;
+
+        /* Safety */
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(NULL), S2N_ERR_NULL);
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_mock_wall_clock(config, &current_time));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
+
+        /* No-op if no chosen PSK */
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
+        conn->psk_params.chosen_psk = chosen_psk;
+
+        /* No-op if chosen PSK is external */
+        chosen_psk->type = S2N_PSK_TYPE_EXTERNAL;
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
+        chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+
+        /* Okay if chosen PSK's material is not expired */
+        chosen_psk->keying_material_expiration = UINT64_MAX;
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
+        /* Fails if chosen PSK's material is expired */
+        chosen_psk->keying_material_expiration = 0;
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+        /* Fails if chosen PSK's material expires at current_time */
+        chosen_psk->keying_material_expiration = current_time;
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+        /* Fails if chosen PSK's material has less than 1s left to live */
+        chosen_psk->keying_material_expiration = current_time + 1;
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+        /* Okay if chosen PSK's material has more than 1s left to live */
+        chosen_psk->keying_material_expiration = current_time + ONE_SEC_IN_NANOS + 1;
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();

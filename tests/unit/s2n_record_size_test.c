@@ -227,6 +227,31 @@ int main(int argc, char **argv)
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
+        /* TLS1.3 AEAD */
+        {
+            EXPECT_SUCCESS(destroy_server_keys(server_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+
+            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->initial.cipher_suite->record_alg = &s2n_tls13_record_alg_aes128_gcm;
+            EXPECT_SUCCESS(setup_server_keys(server_conn, &aes128));
+
+            EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
+            r.size = size;
+            const uint16_t IV = 0;
+            const uint16_t TAG = 16;
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - S2N_TLS_CONTENT_TYPE_LENGTH);
+
+            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
+            EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
+            EXPECT_EQUAL(bytes_written, size);
+            EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
+            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
+        }
+
+        /* chacha20 */
         if (s2n_chacha20_poly1305.is_available()) {
             EXPECT_SUCCESS(destroy_server_keys(server_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
@@ -241,6 +266,33 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN);
+            r.size = size;
+
+            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
+            EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
+            EXPECT_EQUAL(bytes_written, size);
+            EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
+            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
+        }
+
+        /* TLS1.3 chacha20 */
+        if (s2n_chacha20_poly1305.is_available()) {
+            EXPECT_SUCCESS(destroy_server_keys(server_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->initial.cipher_suite->record_alg = &s2n_tls13_record_alg_chacha20_poly1305;
+            uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
+            struct s2n_blob chacha20_poly1305_key = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
+
+            EXPECT_SUCCESS(setup_server_keys(server_conn, &chacha20_poly1305_key));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+
+            EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN
+                    - S2N_TLS_GCM_TAG_LEN - S2N_TLS_CONTENT_TYPE_LENGTH);
             r.size = size;
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
@@ -333,7 +385,7 @@ int main(int argc, char **argv)
         /* Testing a big 100k blob to be written */
         s2n_stack_blob(big_blob, ONE_HUNDRED_K, ONE_HUNDRED_K);
 
-        /* Test that s2n_record_write() doesn't error on writting large payloads.
+        /* Test that s2n_record_write() doesn't error on writing large payloads.
          * Also asserts the bytes written on the wire.
          */
         server_conn->wire_bytes_out = 0;
@@ -370,6 +422,40 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* s2n_record_max_write_size */
+    {
+        uint16_t result = 0;
+        conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(NULL, 1, &result), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(conn, 1, NULL), S2N_ERR_NULL);
+
+        conn->actual_protocol_version = 0;
+        conn->handshake.handshake_type = INITIAL;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS_MAXIMUM_RECORD_LENGTH);
+
+        conn->handshake.handshake_type = NEGOTIATED;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS_MAXIMUM_RECORD_LENGTH);
+
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS12_MAXIMUM_RECORD_LENGTH);
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH);
+
+        uint16_t diff = 10;
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - diff, &result));
+        EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH - diff);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();

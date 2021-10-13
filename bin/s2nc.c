@@ -13,21 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
-#include <poll.h>
 #include <netdb.h>
 
-#include <stdlib.h>
-#include <signal.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <getopt.h>
-#include <strings.h>
-#include <errno.h>
 #include <fcntl.h>
 
 #include "api/s2n.h"
@@ -35,9 +25,6 @@
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
-
-#define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
 
 void usage()
 {
@@ -51,8 +38,7 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
-    fprintf(stderr, "  -e\n");
-    fprintf(stderr, "  --echo\n");
+    fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
@@ -62,7 +48,7 @@ void usage()
     fprintf(stderr, "\n");
     fprintf(stderr, "  -s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
-    fprintf(stderr, "  --mfl\n");
+    fprintf(stderr, "  -m,--mfl\n");
     fprintf(stderr, "    Request maximum fragment length from: 512, 1024, 2048, 4096\n");
     fprintf(stderr, "  -f,--ca-file [file path]\n");
     fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.\n");
@@ -70,9 +56,9 @@ void usage()
     fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
-    fprintf(stderr, "  --cert [file path]\n");
+    fprintf(stderr, "  -l,--cert [file path]\n");
     fprintf(stderr, "    Path to a PEM encoded certificate. Optional. Will only be used for client auth\n");
-    fprintf(stderr, "  --key [file path]\n");
+    fprintf(stderr, "  -k,--key [file path]\n");
     fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Will only be used for client auth\n");
     fprintf(stderr, "  -r,--reconnect\n");
     fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
@@ -84,37 +70,41 @@ void usage()
     fprintf(stderr, "    Set dynamic record timeout threshold\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
-    fprintf(stderr, "  --non-blocking\n");
+    fprintf(stderr, "  -B,--non-blocking\n");
     fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
-    fprintf(stderr, "  -K ,--keyshares\n");
-    fprintf(stderr, "    Colon separated list of curve names.\n"
-                    "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
-                    "    The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares.\n"
-                    "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -E ,--early-data <file path>\n");
+    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.");
     fprintf(stderr, "\n");
     exit(1);
 }
 
-struct verify_data {
-    const char *trusted_host;
-};
 
-static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
-    struct verify_data *verify_data = (struct verify_data *)data;
 
-    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
-        char *suffix = strstr(verify_data->trusted_host, ".");
-        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
+size_t session_state_length = 0;
+uint8_t *session_state = NULL;
+static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
+{
+    GUARD_EXIT_NULL(conn);
+    GUARD_EXIT_NULL(ticket);
+
+    GUARD_EXIT(s2n_session_ticket_get_data_len(ticket, &session_state_length), "Error getting ticket length ");
+    session_state = realloc(session_state, session_state_length);
+    if(session_state == NULL) {
+        print_s2n_error("Error getting new session state");
+        exit(1);
     }
+    GUARD_EXIT(s2n_session_ticket_get_data(ticket, session_state_length, session_state), "Error getting ticket data");
 
-    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
-        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
-                || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
-    }
+    bool *session_ticket_recv = (bool *)ctx;
+    *session_ticket_recv = 1;
 
-    return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
+    return S2N_SUCCESS;
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
@@ -228,8 +218,7 @@ int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
     int r, sockfd = 0;
-    ssize_t session_state_length = 0;
-    uint8_t *session_state = NULL;
+    bool session_ticket_recv = 0;
     /* Optional args */
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
@@ -254,12 +243,11 @@ int main(int argc, char *const *argv)
     int echo_input = 0;
     int use_corked_io = 0;
     uint8_t non_blocking = 0;
-    int keyshares_count = 0;
-    char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
-    char *input = NULL;
-    char *token = NULL;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
+    char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
+    size_t psk_list_len = 0;
+    char *early_data = NULL;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -280,15 +268,16 @@ int main(int argc, char *const *argv)
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
-        {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
+        {"early-data", required_argument, 0, 'E'},
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTCK:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -307,17 +296,6 @@ int main(int argc, char *const *argv)
             break;
         case 'h':
             usage();
-            break;
-        case 'K':
-            input = optarg;
-            token = strtok(input, ":");
-            while( token != NULL ) {
-                strcpy(keyshares[keyshares_count], token);
-                if (++keyshares_count == S2N_ECC_EVP_SUPPORTED_CURVES_COUNT) {
-                    break;
-                }
-                token = strtok(NULL, ":");
-            }
             break;
         case 'n':
             server_name = optarg;
@@ -369,6 +347,17 @@ int main(int argc, char *const *argv)
             break;
         case 'L':
             key_log_path = optarg;
+            break;
+        case 'P':
+            if (psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
+                fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
+                exit(1);
+            }
+            psk_optarg_list[psk_list_len++] = optarg;
+            break;
+        case 'E':
+            early_data = load_file_to_cstring(optarg);
+            GUARD_EXIT_NULL(early_data);
             break;
         case '?':
         default:
@@ -455,6 +444,7 @@ int main(int argc, char *const *argv)
         }
 
         if (ca_file || ca_dir) {
+            GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
@@ -465,6 +455,8 @@ int main(int argc, char *const *argv)
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+            GUARD_EXIT(s2n_config_set_session_ticket_cb(config, test_session_ticket_cb, &session_ticket_recv), "Error setting session ticket callback");
+            session_ticket_recv = 0;
         }
 
         if (key_log_path) {
@@ -499,15 +491,23 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
         }
 
-        for (size_t i = 0; i < keyshares_count; i++) {
-            if (keyshares[i]) {
-                GUARD_EXIT(s2n_connection_set_keyshare_by_name_for_testing(conn, keyshares[i]), "Error setting keyshares to generate");
-            }
-        }
-
         /* Update session state in connection if exists */
         if (session_state_length > 0) {
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
+        }
+
+        GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
+
+        if (early_data) {
+            if (!session_ticket) {
+                print_s2n_error("Early data can only be used with session tickets.");
+                exit(1);
+            }
+            /* Send early data if we have a received a session ticket from the server */
+            if (session_state_length) {
+                uint32_t early_data_length = strlen(early_data);
+                GUARD_EXIT(early_data_send(conn, (uint8_t *)early_data, early_data_length), "Error sending early data");
+            }
         }
 
         /* See echo.c */
@@ -518,18 +518,27 @@ int main(int argc, char *const *argv)
 
         printf("Connected to %s:%s\n", host, port);
 
-        /* Save session state from connection if reconnect is enabled */
+        /* Save session state from connection if reconnect is enabled. */
         if (reconnect > 0) {
-            if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
-                printf("Endpoint sent empty session id so cannot resume session\n");
-                exit(1);
-            }
-            free(session_state);
-            session_state_length = s2n_connection_get_session_length(conn);
-            session_state = calloc(session_state_length, sizeof(uint8_t));
-            if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
-                print_s2n_error("Error getting serialized session state");
-                exit(1);
+            if (conn->actual_protocol_version >= S2N_TLS13) {
+                if (!session_ticket) {
+                    print_s2n_error("s2nc can only reconnect in TLS1.3 with session tickets.");
+                    exit(1);
+                }
+                GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
+            } else {
+                if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
+                    print_s2n_error("Endpoint sent empty session id so cannot resume session");
+                    exit(1);
+                }
+                free(session_state);
+                session_state_length = s2n_connection_get_session_length(conn);
+                session_state = calloc(session_state_length, sizeof(uint8_t));
+                GUARD_EXIT_NULL(session_state);
+                if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
+                    print_s2n_error("Error getting serialized session state");
+                    exit(1);
+                }
             }
         }
 
@@ -537,14 +546,25 @@ int main(int argc, char *const *argv)
             s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout);
         }
 
+        GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
         if (echo_input == 1) {
+            bool stop_echo = false;
             fflush(stdout);
             fflush(stderr);
-            echo(conn, sockfd);
+            echo(conn, sockfd, &stop_echo);
         }
 
+        /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
+        /* peer fails to send a close_notify. */
+        /* TODO: However, we should expect to receive a close_notify from the peer and shutdown gracefully. */
+        /* Please see tracking issue for more detail: https://github.com/aws/s2n-tls/issues/2692 */
         s2n_blocked_status blocked;
-        s2n_shutdown(conn, &blocked);
+        int shutdown_rc = s2n_shutdown(conn, &blocked);
+        if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
+            fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
+            exit(1);
+        }
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 
@@ -561,6 +581,7 @@ int main(int argc, char *const *argv)
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 
+    free(early_data);
     free(session_state);
     freeaddrinfo(ai_list);
     return 0;

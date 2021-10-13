@@ -195,14 +195,14 @@ int main(int argc, char **argv)
                 0x00, 0x0d,
                 /* SIKE_P503_R1 */
                 0x00, 0x0a,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
                 0x00, 0x0a,
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0d
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
@@ -238,27 +238,27 @@ int main(int argc, char **argv)
             uint8_t client_kems[] = {
                 /* BIKE1_L1_R2 */
                 0x00, 0x0d,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13
             };
 
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
-            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
-            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
@@ -271,11 +271,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         }
         {
             uint8_t client_kems[] = {
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* SIKE_P503_R1 */
                 0x00, 0x0a
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             /* If the client sends no KEMs, the server chooses whichever one it prefers. */
@@ -311,12 +311,12 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r2r1, 4, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3);
             negotiated_kem = NULL;
 
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3);
             negotiated_kem = NULL;
 
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(kyber_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
         }
         {
             const struct s2n_kem *sike_only_server_pref_list[] = {
-                &s2n_sike_p434_r2,
+                &s2n_sike_p434_r3,
                 &s2n_sike_p503_r1
             };
 
@@ -351,23 +351,25 @@ int main(int argc, char **argv)
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_bike1_l1_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_bike1_l1_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_bike_l1_r3.kem_extension_id);
 
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
         EXPECT_EQUAL(compatible_params->kem_count, 2);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
-        EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r3.kem_extension_id);
 
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(kyber_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r2.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_kyber_512_90s_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_kyber_512_r3.kem_extension_id);
     }
 
     {
@@ -624,7 +626,7 @@ int main(int argc, char **argv)
                 TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
                 TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2,
                 TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1,
-                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
+                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3,
                 TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2
         };
 
@@ -632,7 +634,7 @@ int main(int argc, char **argv)
                 &s2n_bike1_l1_r1,
                 &s2n_bike1_l1_r2,
                 &s2n_sike_p503_r1,
-                &s2n_sike_p434_r2,
+                &s2n_sike_p434_r3,
                 &s2n_kyber_512_r2
         };
 
@@ -648,8 +650,8 @@ int main(int argc, char **argv)
     {
         /* Failure cases for s2n_get_kem_from_extension_id() */
         const struct s2n_kem *returned_kem = NULL;
-        kem_extension_size non_existant_kem_id = 65535;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existant_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        kem_extension_size non_existent_kem_id = 65535;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
     END_TEST();

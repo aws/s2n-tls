@@ -92,8 +92,8 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 {
     ssize_t user_data_sent, total_size = 0;
 
-    S2N_ERROR_IF(conn->closed, S2N_ERR_CLOSED);
-    S2N_ERROR_IF(conn->config->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    POSIX_ENSURE(!conn->closed, S2N_ERR_CLOSED);
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
 
     /* Flush any pending I/O */
     POSIX_GUARD(s2n_flush(conn, blocked));
@@ -129,11 +129,12 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         bufs = _bufs;
         count = _count;
     }
-    for (int i = 0; i < count; i++) {
+    for (ssize_t i = 0; i < count; i++) {
         total_size += bufs[i].iov_len;
     }
     total_size -= offs;
     S2N_ERROR_IF(conn->current_user_data_consumed > total_size, S2N_ERR_SEND_SIZE);
+    POSIX_GUARD_RESULT(s2n_early_data_validate_send(conn, total_size));
 
     if (conn->dynamic_record_timeout_threshold > 0) {
         uint64_t elapsed;
@@ -200,6 +201,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     *blocked = S2N_NOT_BLOCKED;
 
+    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, total_size));
     return total_size;
 }
 

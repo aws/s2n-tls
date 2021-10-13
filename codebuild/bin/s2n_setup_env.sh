@@ -50,28 +50,28 @@
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
 
-  # Set some environment vars for OS, Distro and architecture.
-  # Standardized as part of systemd http://0pointer.de/blog/projects/os-release
-  # Samples:
-  #  OS_NAME = "linux"
-  #  DISTRO="ubuntu"
-  #  VERSION_ID = "18.04"
-  #  VERSION_CODENAME = "bionic"
-  if [[ -f "/etc/os-release" ]]; then
-    # AL2 doesn't provide a codename.
-    . /etc/os-release
-    export DISTRO=$(echo "$NAME"|tr "[:upper:]" "[:lower:]")
-    export VERSION_ID=${VERSION_ID:-"unknown"}
-    export VERSION_CODENAME=${VERSION_CODENAME:-"unknown"}
-  elif [[ -x "/usr/bin/sw_vers" ]]; then
-    export DISTRO="apple"
-    export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
-    export VERSION_CODENAME="unknown"  # not queriable via CLI
-  else
-    export DISTRO="unknown"
-    export VERSION_ID="unknown"
-    export VERSION_CODENAME="unknown"
-  fi
+# Set some environment vars for OS, Distro and architecture.
+# Standardized as part of systemd http://0pointer.de/blog/projects/os-release
+# Samples:
+#  OS_NAME = "linux"
+#  DISTRO="ubuntu"
+#  VERSION_ID = "18.04"
+#  VERSION_CODENAME = "bionic"
+if [[ -f "/etc/os-release" ]]; then
+  # AL2 doesn't provide a codename.
+  . /etc/os-release
+  export DISTRO=$(echo "$NAME"|tr "[:upper:]" "[:lower:]")
+  export VERSION_ID=${VERSION_ID:-"unknown"}
+  export VERSION_CODENAME=${VERSION_CODENAME:-"unknown"}
+elif [[ -x "/usr/bin/sw_vers" ]]; then
+  export DISTRO="apple"
+  export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
+  export VERSION_CODENAME="unknown"  # not queriable via CLI
+else
+  export DISTRO="unknown"
+  export VERSION_ID="unknown"
+  export VERSION_CODENAME="unknown"
+fi
 export OS_NAME=$(uname -s|tr "[:upper:]" "[:lower:]")
 export ARCH=$(uname -m)
 
@@ -106,6 +106,7 @@ export FUZZ_TIMEOUT_SEC
 export GB_INSTALL_DIR
 export OS_NAME
 export S2N_CORKED_IO
+export S2N_NO_PQ
 
 # S2N_COVERAGE should not be used with fuzz tests, use FUZZ_COVERAGE instead
 if [[ "$S2N_COVERAGE" == "true" && "$TESTS" == "fuzz" ]]; then
@@ -133,6 +134,34 @@ rm -rf libcrypto-root && ln -s "$LIBCRYPTO_ROOT" libcrypto-root
 
 # Set the libfuzzer to use for fuzz tests
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
+
+#check if the path contains test dep X, if not and X exists, add to path
+path_overrides="$PYTHON_INSTALL_DIR/bin
+$OPENSSL_1_1_1_INSTALL_DIR/bin
+$GNUTLS_INSTALL_DIR/bin
+$SAW_INSTALL_DIR/bin
+$Z3_INSTALL_DIR/bin
+$SCAN_BUILD_INSTALL_DIR/bin
+$PRLIMIT_INSTALL_DIR/bin
+$LATEST_CLANG_INSTALL_DIR/bin
+`pwd`/codebuild/bin
+~/.local/bin"
+
+testdeps_path(){
+    echo -ne "checking $1 is in the path..."
+    if [[ ! "$PATH" =~ "$1" ]]; then
+        if [[ -d "$1" ]]; then
+            export PATH="$1:$PATH"
+            echo -e "added"
+        else
+            echo -e "doesn't exist"
+        fi
+    else
+        echo -e "already in path"
+    fi
+}
+
+for i in $path_overrides; do testdeps_path "$i" ;done
 
 # Just recording in the output for debugging.
 if [ -f "/etc/lsb-release" ]; then

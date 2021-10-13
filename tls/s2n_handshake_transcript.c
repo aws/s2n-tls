@@ -32,13 +32,14 @@ static int s2n_tls13_conn_copy_hash(struct s2n_connection *conn, struct s2n_hash
     POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
     POSIX_GUARD(s2n_hash_copy(copy, &hash_state));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(data);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
         /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
@@ -47,11 +48,11 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
          * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
          * as per NIST Special Publication 800-52 Revision 1.
          */
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->md5, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha1, data->data, data->size));
     }
 
     const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
@@ -63,35 +64,35 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
          * CertificateVerify message and the PRF. NIST SP 800-52r1 approves use
          * of MD5_SHA1 for these use cases (see footnotes 15 and 20, and section
          * 3.3.2) */
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->md5_sha1, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA224)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha224, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA256)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha256, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA384)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha384, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha512, data->data, data->size));
     }
 
     /* Copy hashes that TLS1.3 will need later. */
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
         if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
-            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_hello_copy));
+            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_hello_copy));
         } else if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
-            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_finished_copy));
+            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_finished_copy));
         }
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* When a HelloRetryRequest message is used, the hash transcript needs to be recreated.
@@ -133,6 +134,5 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&msg_blob, client_hello1_digest_out, hash_digest_length));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
-    return 0;
+    return S2N_SUCCESS;
 }
-

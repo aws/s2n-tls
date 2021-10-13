@@ -89,6 +89,16 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
 #endif
 
+/* A fake / unsupported curve for use in triggering retries
+ * during testing.
+ */
+const struct s2n_ecc_named_curve s2n_unsupported_curve = {
+    .iana_id = 0, .name = "unsupported",
+    .libcrypto_nid = NID_X9_62_prime256v1,
+    .share_size = SECP256R1_SHARE_SIZE,
+    .generate_key = s2n_ecc_evp_generate_key_nist_curves,
+};
+
 /* All curves that s2n supports. New curves MUST be added here.
  * This list is a super set of all the curves present in s2n_ecc_preferences list.
  */
@@ -157,11 +167,16 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     POSIX_ENSURE_REF(peer_public);
     POSIX_ENSURE_REF(own_key);
 
-    /* From RFC 8446 Section 4.2.8.2: For the curves secp256r1 and secp384r1 peers MUST validate each other's
-     * public value Q by ensuring that the point is a valid point on the elliptic curve.
-     * For the curve x25519 the peer public-key validation check doesn't apply.
+    /* From RFC 8446(TLS1.3) Section 4.2.8.2: For the curves secp256r1, secp384r1, and secp521r1, peers MUST validate 
+     * each other's public value Q by ensuring that the point is a valid point on the elliptic curve.
+     * For the curve x25519 and x448 the peer public-key validation check doesn't apply.
+     * From RFC 8422(TLS1.2) Section 5.11: With the NIST curves, each party MUST validate the public key sent by its peer
+     * in the ClientKeyExchange and ServerKeyExchange messages. A receiving party MUST check that the x and y parameters from 
+     * the peer's public value satisfy the curve equation, y^2 = x^3 + ax + b mod p.
+     * Note that the `EC_KEY_check_key` validation is a MUST for only NIST curves, if a non-NIST curve is added to s2n-tls 
+     * this is an additional validation step that increases security but decreases performance.
      */
-    if (iana_id == TLS_EC_CURVE_SECP_256_R1 || iana_id == TLS_EC_CURVE_SECP_384_R1) {
+    if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
         S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         POSIX_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
@@ -476,9 +491,9 @@ int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n
 
     POSIX_GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
     POSIX_GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));
-    for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
+    for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
         const struct s2n_ecc_named_curve *supported_curve = s2n_all_supported_curves_list[i];
-        for (int j = 0; j < iana_ids->size / 2; j++) {
+        for (uint32_t j = 0; j < iana_ids->size / 2; j++) {
             uint16_t iana_id;
             POSIX_GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
             if (supported_curve->iana_id == iana_id) {

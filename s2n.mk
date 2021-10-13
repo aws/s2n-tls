@@ -50,6 +50,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
+LDFLAGS = -z relro -z now -z noexecstack
 
 FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 
@@ -109,6 +110,11 @@ DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
 ifdef S2N_ADDRESS_SANITIZER
 	CFLAGS += -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1 ${DEBUG_CFLAGS}
+endif
+
+ifdef S2N_GDB
+    S2N_DEBUG = 1
+    CFLAGS += -O0
 endif
 
 ifdef S2N_DEBUG

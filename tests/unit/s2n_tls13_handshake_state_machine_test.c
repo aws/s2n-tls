@@ -266,6 +266,45 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test: A EARLY_CLIENT_CCS form of every middlebox compatible handshake exists.
+     * Any handshake could start with early data, even if that early data is later rejected. */
+    {
+        uint32_t handshake_type_original, handshake_type_test;
+        message_type_t *messages_original, *messages_test;
+
+        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
+            handshake_type_original = valid_tls13_handshakes[i];
+            messages_original = tls13_handshakes[handshake_type_original];
+
+            /* Ignore non-MIDDLEBOX_COMPAT handshakes */
+            if (!(handshake_type_original & MIDDLEBOX_COMPAT)) {
+                continue;
+            }
+
+            /* EARLY_CLIENT_CCS form of the handshake */
+            handshake_type_test = handshake_type_original | EARLY_CLIENT_CCS;
+            messages_test = tls13_handshakes[handshake_type_test];
+
+            /* Ignore identical handshakes */
+            if (handshake_type_original == handshake_type_test) {
+                continue;
+            }
+
+            for (size_t j = 0, j_test = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_test < S2N_MAX_HANDSHAKE_LENGTH; j++, j_test++) {
+                /* Skip Client CCS messages */
+                while (messages_original[j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                    j++;
+                }
+                while (messages_test[j_test] == CLIENT_CHANGE_CIPHER_SPEC) {
+                    j_test++;
+                }
+
+                /* The handshakes must be otherwise equivalent */
+                EXPECT_EQUAL(messages_original[j], messages_test[j_test]);
+            }
+        }
+    }
+
     /* Test: When using TLS 1.3, use the new state machine and handshakes */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -545,6 +584,16 @@ int main(int argc, char **argv)
 
         /* TLS1.3 should error for an expected message from the wrong record type */
         {
+            /* Unfortunately, all our non-handshake record types have a message type of 0,
+             * and the combination of TLS_HANDSHAKE + "0" is actually a message (TLS_HELLO_REQUEST)
+             * which can appear at any point in a TLS1.2 handshake.
+             *
+             * To test, temporarily modify the actions table.
+             * We MUST restore this after this test.
+             */
+            uint8_t old_message_type = state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type;
+            state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = 1;
+
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
 
@@ -567,6 +616,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = old_message_type;
         }
 
         /* Error if a client receives a client cert request in non-FULL_HANDSHAKE mode */
@@ -616,8 +666,9 @@ int main(int argc, char **argv)
             messages = tls13_handshakes[handshake_type];
 
             /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
-            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)
-                    || (handshake_type & WITH_EARLY_DATA)) {
+            if (!(handshake_type & NEGOTIATED)
+                    || !(handshake_type & MIDDLEBOX_COMPAT)
+                    || (handshake_type & EARLY_CLIENT_CCS)) {
                 continue;
             }
 
@@ -648,30 +699,19 @@ int main(int argc, char **argv)
          *# first ClientHello.
          */
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            change_cipher_spec_found = false;
             handshake_type = valid_tls13_handshakes[i];
             messages = tls13_handshakes[handshake_type];
 
-            /* Ignore INITIAL, non-MIDDLEBOX_COMPAT, and non-WITH_EARLY_DATA handshakes */
-            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)
-                    || !(handshake_type & WITH_EARLY_DATA)) {
+            /* Ignore handshakes where early data did not trigger the change in CCS behavior */
+            if (!(handshake_type & EARLY_CLIENT_CCS)) {
                 continue;
             }
 
-            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-
-                /* Was the last message the ClientHello? */
-                if (messages[j - 1] != CLIENT_HELLO) {
-                    continue;
-                }
-
-                EXPECT_EQUAL(messages[j], CLIENT_CHANGE_CIPHER_SPEC);
-
-                /* CCS message found. We are done with this handshake. */
-                change_cipher_spec_found = true;
-                break;
+            EXPECT_EQUAL(messages[0], CLIENT_HELLO);
+            EXPECT_EQUAL(messages[1], CLIENT_CHANGE_CIPHER_SPEC);
+            for (size_t j = 2; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+                EXPECT_NOT_EQUAL(messages[j], CLIENT_CHANGE_CIPHER_SPEC);
             }
-            EXPECT_TRUE(change_cipher_spec_found);
         }
 
         /**
@@ -877,8 +917,10 @@ int main(int argc, char **argv)
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST;
         EXPECT_STRING_EQUAL("NEGOTIATED|FULL_HANDSHAKE|HELLO_RETRY_REQUEST", s2n_connection_get_handshake_type_name(conn));
 
-        const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|CLIENT_AUTH|NO_CLIENT_CERT|MIDDLEBOX_COMPAT|WITH_EARLY_DATA";
-        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT | MIDDLEBOX_COMPAT | WITH_EARLY_DATA;
+        const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|CLIENT_AUTH|NO_CLIENT_CERT"
+                "|MIDDLEBOX_COMPAT|WITH_EARLY_DATA|EARLY_CLIENT_CCS";
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT
+                | MIDDLEBOX_COMPAT | WITH_EARLY_DATA | EARLY_CLIENT_CCS;
         EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
 
         const char *handshake_type_name;

@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "crypto/s2n_tls13_keys.h"
 
 #include "tls/s2n_handshake.h"
@@ -203,6 +205,7 @@ bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list)
 S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
 {
     RESULT_ENSURE_REF(psk_list);
+    RESULT_ENSURE_REF(psk_list->conn);
     RESULT_ENSURE_MUT(psk);
 
     uint16_t identity_size = 0;
@@ -218,9 +221,17 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
      *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
      *# used, and servers MUST ignore the value.
      */
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
+    if (psk_list->conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
+    } else {
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(&psk_list->wire_data, &psk->obfuscated_ticket_age));
+    }
 
     RESULT_GUARD_POSIX(s2n_blob_init(&psk->identity, identity_data, identity_size));
+    psk->wire_index = psk_list->wire_index;
+
+    RESULT_ENSURE(psk_list->wire_index < UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    psk_list->wire_index++;
     return S2N_RESULT_OK;
 }
 
@@ -234,27 +245,100 @@ int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_
     return S2N_SUCCESS;
 }
 
-int s2n_offered_psk_list_reset(struct s2n_offered_psk_list *psk_list)
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list)
 {
     POSIX_ENSURE_REF(psk_list);
+    psk_list->wire_index = 0;
     return s2n_stuffer_reread(&psk_list->wire_data);
 }
 
-S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *psk_list, uint16_t psk_index, struct s2n_offered_psk *psk)
+/* Match a PSK identity received from the client against the server's known PSK identities.
+ * This method compares a single client identity to all server identities.
+ *
+ * While both the client's offered identities and whether a match was found are public, we should make an attempt
+ * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
+ * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
+ *
+ * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
+ * and an attacker could probably guess the server's known identities just by observing the public identities
+ * sent by clients.
+ */
+static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
+        struct s2n_psk **match)
 {
-    RESULT_ENSURE_REF(psk_list);
-    RESULT_ENSURE_MUT(psk);
-
-    /* We don't want to lose our original place in the list, so copy it */
-    struct s2n_offered_psk_list psk_list_copy = { .wire_data = psk_list->wire_data };
-    RESULT_GUARD_POSIX(s2n_offered_psk_list_reset(&psk_list_copy));
-
-    uint16_t count = 0;
-    while(count <= psk_index) {
-        RESULT_GUARD_POSIX(s2n_offered_psk_list_next(&psk_list_copy, psk));
-        count++;
+    RESULT_ENSURE_REF(match);
+    RESULT_ENSURE_REF(wire_identity);
+    RESULT_ENSURE_REF(known_psks);
+    *match = NULL;
+    for (size_t i = 0; i < known_psks->len; i++) {
+        struct s2n_psk *psk = NULL;
+        RESULT_GUARD(s2n_array_get(known_psks, i, (void**)&psk));
+        RESULT_ENSURE_REF(psk);
+        RESULT_ENSURE_REF(psk->identity.data);
+        RESULT_ENSURE_REF(wire_identity->data);
+        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
+        if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
+            & (psk->identity.size == wire_identity->size) & (!*match)) {
+            *match = psk;
+        }
     }
     return S2N_RESULT_OK;
+}
+
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *# For PSKs provisioned via NewSessionTicket, a server MUST validate
+ *# that the ticket age for the selected PSK identity (computed by
+ *# subtracting ticket_age_add from PskIdentity.obfuscated_ticket_age
+ *# modulo 2^32) is within a small tolerance of the time since the ticket
+ *# was issued (see Section 8).
+ **/
+static S2N_RESULT s2n_validate_ticket_lifetime(struct s2n_connection *conn, uint32_t obfuscated_ticket_age, uint32_t ticket_age_add) 
+{
+    RESULT_ENSURE_REF(conn);
+
+    if (conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Subtract the ticket_age_add value from the ticket age in milliseconds. The resulting uint32_t value
+     * may wrap, resulting in the modulo 2^32 operation. */
+    uint32_t ticket_age_in_millis = obfuscated_ticket_age - ticket_age_add;
+    uint32_t session_lifetime_in_millis = conn->config->session_state_lifetime_in_nanos / ONE_MILLISEC_IN_NANOS;
+    RESULT_ENSURE(ticket_age_in_millis < session_lifetime_in_millis, S2N_ERR_INVALID_SESSION_TICKET);
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
+{
+    POSIX_ENSURE_REF(psk_list);
+    POSIX_ENSURE_REF(psk_list->conn);
+
+    struct s2n_psk_parameters *psk_params = &psk_list->conn->psk_params;
+    struct s2n_stuffer ticket_stuffer = { 0 };
+
+    if (!psk) {
+        psk_params->chosen_psk = NULL;
+        return S2N_SUCCESS;
+    }
+
+    if (psk_params->type == S2N_PSK_TYPE_RESUMPTION && psk_list->conn->config->use_tickets) {
+        POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
+        POSIX_GUARD(s2n_stuffer_skip_write(&ticket_stuffer, psk->identity.size));
+
+        /* s2n_decrypt_session_ticket appends a new PSK with the decrypted values. */
+        POSIX_GUARD(s2n_decrypt_session_ticket(psk_list->conn, &ticket_stuffer));
+    }
+
+    struct s2n_psk *chosen_psk = NULL;
+    POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &chosen_psk));
+    POSIX_ENSURE_REF(chosen_psk);
+    POSIX_GUARD_RESULT(s2n_validate_ticket_lifetime(psk_list->conn, psk->obfuscated_ticket_age, chosen_psk->ticket_age_add));
+    psk_params->chosen_psk = chosen_psk;
+    psk_params->chosen_psk_wire_index = psk->wire_index;
+
+    return S2N_SUCCESS;
 }
 
 struct s2n_offered_psk* s2n_offered_psk_new()
@@ -477,7 +561,6 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
 {
     POSIX_ENSURE_REF(psk);
     switch(hmac) {
-        case S2N_PSK_HMAC_SHA224:     psk->hmac_alg = S2N_HMAC_SHA224; break;
         case S2N_PSK_HMAC_SHA256:     psk->hmac_alg = S2N_HMAC_SHA256; break;
         case S2N_PSK_HMAC_SHA384:     psk->hmac_alg = S2N_HMAC_SHA384; break;
         default:
@@ -486,10 +569,22 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type type)
+{
+    RESULT_ENSURE_REF(conn);
+    if (conn->psk_params.psk_list.len != 0) {
+        RESULT_ENSURE(conn->psk_params.type == type, S2N_ERR_PSK_MODE);
+    }
+    conn->psk_params.type = type;
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input_psk)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(input_psk);
+    POSIX_GUARD_RESULT(s2n_connection_set_psk_type(conn, input_psk->type));
+
     struct s2n_array *psk_list = &conn->psk_params.psk_list;
     
     /* Check for duplicate identities */
@@ -520,4 +615,87 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(new_psk);
     return S2N_SUCCESS;
+}
+
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode)
+{
+    POSIX_ENSURE_REF(config);
+    config->psk_mode = mode;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode)
+{
+    POSIX_ENSURE_REF(conn);
+    s2n_psk_type type = 0;
+    switch(mode) {
+        case S2N_PSK_MODE_RESUMPTION:
+            type = S2N_PSK_TYPE_RESUMPTION;
+            break;
+        case S2N_PSK_MODE_EXTERNAL:
+            type = S2N_PSK_TYPE_EXTERNAL;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+            break;
+    }
+    POSIX_GUARD_RESULT(s2n_connection_set_psk_type(conn, type));
+    conn->psk_mode_overridden = true;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(identity_length);
+
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+
+    if (chosen_psk == NULL) {
+        *identity_length = 0;
+    } else {
+        *identity_length = chosen_psk->identity.size;
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity,
+                                               uint16_t max_identity_length)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(identity);
+
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+
+    if (chosen_psk == NULL) {
+        return S2N_SUCCESS;
+    }
+
+    POSIX_ENSURE(chosen_psk->identity.size <= max_identity_length, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_CHECKED_MEMCPY(identity, chosen_psk->identity.data, chosen_psk->identity.size);
+
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_psk_validate_keying_material(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+    if (!chosen_psk || chosen_psk->type != S2N_PSK_TYPE_RESUMPTION) {
+        return S2N_RESULT_OK;
+    }
+
+    /*
+     * The minimum ticket lifetime is 1s, because ticket_lifetime is given
+     * in seconds and 0 indicates that the ticket should be immediately discarded.
+     */
+    uint32_t min_lifetime = ONE_SEC_IN_NANOS;
+
+    uint64_t current_time = 0;
+    RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
+    RESULT_ENSURE(chosen_psk->keying_material_expiration > current_time + min_lifetime, S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+    return S2N_RESULT_OK;
 }

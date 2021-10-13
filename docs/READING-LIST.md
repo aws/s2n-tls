@@ -36,6 +36,7 @@
 * [LibreSSL](http://www.libressl.org/) - fork of OpenSSL maintained by a team from OpenBSD
 * [BoringSSL](https://boringssl.googlesource.com/boringssl/) - fork of OpenSSL maintained by Google Security team
 * [NSS](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS) - maintained by Mozilla, used by several browsers
+* [AWS LibCrypto](https://github.com/awslabs/aws-lc) - Fork of BoringSSL maintained by Amazon
 
 ## Mailing lists and forums
 
@@ -44,7 +45,18 @@
 
 ## Videos and tutorials
 
-* [SSL with Amazon Web Services](https://www.youtube.com/watch?v=8AODa_AazY4) - nuts and bolts overview of SSL/TLS
+* [AWS re:Invent 2014: SSL with Amazon Web Services](https://www.youtube.com/watch?v=8AODa_AazY4) - nuts and bolts overview of SSL/TLS
+* [AWS re:Invent 2016: Amazon s2n: Cryptography and Open Source at AWS](https://www.youtube.com/watch?v=APhTOQ9eeI0)
+* [AWS re:Invent 2016: Encryption: It Was the Best of Controls, It Was the Worst of Controls](https://www.youtube.com/watch?v=zmMpgbIhCpw)
+* [AWS re:Invent 2016: Automated Formal Reasoning About AWS Systems](https://www.youtube.com/watch?v=U40bWY6oVtU)
+* [AWS re:Invent 2017: The AWS Philosophy of Security](https://www.youtube.com/watch?v=KJiCfPXOW-U)
+* [AWS re:Inforce 2019: Cryptography in the Next Cycle](https://www.youtube.com/watch?v=iBUReOA8s7Y)
+* [AWS re:Invent 2019: It’s always day zero: Working on open source and security](https://www.youtube.com/watch?v=3Me_eapZ1bI)
+* [AWS re:Invent 2019: Leadership session: AWS security](https://youtu.be/oam8FDNJhbE?t=2481)
+* [AWS re:Invent 2020: Building post-quantum cryptography for the cloud](https://www.youtube.com/watch?v=_GSDUXPpSgc)
+* [An AWS approach to post-quantum cryptography](https://www.youtube.com/watch?v=ixn3A7htBnw)
+* Illustrated Walkthrough of the entire TLS 1.2 Handshake: https://tls12.ulfheim.net/
+* Illustrated Walkthrough of the entire TLS 1.3 Handshake: https://tls13.ulfheim.net/
 
 ## Miscellaneous
 

@@ -28,6 +28,7 @@ static int s2n_server_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *
 
 const s2n_extension_type s2n_server_psk_extension = {
     .iana_value = TLS_EXTENSION_PRE_SHARED_KEY,
+    .minimum_version = S2N_TLS13,
     .is_response = true,
     .send = s2n_server_psk_send,
     .recv = s2n_server_psk_recv,
@@ -38,8 +39,7 @@ const s2n_extension_type s2n_server_psk_extension = {
 static bool s2n_server_psk_should_send(struct s2n_connection *conn)
 {
     /* Only send a server pre_shared_key extension if a chosen PSK is set on the connection */
-    return conn && s2n_connection_get_protocol_version(conn) >= S2N_TLS13
-            && conn->psk_params.chosen_psk;
+    return conn && conn->psk_params.chosen_psk;
 }
 
 static int s2n_server_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -55,10 +55,6 @@ static int s2n_server_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
 static int s2n_server_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
-
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
 
     /* Currently in s2n, only (EC)DHE key exchange mode is supported.
      * Any other mode selected by the server is invalid because it was not offered by the client.

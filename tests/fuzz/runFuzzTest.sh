@@ -91,7 +91,7 @@ if [[ ${AFL_FUZZ} == "true" && ${FUZZ_COVERAGE} != "true" ]]; then
     returncode=$?
     # See the timeout man page for specifics
     if [[ ${returncode} -ne 124 ]]; then
-	    printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
+        printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
     fi
     set -e
     CRASH_COUNT=$(sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats)
@@ -125,9 +125,11 @@ else
     ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
-
-TEST_COUNT=`grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | awk '{test_count += $2} END {print test_count}'`
-TESTS_PER_SEC=`echo $(($TEST_COUNT / $FUZZ_TIMEOUT_SEC))`
+TEST_INFO=$(
+    grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | \
+    awk -v timeout=$FUZZ_TIMEOUT_SEC '{count += int($2); rate = int(count / timeout)} END {print count, "tests, " rate " test/sec"}' \
+)
+TESTS_PER_SEC=$(echo "$TEST_INFO" | cut -d ' ' -f 3)
 FEATURE_COVERAGE=`grep -o "ft: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}' | sort | tail -1`
 TARGET_FUNCS=''
 declare -i TARGET_TOTAL=0
@@ -166,7 +168,7 @@ fi
 
 if [ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ];
 then
-    printf "\033[32;1mPASSED\033[0m %8d tests, %6d test/sec" $TEST_COUNT $TESTS_PER_SEC
+    printf "\033[32;1mPASSED\033[0m %s" "$TEST_INFO"
 
     # Output target function coverage percentage if target functions are defined and fuzzing coverage is enabled
     # Otherwise, print number of features covered
@@ -203,6 +205,6 @@ then
 
 else
     cat ${TEST_NAME}_output.txt
-    printf "\033[31;1mFAILED\033[0m %10d tests, %6d features covered\n" $TEST_COUNT $FEATURE_COVERAGE
+    printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
     exit -1
 fi

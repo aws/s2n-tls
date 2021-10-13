@@ -27,13 +27,13 @@ int s2n_test_enable_sending_extension(struct s2n_connection *conn)
     conn->status_type = S2N_STATUS_REQUEST_OCSP;
     conn->handshake_params.our_chain_and_key = chain_and_key;
     EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain_and_key, ocsp_data, s2n_array_len(ocsp_data)));
+    conn->x509_validator.state = VALIDATED;
     return S2N_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
@@ -145,6 +145,21 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->status_response.size, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test recv - bad ocsp data */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+
+        DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        EXPECT_SUCCESS(s2n_tls13_server_status_request_extension.send(conn, &stuffer));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_server_status_request_extension.recv(conn, &stuffer), S2N_ERR_CERT_UNTRUSTED);
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

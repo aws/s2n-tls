@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -39,7 +38,7 @@ void s2n_stuffer_read_bytes_harness()
 
     /* Store a byte from the stuffer to compare if the copy succeeds */
     struct store_byte_from_buffer copied_byte;
-    if (s2n_stuffer_data_available(stuffer) >= blob->size) {
+    if (stuffer->blob.data && s2n_stuffer_data_available(stuffer) >= blob->size) {
         save_byte_from_array(&stuffer->blob.data[ old_stuffer.read_cursor ], blob->size, &copied_byte);
     }
 

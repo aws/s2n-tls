@@ -24,6 +24,7 @@ extern uint8_t s2n_unknown_protocol_version;
 extern uint8_t s2n_highest_protocol_version;
 
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
+int s2n_client_hello_request_recv(struct s2n_connection *conn);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
 extern int s2n_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_establish_session(struct s2n_connection *conn);
@@ -58,7 +59,8 @@ extern int s2n_tls13_cert_verify_send(struct s2n_connection *conn);
 extern int s2n_server_nst_send(struct s2n_connection *conn);
 extern int s2n_server_nst_recv(struct s2n_connection *conn);
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
-int s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *output);
+S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *output);
+S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stuffer *input);
 extern int s2n_ccs_send(struct s2n_connection *conn);
 extern int s2n_basic_ccs_recv(struct s2n_connection *conn);
 extern int s2n_server_ccs_recv(struct s2n_connection *conn);

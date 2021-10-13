@@ -40,6 +40,7 @@ int main(int argc, char **argv)
         /* Setup connections */
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_secrets(conn));
 
         /* Setup bad send callback */
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_expect_concurrent_error_send_fn));

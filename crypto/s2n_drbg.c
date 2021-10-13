@@ -31,9 +31,9 @@
     acceptable in DRBG */
 int s2n_increment_drbg_counter(struct s2n_blob *counter)
 {
-    for (int i = counter->size - 1; i >= 0; i--) {
-        counter->data[i] += 1;
-        if (counter->data[i]) {
+    for (uint32_t i = counter->size; i > 0; i--) {
+        counter->data[i-1] += 1;
+        if (counter->data[i-1]) {
             break;
         }
 
@@ -95,7 +95,7 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
     POSIX_GUARD(s2n_drbg_bits(drbg, &temp_blob));
 
     /* XOR in the provided data */
-    for (int i = 0; i < provided_data->size; i++) {
+    for (uint32_t i = 0; i < provided_data->size; i++) {
         temp_blob.data[i] ^= provided_data->data[i];
     }
 
@@ -115,7 +115,7 @@ static int s2n_drbg_mix_in_entropy(struct s2n_drbg *drbg, struct s2n_blob *entro
 
     POSIX_ENSURE_GTE(entropy->size, ps->size);
 
-    for (int i = 0; i < ps->size; i++) {
+    for (uint32_t i = 0; i < ps->size; i++) {
         entropy->data[i] ^= ps->data[i];
     }
 
@@ -197,7 +197,9 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
-    /* Always mix in additional entropy, for prediction resistance */
+    /* Always mix in additional entropy, for prediction resistance.
+        If s2n_drbg_mix is removed: must implement reseeding according to limit
+        specified in NIST SP800-90A 10.2.1 Table 3. */
     POSIX_GUARD(s2n_drbg_mix(drbg, &zeros));
     POSIX_GUARD(s2n_drbg_bits(drbg, blob));
     POSIX_GUARD(s2n_drbg_update(drbg, &zeros));

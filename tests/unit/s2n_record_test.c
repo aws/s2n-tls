@@ -99,7 +99,7 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &in));
 
         if (i < S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
-        EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(conn->out.blob.data[0], TLS_ALERT);
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
         EXPECT_EQUAL(conn->out.blob.data[2], 2);
         EXPECT_EQUAL(conn->out.blob.data[3], (bytes_written >> 8) & 0xff);
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
-        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(content_type, TLS_ALERT);
         EXPECT_EQUAL(fragment_length, bytes_written);
     }
 
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.server_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &in));
 
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
         }
 
         uint16_t predicted_length = bytes_written + 20;
-        EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(conn->out.blob.data[0], TLS_ALERT);
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
         EXPECT_EQUAL(conn->out.blob.data[2], 2);
         EXPECT_EQUAL(conn->out.blob.data[3], (predicted_length >> 8) & 0xff);
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
-        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(content_type, TLS_ALERT);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
         /* Simulate a replay attack and verify that replaying the same record
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         conn->in.blob.data[byte_to_corrupt] += 1;
-        EXPECT_FAILURE(s2n_record_parse(conn));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_BAD_MESSAGE);
     }
 
     /* Test a mock block cipher with a mac - in TLS1.0 mode */
@@ -354,14 +354,14 @@ int main(int argc, char **argv)
     EXPECT_MEMCPY_SUCCESS(conn->initial.server_sequence_number, max_num_records, sizeof(max_num_records));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     /* Sequence number should wrap around */
-    EXPECT_FAILURE(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
+    EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(conn, TLS_ALERT, &empty_blob), S2N_ERR_RECORD_LIMIT);
 
     /* Test TLS 1.3 Record should reflect as TLS 1.2 version on the wire */
     {
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
+        EXPECT_SUCCESS(s2n_record_write(conn, TLS_ALERT, &empty_blob));
 
         /* Make sure that TLS 1.3 records appear as TLS 1.2 version */
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
@@ -384,7 +384,39 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_reread(&conn->header_in));
         conn->header_in.blob.data[1] = 3;
         conn->header_in.blob.data[2] = 4;
-        EXPECT_FAILURE(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_record_header_parse(conn, &content_type, &fragment_length), S2N_ERR_BAD_MESSAGE);
+    }
+
+    /* Test: ApplicationData MUST be encrypted */
+    {
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        conn->actual_protocol_version = S2N_TLS13;
+
+        /* Write fails with no secrets / cipher set */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob), S2N_ERR_ENCRYPT);
+
+        /* Read fails with no secrets / cipher set */
+        uint8_t header_bytes[] = { TLS_APPLICATION_DATA, 0x03, 0x04, 0x00, 0x00 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->header_in, header_bytes, sizeof(header_bytes)));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_DECRYPT);
+    }
+
+    /* Test s2n_sslv2_record_header_parse fails when fragment_length < 3 */
+    {
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+
+        uint8_t record_type = 0;
+        uint8_t protocol_version = 0;
+        uint16_t fragment_length = 0;
+
+        /* First two bytes are the fragment length */
+        uint8_t header_bytes[] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->header_in, header_bytes, sizeof(header_bytes)));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_sslv2_record_header_parse(conn, &record_type, &protocol_version, &fragment_length), S2N_ERR_SAFETY);
+
+        /* Check the rest of the stuffer has not been read yet */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
     }
 
     EXPECT_SUCCESS(s2n_hmac_free(&check_mac));

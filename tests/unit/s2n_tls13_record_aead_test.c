@@ -102,30 +102,28 @@ int main(int argc, char **argv)
     /* Test s2n_tls13_aead_aad_init() */
     {
         s2n_stack_blob(aad, S2N_TLS13_AAD_LEN, S2N_TLS13_AAD_LEN);
-        struct s2n_stuffer associated_data_stuffer;
-        EXPECT_SUCCESS(s2n_stuffer_init(&associated_data_stuffer, &aad));
-        EXPECT_OK(s2n_tls13_aead_aad_init(662, 12, &associated_data_stuffer));
+        EXPECT_OK(s2n_tls13_aead_aad_init(662, 12, &aad));
         S2N_BLOB_FROM_HEX(expected_aad, "17030302a2");
         S2N_BLOB_EXPECT_EQUAL(expected_aad, aad);
 
         /* record length 16640 should be valid */
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
-        EXPECT_OK(s2n_tls13_aead_aad_init(16628, 12, &associated_data_stuffer));
+        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_OK(s2n_tls13_aead_aad_init(16628, 12, &aad));
 
         /* record length 16641 should be invalid */
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
-        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_aead_aad_init(16629, 12, &associated_data_stuffer), S2N_ERR_RECORD_LIMIT);
+        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_aead_aad_init(16629, 12, &aad), S2N_ERR_RECORD_LIMIT);
 
         /* Test failure case: No AAD should be invalid */
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
+        EXPECT_SUCCESS(s2n_blob_zero(&aad));
         EXPECT_ERROR(s2n_tls13_aead_aad_init(16629, 12, NULL));
 
         /* Test failure case: 0-length tag should be invalid */
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
-        EXPECT_ERROR(s2n_tls13_aead_aad_init(16628, 0, &associated_data_stuffer));
+        EXPECT_SUCCESS(s2n_blob_zero(&aad));
+        EXPECT_ERROR(s2n_tls13_aead_aad_init(16628, 0, &aad));
 
         /* Test failure case: invalid record length (-1) should be invalid */
-        EXPECT_ERROR(s2n_tls13_aead_aad_init(-1, 0, &associated_data_stuffer));
+        EXPECT_ERROR(s2n_tls13_aead_aad_init(-1, 0, &aad));
     }
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite with TLS 1.3 test vectors */

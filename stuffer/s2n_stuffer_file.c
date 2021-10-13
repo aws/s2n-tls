@@ -29,6 +29,7 @@
 int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+
     /* Make sure we have enough space to write */
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, len));
 
@@ -37,8 +38,8 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
 
     ssize_t r = 0;
     do {
+        POSIX_ENSURE(stuffer->blob.data && (r >= 0 || errno == EINTR), S2N_ERR_READ);
         r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
-        POSIX_ENSURE(r >= 0 || errno == EINTR, S2N_ERR_READ);
     } while (r < 0);
 
     /* Record just how many bytes we have written */
@@ -60,8 +61,8 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
 
     ssize_t w = 0;
     do {
+        POSIX_ENSURE(stuffer->blob.data && (w >= 0 || errno == EINTR), S2N_ERR_WRITE);
         w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
-        POSIX_ENSURE(w >= 0 || errno == EINTR, S2N_ERR_WRITE);
     } while (w < 0);
 
     POSIX_ENSURE(w <= UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);

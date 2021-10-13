@@ -25,7 +25,8 @@
 
 int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
 {
-    for (int i = sequence_number->size - 1; i >= 0; i--) {
+    for (uint32_t j = sequence_number->size; j > 0; j--) {
+        uint32_t i = j - 1;
         sequence_number->data[i] += 1;
         if (sequence_number->data[i]) {
             break;
@@ -50,8 +51,8 @@ int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *ou
     uint8_t shift = 0;
     *output = 0;
 
-    for (int i = sequence_number->size - 1; i >= 0; i--) {
-        *output += ((uint64_t) sequence_number->data[i]) << shift;
+    for (uint32_t i = sequence_number->size; i > 0; i--) {
+        *output += ((uint64_t) sequence_number->data[i-1]) << shift;
         shift += SEQUENCE_NUMBER_POWER;
     }
     return S2N_SUCCESS;

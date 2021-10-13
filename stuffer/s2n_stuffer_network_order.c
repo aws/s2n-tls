@@ -25,7 +25,7 @@ int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t 
 {
     POSIX_ENSURE(length <= sizeof(input), S2N_ERR_SAFETY);
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
-    uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
+    uint8_t *data = (stuffer->blob.data) ? (stuffer->blob.data + stuffer->write_cursor - length) : NULL;
 
     for (int i = 0; i < length; i++) {
         S2N_INVARIANT(i <= length);
@@ -61,6 +61,11 @@ int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u)
     POSIX_GUARD(s2n_stuffer_write_bytes(stuffer, &u, sizeof(u)));
 
     return S2N_SUCCESS;
+}
+
+int s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
+{
+    return s2n_stuffer_reserve(stuffer, reservation, sizeof(uint8_t));
 }
 
 int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t * u)

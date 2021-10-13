@@ -236,7 +236,8 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
-    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None, close_marker=None, timeout=5, data_source=None, env_overrides=dict()):
+    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None, close_marker=None,
+                 timeout=5, data_source=None, env_overrides=dict(), expect_stderr=False):
         threading.Thread.__init__(self)
 
         proc_env = os.environ.copy()
@@ -247,7 +248,7 @@ class ManagedProcess(threading.Thread):
         self.proc_env = proc_env
 
         # Command line to execute in the subprocess
-        self.cmd_line = cmd_line
+        self.cmd_line = list(map(str, cmd_line))
 
         # Total time to wait until killing the subprocess
         self.timeout = timeout
@@ -267,6 +268,7 @@ class ManagedProcess(threading.Thread):
         self.close_marker = close_marker
         self.data_source = data_source
         self.send_marker_list = send_marker_list
+        self.expect_stderr = expect_stderr
 
         if data_source is not None:
             if type(data_source) is not list:
@@ -282,7 +284,7 @@ class ManagedProcess(threading.Thread):
                 proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
                 self.proc = proc
             except Exception as ex:
-                self.results = Results(None, None, None, ex)
+                self.results = Results(None, None, None, ex, self.expect_stderr)
                 raise ex
 
             communicator = _processCommunicator(proc)
@@ -297,16 +299,16 @@ class ManagedProcess(threading.Thread):
             proc_results = None
             try:
                 proc_results = communicator.communicate(input_data=self.data_source, send_marker_list=self.send_marker_list, close_marker=self.close_marker, timeout=self.timeout)
-                self.results = Results(proc_results[0], proc_results[1], proc.returncode, None)
+                self.results = Results(proc_results[0], proc_results[1], proc.returncode, None, self.expect_stderr)
             except subprocess.TimeoutExpired as ex:
                 proc.kill()
                 wrapped_ex = TimeoutException(ex)
 
                 # Read any remaining output
                 proc_results = communicator.communicate()
-                self.results = Results(proc_results[0], proc_results[1], proc.returncode, wrapped_ex)
+                self.results = Results(proc_results[0], proc_results[1], proc.returncode, wrapped_ex, self.expect_stderr)
             except Exception as ex:
-                self.results = Results(proc_results[0], proc_results[1], proc.returncode, ex)
+                self.results = Results(proc_results[0], proc_results[1], proc.returncode, ex, self.expect_stderr)
                 raise ex
             finally:
                 # This data is dumped to stdout so we capture this

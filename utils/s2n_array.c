@@ -28,6 +28,7 @@ S2N_RESULT s2n_array_validate(const struct s2n_array *array)
     RESULT_ENSURE_NE(array->element_size, 0);
     RESULT_GUARD_POSIX(s2n_mul_overflow(array->len, array->element_size, &mem_size));
     RESULT_ENSURE_GTE(array->mem.size, mem_size);
+    RESULT_ENSURE(S2N_IMPLIES(array->mem.size, array->mem.growable), S2N_ERR_SAFETY);
     return S2N_RESULT_OK;
 }
 

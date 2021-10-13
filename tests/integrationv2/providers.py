@@ -15,13 +15,18 @@ class Provider(object):
     ServerMode = "server"
 
     def __init__(self, options: ProviderOptions):
+        # If the provider includes stderr output on a success, set this to True.
+        self.expect_stderr = False
+
         # If the test should wait for a specific output message before beginning,
         # put that message in ready_to_test_marker
         self.ready_to_test_marker = None
 
-        # If the test should wait for a specific output message before sending
-        # data, put that message in ready_to_send_input_marker
-        self.ready_to_send_input_marker = None
+        # By default, we expect clients to send, but not servers.
+        if options.mode == Provider.ClientMode:
+            self.ready_to_send_input_marker = self.get_send_marker()
+        else:
+            self.ready_to_send_input_marker = None
 
         # Allows users to determine if the provider is ready to begin testing
         self._provider_ready_condition = threading.Condition()
@@ -50,6 +55,12 @@ class Provider(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def get_send_marker(cls):
+        """
+        This should be the last message printed before the client/server can send data.
+        """
+        return None
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -112,8 +123,11 @@ class S2N(Provider):
     The S2N provider translates flags into s2nc/s2nd command line arguments.
     """
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return 's2n is ready'
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -138,9 +152,6 @@ class S2N(Provider):
         # but all other tests can.
         if self.options.reconnect is not True:
             cmd_line.append('-e')
-
-        # This is the last thing printed by s2nc before it is ready to send/receive data
-        self.ready_to_send_input_marker = 'Cipher negotiated:'
 
         if self.options.use_session_ticket is False:
             cmd_line.append('-T')
@@ -182,6 +193,9 @@ class S2N(Provider):
         return cmd_line
 
     def setup_server(self):
+        # s2nd prints this message after it begins listening for connections
+        self.ready_to_test_marker = 'Listening on'
+
         """
         Using the passed ProviderOptions, create a command line.
         """
@@ -231,8 +245,13 @@ class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
 
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+        # We print some OpenSSL logging that includes stderr
+        self.expect_stderr = True
+
+    @classmethod
+    def get_send_marker(cls):
+        return 'Verify return code'
 
     def _join_ciphers(self, ciphers):
         """
@@ -319,9 +338,6 @@ class OpenSSL(Provider):
         return True
 
     def setup_client(self):
-        # s_client prints this message before it is ready to send/receive data
-        self.ready_to_send_input_marker = 'Verify return code'
-
         cmd_line = ['openssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
@@ -425,8 +441,11 @@ class JavaSSL(Provider):
     implemented yet.
     """
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return "Starting handshake"
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -447,7 +466,6 @@ class JavaSSL(Provider):
         pytest.skip('JavaSSL does not support server mode at this time')
 
     def setup_client(self):
-        self.ready_to_send_input_marker = "Starting handshake"
         cmd_line = ['java', "-classpath", "bin", "SSLSocketClient"]
 
         if self.options.port is not None:
@@ -476,14 +494,16 @@ class BoringSSL(Provider):
     implemented, neither are in the default configuration.
     """
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return 'Cert issuer:'
 
     def setup_server(self):
         pytest.skip('BoringSSL does not support server mode at this time')
 
     def setup_client(self):
-        self.ready_to_send_input_marker = 'Cert issuer:'
         cmd_line = ['bssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])
         if self.options.cert is not None:

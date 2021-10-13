@@ -20,17 +20,12 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-/* TLS 1.3 introducted several post handshake messages. This function currently only 
- * supports parsing for the KeyUpdate message. Once the other post-handshake messages
- * have been implemented, this function can be altered to include the other messages.
- */
 int s2n_post_handshake_recv(struct s2n_connection *conn) 
 {
     POSIX_ENSURE_REF(conn);
 
     uint8_t post_handshake_id;
     uint32_t message_length;
-    S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
     while(s2n_stuffer_data_available(&conn->in)) {
         POSIX_GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
@@ -49,6 +44,27 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
         {
             case TLS_KEY_UPDATE:
                 POSIX_GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
+                break;
+            case TLS_SERVER_NEW_SESSION_TICKET:
+                POSIX_GUARD_RESULT(s2n_tls13_server_nst_recv(conn, &post_handshake_stuffer));
+                break;
+            case TLS_HELLO_REQUEST:
+                POSIX_GUARD(s2n_client_hello_request_recv(conn));
+                break;
+            case TLS_CLIENT_HELLO:
+            case TLS_SERVER_HELLO:
+            case TLS_END_OF_EARLY_DATA:
+            case TLS_ENCRYPTED_EXTENSIONS:
+            case TLS_CERTIFICATE:
+            case TLS_SERVER_KEY:
+            case TLS_CERT_REQ:
+            case TLS_SERVER_HELLO_DONE:
+            case TLS_CERT_VERIFY:
+            case TLS_CLIENT_KEY:
+            case TLS_FINISHED:
+            case TLS_SERVER_CERT_STATUS:
+                /* All other known handshake messages should be rejected */
+                POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
                 break;
             default:
                 /* Ignore all other messages */

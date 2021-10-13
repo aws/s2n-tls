@@ -36,6 +36,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     /* Test s2n_client_early_data_indication_should_send */
     {
         /* Safety check */
@@ -49,7 +53,23 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
+            EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Don't send if early data not supported */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+
+            EXPECT_FALSE(s2n_client_early_data_indication_extension.should_send(conn));
+
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -67,6 +87,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
             EXPECT_FALSE(s2n_client_psk_extension.should_send(conn));
             EXPECT_FALSE(s2n_client_early_data_indication_extension.should_send(conn));
@@ -86,6 +108,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
@@ -100,6 +123,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
@@ -119,6 +143,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_FALSE(s2n_client_early_data_indication_extension.should_send(conn));
@@ -137,6 +162,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_rsa_with_rc4_128_md5));
             EXPECT_FALSE(s2n_client_early_data_indication_extension.should_send(conn));
@@ -154,6 +180,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
 
             uint8_t app_protocol_data[] = "protocol preference";
             uint8_t other_app_protocol_data[] = "different protocol";
@@ -191,6 +218,42 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_client_early_data_indiction_send */
+    {
+        /* Set MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS handshake type flags */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_EQUAL(conn->handshake.handshake_type, 0);
+
+            /* Don't set if < TLS1.3 */
+            conn->actual_protocol_version = S2N_TLS12;
+            config->quic_enabled = false;
+            EXPECT_SUCCESS(s2n_client_early_data_indication_extension.send(conn, NULL));
+            EXPECT_EQUAL(conn->handshake.handshake_type, 0);
+
+            /* Don't set if middlebox compat disabled */
+            conn->actual_protocol_version = S2N_TLS13;
+            config->quic_enabled = true;
+            EXPECT_SUCCESS(s2n_client_early_data_indication_extension.send(conn, NULL));
+            EXPECT_EQUAL(conn->handshake.handshake_type, 0);
+
+            /* Otherwise, set */
+            conn->actual_protocol_version = S2N_TLS13;
+            config->quic_enabled = false;
+            EXPECT_SUCCESS(s2n_client_early_data_indication_extension.send(conn, NULL));
+            EXPECT_EQUAL(conn->handshake.handshake_type, (MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS));
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test s2n_client_early_data_indiction_recv */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -199,6 +262,7 @@ int main(int argc, char **argv)
 
         /* Successful if not retry */
         conn->early_data_state = S2N_UNKNOWN_EARLY_DATA_STATE;
+        conn->handshake.message_number = 0;
         EXPECT_SUCCESS(s2n_client_early_data_indication_extension.recv(conn, NULL));
         EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
 
@@ -209,7 +273,7 @@ int main(int argc, char **argv)
          *# "early_data" extension in its followup ClientHello.
          */
         conn->early_data_state = S2N_UNKNOWN_EARLY_DATA_STATE;
-        EXPECT_SUCCESS(s2n_set_hello_retry_required(conn));
+        conn->handshake.message_number = 1;
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_early_data_indication_extension.recv(conn, NULL),
                 S2N_ERR_UNSUPPORTED_EXTENSION);
 
@@ -218,7 +282,7 @@ int main(int argc, char **argv)
 
     /* Test state transitions */
     {
-        /* When early data requested */
+        /* When early data not enabled on client */
         {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
@@ -231,11 +295,67 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
+
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* When early data not enabled on server */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
+
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* When early data requested */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
 
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
@@ -251,17 +371,19 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 0, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 0, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
 
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
@@ -295,25 +417,27 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 0, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
 
             /* Force a retry */
             EXPECT_SUCCESS(s2n_set_hello_retry_required(server_conn));
             /* There is retry handling logic that checks that the current message
              * is a hello retry message, which requires that we be at a specific message number. */
-            server_conn->handshake.message_number = 1;
-            client_conn->handshake.message_number = 1;
+            server_conn->handshake.message_number = 2;
+            client_conn->handshake.message_number = 2;
 
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
@@ -330,42 +454,32 @@ int main(int argc, char **argv)
 
         /* Hello Retry Request because of missing key share: still rejects early data */
         {
-            const struct s2n_ecc_named_curve *const curves_reversed_order[] = {
-                &s2n_ecc_curve_secp384r1,
-                &s2n_ecc_curve_secp256r1,
-            };
-            const struct s2n_ecc_preferences ecc_prefs_reversed_order = {
-                    .count = s2n_array_len(curves_reversed_order),
-                    .ecc_curves = curves_reversed_order,
-            };
-            struct s2n_security_policy sec_policy_reversed_order = security_policy_test_all_tls13;
-            sec_policy_reversed_order.ecc_preferences = &ecc_prefs_reversed_order;
-            const struct s2n_security_policy retry_policy = sec_policy_reversed_order;
-
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
-            client_conn->security_policy_override = &retry_policy;
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             server_conn->security_policy_override = &security_policy_test_all_tls13;
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 
             EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
             /* There is retry handling logic that checks that the current message
              * is a hello retry message, which requires that we be at a specific message number. */
-            server_conn->handshake.message_number = 1;
-            client_conn->handshake.message_number = 1;
+            server_conn->handshake.message_number = 2;
+            client_conn->handshake.message_number = 2;
 
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,

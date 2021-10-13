@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_blob.h"
@@ -41,20 +40,10 @@ void s2n_realloc_harness()
         assert(blob->size == size);
         if (size >= old_blob.size) {
             if (old_blob.size > 0) { assert(blob->data[ idx ] == old_data); }
-
-            /* Check if data at the old memory location was zeroed before freeing */
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-            if (size > old_blob.allocated) {
-                if (old_blob.size > 0 && old_blob.data != NULL) {
-                    size_t i;
-                    __CPROVER_assume(i < old_blob.size);
-                    assert(old_blob.data[ i ] == 0);
-                }
-            }
-#pragma CPROVER check pop
         } else {
-            assert_all_zeroes(blob->data + blob->size, old_blob.size - blob->size);
+            if(blob->data) {
+                assert_all_zeroes(blob->data + blob->size, old_blob.size - blob->size);
+            }
         }
     }
 }

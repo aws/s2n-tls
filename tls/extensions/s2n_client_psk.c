@@ -28,12 +28,18 @@
 #define SIZE_OF_BINDER_SIZE sizeof(uint8_t)
 #define SIZE_OF_BINDER_LIST_SIZE sizeof(uint16_t)
 
+/* To avoid a DoS attack triggered by decrypting too many session tickets,
+ * set a limit on the number of tickets we will attempt to decrypt before giving up.
+ * We may want to make this configurable someday, but just set a reasonable maximum for now. */
+#define MAX_REJECTED_TICKETS 3
+
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_client_psk_is_missing(struct s2n_connection *conn);
 
 const s2n_extension_type s2n_client_psk_extension = {
     .iana_value = TLS_EXTENSION_PRE_SHARED_KEY,
+    .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_client_psk_send,
     .recv = s2n_client_psk_recv,
@@ -64,10 +70,6 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
         return false;
     }
 
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return false;
-    }
-
     /* If this is NOT the second ClientHello after a retry, then all PSKs are viable.
      * Send the extension if any PSKs are configured.
      */
@@ -87,6 +89,46 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
         }
     }
     return false;
+}
+
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11.1
+ *# The "obfuscated_ticket_age"
+ *# field of each PskIdentity contains an obfuscated version of the
+ *# ticket age formed by taking the age in milliseconds and adding the
+ *# "ticket_age_add" value that was included with the ticket (see
+ *# Section 4.6.1), modulo 2^32.
+*/
+static S2N_RESULT s2n_generate_obfuscated_ticket_age(struct s2n_psk *psk, uint64_t current_time, uint32_t *output)
+{
+    RESULT_ENSURE_REF(psk);
+    RESULT_ENSURE_MUT(output);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *# For identities
+     *# established externally, an obfuscated_ticket_age of 0 SHOULD be
+     *# used,
+     **/
+    if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
+        *output = 0;
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_ENSURE(current_time >= psk->ticket_issue_time, S2N_ERR_SAFETY);
+
+    /* Calculate ticket age */
+    uint64_t ticket_age_in_nanos = current_time - psk->ticket_issue_time;
+
+    /* Convert ticket age to milliseconds */
+    uint64_t ticket_age_in_millis = ticket_age_in_nanos / ONE_MILLISEC_IN_NANOS;
+    RESULT_ENSURE(ticket_age_in_millis <= UINT32_MAX, S2N_ERR_SAFETY);
+
+    /* Add the ticket_age_add value to the ticket age in milliseconds. The resulting uint32_t value
+     * may wrap, resulting in the modulo 2^32 operation. */
+    *output = ticket_age_in_millis + psk->ticket_age_add;
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -119,7 +161,13 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* Write the identity */
         POSIX_GUARD(s2n_stuffer_write_uint16(out, psk->identity.size));
         POSIX_GUARD(s2n_stuffer_write(out, &psk->identity));
-        POSIX_GUARD(s2n_stuffer_write_uint32(out, 0));
+        
+        /* Write obfuscated ticket age */
+        uint32_t obfuscated_ticket_age = 0;
+        uint64_t current_time = 0;
+        POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
+        POSIX_GUARD_RESULT(s2n_generate_obfuscated_ticket_age(psk, current_time, &obfuscated_ticket_age));
+        POSIX_GUARD(s2n_stuffer_write_uint32(out, obfuscated_ticket_age));
 
         /* Calculate binder size */
         uint8_t hash_size = 0;
@@ -140,39 +188,6 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
     return S2N_SUCCESS;
 }
 
-/* Match a PSK identity received from the client against the server's known PSK identities.
- * This method compares a single client identity to all server identities.
- *
- * While both the client's offered identities and whether a match was found are public, we should make an attempt
- * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
- * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
- *
- * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
- * and an attacker could probably guess the server's known identities just by observing the public identities
- * sent by clients.
- */
-static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
-        struct s2n_psk **match)
-{
-    RESULT_ENSURE_REF(match);
-    RESULT_ENSURE_REF(wire_identity);
-    RESULT_ENSURE_REF(known_psks);
-    *match = NULL;
-    for (size_t i = 0; i < known_psks->len; i++) {
-        struct s2n_psk *psk = NULL;
-        RESULT_GUARD(s2n_array_get(known_psks, i, (void**)&psk));
-        RESULT_ENSURE_REF(psk);
-        RESULT_ENSURE_REF(psk->identity.data);
-        RESULT_ENSURE_REF(wire_identity->data);
-        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
-        if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
-            & (psk->identity.size == wire_identity->size) & (!*match)) {
-            *match = psk;
-        }
-    }
-    return S2N_RESULT_OK;
-}
-
 /* Find the first of the server's PSK identities that matches the client's identities.
  * This method compares all server identities to all client identities.
  *
@@ -184,7 +199,7 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
  * and an attacker could probably guess the server's known identities just by observing the public identities
  * sent by clients.
  */
-static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list)
+static S2N_RESULT s2n_select_external_psk(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(client_identity_list);
@@ -200,7 +215,7 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
         struct s2n_offered_psk client_psk = { 0 };
         uint16_t wire_index = 0;
 
-        RESULT_GUARD_POSIX(s2n_offered_psk_list_reset(client_identity_list));
+        RESULT_GUARD_POSIX(s2n_offered_psk_list_reread(client_identity_list));
         while(s2n_offered_psk_list_has_next(client_identity_list)) {
             RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
             uint16_t compare_size = MIN(client_psk.identity.size, server_psk->identity.size);
@@ -217,24 +232,45 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list) {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(client_identity_list);
+
+    struct s2n_offered_psk client_psk = { 0 };
+    conn->psk_params.chosen_psk = NULL;
+
+    uint8_t rejected_count = 0;
+    while (s2n_offered_psk_list_has_next(client_identity_list) && (rejected_count < MAX_REJECTED_TICKETS)) {
+        RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
+        /* Select the first resumption PSK that can be decrypted */
+        if (s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) == S2N_SUCCESS) {
+            return S2N_RESULT_OK;
+        }
+        rejected_count++;
+    }
+
+    RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
+}
+
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(wire_identities_in);
 
-    struct s2n_offered_psk_list identity_list = { .wire_data = *wire_identities_in };
+    struct s2n_offered_psk_list identity_list = {
+        .conn = conn,
+        .wire_data = *wire_identities_in,
+    };
 
     if (conn->config->psk_selection_cb) {
-        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, &identity_list, &conn->psk_params.chosen_psk_wire_index));
-
-        struct s2n_offered_psk chosen_identity = { 0 };
-        RESULT_GUARD(s2n_offered_psk_list_get_index(&identity_list, conn->psk_params.chosen_psk_wire_index,
-                &chosen_identity));
-
-        RESULT_GUARD(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_identity.identity, &conn->psk_params.chosen_psk));
-    } else {
-        RESULT_GUARD(s2n_select_psk_identity(conn, &identity_list));
+        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, conn->config->psk_selection_ctx, &identity_list));
+    } else if(conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        RESULT_GUARD(s2n_select_external_psk(conn, &identity_list));
+    } else if(conn->psk_params.type == S2N_PSK_TYPE_RESUMPTION) {
+        RESULT_GUARD(s2n_select_resumption_psk(conn, &identity_list));
     }
+
     RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
     return S2N_RESULT_OK;
 }
@@ -318,10 +354,6 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
 int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
-
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11

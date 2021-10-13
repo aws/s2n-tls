@@ -60,19 +60,6 @@ static uint8_t s2n_cert_type_preference_list_legacy_dss[] = {
     S2N_CERT_TYPE_ECDSA_SIGN
 };
 
-static int s2n_cert_type_to_pkey_type(s2n_cert_type cert_type_in, s2n_pkey_type *pkey_type_out) {
-    switch(cert_type_in) {
-        case S2N_CERT_TYPE_RSA_SIGN:
-            *pkey_type_out = S2N_PKEY_TYPE_RSA;
-            return 0;
-        case S2N_CERT_TYPE_ECDSA_SIGN:
-            *pkey_type_out = S2N_PKEY_TYPE_ECDSA;
-            return 0;
-        default:
-            POSIX_BAIL(S2N_CERT_ERR_TYPE_UNSUPPORTED);
-    }
-}
-
 static int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type_out)
 {
     uint8_t cert_types_len;
@@ -98,11 +85,12 @@ static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
     if (s2n_config_get_num_default_certs(conn->config) > 0) {
         POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.server_sig_hash_algs,
-                                                               &conn->secure.client_cert_sig_scheme));
+                                                               &conn->handshake_params.client_cert_sig_scheme));
 
         struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(conn->config);
         POSIX_ENSURE_REF(cert);
         conn->handshake_params.our_chain_and_key = cert;
+        conn->handshake_params.client_cert_pkey_type = s2n_cert_chain_and_key_get_pkey_type(cert);
     }
 
     return 0;
@@ -131,7 +119,6 @@ int s2n_cert_req_recv(struct s2n_connection *conn)
 
     s2n_cert_type cert_type = 0;
     POSIX_GUARD(s2n_recv_client_cert_preferences(in, &cert_type));
-    POSIX_GUARD(s2n_cert_type_to_pkey_type(cert_type, &conn->secure.client_cert_pkey_type));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         POSIX_GUARD(s2n_recv_supported_sig_scheme_list(in, &conn->handshake_params.server_sig_hash_algs));

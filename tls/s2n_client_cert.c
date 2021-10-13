@@ -61,12 +61,12 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
                                                  client_cert_chain.data, client_cert_chain.size,
                                                         &pkey_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
 
-    conn->secure.client_cert_pkey_type = pkey_type;
+    conn->handshake_params.client_cert_pkey_type = pkey_type;
     POSIX_GUARD(s2n_pkey_setup_for_type(&public_key, pkey_type));
     
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
-    POSIX_GUARD(s2n_dup(&client_cert_chain, &conn->secure.client_cert_chain));
-    conn->secure.client_public_key = public_key;
+    POSIX_GUARD(s2n_dup(&client_cert_chain, &conn->handshake_params.client_cert_chain));
+    conn->handshake_params.client_public_key = public_key;
     
     return 0;
 }

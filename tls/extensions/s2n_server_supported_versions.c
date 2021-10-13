@@ -63,6 +63,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
     uint8_t highest_supported_version = conn->client_protocol_version;
     uint8_t minimum_supported_version;
     POSIX_GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
+    POSIX_ENSURE(highest_supported_version >= minimum_supported_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     uint8_t server_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN];
     POSIX_GUARD(s2n_stuffer_read_bytes(extension, server_version_parts, S2N_TLS_PROTOCOL_VERSION_LEN));

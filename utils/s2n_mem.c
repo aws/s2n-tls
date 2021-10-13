@@ -56,7 +56,7 @@ static int s2n_mem_init_impl(void)
 
     page_size = (uint32_t) sysconf_rc;
 
-    if (getenv("S2N_DONT_MLOCK")) {
+    if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
@@ -73,10 +73,9 @@ static int s2n_mem_cleanup_impl(void)
 
 static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
-    int munlock_rc = munlock(ptr, size);
+    /* Perform a best-effort `munlock`: ignore any errors during unlocking. */
+    munlock(ptr, size);
     free(ptr);
-    POSIX_GUARD(munlock_rc);
-
     return S2N_SUCCESS;
 }
 
@@ -219,6 +218,8 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     if (*p_data == NULL) {
         return S2N_SUCCESS;
     }
+    
+    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     struct s2n_blob b = {.data = *p_data, .allocated = size, .size = size, .growable = 1};
 
     /* s2n_free() will call free() even if it returns error (for a growable blob).

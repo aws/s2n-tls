@@ -29,6 +29,9 @@ INSTALL_DIR=$2
 source codebuild/bin/jobs.sh
 cd "$BUILD_DIR"
 
+# Disable go proxy.  see https://github.com/golang/go/issues/33985
+go env GOPRIVATE=*
+
 # BoringSSL doesn't have tags or versions in the Github repo.
 # This commit represents the latest version that S2N is compatible
 # with. It prevents our build system from breaking when BoringSSL

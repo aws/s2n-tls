@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_blob.h"
@@ -45,7 +44,9 @@ void s2n_blob_slice_harness()
         assert(slice->size == size);
         assert(slice->growable == 0);
         assert(slice->allocated == 0);
-        assert_bytes_match(blob->data + offset, slice->data, slice->size);
+        if (blob->data) {
+            assert_bytes_match(blob->data + offset, slice->data, slice->size);
+        }
     } else {
         assert_blob_equivalence(slice, &old_slice, &old_byte_from_slice);
     }

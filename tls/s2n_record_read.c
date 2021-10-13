@@ -44,6 +44,7 @@ int s2n_sslv2_record_header_parse(
     POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Adjust to account for the 3 bytes of payload data we consumed in the header */
+    POSIX_ENSURE_GTE(*fragment_length, 3);
     *fragment_length -= 3;
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, record_type));
@@ -141,6 +142,12 @@ int s2n_record_parse(struct s2n_connection *conn)
     if (s2n_is_tls13_plaintext_content(conn, content_type)) {
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
+    }
+
+    /* The NULL stream cipher MUST NEVER be used for ApplicationData.
+     * If ApplicationData is unencrypted, we can't trust it. */
+    if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
+        POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
     }
 
     switch (cipher_suite->record_alg->cipher->type) {
