@@ -67,21 +67,25 @@
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2 13
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R3 25
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 10
-#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 19
-#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3 19 /* Not a typo; sikep434 r2 and r3 use the same extension ID */
+#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3 19
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2 23
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_90S_R2 24
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 28
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
- * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability
- * are defined in https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
-#define TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2 0x2F27
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2 0x2F1F
-#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2 0x2F28
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2 0x2F23
-#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R2 0x2F26
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R2 0x2F0F
+ * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability are defined in
+ * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md */
+#define TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3     0x2F27
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3  0x2F1F
+#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2      0x2F28
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2   0x2F23
+#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R2     0x2F26
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R2  0x2F0F
+#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE_L1_R3       0x2F37
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE_L1_R3    0x2F38
+#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3     0x2F39
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3  0x2F3A
+
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
@@ -103,6 +107,7 @@
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
 #define TLS_EXTENSION_SCT_LIST             18
+#define TLS_EXTENSION_EMS                  23
 #define TLS_EXTENSION_SESSION_TICKET       35
 #define TLS_EXTENSION_PRE_SHARED_KEY       41
 #define TLS_EXTENSION_CERT_AUTHORITIES     47
@@ -198,20 +203,7 @@
 #define TCP_HEADER_LENGTH 20
 #define TCP_OPTIONS_LENGTH 40
 
-/* The maximum size of a TLS record is 16389 bytes. This is;  1 byte for content
- * type, 2 bytes for the protocol version, 2 bytes for the length field,
- * and then up to 2^14 for the encrypted+compressed payload data.
- */
-#define S2N_TLS_RECORD_HEADER_LENGTH    5
-#define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH 16384
-/* Maximum TLS record length allows for 2048 octets of compression expansion and padding */
-#define S2N_TLS_MAXIMUM_RECORD_LENGTH   (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH + 2048)
 #define S2N_TLS_MAX_FRAG_LEN_EXT_NONE   0
-
-/* TLS1.3 has a max fragment length of 2^14 + 1 byte for the content type */
-#define S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH 16385
-/* Max encryption overhead is 255 for AEAD padding */
-#define S2N_TLS13_MAXIMUM_RECORD_LENGTH   (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH + 255)
 
 /* The maximum size of an SSL2 message is 2^14 - 1, as neither of the first two
  * bits in the length field are usable. Per;
@@ -242,7 +234,6 @@
  */
 #define S2N_LARGE_RECORD_LENGTH S2N_TLS_MAXIMUM_RECORD_LENGTH
 #define S2N_LARGE_FRAGMENT_LENGTH S2N_TLS_MAXIMUM_FRAGMENT_LENGTH
-#define S2N_TLS13_LARGE_FRAGMENT_LENGTH S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH
 
 /* Cap dynamic record resize threshold to 8M */
 #define S2N_TLS_MAX_RESIZE_THRESHOLD (1024 * 1024 * 8)

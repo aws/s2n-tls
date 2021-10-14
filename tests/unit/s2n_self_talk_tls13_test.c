@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-    EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+    EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
 
     char buffer[0xffff];
     for (int i = 1; i < 0xffff; i += 100) {

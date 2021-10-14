@@ -81,6 +81,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     const uint8_t test_data[] = "hello world";
 
     /* Malformed record: empty handshake record */
@@ -109,6 +113,7 @@ int main(int argc, char **argv)
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
+            conn.mode = S2N_CLIENT;
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t data_size = 0;
             uint8_t data = 0;
@@ -196,6 +201,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
 
@@ -346,8 +352,15 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                                 S2N_ERR_BAD_MESSAGE);
 
+            /* Pretend we didn't test the above error condition.
+             * The S2N_ERR_BAD_MESSAGE error triggered S2N to close the connection. */
+            server_conn->closed = false;
+            client_conn->closed = false;
+
+            /* Read the remaining early data properly */
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_size, &blocked));
+
             EXPECT_NOT_BLOCKED(server_conn, blocked, APPLICATION_DATA);
             EXPECT_EQUAL(data_size, sizeof(test_data) - 1);
             EXPECT_BYTEARRAY_EQUAL(actual_payload, test_data + 1, sizeof(test_data) - 1);

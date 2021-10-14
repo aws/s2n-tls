@@ -34,7 +34,7 @@
 #define MAX_CONNECTIONS 1000
 
 /* This is roughly the current memory usage per connection */
-#define MEM_PER_CONNECTION (106 * 1024)
+#define MEM_PER_CONNECTION (48 * 1024)
 
 /* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
@@ -92,6 +92,7 @@ int main(int argc, char **argv)
     }
 
     const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
+    const ssize_t minAllowedMemDiff = maxAllowedMemDiff * 0.75;
 
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
     struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
@@ -186,6 +187,9 @@ int main(int argc, char **argv)
     EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < maxAllowedMemDiff);
     EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
     EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
+
+    /* If the maximum memory drops too much, we should tighten up the limits in this test. */
+    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial > minAllowedMemDiff);
 
     END_TEST();
 

@@ -24,24 +24,46 @@ type State = ([2], [2])
 
 // For any two related 'connection' and corking 'State' they produce related
 // corking traces.
+// We only check handshakes up until the first APPLICATION_DATA.
 highLevelSimulatesLowLevel : {len} (fin len, len >= 2) => connection -> State -> Bit
 highLevelSimulatesLowLevel conn state =
-   initial_connection conn /\ conn.mode == S2N_SERVER /\ conn2state conn == state ==>
-   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   initial_connection conn /\ conn.mode == S2N_SERVER /\ conn.corked == uncorked /\ conn2state conn == state ==>
+   go 0
    where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
          writers = drop `{1} (map getWriter conn_trace)
+
+         conn_trace_states : [len]State
+         conn_trace_states = map conn2state conn_trace
+
+         trace_corking_states : [len]State
+         trace_corking_states = trace_corking `{n = len} state writers
+
+         go : [width len] -> Bit
+         go i = if i >= `len
+                   then True
+                 | (ACTIVE_STATE (conn_trace@i)).record_type == TLS_APPLICATION_DATA
+                   then (trace_corking_states@i).1 == uncorked
+                else (conn_trace_states@i == trace_corking_states@i) /\ go (i+1)
 
 // Property of the high-level state machine:  there is no uncorking or corking
 // twice in a row
 // This is not true for arbitrary sequences of writers, as for example a server
 // could transition S->A->S and cork twice.  However, we do not have such
 // a sequence possible given the handshake sequences
+// We only check handshakes up until the first APPLICATION_DATA.
 noDoubleCorkUncork : {len} (fin len, len >= 2) => connection -> Bit
 noDoubleCorkUncork conn =
-  initial_connection conn ==> and (map corkingInBounds (run writers))
+  initial_connection conn ==> go 0
   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
         writers = map getWriter conn_trace
 
+        run_writers_corking_in_bounds : [len+1]Bit
+        run_writers_corking_in_bounds = map corkingInBounds (run writers)
+
+        go : [width len] -> Bit
+        go i = if i >= `len then True
+                | (ACTIVE_STATE (conn_trace@i)).record_type == TLS_APPLICATION_DATA then True
+               else run_writers_corking_in_bounds@i /\ go (i+1)
 
 writer2sender : [8] -> [2]
 writer2sender w = if w == 'C' then clientSender else
@@ -53,7 +75,7 @@ corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer the
                       else 0
 
 trace_advance_message : {n} (fin n) => connection -> [n]connection
-trace_advance_message conn = take (iterate advance_message conn)
+trace_advance_message conn = take (iterate s2nTrans conn)
 
 trace_corking : {n} (fin n, n >= 2) => State -> [n-1][8] -> [n]State
 trace_corking s writers = scanl cork_transition s writers
@@ -68,12 +90,26 @@ conn2state conn = (writer2sender (getWriter conn), conn.corked)
 // mode" precondition.
 // We wrap this with negation to show that we can't do this proof without
 // the server-mode assumption
+// We only check handshakes up until the first APPLICATION_DATA.
 highLevelDoesNotSimulateLowLevel :  {len} (fin len, len >= 2) => connection -> State -> Bit
 highLevelDoesNotSimulateLowLevel conn state =
-   initial_connection conn /\ conn2state conn == state ==>
-   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   initial_connection conn /\ conn2state conn == state /\ conn.corked == uncorked ==>
+   go 0
    where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
          writers = drop `{1} (map getWriter conn_trace)
+
+         conn_trace_states : [len]State
+         conn_trace_states = map conn2state conn_trace
+
+         trace_corking_states : [len]State
+         trace_corking_states = trace_corking `{n = len} state writers
+
+         go : [width len] -> Bit
+         go i = if i >= `len
+                   then True
+                 | (ACTIVE_STATE (conn_trace@i)).record_type == TLS_APPLICATION_DATA
+                   then (trace_corking_states@i).1 == uncorked
+                else (conn_trace_states@i == trace_corking_states@i) /\ go (i+1)
 
 // The abstract transition function for the cork/uncork state machine
 cork_transition : State -> [8] -> State

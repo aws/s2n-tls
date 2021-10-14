@@ -34,8 +34,27 @@ int s2n_end_of_early_data_send(struct s2n_connection *conn)
 
 int s2n_end_of_early_data_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
     return S2N_SUCCESS;
+}
+
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *# If the client attempts a 0-RTT handshake but the server
+ *# rejects it, the server will generally not have the 0-RTT record
+ *# protection keys and must instead use trial decryption (either with
+ *# the 1-RTT handshake keys or by looking for a cleartext ClientHello in
+ *# the case of a HelloRetryRequest) to find the first non-0-RTT message.
+ */
+bool s2n_early_data_is_trial_decryption_allowed(struct s2n_connection *conn, uint8_t record_type)
+{
+    return conn && (conn->early_data_state == S2N_EARLY_DATA_REJECTED)
+            && record_type == TLS_APPLICATION_DATA
+            /* Only servers receive early data. */
+            && (conn->mode == S2N_SERVER)
+            /* Early data is only expected during the handshake. */
+            && (s2n_conn_get_current_message_type(conn) != APPLICATION_DATA);
 }
 
 static bool s2n_is_early_data_io(struct s2n_connection *conn)
@@ -137,6 +156,7 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
     *data_sent = 0;
 
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_SERVER_MODE);
+    RESULT_ENSURE(!s2n_is_tls_12_self_downgrade_required(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     if (!s2n_early_data_can_continue(conn)) {
         return S2N_RESULT_OK;
@@ -187,6 +207,12 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
 int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
         ssize_t *data_sent, s2n_blocked_status *blocked)
 {
+    POSIX_ENSURE_REF(conn);
+
+    /* If we are going to downgrade ourself to TLS 1.2, do not allow users to send TLS 1.3 Early data. */
+    POSIX_ENSURE((conn->mode == S2N_CLIENT), S2N_ERR_SERVER_MODE);
+    POSIX_ENSURE(!s2n_is_tls_12_self_downgrade_required(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
     /* Calling this method indicates that we expect early data. */
     POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
 

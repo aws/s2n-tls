@@ -31,6 +31,7 @@ struct s2n_client_hello {
 
     s2n_parsed_extensions_list extensions;
     struct s2n_blob cipher_suites;
+    struct s2n_blob session_id;
 
     unsigned int callback_invoked:1;
     unsigned int callback_async_blocked:1;
@@ -39,6 +40,7 @@ struct s2n_client_hello {
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);
 
+extern bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn);
 extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 
 extern ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);

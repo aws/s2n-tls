@@ -38,9 +38,8 @@ int s2n_key_update_write(struct s2n_blob *out);
 
 int main(int argc, char **argv)
 {
-
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+
     /* s2n_post_handshake_recv */
     {   
         /* post_handshake_recv processes a key update requested message */
@@ -99,18 +98,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
 
-        /* post_handshake_recv will error when protocol version is not TLS1.3 */ 
-        {   
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-
         /* Functional test: Multiple post handshake messages can be received in the same record */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -133,6 +120,19 @@ int main(int argc, char **argv)
 
             /* All three key update messages have been read */
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* HELLO_REQUEST messages can be received post-handshake. */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
+
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_HELLO_REQUEST));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
+            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -195,7 +195,40 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
     }
+
+    /* Errors while processing post-handshake messages close the connection */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+
+        DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+
+        /* Send just the ClientHello */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+
+        /* Try to read the ClientHello as a post-handshake message */
+        uint8_t output_buffer[10] = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output_buffer, sizeof(output_buffer), &blocked), S2N_ERR_BAD_MESSAGE);
+
+        /* Error closed connection */
+        EXPECT_TRUE(server_conn->closed);
+
+        /* Error triggers blinding */
+        EXPECT_NOT_EQUAL(s2n_connection_get_delay(server_conn), 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
     END_TEST();
 }
-
-

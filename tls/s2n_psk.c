@@ -286,12 +286,12 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
 }
 
 /**
- *= https://tools.ietf.org/html/rfc8446#section-4.2.10  
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
  *# For PSKs provisioned via NewSessionTicket, a server MUST validate
- *#  that the ticket age for the selected PSK identity (computed by
- *#  subtracting ticket_age_add from PskIdentity.obfuscated_ticket_age
- *#  modulo 2^32) is within a small tolerance of the time since the ticket
- *#  was issued (see Section 8).
+ *# that the ticket age for the selected PSK identity (computed by
+ *# subtracting ticket_age_add from PskIdentity.obfuscated_ticket_age
+ *# modulo 2^32) is within a small tolerance of the time since the ticket
+ *# was issued (see Section 8).
  **/
 static S2N_RESULT s2n_validate_ticket_lifetime(struct s2n_connection *conn, uint32_t obfuscated_ticket_age, uint32_t ticket_age_add) 
 {

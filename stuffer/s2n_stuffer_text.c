@@ -192,3 +192,17 @@ int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *st
     POSIX_GUARD(s2n_stuffer_alloc(stuffer, length + 1));
     return s2n_stuffer_write_bytes(stuffer, (const uint8_t *)str, length);
 }
+
+int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length)
+{
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    POSIX_ENSURE_REF(data);
+
+    struct s2n_blob data_blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&data_blob, data, length));
+
+    POSIX_GUARD(s2n_stuffer_init(stuffer, &data_blob));
+    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
+
+    return S2N_SUCCESS;
+}

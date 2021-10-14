@@ -58,13 +58,28 @@ int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_s
 int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     POSIX_ENSURE_REF(conn);
-
+    /**
+     *= https://tools.ietf.org/rfc/rfc6066#section-8
+     *#   struct {
+     *#       CertificateStatusType status_type;
+     *#       select (status_type) {
+     *#          case ocsp: OCSPResponse;
+     *#       } response;
+     *#   } CertificateStatus;
+     *#
+     *#   opaque OCSPResponse<1..2^24-1>;
+     *#
+     *# An "ocsp_response" contains a complete, DER-encoded OCSP response
+     *# (using the ASN.1 type OCSPResponse defined in [RFC2560]).  Only one
+     *# OCSP response may be sent.
+     **/
     uint8_t type;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &type));
     if (type != S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP */
         return S2N_SUCCESS;
     }
+    conn->status_type = S2N_STATUS_REQUEST_OCSP;
 
     uint32_t status_size;
     POSIX_GUARD(s2n_stuffer_read_uint24(in, &status_size));
@@ -73,8 +88,9 @@ int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_s
     POSIX_GUARD(s2n_realloc(&conn->status_response, status_size));
     POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->status_response.data, status_size));
 
-    POSIX_GUARD(s2n_x509_validator_validate_cert_stapled_ocsp_response(
-            &conn->x509_validator, conn, conn->status_response.data, conn->status_response.size));
+    POSIX_ENSURE(s2n_x509_validator_validate_cert_stapled_ocsp_response(
+            &conn->x509_validator, conn, conn->status_response.data, conn->status_response.size) == S2N_CERT_OK,
+            S2N_ERR_CERT_UNTRUSTED);
 
     return S2N_SUCCESS;
 }

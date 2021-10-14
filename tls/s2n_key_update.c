@@ -32,7 +32,8 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
 int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE(!conn->config->quic_enabled, S2N_ERR_BAD_MESSAGE);
+    POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
 
     uint8_t key_update_request;
     POSIX_GUARD(s2n_stuffer_read_uint8(request, &key_update_request));

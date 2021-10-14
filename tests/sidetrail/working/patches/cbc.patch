@@ -1,9 +1,9 @@
 diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
-index b37efb0..077d214 100644
+index 401ab760..f39cc7e2 100644
 --- a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 +++ b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
-@@ -25,6 +25,28 @@
- 
+@@ -26,6 +26,28 @@
+ #include "tls/s2n_connection.h"
  #include "tls/s2n_record.h"
  
 +#include <smack.h>
@@ -11,7 +11,7 @@ index b37efb0..077d214 100644
 +#include "ct-verif.h"
 +#include "sidetrail.h"
 +
-+/* Because of a bug in SMACK, when we try to specify the invarients for this loop in the main function, 
++/* Because of a bug in SMACK, when we try to specify the invarients for this loop in the main function,
 + * SMACK crashes. Moving the code (unmodified) to this function sidesteps the bug. Michael Emmi has promissed
 + * a fix soon
 + */
@@ -31,14 +31,14 @@ index b37efb0..077d214 100644
  /* A TLS CBC record looks like ..
   *
   * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]
-@@ -53,17 +75,20 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
-        copy = &conn->server->record_mac_copy_workspace;
-     }
-     
+@@ -48,23 +70,28 @@
+  */
+ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
+ {
 -    uint8_t mac_digest_size;
 -    POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
-+    uint8_t mac_digest_size = DIGEST_SIZE;;
-+    //GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
++    uint8_t mac_digest_size = DIGEST_SIZE;
++    //POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
  
      /* The record has to be at least big enough to contain the MAC,
       * plus the padding length byte */
@@ -54,16 +54,24 @@ index b37efb0..077d214 100644
  
      int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
  
-@@ -82,20 +107,21 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
-     POSIX_GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
+     /* Update the MAC */
+     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
+     int currently_in_hash_block = hmac->currently_in_hash_block;
++    __VERIFIER_assume(currently_in_hash_block >= 0);
++    __VERIFIER_assume(currently_in_hash_block < BLOCK_SIZE);
+ 
+     /* Check the MAC */
+     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+@@ -81,18 +108,19 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
+     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
  
      /* SSLv3 doesn't specify what the padding should actually be */
 -    if (conn->actual_protocol_version == S2N_SSLv3) {
 -        return 0 - mismatches;
 -    }
-+    /* if (conn->actual_protocol_version == S2N_SSLv3) { */
-+    /*     return 0 - mismatches; */
-+    /* } */
++    //if (conn->actual_protocol_version == S2N_SSLv3) {
++    //    return 0 - mismatches;
++    //}
  
      /* Check the maximum amount that could theoretically be padding */
      int check = MIN(255, (payload_and_padding_size - 1));
@@ -74,13 +82,10 @@ index b37efb0..077d214 100644
 -        mismatches |= (decrypted->data[j] ^ padding_length) & mask;
 -    }
 +    mismatches = double_loop(mismatches, decrypted, check, cutoff, padding_length);
-+    /* for (uint32_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) { */
-+    /*     uint8_t mask = ~(0xff << ((i >= cutoff) * 8)); */
-+    /*     mismatches |= (decrypted->data[j] ^ padding_length) & mask; */
-+    /* } */
++    //for (uint32_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
++    //    uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
++    //    mismatches |= (decrypted->data[j] ^ padding_length) & mask;
++    //}
  
--    POSIX_GUARD(s2n_hmac_reset(copy));
-+    /* POSIX_GUARD(s2n_hmac_reset(copy)); */
+     S2N_ERROR_IF(mismatches, S2N_ERR_CBC_VERIFY);
  
-     if (mismatches) {
-         POSIX_BAIL(S2N_ERR_CBC_VERIFY);

@@ -52,8 +52,8 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     client_conn->server_protocol_version = S2N_TLS13;
     client_conn->client_protocol_version = S2N_TLS13;
     client_conn->actual_protocol_version = S2N_TLS13;
-    client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
-    client_conn->secure.client_cert_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    client_conn->handshake_params.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    client_conn->handshake_params.client_cert_sig_scheme = s2n_ecdsa_secp256r1_sha256;
     client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     if (!no_cert) {
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -63,7 +63,7 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     server_conn->server_protocol_version = S2N_TLS13;
     server_conn->client_protocol_version = S2N_TLS13;
     server_conn->actual_protocol_version = S2N_TLS13;
-    server_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    server_conn->handshake_params.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
     server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     if (no_cert) {
@@ -308,13 +308,19 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* client_auth handshake negotiation */
     {
         struct s2n_config *server_config, *client_config;
-        char *cert_chain_pem;
-        char *private_key_pem;
+        uint8_t *cert_chain_pem = NULL;
+        uint8_t *private_key_pem = NULL;
+        uint32_t cert_chain_len = 0;
+        uint32_t private_key_len = 0;
         struct s2n_cert_chain_and_key *ecdsa_cert;
 
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -326,10 +332,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20190801"));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20190801"));
 
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(ecdsa_cert = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(ecdsa_cert, cert_chain_pem, cert_chain_len, private_key_pem, private_key_len));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));

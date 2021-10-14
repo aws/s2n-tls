@@ -82,11 +82,27 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_record_size)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_MUT(max_record_size);
+
+    if(!IS_NEGOTIATED(conn)) {
+        *max_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(max_fragment_size);
+    } else if (conn->actual_protocol_version < S2N_TLS13) {
+        *max_record_size = S2N_TLS12_MAX_RECORD_LEN_FOR(max_fragment_size);
+    } else {
+        *max_record_size = S2N_TLS13_MAX_RECORD_LEN_FOR(max_fragment_size);
+    }
+    return S2N_RESULT_OK;
+}
+
 /* Find the largest size that will fit within an ethernet frame for a "small" payload */
 S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_MUT(payload_size);
+
     /* remove ethernet, TCP/IP and TLS header overheads */
     const uint16_t min_outgoing_fragment_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
@@ -105,6 +121,12 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
         size -= active->cipher_suite->record_alg->cipher->io.comp.mac_key_size;
         /* Padding length byte */
         size -= 1;
+    }
+
+    /* If TLS1.3, remove content type */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        RESULT_ENSURE(size > S2N_TLS_CONTENT_TYPE_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+        size -= S2N_TLS_CONTENT_TYPE_LENGTH;
     }
 
     /* subtract overheads of a TLS record */
@@ -256,7 +278,22 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Start the MAC with the sequence number */
     POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_LARGE_RECORD_LENGTH));
+    if (s2n_stuffer_is_freed(&conn->out)) {
+        /* If the output buffer has not been allocated yet, allocate enough memory to hold
+         * a record with the local maximum fragment length. Because this only occurs if the
+         * output buffer has not been allocated, it does NOT resize existing buffers.
+         *
+         * The maximum fragment length is:
+         * 1) The local default configured for new connections
+         * 2) The local value set by the user via s2n_connection_prefer_throughput()
+         *    or s2n_connection_prefer_low_latency()
+         * 3) On the server, the minimum of the local value and the value negotiated with the
+         *    client via the max_fragment_length extension
+         */
+        uint16_t max_wire_record_size = 0;
+        POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
+    }
 
     /* Now that we know the length, start writing the record */
     POSIX_GUARD(s2n_stuffer_write_uint8(&conn->out, is_tls13_record ?
@@ -294,7 +331,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* TLS 1.3 protected record occupies one extra byte for content type */
     if (is_tls13_record) {
-        extra += TLS13_CONTENT_TYPE_LENGTH;
+        extra += S2N_TLS_CONTENT_TYPE_LENGTH;
     }
 
     /* Rewrite the length to be the actual fragment length */
@@ -330,13 +367,10 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
         /* Set the IV size to the amount of data written */
         iv.size = s2n_stuffer_data_available(&iv_stuffer);
-
-        struct s2n_stuffer ad_stuffer = {0};
-        POSIX_GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         if (is_tls13_record) {
-            POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+            POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(data_bytes_to_take + S2N_TLS_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &aad));
         } else {
-            POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
+            POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
         }
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         s2n_blob_init(&iv, implicit_iv, block_size);
@@ -415,7 +449,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
         if (is_tls13_record) {
             /* one extra byte for content type */
-            encrypted_length += TLS13_CONTENT_TYPE_LENGTH;
+            encrypted_length += S2N_TLS_CONTENT_TYPE_LENGTH;
         }
         break;
     case S2N_CBC:

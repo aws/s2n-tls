@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
+extern const struct s2n_security_policy security_policy_test_tls13_retry;
+
 /* Read and write hex */
 extern int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, uint32_t n);
 extern int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u);
@@ -37,6 +39,8 @@ extern int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, con
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
 int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
+int s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn);
+int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn);
 
 struct s2n_test_io_pair {
     int client;
@@ -58,6 +62,7 @@ int s2n_fd_set_non_blocking(int fd);
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
+S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn);
 
 S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn);
 
@@ -154,6 +159,7 @@ S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *con
 
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
+int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 

@@ -247,6 +247,40 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test: TLS1.2 client can receive a hello request message at any time. */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        conn->actual_protocol_version = S2N_TLS12;
+
+        struct s2n_stuffer input = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+        for (size_t i = 0; i < valid_tls12_handshakes_size; i++) {
+            uint16_t handshake = valid_tls12_handshakes[i];
+
+            for (size_t j = 0; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+                if (handshakes[handshake][j] == APPLICATION_DATA) {
+                    break;
+                }
+
+                conn->handshake.message_number = j;
+                conn->in_status = ENCRYPTED;
+                conn->handshake.handshake_type = handshake;
+
+                EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, TLS_HELLO_REQUEST));
+                EXPECT_SUCCESS(s2n_handshake_read_io(conn));
+                EXPECT_EQUAL(conn->handshake.message_number, j);
+
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
+            }
+        }
+
+        EXPECT_FALSE(unexpected_handler_called);
+        EXPECT_SUCCESS(s2n_stuffer_free(&input));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     /* Test: TLS1.2 s2n_handshake_read_io should accept only the expected message */
     {
         /* TLS1.2 should accept the expected message */
@@ -326,6 +360,16 @@ int main(int argc, char **argv)
 
         /* TLS1.2 should error for an expected message from the wrong record type */
         {
+            /* Unfortunately, all our non-handshake record types have a message type of 0,
+             * and the combination of TLS_HANDSHAKE + "0" is actually a message (TLS_HELLO_REQUEST)
+             * which can appear at any point in a TLS1.2 handshake.
+             *
+             * To test, temporarily modify the actions table.
+             * We MUST restore this after this test.
+             */
+            uint8_t old_message_type = state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type;
+            state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = 1;
+
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS12;
 
@@ -348,6 +392,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = old_message_type;
         }
     }
 

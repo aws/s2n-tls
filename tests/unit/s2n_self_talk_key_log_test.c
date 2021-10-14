@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_key_log.h"
 
 static int s2n_test_key_log_cb(void* context, struct s2n_connection *conn,
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
     }
 
     /* TLS 1.3 */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
         struct s2n_connection *client_conn, *server_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));

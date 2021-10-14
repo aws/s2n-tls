@@ -108,23 +108,25 @@ def get_libcrypto():
     return str(os.getenv("S2N_LIBCRYPTO")).strip('"')
 
 
-ALL_CIPHERS = [
+ALL_TLS13_CIPHERS = [
     Cipher("TLS_AES_256_GCM_SHA384", Version.TLS13),
     Cipher("TLS_CHACHA20_POLY1305_SHA256", Version.TLS13),
     Cipher("TLS_AES_128_GCM_SHA256", Version.TLS13)
 ]
 
+NO_TLS13_CIPHERS = [ ]
+
 # Older versions of Openssl do not support CHACHA20. Current versions of LibreSSL and BoringSSL use a different API
 # that is unsupported by s2n.
-LEGACY_COMPATIBLE_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.name, ALL_CIPHERS))
+LEGACY_COMPATIBLE_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.name, ALL_TLS13_CIPHERS))
 
 ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
-    "openssl-1.1.1"         : ALL_CIPHERS,
-    "openssl-1.0.2"         : LEGACY_COMPATIBLE_CIPHERS,
-    "openssl-1.0.2-fips"    : LEGACY_COMPATIBLE_CIPHERS,
-    "libressl"              : LEGACY_COMPATIBLE_CIPHERS,
-    "boringssl"             : LEGACY_COMPATIBLE_CIPHERS,
-    "awslc"                 : LEGACY_COMPATIBLE_CIPHERS,
+    "openssl-1.1.1"         : ALL_TLS13_CIPHERS,
+    "openssl-1.0.2"         : NO_TLS13_CIPHERS,
+    "openssl-1.0.2-fips"    : NO_TLS13_CIPHERS,
+    "libressl"              : NO_TLS13_CIPHERS,
+    "boringssl"             : NO_TLS13_CIPHERS,
+    "awslc"                 : NO_TLS13_CIPHERS,
 }
 
 class Curve():

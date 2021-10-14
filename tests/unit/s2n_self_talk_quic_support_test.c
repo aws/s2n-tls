@@ -43,6 +43,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     const uint8_t *transport_params = NULL;
     uint16_t transport_params_len = 0;
 

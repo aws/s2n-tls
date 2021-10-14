@@ -53,7 +53,7 @@ const uint8_t tls11_downgrade_protection_bytes[] = {
 static int s2n_hello_retry_validate(struct s2n_connection *conn) {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_ENSURE(memcmp(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
+    POSIX_ENSURE(memcmp(hello_retry_req_random, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
                  S2N_ERR_INVALID_HELLO_RETRY);
 
     return S2N_SUCCESS;
@@ -61,7 +61,7 @@ static int s2n_hello_retry_validate(struct s2n_connection *conn) {
 
 static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
     POSIX_ENSURE_REF(conn);
-    uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
+    uint8_t *downgrade_bytes = &conn->secrets.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 
     /* Detect downgrade attacks according to RFC 8446 section 4.1.3 */
     if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version == S2N_TLS12) {
@@ -79,7 +79,7 @@ static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
 
 static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
     POSIX_ENSURE_REF(conn);
-    uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
+    uint8_t *downgrade_bytes = &conn->secrets.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 
     /* Protect against downgrade attacks according to RFC 8446 section 4.1.3 */
     if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version == S2N_TLS12) {
@@ -104,7 +104,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
 
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* If the client receives a second HelloRetryRequest in the same connection, it MUST send an error. */
     if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
@@ -131,8 +131,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     } else {
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
-        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
-        POSIX_ENSURE(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        POSIX_ENSURE(!s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         /*
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
@@ -166,7 +166,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
             conn->actual_protocol_version = actual_protocol_version;
             POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
             /* Erase master secret which might have been set for session resumption */
-            POSIX_CHECKED_MEMSET((uint8_t *)conn->secure.master_secret, 0, S2N_TLS_SECRET_LEN);
+            POSIX_CHECKED_MEMSET((uint8_t *)conn->secrets.master_secret, 0, S2N_TLS_SECRET_LEN);
 
             /* Erase client session ticket which might have been set for session resumption */
             POSIX_GUARD(s2n_free(&conn->client_ticket));
@@ -206,7 +206,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     }
 
     /* Choose a default signature scheme */
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->handshake_params.conn_sig_scheme, S2N_SERVER));
 
     /* Update the required hashes for this connection */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
@@ -227,7 +227,7 @@ int s2n_server_hello_write_message(struct s2n_connection *conn)
     protocol_version[1] = (uint8_t)(legacy_protocol_version % 10);
 
     POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, conn->session_id_len));
     POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->session_id, conn->session_id_len));
     POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
@@ -242,7 +242,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 
     struct s2n_stuffer server_random = {0};
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Create the server random data */
     POSIX_GUARD(s2n_stuffer_init(&server_random, &b));
