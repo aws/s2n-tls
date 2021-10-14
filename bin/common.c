@@ -23,8 +23,8 @@
 #include <getopt.h>
 #include <errno.h>
 
-#include <s2n.h>
-#include <error/s2n_errno.h>
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include <sys/stat.h>
 #include <sys/mman.h>
