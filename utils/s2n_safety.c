@@ -41,49 +41,48 @@ pid_t s2n_actual_getpid()
 #endif
 }
 
-static S2N_RESULT s2n_constant_time_compare(const uint8_t *a, const uint8_t *b, const uint32_t len)
+bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len)
 {
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
 
-    /* if there is a len, then the pointers need to be readable */
-    if (len > 0) {
-        RESULT_ENSURE(S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
-        RESULT_ENSURE(S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
-    }
+    /* check if a and b are readable - if not assign a unique failure value */
+    uint8_t a_failure = S2N_MEM_IS_READABLE(a, len) ? 0 : 0x1;
+    uint8_t b_failure = S2N_MEM_IS_READABLE(b, len) ? 0 : 0x2;
 
+    /* XOR the failure values into a volatile variable */
+    volatile uint8_t failure = a_failure ^ b_failure;
+    /* create a failure mixin to keep the instruction count the same */
+    volatile uint8_t failure_mixin = 0x4;
+
+    /* start by assuming they are equal */
+    /* NOTE: this handles the case when `len == 0` */
     uint8_t xor = 0;
+
+    /* iterate over each byte in the slices */
     for (uint32_t i = 0; i < len; i++) {
         /* Invariants must hold for each execution of the loop
          * and at loop exit, hence the <= */
         S2N_INVARIANT(i <= len);
-        xor |= a[ i ] ^ b[ i ];
+
+        uint8_t x, y;
+
+        /* read from the failure variable and set x and y accordingly */
+        if (failure) {
+            x = failure;
+            y = failure_mixin;
+        } else {
+            x = a[i];
+            y = b[i];
+        }
+
+        /* mix the current x and y values in to the result */
+        xor |= x ^ y;
     }
 
-    /* the slices are equal if the final xor is result is 0 */
-    RESULT_ENSURE_EQ(xor, 0);
-
-    return S2N_RESULT_OK;
-}
-
-/**
- * Given arrays "a" and "b" of length "len", determine whether they
- * hold equal contents.
- *
- * The execution time of this function is independent of the values
- * stored in the arrays.
- *
- * Timing may depend on the length of the arrays, and on the location
- * of the arrays in memory (e.g. if a buffer has been paged out, this
- * will affect the timing of this function).
- *
- * Returns:
- *  Whether all bytes in arrays "a" and "b" are identical
- */
-bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
-{
-    return s2n_result_is_ok(s2n_constant_time_compare(a, b, len));
+    /* finally check to make sure xor is still 0 */
+    return xor == 0;
 }
 
 /**
