@@ -41,6 +41,32 @@ pid_t s2n_actual_getpid()
 #endif
 }
 
+static S2N_RESULT s2n_constant_time_compare(const uint8_t *a, const uint8_t *b, const uint32_t len)
+{
+    S2N_PUBLIC_INPUT(a);
+    S2N_PUBLIC_INPUT(b);
+    S2N_PUBLIC_INPUT(len);
+
+    /* if there is a len, then the pointers need to be readable */
+    if (len > 0) {
+        RESULT_ENSURE(S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
+        RESULT_ENSURE(S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
+    }
+
+    uint8_t xor = 0;
+    for (uint32_t i = 0; i < len; i++) {
+        /* Invariants must hold for each execution of the loop
+         * and at loop exit, hence the <= */
+        S2N_INVARIANT(i <= len);
+        xor |= a[ i ] ^ b[ i ];
+    }
+
+    /* the slices are equal if the final xor is result is 0 */
+    RESULT_ENSURE_EQ(xor, 0);
+
+    return S2N_RESULT_OK;
+}
+
 /**
  * Given arrays "a" and "b" of length "len", determine whether they
  * hold equal contents.
@@ -57,25 +83,7 @@ pid_t s2n_actual_getpid()
  */
 bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
 {
-    S2N_PUBLIC_INPUT(a);
-    S2N_PUBLIC_INPUT(b);
-    S2N_PUBLIC_INPUT(len);
-    POSIX_ENSURE((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
-    POSIX_ENSURE((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
-
-    if (len != 0 && (a == NULL || b == NULL)) {
-        return false;
-    }
-
-    uint8_t xor = 0;
-    for (uint32_t i = 0; i < len; i++) {
-        /* Invariants must hold for each execution of the loop
-	 * and at loop exit, hence the <= */
-        S2N_INVARIANT(i <= len);
-        xor |= a[i] ^ b[i];
-    }
-
-    return !xor;
+    return s2n_result_is_ok(s2n_constant_time_compare(a, b, len));
 }
 
 /**
