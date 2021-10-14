@@ -17,6 +17,10 @@
 
 #include <openssl/evp.h>
 
+#ifdef OPENSSL_IS_AWSLC
+#include <openssl/hmac.h>
+#endif
+
 #include "crypto/s2n_openssl.h"
 #include "utils/s2n_result.h"
 
@@ -27,7 +31,11 @@ struct s2n_evp_digest {
 
 struct s2n_evp_hmac_state {
     struct s2n_evp_digest evp_digest;
+#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
+    HMAC_CTX *hmac_key;
+#else
     EVP_PKEY *mac_key;
+#endif
 };
 
 /* Define API's that change based on the OpenSSL Major Version. */

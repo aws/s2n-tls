@@ -16,6 +16,9 @@
 #include <sys/param.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#ifdef OPENSSL_IS_AWSLC
+#include <openssl/hmac.h>
+#endif
 #include <string.h>
 
 #include "error/s2n_errno.h"
@@ -93,6 +96,34 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
     return 0;
 }
 
+static int s2n_init_md_from_hmac_alg(struct s2n_prf_working_space *ws, s2n_hmac_algorithm  alg){
+    switch (alg) {
+        case S2N_HMAC_SSLv3_MD5:
+        case S2N_HMAC_MD5:
+            ws->p_hash.evp_hmac.evp_digest.md = EVP_md5();
+            break;
+        case S2N_HMAC_SSLv3_SHA1:
+        case S2N_HMAC_SHA1:
+            ws->p_hash.evp_hmac.evp_digest.md = EVP_sha1();
+            break;
+        case S2N_HMAC_SHA224:
+            ws->p_hash.evp_hmac.evp_digest.md = EVP_sha224();
+            break;
+        case S2N_HMAC_SHA256:
+            ws->p_hash.evp_hmac.evp_digest.md = EVP_sha256();
+            break;
+        case S2N_HMAC_SHA384:
+            ws->p_hash.evp_hmac.evp_digest.md = EVP_sha384();
+            break;
+        case S2N_HMAC_SHA512:
+            ws->p_hash.evp_hmac.evp_digest.md = EVP_sha512();
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
+    }
+    return 0;
+}
+
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 static int s2n_evp_pkey_p_hash_alloc(struct s2n_prf_working_space *ws)
 {
@@ -100,7 +131,7 @@ static int s2n_evp_pkey_p_hash_alloc(struct s2n_prf_working_space *ws)
     return 0;
 }
 
-static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
 {
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.md);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
@@ -120,36 +151,13 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
 static int s2n_evp_pkey_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
 {
     /* Initialize the message digest */
-    switch (alg) {
-    case S2N_HMAC_SSLv3_MD5:
-    case S2N_HMAC_MD5:
-        ws->p_hash.evp_hmac.evp_digest.md = EVP_md5();
-        break;
-    case S2N_HMAC_SSLv3_SHA1:
-    case S2N_HMAC_SHA1:
-        ws->p_hash.evp_hmac.evp_digest.md = EVP_sha1();
-        break;
-    case S2N_HMAC_SHA224:
-        ws->p_hash.evp_hmac.evp_digest.md = EVP_sha224();
-        break;
-    case S2N_HMAC_SHA256:
-        ws->p_hash.evp_hmac.evp_digest.md = EVP_sha256();
-        break;
-    case S2N_HMAC_SHA384:
-        ws->p_hash.evp_hmac.evp_digest.md = EVP_sha384();
-        break;
-    case S2N_HMAC_SHA512:
-        ws->p_hash.evp_hmac.evp_digest.md = EVP_sha512();
-        break;
-    default:
-        POSIX_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
-    }
+    POSIX_GUARD(s2n_init_md_from_hmac_alg(ws, alg));
 
     /* Initialize the mac key using the provided secret */
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.mac_key = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size));
 
     /* Initialize the message digest context with the above message digest and mac key */
-    return s2n_evp_hmac_p_hash_digest_init(ws);
+    return s2n_evp_pkey_hmac_p_hash_digest_init(ws);
 }
 
 static int s2n_evp_pkey_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
@@ -159,8 +167,7 @@ static int s2n_evp_pkey_p_hash_update(struct s2n_prf_working_space *ws, const vo
     return 0;
 }
 
-static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
-{
+static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size){
     /* EVP_DigestSign API's require size_t data structures */
     size_t digest_size = size;
 
@@ -169,7 +176,7 @@ static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *dig
     return 0;
 }
 
-static int s2n_evp_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
 {
   POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(ws->p_hash.evp_hmac.evp_digest.ctx), S2N_ERR_P_HASH_WIPE_FAILED);
 
@@ -178,15 +185,15 @@ static int s2n_evp_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
 
 static int s2n_evp_pkey_p_hash_reset(struct s2n_prf_working_space *ws)
 {
-    POSIX_GUARD(s2n_evp_hmac_p_hash_wipe(ws));
+    POSIX_GUARD(s2n_evp_pkey_hmac_p_hash_wipe(ws));
 
-    return s2n_evp_hmac_p_hash_digest_init(ws);
+    return s2n_evp_pkey_hmac_p_hash_digest_init(ws);
 }
 
 static int s2n_evp_pkey_p_hash_cleanup(struct s2n_prf_working_space *ws)
 {
     /* Prepare the workspace md_ctx for the next p_hash */
-    POSIX_GUARD(s2n_evp_hmac_p_hash_wipe(ws));
+    POSIX_GUARD(s2n_evp_pkey_hmac_p_hash_wipe(ws));
 
     /* Free mac key - PKEYs cannot be reused */
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.mac_key);
@@ -213,6 +220,65 @@ static const struct s2n_p_hash_hmac s2n_evp_pkey_p_hash_hmac = {
     .reset = &s2n_evp_pkey_p_hash_reset,
     .cleanup = &s2n_evp_pkey_p_hash_cleanup,
     .free = &s2n_evp_pkey_p_hash_free,
+};
+#else
+static int s2n_evp_hmac_p_hash_alloc(struct s2n_prf_working_space *ws)
+{
+    POSIX_ENSURE_REF(ws->p_hash.evp_hmac.hmac_key = HMAC_CTX_new());
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
+{
+    /* Figure out the correct EVP_MD from s2n_hmac_algorithm  */
+    POSIX_GUARD(s2n_init_md_from_hmac_alg(ws, alg));
+
+    /* Initialize the mac and digest */
+    POSIX_GUARD_OSSL(HMAC_Init_ex(ws->p_hash.evp_hmac.hmac_key, secret->data, secret->size, ws->p_hash.evp_hmac.evp_digest.md, NULL), S2N_ERR_P_HASH_INIT_FAILED);
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
+{
+    POSIX_GUARD_OSSL(HMAC_Update(ws->p_hash.evp_hmac.hmac_key, data, (size_t)size), S2N_ERR_P_HASH_UPDATE_FAILED);
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
+{
+    /* HMAC_Final API's require size_t data structures */
+    unsigned int digest_size = size;
+    POSIX_GUARD_OSSL(HMAC_Final(ws->p_hash.evp_hmac.hmac_key, (unsigned char *)digest, &digest_size), S2N_ERR_P_HASH_FINAL_FAILED);
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
+{
+    POSIX_GUARD_OSSL(HMAC_Init_ex(ws->p_hash.evp_hmac.hmac_key, NULL, 0, ws->p_hash.evp_hmac.evp_digest.md, NULL), S2N_ERR_P_HASH_INIT_FAILED);
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)
+{
+    /* Prepare the workspace md_ctx for the next p_hash */
+    HMAC_CTX_reset(ws->p_hash.evp_hmac.hmac_key);
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_free(struct s2n_prf_working_space *ws)
+{
+    HMAC_CTX_free(ws->p_hash.evp_hmac.hmac_key);
+    return 0;
+}
+
+static const struct s2n_p_hash_hmac s2n_evp_hmac_p_hash_hmac = {
+    .alloc = &s2n_evp_hmac_p_hash_alloc,
+    .init = &s2n_evp_hmac_p_hash_init,
+    .update = &s2n_evp_hmac_p_hash_update,
+    .final = &s2n_evp_hmac_p_hash_final,
+    .reset = &s2n_evp_hmac_p_hash_reset,
+    .cleanup = &s2n_evp_hmac_p_hash_cleanup,
+    .free = &s2n_evp_hmac_p_hash_free,
 };
 #endif /* !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) */
 
@@ -322,10 +388,9 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
     return 0;
 }
-
 const struct s2n_p_hash_hmac *s2n_get_hmac_implementation() {
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-  return &s2n_internal_p_hash_hmac;
+  return s2n_is_in_fips_mode() ? &s2n_evp_hmac_p_hash_hmac : &s2n_internal_p_hash_hmac;
 #else
   return s2n_is_in_fips_mode() ? &s2n_evp_pkey_p_hash_hmac : &s2n_internal_p_hash_hmac;
 #endif

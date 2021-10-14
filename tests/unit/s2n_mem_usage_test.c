@@ -33,9 +33,18 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
+#ifdef OPENSSL_IS_AWSLC
+/* s2n + AWS-LC memory usage is currently a little higher than s2n + OpenSSL due to:
+    * AWS-LC uses EVP_CIPHER_CTX contexts as well as EVP_AEAD_CTX in s2n_session_key (this could be a union in the future)
+    * AWS-LC uses an HMAC_CTX which is larger than OpenSSL EVP_PKEY in s2n_evp_hmac_state without being able to get rid
+        * of the EVP_MD_CTX in s2n_evp_digest because s2n_hash uses that type
+    * AWS-LC FIPS uses Jitter for entropy which requires additional state per thread
+*/
+#define MEM_PER_CONNECTION (49 * 1024)
+#else
 /* This is roughly the current memory usage per connection */
 #define MEM_PER_CONNECTION (48 * 1024)
-
+#endif
 /* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 

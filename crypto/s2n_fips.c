@@ -23,12 +23,10 @@ int s2n_fips_init(void)
 {
     s2n_fips_mode = 0;
 
-#ifdef OPENSSL_FIPS
-    /* FIPS mode can be entered only if OPENSSL_FIPS is defined */
+    /* You can always call FIPS_mode to check if the underlying libcrypto was compiled for FIPS or not*/
     if (FIPS_mode()) {
         s2n_fips_mode = 1;
     }
-#endif
 
     return 0;
 }
