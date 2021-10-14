@@ -47,18 +47,25 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
 
-    /* check if a and b are readable - if not assign a unique failure value */
-    uint8_t a_failure = S2N_MEM_IS_READABLE(a, len) ? 0 : 0x1;
-    uint8_t b_failure = S2N_MEM_IS_READABLE(b, len) ? 0 : 0x2;
+    /* if len is 0, they're always going to be equal */
+    if (len == 0) {
+        return true;
+    }
 
-    /* XOR the failure values into a volatile variable */
-    volatile uint8_t failure = a_failure ^ b_failure;
-    /* create a failure mixin to keep the instruction count the same */
-    volatile uint8_t failure_mixin = 0x4;
+    /* check if a and b are readable - if so, allow them to increment their pointer */
+    uint8_t a_inc = S2N_MEM_IS_READABLE(a, len) ? 1 : 0;
+    uint8_t b_inc = S2N_MEM_IS_READABLE(b, len) ? 1 : 0;
 
-    /* start by assuming they are equal */
-    /* NOTE: this handles the case when `len == 0` */
-    uint8_t xor = 0;
+    /* reserve a stand-in pointer to replace NULL pointers */
+    static uint8_t standin = 0;
+
+    /* if the pointers can increment their values, then use the
+     * original value; otherwise use the stand-in */
+    const uint8_t *a_ptr = a_inc ? a : &standin;
+    const uint8_t *b_ptr = b_inc ? b : &standin;
+
+    /* start by assuming they are equal only if both increment their pointer */
+    uint8_t xor = !((a_inc == 1) & (b_inc == 1));
 
     /* iterate over each byte in the slices */
     for (uint32_t i = 0; i < len; i++) {
@@ -66,23 +73,16 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
          * and at loop exit, hence the <= */
         S2N_INVARIANT(i <= len);
 
-        uint8_t x, y;
+        /* mix the current cursor values in to the result */
+        xor |= *a_ptr ^ *b_ptr;
 
-        /* read from the failure variable and set x and y accordingly */
-        if (failure) {
-            x = failure;
-            y = failure_mixin;
-        } else {
-            x = a[i];
-            y = b[i];
-        }
-
-        /* mix the current x and y values in to the result */
-        xor |= x ^ y;
+        /* increment the pointers by their "inc" values */
+        a_ptr += a_inc;
+        b_ptr += b_inc;
     }
 
     /* finally check to make sure xor is still 0 */
-    return xor == 0;
+    return (xor == 0);
 }
 
 /**
