@@ -180,6 +180,25 @@ int main(int argc, char **argv)
             }
         }
 
+        /* Test: do not send TLS1.2 signature schemes if QUIC enabled */
+        {
+            s2n_stuffer_wipe(&result);
+            config->quic_enabled = true;
+
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_send_supported_sig_scheme_list(conn, &result));
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &size));
+            EXPECT_TRUE(size > 0);
+            EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
+            EXPECT_EQUAL(iana_value, s2n_ecdsa_secp384r1_sha384.iana_value);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
+
+            config->quic_enabled = false;
+        }
+
         s2n_connection_free(conn);
         s2n_config_free(config);
         s2n_stuffer_free(&result);
