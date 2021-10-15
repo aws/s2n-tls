@@ -26,7 +26,6 @@
 #define TEST_TICKET          0x01, 0xFF, 0x23
 
 #define ONE_HOUR_IN_NANOS   3600000000000
-#define TWO_HOURS_IN_NANOS  ONE_HOUR_IN_NANOS * 2
 
 #define TICKET_AGE_ADD_MARKER sizeof(uint8_t)  + /* message id  */ \
                               SIZEOF_UINT24    + /* message len */ \
@@ -35,6 +34,16 @@
                               sizeof(uint16_t)   /* protocol version */
 
 #define MAX_TEST_SESSION_SIZE 300
+
+#define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
+
+static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
+{
+    uint16_t tickets_sent = 0;
+    RESULT_GUARD_POSIX(s2n_connection_get_tickets_sent(conn, &tickets_sent));
+    RESULT_ENSURE_EQ(tickets_sent, expected_tickets_sent);
+    return S2N_RESULT_OK;
+}
 
 size_t cb_session_data_len = 0;
 uint8_t cb_session_data[MAX_TEST_SESSION_SIZE] = { 0 };
@@ -134,7 +143,8 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_lifetime));
-            uint32_t key_lifetime_in_secs = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS;
+            uint32_t key_lifetime_in_secs =
+                    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS;
             EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
 
             /* Skipping random data */
@@ -322,19 +332,21 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        /* Test: Decrypt key has shortest lifetime */
+        /* Test: encrypt + decrypt key has shortest lifetime */
+        conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
-        conn->config->session_state_lifetime_in_nanos = TWO_HOURS_IN_NANOS;
+        conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS * 3;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, conn->config->decrypt_key_lifetime_in_nanos / ONE_SEC_IN_NANOS);
+        EXPECT_EQUAL(min_lifetime, (ONE_HOUR_IN_NANOS * 2) / ONE_SEC_IN_NANOS);
 
         /* Test: Session state has shortest lifetime */
-        conn->config->decrypt_key_lifetime_in_nanos = TWO_HOURS_IN_NANOS;
+        conn->config->encrypt_decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
+        conn->config->decrypt_key_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
         conn->config->session_state_lifetime_in_nanos = ONE_HOUR_IN_NANOS;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
-        EXPECT_EQUAL(min_lifetime, conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS);        
+        EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
          *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
@@ -348,7 +360,8 @@ int main(int argc, char **argv)
         uint64_t one_week_in_sec = ONE_WEEK_IN_SEC;
         uint64_t one_sec_in_nanos = ONE_SEC_IN_NANOS;
         uint64_t one_week_in_nanos = one_week_in_sec * one_sec_in_nanos;
-        conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos + 1;
+        conn->config->encrypt_decrypt_key_lifetime_in_nanos = one_week_in_nanos;
+        conn->config->decrypt_key_lifetime_in_nanos = one_week_in_nanos;
         conn->config->session_state_lifetime_in_nanos = one_week_in_nanos + 1;
 
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
@@ -829,6 +842,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
 
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_ERROR_WITH_ERRNO(s2n_assert_tickets_sent(conn, 0), S2N_ERR_CLIENT_MODE);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -850,6 +864,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
 
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_TICKETS_SENT(conn, 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -878,6 +893,7 @@ int main(int argc, char **argv)
 
             /* Check no tickets are written */
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_TICKETS_SENT(conn, 0);
 
             /* Check handshake.io is cleaned up */
             EXPECT_EQUAL(0, s2n_stuffer_space_remaining(&conn->handshake.io));
@@ -908,6 +924,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
 
             /* Check only one record was written */
             uint16_t record_len = 0;
@@ -952,6 +969,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->tickets_sent = current_tickets;
             conn->tickets_to_send = current_tickets;
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             struct s2n_stuffer stuffer;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -961,6 +979,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, new_tickets));
             EXPECT_EQUAL(conn->tickets_sent, current_tickets);
             EXPECT_EQUAL(conn->tickets_to_send, current_tickets + new_tickets);
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             /* Add expired keying material */
             DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
@@ -975,12 +994,14 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
             EXPECT_EQUAL(conn->tickets_sent, current_tickets);
             EXPECT_EQUAL(conn->tickets_to_send, current_tickets);
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             /* Can't request more tickets */
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, new_tickets),
                     S2N_ERR_KEYING_MATERIAL_EXPIRED);
             EXPECT_EQUAL(conn->tickets_sent, current_tickets);
             EXPECT_EQUAL(conn->tickets_to_send, current_tickets);
+            EXPECT_TICKETS_SENT(conn, current_tickets);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -1012,12 +1033,14 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
             EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
 
             /* Request more tickets */
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, 1));
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 2);
             EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
 
@@ -1027,6 +1050,7 @@ int main(int argc, char **argv)
             /* Request more tickets */
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, 1));
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 2);
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -1059,6 +1083,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
             EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -1088,6 +1113,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, tickets_to_send);
 
             /* Check five records were written */
             uint16_t record_len = 0;
@@ -1204,7 +1230,7 @@ int main(int argc, char **argv)
     }
 
     /* Functional test: s2n_negotiate sends new session tickets after the handshake is complete */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
         struct s2n_connection *client_conn, *server_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -1239,6 +1265,7 @@ int main(int argc, char **argv)
 
         /* Do handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TICKETS_SENT(server_conn, tickets_to_send);
 
         /* Check handshake.io was cleaned up.
          * If a ticket was written, this happens afterwards. */
@@ -1259,6 +1286,7 @@ int main(int argc, char **argv)
         /* Call s2n_negotiate again to ensure no more tickets are sent */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_EQUAL(0, s2n_stuffer_data_available(&server_to_client));
+        EXPECT_TICKETS_SENT(server_conn, tickets_to_send);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
         EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));

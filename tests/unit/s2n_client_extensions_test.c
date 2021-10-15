@@ -897,7 +897,7 @@ int main(int argc, char **argv)
     }
 
     /* Server and client support the OCSP extension. Test Behavior for TLS 1.3 */
-    if(s2n_x509_ocsp_stapling_supported()) {
+    if(s2n_x509_ocsp_stapling_supported() && s2n_is_tls13_fully_supported()) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
@@ -940,8 +940,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 1);
 
         /* Verify that the client received an OCSP response. */
-        /* Currently fails test. Remove when https://github.com/awslabs/s2n/issues/2239 is fixed */
-        /* EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1); */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
 
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));

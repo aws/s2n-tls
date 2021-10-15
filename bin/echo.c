@@ -13,27 +13,39 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <poll.h>
 #include <netdb.h>
 
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include <s2n.h>
-#include <error/s2n_errno.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
 #include "common.h"
 
 #define STDIO_BUFSIZE  10240
+
+const char* sig_alg_strs[] = {
+    [S2N_TLS_SIGNATURE_ANONYMOUS]       = "None",
+    [S2N_TLS_SIGNATURE_RSA]             = "RSA",
+    [S2N_TLS_SIGNATURE_ECDSA]           = "ECDSA",
+    [S2N_TLS_SIGNATURE_RSA_PSS_RSAE]    = "RSA-PSS-RSAE",
+    [S2N_TLS_SIGNATURE_RSA_PSS_PSS]     = "RSA-PSS-PSS",
+};
+
+const char* sig_hash_strs[] = {
+    [S2N_TLS_HASH_NONE]                 = "None",
+    [S2N_TLS_HASH_MD5]                  = "MD5",
+    [S2N_TLS_HASH_SHA1]                 = "SHA1",
+    [S2N_TLS_HASH_SHA224]               = "SHA224",
+    [S2N_TLS_HASH_SHA256]               = "SHA256",
+    [S2N_TLS_HASH_SHA384]               = "SHA384",
+    [S2N_TLS_HASH_SHA512]               = "SHA512",
+    [S2N_TLS_HASH_MD5_SHA1]             = "MD5_SHA1",
+};
 
 void print_s2n_error(const char *app_error)
 {
@@ -42,7 +54,7 @@ void print_s2n_error(const char *app_error)
 }
 
 /* Poll the given file descriptor for an event determined by the blocked status */
-static int wait_for_event(int fd, s2n_blocked_status blocked)
+int wait_for_event(int fd, s2n_blocked_status blocked)
 {
     struct pollfd reader = { .fd = fd, .events = 0 };
 
@@ -81,8 +93,8 @@ int early_data_recv(struct s2n_connection *conn)
     ssize_t total_data_recv = 0;
     ssize_t data_recv = 0;
     bool server_success = 0;
-    s2n_blocked_status blocked = 0;
-    uint8_t *early_data_received = malloc(max_early_data_size);
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    uint8_t *early_data_received = (uint8_t*)malloc(max_early_data_size);
     GUARD_EXIT_NULL(early_data_received);
 
     do {
@@ -93,7 +105,7 @@ int early_data_recv(struct s2n_connection *conn)
 
     if (total_data_recv > 0) {
         fprintf(stdout, "Early Data received: ");
-        for (size_t i = 0; i < total_data_recv; i++) {
+        for (ssize_t i = 0; i < total_data_recv; i++) {
             fprintf(stdout, "%c", early_data_received[i]);
         }
         fprintf(stdout, "\n");
@@ -106,7 +118,7 @@ int early_data_recv(struct s2n_connection *conn)
 
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
 {
-    s2n_blocked_status blocked = 0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     ssize_t total_data_sent = 0;
     ssize_t data_sent = 0;
     bool client_success = 0;
@@ -119,25 +131,8 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     return S2N_SUCCESS;
 }
 
-int negotiate(struct s2n_connection *conn, int fd)
+int print_connection_info(struct s2n_connection *conn)
 {
-    s2n_blocked_status blocked;
-    while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
-                    s2n_strerror(s2n_errno, "EN"),
-                    s2n_strerror_debug(s2n_errno, "EN"));
-            fprintf(stderr, "Alert: %d\n",
-                    s2n_connection_get_alert(conn));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        if (wait_for_event(fd, blocked) != S2N_SUCCESS) {
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-    }
-
-    /* Now that we've negotiated, print some parameters */
     int client_hello_version;
     int client_protocol_version;
     int server_protocol_version;
@@ -186,6 +181,21 @@ int negotiate(struct s2n_connection *conn, int fd)
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
+    s2n_tls_signature_algorithm server_sig_alg = 0, client_sig_alg = 0;
+    s2n_tls_hash_algorithm server_sig_hash = 0, client_sig_hash = 0;
+    GUARD_EXIT(s2n_connection_get_selected_signature_algorithm(conn, &server_sig_alg),
+            "Error getting server signature algorithm");
+    GUARD_EXIT(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &client_sig_alg),
+            "Error getting client signature algorithm");
+    GUARD_EXIT(s2n_connection_get_selected_digest_algorithm(conn, &server_sig_hash),
+            "Error getting server signature hash algorithm");
+    GUARD_EXIT(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &client_sig_hash),
+            "Error getting client signature hash algorithm");
+    printf("Server signature negotiated: %s+%s\n", sig_alg_strs[server_sig_alg], sig_hash_strs[server_sig_hash]);
+    if (client_sig_alg != S2N_TLS_SIGNATURE_ANONYMOUS) {
+        printf("Client signature negotiated: %s+%s\n", sig_alg_strs[client_sig_alg], sig_hash_strs[client_sig_hash]);
+    }
+
     bool session_resumed = s2n_connection_is_session_resumed(conn);
     if (session_resumed) {
         printf("Resumed session\n");
@@ -194,14 +204,14 @@ int negotiate(struct s2n_connection *conn, int fd)
     uint16_t identity_length = 0;
     GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length), "Error getting negotiated psk identity length from the connection\n");
     if (identity_length != 0 && !session_resumed) {
-        uint8_t *identity = malloc(identity_length);
+        uint8_t *identity = (uint8_t*)malloc(identity_length);
         GUARD_EXIT_NULL(identity);
         GUARD_EXIT(s2n_connection_get_negotiated_psk_identity(conn, identity, identity_length), "Error getting negotiated psk identity from the connection\n");
         printf("Negotiated PSK identity: %s\n", identity);
         free(identity);
     }
 
-    s2n_early_data_status_t early_data_status = 0;
+    s2n_early_data_status_t early_data_status = (s2n_early_data_status_t)0;
     GUARD_EXIT(s2n_connection_get_early_data_status(conn, &early_data_status), "Error getting early data status");
     const char *status_str = NULL;
     switch(early_data_status) {
@@ -212,6 +222,29 @@ int negotiate(struct s2n_connection *conn, int fd)
     }
     GUARD_EXIT_NULL(status_str);
     printf("Early Data status: %s\n", status_str);
+
+    return 0;
+}
+
+int negotiate(struct s2n_connection *conn, int fd)
+{
+    s2n_blocked_status blocked;
+    while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
+                    s2n_strerror(s2n_errno, "EN"),
+                    s2n_strerror_debug(s2n_errno, "EN"));
+            fprintf(stderr, "Alert: %d\n",
+                    s2n_connection_get_alert(conn));
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+
+        if (wait_for_event(fd, blocked) != S2N_SUCCESS) {
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+    }
+
+    print_connection_info(conn);
 
     printf("s2n is ready\n");
     return 0;

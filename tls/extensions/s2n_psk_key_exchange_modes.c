@@ -18,9 +18,8 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/extensions/s2n_client_psk.h"
+#include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "utils/s2n_safety.h"
-
-#define PSK_KEY_EXCHANGE_MODE_SIZE sizeof(uint8_t)
 
 static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn);
 static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s2n_stuffer *out);

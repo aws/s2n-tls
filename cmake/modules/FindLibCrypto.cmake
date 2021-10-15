@@ -59,12 +59,13 @@ else()
         ${CMAKE_INSTALL_PREFIX}/lib
         )
 
-    if (BUILD_SHARED_LIBS)
-        set(LibCrypto_LIBRARY ${LibCrypto_SHARED_LIBRARY})
-    else()
-        set(LibCrypto_LIBRARY ${LibCrypto_STATIC_LIBRARY})
+    if (NOT LibCrypto_LIBRARY)
+        if (BUILD_SHARED_LIBS)
+            set(LibCrypto_LIBRARY ${LibCrypto_SHARED_LIBRARY})
+        else()
+            set(LibCrypto_LIBRARY ${LibCrypto_STATIC_LIBRARY})
+        endif()
     endif()
-
 
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(LibCrypto DEFAULT_MSG

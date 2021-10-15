@@ -35,23 +35,19 @@
  */
 int main(int argc, char **argv)
 {
-    uint8_t master_secret_hex_pad[96];
-    char premaster_secret_hex_in[] = "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de412212da021fd802e03f49f231d4e959c7352679f892f9d7f9748";
-    char client_random_hex_in[] = "537eefc1e720b311ff8483d057ae750a3667af9d5b496cc0d2edfb0dd309a286";
-    char server_random_hex_in[] = "537eefc29f337c5eedacd00a1889b031261701872d666a74fa999dc13bcd8821";
-    char master_secret_hex_in[] = "c8c610686237cd024a2d8e0391f61a8a4464c2c9576ea2b5ccf3af68139ec07c6a1720097063de968f2341f77b837120";
-
-    struct s2n_stuffer client_random_in = {0};
-    struct s2n_stuffer server_random_in = {0};
-    struct s2n_stuffer premaster_secret_in = {0};
-    struct s2n_stuffer master_secret_hex_out = {0};
-    struct s2n_blob master_secret = {.data = master_secret_hex_pad,.size = sizeof(master_secret_hex_pad) };
-    struct s2n_blob pms = {0};
-
-    struct s2n_connection *conn = NULL;
-
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
+
+    S2N_BLOB_FROM_HEX(premaster_secret_in,
+            "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de412212da021fd802e03f49f231d4e959c7352679f892f9d7f9748");
+    S2N_BLOB_FROM_HEX(client_random_in,
+            "537eefc1e720b311ff8483d057ae750a3667af9d5b496cc0d2edfb0dd309a286");
+    S2N_BLOB_FROM_HEX(server_random_in,
+            "537eefc29f337c5eedacd00a1889b031261701872d666a74fa999dc13bcd8821");
+    S2N_BLOB_FROM_HEX(master_secret_in,
+            "c8c610686237cd024a2d8e0391f61a8a4464c2c9576ea2b5ccf3af68139ec07c6a1720097063de968f2341f77b837120");
+
+    struct s2n_connection *conn = NULL;
 
     /* s2n_tls_prf_master_secret */
     {
@@ -60,44 +56,16 @@ int main(int argc, char **argv)
         /* Check the most common PRF */
         conn->actual_protocol_version = S2N_TLS11;
 
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_random_in, client_random_hex_in));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&server_random_in, server_random_hex_in));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&premaster_secret_in, premaster_secret_hex_in));
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
 
-        EXPECT_SUCCESS(s2n_stuffer_init(&master_secret_hex_out, &master_secret));
-
-        /* Parse the hex */
-        for (int i = 0; i < 48; i++) {
-            uint8_t c = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
-            conn->secrets.rsa_premaster_secret[i] = c;
-        }
-        for (int i = 0; i < 32; i++) {
-            uint8_t c = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-            conn->secrets.client_random[i] = c;
-        }
-        for (int i = 0; i < 32; i++) {
-            uint8_t c = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
-            conn->secrets.server_random[i] = c;
-        }
-
-        pms.data = conn->secrets.rsa_premaster_secret;
-        pms.size = sizeof(conn->secrets.rsa_premaster_secret);
+        struct s2n_blob pms = {0};
+        EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.rsa_premaster_secret, sizeof(conn->secrets.rsa_premaster_secret)));
         EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
-
-        /* Convert the master secret to hex */
-        for (int i = 0; i < 48; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secrets.master_secret[i]));
-        }
-
-        EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);
+        EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_stuffer_free(&client_random_in));
-        EXPECT_SUCCESS(s2n_stuffer_free(&server_random_in));
-        EXPECT_SUCCESS(s2n_stuffer_free(&premaster_secret_in));
     }
 
     /* s2n_tls_prf_extended_master_secret */
@@ -131,8 +99,47 @@ int main(int argc, char **argv)
          *#                    session_hash)
          *#                    [0..47];
          */
-        EXPECT_OK(s2n_tls_prf_extended_master_secret(conn, &premaster_secret, &hash_digest));
+        EXPECT_OK(s2n_tls_prf_extended_master_secret(conn, &premaster_secret, &hash_digest, NULL));
         EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.master_secret, S2N_TLS_SECRET_LEN);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_prf_calculate_master_secret */
+    {
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
+
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+
+        struct s2n_blob pms = {0};
+        EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.rsa_premaster_secret, sizeof(conn->secrets.rsa_premaster_secret)));
+
+        /* Errors when handshake is not at the Client Key Exchange message */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_prf_calculate_master_secret(conn, &pms), S2N_ERR_SAFETY);
+
+        /* Advance handshake to Client Key Exchange message */
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        while(ACTIVE_MESSAGE(conn) != CLIENT_KEY) {
+            conn->handshake.message_number++;
+        }
+
+        /* Master secret is calculated when handshake is at Client Key Exchange message*/
+        EXPECT_SUCCESS(s2n_prf_calculate_master_secret(conn, &pms));
+        EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+
+        /* s2n_prf_calculate_master_secret will produce the same master secret if given the same inputs */
+        EXPECT_SUCCESS(s2n_prf_calculate_master_secret(conn, &pms));
+        EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+
+        conn->ems_negotiated = true;
+        EXPECT_SUCCESS(s2n_prf_calculate_master_secret(conn, &pms));
+
+        /* Extended master secret calculated is different than the master secret calculated */
+        EXPECT_NOT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -194,7 +201,10 @@ int main(int argc, char **argv)
         struct s2n_blob message = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&message, client_key_message, client_key_message_length));
 
-        EXPECT_OK(s2n_prf_get_digest_for_ems(server_conn, &message, &digest_for_ems));
+        s2n_hmac_algorithm prf_alg = server_conn->secure.cipher_suite->prf_alg;
+        s2n_hash_algorithm hash_alg = 0;
+        POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+        EXPECT_OK(s2n_prf_get_digest_for_ems(server_conn, &message, hash_alg, &digest_for_ems));
 
         /* Server reads Client Key Exchange message */
         EXPECT_SUCCESS(s2n_stuffer_rewind_read(&client_to_server, S2N_TLS_RECORD_HEADER_LENGTH + client_key_message_length));
@@ -203,9 +213,6 @@ int main(int argc, char **argv)
         /* Calculate the digest message after the Server read the Client Key message */
         struct s2n_hash_state current_hash_state = { 0 };
         uint8_t server_digest[S2N_MAX_DIGEST_LEN] = { 0 };
-        s2n_hmac_algorithm prf_alg = server_conn->secure.cipher_suite->prf_alg;
-        s2n_hash_algorithm hash_alg = 0;
-        EXPECT_SUCCESS(s2n_hmac_hash_alg(prf_alg, &hash_alg));
         uint8_t digest_size = 0;
         EXPECT_SUCCESS(s2n_hash_digest_size(hash_alg, &digest_size));
         EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, hash_alg, &current_hash_state));
@@ -220,6 +227,88 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls12_chain_and_key));
+    }
+
+    /* PRF lifecyle */
+    {
+        /* Safety */
+        {
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_new(NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_wipe(NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_free(NULL), S2N_ERR_NULL);
+
+            struct s2n_connection conn_with_null_prf_space = { 0 };
+            EXPECT_NULL(conn_with_null_prf_space.prf_space);
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_prf_wipe(&conn_with_null_prf_space), S2N_ERR_NULL);
+            EXPECT_OK(s2n_prf_free(&conn_with_null_prf_space));
+        }
+
+        /* Basic lifecyle */
+        {
+            struct s2n_connection connection = { 0 };
+            EXPECT_NULL(connection.prf_space);
+
+            EXPECT_OK(s2n_prf_new(&connection));
+            EXPECT_NOT_NULL(connection.prf_space);
+
+            EXPECT_OK(s2n_prf_wipe(&connection));
+            EXPECT_NOT_NULL(connection.prf_space);
+
+            EXPECT_OK(s2n_prf_free(&connection));
+            EXPECT_NULL(connection.prf_space);
+        }
+
+        /* PRF freed by s2n_connection_free_handshake */
+        {
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+            EXPECT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Freed PRF restored by s2n_connection_wipe */
+        {
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_OK(s2n_prf_free(conn));
+            EXPECT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            EXPECT_NOT_NULL(conn->prf_space);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* PRF usable throughout connection lifecycle */
+        {
+            struct s2n_blob pms = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
+
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+            EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+            EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls_prf_master_secret(conn, &pms), S2N_ERR_NULL);
+
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.client_random, client_random_in.data, client_random_in.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, server_random_in.data, server_random_in.size);
+            EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
+            EXPECT_EQUAL(memcmp(conn->secrets.master_secret, master_secret_in.data, master_secret_in.size), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     END_TEST();

@@ -25,7 +25,7 @@ void s2n_stuffer_skip_expected_char_harness()
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
-    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, BLOB_SIZE));
+    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
     const char expected;
     uint32_t   min;
     uint32_t   max;

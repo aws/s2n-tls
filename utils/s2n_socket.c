@@ -41,7 +41,7 @@ int s2n_socket_quickack(struct s2n_connection *conn)
 {
 #ifdef TCP_QUICKACK
     POSIX_ENSURE_REF(conn);
-    if (!conn->managed_io) {
+    if (!conn->managed_recv_io) {
         return 0;
     }
 
@@ -131,7 +131,7 @@ int s2n_socket_was_corked(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     /* If we're not using custom I/O and a send fd has not been set yet, return false*/
-    if (!conn->managed_io || !conn->send) {
+    if (!conn->managed_send_io || !conn->send) {
         return 0;
     }
 

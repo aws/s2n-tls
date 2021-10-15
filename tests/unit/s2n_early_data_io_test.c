@@ -56,6 +56,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     const uint8_t test_data[] = "hello world";
 
     DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_external_psk_new(), s2n_psk_free);

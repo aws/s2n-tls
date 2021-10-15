@@ -30,6 +30,7 @@ INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
 
+mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
 curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_0_2-stable.zip --output openssl-OpenSSL_1_0_2-stable.zip
 unzip openssl-OpenSSL_1_0_2-stable.zip
@@ -44,7 +45,8 @@ else
     usage
 fi
 
-$CONFIGURE -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace \
+mkdir -p $INSTALL_DIR
+$CONFIGURE shared -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace \
          no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd \
          no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
          --prefix="$INSTALL_DIR"

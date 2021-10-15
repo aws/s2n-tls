@@ -40,6 +40,7 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_str.h"
+#include "utils/s2n_bitmap.h"
 
 /* clang-format off */
 struct s2n_handshake_action {
@@ -809,8 +810,20 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     if (conn->config->use_tickets) {
         if (conn->session_ticket_status == S2N_DECRYPT_TICKET) {
-            if (!s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt)) {
+            if (s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt) == S2N_SUCCESS) {
                 return S2N_SUCCESS;
+            }
+
+            if (conn->ems_negotiated) {
+                s2n_extension_type_id ems_ext_id = 0;
+                POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+                /**
+                 *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+                 *# If the original session used the "extended_master_secret"
+                 *# extension but the new ClientHello does not contain it, the server
+                 *# MUST abort the abbreviated handshake.
+                 **/
+                POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id), S2N_ERR_MISSING_EXTENSION);
             }
 
             if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
@@ -951,7 +964,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
         POSIX_ENSURE_REF(out.data);
 
-        if (conn->config->quic_enabled) {
+        if (s2n_connection_is_quic_enabled(conn)) {
             POSIX_GUARD_RESULT(s2n_quic_write_handshake_message(conn, &out));
         } else {
             POSIX_GUARD(s2n_record_write(conn, record_type, &out));
@@ -1122,7 +1135,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
     /* Fill conn->in stuffer necessary for the handshake.
      * If using TCP, read a record. If using QUIC, read a message. */
-    if (conn->config->quic_enabled) {
+    if (s2n_connection_is_quic_enabled(conn)) {
         record_type = TLS_HANDSHAKE;
         POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
     } else {
@@ -1170,7 +1183,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          * due to a peer operating in middlebox compatibility mode.
          * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
          * including these unexpected ones.*/
-        if (!IS_TLS13_HANDSHAKE(conn) || conn->config->quic_enabled) {
+        if (!IS_TLS13_HANDSHAKE(conn) || s2n_connection_is_quic_enabled(conn)) {
             POSIX_ENSURE(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }

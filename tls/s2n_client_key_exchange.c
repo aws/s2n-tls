@@ -83,16 +83,14 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
 {
     /* Turn the pre-master secret into a master secret */
     POSIX_GUARD_RESULT(s2n_kex_tls_prf(conn->secure.cipher_suite->key_exchange_alg, conn, shared_key));
-    /* Erase the pre-master secret */
-    POSIX_GUARD(s2n_blob_zero(shared_key));
-    if (shared_key->allocated) {
-        POSIX_GUARD(s2n_free(shared_key));
-    }
+
     /* Expand the keys */
     POSIX_GUARD(s2n_prf_key_expansion(conn));
-    /* Save the master secret in the cache */
+    /* Save the master secret in the cache.
+     * Failing to cache the session should not affect the current handshake.
+     */
     if (s2n_allowed_to_cache_connection(conn)) {
-        POSIX_GUARD(s2n_store_to_cache(conn));
+        s2n_result_ignore(s2n_store_to_cache(conn));
     }
     /* log the secret, if needed */
     s2n_result_ignore(s2n_key_log_tls12_secret(conn));
@@ -217,8 +215,7 @@ int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *com
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
-    struct s2n_blob shared_key = {0};
-
+    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
     POSIX_GUARD_RESULT(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
     POSIX_GUARD(s2n_calculate_keys(conn, &shared_key));
@@ -313,7 +310,7 @@ int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *com
 int s2n_client_key_send(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
-    struct s2n_blob shared_key = {0};
+    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
 
     POSIX_GUARD_RESULT(s2n_kex_client_key_send(key_exchange, conn, &shared_key));
 

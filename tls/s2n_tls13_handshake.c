@@ -209,7 +209,7 @@ int s2n_tls13_handle_early_traffic_secret(struct s2n_connection *conn)
     POSIX_GUARD(s2n_tls13_derive_early_traffic_secret(&secrets, &hash_state, &early_traffic_secret));
 
     /* trigger callbacks */
-    if (conn->secret_cb && conn->config->quic_enabled) {
+    if (conn->secret_cb && s2n_connection_is_quic_enabled(conn)) {
         POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, S2N_CLIENT_EARLY_TRAFFIC_SECRET,
                 early_traffic_secret.data, early_traffic_secret.size));
     }
@@ -297,7 +297,7 @@ int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_m
     POSIX_GUARD(s2n_tls13_derive_handshake_traffic_secret(&secrets, &conn->handshake.hashes->server_hello_copy, &hs_secret, mode));
 
     /* trigger secret callbacks */
-    if (conn->secret_cb && conn->config->quic_enabled) {
+    if (conn->secret_cb && s2n_connection_is_quic_enabled(conn)) {
         POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, secret_type, hs_secret.data, hs_secret.size));
     }
     s2n_result_ignore(s2n_key_log_tls13_secret(conn, &hs_secret, secret_type));
@@ -361,7 +361,7 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
     POSIX_GUARD(s2n_tls13_derive_application_secret(&keys, hash_state, &app_secret, mode));
 
     /* trigger secret callback */
-    if (conn->secret_cb && conn->config->quic_enabled) {
+    if (conn->secret_cb && s2n_connection_is_quic_enabled(conn)) {
         POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, secret_type,
                 app_secret.data, app_secret.size));
     }

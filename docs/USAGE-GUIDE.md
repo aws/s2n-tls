@@ -474,6 +474,37 @@ int s2n_init();
 before any other s2n-tls functions are called. Failure to call s2n_init() will result
 in errors from other s2n-tls functions.
 
+### s2n\_crypto\_disable\_init
+
+```c
+int s2n_crypto_disable_init();
+```
+
+**s2n_crypto_disable_init** prevents s2n-tls from initializing or tearing down the crypto
+library. This is most useful when s2n-tls is embedded in an application or environment that
+shares usage of the OpenSSL or libcrypto library. Note that if you disable this and are
+using a version of OpenSSL/libcrypto < 1.1.x, you will be responsible for library init
+and cleanup (specifically OPENSSL_add_all_algorithms() or OPENSSL_crypto_init), and
+`EVP_*` APIs will not be usable unless the library is initialized.
+
+This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
+if s2n is already initialized.
+
+### s2n\_disable\_atexit
+
+```c
+int s2n_disable_atexit();
+```
+
+**s2n_disable_atexit** prevents s2n-tls from installing an atexit() handler to clean itself
+up. This is most useful when s2n-tls is embedded in an application or environment that
+shares usage of the OpenSSL or libcrypto library. Note that this will cause `s2n_cleanup` to
+do complete cleanup of s2n-tls when called from the main thread (the thread `s2n_init` was
+called from).
+
+This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
+if s2n is already initialized.
+
 ### s2n\_cleanup
 
 ```c
@@ -533,7 +564,7 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190120"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
 |   "20190121"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
 |   "20190122"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
 |   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
@@ -978,6 +1009,17 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
 **private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
 **private_key_pem_len** is the length of the private key.
 
+### s2n\_cert\_chain\_and\_key\_load\_public\_pem\_bytes
+
+```c
+int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+```
+
+**s2n_cert_chain_and_key_load_public_pem_bytes** associates a public certificate chain with a **s2n_cert_chain_and_key** object. It does NOT set a private key, so the connection will need to be configured to [offload private key operations](#offloading-asynchronous-private-key-operations).
+
+**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
+**chain_pem_len** is the length in bytes of the PEM encoded certificate chain.
+
 ### s2n\_cert\_chain\_and\_key\_set\_ctx
 
 ```c
@@ -1302,7 +1344,7 @@ number actually used by s2n-tls for the connection. **s2n_connection_get_client_
 returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
-**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
+**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11**, **S2N_TLS12**, and **S2N_TLS13**.
 
 ### s2n\_connection\_set\_verify\_host\_callback
 ```c
@@ -1385,6 +1427,19 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 
 **s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
 **s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
+
+### s2n\_client\_hello\_get\_session\_id
+
+```c
+int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
+int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
+```
+
+These functions retrieve the session id as sent by the client in the ClientHello message. The session id on the **s2n_connection** may change later when the server sends the ServerHello; see **s2n_connection_get_session_id** for how to get the final session id used for future session resumption.
+
+**s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
+
+**s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
 
 ### s2n\_connection\_client\_cert\_used
 
@@ -1569,7 +1624,7 @@ handshake.
 
 **s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
 
-**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
+**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly. Note that s2n-tls session tickets are versioned and this function will error if it receives a ticket version it doesn't understand. Therefore users need to handle errors for this function in case the inputted ticket is an unrecognized version, which could occur during a long deployment.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of copied bytes. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
@@ -1581,11 +1636,11 @@ If the first byte in **session** is 0, then the next byte will contain session i
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
-**s2n_connection_get_session_id_length** returns session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
+**s2n_connection_get_session_id_length** returns the latest session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
 
-**s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of copied bytes.
+**s2n_connection_get_session_id** gets the latest session id from the connection, copies it into the **session_id** buffer, and returns the number of copied bytes. The session id may change between s2n receiving the ClientHello and sending the ServerHello, but this function will always describe the latest session id. See **s2n_client_hello_get_session_id** to get the session id as it was sent by the client in the ClientHello message.
 
-**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
+**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 
 ## TLS1.3 Session Resumption Related Calls
 
@@ -1722,8 +1777,11 @@ be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
 
 ### Offloading asynchronous private key operations
-**The s2n_async_pkey_op_\*** API can be used to perform a private key operation
-outside of the S2N context. The application can query the type of private
+
+The **s2n_async_pkey_op_\*** API can be used to perform a private key operation
+outside of the S2N context, without copying the private key into S2N memory.
+
+The application can query the type of private
 key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
 an operation, the application must ask S2N to copy the operation's input into an
 application supplied buffer. The appropriate buffer size can be determined by calling
@@ -1734,7 +1792,6 @@ finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_out
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
 to apply the operation and free the op object.
-
 
 ```c
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
@@ -1752,7 +1809,7 @@ extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint
 The **op** will copy the data into a buffer passed in through the **data** parameter.
 This buffer is owned by the application, and it is the responsibility of the
 application to free it.
-**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it
+**s2n_async_pkey_op_set_output** copies the input data buffer and uses it
 to complete the private key operation. The data buffer is owned by the application.
 Once **s2n_async_pkey_op_set_output** has returned, the application is free to
 release the data buffer.

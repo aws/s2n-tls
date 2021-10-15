@@ -77,6 +77,21 @@ extern int s2n_error_get_type(int error);
 struct s2n_config;
 struct s2n_connection;
 
+/**
+ * Prevents S2N from calling `OPENSSL_crypto_init`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
+ * prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate
+ * with S2N.
+ */
+S2N_API
+extern int s2n_crypto_disable_init(void);
+
+/**
+ * Prevents S2N from installing an atexit handler, which allows safe shutdown of S2N from within a
+ * re-entrant shared library
+ */
+S2N_API
+extern int s2n_disable_atexit(void);
+
 S2N_API
 extern unsigned long s2n_get_openssl_version(void);
 S2N_API
@@ -179,6 +194,8 @@ S2N_API
 extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 S2N_API
 extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
+S2N_API
+extern int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
 S2N_API
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 S2N_API
@@ -326,6 +343,10 @@ S2N_API
 extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
 S2N_API
 extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+S2N_API
+extern int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
+S2N_API
+extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 S2N_API
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
@@ -333,6 +354,25 @@ S2N_API
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 S2N_API
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
+
+/**
+  * Gets the assigned file descriptor for the read channel of an s2n connection.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param readfd pointer to place the used file descriptor.
+ */
+S2N_API
+extern int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd);
+
+/**
+  * Gets the assigned file descriptor for the write channel of an s2n connection.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param writefd pointer to place the used file descriptor.
+ */
+S2N_API
+extern int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd);
+
 S2N_API
 extern int s2n_connection_use_corked_io(struct s2n_connection *conn);
 
@@ -453,6 +493,20 @@ extern int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_
  */
 S2N_API
 extern int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+
+/**
+ * Returns the number of session tickets issued by the server.
+ *
+ * In TLS1.3, this number can be up to the limit configured by s2n_config_set_initial_ticket_count
+ * and s2n_connection_add_new_tickets_to_send. In earlier versions of TLS, this number will be either 0 or 1.
+ *
+ * This method only works for server connections.
+ *
+ * @param conn A pointer to the connection object.
+ * @param num The number of additional session tickets sent.
+ */
+S2N_API
+extern int s2n_connection_get_tickets_sent(struct s2n_connection *conn, uint16_t *num);
 
 /**
  * Sets the keying material lifetime for >=TLS1.3 session tickets so that one session doesn't get re-used ad infinitum.

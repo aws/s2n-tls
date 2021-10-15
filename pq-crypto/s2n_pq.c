@@ -23,6 +23,8 @@ static bool bike_r3_avx512_enabled  = false;
 static bool bike_r3_pclmul_enabled  = false;
 static bool bike_r3_vpclmul_enabled = false;
 
+static bool kyber512r3_avx2_bmi2_enabled = false;
+
 #if defined(S2N_CPUID_AVAILABLE)
 /* https://en.wikipedia.org/wiki/CPUID */
 #include <cpuid.h>
@@ -78,6 +80,15 @@ bool s2n_cpu_supports_adx() {
     }
 
     return (ebx & bit_ADX);
+}
+
+bool s2n_cpu_supports_avx2() {
+    uint32_t eax, ebx, ecx, edx;
+    if (!s2n_get_cpuid_count(EXTENDED_FEATURES_LEAF, EXTENDED_FEATURES_SUBLEAF_ZERO, &eax, &ebx, &ecx, &edx)) {
+        return false;
+    }
+
+    return (ebx & EBX_BIT_AVX2);
 }
 
 bool s2n_cpu_supports_sikep434r3_asm() {
@@ -143,6 +154,14 @@ bool s2n_cpu_supports_bike_r3_vpclmul() {
 #endif
 }
 
+bool s2n_cpu_supports_kyber512r3_avx2_bmi2() {
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
+    return s2n_cpu_supports_bmi2() && s2n_cpu_supports_avx2();
+#else
+    return false;
+#endif
+}
+
 #else /* defined(S2N_CPUID_AVAILABLE) */
 
 /* If CPUID is not available, we cannot perform necessary run-time checks. */
@@ -163,6 +182,10 @@ bool s2n_cpu_supports_bike_r3_pclmul() {
 }
 
 bool s2n_cpu_supports_bike_r3_vpclmul() {
+    return false;
+}
+
+bool s2n_cpu_supports_kyber512r3_avx2_bmi2() {
     return false;
 }
 
@@ -188,6 +211,10 @@ bool s2n_bike_r3_is_vpclmul_enabled() {
     return bike_r3_vpclmul_enabled;
 }
 
+bool s2n_kyber512r3_is_avx2_bmi2_enabled() {
+    return kyber512r3_avx2_bmi2_enabled;
+}
+
 bool s2n_pq_is_enabled() {
 #if defined(S2N_NO_PQ)
     return false;
@@ -206,6 +233,11 @@ S2N_RESULT s2n_disable_bike_r3_opt_all() {
     bike_r3_avx512_enabled  = false;
     bike_r3_pclmul_enabled  = false;
     bike_r3_vpclmul_enabled = false;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_disable_kyber512r3_opt_avx2_bmi2() {
+    kyber512r3_avx2_bmi2_enabled = false;
     return S2N_RESULT_OK;
 }
 
@@ -235,9 +267,10 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_avx512() {
 }
 
 S2N_RESULT s2n_try_enable_bike_r3_opt_vpclmul() {
-    /* When VPCLMUL is available, AVX512 is too by default. */
     RESULT_ENSURE_OK(s2n_try_enable_bike_r3_opt_avx512(), S2N_ERR_SAFETY);
-    if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_vpclmul()) {
+    /* Only Enable VPCLMUL if AVX512 is also supported. This is to because the BIKE R3 VPCLMUL requires 512-bit version
+     * of VPCLMUL, and not the 256-bit version that is available on AMD Zen 3 processors. */
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_vpclmul() && s2n_bike_r3_is_avx512_enabled()) {
         bike_r3_vpclmul_enabled = true;
     }
     return S2N_RESULT_OK;
@@ -246,6 +279,13 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_vpclmul() {
 S2N_RESULT s2n_try_enable_sikep434r3_asm() {
     if (s2n_pq_is_enabled() && s2n_cpu_supports_sikep434r3_asm()) {
         sikep434r3_asm_enabled = true;
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_try_enable_kyber512r3_opt_avx2_bmi2() {
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_kyber512r3_avx2_bmi2()) {
+        kyber512r3_avx2_bmi2_enabled = true;
     }
     return S2N_RESULT_OK;
 }
@@ -262,6 +302,7 @@ S2N_RESULT s2n_bike_r3_x86_64_opt_init()
 S2N_RESULT s2n_pq_init() {
     RESULT_ENSURE_OK(s2n_try_enable_sikep434r3_asm(), S2N_ERR_SAFETY);
     RESULT_ENSURE_OK(s2n_bike_r3_x86_64_opt_init(), S2N_ERR_SAFETY);
-
+    RESULT_ENSURE_OK(s2n_try_enable_kyber512r3_opt_avx2_bmi2(), S2N_ERR_SAFETY);
+    
     return S2N_RESULT_OK;
 }

@@ -58,28 +58,6 @@
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
 
-static int s2n_connection_new_hashes(struct s2n_connection *conn)
-{
-    /* Allocate long-term memory for the Connection's hash states */
-    POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.md5));
-    POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.sha1));
-
-    return 0;
-}
-
-static int s2n_connection_init_hashes(struct s2n_connection *conn)
-{
-    /* Initialize all of the Connection's hash states */
-
-    if (s2n_hash_is_available(S2N_HASH_MD5)) {
-        /* Only initialize hashes that use MD5 if available. */
-        POSIX_GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
-    }
-    POSIX_GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
-
-    return 0;
-}
-
 static int s2n_connection_new_hmacs(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's HMAC states */
@@ -128,7 +106,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->recv = NULL;
     conn->send_io_context = NULL;
     conn->recv_io_context = NULL;
-    conn->managed_io = 0;
     conn->corked_io = 0;
     conn->context = NULL;
     conn->security_policy_override = NULL;
@@ -159,11 +136,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->initial.server_key));
 
     /* Allocate long term hash and HMAC memory */
-    PTR_GUARD_POSIX(s2n_prf_new(conn));
+    PTR_GUARD_RESULT(s2n_prf_new(conn));
     PTR_GUARD_RESULT(s2n_handshake_hashes_new(&conn->handshake.hashes));
-
-    PTR_GUARD_POSIX(s2n_connection_new_hashes(conn));
-    PTR_GUARD_POSIX(s2n_connection_init_hashes(conn));
 
     PTR_GUARD_POSIX(s2n_connection_new_hmacs(conn));
     PTR_GUARD_POSIX(s2n_connection_init_hmacs(conn));
@@ -256,15 +230,6 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_reset_hashes(struct s2n_connection *conn)
-{
-    /* Reset all of the Connection's hash states */
-    POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.md5));
-    POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.sha1));
-
-    return 0;
-}
-
 static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
 {
     /* Reset all of the Connection's HMAC states */
@@ -276,17 +241,35 @@ static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
+static int s2n_connection_free_managed_recv_io(struct s2n_connection *conn)
 {
-    /* Free the I/O context if it was allocated by s2n. Don't touch user-controlled contexts. */
-    if (!conn->managed_io) {
-        return 0;
+    POSIX_ENSURE_REF(conn);
+
+    if (conn->managed_recv_io) {
+        POSIX_GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
+        conn->managed_recv_io = false;
+        conn->recv = NULL;
     }
+    return S2N_SUCCESS;
+}
 
-    POSIX_GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
-    POSIX_GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
+static int s2n_connection_free_managed_send_io(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
 
-    return 0;
+    if (conn->managed_send_io) {
+        POSIX_GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
+        conn->managed_send_io = false;
+        conn->send = NULL;
+    }
+    return S2N_SUCCESS;
+}
+
+static int s2n_connection_free_managed_io(struct s2n_connection *conn)
+{
+    POSIX_GUARD(s2n_connection_free_managed_recv_io(conn));
+    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
+    return S2N_SUCCESS;
 }
 
 static int s2n_connection_wipe_io(struct s2n_connection *conn)
@@ -299,19 +282,7 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
     }
 
     /* Remove all I/O-related members */
-    POSIX_GUARD(s2n_connection_free_io_contexts(conn));
-    conn->managed_io = 0;
-    conn->send = NULL;
-    conn->recv = NULL;
-
-    return 0;
-}
-
-static int s2n_connection_free_hashes(struct s2n_connection *conn)
-{
-    /* Free all of the Connection's hash states */
-    POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.md5));
-    POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.sha1));
+    POSIX_GUARD(s2n_connection_free_managed_io(conn));
 
     return 0;
 }
@@ -367,17 +338,13 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_free_keys(conn));
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
 
-    POSIX_GUARD(s2n_prf_free(conn));
-
+    POSIX_GUARD_RESULT(s2n_prf_free(conn));
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
-
-    POSIX_GUARD(s2n_connection_reset_hashes(conn));
-    POSIX_GUARD(s2n_connection_free_hashes(conn));
 
     POSIX_GUARD(s2n_connection_reset_hmacs(conn));
     POSIX_GUARD(s2n_connection_free_hmacs(conn));
 
-    POSIX_GUARD(s2n_connection_free_io_contexts(conn));
+    POSIX_GUARD(s2n_connection_free_managed_io(conn));
 
     POSIX_GUARD(s2n_free(&conn->client_ticket));
     POSIX_GUARD(s2n_free(&conn->status_response));
@@ -447,8 +414,17 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         conn->psk_mode_overridden = false;
     }
 
+    /* If at least one certificate does not have a private key configured,
+     * the config must provide an async pkey callback.
+     * The handshake could still fail if the callback doesn't offload the
+     * signature, but this at least catches configuration mistakes.
+     */
+    if (config->no_signing_key) {
+        POSIX_ENSURE(config->async_pkey_cb, S2N_ERR_NO_PRIVATE_KEY);
+    }
+
     conn->config = config;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_server_name_extension_used(struct s2n_connection *conn)
@@ -494,6 +470,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
     /* We are done with the handshake */
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
+    POSIX_GUARD_RESULT(s2n_prf_free(conn));
 
     /* Wipe the buffers we are going to free */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
@@ -532,20 +509,27 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_session_key initial_server_key = {0};
     struct s2n_session_key secure_client_key = {0};
     struct s2n_session_key secure_server_key = {0};
-    /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_connection_prf_handles prf_handles = {0};
-    struct s2n_connection_hash_handles hash_handles = {0};
+    /* Parts of the hmac states will be wiped. Preserve structs to avoid reallocation */
     struct s2n_connection_hmac_handles hmac_handles = {0};
 
-    struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
-    if (!handshake_hashes) {
-        POSIX_GUARD_RESULT(s2n_handshake_hashes_new(&handshake_hashes));
+    /* Some required structures might have been freed to conserve memory between handshakes.
+     * Restore them.
+     */
+
+    if (!conn->handshake.hashes) {
+        POSIX_GUARD_RESULT(s2n_handshake_hashes_new(&conn->handshake.hashes));
     }
-    POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(handshake_hashes));
+    POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(conn->handshake.hashes));
+    struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
+
+    if (!conn->prf_space) {
+        POSIX_GUARD_RESULT(s2n_prf_new(conn));
+    }
+    POSIX_GUARD_RESULT(s2n_prf_wipe(conn));
+    struct s2n_prf_working_space *prf_workspace = conn->prf_space;
 
     /* Wipe all of the sensitive stuff */
     POSIX_GUARD(s2n_connection_wipe_keys(conn));
-    POSIX_GUARD(s2n_connection_reset_hashes(conn));
     POSIX_GUARD(s2n_connection_reset_hmacs(conn));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
@@ -604,8 +588,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&initial_server_key, &conn->initial.server_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&secure_client_key, &conn->secure.client_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&secure_server_key, &conn->secure.server_key, sizeof(struct s2n_session_key));
-    POSIX_GUARD(s2n_connection_save_prf_state(&prf_handles, conn));
-    POSIX_GUARD(s2n_connection_save_hash_state(&hash_handles, conn));
     POSIX_GUARD(s2n_connection_save_hmac_state(&hmac_handles, conn));
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
@@ -626,13 +608,11 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&conn->initial.server_key, &initial_server_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&conn->secure.client_key, &secure_client_key, sizeof(struct s2n_session_key));
     POSIX_CHECKED_MEMCPY(&conn->secure.server_key, &secure_server_key, sizeof(struct s2n_session_key));
-    POSIX_GUARD(s2n_connection_restore_prf_state(conn, &prf_handles));
-    POSIX_GUARD(s2n_connection_restore_hash_state(conn, &hash_handles));
     POSIX_GUARD(s2n_connection_restore_hmac_state(conn, &hmac_handles));
     conn->handshake.hashes = handshake_hashes;
+    conn->prf_space = prf_workspace;
 
     /* Re-initialize hash and hmac states */
-    POSIX_GUARD(s2n_connection_init_hashes(conn));
     POSIX_GUARD(s2n_connection_init_hmacs(conn));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_init(&conn->psk_params));
@@ -661,26 +641,34 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
 int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_managed_recv_io(conn));
     conn->recv_io_context = ctx;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
     conn->send_io_context = ctx;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_managed_recv_io(conn));
     conn->recv = recv;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
     conn->send = send;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len)
@@ -812,6 +800,7 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
     if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
     } else {
+        POSIX_ENSURE_REF(conn->config);
         *client_cert_auth_type = conn->config->client_cert_auth_type;
     }
 
@@ -830,15 +819,16 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     struct s2n_blob ctx_mem = {0};
     struct s2n_socket_read_io_context *peer_socket_ctx;
 
+    POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
     POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
     peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = rfd;
 
-    s2n_connection_set_recv_cb(conn, s2n_socket_read);
-    s2n_connection_set_recv_ctx(conn, peer_socket_ctx);
-    conn->managed_io = 1;
+    POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_socket_read));
+    POSIX_GUARD(s2n_connection_set_recv_ctx(conn, peer_socket_ctx));
+    conn->managed_recv_io = true;
 
     /* This is only needed if the user is using corked io.
      * Take the snapshot in case optimized io is enabled after setting the fd.
@@ -848,19 +838,31 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     return 0;
 }
 
+int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(readfd);
+    POSIX_ENSURE((conn->managed_recv_io && conn->recv_io_context), S2N_ERR_INVALID_STATE);
+
+    const struct s2n_socket_read_io_context *peer_socket_ctx = conn->recv_io_context;
+    *readfd = peer_socket_ctx->fd;
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem = {0};
     struct s2n_socket_write_io_context *peer_socket_ctx;
 
+    POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
     peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = wfd;
 
-    s2n_connection_set_send_cb(conn, s2n_socket_write);
-    s2n_connection_set_send_ctx(conn, peer_socket_ctx);
-    conn->managed_io = 1;
+    POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_socket_write));
+    POSIX_GUARD(s2n_connection_set_send_ctx(conn, peer_socket_ctx));
+    conn->managed_send_io = true;
 
     /* This is only needed if the user is using corked io.
      * Take the snapshot in case optimized io is enabled after setting the fd.
@@ -877,6 +879,16 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     return 0;
 }
 
+int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(writefd);
+    POSIX_ENSURE((conn->managed_send_io && conn->send_io_context), S2N_ERR_INVALID_STATE);
+
+    const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
+    *writefd = peer_socket_ctx->fd;
+    return S2N_SUCCESS;
+}
 int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 {
     POSIX_GUARD(s2n_connection_set_read_fd(conn, fd));
@@ -886,10 +898,10 @@ int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 
 int s2n_connection_use_corked_io(struct s2n_connection *conn)
 {
-    if (!conn->managed_io) {
-        /* Caller shouldn't be trying to set s2n IO corked on non-s2n-managed IO */
-        POSIX_BAIL(S2N_ERR_CORK_SET_ON_UNMANAGED);
-    }
+    POSIX_ENSURE_REF(conn);
+
+    /* Caller shouldn't be trying to set s2n IO corked on non-s2n-managed IO */
+    POSIX_ENSURE(conn->managed_send_io, S2N_ERR_CORK_SET_ON_UNMANAGED);
     conn->corked_io = 1;
 
     return 0;
@@ -1312,7 +1324,7 @@ int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection
 {
     POSIX_ENSURE_REF(s2n_connection);
 
-    return (s2n_connection->managed_io && s2n_connection->corked_io);
+    return (s2n_connection->managed_send_io && s2n_connection->corked_io);
 }
 
 const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length)

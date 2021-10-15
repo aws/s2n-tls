@@ -131,8 +131,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     } else {
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
-        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
-        POSIX_ENSURE(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        POSIX_ENSURE(!s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         /*
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
@@ -206,7 +206,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     }
 
     /* Choose a default signature scheme */
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->handshake_params.conn_sig_scheme));
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->handshake_params.conn_sig_scheme, S2N_SERVER));
 
     /* Update the required hashes for this connection */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
