@@ -17,7 +17,7 @@
 
 #include <openssl/evp.h>
 
-#ifdef OPENSSL_IS_AWSLC
+#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
 #include <openssl/hmac.h>
 #endif
 
