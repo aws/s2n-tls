@@ -41,6 +41,20 @@ pid_t s2n_actual_getpid()
 #endif
 }
 
+/**
+ * Given arrays "a" and "b" of length "len", determine whether they
+ * hold equal contents.
+ *
+ * The execution time of this function is independent of the values
+ * stored in the arrays.
+ *
+ * Timing may depend on the length of the arrays, and on the location
+ * of the arrays in memory (e.g. if a buffer has been paged out, this
+ * will affect the timing of this function).
+ *
+ * Returns:
+ *  Whether all bytes in arrays "a" and "b" are identical
+ */
 bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len)
 {
     S2N_PUBLIC_INPUT(a);
