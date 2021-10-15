@@ -23,11 +23,12 @@ int s2n_fips_init(void)
 {
     s2n_fips_mode = 0;
 
-    /* You can always call FIPS_mode to check if the underlying libcrypto was compiled for FIPS or not*/
+    /* AWS-LC, OpenSSL, and BoringSSL, but not LibreSSL always define a FIPS_mode that you can call and check */
+#ifndef LIBRESSL_VERSION_NUMBER
     if (FIPS_mode()) {
         s2n_fips_mode = 1;
     }
-
+#endif
     return 0;
 }
 
