@@ -489,6 +489,7 @@ int main(int argc, char *const *argv)
     }
 
     if (fips_mode) {
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
@@ -496,6 +497,10 @@ int main(int argc, char *const *argv)
             exit(1);
         }
         printf("s2nd entered FIPS mode\n");
+#else
+        fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
+        exit(1);
+#endif
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");

@@ -23,8 +23,11 @@ int s2n_fips_init(void)
 {
     s2n_fips_mode = 0;
 
-    /* AWS-LC, OpenSSL, and BoringSSL, but not LibreSSL always define a FIPS_mode that you can call and check */
-#ifndef LIBRESSL_VERSION_NUMBER
+    /* FIPS mode can be checked if OpenSSL was configured and built for FIPS which then defines OPENSSL_FIPS.
+     *
+     * AWS-LC and BoringSSL always define FIPS_mode() that you can call and check what the library was built with.
+     * Neither library define a public *_FIPS macro that we can (or should) check here */
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_AWSLC)
     if (FIPS_mode()) {
         s2n_fips_mode = 1;
     }
