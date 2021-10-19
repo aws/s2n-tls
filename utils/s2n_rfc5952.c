@@ -17,7 +17,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"

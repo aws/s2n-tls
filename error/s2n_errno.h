@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdio.h>
 #include <stdbool.h>
-#include <utils/s2n_ensure.h>
+#include "utils/s2n_ensure.h"
 
 /*
  * To easily retrieve error types, we split error values into two parts.

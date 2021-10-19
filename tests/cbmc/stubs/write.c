@@ -16,7 +16,7 @@
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/nondet.h>
 #include <errno.h>
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 #include <unistd.h>
 
 static bool loop_flag = false;

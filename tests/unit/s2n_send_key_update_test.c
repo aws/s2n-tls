@@ -22,7 +22,7 @@
 #include <time.h>
 #include <stdint.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"

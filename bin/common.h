@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #define GUARD_EXIT_NULL(x)                                 \
     do {                                                   \
