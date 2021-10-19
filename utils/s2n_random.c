@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <time.h>
 
-#include "s2n.h"
+#include "api/s2n.h"
 
 #if defined(S2N_CPUID_AVAILABLE)
 #include <cpuid.h>

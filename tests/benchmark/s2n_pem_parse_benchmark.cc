@@ -20,7 +20,7 @@
 
 #include <memory>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 extern "C" {
 #include "utils/s2n_safety.h"

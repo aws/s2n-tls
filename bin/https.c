@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
+#include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"

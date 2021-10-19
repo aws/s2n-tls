@@ -22,7 +22,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 S2N_RESULT s2n_blob_validate(const struct s2n_blob* b)
 {
