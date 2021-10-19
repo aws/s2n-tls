@@ -76,7 +76,7 @@
  * `warn_unused_result` attribute, which ensures they are GUARDed.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 #include "utils/s2n_result.h"
 

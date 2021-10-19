@@ -17,7 +17,7 @@
 
 #include <openssl/ecdsa.h>
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 
