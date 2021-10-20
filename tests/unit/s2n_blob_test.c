@@ -18,7 +18,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 int main(int argc, char **argv)
 {

@@ -39,7 +39,7 @@
  *   EXPORTER_SECRET: the hex-encoded exporter secret (for TLS 1.3)
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto_constants.h"

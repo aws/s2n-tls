@@ -23,7 +23,7 @@
 #include <signal.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #define TLS_ALERT                     21
 #define TLS_ALERT_VERSION             0x03, 0x03

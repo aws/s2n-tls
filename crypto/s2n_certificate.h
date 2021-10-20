@@ -19,7 +19,7 @@
 
 #include <openssl/x509.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "crypto/s2n_pkey.h"
 #include "stuffer/s2n_stuffer.h"
 

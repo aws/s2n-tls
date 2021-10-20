@@ -25,7 +25,7 @@
 
 #include <openssl/engine.h>
 #include <openssl/dh.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 

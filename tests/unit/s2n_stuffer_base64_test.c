@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 #include <string.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_random.h"
