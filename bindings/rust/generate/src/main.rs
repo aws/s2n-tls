@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bindgen::CodegenConfig;
-use std::collections::BTreeSet;
-use std::sync::{Arc, Mutex};
-use std::{io, path::Path};
+use std::{
+    collections::BTreeSet,
+    io,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 fn main() {
     let out_dir = std::env::args().nth(1).expect("missing sys dir");

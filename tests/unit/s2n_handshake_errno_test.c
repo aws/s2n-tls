@@ -16,7 +16,7 @@
 
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "s2n_test.h"
 #include "tls/s2n_connection.h"

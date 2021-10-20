@@ -17,14 +17,14 @@
 # define _GNU_SOURCE
 #endif
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <openssl/x509v3.h>
 #include <openssl/pem.h>
 #include <string.h>
 #include <strings.h>
 
 #include "crypto/s2n_certificate.h"
-#include <crypto/s2n_openssl_x509.h>
+#include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"

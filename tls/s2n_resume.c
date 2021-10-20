@@ -15,7 +15,7 @@
 #include <math.h>
 #include <sys/param.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
@@ -34,7 +34,7 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
     /* We're unable to cache connections with a Client Cert since we currently don't serialize the Client Cert,
      * which means that callers won't have access to the Client's Cert if the connection is resumed. */
-    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
+    if (s2n_connection_is_client_auth_enabled(conn)) {
         return 0;
     }
 

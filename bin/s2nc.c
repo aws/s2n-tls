@@ -20,9 +20,9 @@
 #include <getopt.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "common.h"
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "tls/s2n_connection.h"
 
@@ -444,6 +444,7 @@ int main(int argc, char *const *argv)
         }
 
         if (ca_file || ca_dir) {
+            GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }

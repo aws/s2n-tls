@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_ecc_evp.h"
 #include "stuffer/s2n_stuffer.h"

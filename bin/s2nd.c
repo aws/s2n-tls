@@ -25,7 +25,7 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "common.h"
 
 #include "utils/s2n_safety.h"

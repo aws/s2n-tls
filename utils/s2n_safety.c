@@ -55,27 +55,48 @@ pid_t s2n_actual_getpid()
  * Returns:
  *  Whether all bytes in arrays "a" and "b" are identical
  */
-bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
+bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len)
 {
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
-    POSIX_ENSURE((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
-    POSIX_ENSURE((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
 
-    if (len != 0 && (a == NULL || b == NULL)) {
-        return false;
+    /* if len is 0, they're always going to be equal */
+    if (len == 0) {
+        return true;
     }
 
-    uint8_t xor = 0;
+    /* check if a and b are readable - if so, allow them to increment their pointer */
+    uint8_t a_inc = S2N_MEM_IS_READABLE(a, len) ? 1 : 0;
+    uint8_t b_inc = S2N_MEM_IS_READABLE(b, len) ? 1 : 0;
+
+    /* reserve a stand-in pointer to replace NULL pointers */
+    static uint8_t standin = 0;
+
+    /* if the pointers can increment their values, then use the
+     * original value; otherwise use the stand-in */
+    const uint8_t *a_ptr = a_inc ? a : &standin;
+    const uint8_t *b_ptr = b_inc ? b : &standin;
+
+    /* start by assuming they are equal only if both increment their pointer */
+    uint8_t xor = !((a_inc == 1) & (b_inc == 1));
+
+    /* iterate over each byte in the slices */
     for (uint32_t i = 0; i < len; i++) {
         /* Invariants must hold for each execution of the loop
-	 * and at loop exit, hence the <= */
+         * and at loop exit, hence the <= */
         S2N_INVARIANT(i <= len);
-        xor |= a[i] ^ b[i];
+
+        /* mix the current cursor values in to the result */
+        xor |= *a_ptr ^ *b_ptr;
+
+        /* increment the pointers by their "inc" values */
+        a_ptr += a_inc;
+        b_ptr += b_inc;
     }
 
-    return !xor;
+    /* finally check to make sure xor is still 0 */
+    return (xor == 0);
 }
 
 /**
