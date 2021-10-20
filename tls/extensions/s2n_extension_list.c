@@ -17,7 +17,7 @@
 #include "s2n_extension_type.h"
 #include "s2n_extension_type_lists.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"

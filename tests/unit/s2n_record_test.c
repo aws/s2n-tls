@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "tls/s2n_kex.h"
 
 #include "testlib/s2n_testlib.h"

@@ -21,7 +21,7 @@
 #include <unistd.h>
 #include <sys/param.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 
 #include "crypto/s2n_fips.h"

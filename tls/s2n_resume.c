@@ -15,7 +15,7 @@
 #include <math.h>
 #include <sys/param.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"

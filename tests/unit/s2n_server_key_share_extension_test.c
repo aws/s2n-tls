@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_client_key_share.h"

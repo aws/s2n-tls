@@ -287,14 +287,18 @@ int main(int argc, char **argv)
     uint8_t c[4] = { 5, 6, 7, 8 };
     uint8_t d[4] = { 5, 6, 7, 8 };
     uint8_t e[4] = { 1, 2, 3, 4 };
+    uint8_t f[4] = { 1, 2, 3, 5 };
 
-    EXPECT_EQUAL(s2n_constant_time_equals(a, b, sizeof(a)), 1);
-    EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(a, NULL, sizeof(a)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(NULL, b, sizeof(b)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(NULL, NULL, 0), 1);
-    EXPECT_EQUAL(s2n_constant_time_equals(NULL, NULL, sizeof(a)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(a, c, 0), 1);
+    EXPECT_TRUE(s2n_constant_time_equals(a, b, sizeof(a)));
+    EXPECT_FALSE(s2n_constant_time_equals(a, c, sizeof(a)));
+    EXPECT_FALSE(s2n_constant_time_equals(a, NULL, sizeof(a)));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, b, sizeof(b)));
+    EXPECT_TRUE(s2n_constant_time_equals(NULL, NULL, 0));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, NULL, sizeof(a)));
+    EXPECT_TRUE(s2n_constant_time_equals(a, c, 0));
+    /* ensure the function checks all of the bytes */
+    EXPECT_TRUE(s2n_constant_time_equals(a, f, 3));
+    EXPECT_FALSE(s2n_constant_time_equals(a, f, 4));
 
     EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(a, c, sizeof(a), 0));
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 1);
