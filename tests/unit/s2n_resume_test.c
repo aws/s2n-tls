@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
-            EXPECT_EQUAL(serial_id, S2N_TLS12_SERIALIZED_FORMAT_VERSION);
+            EXPECT_EQUAL(serial_id, S2N_TLS12_SERIALIZED_FORMAT_VERSION_2);
 
             uint8_t version = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &version));
