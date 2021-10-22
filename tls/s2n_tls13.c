@@ -26,12 +26,14 @@ bool s2n_use_default_tls13_config()
     return s2n_use_default_tls13_config_flag;
 }
 
-bool s2n_is_tls13_fully_supported() {
+bool s2n_is_tls13_fully_supported()
+{
     /* Older versions of Openssl (eg 1.0.2) do not support RSA PSS, which is required for TLS 1.3. */
     return s2n_is_rsa_pss_signing_supported() && s2n_is_rsa_pss_certs_supported();
 }
 
-int s2n_get_highest_fully_supported_tls_version() {
+int s2n_get_highest_fully_supported_tls_version()
+{
     return s2n_is_tls13_fully_supported() ? S2N_TLS13 : S2N_TLS12;
 }
 
@@ -91,4 +93,45 @@ bool s2n_is_middlebox_compat_enabled(struct s2n_connection *conn)
 {
     return s2n_connection_get_protocol_version(conn) >= S2N_TLS13
             && !s2n_connection_is_quic_enabled(conn);
+}
+
+S2N_RESULT s2n_connection_validate_tls13_support(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* If the underlying libcrypto supports all features of TLS1.3
+     * (including RSA-PSS, which is unsupported by some libraries),
+     * then we can always support TLS1.3.
+     */
+    if (s2n_is_tls13_fully_supported()) {
+        return S2N_RESULT_OK;
+    }
+
+    /*
+     * If the underlying libcrypto doesn't support all features...
+     */
+
+    /* There are some TLS servers in the wild that will choose options not offered by the client.
+     * So a server might choose to use RSA-PSS even if even if the client does not advertise support for RSA-PSS.
+     * Therefore, only servers can perform TLS1.3 without full feature support.
+     */
+    RESULT_ENSURE(conn->mode == S2N_SERVER, S2N_RSA_PSS_NOT_SUPPORTED);
+
+    /* RSA signatures must use RSA-PSS in TLS1.3.
+     * So RSA-PSS is required for TLS1.3 servers if an RSA certificate is used.
+     */
+    RESULT_ENSURE(!conn->config->is_rsa_cert_configured, S2N_RSA_PSS_NOT_SUPPORTED);
+
+    /* RSA-PSS is also required for TLS1.3 servers if client auth is requested, because the
+     * client might offer an RSA certificate.
+     */
+    s2n_cert_auth_type client_auth_status = S2N_CERT_AUTH_NONE;
+    RESULT_GUARD_POSIX(s2n_connection_get_client_auth_type(conn, &client_auth_status));
+    RESULT_ENSURE(client_auth_status == S2N_CERT_AUTH_NONE, S2N_RSA_PSS_NOT_SUPPORTED);
+
+    return S2N_RESULT_OK;
+}
+
+bool s2n_connection_supports_tls13(struct s2n_connection *conn) {
+    return s2n_result_is_ok(s2n_connection_validate_tls13_support(conn));
 }
