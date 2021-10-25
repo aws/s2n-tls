@@ -201,19 +201,11 @@ int main(int argc, char **argv)
 
     /* Non-matching session IDs turn off EMS for the connection */
     {
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-
         struct s2n_connection *server_conn;
         struct s2n_connection *client_conn;
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
@@ -240,8 +232,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
         EXPECT_FALSE(client_conn->ems_negotiated);
 
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }

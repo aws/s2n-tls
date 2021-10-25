@@ -123,7 +123,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     bool session_ids_match = session_id_len != 0 && session_id_len == conn->session_id_len
-                && !memcmp(session_id, conn->session_id, session_id_len);
+                && memcmp(session_id, conn->session_id, session_id_len) == 0;
     if (!session_ids_match) {
         conn->ems_negotiated = false;
     }
