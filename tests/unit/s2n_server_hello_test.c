@@ -218,16 +218,24 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
+        /* Create session ID for server */
+        for (int i = 0; i < 32; i++) {
+            server_conn->session_id[i] = i;
+        }
+
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
         /* Copy server stuffer to client stuffer */
         const uint32_t total = s2n_stuffer_data_available(&server_conn->handshake.io);
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
 
-        /* Client session ID does not match server session ID */
-        client_conn->session_id_len = 0;
+        /* Create client session ID does not match server session ID */
+        for (int i = 0; i < 32; i++) {
+            client_conn->session_id[i] = 0;
+        }
 
-        /* Client is negotiating an EMS connection */
+        /* Client is negotiating an EMS connection but is able to fallback to non-EMS connection
+         * if session IDs don't match */
         client_conn->ems_negotiated = true;
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
         EXPECT_FALSE(client_conn->ems_negotiated);
