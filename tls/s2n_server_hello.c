@@ -131,7 +131,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_server_extensions_recv(conn, in));
 
     if (conn->server_protocol_version >= S2N_TLS13) {
-        S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
         POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
