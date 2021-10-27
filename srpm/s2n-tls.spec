@@ -5,16 +5,13 @@
 
 
 Name:           s2n-tls
-Version:        1.0.10
+Version:        1.1.1
 Release:        0%{?dist}
 Summary:        A C99 TLS library
 
 License:        Apache2.0
 URL:            https://github.com/aws/${name}
-%undefine       _disable_source_fetch
 Source0:        https://github.com/aws/%{name}/archive/v%{version}.tar.gz
-%define         SHA256SUM0  41d6215e73f38eb1970d17f85c7eb683f556f803a608339a76da9030e160bbd6
-Patch0:         makefile.patch
 Group:          System Environment/Libraries
 BuildRequires:  openssl11-static cmake3 ninja-build zlib-devel
 Requires:       openssl11-static
@@ -24,34 +21,45 @@ A C99 TLS library
 %package tls
 Summary:        A C99 compatable TLS library
 %description tls
-s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
+s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
 
 %package tls-devel
 Summary:    Header files for s2n
 %description tls-devel
-s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
+Header files for s2n-tls, a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
 
 %prep
 %setup -q
-# TODO: remove the patch after the release of this change.
-# We need this patch b/c we're pinning the source to a fixed github release, Makefile needs updating for rpmbuild to work.
-%patch0 -p1
 
 %build
 cmake3 -GNinja -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release .
 ninja-build
 ninja-build test
 
+%clean
+rm -rf %{buildroot}
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
 %install
-%make_install
+mkdir -p %{buildroot}%{_libdir}/
+mkdir -p %{buildroot}%{_includedir}/
+install lib/*.{so,a} %{buildroot}%{_libdir}/
+
 
 %files tls
+%defattr(-,root,root)
 %license LICENSE
-/usr/lib64/*
+%attr(755,root,root) %{_libdir}/libs2n.so
 
 %files tls-devel
-/usr/include/*
+%{_includedir}/*.h
+
+ %files tls-static
+ %attr(0644,root,root) %{_libdir}/libs2n.a
 
 %changelog
 * Mon May 14 2021 Doug Chapman <dougch@amazon.com>
-- Inital RPM spec build of v1.0.8
+- Inital RPM spec build of v1.1.1
