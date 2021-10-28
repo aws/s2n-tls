@@ -96,8 +96,7 @@ int main(int argc, char **argv)
         /* In the default case we should always be sending this extension */
         EXPECT_TRUE(s2n_client_ems_extension.should_send(conn));
 
-        uint8_t test_ticket[] = "test data";
-        EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(test_ticket)));
+        conn->set_session = true;
         conn->ems_negotiated = true;
         /* If we have set a ticket on the connection we only send this extension
          * if the previous session negotiated EMS. */

@@ -343,6 +343,7 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
+    conn->set_session = true;
     return S2N_RESULT_OK;
 }
 
@@ -893,14 +894,13 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     POSIX_GUARD(s2n_stuffer_read(from, &en_blob));
 
     POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
+    POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
+    POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&state, en_data, S2N_TLS12_STATE_SIZE_IN_BYTES));
 
     POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, NULL, &state));
-
-    POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
-    POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     return 0;
 }
