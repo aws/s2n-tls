@@ -122,10 +122,16 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &compression_method));
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
+    bool session_ids_match = session_id_len != 0 && session_id_len == conn->session_id_len
+                && memcmp(session_id, conn->session_id, session_id_len) == 0;
+    if (!session_ids_match) {
+        conn->ems_negotiated = false;
+    }
+
     POSIX_GUARD(s2n_server_extensions_recv(conn, in));
 
     if (conn->server_protocol_version >= S2N_TLS13) {
-        S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
         POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
@@ -151,9 +157,16 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         }
 
         uint8_t actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
-        /* Use the session state if server sent same session id as client sent in client hello */
-        if (session_id_len != 0  && session_id_len == conn->session_id_len
-                && !memcmp(session_id, conn->session_id, session_id_len)) {
+
+        /*
+         *= https://tools.ietf.org/rfc/rfc5077#section-3.4
+         *# If the server accepts the ticket
+         *# and the Session ID is not empty, then it MUST respond with the same
+         *# Session ID present in the ClientHello.  This allows the client to
+         *# easily differentiate when the server is resuming a session from when
+         *# it is falling back to a full handshake.
+         */
+        if (session_ids_match) {
             /* check if the resumed session state is valid */
             S2N_ERROR_IF(conn->actual_protocol_version != actual_protocol_version, S2N_ERR_BAD_MESSAGE);
             S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
