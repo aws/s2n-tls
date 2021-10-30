@@ -20,6 +20,7 @@
 #include <getopt.h>
 #include <fcntl.h>
 
+#include <openssl/crypto.h>
 #include <openssl/err.h>
 
 #include "api/s2n.h"
@@ -403,7 +404,7 @@ int main(int argc, char *const *argv)
     }
 
     if (fips_mode) {
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */

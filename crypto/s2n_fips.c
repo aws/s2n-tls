@@ -27,7 +27,7 @@ int s2n_fips_init(void)
      *
      * AWS-LC always define FIPS_mode() that you can call and check what the library was built with. It does not define
      * a public OPENSSL_FIPS/AWSLC_FIPS macro that we can (or need to) check here */
-#if defined(OPENSSL_FIPS)
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
     if (FIPS_mode()) {
         s2n_fips_mode = 1;
     }
