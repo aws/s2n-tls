@@ -112,7 +112,7 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
     }
 
     POSIX_GUARD_OSSL(EVP_DigestSignInit(ws->hmac_state.evp_hmac.evp_digest.ctx, NULL, ws->hmac_state.evp_hmac.evp_digest.md, NULL, ws->hmac_state.evp_hmac.mac_key),
-           S2N_ERR_P_HASH_INIT_FAILED);
+           S2N_ERR_EVP_HASH_INIT_FAILED);
 
     return 0;
 }
@@ -142,7 +142,7 @@ static int s2n_evp_pkey_hmac_init(struct s2n_prf_working_space *ws, s2n_hmac_alg
         ws->hmac_state.evp_hmac.evp_digest.md = EVP_sha512();
         break;
     default:
-        POSIX_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
+        POSIX_BAIL(S2N_ERR_EVP_HASH_INVALID_ALGORITHM);
     }
 
     /* Initialize the mac key using the provided secret */
@@ -154,7 +154,7 @@ static int s2n_evp_pkey_hmac_init(struct s2n_prf_working_space *ws, s2n_hmac_alg
 
 static int s2n_evp_pkey_hmac_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
 {
-    POSIX_GUARD_OSSL(EVP_DigestSignUpdate(ws->hmac_state.evp_hmac.evp_digest.ctx, data, (size_t)size), S2N_ERR_P_HASH_UPDATE_FAILED);
+    POSIX_GUARD_OSSL(EVP_DigestSignUpdate(ws->hmac_state.evp_hmac.evp_digest.ctx, data, (size_t)size), S2N_ERR_EVP_HASH_UPDATE_FAILED);
 
     return 0;
 }
@@ -164,14 +164,14 @@ static int s2n_evp_pkey_hmac_final(struct s2n_prf_working_space *ws, void *diges
     /* EVP_DigestSign API's require size_t data structures */
     size_t digest_size = size;
 
-    POSIX_GUARD_OSSL(EVP_DigestSignFinal(ws->hmac_state.evp_hmac.evp_digest.ctx, (unsigned char *)digest, &digest_size), S2N_ERR_P_HASH_FINAL_FAILED);
+    POSIX_GUARD_OSSL(EVP_DigestSignFinal(ws->hmac_state.evp_hmac.evp_digest.ctx, (unsigned char *)digest, &digest_size), S2N_ERR_EVP_HASH_FINAL_FAILED);
 
     return 0;
 }
 
 static int s2n_evp_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
 {
-  POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(ws->hmac_state.evp_hmac.evp_digest.ctx), S2N_ERR_P_HASH_WIPE_FAILED);
+  POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(ws->hmac_state.evp_hmac.evp_digest.ctx), S2N_ERR_EVP_HASH_WIPE_FAILED);
 
     return 0;
 }
