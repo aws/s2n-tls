@@ -247,7 +247,11 @@ void cbmc_populate_s2n_evp_hmac_state(struct s2n_evp_hmac_state *evp_hmac_state)
 {
     CBMC_ENSURE_REF(evp_hmac_state);
     cbmc_populate_s2n_evp_digest(&(evp_hmac_state->evp_digest));
+#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
+    evp_hmac_state->hmac_key = malloc(sizeof(*(evp_hmac_state->hmac_key)));
+#else
     evp_hmac_state->mac_key = malloc(sizeof(*(evp_hmac_state->mac_key)));
+#endif
 }
 
 struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state()
