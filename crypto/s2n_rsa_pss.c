@@ -181,7 +181,7 @@ static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
     return 0;
 }
 
-int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey) {
+const int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey) {
     RSA *pub_rsa_key = EVP_PKEY_get0_RSA(pkey);
 
     S2N_ERROR_IF(s2n_rsa_is_private_key(pub_rsa_key), S2N_ERR_KEY_MISMATCH);
@@ -190,7 +190,7 @@ int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pk
     return 0;
 }
 
-int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
+const int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
 {
     RSA *priv_rsa_key = EVP_PKEY_get0_RSA(pkey);
     POSIX_ENSURE_REF(priv_rsa_key);
