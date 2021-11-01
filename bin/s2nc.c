@@ -164,7 +164,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
                     fprintf(stderr, "Error allocating memory\n");
                     exit(1);
                 }
-                memcpy(protocols[idx], next, length);
+                memmove(protocols[idx], next, length);
                 protocols[idx][length] = '\0';
                 length = 0;
                 idx++;
@@ -181,7 +181,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
                 fprintf(stderr, "Error allocating memory\n");
                 exit(1);
             }
-            memcpy(protocols[idx], next, length);
+            memmove(protocols[idx], next, length);
             protocols[idx][length] = '\0';
         }
 

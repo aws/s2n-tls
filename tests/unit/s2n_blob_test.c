@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     uint8_t hello_world[] = "HELLO WORLD";
     EXPECT_SUCCESS(s2n_alloc(&g5, 12));
     EXPECT_TRUE(s2n_blob_is_growable(&g5));
-    memcpy(g5.data, hello_world, sizeof(hello_world));
+    EXPECT_MEMCPY_SUCCESS(g5.data, hello_world, sizeof(hello_world));
     EXPECT_SUCCESS(s2n_realloc(&g5, 24));
     EXPECT_EQUAL(memcmp(g5.data, hello_world, sizeof(hello_world)), 0);
     EXPECT_SUCCESS(s2n_free(&g5));

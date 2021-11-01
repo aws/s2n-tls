@@ -14,7 +14,9 @@
  */
 #include <string.h>
 #include <sys/param.h>
+#include "error/s2n_errno.h"
 #include "utils/s2n_str.h"
+#include "utils/s2n_ensure.h"
 
 char *s2n_strcpy(char *buf, char *last, const char *str) {
     if (buf >= last) {
@@ -33,7 +35,7 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
 
     char *p = buf;
     if (bytes_to_copy > 0) {
-        p = (char *)memcpy(buf, str, bytes_to_copy) + bytes_to_copy;
+        p = (char *)s2n_ensure_memcpy_trace(buf, str, bytes_to_copy, _S2N_DEBUG_LINE) + bytes_to_copy;
     }
     *p = '\0';
 
