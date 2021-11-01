@@ -258,6 +258,11 @@ else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
 
+# Compiling the unit tests rely on S2N_TEST_IN_FIPS_MODE to be set correctly
+if(S2N_FIPS)
+    add_definitions(-DS2N_TEST_IN_FIPS_MODE)
+endif()
+
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${CRYPTO_HEADERS}

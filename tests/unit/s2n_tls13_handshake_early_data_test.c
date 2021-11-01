@@ -136,17 +136,16 @@ static S2N_RESULT s2n_test_key_schedule(s2n_mode mode, uint16_t handshake_type, 
         return S2N_RESULT_OK;
     }
 
-    struct s2n_config *config = s2n_config_new();
-    /* Enable QUIC to enable the secret callbacks. This does not affect the key schedule,
-     * since QUIC also uses TLS to generate early data secrets. */
-    config->quic_enabled = true;
 
     uint8_t secrets_handled[S2N_SECRET_TYPE_COUNT] = { 0 };
     for (uint16_t message_number = 0; message_number < S2N_MAX_HANDSHAKE_LENGTH; message_number++) {
         struct s2n_connection *conn = s2n_connection_new(mode);
         RESULT_ENSURE_REF(conn);
-        RESULT_GUARD_POSIX(s2n_connection_set_config(conn, config));
         RESULT_GUARD(s2n_setup_tls13_secrets_prereqs(conn));
+
+        /* Enable QUIC to enable the secret callbacks. This does not affect the key schedule,
+         * since QUIC also uses TLS to generate early data secrets. */
+        conn->quic_enabled = true;
 
         conn->actual_protocol_version = S2N_TLS13;
         conn->handshake.handshake_type = handshake_type;
@@ -195,7 +194,6 @@ static S2N_RESULT s2n_test_key_schedule(s2n_mode mode, uint16_t handshake_type, 
         RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_EARLY_TRAFFIC_SECRET], 0);
     }
 
-    RESULT_GUARD_POSIX(s2n_config_free(config));
     *valid_test_case = true;
     return S2N_RESULT_OK;
 }
