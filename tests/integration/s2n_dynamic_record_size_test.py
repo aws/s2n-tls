@@ -36,6 +36,7 @@ import subprocess
 import itertools
 import multiprocessing
 from multiprocessing.pool import ThreadPool
+from os import environ
 from s2n_test_constants import *
 from time import sleep
 
@@ -55,7 +56,7 @@ def cleanup_processes(*processes):
         p.wait()
 
 
-def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None):
+def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, fips_mode=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
 
@@ -69,6 +70,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     :param str sig_algs: Signature algorithms for Openssl s_server to accept
     :param str curves: Elliptic curves for Openssl s_server to accept
     :param str dh_params: path to DH params for Openssl s_server to use
+    :param fips_mode: if s2n client has to enable FIPS mode in the underlying crypto library
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
@@ -127,10 +129,12 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     # Fire up s2nc
     # print("\n\tRunning s2n dynamic record size tests with threshold:", threshold)
     s2nc_cmd = ["../../bin/s2nc", "-e", "-D", str(threshold), "-t", "1", "-c", "test_all", "-i"]
+    if fips_mode:
+        s2nc_cmd += ["--enter-fips-mode"]
     s2nc_cmd.extend([str(endpoint), str(port)])
 
     file_input = open(test_file)
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=file_input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=file_input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
 
     # Wait file send complete
     s2nc.wait()
@@ -139,15 +143,14 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     # Read from s2nc until we get successful connection message
     found = 0
     right_version = 0
-    for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
-        output = s2nc.stdout.readline().decode("utf-8")
-        if output.strip() == "Connected to {}:{}".format(endpoint, port):
+    for line in s2nc.stdout:
+        if line.strip() == "Connected to {}:{}".format(endpoint, port):
             found = 1
-        if ACTUAL_VERSION_STR.format(ssl_version or S2N_TLS12) in output:
+        if ACTUAL_VERSION_STR.format(ssl_version or S2N_TLS12) in line:
             right_version = 1
 
     if not found or not right_version:
-        sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
+        sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read(), " ".join(s2nc_cmd), s2nc.stderr.read()))
         return -1
 
     return 0
@@ -169,14 +172,14 @@ def print_result(result_prefix, return_code):
     print(result_prefix + suffix)
 
 
-def run_test(host, port, ssl_version, cipher, threshold):
+def run_test(host, port, ssl_version, cipher, threshold, fips_mode):
     cipher_name = cipher.openssl_name
     failed = 0
     tcpdump_filter = "dst port " + str(port)
     tcpdump_cmd = ["sudo", "tcpdump", "-l", "-i", "lo", "-n", "-B", "65535", tcpdump_filter]
     tcpdump = subprocess.Popen(tcpdump_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
+    ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold, fips_mode=fips_mode)
     # wait for pipe ready
     sleep(2)
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
@@ -197,7 +200,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
     return failed
 
 
-def test(host, port, test_ciphers, threshold):
+def test(host, port, test_ciphers, threshold, fips_mode):
     failed = 0
     ssl_version = S2N_TLS12
 
@@ -207,7 +210,7 @@ def test(host, port, test_ciphers, threshold):
             continue
         if ssl_version < cipher_vers:
             continue
-        result = run_test(host, port, ssl_version, cipher, threshold)
+        result = run_test(host, port, ssl_version, cipher, threshold, fips_mode)
         if result != 0:
             failed += 1
             break
@@ -287,6 +290,11 @@ def main():
                     libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
 
+    fips_mode = False
+    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
+        fips_mode = True
+        print("\nRunning s2nd in FIPS mode.")
+
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]    
     host = args.host
@@ -305,7 +313,7 @@ def main():
         failed = 1
         print ("test file: %s file size too small (less than threshold of 10KB)" % test_file)
         return failed
-    failed += test(host, port, test_ciphers, threshold)
+    failed += test(host, port, test_ciphers, threshold, fips_mode)
 
     # Recover localhost MTU
     subprocess.call(["sudo", "ifconfig", "lo", "mtu", str(local_mtu)])
