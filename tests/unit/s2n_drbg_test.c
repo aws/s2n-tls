@@ -17,7 +17,7 @@
 
 #include <inttypes.h>
 #include <fcntl.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdlib.h>
 
 #include <openssl/aes.h>

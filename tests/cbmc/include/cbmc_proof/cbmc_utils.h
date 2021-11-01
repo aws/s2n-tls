@@ -19,8 +19,8 @@
 #include <crypto/s2n_hash.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stuffer/s2n_stuffer.h>
-#include <utils/s2n_blob.h>
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_blob.h"
 
 #define IMPLIES(a, b) (!(a) || (b))
 #define CBMC_ENSURE_REF(cond)    \

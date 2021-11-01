@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
-            EXPECT_EQUAL(serial_id, S2N_TLS12_SERIALIZED_FORMAT_VERSION);
+            EXPECT_EQUAL(serial_id, S2N_SERIALIZED_FORMAT_TLS12_V2);
 
             uint8_t version = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &version));
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
-            EXPECT_EQUAL(serial_id, S2N_TLS13_SERIALIZED_FORMAT_VERSION);
+            EXPECT_EQUAL(serial_id, S2N_SERIALIZED_FORMAT_TLS13_V1);
 
             uint8_t version = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &version));
@@ -577,14 +577,14 @@ int main(int argc, char **argv)
     /* s2n_deserialize_resumption_state */
     {
         uint8_t tls12_ticket[S2N_TLS12_STATE_SIZE_IN_BYTES_WITHOUT_EMS] = {
-            S2N_TLS12_SERIALIZED_FORMAT_VERSION,
+            S2N_SERIALIZED_FORMAT_TLS12_V1,
             S2N_TLS12,
             TLS_RSA_WITH_AES_128_GCM_SHA256,
             TICKET_ISSUE_TIME_BYTES,
         };
 
         uint8_t tls13_ticket[] = {
-            S2N_TLS13_SERIALIZED_FORMAT_VERSION,
+            S2N_SERIALIZED_FORMAT_TLS13_V1,
             S2N_TLS13,
             TLS_AES_128_GCM_SHA256,
             TICKET_ISSUE_TIME_BYTES,
@@ -595,7 +595,7 @@ int main(int argc, char **argv)
         };
 
         uint8_t tls13_server_ticket[] = {
-            S2N_TLS13_SERIALIZED_FORMAT_VERSION,
+            S2N_SERIALIZED_FORMAT_TLS13_V1,
             S2N_TLS13,
             TLS_AES_128_GCM_SHA256,
             TICKET_ISSUE_TIME_BYTES,
@@ -607,7 +607,7 @@ int main(int argc, char **argv)
         };
 
         uint8_t tls13_ticket_with_early_data[] = {
-            S2N_TLS13_SERIALIZED_FORMAT_VERSION,
+            S2N_SERIALIZED_FORMAT_TLS13_V1,
             S2N_TLS13,
             TLS_AES_128_GCM_SHA256,
             TICKET_ISSUE_TIME_BYTES,

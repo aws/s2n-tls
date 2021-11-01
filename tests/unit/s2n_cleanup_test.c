@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 #include <sys/wait.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 
 #include "utils/s2n_mem.h"

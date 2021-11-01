@@ -15,7 +15,7 @@
 #include <math.h>
 #include <sys/param.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
@@ -57,7 +57,7 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
     /* Write the entry */
-    POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_TLS12_SERIALIZED_FORMAT_VERSION));
+    POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V2));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
@@ -99,7 +99,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     /* Get the time */
     RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_TLS13_SERIALIZED_FORMAT_VERSION));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_SERIALIZED_FORMAT_TLS13_V1));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, current_time));
@@ -324,13 +324,13 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     uint8_t format = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &format));
 
-    if (format == S2N_TLS12_SERIALIZED_FORMAT_VERSION) {
+    if (format == S2N_SERIALIZED_FORMAT_TLS12_V1 || format == S2N_SERIALIZED_FORMAT_TLS12_V2) {
         if (conn->mode == S2N_SERVER) {
             RESULT_GUARD_POSIX(s2n_tls12_deserialize_resumption_state(conn, from));
         } else {
             RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
         }
-    } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
+    } else if (format == S2N_SERIALIZED_FORMAT_TLS13_V1) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
         if (conn->mode == S2N_CLIENT) {
             /* Free the client_ticket after setting a psk on the connection.

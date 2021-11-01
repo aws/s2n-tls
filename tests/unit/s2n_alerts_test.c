@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(NULL), S2N_ERR_NULL);
 
         /* Fails if alerts not supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_queue_writer_close_alert_warning(NULL), S2N_ERR_NULL);
 
         /* Does not send alert if alerts not supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_handshake_failure_alert(NULL), S2N_ERR_NULL);
 
         /* Does not send alert if alerts not supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
 

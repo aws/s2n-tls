@@ -19,6 +19,7 @@ import subprocess
 import sys
 import time
 
+from os import environ
 from s2n_test_constants import *
 
 # If a cipher_preference_version is specified, we will use it while attempting the handshake;
@@ -62,7 +63,7 @@ well_known_endpoints = [
     {"endpoint": "www.youtube.com"},
 ]
 
-if os.getenv("S2N_NO_PQ") is None:
+if os.getenv("S2N_NO_PQ") is None and os.getenv("S2N_TEST_IN_FIPS_MODE") is None:
     # If PQ was compiled into S2N, test the PQ preferences against KMS
     pq_endpoints = [
         {
@@ -78,6 +79,23 @@ if os.getenv("S2N_NO_PQ") is None:
     ]
 
     well_known_endpoints.extend(pq_endpoints)
+else:
+    # If either PQ was turned off, or we're testing in FIPS mode the KMS endpoint should get the regular cipher suite
+    pq_endpoints = [
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06",
+            "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384"
+        },
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11",
+            "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384"
+        }
+    ]
+
+    well_known_endpoints.extend(pq_endpoints)
+
 
 def print_result(result_prefix, return_code):
     print(result_prefix, end="")
@@ -121,7 +139,7 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
 
     return 0
 
-def well_known_endpoints_test(use_corked_io, tls13_enabled):
+def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
 
     arguments = []
     msg = "\n\tTesting s2n Client with Well Known Endpoints"
@@ -133,6 +151,9 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled):
     if use_corked_io:
         arguments += ["-C"]
         opt_list += ["Corked IO"]
+    if fips_mode:
+        arguments += ["--enter-fips-mode"]
+        opt_list += ["FIPS enabled"]
 
     if len(opt_list) != 0:
         msg += " using "
@@ -173,16 +194,21 @@ def main(argv):
     parser.add_argument("--no-tls13", action="store_true", help="Disable TLS 1.3 tests")
     args = parser.parse_args()
 
+    fips_mode = False
+    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
+        fips_mode = True
+        print("\nRunning s2nd in FIPS mode.")
+
     failed = 0
 
     # TLS 1.2 Tests
-    failed += well_known_endpoints_test(use_corked_io=False, tls13_enabled=False)
-    failed += well_known_endpoints_test(use_corked_io=True, tls13_enabled=False)
+    failed += well_known_endpoints_test(use_corked_io=False, tls13_enabled=False, fips_mode=fips_mode)
+    failed += well_known_endpoints_test(use_corked_io=True, tls13_enabled=False, fips_mode=fips_mode)
 
     # TLS 1.3 Tests
     if not args.no_tls13:
-        failed += well_known_endpoints_test(use_corked_io=False, tls13_enabled=True)
-        failed += well_known_endpoints_test(use_corked_io=True, tls13_enabled=True)
+        failed += well_known_endpoints_test(use_corked_io=False, tls13_enabled=True, fips_mode=fips_mode)
+        failed += well_known_endpoints_test(use_corked_io=True, tls13_enabled=True, fips_mode=fips_mode)
 
     return failed
 

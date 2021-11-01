@@ -30,6 +30,26 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test QUIC is not allowed if TLS1.3 not fully supported. */
+    if (!s2n_is_tls13_fully_supported()) {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_enable_quic(config));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(conn), S2N_RSA_PSS_NOT_SUPPORTED);
+        EXPECT_FALSE(conn->quic_enabled);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_RSA_PSS_NOT_SUPPORTED);
+        EXPECT_NOT_EQUAL(config, conn->config);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        END_TEST();
+    }
+
     /* Test s2n_config_enable_quic */
     {
         struct s2n_config *config = s2n_config_new();
@@ -98,6 +118,33 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test that if a connection enables quic via the config,
+     * quic stays enabled for the connection even if the config changes.
+     */
+    {
+        struct s2n_config *non_quic_config = s2n_config_new();
+        EXPECT_NOT_NULL(non_quic_config);
+
+        struct s2n_config *quic_config = s2n_config_new();
+        EXPECT_NOT_NULL(quic_config);
+        EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, non_quic_config));
+        EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, quic_config));
+        EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, non_quic_config));
+        EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
+
+        EXPECT_SUCCESS(s2n_config_free(non_quic_config));
+        EXPECT_SUCCESS(s2n_config_free(quic_config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

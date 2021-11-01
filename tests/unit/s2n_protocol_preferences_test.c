@@ -18,7 +18,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_protocol_preferences.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #define LEN_PREFIX 1
 
