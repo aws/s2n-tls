@@ -142,7 +142,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
