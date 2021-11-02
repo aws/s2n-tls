@@ -39,7 +39,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
-#include "utils/s2n_str.h"
 #include "utils/s2n_bitmap.h"
 
 /* clang-format off */
@@ -913,13 +912,22 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
         return handshake_type_str[handshake_type];
     }
 
-    /* Compute handshake_type_str[handshake_type] */
+    /* Compute handshake_type_str[handshake_type] by concatenating
+     * each applicable handshake_type.
+     *
+     * Unit tests enforce that the elements of handshake_type_str are always
+     * long enough to contain the longest possible valid handshake_type, but
+     * for safety we still handle the case where we need to truncate.
+     */
     char *p = handshake_type_str[handshake_type];
-    char *end = p + sizeof(handshake_type_str[0]);
-
-    for (size_t i = 0; i < handshake_type_names_len; ++i) {
+    size_t remaining = sizeof(handshake_type_str[0]);
+    for (size_t i = 0; i < handshake_type_names_len; i++) {
         if (handshake_type & (1 << i)) {
-            p = s2n_strcpy(p, end, handshake_type_names[i]);
+            size_t bytes_to_copy = MIN(remaining, strlen(handshake_type_names[i]));
+            PTR_CHECKED_MEMCPY(p, handshake_type_names[i], bytes_to_copy);
+            p[bytes_to_copy] = '\0';
+            p += bytes_to_copy;
+            remaining -= bytes_to_copy;
         }
     }
 
