@@ -699,12 +699,12 @@ void cbmc_populate_s2n_psk_parameters(struct s2n_psk_parameters *s2n_psk_paramet
 void cbmc_populate_s2n_prf_working_space(struct s2n_prf_working_space *s2n_prf_working_space)
 {
     CBMC_ENSURE_REF(s2n_prf_working_space);
-    /* `s2n_prf_working_space->tls.hmac_impl` is never allocated.
+    /* `s2n_prf_working_space->tls.p_hash_hmac_impl` is never allocated.
      * It is always initialized based on the hashing algorithm.
      * If required, this initialization should be done in the validation function.
      */
-    cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->hmac_state.s2n_hmac));
-    cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->hmac_state.s2n_hmac));
+    cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
+    cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
 }
 
 struct s2n_prf_working_space* cbmc_allocate_s2n_prf_working_space()

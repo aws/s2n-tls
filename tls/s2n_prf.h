@@ -27,22 +27,22 @@
 #define S2N_MAX_KEY_BLOCK_LEN 160
 
 /* TODO: make this a union. If s2n is in FIPS mode it's always going to use evp_hmac, and outside of FIPS it should
- * always use s2n_hmac */
-struct hmac_state {
+ * always use s2n_hmac, https://github.com/aws/s2n-tls/issues/3111 */
+struct p_hash_state {
     struct s2n_hmac_state s2n_hmac;
     struct s2n_evp_hmac_state evp_hmac;
 };
 
 struct s2n_prf_working_space {
-    const struct s2n_hmac_impl *hmac_impl;
-    struct hmac_state hmac_state;
+    const struct s2n_p_hash_hmac *p_hash_hmac_impl;
+    struct p_hash_state p_hash;
     uint8_t digest0[S2N_MAX_DIGEST_LEN];
     uint8_t digest1[S2N_MAX_DIGEST_LEN];
 };
 
-/* The s2n s2n_hmac_impl is an abstraction to allow for separate implementations, using
+/* The s2n p_hash implementation is abstracted to allow for separate implementations, using
  * either s2n's formally verified HMAC or OpenSSL's EVP HMAC, for use by the TLS PRF. */
-struct s2n_hmac_impl {
+struct s2n_p_hash_hmac {
     int (*alloc) (struct s2n_prf_working_space *ws);
     int (*init) (struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret);
     int (*update) (struct s2n_prf_working_space *ws, const void *data, uint32_t size);
