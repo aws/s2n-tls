@@ -1624,7 +1624,7 @@ handshake.
 
 **s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
 
-**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly. Note that s2n-tls session tickets are versioned and this function will error if it receives a ticket version it doesn't understand. Therefore users need to handle errors for this function in case the inputted ticket is an unrecognized version, which could occur during a long deployment.
+**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of copied bytes. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
