@@ -33,16 +33,7 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
-/* This is roughly the current memory usage per connection and is the maximum across all supported libcryptos.
- *
-* The current biggest offender is s2n + AWS-LC due to:
-    * AWS-LC uses EVP_CIPHER_CTX contexts as well as EVP_AEAD_CTX in s2n_session_key (this could be a union in the future)
-    * AWS-LC uses an HMAC_CTX which is larger than OpenSSL EVP_PKEY in s2n_evp_hmac_state without being able to get rid
-        * of the EVP_MD_CTX in s2n_evp_digest because s2n_hash uses that type
-    * AWS-LC FIPS uses Jitter for entropy which requires additional state per thread
-* https://github.com/aws/s2n-tls/issues/3114
-*/
-#define MEM_PER_CONNECTION (49 * 1024)
+#define MEM_PER_CONNECTION (43 * 1024)
 /* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
