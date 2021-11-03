@@ -16,10 +16,7 @@
 #pragma once
 
 #include <openssl/evp.h>
-
-#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
 #include <openssl/hmac.h>
-#endif
 
 #include "crypto/s2n_openssl.h"
 #include "utils/s2n_result.h"
@@ -31,11 +28,10 @@ struct s2n_evp_digest {
 
 struct s2n_evp_hmac_state {
     struct s2n_evp_digest evp_digest;
-#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
-    HMAC_CTX *hmac_ctx;
-#else
-    EVP_PKEY *evp_pkey;
-#endif
+    union {
+        HMAC_CTX *hmac_ctx;
+        EVP_PKEY *evp_pkey;
+    } ctx;
 };
 
 /* Define API's that change based on the OpenSSL Major Version. */
