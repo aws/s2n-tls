@@ -44,7 +44,7 @@ S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest,
     }
 #else
     if (s2n_is_in_fips_mode()) {
-        /* s2n is in FIPS mode and built with AWS-LC or BoringSSL, there are no flags to check in the EVP digest to allows MD5. */
+        /* If s2n is in FIPS mode and built with AWS-LC or BoringSSL, there are no flags to check in the EVP digest to allow MD5. */
         *out = true;
     }
 #endif

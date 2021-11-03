@@ -32,9 +32,9 @@ struct s2n_evp_digest {
 struct s2n_evp_hmac_state {
     struct s2n_evp_digest evp_digest;
 #if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
-    HMAC_CTX *hmac_key;
+    HMAC_CTX *hmac_ctx;
 #else
-    EVP_PKEY *mac_key;
+    EVP_PKEY *evp_pkey;
 #endif
 };
 

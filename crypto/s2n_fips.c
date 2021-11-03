@@ -25,7 +25,7 @@ int s2n_fips_init(void)
 
     /* FIPS mode can be checked if OpenSSL was configured and built for FIPS which then defines OPENSSL_FIPS.
      *
-     * AWS-LC always define FIPS_mode() that you can call and check what the library was built with. It does not define
+     * AWS-LC always defines FIPS_mode() that you can call and check what the library was built with. It does not define
      * a public OPENSSL_FIPS/AWSLC_FIPS macro that we can (or need to) check here
      *
      * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only returns the current state. Applications
