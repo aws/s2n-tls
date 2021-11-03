@@ -70,6 +70,10 @@ void usage()
     fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
     fprintf(stderr, "  -T,--no-session-ticket \n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
+    fprintf(stderr, "  -o, --ticket-out [file path]\n");
+    fprintf(stderr, "    Path to a file where the session ticket can be stored.\n");
+    fprintf(stderr, "  -I, --ticket-in [file path]\n");
+    fprintf(stderr, "    Path to session ticket file to resume connection.\n");
     fprintf(stderr, "  -D,--dynamic\n");
     fprintf(stderr, "    Set dynamic record resize threshold\n");
     fprintf(stderr, "  -t,--timeout\n");
@@ -234,6 +238,8 @@ int main(int argc, char *const *argv)
     const char *client_key = NULL;
     bool client_cert_input = false;
     bool client_key_input = false;
+    const char *ticket_out = NULL;
+    char *ticket_in = NULL;
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
@@ -271,6 +277,8 @@ int main(int argc, char *const *argv)
         {"key", required_argument, 0, 'k'},
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
+        {"ticket-out", required_argument, 0, 'o'},
+        {"ticket-in", required_argument, 0, 'I'},
         {"no-session-ticket", no_argument, 0, 'T'},
         {"dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
@@ -285,7 +293,7 @@ int main(int argc, char *const *argv)
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:iro:I:TCBL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -336,6 +344,12 @@ int main(int argc, char *const *argv)
             break;
         case 'r':
             reconnect = 5;
+            break;
+        case 'o':
+            ticket_out = optarg;
+            break;
+        case 'I':
+            ticket_in = optarg;
             break;
         case 'T':
             session_ticket = 0;
@@ -517,6 +531,21 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
         }
 
+        /* Read in session ticket from previous session */
+        if (ticket_in) {
+            if(get_file_size(ticket_in, &session_state_length) < 0) {
+                fprintf(stderr, "Failed to read file: %s\n", ticket_in);
+                exit(1);
+            }
+            free(session_state);
+            session_state = calloc(session_state_length, sizeof(uint8_t));
+            GUARD_EXIT_NULL(session_state);
+            if(load_file_to_array(ticket_in, session_state, session_state_length) < 0) {
+                fprintf(stderr, "Failed to read file: %s\n", ticket_in);
+                exit(1);
+            }
+        }
+
         /* Update session state in connection if exists */
         if (session_state_length > 0) {
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
@@ -545,7 +574,7 @@ int main(int argc, char *const *argv)
         printf("Connected to %s:%s\n", host, port);
 
         /* Save session state from connection if reconnect is enabled. */
-        if (reconnect > 0) {
+        if (reconnect > 0 || ticket_out) {
             if (conn->actual_protocol_version >= S2N_TLS13) {
                 if (!session_ticket) {
                     print_s2n_error("s2nc can only reconnect in TLS1.3 with session tickets.");
@@ -563,6 +592,12 @@ int main(int argc, char *const *argv)
                 GUARD_EXIT_NULL(session_state);
                 if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
                     print_s2n_error("Error getting serialized session state");
+                    exit(1);
+                }
+            }
+            if(ticket_out) {
+                if(write_array_to_file(ticket_out, session_state, session_state_length) < 0) {
+                    fprintf(stderr, "Failed to write session ticket to file: %s\n", ticket_in);
                     exit(1);
                 }
             }
