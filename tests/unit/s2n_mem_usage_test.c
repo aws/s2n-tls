@@ -39,6 +39,7 @@
     * AWS-LC uses an HMAC_CTX which is larger than OpenSSL EVP_PKEY in s2n_evp_hmac_state without being able to get rid
         * of the EVP_MD_CTX in s2n_evp_digest because s2n_hash uses that type
     * AWS-LC FIPS uses Jitter for entropy which requires additional state per thread
+* https://github.com/aws/s2n-tls/issues/3114
 */
 #define MEM_PER_CONNECTION (49 * 1024)
 #else

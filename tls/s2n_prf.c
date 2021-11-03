@@ -131,7 +131,7 @@ static int s2n_evp_pkey_p_hash_alloc(struct s2n_prf_working_space *ws)
     return 0;
 }
 
-static int s2n_evp_pkey_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_p_hash_digest_init(struct s2n_prf_working_space *ws)
 {
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.md);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
@@ -157,7 +157,7 @@ static int s2n_evp_pkey_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_a
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.mac_key = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size));
 
     /* Initialize the message digest context with the above message digest and mac key */
-    return s2n_evp_pkey_hmac_p_hash_digest_init(ws);
+    return s2n_evp_pkey_p_hash_digest_init(ws);
 }
 
 static int s2n_evp_pkey_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
@@ -167,7 +167,8 @@ static int s2n_evp_pkey_p_hash_update(struct s2n_prf_working_space *ws, const vo
     return 0;
 }
 
-static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size){
+static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
+{
     /* EVP_DigestSign API's require size_t data structures */
     size_t digest_size = size;
 
@@ -176,7 +177,7 @@ static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *dig
     return 0;
 }
 
-static int s2n_evp_pkey_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_p_hash_wipe(struct s2n_prf_working_space *ws)
 {
   POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(ws->p_hash.evp_hmac.evp_digest.ctx), S2N_ERR_P_HASH_WIPE_FAILED);
 
@@ -185,15 +186,15 @@ static int s2n_evp_pkey_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
 
 static int s2n_evp_pkey_p_hash_reset(struct s2n_prf_working_space *ws)
 {
-    POSIX_GUARD(s2n_evp_pkey_hmac_p_hash_wipe(ws));
+    POSIX_GUARD(s2n_evp_pkey_p_hash_wipe(ws));
 
-    return s2n_evp_pkey_hmac_p_hash_digest_init(ws);
+    return s2n_evp_pkey_p_hash_digest_init(ws);
 }
 
 static int s2n_evp_pkey_p_hash_cleanup(struct s2n_prf_working_space *ws)
 {
     /* Prepare the workspace md_ctx for the next p_hash */
-    POSIX_GUARD(s2n_evp_pkey_hmac_p_hash_wipe(ws));
+    POSIX_GUARD(s2n_evp_pkey_p_hash_wipe(ws));
 
     /* Free mac key - PKEYs cannot be reused */
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.mac_key);
