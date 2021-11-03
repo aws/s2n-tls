@@ -14,11 +14,9 @@
  */
 
 #include <sys/param.h>
+#include <openssl/hmac.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
-#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
-#include <openssl/hmac.h>
-#endif
 #include <string.h>
 
 #include "error/s2n_errno.h"

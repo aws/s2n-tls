@@ -33,6 +33,7 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
+/* This is roughly the current memory usage per connection */
 #define MEM_PER_CONNECTION (43 * 1024)
 /* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
