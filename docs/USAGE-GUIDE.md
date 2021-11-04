@@ -1706,23 +1706,27 @@ this will allow for gradual and linear transition of a key from encrypt-decrypt 
 
 ### Asynchronous private key operations related calls
 
-When s2n-tls is used in non-blocking mode, this set of functions allows user
+When s2n-tls is used in non-blocking mode, this set of functions allows users
 to move execution of CPU-heavy private key operations out of the main
-event loop, preventing **s2n_negotiate** blocking the loop for a few
+event loop, preventing **s2n_negotiate** from blocking the loop for a few
 milliseconds each time the private key operation needs to be performed.
 
-To enable asynchronous private key operations user needs to provide a
-callback function **s2n_async_pkey_fn** to
-**s2n_config_set_async_pkey_callback** call. This function will be
-executed during **s2n_negotiate** call every time an operation on private
+To enable asynchronous private key operations, the user needs to provide a
+**s2n_async_pkey_fn** callback function to
+the **s2n_config_set_async_pkey_callback** call. This function will be
+executed during the **s2n_negotiate** call every time an operation on the private
 key needs to be performed. The argument **op** represents the operation
-to perform. From the callback the user can spawn the thread to perform
-**op** through **s2n_async_pkey_op_perform** call and immediately return
-**S2N_SUCCESS** from the function without waiting for thread to complete.
-The **s2n_negotiate** will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
-error type and **s2n_blocked_status** **S2N_BLOCKED_ON_APPLICATION_INPUT**,
-and will keep giving the same error until the **op** is performed and
-applied to the connection through **s2n_async_pkey_op_apply** call.
+to perform. From the callback, the user should spawn a separate thread to perform
+**op** and immediately return
+**S2N_SUCCESS** without waiting for the thread to complete.
+**s2n_negotiate** will then return **S2N_FAILURE** with an error of **S2N_ERR_T_BLOCKED**
+error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**,
+and will keep giving the same error until the **op** is performed and applied.
+
+The **op** can be performed either by calling **s2n_async_pkey_op_perform** to trigger
+s2n-tls to perform the operation using the currently configured private key, or by manually performing
+the private key operation and then calling **s2n_async_pkey_op_set_output** to pass the result to s2n-tls (see [Offloading asynchronous private key operations](#Offloading-asynchronous-private-key-operations)). Whichever method is used, **s2n_async_pkey_op_apply**
+should then be called to mark the **op** as completed and allow the handshake to continue.
 
 Note, it is not safe to call multiple functions on the same **conn** or
 **op** objects from 2 different threads at the same time. Doing so will
