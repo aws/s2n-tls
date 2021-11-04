@@ -186,7 +186,11 @@ static int s2n_evp_pkey_p_hash_reset(struct s2n_prf_working_space *ws)
 {
     POSIX_GUARD(s2n_evp_pkey_p_hash_wipe(ws));
 
-    if (ws->p_hash.evp_hmac.evp_digest.md == NULL) {
+    /*
+     * On some cleanup paths s2n_evp_pkey_p_hash_reset can be called before s2n_evp_pkey_p_hash_init so there is nothing
+     * to reset.
+     */
+    if (ws->p_hash.evp_hmac.ctx.evp_pkey == NULL) {
         return S2N_SUCCESS;
     }
     return s2n_evp_pkey_p_hash_digest_init(ws);
