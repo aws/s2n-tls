@@ -27,6 +27,8 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
+#include "utils/s2n_bitmap.h"
+
 #define MAX_KEY_LEN 32
 #define MAX_VAL_LEN 255
 
@@ -460,6 +462,199 @@ int main(int argc, char **argv)
 
     /* Close the pipes */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+
+    /* Session caching with a server that does not support EMS */
+    {
+        initialize_cache();
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        s2n_config_disable_x509_verification(config);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate until server has read the Client Hello message but hasn't written the server hello message */
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, SERVER_HELLO));
+
+        /* s2n servers by default support EMS. We turn it off by manually setting ems_negotiated to false
+        * and removing the EMS extension from our received extensions. */
+        server_conn->ems_negotiated = false;
+        s2n_extension_type_id ems_ext_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+        S2N_CBIT_CLR(server_conn->extension_requests_received, ems_ext_id);
+
+        /* Connection is successful and EMS is not negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_FALSE(server_conn->ems_negotiated);
+        EXPECT_FALSE(client_conn->ems_negotiated);
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+
+        size_t tls12_session_ticket_len = s2n_connection_get_session_length(client_conn);
+        uint8_t tls12_session_ticket[S2N_TLS12_SESSION_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+
+        /* Wipe connections and set up new handshake */
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+
+        /* Server will block the first time cache is accessed */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+        /* Resumed connection is successful and EMS is not negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(S2N_CBIT_TEST(server_conn->extension_requests_received, ems_ext_id), 0);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_FALSE(server_conn->ems_negotiated);
+        EXPECT_FALSE(client_conn->ems_negotiated);
+        EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= type=test
+     *# If the original session used the "extended_master_secret"
+     *# extension but the new ClientHello does not contain it, the server
+     *# MUST abort the abbreviated handshake.
+     **/
+    {
+        initialize_cache();
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        s2n_config_disable_x509_verification(config);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Connection is successful and EMS is negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(server_conn->ems_negotiated);
+        EXPECT_TRUE(client_conn->ems_negotiated);
+
+        size_t tls12_session_ticket_len = s2n_connection_get_session_length(client_conn);
+        uint8_t tls12_session_ticket[S2N_TLS12_SESSION_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+
+        /* Wipe connections and set up new handshake */
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Force the client to not send the EMS extension */
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        client_conn->ems_negotiated = false;
+
+        /* Server will block the first time cache is accessed */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+        /* Server did not receive the EMS extension from client */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_MISSING_EXTENSION);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= type=test
+     *# If the original session did not use the "extended_master_secret"
+     *# extension but the new ClientHello contains the extension, then the
+     *# server MUST NOT perform the abbreviated handshake.  Instead, it
+     *# SHOULD continue with a full handshake (as described in
+     *# Section 5.2) to negotiate a new session.
+     **/
+    {
+        initialize_cache();
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        s2n_config_disable_x509_verification(config);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate until server has read the Client Hello message but hasn't written the Server Hello message */
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, SERVER_HELLO));
+
+        /* s2n servers by default support EMS. We turn it off by manually setting ems_negotiated to false
+        * and removing the EMS extension from our received extensions. */
+        server_conn->ems_negotiated = false;
+        s2n_extension_type_id ems_ext_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+        S2N_CBIT_CLR(server_conn->extension_requests_received, ems_ext_id);
+
+        /* Connection is successful and EMS is not negotiated */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_FALSE(server_conn->ems_negotiated);
+        EXPECT_FALSE(client_conn->ems_negotiated);
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+
+        size_t tls12_session_ticket_len = s2n_connection_get_session_length(client_conn);
+        uint8_t tls12_session_ticket[S2N_TLS12_SESSION_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+
+        /* Wipe connections and set up new handshake */
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Force the client to send the EMS extension even though the original session did not negotiate EMS */
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        client_conn->ems_negotiated = true;
+
+        /* Server will block the first time cache is accessed */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+        /* Fallback to full handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(S2N_CBIT_TEST(server_conn->extension_requests_received, ems_ext_id), 1);
+        EXPECT_TRUE(server_conn->ems_negotiated);
+        EXPECT_TRUE(client_conn->ems_negotiated);
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
 
     /* Clean up */
     EXPECT_SUCCESS(s2n_config_free(config));
