@@ -27,7 +27,7 @@
 #define S2N_MAX_KEY_BLOCK_LEN 160
 
 union p_hash_state {
-    struct s2n_hmac_state *s2n_hmac;
+    struct s2n_hmac_state s2n_hmac;
     struct s2n_evp_hmac_state evp_hmac;
 };
 
