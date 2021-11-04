@@ -47,7 +47,10 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_ENSURE_REF(conn);
 
     /* Read nothing. The extension just needs to exist. */
-    conn->ems_negotiated = true;
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if (S2N_IN_TEST) {
+        conn->ems_negotiated = true;
+    }
 
     return S2N_SUCCESS;
 }

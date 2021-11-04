@@ -804,7 +804,10 @@ static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
     }
 
     /* Since we're discarding the resumption ticket, ignore EMS value from the ticket */
-    conn->ems_negotiated = ems_extension_recv;
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if (S2N_IN_TEST) {
+        conn->ems_negotiated = ems_extension_recv;
+    }
 
     return S2N_RESULT_OK;
 }
