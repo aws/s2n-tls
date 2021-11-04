@@ -131,6 +131,9 @@ struct s2n_connection {
     /* Connection negotiated an EMS */
     unsigned ems_negotiated:1;
 
+    /* Connection successfully set a ticket on the connection */
+    unsigned set_session:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
