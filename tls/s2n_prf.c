@@ -94,7 +94,7 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
 }
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
-static int s2n_evp_hmac_p_hash_new(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_p_hash_alloc(struct s2n_prf_working_space *ws)
 {
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx = S2N_EVP_MD_CTX_NEW());
     return 0;
@@ -117,7 +117,7 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
     return 0;
 }
 
-static int s2n_evp_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
+static int s2n_evp_pkey_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
 {
     /* Initialize the message digest */
     switch (alg) {
@@ -152,14 +152,14 @@ static int s2n_evp_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_a
     return s2n_evp_hmac_p_hash_digest_init(ws);
 }
 
-static int s2n_evp_hmac_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
+static int s2n_evp_pkey_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
 {
     POSIX_GUARD_OSSL(EVP_DigestSignUpdate(ws->p_hash.evp_hmac.evp_digest.ctx, data, (size_t)size), S2N_ERR_P_HASH_UPDATE_FAILED);
 
     return 0;
 }
 
-static int s2n_evp_hmac_p_hash_digest(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
+static int s2n_evp_pkey_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
 {
     /* EVP_DigestSign API's require size_t data structures */
     size_t digest_size = size;
@@ -176,14 +176,14 @@ static int s2n_evp_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
     return 0;
 }
 
-static int s2n_evp_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_p_hash_reset(struct s2n_prf_working_space *ws)
 {
     POSIX_GUARD(s2n_evp_hmac_p_hash_wipe(ws));
 
     return s2n_evp_hmac_p_hash_digest_init(ws);
 }
 
-static int s2n_evp_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_p_hash_cleanup(struct s2n_prf_working_space *ws)
 {
     /* Prepare the workspace md_ctx for the next p_hash */
     POSIX_GUARD(s2n_evp_hmac_p_hash_wipe(ws));
@@ -196,7 +196,7 @@ static int s2n_evp_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)
     return 0;
 }
 
-static int s2n_evp_hmac_p_hash_free(struct s2n_prf_working_space *ws)
+static int s2n_evp_pkey_p_hash_free(struct s2n_prf_working_space *ws)
 {
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
     S2N_EVP_MD_CTX_FREE(ws->p_hash.evp_hmac.evp_digest.ctx);
@@ -205,14 +205,14 @@ static int s2n_evp_hmac_p_hash_free(struct s2n_prf_working_space *ws)
     return 0;
 }
 
-static const struct s2n_p_hash_hmac s2n_evp_hmac = {
-    .alloc = &s2n_evp_hmac_p_hash_new,
-    .init = &s2n_evp_hmac_p_hash_init,
-    .update = &s2n_evp_hmac_p_hash_update,
-    .final = &s2n_evp_hmac_p_hash_digest,
-    .reset = &s2n_evp_hmac_p_hash_reset,
-    .cleanup = &s2n_evp_hmac_p_hash_cleanup,
-    .free = &s2n_evp_hmac_p_hash_free,
+static const struct s2n_p_hash_hmac s2n_evp_pkey_p_hash_hmac = {
+    .alloc = &s2n_evp_pkey_p_hash_alloc,
+    .init = &s2n_evp_pkey_p_hash_init,
+    .update = &s2n_evp_pkey_p_hash_update,
+    .final = &s2n_evp_pkey_p_hash_final,
+    .reset = &s2n_evp_pkey_p_hash_reset,
+    .cleanup = &s2n_evp_pkey_p_hash_cleanup,
+    .free = &s2n_evp_pkey_p_hash_free,
 };
 #endif /* !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) */
 
@@ -253,7 +253,7 @@ static int s2n_hmac_p_hash_free(struct s2n_prf_working_space *ws)
     return s2n_hmac_free(&ws->p_hash.s2n_hmac);
 }
 
-static const struct s2n_p_hash_hmac s2n_hmac = {
+static const struct s2n_p_hash_hmac s2n_internal_p_hash_hmac = {
     .alloc = &s2n_hmac_p_hash_new,
     .init = &s2n_hmac_p_hash_init,
     .update = &s2n_hmac_p_hash_update,
@@ -325,9 +325,9 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
 const struct s2n_p_hash_hmac *s2n_get_hmac_implementation() {
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-  return &s2n_hmac;
+  return &s2n_internal_p_hash_hmac;
 #else
-  return s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
+  return s2n_is_in_fips_mode() ? &s2n_evp_pkey_p_hash_hmac : &s2n_internal_p_hash_hmac;
 #endif
 }
 
@@ -403,7 +403,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
      */
     POSIX_GUARD(s2n_blob_zero(out));
 
-    /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
+    /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
     conn->prf_space->p_hash_hmac_impl = s2n_get_hmac_implementation();
@@ -452,7 +452,8 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 
-    if(!conn->ems_negotiated) {
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if(!conn->ems_negotiated || !S2N_IN_TEST) {
         POSIX_GUARD(s2n_tls_prf_master_secret(conn, premaster_secret));
         return S2N_SUCCESS;
     }

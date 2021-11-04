@@ -26,6 +26,8 @@
 /* Enough to support TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, 2*SHA384_DIGEST_LEN + 2*AES256_KEY_SIZE */
 #define S2N_MAX_KEY_BLOCK_LEN 160
 
+/* TODO: make this a union. If s2n is in FIPS mode it's always going to use evp_hmac, and outside of FIPS it should
+ * always use s2n_hmac, https://github.com/aws/s2n-tls/issues/3111 */
 struct p_hash_state {
     struct s2n_hmac_state s2n_hmac;
     struct s2n_evp_hmac_state evp_hmac;

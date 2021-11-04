@@ -199,6 +199,43 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+    /* Non-matching session IDs turn off EMS for the connection */
+    {
+        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn;
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+
+        /* Create session ID for server */
+        for (int i = 0; i < 32; i++) {
+            server_conn->session_id[i] = i;
+        }
+
+        EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+
+        /* Copy server stuffer to client stuffer */
+        const uint32_t total = s2n_stuffer_data_available(&server_conn->handshake.io);
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
+
+        /* Create client session ID does not match server session ID */
+        for (int i = 0; i < 32; i++) {
+            client_conn->session_id[i] = 0;
+        }
+
+        /* Client is negotiating an EMS connection but is able to fallback to non-EMS connection
+         * if session IDs don't match */
+        client_conn->ems_negotiated = true;
+        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+        EXPECT_FALSE(client_conn->ems_negotiated);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
     /* Test TLS 1.3 session id matching */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
@@ -509,7 +546,7 @@ int main(int argc, char **argv)
     }
 
     /* Test that negotiating TLS1.2 with QUIC-enabled client fails */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         EXPECT_SUCCESS(s2n_reset_tls13());
 
         struct s2n_config *quic_config = s2n_config_new();

@@ -39,7 +39,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
-#include "utils/s2n_str.h"
 #include "utils/s2n_bitmap.h"
 
 /* clang-format off */
@@ -785,6 +784,31 @@ static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    s2n_extension_type_id ems_ext_id = 0;
+    RESULT_GUARD_POSIX(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+    bool ems_extension_recv = S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *# If the original session used the "extended_master_secret"
+     *# extension but the new ClientHello does not contain it, the server
+     *# MUST abort the abbreviated handshake.
+     **/
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if (conn->ems_negotiated && S2N_IN_TEST) {
+        RESULT_ENSURE(ems_extension_recv, S2N_ERR_MISSING_EXTENSION);
+    }
+
+    /* Since we're discarding the resumption ticket, ignore EMS value from the ticket */
+    conn->ems_negotiated = ems_extension_recv;
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
     if (IS_TLS13_HANDSHAKE(conn)) {
@@ -814,17 +838,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
                 return S2N_SUCCESS;
             }
 
-            if (conn->ems_negotiated) {
-                s2n_extension_type_id ems_ext_id = 0;
-                POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
-                /**
-                 *= https://tools.ietf.org/rfc/rfc7627#section-5.3
-                 *# If the original session used the "extended_master_secret"
-                 *# extension but the new ClientHello does not contain it, the server
-                 *# MUST abort the abbreviated handshake.
-                 **/
-                POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id), S2N_ERR_MISSING_EXTENSION);
-            }
+            POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
 
             if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
                 conn->session_ticket_status = S2N_NEW_TICKET;
@@ -847,6 +861,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         if (r == S2N_SUCCESS || (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(s2n_errno))) {
             return r;
         }
+        POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
     }
 
 skip_cache_lookup:
@@ -913,13 +928,22 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
         return handshake_type_str[handshake_type];
     }
 
-    /* Compute handshake_type_str[handshake_type] */
+    /* Compute handshake_type_str[handshake_type] by concatenating
+     * each applicable handshake_type.
+     *
+     * Unit tests enforce that the elements of handshake_type_str are always
+     * long enough to contain the longest possible valid handshake_type, but
+     * for safety we still handle the case where we need to truncate.
+     */
     char *p = handshake_type_str[handshake_type];
-    char *end = p + sizeof(handshake_type_str[0]);
-
-    for (size_t i = 0; i < handshake_type_names_len; ++i) {
+    size_t remaining = sizeof(handshake_type_str[0]);
+    for (size_t i = 0; i < handshake_type_names_len; i++) {
         if (handshake_type & (1 << i)) {
-            p = s2n_strcpy(p, end, handshake_type_names[i]);
+            size_t bytes_to_copy = MIN(remaining, strlen(handshake_type_names[i]));
+            PTR_CHECKED_MEMCPY(p, handshake_type_names[i], bytes_to_copy);
+            p[bytes_to_copy] = '\0';
+            p += bytes_to_copy;
+            remaining -= bytes_to_copy;
         }
     }
 
