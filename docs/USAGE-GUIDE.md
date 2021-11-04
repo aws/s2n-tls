@@ -1726,7 +1726,9 @@ and will keep giving the same error until the **op** is performed and applied.
 The **op** can be performed either by calling **s2n_async_pkey_op_perform** to trigger
 s2n-tls to perform the operation using the currently configured private key, or by manually performing
 the private key operation and then calling **s2n_async_pkey_op_set_output** to pass the result to s2n-tls (see [Offloading asynchronous private key operations](#Offloading-asynchronous-private-key-operations)). Whichever method is used, **s2n_async_pkey_op_apply**
-should then be called to mark the **op** as completed and allow the handshake to continue.
+should then be called to mark the **op** as completed and allow the handshake to continue. **s2n_async_pkey_op_perform**, **s2n_async_pkey_op_set_output**, and the other asynchronous pkey functions
+mentioned here may be called from within the **s2n_async_pkey_fn** callback method, but **s2n_async_pkey_op_apply**
+MUST only be called after the callback has completed.
 
 Note, it is not safe to call multiple functions on the same **conn** or
 **op** objects from 2 different threads at the same time. Doing so will
