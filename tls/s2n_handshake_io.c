@@ -1350,7 +1350,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
@@ -1434,4 +1434,14 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     *blocked = S2N_NOT_BLOCKED;
 
     return S2N_SUCCESS;
+}
+
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(!conn->negotiate_in_use, S2N_ERR_REENTRANCY);
+    conn->negotiate_in_use = true;
+    int result = s2n_negotiate_impl(conn, blocked);
+    conn->negotiate_in_use = false;
+    return result;
 }
