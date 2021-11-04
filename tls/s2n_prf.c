@@ -186,7 +186,12 @@ static int s2n_evp_pkey_p_hash_reset(struct s2n_prf_working_space *ws)
 {
     POSIX_GUARD(s2n_evp_pkey_p_hash_wipe(ws));
 
-    if (ws->p_hash.evp_hmac.evp_digest.md == NULL) {
+    /*
+     * On some cleanup paths s2n_evp_pkey_p_hash_reset can be called before s2n_evp_pkey_p_hash_init so there is nothing
+     * to reset.
+     * ws->p_hash.evp_hmac.evp_digest.md == NULL || ws
+     */
+    if (ws->p_hash.evp_hmac.ctx.evp_pkey == NULL) {
         return S2N_SUCCESS;
     }
     return s2n_evp_pkey_p_hash_digest_init(ws);
@@ -288,26 +293,32 @@ static const struct s2n_p_hash_hmac s2n_evp_hmac_p_hash_hmac = {
 };
 #endif /* !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) */
 
-static int s2n_hmac_p_hash_new(struct s2n_prf_working_space *ws)
+static int s2n_hmac_p_hash_alloc(struct s2n_prf_working_space *ws)
 {
-    POSIX_GUARD(s2n_hmac_new(&ws->p_hash.s2n_hmac));
+    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
+    POSIX_GUARD_POSIX(s2n_realloc(&mem, sizeof(struct s2n_hmac_state)));
+    POSIX_GUARD_POSIX(s2n_blob_zero(&mem));
+    ws->p_hash.s2n_hmac = (struct s2n_hmac_state*)(void*) mem.data;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
-    return s2n_hmac_init(&ws->p_hash.s2n_hmac, S2N_HMAC_NONE, NULL, 0);
+    POSIX_GUARD(s2n_hmac_new(ws->p_hash.s2n_hmac));
+
+    return s2n_hmac_init(ws->p_hash.s2n_hmac, S2N_HMAC_NONE, NULL, 0);
 }
 
 static int s2n_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
 {
-    return s2n_hmac_init(&ws->p_hash.s2n_hmac, alg, secret->data, secret->size);
+    return s2n_hmac_init(ws->p_hash.s2n_hmac, alg, secret->data, secret->size);
 }
 
 static int s2n_hmac_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
 {
-    return s2n_hmac_update(&ws->p_hash.s2n_hmac, data, size);
+    return s2n_hmac_update(ws->p_hash.s2n_hmac, data, size);
 }
 
-static int s2n_hmac_p_hash_digest(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
+static int s2n_hmac_p_hash_final(struct s2n_prf_working_space *ws, void *digest, uint32_t size)
 {
-    return s2n_hmac_digest(&ws->p_hash.s2n_hmac, digest, size);
+    return s2n_hmac_digest(ws->p_hash.s2n_hmac, digest, size);
 }
 
 static int s2n_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
@@ -315,8 +326,8 @@ static int s2n_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
     /* If we actually initialized s2n_hmac, wipe it.
      * A valid, initialized s2n_hmac_state will have a valid block size.
      */
-    if (ws->p_hash.s2n_hmac.hash_block_size != 0) {
-        return s2n_hmac_reset(&ws->p_hash.s2n_hmac);
+    if (ws->p_hash.s2n_hmac->hash_block_size != 0) {
+        return s2n_hmac_reset(ws->p_hash.s2n_hmac);
     }
     return S2N_SUCCESS;
 }
@@ -328,14 +339,16 @@ static int s2n_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)
 
 static int s2n_hmac_p_hash_free(struct s2n_prf_working_space *ws)
 {
-    return s2n_hmac_free(&ws->p_hash.s2n_hmac);
+    int result = s2n_hmac_free(ws->p_hash.s2n_hmac);
+    POSIX_GUARD_POSIX(s2n_free_object((uint8_t **) ws->p_hash.s2n_hmac, sizeof(struct s2n_hmac_state)));
+    return result;
 }
 
 static const struct s2n_p_hash_hmac s2n_internal_p_hash_hmac = {
-    .alloc = &s2n_hmac_p_hash_new,
+    .alloc = &s2n_hmac_p_hash_alloc,
     .init = &s2n_hmac_p_hash_init,
     .update = &s2n_hmac_p_hash_update,
-    .final = &s2n_hmac_p_hash_digest,
+    .final = &s2n_hmac_p_hash_final,
     .reset = &s2n_hmac_p_hash_reset,
     .cleanup = &s2n_hmac_p_hash_cleanup,
     .free = &s2n_hmac_p_hash_free,
