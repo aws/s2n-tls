@@ -17,7 +17,6 @@ env:
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
-    S2N_LIBCRYPTO: "awslc"
     TESTS: "integration"
     BUILD_S2N: true
 
@@ -37,7 +36,7 @@ phases:
       - add-apt-repository ppa:longsleep/golang-backports -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y
-      - apt-get install -y --no-install-recommends gcc g++ gcc-4.8 g++-4.8 gcc-6 g++-6 gcc-9 g++-9
+      - apt-get install -y --no-install-recommends gcc g++ gcc-4.8 g++-4.8 gcc-9 g++-9
       # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
       - |
         if expr "${LATEST_CLANG}" != "true" >/dev/null; then
@@ -50,13 +49,15 @@ phases:
         if [ -d "third-party-src" ]; then
           cd third-party-src;
         fi
-      - GCC_VERSION=6 $CB_BIN_DIR/install_default_dependencies.sh
+      - S2N_LIBCRYPTO=awslc $CB_BIN_DIR/install_default_dependencies.sh
+      - S2N_LIBCRYPTO=awslc-fips $CB_BIN_DIR/install_default_dependencies.sh
   build:
     commands:
       - printenv
-      - GCC_VERSION=4.8 $CB_BIN_DIR/s2n_codebuild.sh
-      - GCC_VERSION=6 $CB_BIN_DIR/s2n_codebuild.sh
-      - GCC_VERSION=9 $CB_BIN_DIR/s2n_codebuild.sh
+      - S2N_LIBCRYPTO=awslc GCC_VERSION=4.8 $CB_BIN_DIR/s2n_codebuild.sh
+      - S2N_LIBCRYPTO=awslc GCC_VERSION=9 $CB_BIN_DIR/s2n_codebuild.sh
+      - S2N_LIBCRYPTO=awslc-fips GCC_VERSION=4.8 $CB_BIN_DIR/s2n_codebuild.sh
+      - S2N_LIBCRYPTO=awslc-fips GCC_VERSION=9 $CB_BIN_DIR/s2n_codebuild.sh
   post_build:
     commands:
       - echo Build completed on `date`
