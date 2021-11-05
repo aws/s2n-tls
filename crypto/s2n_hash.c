@@ -94,8 +94,7 @@ static int s2n_low_level_hash_new(struct s2n_hash_state *state)
      * being used. For the s2n_low_level_hash implementation, new is a no-op.
      */
 
-    state->is_ready_for_input = 0;
-    state->currently_in_hash = 0;
+    *state = (struct s2n_hash_state) { 0 };
     return S2N_SUCCESS;
 }
 
