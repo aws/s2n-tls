@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());

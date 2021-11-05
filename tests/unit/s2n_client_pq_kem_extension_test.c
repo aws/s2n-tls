@@ -22,7 +22,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const char *pq_security_policy_versions[] = {
             "KMS-PQ-TLS-1-0-2019-06",

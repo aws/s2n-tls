@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
 

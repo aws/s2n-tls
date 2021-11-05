@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     bool key_found;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(empty = s2n_map_new());
 

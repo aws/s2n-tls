@@ -90,7 +90,7 @@ static int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Construct an array of all valid tls1.2 handshake_types */
     uint16_t valid_tls12_handshakes[S2N_HANDSHAKES_COUNT];

@@ -47,7 +47,7 @@ static int s2n_write_key_share(struct s2n_stuffer *out, uint16_t iana_value, uin
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test that s2n_extensions_key_share_size produces the expected constant result */
     {
@@ -359,12 +359,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(client_conn, &key_share_extension));
             uint16_t key_share_extension_size = s2n_stuffer_data_available(&key_share_extension);
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             server_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_recv(&s2n_client_key_share_extension, server_conn, &key_share_extension));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_share_extension_size);
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             server_conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);

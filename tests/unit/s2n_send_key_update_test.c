@@ -71,7 +71,7 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
 int main(int argc, char **argv)
 {   
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* The maximum record number converted to base 256 */
     uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 
     /* TLS 1.2 Server that receives TLS 1.3 KeyUpdate from Client should close connection */
     {
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         char *cert_chain;
         char *private_key;

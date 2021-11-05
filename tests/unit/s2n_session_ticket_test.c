@@ -125,7 +125,7 @@ int main(int argc, char **argv)
      */
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_stuffer tls13_serialized_session_state = { 0 }, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&tls13_serialized_session_state, 0));
@@ -1143,7 +1143,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    EXPECT_SUCCESS(s2n_reset_tls13());
+    EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
     /* Session resumption APIs and session_ticket_cb return the same values
      * when receiving a new ticket in TLS1.3

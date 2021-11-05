@@ -45,6 +45,17 @@ int s2n_get_highest_fully_supported_tls_version()
  */
 int s2n_enable_tls13()
 {
+    return s2n_enable_tls13_in_test();
+}
+
+/* Allow TLS1.3 to be negotiated, and use the default TLS1.3 security policy.
+ * This is NOT the default behavior, and this method is deprecated.
+ *
+ * Please consider using the default behavior and configuring
+ * TLS1.2/TLS1.3 via explicit security policy instead.
+ */
+int s2n_enable_tls13_in_test()
+{
     s2n_highest_protocol_version = S2N_TLS13;
     s2n_use_default_tls13_config_flag = true;
     return S2N_SUCCESS;
@@ -56,7 +67,7 @@ int s2n_enable_tls13()
  * Please consider using the default behavior and configuring
  * TLS1.2/TLS1.3 via explicit security policy instead.
  */
-int s2n_disable_tls13()
+int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
@@ -69,7 +80,7 @@ int s2n_disable_tls13()
  * This method is intended for use in existing unit tests when the APIs
  * to enable/disable TLS1.3 have already been called.
  */
-int s2n_reset_tls13()
+int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;

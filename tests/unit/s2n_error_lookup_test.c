@@ -24,7 +24,7 @@
 int main(void)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* First, test that we can find error message for all defined errors */
     for (int err = S2N_ERR_T_OK_START; err < S2N_ERR_T_OK_END; err++) {

@@ -27,7 +27,7 @@ int raises_error()
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 #ifdef S2N_HAVE_EXECINFO
     EXPECT_SUCCESS(s2n_stack_traces_enabled_set(true));
     struct s2n_stacktrace trace;

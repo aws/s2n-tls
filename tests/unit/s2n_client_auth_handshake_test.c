@@ -312,7 +312,7 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* client_auth handshake negotiation */
     {

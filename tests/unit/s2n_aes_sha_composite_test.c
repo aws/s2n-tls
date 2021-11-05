@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     uint8_t existing_explicit_ivs[S2N_DEFAULT_FRAGMENT_LENGTH + 2][S2N_TLS_MAX_IV_LEN];
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Skip test if we can't use the ciphers */
     if (!s2n_aes128_sha.is_available()    ||

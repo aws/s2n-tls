@@ -372,7 +372,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     for (int i = 0; i < sizeof(test_cases) / sizeof(struct s2n_tls13_cert_verify_test); i++) {
         /* Run all tests for server sending and client receiving/verifying cert_verify message */

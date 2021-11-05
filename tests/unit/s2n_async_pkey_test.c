@@ -356,7 +356,7 @@ int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *si
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));

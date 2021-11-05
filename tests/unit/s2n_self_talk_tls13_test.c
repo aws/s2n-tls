@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
-    s2n_disable_tls13();
+    s2n_disable_tls13_in_test();
 
     END_TEST();
     return 0;

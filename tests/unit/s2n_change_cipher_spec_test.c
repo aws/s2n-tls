@@ -23,7 +23,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     uint8_t empty_finished_array[S2N_TLS_FINISHED_LEN] = { 0 };
 

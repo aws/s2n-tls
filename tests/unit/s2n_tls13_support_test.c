@@ -30,7 +30,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* TLS 1.3 is not used by default */
     EXPECT_FALSE(s2n_use_default_tls13_config());
@@ -66,11 +66,11 @@ int main(int argc, char **argv)
         }
     }
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_TRUE(s2n_use_default_tls13_config());
 
     /* Re-enabling has no effect */
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_TRUE(s2n_use_default_tls13_config());
 
     /* If "enabled", TLS1.3 is supported and configured */
@@ -104,11 +104,11 @@ int main(int argc, char **argv)
         }
     }
 
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_FALSE(s2n_use_default_tls13_config());
 
     /* Re-disabling has no effect */
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_FALSE(s2n_use_default_tls13_config());
 
     /* Test s2n_is_valid_tls13_cipher() */
