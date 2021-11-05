@@ -24,6 +24,7 @@ the library is not compromised. Turn this OFF to ignore warnings." ON)
 option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed with a specific
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
+option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -300,6 +301,14 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
 endif()
 
+if(S2N_LTO)
+    target_compile_options(${PROJECT_NAME} PRIVATE -flto)
+    # if we're building a static lib, make it easier for consuming applications to also perform LTO
+    if(NOT BUILD_SHARED_LIBS)
+        target_compile_options(${PROJECT_NAME} PRIVATE -ffunction-sections -fdata-sections)
+    endif()
+endif()
+
 if(NOT APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
 endif()
@@ -536,6 +545,11 @@ if (BUILD_TESTING)
     target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
+
+    if(S2N_LTO)
+        target_compile_options(s2nc PRIVATE -flto)
+        target_compile_options(s2nd PRIVATE -flto)
+    endif()
 
     if(BENCHMARK)
         find_package(benchmark REQUIRED)

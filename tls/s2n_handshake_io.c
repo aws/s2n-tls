@@ -784,6 +784,31 @@ static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    s2n_extension_type_id ems_ext_id = 0;
+    RESULT_GUARD_POSIX(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
+    bool ems_extension_recv = S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *# If the original session used the "extended_master_secret"
+     *# extension but the new ClientHello does not contain it, the server
+     *# MUST abort the abbreviated handshake.
+     **/
+    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
+    if (conn->ems_negotiated && S2N_IN_TEST) {
+        RESULT_ENSURE(ems_extension_recv, S2N_ERR_MISSING_EXTENSION);
+    }
+
+    /* Since we're discarding the resumption ticket, ignore EMS value from the ticket */
+    conn->ems_negotiated = ems_extension_recv;
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
     if (IS_TLS13_HANDSHAKE(conn)) {
@@ -813,18 +838,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
                 return S2N_SUCCESS;
             }
 
-            /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-            if (conn->ems_negotiated && S2N_IN_TEST) {
-                s2n_extension_type_id ems_ext_id = 0;
-                POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_EMS, &ems_ext_id));
-                /**
-                 *= https://tools.ietf.org/rfc/rfc7627#section-5.3
-                 *# If the original session used the "extended_master_secret"
-                 *# extension but the new ClientHello does not contain it, the server
-                 *# MUST abort the abbreviated handshake.
-                 **/
-                POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id), S2N_ERR_MISSING_EXTENSION);
-            }
+            POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
 
             if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
                 conn->session_ticket_status = S2N_NEW_TICKET;
@@ -847,6 +861,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         if (r == S2N_SUCCESS || (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(s2n_errno))) {
             return r;
         }
+        POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
     }
 
 skip_cache_lookup:
@@ -1335,7 +1350,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
@@ -1419,4 +1434,14 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     *blocked = S2N_NOT_BLOCKED;
 
     return S2N_SUCCESS;
+}
+
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(!conn->negotiate_in_use, S2N_ERR_REENTRANCY);
+    conn->negotiate_in_use = true;
+    int result = s2n_negotiate_impl(conn, blocked);
+    conn->negotiate_in_use = false;
+    return result;
 }
