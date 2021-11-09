@@ -30,7 +30,7 @@ from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 
-def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
+def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp, fips_mode):
     gnutls_cmd = ["gnutls-serv", "--priority=" + priority_str, "-p " + str(port),
             "--dhparams", TEST_DH_PARAMS]
 
@@ -73,6 +73,9 @@ def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
     if ocsp != OCSP.DISABLED:
         s2nc_cmd.append("-s")
 
+    if fips_mode:
+        s2nc_cmd.append("--enter-fips-mode")
+
     s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Read it
@@ -95,8 +98,8 @@ def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
 
     return found == 1 and right_version == 1
 
-def handshake(endpoint, port, cipher, session_tickets, ocsp):
-    success = try_gnutls_handshake(endpoint, port, cipher.gnutls_priority_str + ":+CURVE-ALL:+VERS-TLS1.2:+SIGN-ALL:+SHA1", session_tickets, ocsp)
+def handshake(endpoint, port, cipher, session_tickets, ocsp, fips_mode):
+    success = try_gnutls_handshake(endpoint, port, cipher.gnutls_priority_str + ":+CURVE-ALL:+VERS-TLS1.2:+SIGN-ALL:+SHA1", session_tickets, ocsp, fips_mode)
 
     prefix = "Cipher: %-30s Session Tickets: %-5s OCSP: %-5s ... " % (cipher.openssl_name, session_tickets, ocsp)
 
@@ -131,6 +134,11 @@ def main():
                     libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
 
+    fips_mode = False
+    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
+        fips_mode = True
+        print("\nRunning s2nd in FIPS mode.")
+
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
     host = args.host
@@ -147,7 +155,7 @@ def main():
     for cipher in test_ciphers:
         for session_tickets in [True, False]:
             for ocsp in S2N_LIBCRYPTO_TO_OCSP[args.libcrypto]:
-                async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher, session_tickets, ocsp))
+                async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher, session_tickets, ocsp, fips_mode))
                 port_offset += 1
                 results.append(async_result)
     threadpool.close()

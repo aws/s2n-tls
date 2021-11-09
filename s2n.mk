@@ -36,8 +36,11 @@ INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo in
 ifeq ($(S2N_LIBCRYPTO), boringssl)
 	DEFAULT_CFLAGS = -std=c11
 else ifeq ($(S2N_LIBCRYPTO), awslc)
-	# AWS-LC is a BoringSSL derivative.
-	DEFAULT_CFLAGS = -std=c11
+	# AWS-LC is a BoringSSL derivative and has fixed the c11 issues but not all -Wcast-qual warnings
+	DEFAULT_CFLAGS = -std=c99
+else ifeq ($(S2N_LIBCRYPTO), awslc-fips)
+	# AWS-LC is a BoringSSL derivative and has fixed the c11 issues but not all -Wcast-qual warnings
+	DEFAULT_CFLAGS = -std=c99
 else
 	DEFAULT_CFLAGS = -std=c99 -Wcast-qual
 endif
