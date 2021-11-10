@@ -655,13 +655,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
 
-            EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
-
-            EXPECT_FALSE(conn->ems_negotiated);
-            EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
-
-            EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.master_secret, S2N_TLS_SECRET_LEN);
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
