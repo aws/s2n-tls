@@ -642,7 +642,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Deserialized ticket sets correct connection values for session resumption in TLS1.2, without EMS data */
+        /* Deserialized ticket without EMS data errors */
         {
             struct s2n_blob ticket_blob = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls12_ticket, sizeof(tls12_ticket)));
