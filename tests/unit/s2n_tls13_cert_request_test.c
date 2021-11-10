@@ -29,7 +29,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test the output of s2n_tls13_cert_req_send() */
     {
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     END_TEST();
 
     return 0;

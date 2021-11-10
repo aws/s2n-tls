@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test: TLS 1.3 key and secrets generation is symmetrical */
     {

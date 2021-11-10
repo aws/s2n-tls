@@ -24,7 +24,7 @@
 int main() {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* If client and server have no mutually supported groups, abort the handshake without sending HRR. */
     {

@@ -26,7 +26,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     uint8_t empty_cert_len = 3;
     uint8_t certificate_context_len = 1;
@@ -50,18 +50,18 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 0);
 
         /* With TLS 1.3 enabled, there is a context length */
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         client_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_client_cert_send(client_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), empty_cert_len + certificate_context_len);
         EXPECT_SUCCESS(s2n_client_cert_recv(client_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));   
     }
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test certificate_request_context is zero-length as currently
      * only used for handshake authentication */
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     END_TEST();
 }

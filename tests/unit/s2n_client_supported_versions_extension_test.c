@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     uint8_t latest_version = S2N_TLS13;
 
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 
     /* Server does not process the extension if using TLS1.2. */
     {
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
                 supported_version_list_length));
 
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.recv(server_conn, &extension));
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);

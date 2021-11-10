@@ -339,7 +339,7 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     uint8_t data[256] = {0};
     struct s2n_drbg aes128_drbg = {0};

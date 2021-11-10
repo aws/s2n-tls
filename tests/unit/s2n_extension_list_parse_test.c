@@ -70,7 +70,7 @@ const s2n_extension_type test_extension = {
 int main()
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     s2n_extension_type empty_test_extension = test_extension;
     empty_test_extension.send = s2n_extension_send_no_data;

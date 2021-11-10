@@ -69,7 +69,7 @@ static S2N_RESULT s2n_test_client_hello(struct s2n_connection *client_conn, stru
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_cert_chain_and_key *chain_and_key;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
     /* Test that legacy_version_field is set correct for TLS 1.3 Server Hello Send */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_config *config = NULL;
         const struct s2n_ecc_preferences *ecc_preferences = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
 
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test basic Server Hello Recv */
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 
     /* Test TLS 1.3 session id matching */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_config *client_config;
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -296,12 +296,12 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test TLS 1.3 => 1.1 protocol downgrade detection with a TLS1.3 client */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_config *client_config;
         struct s2n_connection *client_conn;
         struct s2n_config *server_config;
@@ -340,12 +340,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test TLS 1.3 => 1.2 protocol downgrade detection with a TLS1.3 client */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_config *client_config;
         struct s2n_connection *client_conn;
         struct s2n_config *server_config;
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Verify a TLS1.2 client can negotiate with a TLS1.3 server */
@@ -407,11 +407,11 @@ int main(int argc, char **argv)
 
         /* The server will respond with TLS1.2 even though it support TLS1.3. This is expected because */
         /* the client only support TLS1.2 */
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         /* Copy server stuffer to client stuffer */
         const uint32_t total = s2n_stuffer_data_available(&server_conn->handshake.io);
@@ -460,9 +460,9 @@ int main(int argc, char **argv)
 
         /* Verify that a TLS13 client does not error due to the downgrade */
         struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
-        POSIX_GUARD(s2n_enable_tls13());
+        POSIX_GUARD(s2n_enable_tls13_in_test());
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
-        POSIX_GUARD(s2n_disable_tls13());
+        POSIX_GUARD(s2n_disable_tls13_in_test());
         EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
 
         EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -491,12 +491,12 @@ int main(int argc, char **argv)
 
         /* The server will respond with TLS1.2 even though it support TLS1.3. This is expected because */
         /* the client only support TLS1.2 */
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         server_conn->actual_protocol_version = S2N_TLS12;
 
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         /* Copy server stuffer to client stuffer */
         const uint32_t total = s2n_stuffer_data_available(&server_conn->handshake.io);
@@ -547,7 +547,7 @@ int main(int argc, char **argv)
 
     /* Test that negotiating TLS1.2 with QUIC-enabled client fails */
     if (s2n_is_tls13_fully_supported()) {
-        EXPECT_SUCCESS(s2n_reset_tls13());
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
         struct s2n_config *quic_config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, "test_all"));
@@ -616,7 +616,7 @@ int main(int argc, char **argv)
      *# it receives a ServerHello with TLS 1.2 or older.
      */
     if (s2n_is_tls13_fully_supported()) {
-        EXPECT_SUCCESS(s2n_reset_tls13());
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -680,7 +680,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_config_free(config));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

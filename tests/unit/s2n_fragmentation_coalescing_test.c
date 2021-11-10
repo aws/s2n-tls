@@ -402,7 +402,7 @@ int main(int argc, char **argv)
     int p[2];
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));

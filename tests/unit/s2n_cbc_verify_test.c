@@ -121,7 +121,7 @@ inline static uint64_t rdtsc(){
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 /*
  * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
  * that can't really be replaced with an analog for other architectures.

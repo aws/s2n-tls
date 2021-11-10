@@ -25,7 +25,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_SUPPORTED_KEM_GROUPS_COUNT);
 

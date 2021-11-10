@@ -39,7 +39,7 @@ static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_gr
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test s2n_server_key_share_send_check_ecdhe */
     {
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
     /* Test the s2n_server_key_share_extension.recv with HelloRetryRequest */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         /* For a HelloRetryRequest, we won't have a key share. We just have the server selected group/negotiated curve.
          * Test that s2n_server_key_share_extension.recv obtains the server negotiate curve successfully. */
         {
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     {
@@ -572,7 +572,7 @@ int main(int argc, char **argv)
 
         /* Tests for s2n_server_key_share_extension.recv with hybrid PQ key shares */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
             /* If PQ is disabled, the client will not have sent PQ IDs/keyshares in the ClientHello;
              * if the server responded with a PQ keyshare, we should error. */
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
                     }
                 }
             }
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
         /* Test s2n_server_key_share_send_check_pq_hybrid */
