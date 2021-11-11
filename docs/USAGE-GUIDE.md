@@ -1747,7 +1747,7 @@ handle. The handle is considered invalid after **s2n_connection_free** is used.
 [s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
 of sensitive data.
 
-## Private key operation related calls
+## Private Key Operation Related Calls
 
 By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
 and decryption operations required for a tls handshake. However, this default behavior may not
@@ -1770,7 +1770,7 @@ The private key operation can be performed by calling **s2n_async_pkey_op_perfor
 (or **s2n_async_pkey_op_set_output**: see [Offloading private key operations](#Offloading-private-key-operations)).
 The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
 
-### Asynchronous private key operations
+### Asynchronous Private Key Operations
 
 When s2n-tls is used in non-blocking mode, private key operations can be completed
 asynchronously. This model can be useful to move execution of
@@ -1796,14 +1796,14 @@ each other. It is also safe to free **conn** or **op** at any moment with
 respective function calls, with the exception that **conn** cannot
 be freed inside the **s2n_async_pkey_fn** callback.
 
-### Synchronous private key operations
+### Synchronous Private Key Operations
 
 Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
 To complete an operation synchronously, simply call **s2n_async_pkey_op_perform** and **s2n_async_pkey_op_apply** inside the callback.
 If the callback succeeds, the handshake will continue uninterrupted.
 If the callback fails, **s2n_negotiate** will fail with an error of type **S2N_ERR_T_INTERNAL**.
 
-### Offloading private key operations
+### Offloading Private Key Operations
 
 The **s2n_async_pkey_op_perform** call used to perform a private key operation requires
 direct access to the private key. In some cases, like when using PKCS#11, users may not
