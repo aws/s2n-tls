@@ -59,8 +59,8 @@ const s2n_extension_type s2n_client_supported_versions_extension = {
 static int s2n_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint8_t highest_supported_version = conn->client_protocol_version;
-    uint8_t minimum_supported_version;
-    POSIX_GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
+    uint8_t minimum_supported_version = s2n_unknown_protocol_version;
+    POSIX_GUARD_RESULT(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
     POSIX_ENSURE(highest_supported_version >= minimum_supported_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     uint8_t version_list_length = highest_supported_version - minimum_supported_version + 1;
@@ -76,8 +76,8 @@ static int s2n_client_supported_versions_send(struct s2n_connection *conn, struc
 
 static int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension) {
     uint8_t highest_supported_version = conn->server_protocol_version;
-    uint8_t minimum_supported_version;
-    POSIX_GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
+    uint8_t minimum_supported_version = s2n_unknown_protocol_version;
+    POSIX_GUARD_RESULT(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
 
     uint8_t size_of_version_list;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &size_of_version_list));
@@ -136,8 +136,8 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
 /* Old-style extension functions -- remove after extensions refactor is complete */
 
 int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn) {
-    uint8_t minimum_supported_version;
-    POSIX_GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
+    uint8_t minimum_supported_version = s2n_unknown_protocol_version;
+    POSIX_GUARD_RESULT(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
     uint8_t highest_supported_version = conn->client_protocol_version;
 
     uint8_t version_list_length = highest_supported_version - minimum_supported_version + 1;

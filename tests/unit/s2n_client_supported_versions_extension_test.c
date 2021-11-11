@@ -58,6 +58,61 @@ int main(int argc, char **argv)
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
+    const struct s2n_security_policy *security_policy_with_tls13_and_earlier = &security_policy_20190801;
+    EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy_with_tls13_and_earlier));
+    EXPECT_EQUAL(security_policy_with_tls13_and_earlier->minimum_protocol_version, S2N_TLS10);
+
+    /* Client offers all supported versions in version list */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        conn->security_policy_override = security_policy_with_tls13_and_earlier;
+
+        struct s2n_stuffer extension = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+        EXPECT_SUCCESS(s2n_client_supported_versions_extension.send(conn, &extension));
+
+        /* Total supported versions.
+         * If the "+1" looks wrong, consider what would happen if latest_version == S2N_TLS10. */
+        size_t supported_versions = (latest_version - S2N_TLS10) + 1;
+
+        /* Check extension contains enough versions */
+        uint8_t version_list_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&extension, &version_list_size));
+        EXPECT_EQUAL(version_list_size, S2N_TLS_PROTOCOL_VERSION_LEN * supported_versions);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&extension));
+    }
+
+    /* Client doesn't offer <TLS1.3 in the version list if QUIC enabled */
+    if (s2n_is_tls13_fully_supported()) {
+        /* For simplicity, we assume TLS1.3 is the latest version. */
+        EXPECT_EQUAL(latest_version, S2N_TLS13);
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+        conn->security_policy_override = security_policy_with_tls13_and_earlier;
+
+        struct s2n_stuffer extension = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+        EXPECT_SUCCESS(s2n_client_supported_versions_extension.send(conn, &extension));
+
+        /* Check extension contains only one version */
+        uint8_t version_list_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&extension, &version_list_size));
+        EXPECT_EQUAL(version_list_size, S2N_TLS_PROTOCOL_VERSION_LEN);
+
+        /* Check single version is TLS1.3 */
+        uint16_t version = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&extension, &version));
+        EXPECT_EQUAL(version, 0x0304);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&extension));
+    }
+
     /* Client produces a version list that the server can parse */
     {
         struct s2n_connection *client_conn;
