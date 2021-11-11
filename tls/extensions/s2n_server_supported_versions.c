@@ -61,7 +61,7 @@ static int s2n_server_supported_versions_send(struct s2n_connection *conn, struc
 static int s2n_extensions_server_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint8_t highest_supported_version = conn->client_protocol_version;
-    uint8_t minimum_supported_version;
+    uint8_t minimum_supported_version = s2n_unknown_protocol_version;
     POSIX_GUARD_RESULT(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
     POSIX_ENSURE(highest_supported_version >= minimum_supported_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 

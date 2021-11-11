@@ -72,9 +72,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.send(conn, &extension));
 
+        /* Total supported versions.
+         * If the "+1" looks wrong, consider what would happen if latest_version == S2N_TLS10. */
+        size_t supported_versions = (latest_version - S2N_TLS10) + 1;
+
         /* Check extension contains enough versions */
         uint8_t version_list_size = 0;
-        size_t supported_versions = latest_version - S2N_TLS10 + 1;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&extension, &version_list_size));
         EXPECT_EQUAL(version_list_size, S2N_TLS_PROTOCOL_VERSION_LEN * supported_versions);
 
