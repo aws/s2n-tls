@@ -798,8 +798,7 @@ static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
      *# extension but the new ClientHello does not contain it, the server
      *# MUST abort the abbreviated handshake.
      **/
-    /* TODO: https://github.com/aws/s2n-tls/issues/2990 */
-    if (conn->ems_negotiated && S2N_IN_TEST) {
+    if (conn->ems_negotiated) {
         RESULT_ENSURE(ems_extension_recv, S2N_ERR_MISSING_EXTENSION);
     }
 
