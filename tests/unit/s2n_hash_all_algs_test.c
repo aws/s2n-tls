@@ -25,6 +25,10 @@
 
 const uint8_t input_data[INPUT_DATA_SIZE] = "hello hash";
 
+/* These values were generated using the low level s2n_hash implementation.
+ * They are useful to validate that the results of the low level implementation
+ * never change and match the results of the EVP implementation.
+ */
 const char* expected_result_hex[S2N_HASH_SENTINEL] = {
         [S2N_HASH_MD5]      = "f5d589043253ca6ae54124c31be43701",
         [S2N_HASH_SHA1]     = "ccf8abd6b03ef5054a4f257e7c712e17f965272d",
