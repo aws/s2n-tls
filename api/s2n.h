@@ -1089,6 +1089,7 @@ typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
  * @param op An opaque object representing the private key operation
  */
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+
 /**
  * Sets up the callback to invoke when private key operations occur.
  *
@@ -1097,6 +1098,7 @@ typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_p
  */
 S2N_API
 extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
+
 /**
  * Performs a private key operation using the given private key.
  *
@@ -1111,6 +1113,7 @@ extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_asy
  */
 S2N_API
 extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
+
 /**
  * Finalizes a private key operation and unblocks the connection.
  *
@@ -1126,6 +1129,7 @@ extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_priv
  */
 S2N_API
 extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
+
 /**
  * Frees the opaque structure representing a private key operation.
  *
@@ -1156,6 +1160,7 @@ extern int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, 
  */
 S2N_API
 extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
+
 /**
  * Returns the size of the input to the private key operation.
  *
@@ -1164,8 +1169,12 @@ extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async
  */
 S2N_API
 extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
+
 /**
  * Returns the input to the private key operation.
+ *
+ * When signing, the input is the digest to sign.
+ * When decrypting, the input is the data to decrypt.
  *
  * # Safety
  * * `data` must be sufficiently large to contain the input.
@@ -1179,6 +1188,7 @@ extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32
  */
 S2N_API
 extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
+
 /**
  * Sets the output of the private key operation.
  *
