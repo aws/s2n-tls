@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
-            EXPECT_EQUAL(serial_id, S2N_SERIALIZED_FORMAT_TLS12_V2);
+            EXPECT_EQUAL(serial_id, S2N_SERIALIZED_FORMAT_TLS12_V3);
 
             uint8_t version = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &version));
@@ -583,6 +583,13 @@ int main(int argc, char **argv)
             TICKET_ISSUE_TIME_BYTES,
         };
 
+        uint8_t tls12_ticket_with_ems[S2N_TLS12_STATE_SIZE_IN_BYTES] = {
+            S2N_SERIALIZED_FORMAT_TLS12_V3,
+            S2N_TLS12,
+            TLS_RSA_WITH_AES_128_GCM_SHA256,
+            TICKET_ISSUE_TIME_BYTES,
+        };
+
         uint8_t tls13_ticket[] = {
             S2N_SERIALIZED_FORMAT_TLS13_V1,
             S2N_TLS13,
@@ -642,7 +649,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Deserialized ticket sets correct connection values for session resumption in TLS1.2, without EMS data */
+        /* Deserialized ticket without EMS data errors */
         {
             struct s2n_blob ticket_blob = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls12_ticket, sizeof(tls12_ticket)));
@@ -655,9 +662,30 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
 
-            EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
-            EXPECT_FALSE(conn->ems_negotiated);
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Client processes hardcoded TLS1.2 ticket with EMS data correctly */
+        {
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls12_ticket_with_ems, sizeof(tls12_ticket_with_ems)));
+            struct s2n_stuffer ticket_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls12_ticket_with_ems) - S2N_TLS_SECRET_LEN - 1));
+            /* The secret needs to be written to the ticket separately as it has a fixed length */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&ticket_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+
+            /* Write EMS data */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&ticket_stuffer, 1));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
+            
+            EXPECT_TRUE(conn->ems_negotiated);
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
 
