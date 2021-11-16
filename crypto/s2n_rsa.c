@@ -20,6 +20,7 @@
 #include <stdint.h>
 
 #include "crypto/s2n_drbg.h"
+#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_signing.h"
@@ -63,6 +64,11 @@ static S2N_RESULT s2n_rsa_encrypted_size(const struct s2n_pkey *key, uint32_t *s
 static int s2n_rsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
                         struct s2n_blob *signature)
 {
+    if (s2n_hash_evp_fully_supported()) {
+        POSIX_GUARD_RESULT(s2n_evp_sign(priv, sig_alg, digest, signature));
+        return S2N_SUCCESS;
+    }
+
     switch (sig_alg) {
         case S2N_SIGNATURE_RSA:
             return s2n_rsa_pkcs1v15_sign(priv, digest, signature);
@@ -78,6 +84,11 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig
 static int s2n_rsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
                           struct s2n_blob *signature)
 {
+    if (s2n_hash_evp_fully_supported()) {
+        POSIX_GUARD_RESULT(s2n_evp_verify(pub, sig_alg, digest, signature));
+        return S2N_SUCCESS;
+    }
+
     switch (sig_alg) {
         case S2N_SIGNATURE_RSA:
             return s2n_rsa_pkcs1v15_verify(pub, digest, signature);

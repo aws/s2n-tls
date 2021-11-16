@@ -20,6 +20,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
@@ -34,7 +35,8 @@ static int s2n_hash_alg_to_NID[] = {
     [S2N_HASH_SHA224]   = NID_sha224,
     [S2N_HASH_SHA256]   = NID_sha256,
     [S2N_HASH_SHA384]   = NID_sha384,
-    [S2N_HASH_SHA512]   = NID_sha512 };
+    [S2N_HASH_SHA512]   = NID_sha512
+};
 
 int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
 {
@@ -117,32 +119,12 @@ int s2n_is_rsa_pss_signing_supported()
 
 #if RSA_PSS_SIGNING_SUPPORTED
 
-const EVP_MD* s2n_hash_alg_to_evp_alg(s2n_hash_algorithm alg)
-{
-    switch (alg) {
-        case S2N_HASH_MD5_SHA1:
-            return EVP_md5_sha1();
-        case S2N_HASH_SHA1:
-            return EVP_sha1();
-        case S2N_HASH_SHA224:
-            return EVP_sha224();
-        case S2N_HASH_SHA256:
-            return EVP_sha256();
-        case S2N_HASH_SHA384:
-            return EVP_sha384();
-        case S2N_HASH_SHA512:
-            return EVP_sha512();
-        default:
-            return NULL;
-    }
-}
-
 /* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
  * which fails to compile when the "-Werror=cast-qual" compiler flag is enabled. So we work around this OpenSSL
  * issue by turning off this compiler check for this one function with a cast through. */
 static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD* digest_alg)
 {
-    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_signature_md(ctx,(EVP_MD*) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, (EVP_MD*) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     return 0;
 }
