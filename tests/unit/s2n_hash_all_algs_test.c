@@ -30,6 +30,7 @@ const uint8_t input_data[INPUT_DATA_SIZE] = "hello hash";
  * never change and match the results of the EVP implementation.
  */
 const char* expected_result_hex[S2N_HASH_SENTINEL] = {
+        [S2N_HASH_NONE]     = "",
         [S2N_HASH_MD5]      = "f5d589043253ca6ae54124c31be43701",
         [S2N_HASH_SHA1]     = "ccf8abd6b03ef5054a4f257e7c712e17f965272d",
         [S2N_HASH_SHA224]   = "dae80554ab74bf098b1a39e48c85c58e4af4628d2a357ee5cf6b1b85",
@@ -140,7 +141,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* Calculate digests when not in FIPS mode. They must match. */
-    for (s2n_hash_algorithm hash_alg = 1; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
+    for (s2n_hash_algorithm hash_alg = 0; hash_alg < S2N_HASH_SENTINEL; hash_alg++) {
         struct s2n_blob actual_result = { 0 };
         uint8_t actual_result_data[OUTPUT_DATA_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&actual_result, actual_result_data, OUTPUT_DATA_SIZE));
