@@ -32,16 +32,15 @@ struct s2n_async_pkey_op;
 #define S2N_ASYNC_PKEY_GUARD(conn)                                         \
     do {                                                                   \
         __typeof(conn) __tmp_conn = (conn);                                \
-        POSIX_GUARD_PTR(__tmp_conn);                                         \
+        POSIX_GUARD_PTR(__tmp_conn);                                       \
         switch (conn->handshake.async_state) {                             \
             case S2N_ASYNC_NOT_INVOKED:                                    \
                 break;                                                     \
                                                                            \
-            case S2N_ASYNC_INVOKING_CALLBACK:                              \
-            case S2N_ASYNC_INVOKED_WAITING:                                \
+            case S2N_ASYNC_INVOKED:                                        \
                 POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);                         \
                                                                            \
-            case S2N_ASYNC_INVOKED_COMPLETE:                               \
+            case S2N_ASYNC_COMPLETE:                                       \
                 /* clean up state and return a success from handler */     \
                 __tmp_conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED; \
                 return S2N_SUCCESS;                                        \
