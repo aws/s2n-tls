@@ -1757,7 +1757,7 @@ For example:
 * An application may want to perform the CPU-expensive signature and decryption operations
 asynchronously to avoid blocking the main event loop.
 See [Asynchronous private key operations](#Asynchronous-private-key-operations)
-* An application may not have direct access to the private key, such as when using PKCS#11 or a TPM.
+* An application may not have direct access to the private key, such as when using PKCS#11.
 See [Offloading private key operations](#Offloading-private-key-operations)
 
 To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
