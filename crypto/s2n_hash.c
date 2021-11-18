@@ -22,18 +22,12 @@
 
 #include "utils/s2n_safety.h"
 
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,1,1) || defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-#define S2N_EVP_SUPPORTS_SHA1_MD5_HASH true
-#else
-#define S2N_EVP_SUPPORTS_SHA1_MD5_HASH false
-#endif
-
 static bool s2n_use_custom_md5_sha1()
 {
-#if S2N_EVP_SUPPORTS_SHA1_MD5_HASH
-        return false;
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
+    return false;
 #else
-        return true;
+    return true;
 #endif
 }
 
@@ -52,7 +46,7 @@ const EVP_MD* s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg)
             return EVP_sha384();
         case S2N_HASH_SHA512:
             return EVP_sha512();
-#if S2N_EVP_SUPPORTS_SHA1_MD5_HASH
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
         case S2N_HASH_MD5_SHA1:
             return EVP_md5_sha1();
 #endif

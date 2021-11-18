@@ -409,6 +409,19 @@ else()
     endif()
 endif()
 
+# Determine if EVP_md5_sha1 is available in libcrypto
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md5_sha1.c"
+        LINK_LIBRARIES crypto ${OS_LIBS}
+        CMAKE_FLAGS
+            "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>"
+)
+if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
     if (NOT LibCrypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
