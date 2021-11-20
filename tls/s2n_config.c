@@ -209,11 +209,11 @@ static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
-    if (s2n_use_default_tls13_config()) {
-        return &s2n_default_tls13_config;
-    }
     if (s2n_is_in_fips_mode()) {
         return &s2n_default_fips_config;
+    }
+    if (s2n_use_default_tls13_config()) {
+        return &s2n_default_tls13_config;
     }
     return &s2n_default_config;
 }
