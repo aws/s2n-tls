@@ -983,7 +983,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Test that s2n_client_key_share_extension.recv ignores points that can't be parsed,
+        /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed,
          * and doesn't ignore / forget / overwrite valid key shares already parsed. */
         {
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);

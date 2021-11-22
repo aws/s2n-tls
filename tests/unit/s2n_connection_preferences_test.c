@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     }
 
     /* Test TLS1.3 */
-    if (!s2n_is_in_fips_mode()) {
+    {
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_connection *conn = NULL;
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
