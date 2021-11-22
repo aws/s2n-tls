@@ -27,10 +27,17 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_cipher_suites.h"
 
+#include "crypto/s2n_fips.h"
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    if (s2n_is_in_fips_mode()) {
+        /* Skip when FIPS mode is set as FIPS mode does not support TLS1.3 */
+        END_TEST();
+    }
 
     /* TLS 1.3 is not used by default */
     EXPECT_FALSE(s2n_use_default_tls13_config());

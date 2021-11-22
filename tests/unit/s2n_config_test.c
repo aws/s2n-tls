@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
     /* Test: s2n_config_new and tls13_default_config match */
-    {
+    if (!s2n_is_in_fips_mode()) {
         struct s2n_config *config, *default_config;
 
         EXPECT_NOT_NULL(config = s2n_config_new());
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
         }
 
         /* For TLS1.3 */
-        {
+        if (!s2n_is_in_fips_mode()) {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             const struct s2n_security_policy *security_policy;
