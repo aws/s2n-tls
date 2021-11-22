@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <netdb.h>
