@@ -244,7 +244,6 @@ int s2n_config_defaults_init(void)
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
     POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
 
-
     return S2N_SUCCESS;
 }
 
