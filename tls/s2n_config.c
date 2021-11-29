@@ -230,13 +230,15 @@ int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 
 int s2n_config_defaults_init(void)
 {
-    /* Set up default */
-    POSIX_GUARD(s2n_config_init(&s2n_default_config));
-    POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
-
     /* Set up fips defaults */
-    POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
-    POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
+    if (s2n_is_in_fips_mode()) {
+        POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
+        POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
+    } else {
+        /* Set up default */
+        POSIX_GUARD(s2n_config_init(&s2n_default_config));
+        POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
+    }
 
     /* Set up TLS 1.3 defaults */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
