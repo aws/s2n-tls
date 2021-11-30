@@ -237,7 +237,7 @@ class ManagedProcess(threading.Thread):
     are made available to the caller.
     """
     def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None, close_marker=None,
-                 timeout=5, data_source=None, env_overrides=dict(), expect_stderr=False):
+                 timeout=5, data_source=None, env_overrides=dict(), expect_stderr=False, cwd=None):
         threading.Thread.__init__(self)
 
         proc_env = os.environ.copy()
@@ -256,6 +256,9 @@ class ManagedProcess(threading.Thread):
         # Condition variable indicating when results are ready to be collected
         self.results_condition = threading.Condition()
         self.results = None
+
+        # Set current working dir
+        self.cwd = cwd
 
         # Condition variable indicating when this subprocess has been launched successfully
         self.ready_condition = threading.Condition()
@@ -281,7 +284,7 @@ class ManagedProcess(threading.Thread):
     def run(self):
         with self.results_condition:
             try:
-                proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+                proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, cwd=self.cwd)
                 self.proc = proc
             except Exception as ex:
                 self.results = Results(None, None, None, ex, self.expect_stderr)

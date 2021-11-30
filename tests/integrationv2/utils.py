@@ -1,6 +1,8 @@
 from common import Protocols, Curves, Ciphers
-from providers import S2N, OpenSSL
+from glob import glob
+import os
 
+EXECUTABLE=33261
 
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
@@ -14,7 +16,7 @@ def get_expected_s2n_version(protocol, provider):
     tls12 is always chosen. This is true even when the requested
     protocol is less than tls12.
     """
-    if provider == S2N and protocol != Protocols.TLS13:
+    if (provider == S2N or provider == CriterionS2N) and protocol != Protocols.TLS13:
         version = '33'
     else:
         version = protocol.value
@@ -100,3 +102,25 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
     return False
+
+
+def find_files(file_glob, root_dir=".", mode=None):
+    # file_glob: a snippet of the filename, e.g. ".py"
+    # root_dir: starting point for search
+    result=[]
+    for root, dirs, files in os.walk(root_dir):
+        for file in files:
+            if file_glob in file:
+                full_name=os.path.abspath(os.path.join(root,file))
+                if mode:
+                    try:
+                        stat = os.stat(full_name)[0]
+                        if stat == mode:
+                                result.append(full_name)
+                    except FileNotFoundError:
+                        # symlinks
+                        pass
+                else:
+                        result.append(full_name)
+
+    return result

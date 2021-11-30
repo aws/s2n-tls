@@ -9,7 +9,16 @@ publish = false
 s2n-tls = { version = "0.0.2", path = "../s2n-tls", features = ["testing"] }
 s2n-tls-sys = { version = "0.0.2", path = "../s2n-tls-sys" }
 criterion = { version = "0.3", features = ["html_reports"] }
+subprocess = "0.2.8"
 
 [[bench]]
 name = "handshake"
+harness = false
+
+[[bench]]
+name = "s2nc"
+harness = false
+
+[[bench]]
+name = "s2nd"
 harness = false
