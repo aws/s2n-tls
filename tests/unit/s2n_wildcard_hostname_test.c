@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 
@@ -45,7 +45,7 @@ struct wildcardify_test_case wildcardify_test_cases[] = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const int num_wildcardify_tests = s2n_array_len(wildcardify_test_cases);
     for (int i = 0; i < num_wildcardify_tests; i++) {

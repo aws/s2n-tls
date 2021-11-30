@@ -17,14 +17,14 @@
 # define _GNU_SOURCE
 #endif
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <openssl/x509v3.h>
 #include <openssl/pem.h>
 #include <string.h>
 #include <strings.h>
 
 #include "crypto/s2n_certificate.h"
-#include <crypto/s2n_openssl_x509.h>
+#include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
@@ -619,6 +619,11 @@ void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key
 
 s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key *chain_and_key)
 {
+    if (chain_and_key == NULL
+         || chain_and_key->cert_chain == NULL
+         || chain_and_key->cert_chain->head == NULL) {
+        return S2N_PKEY_TYPE_UNKNOWN;
+    }
     return chain_and_key->cert_chain->head->pkey_type;
 }
 

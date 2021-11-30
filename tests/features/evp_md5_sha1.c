@@ -12,6 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#pragma once
 
-extern char *s2n_strcpy(char *buf, char *last, const char *str);
+#include <openssl/evp.h>
+int main() {
+    EVP_md5_sha1();
+    return 0;
+}

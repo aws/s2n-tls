@@ -15,7 +15,7 @@
 #include <math.h>
 #include <sys/param.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
@@ -34,7 +34,7 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
     /* We're unable to cache connections with a Client Cert since we currently don't serialize the Client Cert,
      * which means that callers won't have access to the Client's Cert if the connection is resumed. */
-    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
+    if (s2n_connection_is_client_auth_enabled(conn)) {
         return 0;
     }
 
@@ -57,7 +57,7 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
     /* Write the entry */
-    POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_TLS12_SERIALIZED_FORMAT_VERSION));
+    POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V3));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
@@ -99,7 +99,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     /* Get the time */
     RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_TLS13_SERIALIZED_FORMAT_VERSION));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_SERIALIZED_FORMAT_TLS13_V1));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, current_time));
@@ -324,13 +324,13 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     uint8_t format = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &format));
 
-    if (format == S2N_TLS12_SERIALIZED_FORMAT_VERSION) {
+    if (format == S2N_SERIALIZED_FORMAT_TLS12_V3) {
         if (conn->mode == S2N_SERVER) {
             RESULT_GUARD_POSIX(s2n_tls12_deserialize_resumption_state(conn, from));
         } else {
             RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
         }
-    } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
+    } else if (format == S2N_SERIALIZED_FORMAT_TLS13_V1) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
         if (conn->mode == S2N_CLIENT) {
             /* Free the client_ticket after setting a psk on the connection.
@@ -341,6 +341,7 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
+    conn->set_session = true;
     return S2N_RESULT_OK;
 }
 
@@ -451,7 +452,7 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
 
     DEFER_CLEANUP(struct s2n_blob session_data = {0}, s2n_free);
     POSIX_GUARD(s2n_alloc(&session_data, length));
-    memcpy(session_data.data, session, length);
+    POSIX_CHECKED_MEMCPY(session_data.data, session, length);
 
     struct s2n_stuffer from = {0};
     POSIX_GUARD(s2n_stuffer_init(&from, &session_data));
@@ -891,14 +892,13 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     POSIX_GUARD(s2n_stuffer_read(from, &en_blob));
 
     POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
+    POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
+    POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&state, en_data, S2N_TLS12_STATE_SIZE_IN_BYTES));
 
     POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, NULL, &state));
-
-    POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
-    POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     return 0;
 }

@@ -24,7 +24,7 @@
 #include <fcntl.h>
 #include <poll.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_random.h"
 
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     ssize_t ret = 0;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

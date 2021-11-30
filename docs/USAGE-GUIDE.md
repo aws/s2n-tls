@@ -1624,7 +1624,7 @@ handshake.
 
 **s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
 
-**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly. Note that s2n-tls session tickets are versioned and this function will error if it receives a ticket version it doesn't understand. Therefore users need to handle errors for this function in case the inputted ticket is an unrecognized version, which could occur during a long deployment.
+**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of copied bytes. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
@@ -1642,7 +1642,7 @@ If the first byte in **session** is 0, then the next byte will contain session i
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 
-## TLS1.3 Session Resumption Related Calls
+### TLS1.3 Session Resumption Related Calls
 
 Session resumption works differently in versions TLS1.3 and higher. While some of the TLS1.2 session resumption APIs have relevance for TLS1.3 session resumption, you need additional APIs to utilize all the capabilities of TLS1.3 session resumption. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Additionally, multiple session tickets may be issued for the same connection.
 
@@ -1704,116 +1704,6 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
 
-### Asynchronous private key operations related calls
-
-When s2n-tls is used in non-blocking mode, this set of functions allows user
-to move execution of CPU-heavy private key operations out of the main
-event loop, preventing **s2n_negotiate** blocking the loop for a few
-milliseconds each time the private key operation needs to be performed.
-
-To enable asynchronous private key operations user needs to provide a
-callback function **s2n_async_pkey_fn** to
-**s2n_config_set_async_pkey_callback** call. This function will be
-executed during **s2n_negotiate** call every time an operation on private
-key needs to be performed. The argument **op** represents the operation
-to perform. From the callback the user can spawn the thread to perform
-**op** through **s2n_async_pkey_op_perform** call and immediately return
-**S2N_SUCCESS** from the function without waiting for thread to complete.
-The **s2n_negotiate** will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
-error type and **s2n_blocked_status** **S2N_BLOCKED_ON_APPLICATION_INPUT**,
-and will keep giving the same error until the **op** is performed and
-applied to the connection through **s2n_async_pkey_op_apply** call.
-
-Note, it is not safe to call multiple functions on the same **conn** or
-**op** objects from 2 different threads at the same time. Doing so will
-produce undefined behavior. However it is safe to have a call to
-function involving only **conn** at the same time with a call to
-function involving only **op**, as those 2 objects are not coupled with
-each other. It is also safe to free **conn** or **op** at any moment with
-respective function calls, with the only exception that **conn** cannot
-be freed inside the **s2n_async_pkey_fn** callback.
-
-```c
-typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
-extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
-extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
-extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
-extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
-```
-
-- **op** is an opaque object representing private key operation which
-needs to be performed.
-- **key** is a private key used for operation, can be extracted from
-  **conn** through **s2n_connection_get_selected_cert** and
-  **s2n_cert_chain_and_key_get_key** calls.
-
-**s2n_async_pkey_fn** is invoked every time some action involving
-private key is required during **s2n_negotiate**. The **conn** provides
-a pointer to the connection which triggered the callback, the **op** is
-a pointer to an operation to be performed. The callback takes the
-ownership of **op** object and is responsible for freeing the memory for
-it.
-
-**s2n_config_set_async_pkey_callback** sets up the callback to invoke
-for asynchronous private key operations and enables asynchronous mode.
-
-**s2n_async_pkey_op_perform** performs the **op** allowing it to be used
-to resume the handshake through **s2n_async_pkey_op_apply** call. This
-function can be called only once and any subsequent calls will produce a
-failure. It is safe to call from a different thread, as long as no other
-thread is operating on **op**.
-
-**s2n_async_pkey_op_apply** applies the performed **op** to **conn**
-allowing for the next call to **s2n_negotiate** to proceed through
-handshake. The function will fail if it is called from
-**s2n_async_pkey_fn** callback, or if **op** was not performed through
-**s2n_async_pkey_op_perform** call, or if provided **conn** is different
-from the original **conn** which initiated callback for this **op**. The
-function will succeed only once and any subsequent call will result in
-failure for the same **op**.
-
-**s2n_async_pkey_op_free** frees the memory for **op**. Should eventually
-be called for each of the **op** received in **s2n_async_pkey_fn** to
-avoid any memory leaks.
-
-### Offloading asynchronous private key operations
-
-The **s2n_async_pkey_op_\*** API can be used to perform a private key operation
-outside of the S2N context, without copying the private key into S2N memory.
-
-The application can query the type of private
-key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
-an operation, the application must ask S2N to copy the operation's input into an
-application supplied buffer. The appropriate buffer size can be determined by calling
-**s2n_async_pkey_op_get_input_size**. Once a buffer of proper size is
-allocated, the application can request the input data from the **s2n_async_pkey_op**
-by calling **s2n_async_pkey_op_get_input**. After the operation is completed, the
-finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**.
-Once the output is set the asynchronous private key operation can be completed by
-following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
-to apply the operation and free the op object.
-
-```c
-typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
-
-extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
-extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
-extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
-extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
-```
-
-**s2n_async_pkey_op_type** contains the private key operation types.
-**s2n_async_pkey_op_get_op_type** retrieves the operation type of the **op**.
-**s2n_async_pkey_op_get_input_size** queries the **op** for the size of the input data.
-**s2n_async_pkey_op_get_input** retrieves the input data buffer from the **op**.
-The **op** will copy the data into a buffer passed in through the **data** parameter.
-This buffer is owned by the application, and it is the responsibility of the
-application to free it.
-**s2n_async_pkey_op_set_output** copies the input data buffer and uses it
-to complete the private key operation. The data buffer is owned by the application.
-Once **s2n_async_pkey_op_set_output** has returned, the application is free to
-release the data buffer.
-
 ### s2n\_connection\_free\_handshake
 
 ```c
@@ -1856,6 +1746,85 @@ int s2n_connection_free(struct s2n_connection *conn);
 handle. The handle is considered invalid after **s2n_connection_free** is used.
 [s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
 of sensitive data.
+
+## Private Key Operation Related Calls
+
+By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
+and decryption operations required for a tls handshake. However, this default behavior may not
+work for some situations.
+
+For example:
+* An application may want to perform the CPU-expensive signature and decryption operations
+asynchronously to avoid blocking the main event loop.
+See [Asynchronous private key operations](#Asynchronous-private-key-operations)
+* An application may not have direct access to the private key, such as when using PKCS#11.
+See [Offloading private key operations](#Offloading-private-key-operations)
+
+To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
+are performed. The callback is set via **s2n_config_set_async_pkey_callback** and is triggered 
+every time **s2n_negotiate** performs an action involving the private key. The callback is passed
+**op**, an opaque object representing the private key operation. To avoid memory leaks, **op** must
+always eventually be freed by calling **s2n_async_pkey_op_free**.
+
+The private key operation can be performed by calling **s2n_async_pkey_op_perform**
+(or **s2n_async_pkey_op_set_output**: see [Offloading private key operations](#Offloading-private-key-operations)).
+The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
+
+### Asynchronous Private Key Operations
+
+When s2n-tls is used in non-blocking mode, private key operations can be completed
+asynchronously. This model can be useful to move execution of
+CPU-heavy private key operations out of the main
+event loop, preventing **s2n_negotiate** from blocking the loop for a few
+milliseconds each time the private key operation needs to be performed.
+
+To handle private key operations asynchronously, return from the callback without calling
+**s2n_async_pkey_op_perform** or **s2n_async_pkey_op_apply**. Usually the user would do this
+by spawning a separate thread to perform **op** and immediately returning **S2N_SUCCESS**
+from the callback without waiting for that separate thread to complete. In response,
+**s2n_negotiate** will return **S2N_FAILURE** with an error of type **S2N_ERR_T_BLOCKED**
+and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**.
+All subsequent calls to **s2n_negotiate** will produce the same result until **s2n_async_pkey_op_apply**
+is called to finalize the **op**.
+
+Note: It is not safe to call multiple functions on the same **conn** or
+**op** objects from 2 different threads at the same time. Doing so will
+produce undefined behavior. However it is safe to have a call to a
+function involving only **conn** at the same time as a call to a
+function involving only **op**, as those objects are not coupled with
+each other. It is also safe to free **conn** or **op** at any moment with
+respective function calls, with the exception that **conn** cannot
+be freed inside the **s2n_async_pkey_fn** callback.
+
+### Synchronous Private Key Operations
+
+Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
+To complete an operation synchronously, simply call **s2n_async_pkey_op_perform** and **s2n_async_pkey_op_apply** inside the callback.
+If the callback succeeds, the handshake will continue uninterrupted.
+If the callback fails, **s2n_negotiate** will fail with an error of type **S2N_ERR_T_INTERNAL**.
+
+### Offloading Private Key Operations
+
+The **s2n_async_pkey_op_perform** call used to perform a private key operation requires
+direct access to the private key. In some cases, like when using PKCS#11, users may not
+have access to the private key. In these cases, we can substitute **s2n_async_pkey_op_set_output**
+for **s2n_async_pkey_op_perform** to tell s2n-tls the result of the operation rather than
+having s2n-tls perform the operation itself.
+
+s2n-tls provides a number of calls to gather the information necessary for
+an outside module or library to perform the operation. The application can query the type of private
+key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
+an operation, the application must ask s2n-tls to copy the operation's input into an
+application supplied buffer. The appropriate buffer size can be determined by calling
+**s2n_async_pkey_op_get_input_size**. Once a buffer of the proper size is
+allocated, the application can request the input data by calling **s2n_async_pkey_op_get_input**.
+After the operation is completed, the finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**.
+Once the output is set, the private key operation can be completed by calling **s2n_async_pkey_op_apply** as usual.
+
+Offloading can be performed either synchronously or asynchronously. If the offloaded operation
+fails synchronously, simply return S2N_FAILURE from the callback. If the offloaded operation
+fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
+simply shutdown and cleanup the connection as you would for any other error.
 
 ## TLS1.3 Pre-Shared Key Related Calls
 

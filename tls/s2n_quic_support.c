@@ -45,6 +45,7 @@ int s2n_config_enable_quic(struct s2n_config *config)
 int s2n_connection_enable_quic(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD_RESULT(s2n_connection_validate_tls13_support(conn));
     conn->quic_enabled = true;
     return S2N_SUCCESS;
 }

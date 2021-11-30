@@ -17,7 +17,7 @@
 
 #include <sys/wait.h>
 #include <pthread.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_random.h"
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     pthread_t threads[2];
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Verify that randomness callbacks can't be set to NULL */
     EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));

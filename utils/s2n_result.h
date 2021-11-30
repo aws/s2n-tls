@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 
 /* A value which indicates the outcome of a function */

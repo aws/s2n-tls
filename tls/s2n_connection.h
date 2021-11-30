@@ -16,7 +16,7 @@
 #pragma once
 
 #include <errno.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <signal.h>
 #include <stdint.h>
 
@@ -56,26 +56,14 @@ typedef enum {
 } s2n_session_ticket_status;
 
 struct s2n_connection {
-    /* The configuration (cert, key .. etc ) */
-    struct s2n_config *config;
-
-    /* Overrides Security Policy in config if non-null */
-    const struct s2n_security_policy *security_policy_override;
-
-    /* The user defined context associated with connection */
-    void *context;
-
-    /* The user defined secret callback and context */
-    s2n_secret_cb secret_cb;
-    void *secret_cb_context;
-
-    /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
-    s2n_send_fn *send;
-    s2n_recv_fn *recv;
-
-    /* The context passed to the I/O callbacks */
-    void *send_io_context;
-    void *recv_io_context;
+    /* The following bitfield flags are used in SAW proofs. The positions of
+     * these flags are important, as SAW looks up each flag by their index
+     * in the struct starting from 0. See the comments surrounding
+     * conn_bitfield in tests/saw/spec/handshake/handshake_io_lowlevel.saw for
+     * more details. Make sure that any new flags are added after these ones
+     * so that the indices in the SAW proofs do not need to be changed each time.
+     *
+     * START OF SAW-TRACKED BITFIELD FLAGS */
 
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
      * managed_send_io
@@ -84,6 +72,11 @@ struct s2n_connection {
 
     /* Session resumption indicator on client side */
     unsigned client_session_resumed:1;
+
+    /* Connection can be used by a QUIC implementation */
+    unsigned quic_enabled:1;
+
+    /* END OF SAW-TRACKED BITFIELD FLAGS */
 
     /* Determines if we're currently sending or receiving in s2n_shutdown */
     unsigned close_notify_queued:1;
@@ -109,6 +102,58 @@ struct s2n_connection {
 
     /* If write fd is broken */
     unsigned write_fd_broken:1;
+
+    /* Has the user set their own I/O callbacks or is this connection using the
+     * default socket-based I/O set by s2n */
+    unsigned managed_send_io:1;
+    unsigned managed_recv_io:1;
+
+    /* Key update data */
+    unsigned key_update_pending:1;
+
+    /* Early data supported by caller.
+     * If a caller does not use any APIs that support early data,
+     * do not negotiate early data.
+     */
+    unsigned early_data_expected:1;
+
+    /* Connection overrides server_max_early_data_size */
+    unsigned server_max_early_data_size_overridden:1;
+
+    /* Connection overrides psk_mode.
+     * This means that the connection will keep the existing value of psk_params->type,
+     * even when setting a new config. */
+    unsigned psk_mode_overridden:1;
+
+    /* Have we received a close notify alert from the peer. */
+    unsigned close_notify_received:1;
+
+    /* Connection negotiated an EMS */
+    unsigned ems_negotiated:1;
+
+    /* Connection successfully set a ticket on the connection */
+    unsigned set_session:1;
+
+    /* The configuration (cert, key .. etc ) */
+    struct s2n_config *config;
+
+    /* Overrides Security Policy in config if non-null */
+    const struct s2n_security_policy *security_policy_override;
+
+    /* The user defined context associated with connection */
+    void *context;
+
+    /* The user defined secret callback and context */
+    s2n_secret_cb secret_cb;
+    void *secret_cb_context;
+
+    /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
+    s2n_send_fn *send;
+    s2n_recv_fn *recv;
+
+    /* The context passed to the I/O callbacks */
+    void *send_io_context;
+    void *recv_io_context;
 
     /* Track request extensions to ensure correct response extension behavior.
      *
@@ -322,42 +367,12 @@ struct s2n_connection {
     /* Cookie extension data */
     struct s2n_stuffer cookie_stuffer;
 
-    /* Has the user set their own I/O callbacks or is this connection using the
-     * default socket-based I/O set by s2n */
-    unsigned managed_send_io:1;
-    unsigned managed_recv_io:1;
-
-    /* Key update data */
-    unsigned key_update_pending:1;
-
-    /* Early data supported by caller.
-     * If a caller does not use any APIs that support early data,
-     * do not negotiate early data.
-     */
-    unsigned early_data_expected:1;
-
-    /* Connection overrides server_max_early_data_size */
-    unsigned server_max_early_data_size_overridden:1;
-
-    /* Connection overrides psk_mode.
-     * This means that the connection will keep the existing value of psk_params->type,
-     * even when setting a new config. */
-    unsigned psk_mode_overridden:1;
-
-    /* Have we received a close notify alert from the peer. */
-    unsigned close_notify_received:1;
-
-    /* Connection negotiated an EMS */
-    unsigned ems_negotiated:1;
-
-    /* Connection can be used by a QUIC implementation */
-    unsigned quic_enabled:1;
-
     /* Flags to prevent users from calling methods recursively.
-     * This can be an easy mistake to make when implementing send/receive callbacks.
+     * This can be an easy mistake to make when implementing callbacks.
      */
     bool send_in_use;
     bool recv_in_use;
+    bool negotiate_in_use;
     
     uint16_t tickets_to_send;
     uint16_t tickets_sent;

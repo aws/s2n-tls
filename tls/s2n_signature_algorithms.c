@@ -32,6 +32,11 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
     /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
     POSIX_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
+    /* QUIC only supports TLS1.3 */
+    if (s2n_connection_is_quic_enabled(conn) && scheme->maximum_protocol_version) {
+        POSIX_ENSURE_GTE(scheme->maximum_protocol_version, S2N_TLS13);
+    }
+
     if (!s2n_is_rsa_pss_signing_supported()) {
         POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
     }

@@ -392,7 +392,7 @@ int main() {
 
         /* Tests for s2n_client_key_share_extension.recv */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
             /* Test that s2n_client_key_share_extension.recv ignores PQ key shares when PQ is disabled */
             if (!s2n_pq_is_enabled()) {

@@ -21,7 +21,7 @@
 #include <unistd.h>
 #include <sys/param.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 
 #include "crypto/s2n_fips.h"
@@ -421,6 +421,19 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      */
     if (config->no_signing_key) {
         POSIX_ENSURE(config->async_pkey_cb, S2N_ERR_NO_PRIVATE_KEY);
+    }
+
+    if (config->quic_enabled) {
+        /* If QUIC is ever enabled for a connection via the config,
+         * we should enforce that it can never be disabled by
+         * changing the config.
+         *
+         * Enabling QUIC indicates that the connection is being used by
+         * a QUIC implementation, which never changes. Disabling QUIC
+         * partially through a connection could also potentially be
+         * dangerous, as QUIC handles encryption.
+         */
+        POSIX_GUARD(s2n_connection_enable_quic(conn));
     }
 
     conn->config = config;

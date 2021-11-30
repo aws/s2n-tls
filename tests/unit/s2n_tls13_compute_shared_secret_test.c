@@ -19,7 +19,7 @@
 
 #include <stdlib.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls13_handshake.c"
 #include "tls/s2n_security_policies.h"

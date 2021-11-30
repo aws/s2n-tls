@@ -14,8 +14,8 @@
  */
 
 #include <openssl/evp.h>
-#include <crypto/s2n_openssl_evp.h>
-#include <crypto/s2n_openssl_x509.h>
+#include "crypto/s2n_openssl_evp.h"
+#include "crypto/s2n_openssl_x509.h"
 
 #include "error/s2n_errno.h"
 #include "crypto/s2n_rsa_pss.h"

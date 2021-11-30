@@ -17,7 +17,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -97,7 +97,7 @@ const char plaintext_record_hex[] =
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test s2n_tls13_aead_aad_init() */
     {

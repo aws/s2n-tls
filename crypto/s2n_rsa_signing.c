@@ -159,7 +159,7 @@ int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash
     POSIX_ENSURE_REF(digest_in);
     POSIX_ENSURE_REF(signature_out);
 
-    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_alg(hash_alg);
+    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_md(hash_alg);
     POSIX_ENSURE_REF(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_sign.html */
@@ -207,7 +207,7 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     uint8_t digest_data[S2N_MAX_DIGEST_LEN];
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_GUARD(s2n_hash_digest(digest, digest_data, digest_length));
-    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_alg(digest->alg);
+    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_md(digest->alg);
     POSIX_ENSURE_REF(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_verify.html */

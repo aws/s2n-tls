@@ -19,7 +19,7 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_ecc_preferences.h"
-#include "s2n.h"
+#include "api/s2n.h"
 #include "tls/s2n_handshake.h"
 #include "pq-crypto/s2n_pq.h"
 

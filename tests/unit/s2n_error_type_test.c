@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 
@@ -24,7 +24,7 @@
 int main(void)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Ensure the address of `s2n_errno` is identical to the one returned in `s2n_errno_location()` */
     EXPECT_EQUAL(&s2n_errno, s2n_errno_location());

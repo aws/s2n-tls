@@ -190,7 +190,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     return 0;
 }
 
-static int s2n_parse_client_hello(struct s2n_connection *conn)
+int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
@@ -256,41 +256,6 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn) {
-    if ((conn->mode == S2N_SERVER)
-          && (conn->config != NULL)
-          && conn->config->is_rsa_cert_configured
-          && !s2n_is_tls13_fully_supported()) {
-        /* RSA PSS is required for TLS 1.3 connections if RSA is used. So if we are a server that doesn't support RSA PSS,
-         * and there's a possibility that an RSA Certificate could be picked by a client connection, then self-downgrade
-         * connection to TLS 1.2. */
-        return true;
-    }
-
-    s2n_cert_auth_type client_auth_status = S2N_CERT_AUTH_NONE;
-    s2n_connection_get_client_auth_type(conn, &client_auth_status);
-
-    if ((conn->mode == S2N_SERVER)
-        && (client_auth_status != S2N_CERT_AUTH_NONE)
-        && !s2n_is_tls13_fully_supported()) {
-        /* If we're a Server that is going to request a client certificate, and we don't support RSA PSS, then
-         * downgrade to TLS 1.2 in case the client attempts to send an RSA PSS Certificate. */
-       return true;
-    }
-
-    if ((conn->mode == S2N_CLIENT) && !s2n_is_tls13_fully_supported()) {
-        /* There are some TLS Servers in the wild that will always choose RSA PSS if the client claims to support TLS 1.3
-         * even if the client does not advertise support for RSA PSS in the SignatureScheme extension. In order to work
-         * around this issue, our client should self-downgrade to TLS 1.2 so that a successful TLS 1.2 connection can be
-         * made instead of rejecting a TLS 1.3 ServerHello with RSA PSS due to it containing algorithms that we don't
-         * support. */
-        return true;
-    }
-
-  return false;
-
-}
-
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -302,7 +267,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    if (s2n_is_tls_12_self_downgrade_required(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
+    if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
@@ -411,6 +376,19 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
+
+S2N_RESULT s2n_cipher_suite_validate_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_EQ(cipher->available, true);
+    RESULT_ENSURE_LTE(cipher->minimum_required_tls_version, conn->client_protocol_version);
+    if (s2n_connection_is_quic_enabled(conn)) {
+        RESULT_ENSURE_GTE(cipher->minimum_required_tls_version, S2N_TLS13);
+    }
+    return S2N_RESULT_OK;
+}
+
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -421,7 +399,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
     POSIX_ENSURE_REF(cipher_preferences);
 
-    if (s2n_is_tls_12_self_downgrade_required(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
+    if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }
@@ -459,16 +437,24 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &available_cipher_suites_size));
 
     /* Now, write the IANA values of every available cipher suite in our list */
+    struct s2n_cipher_suite *cipher = NULL;
+    bool legacy_renegotiation_signal_required = false;
     for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
-        if (cipher_preferences->suites[i]->available &&
-                cipher_preferences->suites[i]->minimum_required_tls_version <= conn->client_protocol_version) {
-            POSIX_GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+        cipher = cipher_preferences->suites[i];
+        if (s2n_result_is_error(s2n_cipher_suite_validate_available(conn, cipher))) {
+            continue;
         }
+        if (cipher->minimum_required_tls_version < S2N_TLS13) {
+            legacy_renegotiation_signal_required = true;
+        }
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     }
 
-    /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
-    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
-    POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
+    if (legacy_renegotiation_signal_required) {
+        /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
+        uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
+    }
 
     /* Write size of the list of available ciphers */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&available_cipher_suites_size));

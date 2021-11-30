@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 
 #include "utils/s2n_safety.h"

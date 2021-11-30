@@ -27,7 +27,7 @@
  * supported group or, if none are available, select NULL. */
 int main() {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Tests with default KEM preferences (kem_preferences_null) */
     {

@@ -246,9 +246,7 @@ int main(int argc, char **argv)
          * resumption ticket to the connection, which indicates the previous session did not negotiate
          * EMS and therefore this session shouldn't either. The resumption ticket does not have to be valid
          * as this test is only interested in EMS. */
-        const uint8_t client_ticket[] = { "some ticket" };
-        EXPECT_SUCCESS(s2n_realloc(&client_conn->client_ticket, sizeof(client_ticket)));
-        EXPECT_MEMCPY_SUCCESS(client_conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+        client_conn->set_session = true;
 
         /* Connection is successful and EMS is not negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

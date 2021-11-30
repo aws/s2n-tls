@@ -47,7 +47,7 @@ static int s2n_write_key_share(struct s2n_stuffer *out, uint16_t iana_value, uin
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test that s2n_extensions_key_share_size produces the expected constant result */
     {
@@ -133,10 +133,12 @@ int main(int argc, char **argv)
         if (s2n_is_evp_apis_supported()) {
             struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_NOT_NULL(conn->config);
             /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
@@ -154,6 +156,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
 
@@ -359,12 +362,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(client_conn, &key_share_extension));
             uint16_t key_share_extension_size = s2n_stuffer_data_available(&key_share_extension);
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             server_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_recv(&s2n_client_key_share_extension, server_conn, &key_share_extension));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_share_extension_size);
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             server_conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
@@ -879,14 +882,20 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&second_params));
         }
 
-        /* Test that s2n_client_key_share_extension.recv ignores points that can't be parsed */
+        /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed */
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            /* Explicitly set the ecc_preferences list to only contain the curves p-256 and p-384 */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
+
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_OK(s2n_set_all_mutually_supported_groups(conn));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -914,15 +923,22 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Test that s2n_client_key_share_extension.recv ignores points that can't be parsed,
+        /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed,
          * and continues to parse valid key shares afterwards. */
         {
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            /* Explicitly set the ecc_preferences list to only contain the curves p-256 and p-384 */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
+
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
             EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             struct s2n_stuffer key_share_extension = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
@@ -964,9 +980,10 @@ int main(int argc, char **argv)
             }
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Test that s2n_client_key_share_extension.recv ignores points that can't be parsed,
+        /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed,
          * and doesn't ignore / forget / overwrite valid key shares already parsed. */
         {
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
@@ -1022,13 +1039,16 @@ int main(int argc, char **argv)
             if (s2n_is_evp_apis_supported()) {
                 struct s2n_connection *conn;
                 struct s2n_stuffer key_share_extension;
+                struct s2n_config *config;
+                EXPECT_NOT_NULL(config = s2n_config_new());
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_all_mutually_supported_groups(conn));
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
-                EXPECT_NOT_NULL(conn->config);
+
                 /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -1056,6 +1076,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
                 EXPECT_SUCCESS(s2n_connection_free(conn));
+                EXPECT_SUCCESS(s2n_config_free(config));
             }
         }
     }

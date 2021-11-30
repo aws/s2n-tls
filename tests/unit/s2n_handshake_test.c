@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
@@ -236,7 +236,7 @@ int async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -276,7 +276,7 @@ int main(int argc, char **argv)
         {
             if (!s2n_is_in_fips_mode()) {
                 /* Enable TLS 1.3 for the client */
-                EXPECT_SUCCESS(s2n_enable_tls13());
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_config *server_config, *client_config;
 
                 struct s2n_cert_chain_and_key *chain_and_key;
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
                 EXPECT_SUCCESS(s2n_config_free(server_config));
                 EXPECT_SUCCESS(s2n_config_free(client_config));
-                EXPECT_SUCCESS(s2n_disable_tls13());
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
         }
 
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
         /*  Test: RSA_PSS cert with RSA_PSS signatures */
         if (s2n_is_rsa_pss_certs_supported())
         {
-            s2n_enable_tls13();
+            s2n_enable_tls13_in_test();
 
             struct s2n_config *server_config, *client_config;
 
@@ -429,7 +429,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
 
-            s2n_disable_tls13();
+            s2n_disable_tls13_in_test();
         }
     }
 

@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdio.h>
 #include <stdbool.h>
-#include <utils/s2n_ensure.h>
+#include "utils/s2n_ensure.h"
 
 /*
  * To easily retrieve error types, we split error values into two parts.
@@ -265,7 +265,6 @@ typedef enum {
     S2N_ERR_ASYNC_ALREADY_PERFORMED,
     S2N_ERR_ASYNC_NOT_PERFORMED,
     S2N_ERR_ASYNC_WRONG_CONNECTION,
-    S2N_ERR_ASYNC_APPLY_WHILE_INVOKING,
     S2N_ERR_ASYNC_ALREADY_APPLIED,
     S2N_ERR_UNSUPPORTED_WITH_QUIC,
     S2N_ERR_DUPLICATE_PSK_IDENTITIES,

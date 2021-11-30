@@ -16,7 +16,7 @@
 
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "s2n_test.h"
 #include "tls/s2n_connection.h"
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Non-retriable errnos in io are not overwritten by retriable errnos */
     {

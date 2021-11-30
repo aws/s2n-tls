@@ -14,15 +14,19 @@
  */
 
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <netdb.h>
 
 #include <unistd.h>
 #include <getopt.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
+#include "api/s2n.h"
 #include "common.h"
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "tls/s2n_connection.h"
 
@@ -38,6 +42,8 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  --enter-fips-mode\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  -h,--help\n");
@@ -160,7 +166,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
                     fprintf(stderr, "Error allocating memory\n");
                     exit(1);
                 }
-                memcpy(protocols[idx], next, length);
+                memmove(protocols[idx], next, length);
                 protocols[idx][length] = '\0';
                 length = 0;
                 idx++;
@@ -177,7 +183,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
                 fprintf(stderr, "Error allocating memory\n");
                 exit(1);
             }
-            memcpy(protocols[idx], next, length);
+            memmove(protocols[idx], next, length);
             protocols[idx][length] = '\0';
         }
 
@@ -237,6 +243,7 @@ int main(int argc, char *const *argv)
     uint8_t dyn_rec_timeout = 0;
     /* required args */
     const char *cipher_prefs = "default";
+    int fips_mode = 0;
     const char *host = NULL;
     struct verify_data unsafe_verify_data;
     const char *port = "443";
@@ -252,6 +259,7 @@ int main(int argc, char *const *argv)
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
         {"ciphers", required_argument, 0, 'c'},
+        {"enter-fips-mode", no_argument, NULL, 'F'},
         {"echo", no_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
@@ -290,6 +298,9 @@ int main(int argc, char *const *argv)
             break;
         case 'c':
             cipher_prefs = optarg;
+            break;
+        case 'F':
+            fips_mode = 1;
             break;
         case 'e':
             echo_input = 1;
@@ -393,6 +404,21 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (fips_mode) {
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
+        if (FIPS_mode_set(1) == 0) {
+            unsigned long fips_rc = ERR_get_error();
+            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
+            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            exit(1);
+        }
+        printf("s2nc entered FIPS mode\n");
+#else
+        fprintf(stderr, "Error entering FIPS mode. s2nc is not linked with a FIPS-capable libcrypto.\n");
+        exit(1);
+#endif
+    }
+
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
@@ -444,6 +470,7 @@ int main(int argc, char *const *argv)
         }
 
         if (ca_file || ca_dir) {
+            GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
