@@ -146,7 +146,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc', '--non-blocking']
+        cmd_line = ['hyperfine','--warmup','1','--time-unit','millisecond','s2nc', '--non-blocking']
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
