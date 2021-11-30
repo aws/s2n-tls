@@ -5,9 +5,8 @@ from configuration import available_ports, PROTOCOLS
 from common import ProviderOptions, Protocols, Ciphers, pq_enabled
 from fixtures import managed_process
 from global_flags import get_flag, S2N_FIPS_MODE
-from providers import Provider, S2N
+from providers import Provider, CriterionS2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
-
 
 ENDPOINTS = [
     "www.akamai.com",
@@ -88,7 +87,7 @@ else:
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("endpoint", ENDPOINTS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [CriterionS2N], ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", CIPHERS, ids=get_parameter_name)
 def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cipher):
     port = "443"
@@ -109,7 +108,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
 
     # expect_stderr=True because S2N sometimes receives OCSP responses:
     # https://github.com/aws/s2n-tls/blob/14ed186a13c1ffae7fbb036ed5d2849ce7c17403/bin/echo.c#L180-L184
-    client = managed_process(provider, client_options, timeout=5, expect_stderr=True)
+    client = managed_process(provider, client_options, timeout=300, expect_stderr=True)
 
     expected_result = EXPECTED_RESULTS.get((endpoint, cipher), None)
 
