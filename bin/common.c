@@ -66,12 +66,12 @@ int write_array_to_file(const char *path, uint8_t *data, size_t length) {
        return S2N_FAILURE;
     }
 
-    if(fwrite(data, sizeof(char), length, file) < 0) {
+    if(fwrite(data, sizeof(char), length, file) != length) {
         fclose(file);
         return S2N_FAILURE;
     }
-
     fclose(file);
+
     return S2N_SUCCESS;
 }
 
@@ -90,13 +90,14 @@ int get_file_size(const char* path, size_t *length)
         return S2N_FAILURE;
     }
 
-    size_t file_length = ftell(file);
+    long file_length = ftell(file);
     if (file_length < 0) {
         fclose(file);
         return S2N_FAILURE;
     }
 
     *length = file_length;
+    fclose(file);
     return S2N_SUCCESS;
 }
 
