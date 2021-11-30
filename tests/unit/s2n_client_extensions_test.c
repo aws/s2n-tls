@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
     char *private_key = NULL;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -897,7 +897,7 @@ int main(int argc, char **argv)
     }
 
     /* Server and client support the OCSP extension. Test Behavior for TLS 1.3 */
-    if(s2n_x509_ocsp_stapling_supported()) {
+    if(s2n_x509_ocsp_stapling_supported() && s2n_is_tls13_fully_supported()) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
@@ -905,7 +905,7 @@ int main(int argc, char **argv)
         const uint8_t *server_ocsp_reply;
         uint32_t length;
 
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -940,8 +940,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 1);
 
         /* Verify that the client received an OCSP response. */
-        /* Currently fails test. Remove when https://github.com/awslabs/s2n/issues/2239 is fixed */
-        /* EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1); */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
 
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
@@ -958,7 +957,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Client does not request SCT, but server is configured to serve them. */

@@ -142,9 +142,18 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, vo
     return S2N_SUCCESS;
 }
 
+static int s2n_client_hello_no_op_cb(struct s2n_connection *conn, void *ctx)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
 
     /* Setup connections */
     struct s2n_connection *client_conn = NULL;
@@ -285,19 +294,56 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
     }
 
-    /* HRR with PSK */
+    /* Basic PSK with Client Hello async callback set */
     {
-        /* Setup certs */
-        s2n_set_config_both_connections(client_conn, server_conn, config_with_certs);
-        s2n_set_io_pair_both_connections(client_conn, server_conn, io_pair);
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_client_hello_no_op_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        s2n_set_config_both_connections(client_conn, server_conn, config);
+        s2n_set_io_pair_both_connections(client_conn, server_conn, io_pair);
 
         /* Setup PSKs */
         EXPECT_OK(setup_client_psks(client_conn));
         EXPECT_OK(setup_server_psks(server_conn));
 
-        /* Negotiate handshake */
+        /* Handshake negotiation is successful when the Client Hello callback is marked as done */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+        EXPECT_SUCCESS(s2n_client_hello_cb_done(server_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Validate handshake type */
+        EXPECT_FALSE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+
+        /* Validate chosen PSK */
+        EXPECT_OK(validate_chosen_psk(server_conn, test_shared_identity, sizeof(test_shared_identity),
+                                      TEST_SHARED_PSK_WIRE_INDEX_1));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, NULL, NULL));
+    }
+
+    /* HRR with PSK and Client Hello async callback set */
+    {
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_certs, s2n_client_hello_no_op_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config_with_certs, S2N_CLIENT_HELLO_CB_NONBLOCKING));
+
+        /* Setup certs */
+        s2n_set_config_both_connections(client_conn, server_conn, config_with_certs);
+        s2n_set_io_pair_both_connections(client_conn, server_conn, io_pair);
+
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+        /* Setup PSKs */
+        EXPECT_OK(setup_client_psks(client_conn));
+        EXPECT_OK(setup_server_psks(server_conn));
+
+        /* Handshake negotiation is successful when the Client Hello callback is marked as done */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+        EXPECT_SUCCESS(s2n_client_hello_cb_done(server_conn));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Validate handshake type */
@@ -312,6 +358,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_certs, NULL, NULL));
     }
 
     /* Fallback to full handshake if no PSK is chosen and certificates are set */ 

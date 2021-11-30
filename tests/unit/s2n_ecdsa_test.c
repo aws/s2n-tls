@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     };
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* s2n_ecdsa_pkey_matches_curve */
     {

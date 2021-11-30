@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 #include "utils/s2n_safety.h"
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
      */
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_stuffer tls13_serialized_session_state = { 0 }, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&tls13_serialized_session_state, 0));
@@ -1143,12 +1143,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    EXPECT_SUCCESS(s2n_reset_tls13());
+    EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
     /* Session resumption APIs and session_ticket_cb return the same values
      * when receiving a new ticket in TLS1.3
      */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
@@ -1208,7 +1208,7 @@ int main(int argc, char **argv)
     }
 
     /* Client has TLS1.3 ticket but negotiates TLS1.2 */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         s2n_extension_type_id client_session_ticket_ext_id = 0, psk_ext_id = 0;
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &client_session_ticket_ext_id));

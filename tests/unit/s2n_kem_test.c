@@ -127,7 +127,7 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     {
         /* Regression test for network parsing data of expected sizes */

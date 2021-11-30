@@ -21,8 +21,8 @@
 #include "crypto/s2n_fips.h"
 
 #include "error/s2n_errno.h"
-
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_rsa_signing.h"
 
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
@@ -70,9 +70,8 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Generate the session id for TLS1.3 if in middlebox compatibility mode.
-     * For now, we default to middlebox compatibility mode unless using QUIC. */
-    if (conn->config->quic_enabled) {
+    /* Only generate the session id for TLS1.3 if in middlebox compatibility mode */
+    if (conn->client_protocol_version >= S2N_TLS13 && !s2n_is_middlebox_compat_enabled(conn)) {
         return S2N_RESULT_OK;
     }
 
@@ -191,7 +190,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     return 0;
 }
 
-static int s2n_parse_client_hello(struct s2n_connection *conn)
+int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
@@ -208,7 +207,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     POSIX_GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -219,8 +218,8 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
+    POSIX_GUARD(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, conn->session_id_len), conn->session_id_len));
+    POSIX_CHECKED_MEMCPY(conn->session_id, client_hello->session_id.data, conn->session_id_len);
 
     uint16_t cipher_suites_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
@@ -259,6 +258,8 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* Client hello is parsed and config is finalized.
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;
@@ -266,8 +267,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    /* Ensure that highest supported version is set correctly */
-    if (!s2n_security_policy_supports_tls13(security_policy)) {
+    if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
@@ -293,7 +293,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
-    if (conn->config->quic_enabled) {
+    if (s2n_connection_is_quic_enabled(conn)) {
         POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
@@ -312,7 +312,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* And set the signature and hash algorithm used for key exchange signatures */
     POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
         &conn->handshake_params.client_sig_hash_algs,
-        &conn->secure.conn_sig_scheme));
+        &conn->handshake_params.conn_sig_scheme));
 
     /* And finally, set the certs specified by the final auth + sig_alg combo. */
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
@@ -376,17 +376,30 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
+
+S2N_RESULT s2n_cipher_suite_validate_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_EQ(cipher->available, true);
+    RESULT_ENSURE_LTE(cipher->minimum_required_tls_version, conn->client_protocol_version);
+    if (s2n_connection_is_quic_enabled(conn)) {
+        RESULT_ENSURE_GTE(cipher->minimum_required_tls_version, S2N_TLS13);
+    }
+    return S2N_RESULT_OK;
+}
+
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
     POSIX_ENSURE_REF(cipher_preferences);
 
-    /* Check whether cipher preference supports TLS 1.3. If it doesn't,
-       our highest supported version is S2N_TLS12 */
-    if (!s2n_security_policy_supports_tls13(security_policy)) {
+    if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }
@@ -396,7 +409,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
 
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
     /* Create the client random data */
     POSIX_GUARD(s2n_stuffer_init(&client_random, &b));
 
@@ -424,16 +437,24 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &available_cipher_suites_size));
 
     /* Now, write the IANA values of every available cipher suite in our list */
+    struct s2n_cipher_suite *cipher = NULL;
+    bool legacy_renegotiation_signal_required = false;
     for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
-        if (cipher_preferences->suites[i]->available &&
-                cipher_preferences->suites[i]->minimum_required_tls_version <= conn->client_protocol_version) {
-            POSIX_GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+        cipher = cipher_preferences->suites[i];
+        if (s2n_result_is_error(s2n_cipher_suite_validate_available(conn, cipher))) {
+            continue;
         }
+        if (cipher->minimum_required_tls_version < S2N_TLS13) {
+            legacy_renegotiation_signal_required = true;
+        }
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     }
 
-    /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
-    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
-    POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
+    if (legacy_renegotiation_signal_required) {
+        /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
+        uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+        POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
+    }
 
     /* Write size of the list of available ciphers */
     POSIX_GUARD(s2n_stuffer_write_vector_size(&available_cipher_suites_size));
@@ -497,19 +518,18 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
 
     POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->handshake_params.conn_sig_scheme, S2N_SERVER));
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    POSIX_GUARD(s2n_blob_init(&client_hello->session_id, s2n_stuffer_raw_read(in, session_id_length), session_id_length));
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
-        POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
+        POSIX_CHECKED_MEMCPY(conn->session_id, client_hello->session_id.data, session_id_length);
         conn->session_id_len = (uint8_t) session_id_length;
-    } else {
-        POSIX_GUARD(s2n_stuffer_skip_read(in, session_id_length));
     }
 
     struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_blob_init(&b, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;
@@ -561,4 +581,25 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
     uint32_t len = min_size(&parsed_extension->extension, max_length);
     POSIX_CHECKED_MEMCPY(out, parsed_extension->extension.data, len);
     return len;
+}
+
+int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out_length);
+    *out_length = ch->session_id.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(out_length);
+
+    uint32_t len = min_size(&ch->session_id, max_length);
+    POSIX_CHECKED_MEMCPY(out, ch->session_id.data, len);
+    *out_length = len;
+
+    return S2N_SUCCESS;
 }

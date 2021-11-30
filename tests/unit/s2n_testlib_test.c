@@ -20,7 +20,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test that s2n_negotiate_test_server_and_client produces useful errors.
      * In the past, we failed to surface errors and instead reported io errors when

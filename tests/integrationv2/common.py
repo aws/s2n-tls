@@ -300,17 +300,18 @@ class KemGroups(object):
 
 
 class Signature(object):
-    def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
+    def __init__(self, name, min_protocol=Protocols.SSLv3, max_protocol=Protocols.TLS13, sig_type=None, sig_digest=None):
         self.min_protocol = min_protocol
+        self.max_protocol = max_protocol
 
         if 'RSA' in name.upper():
             self.algorithm = 'RSA'
-        if 'PSS' in name.upper():
+        if 'PSS_PSS' in name.upper():
             self.algorithm = 'RSAPSS'
         if 'EC' in name.upper() or 'ED' in name.upper():
             self.algorithm = 'EC'
 
-        if '+' in name:
+        if not (sig_type or sig_digest) and '+' in name:
             sig_type, sig_digest = name.split('+')
 
         self.name = name
@@ -323,28 +324,25 @@ class Signature(object):
 
 
 class Signatures(object):
-    RSA_SHA1 = Signature('RSA+SHA1')
-    RSA_SHA224 = Signature('RSA+SHA224')
-    RSA_SHA256 = Signature('RSA+SHA256')
-    RSA_SHA384 = Signature('RSA+SHA384')
-    RSA_SHA512 = Signature('RSA+SHA512')
+    RSA_SHA1   = Signature('RSA+SHA1',   max_protocol=Protocols.TLS12)
+    RSA_SHA224 = Signature('RSA+SHA224', max_protocol=Protocols.TLS12)
+    RSA_SHA256 = Signature('RSA+SHA256', max_protocol=Protocols.TLS12)
+    RSA_SHA384 = Signature('RSA+SHA384', max_protocol=Protocols.TLS12)
+    RSA_SHA512 = Signature('RSA+SHA512', max_protocol=Protocols.TLS12)
 
-    # Using rss_pss_pss_sha256 results in a signature not found error, but using
-    # this naming scheme seems to work.
-    RSA_PSS_SHA256 = Signature(
+    RSA_PSS_RSAE_SHA256 = Signature(
         'RSA-PSS+SHA256',
+        sig_type='RSA-PSS-RSAE',
+        sig_digest='SHA256')
+
+    RSA_PSS_PSS_SHA256 = Signature(
+        'rsa_pss_pss_sha256',
         min_protocol=Protocols.TLS13,
-        sig_type='RSA-PSS',
+        sig_type='RSA-PSS-PSS',
         sig_digest='SHA256')
 
     ECDSA_SECP256r1_SHA256 = Signature(
         'ecdsa_secp256r1_sha256',
-        min_protocol=Protocols.TLS13,
-        sig_type='ECDSA',
-        sig_digest='SHA256')
-
-    ED25519 = Signature(
-        'ed25519',
         min_protocol=Protocols.TLS13,
         sig_type='ECDSA',
         sig_digest='SHA256')

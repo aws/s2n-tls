@@ -89,6 +89,16 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
 #endif
 
+/* A fake / unsupported curve for use in triggering retries
+ * during testing.
+ */
+const struct s2n_ecc_named_curve s2n_unsupported_curve = {
+    .iana_id = 0, .name = "unsupported",
+    .libcrypto_nid = NID_X9_62_prime256v1,
+    .share_size = SECP256R1_SHARE_SIZE,
+    .generate_key = s2n_ecc_evp_generate_key_nist_curves,
+};
+
 /* All curves that s2n supports. New curves MUST be added here.
  * This list is a super set of all the curves present in s2n_ecc_preferences list.
  */

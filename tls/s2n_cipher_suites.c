@@ -263,7 +263,7 @@ struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha = /* 0x00,0x0A */ {
 
 struct s2n_cipher_suite s2n_dhe_rsa_with_3des_ede_cbc_sha = /* 0x00,0x16 */ {
     .available = 0,
-    .name = "EDH-RSA-DES-CBC3-SHA",
+    .name = "DHE-RSA-DES-CBC3-SHA",
     .iana_value = { TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA },
     .key_exchange_alg = &s2n_dhe,
     .auth_method = S2N_AUTHENTICATION_RSA,
@@ -994,6 +994,14 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
     .suites = s2n_all_tls13_cipher_suites,
 };
 
+static bool should_init_crypto = true;
+static bool crypto_initialized = false;
+int s2n_crypto_disable_init(void) {
+    POSIX_ENSURE(!crypto_initialized, S2N_ERR_INITIALIZED);
+    should_init_crypto = false;
+    return S2N_SUCCESS;
+}
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
@@ -1037,14 +1045,18 @@ int s2n_cipher_suites_init(void)
         }
     }
 
+    if (should_init_crypto) {
 #if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
-    OpenSSL_add_all_algorithms();
+        /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+        OpenSSL_add_all_algorithms();
 #else
-    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+        OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
 #endif
+    }
 
-    return 0;
+    crypto_initialized = true;
+
+    return S2N_SUCCESS;
 }
 
 /* Reset any selected record algorithms */
@@ -1063,13 +1075,15 @@ int s2n_cipher_suites_cleanup(void)
         cur_suite->sslv3_cipher_suite = NULL;
     }
 
+    if (should_init_crypto) {
 #if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
-    EVP_cleanup();
+        /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+        EVP_cleanup();
 
-    /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
-     * cleanup in later versions */
+        /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
+        * cleanup in later versions */
 #endif
+    }
 
     return 0;
 }
@@ -1270,4 +1284,35 @@ int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, u
 int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
+}
+
+bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher)
+{
+    if(!cipher) {
+        return false;
+    }
+
+    /* TLS1.3 does not include key exchange algorithms in its cipher suites,
+     * but the elliptic curves extension is always required. */
+    if (cipher->minimum_required_tls_version >= S2N_TLS13) {
+        return true;
+    }
+
+    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_ecdhe)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher)
+{
+    if(!cipher) {
+        return false;
+    }
+
+    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
+        return true;
+    }
+    return false;
 }

@@ -98,6 +98,13 @@ static const struct s2n_kem_test_vector test_vectors[] = {
                 .disable_asm = s2n_pq_noop_asm,
         },
         {
+                .kem = &s2n_kyber_512_r3,
+                .kat_file = "kats/kyber_r3.kat",
+                .asm_is_enabled = s2n_kyber512r3_is_avx2_bmi2_enabled,
+                .enable_asm = s2n_try_enable_kyber512r3_opt_avx2_bmi2,
+                .disable_asm = s2n_disable_kyber512r3_opt_avx2_bmi2,
+        },
+        {
                 .kem = &s2n_sike_p434_r3,
                 .kat_file = "kats/sike_r3.kat",
                 .asm_is_enabled = s2n_sikep434r3_asm_is_enabled,

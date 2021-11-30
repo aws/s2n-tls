@@ -258,9 +258,9 @@ int main(int argc, char **argv)
     }
 
     /* Functional test */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_connection *client_conn, *server_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

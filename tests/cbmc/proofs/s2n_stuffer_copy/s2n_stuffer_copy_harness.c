@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
+
 #include <error/s2n_errno.h>
 
 #include "api/s2n.h"

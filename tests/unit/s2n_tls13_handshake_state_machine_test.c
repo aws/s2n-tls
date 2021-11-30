@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Construct an array of all valid tls1.3 handshake_types */
     uint16_t valid_tls13_handshakes[S2N_HANDSHAKES_COUNT];
@@ -584,6 +584,16 @@ int main(int argc, char **argv)
 
         /* TLS1.3 should error for an expected message from the wrong record type */
         {
+            /* Unfortunately, all our non-handshake record types have a message type of 0,
+             * and the combination of TLS_HANDSHAKE + "0" is actually a message (TLS_HELLO_REQUEST)
+             * which can appear at any point in a TLS1.2 handshake.
+             *
+             * To test, temporarily modify the actions table.
+             * We MUST restore this after this test.
+             */
+            uint8_t old_message_type = state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type;
+            state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = 1;
+
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
 
@@ -606,6 +616,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = old_message_type;
         }
 
         /* Error if a client receives a client cert request in non-FULL_HANDSHAKE mode */

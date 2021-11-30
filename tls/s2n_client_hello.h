@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_list.h"
@@ -31,6 +31,7 @@ struct s2n_client_hello {
 
     s2n_parsed_extensions_list extensions;
     struct s2n_blob cipher_suites;
+    struct s2n_blob session_id;
 
     unsigned int callback_invoked:1;
     unsigned int callback_async_blocked:1;

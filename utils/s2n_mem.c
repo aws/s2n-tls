@@ -14,7 +14,7 @@
  */
 
 #define  _DEFAULT_SOURCE 1
-#if !defined(__APPLE__) && !defined(__FreeBSD__)
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__)
 #include <features.h>
 #endif
 

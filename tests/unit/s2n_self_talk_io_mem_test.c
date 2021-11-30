@@ -22,7 +22,7 @@
 #include <time.h>
 #include <stdint.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -31,6 +31,10 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
 
     struct s2n_cert_chain_and_key *chain_and_key;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

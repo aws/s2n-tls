@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_client_key_share.h"
@@ -39,7 +39,7 @@ static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_gr
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test s2n_server_key_share_send_check_ecdhe */
     {
@@ -71,10 +71,10 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_ecdhe(conn), S2N_ERR_BAD_KEY_SHARE);
 
-        conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+        conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_ecdhe(conn), S2N_ERR_BAD_KEY_SHARE);
 
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[0]));
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
         EXPECT_SUCCESS(s2n_server_key_share_send_check_ecdhe(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -125,8 +125,8 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < ecc_pref->count; i++) {
             const struct s2n_ecc_named_curve *curve = ecc_pref->ecc_curves[i];
             conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
-            conn->kex_params.client_ecc_evp_params[i].negotiated_curve = curve;
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params[i]));
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = curve;
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             EXPECT_SUCCESS(s2n_server_key_share_extension.send(conn, &stuffer));
 
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_group);
             EXPECT_EQUAL(conn->kex_params.server_ecc_evp_params.negotiated_curve, curve);
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->kex_params.server_ecc_evp_params));
-            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->kex_params.client_ecc_evp_params[i]));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->kex_params.client_ecc_evp_params));
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -210,12 +210,12 @@ int main(int argc, char **argv)
             struct s2n_stuffer* extension_stuffer = &server_send_conn->handshake.io;
 
             server_send_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
-            server_send_conn->kex_params.client_ecc_evp_params[i].negotiated_curve = ecc_pref->ecc_curves[i];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_send_conn->kex_params.client_ecc_evp_params[i]));
+            server_send_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_send_conn->kex_params.client_ecc_evp_params));
             EXPECT_SUCCESS(s2n_server_key_share_extension.send(server_send_conn, extension_stuffer));
 
-            client_recv_conn->kex_params.client_ecc_evp_params[i].negotiated_curve = ecc_pref->ecc_curves[i];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_recv_conn->kex_params.client_ecc_evp_params[i]));
+            client_recv_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_recv_conn->kex_params.client_ecc_evp_params));
 
             /* Parse key share */
             EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_recv_conn, extension_stuffer));
@@ -261,8 +261,8 @@ int main(int argc, char **argv)
                 EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
                 EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, payload));
 
-                client_conn->kex_params.client_ecc_evp_params[i].negotiated_curve = ecc_pref->ecc_curves[i];
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[i]));
+                client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
                 EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &extension_stuffer));
                 EXPECT_EQUAL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[i]);
@@ -289,8 +289,8 @@ int main(int argc, char **argv)
                 EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
                 EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, payload));
 
-                client_conn->kex_params.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[0]));
+                client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
                 client_conn->actual_protocol_version = S2N_TLS12;
                 EXPECT_SUCCESS(s2n_extension_recv(&s2n_server_key_share_extension, client_conn, &extension_stuffer));
@@ -342,8 +342,8 @@ int main(int argc, char **argv)
             /* If s2n_is_evp_apis_supported is not supported, the ecc_prefs->ecc_curves contains only p-256, p-384 curves. */
             int p_384_index = s2n_is_evp_apis_supported() ? 2 : 1;
 
-            client_conn->kex_params.client_ecc_evp_params[p_384_index].negotiated_curve = ecc_pref->ecc_curves[p_384_index];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params[p_384_index]));
+            client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[p_384_index];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &extension_stuffer), S2N_ERR_BAD_KEY_SHARE);
 
@@ -360,6 +360,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -374,9 +375,6 @@ int main(int argc, char **argv)
 
         /* Server configures the "negotiated_curve" */
         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-        for (size_t i = 1; i < ecc_pref->count; i++) {
-            server_conn->kex_params.client_ecc_evp_params[i].negotiated_curve = NULL;
-        }
 
         EXPECT_SUCCESS(s2n_server_key_share_extension.send(server_conn, &key_share_extension));
         EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_extension));
@@ -386,19 +384,19 @@ int main(int argc, char **argv)
 
         /* Ensure both client and server public key matches */
         s2n_public_ecc_keys_are_equal(&server_conn->kex_params.server_ecc_evp_params, &client_conn->kex_params.server_ecc_evp_params);
-        s2n_public_ecc_keys_are_equal(&server_conn->kex_params.client_ecc_evp_params[0], &client_conn->kex_params.client_ecc_evp_params[0]);
+        s2n_public_ecc_keys_are_equal(&server_conn->kex_params.client_ecc_evp_params, &client_conn->kex_params.client_ecc_evp_params);
 
         /* Server generates shared key based on Server's Key and Client's public key  */
         struct s2n_blob server_shared_secret = { 0 };
         EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_from_params(
             &server_conn->kex_params.server_ecc_evp_params,
-            &server_conn->kex_params.client_ecc_evp_params[0],
+            &server_conn->kex_params.client_ecc_evp_params,
             &server_shared_secret));
 
         /* Clients generates shared key based on Client's Key and Server's public key */
         struct s2n_blob client_shared_secret = { 0 };
         EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_from_params(
-            &client_conn->kex_params.client_ecc_evp_params[0],
+            &client_conn->kex_params.client_ecc_evp_params,
             &client_conn->kex_params.server_ecc_evp_params,
             &client_shared_secret));
 
@@ -433,7 +431,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
 
         conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
-        conn->kex_params.client_ecc_evp_params[0].negotiated_curve = test_curve;
+        conn->kex_params.client_ecc_evp_params.negotiated_curve = test_curve;
         EXPECT_FAILURE(s2n_server_key_share_extension.send(conn, &conn->handshake.io));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -460,7 +458,7 @@ int main(int argc, char **argv)
 
     /* Test the s2n_server_key_share_extension.recv with HelloRetryRequest */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         /* For a HelloRetryRequest, we won't have a key share. We just have the server selected group/negotiated curve.
          * Test that s2n_server_key_share_extension.recv obtains the server negotiate curve successfully. */
         {
@@ -473,11 +471,11 @@ int main(int argc, char **argv)
             struct s2n_stuffer *key_share_extension = &server_conn->handshake.io;
 
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
-            EXPECT_MEMCPY_SUCCESS(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_MEMCPY_SUCCESS(server_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_server_key_share_extension.send(server_conn, key_share_extension));
 
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
@@ -485,14 +483,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_preferences);
 
             /* Verify that no key shares are sent */
-            for (size_t i = 0; i < ecc_preferences->count; i++) {
-                struct s2n_ecc_evp_params *ecc_evp_params = &server_conn->kex_params.client_ecc_evp_params[i];
-                EXPECT_NULL(ecc_evp_params->negotiated_curve);
-                EXPECT_NULL(ecc_evp_params->evp_pkey);
-            }
+            struct s2n_ecc_evp_params *ecc_evp_params = &server_conn->kex_params.client_ecc_evp_params;
+            EXPECT_NULL(ecc_evp_params->negotiated_curve);
+            EXPECT_NULL(ecc_evp_params->evp_pkey);
 
             /* Setup the client to have received a HelloRetryRequest */
-            EXPECT_MEMCPY_SUCCESS(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_MEMCPY_SUCCESS(client_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
             EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
@@ -508,7 +504,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     {
@@ -576,7 +572,7 @@ int main(int argc, char **argv)
 
         /* Tests for s2n_server_key_share_extension.recv with hybrid PQ key shares */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
             /* If PQ is disabled, the client will not have sent PQ IDs/keyshares in the ClientHello;
              * if the server responded with a PQ keyshare, we should error. */
@@ -608,7 +604,7 @@ int main(int argc, char **argv)
 
                         /* Read the test vectors from the KAT file (the PQ key shares are too long to hardcode inline).
                          * pq_private_key is intentionally missing DERFER_CLEANUP; it will get freed during s2n_connection_free. */
-                        struct s2n_blob *pq_private_key = &client_conn->kex_params.client_kem_group_params[i].kem_params.private_key;
+                        struct s2n_blob *pq_private_key = &client_conn->kex_params.client_kem_group_params.kem_params.private_key;
                         DEFER_CLEANUP(struct s2n_stuffer pq_shared_secret = {0}, s2n_stuffer_free);
                         DEFER_CLEANUP(struct s2n_stuffer key_share_payload = {0}, s2n_stuffer_free);
                         EXPECT_SUCCESS(s2n_read_server_key_share_hybrid_test_vectors(kem_group, pq_private_key,
@@ -616,8 +612,7 @@ int main(int argc, char **argv)
 
                         /* Assert correct initial state */
                         EXPECT_NULL(client_conn->kex_params.server_kem_group_params.kem_group);
-                        EXPECT_NULL(client_conn->kex_params.chosen_client_kem_group_params);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].kem_group);
+                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params.kem_group);
 
                         const struct s2n_kem_preferences *kem_prefs = NULL;
                         EXPECT_SUCCESS(s2n_connection_get_kem_preferences(client_conn, &kem_prefs));
@@ -625,10 +620,10 @@ int main(int argc, char **argv)
                         EXPECT_EQUAL(kem_group, kem_prefs->tls13_kem_groups[i]);
 
                         /* This set up would have been done when the client sent its key share(s) */
-                        client_conn->kex_params.client_kem_group_params[i].kem_group = kem_group;
-                        client_conn->kex_params.client_kem_group_params[i].ecc_params.negotiated_curve = kem_group->curve;
-                        client_conn->kex_params.client_kem_group_params[i].kem_params.kem = kem_group->kem;
-                        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_kem_group_params[i].ecc_params));
+                        client_conn->kex_params.client_kem_group_params.kem_group = kem_group;
+                        client_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
+                        client_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
+                        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_kem_group_params.ecc_params));
 
                         /* Call the function and assert correctness */
                         EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_payload));
@@ -640,13 +635,13 @@ int main(int argc, char **argv)
                         EXPECT_NOT_NULL(client_conn->kex_params.server_kem_group_params.kem_params.kem);
                         EXPECT_EQUAL(client_conn->kex_params.server_kem_group_params.kem_params.kem, kem_group->kem);
 
-                        EXPECT_EQUAL(client_conn->kex_params.chosen_client_kem_group_params->kem_group, kem_group);
-                        EXPECT_EQUAL(client_conn->kex_params.chosen_client_kem_group_params->ecc_params.negotiated_curve,kem_group->curve);
-                        EXPECT_EQUAL(client_conn->kex_params.chosen_client_kem_group_params->kem_params.kem,kem_group->kem);
-                        EXPECT_NOT_NULL(client_conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret.data);
-                        EXPECT_EQUAL(client_conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret.size,
+                        EXPECT_EQUAL(client_conn->kex_params.client_kem_group_params.kem_group, kem_group);
+                        EXPECT_EQUAL(client_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve,kem_group->curve);
+                        EXPECT_EQUAL(client_conn->kex_params.client_kem_group_params.kem_params.kem,kem_group->kem);
+                        EXPECT_NOT_NULL(client_conn->kex_params.client_kem_group_params.kem_params.shared_secret.data);
+                        EXPECT_EQUAL(client_conn->kex_params.client_kem_group_params.kem_params.shared_secret.size,
                                 kem_group->kem->shared_secret_key_length);
-                        EXPECT_BYTEARRAY_EQUAL(client_conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret.data,
+                        EXPECT_BYTEARRAY_EQUAL(client_conn->kex_params.client_kem_group_params.kem_params.shared_secret.data,
                                 pq_shared_secret.blob.data, kem_group->kem->shared_secret_key_length);
 
                         EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_payload), 0);
@@ -682,17 +677,13 @@ int main(int argc, char **argv)
 
                     /* s2n_server_key_share_extension.recv should have exited early after parsing the indicated group,
                      * so everything else should be NULL */
-                    EXPECT_NULL(client_conn->kex_params.chosen_client_kem_group_params);
-
-                    for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].kem_group);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].ecc_params.negotiated_curve);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].ecc_params.evp_pkey);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].kem_params.kem);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].kem_params.private_key.data);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].kem_params.public_key.data);
-                        EXPECT_NULL(client_conn->kex_params.client_kem_group_params[i].kem_params.shared_secret.data);
-                    }
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.kem_group);
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve);
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.kem_params.kem);
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.kem_params.private_key.data);
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.kem_params.public_key.data);
+                    EXPECT_NULL(client_conn->kex_params.client_kem_group_params.kem_params.shared_secret.data);
 
                     EXPECT_NULL(client_conn->kex_params.server_kem_group_params.ecc_params.evp_pkey);
                     EXPECT_NULL(client_conn->kex_params.server_kem_group_params.kem_params.shared_secret.data);
@@ -725,7 +716,7 @@ int main(int argc, char **argv)
                         /* To test the remaining failure cases, we need to read in the test vector from the KAT file, then
                          * manipulate it as necessary. (We do this now, instead of earlier, because we needed
                          * client_kem_group_params[i].kem_params.private_key to be empty to test the previous case.) */
-                        struct s2n_blob *pq_private_key = &client_conn->kex_params.client_kem_group_params[i].kem_params.private_key;
+                        struct s2n_blob *pq_private_key = &client_conn->kex_params.client_kem_group_params.kem_params.private_key;
                         DEFER_CLEANUP(struct s2n_stuffer pq_shared_secret = {0}, s2n_stuffer_free);
                         DEFER_CLEANUP(struct s2n_stuffer key_share_payload = {0}, s2n_stuffer_free);
                         EXPECT_SUCCESS(s2n_read_server_key_share_hybrid_test_vectors(kem_group, pq_private_key,
@@ -734,10 +725,10 @@ int main(int argc, char **argv)
                         /* Server sends the wrong (total) size: data[2] and data[3] are the bytes containing the total size
                          * of the key share; bitflip data[2] to invalidate the sent size */
                         key_share_payload.blob.data[2] = ~key_share_payload.blob.data[2];
-                        client_conn->kex_params.client_kem_group_params[i].kem_group = kem_group;
-                        client_conn->kex_params.client_kem_group_params[i].ecc_params.negotiated_curve = kem_group->curve;
-                        client_conn->kex_params.client_kem_group_params[i].kem_params.kem = kem_group->kem;
-                        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_kem_group_params[i].ecc_params));
+                        client_conn->kex_params.client_kem_group_params.kem_group = kem_group;
+                        client_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
+                        client_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
+                        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_kem_group_params.ecc_params));
                         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &key_share_payload),
                                 S2N_ERR_BAD_KEY_SHARE);
                         /* Revert key_share_payload back to correct state */
@@ -785,14 +776,14 @@ int main(int argc, char **argv)
                         size_t pq_key_share_first_byte_index = pq_share_size_index + 2;
                         key_share_payload.blob.data[pq_key_share_first_byte_index] = ~key_share_payload.blob.data[pq_key_share_first_byte_index];
                         EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_payload));
-                        EXPECT_BYTEARRAY_NOT_EQUAL(client_conn->kex_params.chosen_client_kem_group_params->kem_params.shared_secret.data,
+                        EXPECT_BYTEARRAY_NOT_EQUAL(client_conn->kex_params.client_kem_group_params.kem_params.shared_secret.data,
                                 pq_shared_secret.blob.data, kem_group->kem->shared_secret_key_length);
 
                         EXPECT_SUCCESS(s2n_connection_free(client_conn));
                     }
                 }
             }
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
         /* Test s2n_server_key_share_send_check_pq_hybrid */
@@ -820,26 +811,23 @@ int main(int argc, char **argv)
 
                 conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_bike1_l1_r2;
                 conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_bike1_l1_r2;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_NULL);
-
-                conn->kex_params.chosen_client_kem_group_params = &conn->kex_params.client_kem_group_params[1];
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->kex_params.client_kem_group_params[1].kem_group = &s2n_secp256r1_bike1_l1_r2;
+                conn->kex_params.client_kem_group_params.kem_group = &s2n_secp256r1_bike1_l1_r2;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->kex_params.client_kem_group_params[1].ecc_params.negotiated_curve = s2n_secp256r1_bike1_l1_r2.curve;
+                conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = s2n_secp256r1_bike1_l1_r2.curve;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_kem_group_params[1].ecc_params));
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_kem_group_params.ecc_params));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->kex_params.client_kem_group_params[1].kem_params.kem = s2n_secp256r1_bike1_l1_r2.kem;
+                conn->kex_params.client_kem_group_params.kem_params.kem = s2n_secp256r1_bike1_l1_r2.kem;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                EXPECT_SUCCESS(s2n_alloc(&conn->kex_params.client_kem_group_params[1].kem_params.public_key,
+                EXPECT_SUCCESS(s2n_alloc(&conn->kex_params.client_kem_group_params.kem_params.public_key,
                         s2n_secp256r1_bike1_l1_r2.kem->public_key_length));
-                EXPECT_OK(s2n_kem_generate_keypair(&conn->kex_params.client_kem_group_params[1].kem_params));
+                EXPECT_OK(s2n_kem_generate_keypair(&conn->kex_params.client_kem_group_params.kem_params));
                 EXPECT_SUCCESS(s2n_server_key_share_send_check_pq_hybrid(conn));
             }
 
@@ -870,8 +858,7 @@ int main(int argc, char **argv)
                 server_params->kem_params.kem = kem_group->kem;
                 server_params->ecc_params.negotiated_curve = kem_group->curve;
 
-                struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params[i];
-                conn->kex_params.chosen_client_kem_group_params = client_params;
+                struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
                 client_params->kem_group = kem_group;
                 client_params->kem_params.kem = kem_group->kem;
                 client_params->ecc_params.negotiated_curve = kem_group->curve;
@@ -928,7 +915,6 @@ int main(int argc, char **argv)
                 server_params->kem_group = kem_group;
                 server_params->kem_params.kem = kem_group->kem;
                 server_params->ecc_params.negotiated_curve = kem_group->curve;
-                EXPECT_NULL(conn->kex_params.chosen_client_kem_group_params);
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.evp_pkey);
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
@@ -943,7 +929,6 @@ int main(int argc, char **argv)
                 EXPECT_NULL(server_params->kem_params.shared_secret.data);
                 EXPECT_EQUAL(0, server_params->kem_params.shared_secret.size);
                 EXPECT_NULL(server_params->ecc_params.evp_pkey);
-                EXPECT_NULL(conn->kex_params.chosen_client_kem_group_params);
 
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.evp_pkey);

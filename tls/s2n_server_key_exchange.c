@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 
@@ -40,8 +40,9 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure.cipher_suite);
     POSIX_ENSURE_REF(conn->secure.cipher_suite->key_exchange_alg);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
 
-    struct s2n_hash_state *signature_hash = &conn->hash_workspace;
+    struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = {0};
@@ -51,16 +52,15 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */
-    struct s2n_signature_scheme active_sig_scheme;
+    struct s2n_signature_scheme *active_sig_scheme = &conn->handshake_params.conn_sig_scheme;
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* Verify the SigScheme picked by the Server was in the preference list we sent (or is the default SigScheme) */
-        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &active_sig_scheme));
-    } else {
-        active_sig_scheme = conn->secure.conn_sig_scheme;
+        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, active_sig_scheme));
     }
-    POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme.hash_alg));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+    POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Add KEX specific data */
     POSIX_GUARD(s2n_hash_update(signature_hash, data_to_verify.data, data_to_verify.size));
@@ -73,11 +73,11 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(signature.data);
     POSIX_ENSURE_GT(signature_length, 0);
 
-    S2N_ERROR_IF(s2n_pkey_verify(&conn->secure.server_public_key, active_sig_scheme.sig_alg,signature_hash, &signature) < 0,
+    S2N_ERROR_IF(s2n_pkey_verify(&conn->handshake_params.server_public_key, active_sig_scheme->sig_alg, signature_hash, &signature) < 0,
             S2N_ERR_BAD_MESSAGE);
 
     /* We don't need the key any more, so free it */
-    POSIX_GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+    POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
 
     /* Parse the KEX data into whatever form needed and save it to the connection object */
     POSIX_GUARD_RESULT(s2n_kex_server_key_recv_parse_data(key_exchange, conn, &kex_data));
@@ -232,9 +232,12 @@ int s2n_hybrid_server_key_recv_parse_data(struct s2n_connection *conn, struct s2
 
 int s2n_server_key_send(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+
     S2N_ASYNC_PKEY_GUARD(conn);
 
-    struct s2n_hash_state *signature_hash = &conn->hash_workspace;
+    struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob data_to_sign = {0};
@@ -244,18 +247,18 @@ int s2n_server_key_send(struct s2n_connection *conn)
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        POSIX_GUARD(s2n_stuffer_write_uint16(out, conn->secure.conn_sig_scheme.iana_value));
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.conn_sig_scheme.iana_value));
     }
 
     /* Add the random data to the hash */
-    POSIX_GUARD(s2n_hash_init(signature_hash, conn->secure.conn_sig_scheme.hash_alg));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_init(signature_hash, conn->handshake_params.conn_sig_scheme.hash_alg));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD(s2n_hash_update(signature_hash, conn->secrets.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Add KEX specific data to the hash */
     POSIX_GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
-    S2N_ASYNC_PKEY_SIGN(conn, conn->secure.conn_sig_scheme.sig_alg, signature_hash, s2n_server_key_send_write_signature);
+    S2N_ASYNC_PKEY_SIGN(conn, conn->handshake_params.conn_sig_scheme.sig_alg, signature_hash, s2n_server_key_send_write_signature);
 }
 
 int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)

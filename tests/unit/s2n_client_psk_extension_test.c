@@ -1422,7 +1422,7 @@ int main(int argc, char **argv)
     }
 
     /* Functional test */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
         struct s2n_connection *client_conn, *server_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));

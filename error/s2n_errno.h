@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdio.h>
 #include <stdbool.h>
-#include <utils/s2n_ensure.h>
+#include "utils/s2n_ensure.h"
 
 /*
  * To easily retrieve error types, we split error values into two parts.
@@ -265,7 +265,6 @@ typedef enum {
     S2N_ERR_ASYNC_ALREADY_PERFORMED,
     S2N_ERR_ASYNC_NOT_PERFORMED,
     S2N_ERR_ASYNC_WRONG_CONNECTION,
-    S2N_ERR_ASYNC_APPLY_WHILE_INVOKING,
     S2N_ERR_ASYNC_ALREADY_APPLIED,
     S2N_ERR_UNSUPPORTED_WITH_QUIC,
     S2N_ERR_DUPLICATE_PSK_IDENTITIES,
@@ -276,6 +275,7 @@ typedef enum {
     S2N_ERR_EARLY_DATA_NOT_ALLOWED,
     S2N_ERR_NO_CERT_FOUND,
     S2N_ERR_CERT_NOT_VALIDATED,
+    S2N_ERR_NO_PRIVATE_KEY,
     S2N_ERR_PSK_MODE,
     S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND,
     S2N_ERR_INVALID_X509_EXTENSION_TYPE,
@@ -291,7 +291,7 @@ extern __thread const char *s2n_debug_str;
 #define STRING_(s) TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
-#define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
+#define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ ":" STRING__LINE__
 #define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)

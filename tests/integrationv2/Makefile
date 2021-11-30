@@ -28,14 +28,20 @@ endif
 
 define run_tox
 	( \
-	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	PATH="../../bin":$(LIBCRYPTO_ROOT)/bin:$(PATH) \
 	TOX_TEST_NAME=$(1) \
 	tox \
 	)
 endef
+
+ifdef TOX_TEST_NAME
+default: test_single
+else
+default: all
+endif
 
 test_key_update:
 	$(call run_tox,$@.py)

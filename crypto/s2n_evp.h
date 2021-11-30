@@ -16,6 +16,7 @@
 #pragma once
 
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
 
 #include "crypto/s2n_openssl.h"
 #include "utils/s2n_result.h"
@@ -27,7 +28,10 @@ struct s2n_evp_digest {
 
 struct s2n_evp_hmac_state {
     struct s2n_evp_digest evp_digest;
-    EVP_PKEY *mac_key;
+    union {
+        HMAC_CTX *hmac_ctx;
+        EVP_PKEY *evp_pkey;
+    } ctx;
 };
 
 /* Define API's that change based on the OpenSSL Major Version. */

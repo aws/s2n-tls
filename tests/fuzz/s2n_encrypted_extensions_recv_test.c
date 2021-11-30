@@ -36,7 +36,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    POSIX_GUARD(s2n_enable_tls13());
+    POSIX_GUARD(s2n_enable_tls13_in_test());
     return S2N_SUCCESS;
 }
 

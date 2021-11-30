@@ -12,8 +12,8 @@
 # limitations under the License.
 
 # Enough to get full coverage with 40 seconds of runtime.
-BLOB_SIZE = 10
-DEFINES += -DBLOB_SIZE=$(BLOB_SIZE)
+MAX_BLOB_SIZE = 10
+DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 PROOF_UID = s2n_stuffer_skip_to_char
 HARNESS_ENTRY = $(PROOF_UID)_harness
@@ -30,6 +30,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
-UNWINDSET += s2n_stuffer_skip_to_char.1:$(call addone,$(BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_to_char.1:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common

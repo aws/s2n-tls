@@ -38,7 +38,7 @@ int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type)
     uint16_t length = 0;
     POSIX_GUARD(s2n_stuffer_write_uint24(out, length));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_handshake_finish_header(struct s2n_stuffer *out)
@@ -54,7 +54,7 @@ int s2n_handshake_finish_header(struct s2n_stuffer *out)
     POSIX_GUARD(s2n_stuffer_write_uint24(out, payload));
     POSIX_GUARD(s2n_stuffer_skip_write(out, payload));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_type, uint32_t * length)
@@ -65,41 +65,42 @@ int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_ty
     POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, message_type));
     POSIX_GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, length));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state **hash_state)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake.hashes);
 
     switch (hash_alg) {
     case S2N_HASH_MD5:
-        *hash_state = &conn->handshake.md5;
+        *hash_state = &conn->handshake.hashes->md5;
         break;
     case S2N_HASH_SHA1:
-        *hash_state = &conn->handshake.sha1;
+        *hash_state = &conn->handshake.hashes->sha1;
         break;
     case S2N_HASH_SHA224:
-        *hash_state = &conn->handshake.sha224;
+        *hash_state = &conn->handshake.hashes->sha224;
         break;
     case S2N_HASH_SHA256:
-        *hash_state = &conn->handshake.sha256;
+        *hash_state = &conn->handshake.hashes->sha256;
         break;
     case S2N_HASH_SHA384:
-        *hash_state = &conn->handshake.sha384;
+        *hash_state = &conn->handshake.hashes->sha384;
         break;
     case S2N_HASH_SHA512:
-        *hash_state = &conn->handshake.sha512;
+        *hash_state = &conn->handshake.hashes->sha512;
         break;
     case S2N_HASH_MD5_SHA1:
-        *hash_state = &conn->handshake.md5_sha1;
+        *hash_state = &conn->handshake.hashes->md5_sha1;
         break;
     default:
         POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
         break;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg)
@@ -109,7 +110,7 @@ int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorit
 
     POSIX_GUARD(s2n_hash_reset(hash_state_ptr));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Copy the current hash state into the caller supplied pointer.
@@ -128,19 +129,19 @@ int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm
 
     *hash_state = *hash_state_ptr;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)
 {
     memset(handshake->required_hash_algs, 1, sizeof(handshake->required_hash_algs));
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
 {
     handshake->required_hash_algs[hash_alg] = 1;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
@@ -166,7 +167,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
     /* If client authentication is possible, all hashes are needed until we're past CLIENT_CERT_VERIFY. */
     if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
         POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
-        return 0;
+        return S2N_SUCCESS;
     }
 
     /* We don't need all of the hashes. Set the hash alg(s) required for the PRF */
@@ -190,7 +191,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
     }
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*
@@ -220,7 +221,7 @@ int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2
 
     /* No first label found */
     if (s2n_stuffer_data_available(hostname_stuffer) == 0) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     /* Slap a single wildcard character to be the first label in output */
@@ -229,7 +230,7 @@ int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2
     /* Simply copy the rest of the input to the output. */
     POSIX_GUARD(s2n_stuffer_copy(hostname_stuffer, output, s2n_stuffer_data_available(hostname_stuffer)));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
@@ -248,7 +249,7 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
         *match_exists = 1;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Find certificates that match the ServerName TLS extension sent by the client.
@@ -261,7 +262,7 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
 int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 {
     if (!s2n_server_received_server_name(conn)) {
-        return 0;
+        return S2N_SUCCESS;
     }
     const char *name = conn->server_name;
     struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) name, .size = strlen(name) };
@@ -291,7 +292,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 
         /* Couldn't create a valid wildcard from the input */
         if (wildcard_len == 0) {
-            return 0;
+            return S2N_SUCCESS;
         }
 
         /* The client's SNI is wildcardified, do an exact match against the set of server certs. */
@@ -309,7 +310,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
         || conn->handshake_params.exact_sni_match_exists
         || conn->handshake_params.wc_sni_match_exists;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Find the optimal certificate of a specific type.
@@ -345,5 +346,13 @@ S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_
     int r = s2n_negotiate(conn, blocked);
     conn->handshake.end_of_messages = APPLICATION_DATA;
     RESULT_GUARD_POSIX(r);
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake)
+{
+    RESULT_ENSURE_REF(s2n_handshake);
+    RESULT_DEBUG_ENSURE(s2n_handshake->handshake_type < 256, S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(s2n_handshake->message_number >= 0 && s2n_handshake->message_number < 32, S2N_ERR_SAFETY);
     return S2N_RESULT_OK;
 }

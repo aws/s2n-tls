@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <time.h>
 
-#include "s2n.h"
+#include "api/s2n.h"
 
 #if defined(S2N_CPUID_AVAILABLE)
 #include <cpuid.h>
@@ -415,6 +415,8 @@ S2N_RESULT s2n_rand_cleanup(void)
         ENGINE_finish(rand_engine);
         ENGINE_free(rand_engine);
         ENGINE_cleanup();
+        RAND_set_rand_engine(NULL);
+        RAND_set_rand_method(NULL);
     }
 #endif
 

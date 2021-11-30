@@ -28,6 +28,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+       END_TEST();
+    }
+
     /* Test should_send */
     {
         struct s2n_config *config;

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_config.h"
 #include "tls/s2n_tls.h"

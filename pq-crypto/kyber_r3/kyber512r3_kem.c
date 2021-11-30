@@ -3,6 +3,7 @@
 #include "kyber512r3_params.h"
 #include "kyber512r3_symmetric.h"
 #include "kyber512r3_indcpa.h"
+#include "kyber512r3_indcpa_avx2.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq_random.h"
@@ -24,7 +25,15 @@
 int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    POSIX_GUARD(indcpa_keypair(pk, sk));
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
+    if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
+        POSIX_GUARD(indcpa_keypair_avx2(pk, sk));
+    }else
+#endif
+    {
+        POSIX_GUARD(indcpa_keypair(pk, sk));
+    }
+    
     for(size_t i = 0; i < S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES; i++) {
         sk[i + S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES] = pk[i];
     }
@@ -65,8 +74,15 @@ int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
     sha3_512(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
-    indcpa_enc(ct, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
-
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
+    if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
+        indcpa_enc_avx2(ct, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
+    }else
+#endif
+    {
+        indcpa_enc(ct, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
+    }
+    
     /* overwrite coins in kr with H(c) */
     sha3_256(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
     /* hash concatenation of pre-k and H(c) to k */
@@ -100,8 +116,15 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     uint8_t cmp[S2N_KYBER_512_R3_CIPHERTEXT_BYTES];
     const uint8_t *pk = sk+S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES;
 
-    indcpa_dec(buf, ct, sk);
-
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
+    if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
+        indcpa_dec_avx2(buf, ct, sk);
+    }else
+#endif
+    {
+        indcpa_dec(buf, ct, sk);
+    }
+    
     /* Multitarget countermeasure for coins + contributory KEM */
     for(size_t i = 0; i < S2N_KYBER_512_R3_SYMBYTES; i++) {
         buf[S2N_KYBER_512_R3_SYMBYTES + i] = sk[S2N_KYBER_512_R3_SECRET_KEY_BYTES - 2 * S2N_KYBER_512_R3_SYMBYTES + i];
@@ -109,8 +132,15 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     sha3_512(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
-    indcpa_enc(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
-
+#if defined(S2N_KYBER512R3_AVX2_BMI2)
+    if (s2n_kyber512r3_is_avx2_bmi2_enabled()) {
+        indcpa_enc_avx2(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
+    }else
+#endif
+    {
+        indcpa_enc(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
+    }
+    
     /* If ct and cmp are equal (dont_copy = 1), decryption has succeeded and we do NOT overwrite pre-k below.
      * If ct and cmp are not equal (dont_copy = 0), decryption fails and we do overwrite pre-k. */
     int dont_copy = s2n_constant_time_equals(ct, cmp, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);

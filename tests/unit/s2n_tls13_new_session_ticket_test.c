@@ -17,7 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
@@ -76,6 +76,10 @@ int main(int argc, char **argv)
 {   
     BEGIN_TEST();
     
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     /* s2n_send sends NewSessionTicket message and s2n_recv receives it */
     {
         struct s2n_connection *server_conn= s2n_connection_new(S2N_SERVER);

@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -267,7 +267,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
 
     /* Make sure we negotiated the expected version */
     if (use_tls13) {
-        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
     } else {
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
     }

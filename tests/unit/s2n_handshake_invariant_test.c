@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
@@ -62,7 +62,7 @@ int s2n_app_data_in_handshake_record_recv_fn(void *io_context, uint8_t *buf, uin
 {
     int amt_left = sizeof(record) - amt_written;
     int to_write = MIN(len, amt_left);
-    memcpy(buf, record + amt_written, to_write);
+    POSIX_CHECKED_MEMCPY(buf, record + amt_written, to_write);
     amt_written += to_write;
     return to_write;
 }
@@ -70,7 +70,7 @@ int s2n_app_data_in_handshake_record_recv_fn(void *io_context, uint8_t *buf, uin
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_connection *conn;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
