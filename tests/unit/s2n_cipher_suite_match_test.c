@@ -39,7 +39,7 @@ static s2n_result s2n_conn_set_chosen_psk(struct s2n_connection *conn) {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test client cipher selection */
     {
@@ -819,7 +819,7 @@ int main(int argc, char **argv)
 
         /* Client sends cipher which is not in the configured suite */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             uint8_t invalid_cipher_pref[] = {
                 TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384
             };
@@ -830,7 +830,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
         EXPECT_SUCCESS(s2n_config_free(server_config));

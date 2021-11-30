@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Construct an array of all valid tls1.3 handshake_types */
     uint16_t valid_tls13_handshakes[S2N_HANDSHAKES_COUNT];

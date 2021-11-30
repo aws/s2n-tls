@@ -18,7 +18,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 int main(int argc, char **argv)
 {
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     uint64_t u64;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 100));

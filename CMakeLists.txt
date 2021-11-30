@@ -24,6 +24,7 @@ the library is not compromised. Turn this OFF to ignore warnings." ON)
 option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed with a specific
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
+option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -256,6 +257,11 @@ else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
 
+# Compiling the unit tests rely on S2N_TEST_IN_FIPS_MODE to be set correctly
+if(S2N_FIPS)
+    add_definitions(-DS2N_TEST_IN_FIPS_MODE)
+endif()
+
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${CRYPTO_HEADERS}
@@ -293,6 +299,14 @@ if(BUILD_TESTING AND BUILD_SHARED_LIBS)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
+endif()
+
+if(S2N_LTO)
+    target_compile_options(${PROJECT_NAME} PRIVATE -flto)
+    # if we're building a static lib, make it easier for consuming applications to also perform LTO
+    if(NOT BUILD_SHARED_LIBS)
+        target_compile_options(${PROJECT_NAME} PRIVATE -ffunction-sections -fdata-sections)
+    endif()
 endif()
 
 if(NOT APPLE)
@@ -393,6 +407,19 @@ else()
     else()
         message(FATAL_ERROR "Target crypto is not defined, failed to find libcrypto")
     endif()
+endif()
+
+# Determine if EVP_md5_sha1 is available in libcrypto
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md5_sha1.c"
+        LINK_LIBRARIES crypto ${OS_LIBS}
+        CMAKE_FLAGS
+            "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>"
+)
+if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
@@ -531,6 +558,11 @@ if (BUILD_TESTING)
     target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
+
+    if(S2N_LTO)
+        target_compile_options(s2nc PRIVATE -flto)
+        target_compile_options(s2nd PRIVATE -flto)
+    endif()
 
     if(BENCHMARK)
         find_package(benchmark REQUIRED)

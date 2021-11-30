@@ -17,7 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test should_send */
     {
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_extension_recv(&s2n_server_cookie_extension, client_conn, &stuffer));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }

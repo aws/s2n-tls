@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_safety.h"
 #include "testlib/s2n_testlib.h"
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 

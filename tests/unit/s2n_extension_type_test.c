@@ -57,7 +57,7 @@ const s2n_extension_type test_extension_type = {
 int main()
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test common implementations of methods */
     {
@@ -382,7 +382,7 @@ int main()
 
     /* Test minimum_version field */
     {
-        EXPECT_SUCCESS(s2n_reset_tls13());
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
         s2n_extension_type test_extension_type_with_min = test_extension_type;
         test_extension_type_with_min.minimum_version = S2N_TLS13;

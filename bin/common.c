@@ -22,8 +22,9 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
-#include <s2n.h>
-#include <error/s2n_errno.h>
+
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -348,8 +349,8 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
-    memcpy(cache[idx].key, key, key_size);
-    memcpy(cache[idx].value, value, value_size);
+    memmove(cache[idx].key, key, key_size);
+    memmove(cache[idx].value, value, value_size);
 
     cache[idx].key_len = key_size;
     cache[idx].value_len = value_size;
@@ -370,7 +371,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
     POSIX_ENSURE(*value_size >= cache[idx].value_len, S2N_ERR_INVALID_ARGUMENT);
 
     *value_size = cache[idx].value_len;
-    memcpy(value, cache[idx].value, cache[idx].value_len);
+    memmove(value, cache[idx].value, cache[idx].value_len);
 
     for (uint64_t i = 0; i < key_size; i++) {
         printf("%02x", ((const uint8_t *)key)[i]);

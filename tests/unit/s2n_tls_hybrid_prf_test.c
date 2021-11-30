@@ -19,8 +19,8 @@
 #include <stdio.h>
 
 
-#include <s2n.h>
-#include <tls/s2n_cipher_suites.h>
+#include "api/s2n.h"
+#include "tls/s2n_cipher_suites.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_prf.h"
@@ -41,7 +41,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     FILE *kat_file = fopen(KAT_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);

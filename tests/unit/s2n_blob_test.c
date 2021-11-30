@@ -18,12 +18,12 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Null blob is not valid */
     EXPECT_ERROR(s2n_blob_validate(NULL));
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     uint8_t hello_world[] = "HELLO WORLD";
     EXPECT_SUCCESS(s2n_alloc(&g5, 12));
     EXPECT_TRUE(s2n_blob_is_growable(&g5));
-    memcpy(g5.data, hello_world, sizeof(hello_world));
+    EXPECT_MEMCPY_SUCCESS(g5.data, hello_world, sizeof(hello_world));
     EXPECT_SUCCESS(s2n_realloc(&g5, 24));
     EXPECT_EQUAL(memcmp(g5.data, hello_world, sizeof(hello_world)), 0);
     EXPECT_SUCCESS(s2n_free(&g5));

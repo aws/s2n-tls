@@ -187,7 +187,7 @@ int test_count;
             fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
             return 1; \
         } \
-        printf("s2nd entered FIPS mode\n"); \
+        printf("s2n entered FIPS mode\n"); \
     } while (0)
 
 #else
@@ -201,8 +201,8 @@ int test_count;
     do {                                                                       \
         __typeof(n) __tmp_n = (n);                                             \
         if (__tmp_n) {                                                         \
-            if (memcpy((d), (s), (__tmp_n)) == NULL) {                         \
-                FAIL_MSG(#d "is NULL, memcpy() failed");                       \
+            if (memmove((d), (s), (__tmp_n)) == NULL) {                         \
+                FAIL_MSG(#d "is NULL, memmove() failed");                       \
             }                                                                  \
         }                                                                      \
     } while (0)

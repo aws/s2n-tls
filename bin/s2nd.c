@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <netdb.h>
@@ -25,7 +26,7 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "common.h"
 
 #include "utils/s2n_safety.h"
@@ -489,7 +490,7 @@ int main(int argc, char *const *argv)
     }
 
     if (fips_mode) {
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */

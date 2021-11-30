@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <benchmark/benchmark.h>
 #include <netdb.h>
 #include <getopt.h>

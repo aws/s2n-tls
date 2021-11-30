@@ -16,7 +16,7 @@
 #pragma once
 
 #include <errno.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <signal.h>
 #include <stdint.h>
 
@@ -130,6 +130,9 @@ struct s2n_connection {
 
     /* Connection negotiated an EMS */
     unsigned ems_negotiated:1;
+
+    /* Connection successfully set a ticket on the connection */
+    unsigned set_session:1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -365,10 +368,11 @@ struct s2n_connection {
     struct s2n_stuffer cookie_stuffer;
 
     /* Flags to prevent users from calling methods recursively.
-     * This can be an easy mistake to make when implementing send/receive callbacks.
+     * This can be an easy mistake to make when implementing callbacks.
      */
     bool send_in_use;
     bool recv_in_use;
+    bool negotiate_in_use;
     
     uint16_t tickets_to_send;
     uint16_t tickets_sent;

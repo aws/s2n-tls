@@ -31,7 +31,7 @@ static int reset_stuffers(struct s2n_stuffer *reread, struct s2n_stuffer *wipe)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test s2n_tls13_client_finished_send and s2n_tls13_client_finished_recv */
     {

@@ -25,7 +25,6 @@ LOGS=$(patsubst %.saw,tmp/%.log,$(SCRIPTS))
 SHELL:=/bin/bash
 YICES_VERSION=$(shell yices-smt2 --version)
 export LIBCRYPTO_ROOT:=$(shell pwd)/../../libcrypto-root
-export S2N_ROOT=$(shell pwd)/s2n
 
 .PHONY : all
 all:

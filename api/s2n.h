@@ -1076,24 +1076,130 @@ struct s2n_async_pkey_op;
 typedef enum { S2N_ASYNC_PKEY_VALIDATION_FAST, S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
 
+/**
+ * Callback function for handling private key operations
+ *
+ * Invoked every time an operation requiring the private key is encountered
+ * during the handshake.
+ *
+ * # Safety
+ * * `op` is owned by the application and MUST be freed.
+ *
+ * @param conn Connection which triggered the callback
+ * @param op An opaque object representing the private key operation
+ */
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+
+/**
+ * Sets up the callback to invoke when private key operations occur.
+ *
+ * @param config Config to set the callback
+ * @param fn The function that should be called for each private key operation
+ */
 S2N_API
 extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
+
+/**
+ * Performs a private key operation using the given private key.
+ *
+ * # Safety
+ * * Can only be called once. Any subsequent calls will produce a `S2N_ERR_T_USAGE` error.
+ * * Safe to call from inside s2n_async_pkey_fn
+ * * Safe to call from a different thread, as long as no other thread is operating on `op`.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param s2n_cert_private_key The private key used for the operation. It can be extracted from
+ * `conn` through the `s2n_connection_get_selected_cert` and `s2n_cert_chain_and_key_get_key` calls
+ */
 S2N_API
 extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
+
+/**
+ * Finalizes a private key operation and unblocks the connection.
+ *
+ * # Safety
+ * * `conn` must match the connection that originally triggered the callback.
+ * * Must be called after the operation is performed.
+ * * Can only be called once. Any subsequent calls will produce a `S2N_ERR_T_USAGE` error.
+ * * Safe to call from inside s2n_async_pkey_fn
+ * * Safe to call from a different thread, as long as no other thread is operating on `op`.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param conn The connection associated with the operation that should be unblocked
+ */
 S2N_API
 extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
+
+/**
+ * Frees the opaque structure representing a private key operation.
+ *
+ * # Safety
+ * * MUST be called for every operation passed to s2n_async_pkey_fn
+ * * Safe to call before or after the connection that created the operation is freed
+ *
+ * @param op An opaque object representing the private key operation
+ */
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
+
+/**
+ * Configures whether or not s2n-tls will perform potentially expensive validation of
+ * the results of a private key operation.
+ *
+ * @param config Config to set the validation mode for
+ * @param mode What level of validation to perform
+ */
 S2N_API
 extern int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
 
+/**
+ * Returns the type of the private key operation.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param type A pointer to be set to the type
+ */
 S2N_API
 extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
+
+/**
+ * Returns the size of the input to the private key operation.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param data_len A pointer to be set to the size
+ */
 S2N_API
 extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
+
+/**
+ * Returns the input to the private key operation.
+ *
+ * When signing, the input is the digest to sign.
+ * When decrypting, the input is the data to decrypt.
+ *
+ * # Safety
+ * * `data` must be sufficiently large to contain the input.
+ *   `s2n_async_pkey_op_get_input_size` can be called to determine how much memory is required.
+ * * s2n-tls does not take ownership of `data`.
+ *   The application still owns the memory and must free it if necessary.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param data A pointer to a buffer to copy the input into
+ * @param data_len The maximum size of the `data` buffer
+ */
 S2N_API
 extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
+
+/**
+ * Sets the output of the private key operation.
+ *
+ * # Safety
+ * * s2n-tls does not take ownership of `data`.
+ *   The application still owns the memory and must free it if necessary.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param data A pointer to a buffer containing the output
+ * @param data_len The size of the `data` buffer
+ */
 S2N_API
 extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 

@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 #include "utils/s2n_safety.h"
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     char *private_key;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));

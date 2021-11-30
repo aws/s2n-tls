@@ -159,7 +159,7 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     if (!s2n_pq_is_enabled()) {
         /* Verify s2n_check_kem() and s2n_configure_kem() are performing their pq-enabled checks appropriately. */

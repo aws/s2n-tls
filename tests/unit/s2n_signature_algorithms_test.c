@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -49,7 +49,7 @@ const struct s2n_signature_preferences test_preferences = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_cert_chain_and_key *rsa_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,

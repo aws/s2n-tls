@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <string.h>
 #include <openssl/evp.h>
 
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     uint8_t existing_explicit_ivs[S2N_DEFAULT_FRAGMENT_LENGTH + 2][S2N_TLS_MAX_IV_LEN];
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Skip test if we can't use the ciphers */
     if (!s2n_aes128_sha.is_available()    ||
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
                 uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
                 EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
                 /* Record this IV */
-                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
+                EXPECT_MEMCPY_SUCCESS(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */

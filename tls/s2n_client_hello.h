@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_list.h"
@@ -40,7 +40,6 @@ struct s2n_client_hello {
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);
 
-extern bool s2n_is_tls_12_self_downgrade_required(struct s2n_connection *conn);
 extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 
 extern ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);

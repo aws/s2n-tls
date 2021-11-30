@@ -6,8 +6,8 @@
  * @brief Implements the proof harness for s2n_socket_read function.
  */
 
-#include <utils/s2n_socket.h>
-#include <cbmc_proof/make_common_datastructures.h>
+#include "utils/s2n_socket.h"
+#include "cbmc_proof/make_common_datastructures.h"
 
 void s2n_socket_read_harness()
 {

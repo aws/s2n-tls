@@ -126,7 +126,8 @@ ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
     "openssl-1.0.2-fips"    : NO_TLS13_CIPHERS,
     "libressl"              : NO_TLS13_CIPHERS,
     "boringssl"             : NO_TLS13_CIPHERS,
-    "awslc"                 : NO_TLS13_CIPHERS,
+    "awslc"                 : ALL_TLS13_CIPHERS,
+    "awslc-fips"            : NO_TLS13_CIPHERS,
 }
 
 class Curve():
@@ -167,7 +168,8 @@ ALL_CURVES_PER_LIBCRYPTO_VERSION = {
     "openssl-1.0.2-fips"    : LEGACY_COMPATIBLE_CURVES,
     "libressl"              : LEGACY_COMPATIBLE_CURVES,
     "boringssl"             : LEGACY_COMPATIBLE_CURVES,
-    "awslc"                 : LEGACY_COMPATIBLE_CURVES,
+    "awslc"                 : ALL_CURVES,
+    "awslc-fips"            : LEGACY_COMPATIBLE_CURVES,
 }
 
 

@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
@@ -36,7 +36,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     S2N_BLOB_FROM_HEX(premaster_secret_in,
             "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de412212da021fd802e03f49f231d4e959c7352679f892f9d7f9748");

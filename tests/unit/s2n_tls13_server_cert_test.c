@@ -17,7 +17,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -89,7 +89,7 @@ const char tls13_cert_chain_header_hex[] =
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test s2n_server_cert_recv() parses tls13 certificate */
     {
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 
     /* Test server sends cert and client receives cert for tls 1.3 */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
         struct s2n_connection *server_conn;
         struct s2n_connection *client_conn;
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     END_TEST();
