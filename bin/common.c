@@ -85,7 +85,7 @@ int get_file_size(const char* path, size_t *length)
        return S2N_FAILURE;
     }
 
-    if(fseek(file, 0, SEEK_END) < 0) {
+    if(fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
         return S2N_FAILURE;
     }

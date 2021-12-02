@@ -30,6 +30,9 @@
 
 #include "tls/s2n_connection.h"
 
+#define OPT_TICKET_IN 1000
+#define OPT_TICKET_OUT 1001
+
 void usage()
 {
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
@@ -70,9 +73,9 @@ void usage()
     fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
     fprintf(stderr, "  -T,--no-session-ticket \n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
-    fprintf(stderr, "  -o, --ticket-out [file path]\n");
+    fprintf(stderr, "  --ticket-out [file path]\n");
     fprintf(stderr, "    Path to a file where the session ticket can be stored.\n");
-    fprintf(stderr, "  -I, --ticket-in [file path]\n");
+    fprintf(stderr, "  --ticket-in [file path]\n");
     fprintf(stderr, "    Path to session ticket file to resume connection.\n");
     fprintf(stderr, "  -D,--dynamic\n");
     fprintf(stderr, "    Set dynamic record resize threshold\n");
@@ -277,8 +280,8 @@ int main(int argc, char *const *argv)
         {"key", required_argument, 0, 'k'},
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
-        {"ticket-out", required_argument, 0, 'o'},
-        {"ticket-in", required_argument, 0, 'I'},
+        {"ticket-out", required_argument, 0, OPT_TICKET_OUT},
+        {"ticket-in", required_argument, 0, OPT_TICKET_IN},
         {"no-session-ticket", no_argument, 0, 'T'},
         {"dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
@@ -293,7 +296,7 @@ int main(int argc, char *const *argv)
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:iro:I:TCBL:P:E:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -345,10 +348,10 @@ int main(int argc, char *const *argv)
         case 'r':
             reconnect = 5;
             break;
-        case 'o':
+        case OPT_TICKET_OUT:
             ticket_out = optarg;
             break;
-        case 'I':
+        case OPT_TICKET_IN:
             ticket_in = optarg;
             break;
         case 'T':
@@ -533,17 +536,11 @@ int main(int argc, char *const *argv)
 
         /* Read in session ticket from previous session */
         if (ticket_in) {
-            if(get_file_size(ticket_in, &session_state_length) < 0) {
-                fprintf(stderr, "Failed to read file: %s\n", ticket_in);
-                exit(1);
-            }
+            GUARD_EXIT(get_file_size(ticket_in, &session_state_length), "Failed to read ticket-in file");
             free(session_state);
             session_state = calloc(session_state_length, sizeof(uint8_t));
             GUARD_EXIT_NULL(session_state);
-            if(load_file_to_array(ticket_in, session_state, session_state_length) < 0) {
-                fprintf(stderr, "Failed to read file: %s\n", ticket_in);
-                exit(1);
-            }
+            GUARD_EXIT(load_file_to_array(ticket_in, session_state, session_state_length), "Failed to read ticket-in file");
         }
 
         /* Update session state in connection if exists */
@@ -596,10 +593,7 @@ int main(int argc, char *const *argv)
                 }
             }
             if(ticket_out) {
-                if(write_array_to_file(ticket_out, session_state, session_state_length) < 0) {
-                    fprintf(stderr, "Failed to write session ticket to file: %s\n", ticket_in);
-                    exit(1);
-                }
+                GUARD_EXIT(write_array_to_file(ticket_out, session_state, session_state_length), "Failed to write to ticket-out file");
             }
         }
 
