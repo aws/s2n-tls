@@ -57,6 +57,74 @@ static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len
     return 1;
 }
 
+int write_array_to_file(const char *path, uint8_t *data, size_t length) {
+    GUARD_EXIT_NULL(path);
+    GUARD_EXIT_NULL(data);
+
+    FILE *file = fopen(path, "wb");
+    if (!file) {
+       return S2N_FAILURE;
+    }
+
+    if(fwrite(data, sizeof(char), length, file) != length) {
+        fclose(file);
+        return S2N_FAILURE;
+    }
+    fclose(file);
+
+    return S2N_SUCCESS;
+}
+
+int get_file_size(const char* path, size_t *length)
+{
+    GUARD_EXIT_NULL(path);
+    GUARD_EXIT_NULL(length);
+
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+       return S2N_FAILURE;
+    }
+
+    if(fseek(file, 0, SEEK_END) != 0) {
+        fclose(file);
+        return S2N_FAILURE;
+    }
+
+    long file_length = ftell(file);
+    if (file_length < 0) {
+        fclose(file);
+        return S2N_FAILURE;
+    }
+
+    *length = file_length;
+    fclose(file);
+    return S2N_SUCCESS;
+}
+
+int load_file_to_array(const char *path, uint8_t *data, size_t max_length)
+{
+    GUARD_EXIT_NULL(path);
+    GUARD_EXIT_NULL(data);
+
+    size_t file_size = 0;
+    if (get_file_size(path, &file_size) < 0 || file_size > max_length) {
+        return S2N_FAILURE;
+    }
+
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+       return S2N_FAILURE;
+    }
+
+    if (fread(data, sizeof(char), file_size, file) < file_size) {
+        fclose(file);
+        return S2N_FAILURE;
+    }
+
+    fclose(file);
+    return S2N_SUCCESS;
+}
+
 char *load_file_to_cstring(const char *path)
 {
     FILE *pem_file = fopen(path, "rb");
