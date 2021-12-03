@@ -152,6 +152,16 @@ $LATEST_CLANG_INSTALL_DIR/bin
 `pwd`/codebuild/bin
 ~/.local/bin"
 
+# Translate GCC_VERSION into something understood by other build tools.
+if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
+    if [[ -x "$(which gcc-$GCC_VERSION)" ]]; then
+            export CC="$(which gcc-$GCC_VERSION)"
+           echo "Set CC to $CC"
+    else
+            echo -e "WARNING: gcc executable not found, using system defaults"
+    fi
+fi
+
 testdeps_path(){
     echo -ne "checking $1 is in the path..."
     if [[ ! "$PATH" =~ "$1" ]]; then
@@ -182,4 +192,4 @@ echo "LATEST_CLANG=$LATEST_CLANG"
 echo "TESTS=$TESTS"
 echo "PATH=$PATH"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-
+echo "CC=$CC"
