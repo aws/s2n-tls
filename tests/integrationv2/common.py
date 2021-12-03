@@ -403,6 +403,7 @@ class ProviderOptions(object):
             verify_hostname=None,
             server_name=None,
             protocol=None,
+            older_version=None,
             env_overrides=dict()):
 
         # Client or server
@@ -460,6 +461,9 @@ class ProviderOptions(object):
 
         # Extra flags to pass to the provider
         self.extra_flags = extra_flags
+
+        # Boolean whether the provider is an older version of s2n
+        self.older_version = older_version
 
         # Extra environment parameters
         self.env_overrides = env_overrides
