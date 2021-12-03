@@ -330,6 +330,34 @@ static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key 
     return S2N_SUCCESS;
 }
 
+static int s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_GUARD(s2n_aead_cipher_aes128_gcm_set_encryption_key(key, in));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_GUARD(s2n_aead_cipher_aes256_gcm_set_encryption_key(key, in));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_aead_cipher_aes128_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_GUARD(s2n_aead_cipher_aes128_gcm_set_decryption_key(key, in));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_GUARD(s2n_aead_cipher_aes256_gcm_set_decryption_key(key, in));
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
     s2n_evp_ctx_init(key->evp_cipher_ctx);
