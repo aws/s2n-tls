@@ -21,6 +21,16 @@
 //
 ////////////////////////////////////////////////////////////////
 
+
+enable_experimental;
+// lax_loads_and_stores is needed to support the uses of
+// llvm_points_to_bitfield in the specifications below. As a result, SAW will
+// return fresh, symbolic values when it reads from uninitialized memory. Make
+// sure all of the arguments are initialized in the preconditions of a
+// specification, or else SAW will fill them in with underconstrained symbolic
+// values!
+enable_lax_loads_and_stores;
+
 // Low level specifications for some of the functions and constants declared in
 // tls/s2n_handshake_io.c
 import "s2n_handshake_io.cry";
@@ -61,59 +71,14 @@ let config_cca_type config = (crucible_field config "client_cert_auth_type");
 let ocsp_status_size cert_and_key =
     crucible_field (crucible_field (cert_and_key) "ocsp_status") "size";
 
-// At the moment, we care about the following fields that are located in
-// bitfields:
-//
-// * conn->corked_io
-// * conn->client_session_resumed
-// * conn->quic_enabled
-// * conn->config->use_tickets
-// * conn->config->quic_enabled
-//
-// We currently handle this by initializing the entirety of each bitfield with
-// a symbolic value and imposing appropriate preconditions on them. See the
-// comments in setup_connection_common next to conn_bitfield and
-// config_bitfield for more details about these preconditions.
-
-// It's also noteworthy that we use crucible_elem here, which will
-// cause problems if the fields are reordered. This is reasonably unlikely
-// because it makes sense to have the bitfield at the start, but it is a bit
-// fragile nonetheless. If https://github.com/GaloisInc/saw-script/issues/1461
-// were implemented, we could reference the names of bitfields instead of their
-// offsets, which would avoid this issue.
-let conn_bitfield pconn = (crucible_elem pconn 0);
-let config_bitfield config = (crucible_elem config 0);
-
-// These represent the amount of memory that LLVM will use to represent the
-// bitfields in s2n_connection and s2n_config, respectively. The size is
-// determined by counting the number of fields in the bitfield and rounding
-// up to the nearest power of 2.
-let conn_bitfield_size = 32;
-let config_bitfield_size = 16;
-
 let {{
-// The position (0-indexed) of each field of interest in
-// s2n_connection's bitfield.
-conn_corked_io_index : [conn_bitfield_size]
-conn_corked_io_index = 0
+// Convert a Bit to a length-1 bitvector.
+bit_to_bv1 : Bit -> [1]
+bit_to_bv1 b = [b]
 
-conn_client_session_resumed_index : [conn_bitfield_size]
-conn_client_session_resumed_index = 1
-
-conn_quic_enabled_index : [conn_bitfield_size]
-conn_quic_enabled_index = 2
-
-// The position (0-indexed) of each field of interest in
-// s2n_config's bitfield.
-config_use_tickets_index : [config_bitfield_size]
-config_use_tickets_index = 0
-
-config_quic_enabled_index : [config_bitfield_size]
-config_quic_enabled_index = 1
-
-// Check if a field at a particular index in a bitfield is set.
-bitfield_is_set : {n} (fin n, n >= 1) => [n] -> [n] -> Bit
-bitfield_is_set bitfield field_index = (bitfield && (1 << field_index)) != zero
+// Convert a length-1 bitvector to a Bit.
+bv1_to_bit : [1] -> Bit
+bv1_to_bit bv1 = bv1 @ 0
 }};
 
 //conn->session_ticket_status
@@ -208,37 +173,28 @@ let setup_connection_common chosen_psk_null = do {
    crucible_points_to (ocsp_status_size cak) (crucible_term status_size);
    crucible_equal (crucible_term status_size) (crucible_term {{zero : [32]}});
 
-   // Here, we initialize two bitfields: one in s2n_connection (conn_bitfield)
-   // and the other in s2n_config (config_bitfield). We start by initializing
-   // the entirety of each bitfield with a symbolic value of the appropriate
-   // size...
-   conn_bitfield_value <- crucible_fresh_var "conn_bitfield" (llvm_int conn_bitfield_size);
-   crucible_points_to_untyped (conn_bitfield pconn) (crucible_term conn_bitfield_value);
-   config_bitfield_value <- crucible_fresh_var "config_bitfield" (llvm_int config_bitfield_size);
-   crucible_points_to_untyped (config_bitfield config) (crucible_term config_bitfield_value);
-
-   // ...next, we impose preconditions on these symbolic values as appropriate.
-   //
    // We assume that corking/uncorking is managed by s2n, so set the corked_io
    // bit in s2n_connection to one...
-   let corked_io = {{ bitfield_is_set conn_bitfield_value conn_corked_io_index : Bit }};
-   crucible_precond corked_io;
+   let corked_io = {{ True }};
+   llvm_points_to_bitfield pconn "corked_io" (llvm_term {{ bit_to_bv1 corked_io }});
 
    // ...we assume that the client_session_resumed bit in s2n_connection must
    // be zero...
-   crucible_precond {{ ~(bitfield_is_set conn_bitfield_value conn_client_session_resumed_index) }};
+   llvm_points_to_bitfield pconn "client_session_resumed" (llvm_term {{ 0 : [1] }});
 
    // ...we currently require that the use_tickets bit in s2n_config must be
    // zero...
-   crucible_precond {{ ~(bitfield_is_set config_bitfield_value config_use_tickets_index) }};
+   llvm_points_to_bitfield config "use_tickets" (llvm_term {{ 0 : [1] }});
 
    // ...on the other hand, the quic_enabled bits in both s2n_connection and
    // s2n_config are allowed to be either 0 or 1. As such, we don't need to
    // impose any direct constraints on them. We simply query which values
    // they have taken on during simulation and remember them for later.
-   let quic_enabled_bit = {{    bitfield_is_set conn_bitfield_value conn_quic_enabled_index
-                             \/ bitfield_is_set config_bitfield_value config_quic_enabled_index
-                          }};
+   conn_quic_enabled <- llvm_fresh_var "conn_quic_enabled" (llvm_int 1);
+   llvm_points_to_bitfield pconn "quic_enabled" (llvm_term conn_quic_enabled);
+   config_quic_enabled <- llvm_fresh_var "config_quic_enabled" (llvm_int 1);
+   llvm_points_to_bitfield config "quic_enabled" (llvm_term config_quic_enabled);
+   let quic_enabled_bit = {{ bv1_to_bit conn_quic_enabled \/ bv1_to_bit config_quic_enabled }};
 
    session_ticket_status <- crucible_fresh_var "session_ticket_status" (llvm_int 32);
    crucible_points_to (conn_session_ticket_status pconn) (crucible_term session_ticket_status);
@@ -397,9 +353,7 @@ let s2n_advance_message_spec = do {
     // of the post-state of the s2n_connection struct.
     let conn' = {{ advance_message conn }};
     crucible_ghost_value corked {{ conn'.corked }};
-    conn_bitfield_post <- crucible_fresh_var "conn_bitfield_post" (llvm_int conn_bitfield_size);
-    crucible_points_to_untyped (conn_bitfield pconn) (crucible_term conn_bitfield_post);
-    crucible_postcond {{ bitfield_is_set conn_bitfield_post conn_corked_io_index == conn'.corked_io }};
+    llvm_points_to_bitfield pconn "corked_io" (llvm_term {{ bit_to_bv1 (conn'.corked_io) }});
     crucible_points_to (conn_mode pconn) (crucible_term {{ conn'.mode }});
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
     crucible_points_to (conn_handshake_message_number pconn) (crucible_term {{ conn'.handshake.message_number }});
