@@ -26,23 +26,18 @@ fi
 
 BUILD_DIR=$1
 source codebuild/bin/jobs.sh
+source codebuild/bin/s2n_setup_env.sh
 cd "$BUILD_DIR"
 
-mkdir s2n_head
-cd s2n_head
-
 # Clone the most recent s2n commit
-git clone https://github.com/aws/s2n-tls
+git clone --depth=1 https://github.com/aws/s2n-tls s2n_head
 
-mkdir ../build
-cd ../build
+cmake s2n_head -Bbuild -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT"
+cmake --build build
 
-cmake ../s2n_head/s2n-tls -DCMAKE_PREFIX_PATH="$BASE_S2N_DIR"/test-deps/openssl-1.1.1/
-make -j $JOBS
-
-# Create symbolic link for s2nc and s2nd
-ln -sf "$BUILD_DIR"/build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc_head
-ln -sf "$BUILD_DIR"/build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd_head
+# Copy new executables to bin directory
+cp -f "$BUILD_DIR"/build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc_head
+cp -f "$BUILD_DIR"/build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd_head
 
 popd
 

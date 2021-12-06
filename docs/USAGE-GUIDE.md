@@ -23,7 +23,7 @@ are using CMake that step is unnecessary. Just follow the instructions here to u
 
 (Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
 
-(Optional): Set the CMake variable `DCMAKE_PREFIX_PATH` to the location libcrypto is installed to. If you do not,
+(Optional): Set the CMake variable `CMAKE_PREFIX_PATH` to the location libcrypto is installed to. If you do not,
 the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
