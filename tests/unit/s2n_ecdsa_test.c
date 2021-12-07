@@ -152,7 +152,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
         int hash_alg = supported_hash_algorithms[i];
 
-        if (!s2n_hash_is_available(hash_alg)) {
+        if (!s2n_hash_is_available(hash_alg) || hash_alg == S2N_HASH_NONE) {
             /* Skip hash algorithms that are not available. */
             continue;
         }
