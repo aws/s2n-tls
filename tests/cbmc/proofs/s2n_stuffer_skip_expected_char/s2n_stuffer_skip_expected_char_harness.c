@@ -24,30 +24,26 @@ void s2n_stuffer_skip_expected_char_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
-    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
     const char expected;
     uint32_t   min;
     uint32_t   max;
-    uint32_t   skipped;
-    uint32_t   idx;
+    uint32_t   *skipped = malloc(sizeof(*skipped));
+
+    /* Limit input size for bounded proofs. */
+    __CPROVER_assume(S2N_IMPLIES(stuffer != NULL, s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE)));
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
-    struct store_byte_from_buffer old_byte_from_stuffer;
-    save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
+    struct s2n_stuffer old_stuffer = {0};
+    if (stuffer) old_stuffer = *stuffer;
 
     /* Operation under verification. */
-    if (s2n_stuffer_skip_expected_char(stuffer, expected, min, max, &skipped) == S2N_SUCCESS) {
-        assert(skipped >= min && skipped <= max);
-        /* The read_cursor will move the number of skipped positions. */
-        assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
-        if (stuffer->blob.size > 0) {
+    if (s2n_stuffer_skip_expected_char(stuffer, expected, min, max, skipped) == S2N_SUCCESS) {
+        if (stuffer->blob.size > 0 && skipped) {
+            /* Keep this check in the harness due to lack of quantifiers support in function contracts. */
             /* The skipped bytes should match the expected element. */
-            __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < (old_stuffer.read_cursor + skipped));
+            uint32_t idx;
+            __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < (old_stuffer.read_cursor + *skipped));
             assert(stuffer->blob.data[ idx ] == expected);
         }
     }
-    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

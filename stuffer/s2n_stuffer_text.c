@@ -139,6 +139,18 @@ CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES((__CPROVER_old(stuffer->write_cursor) - __C
 
 /* Skips an expected character in the stuffer between min and max times */
 int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped)
+/* Write set. */
+CONTRACT_ASSIGNS_ERR(stuffer->read_cursor, *skipped)
+/* Preconditions. */
+CONTRACT_REQUIRES(s2n_result_is_ok(s2n_stuffer_validate(stuffer)))
+/* Postconditions. */
+CONTRACT_ENSURES(stuffer->read_cursor >= __CPROVER_old(stuffer->read_cursor))
+CONTRACT_ENSURES_FAILURE((stuffer->read_cursor == __CPROVER_old(stuffer->read_cursor)) || ((stuffer->read_cursor - __CPROVER_old(stuffer->read_cursor)) < min))
+CONTRACT_ENSURES_FAILURE(S2N_IMPLIES(skipped != NULL, __CPROVER_old(*skipped) == *skipped))
+CONTRACT_ENSURES_SUCCESS(s2n_result_is_ok(s2n_stuffer_validate(stuffer)))
+CONTRACT_ENSURES_SUCCESS(min <= max)
+CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES(skipped != NULL, *skipped >= min && *skipped <= max))
+CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES(skipped != NULL, stuffer->read_cursor == __CPROVER_old(stuffer->read_cursor) + *skipped))
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE(min <= max, S2N_ERR_SAFETY);

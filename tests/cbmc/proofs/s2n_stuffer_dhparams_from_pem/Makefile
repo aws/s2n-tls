@@ -21,6 +21,7 @@ PROOF_UID = s2n_stuffer_dhparams_from_pem
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
+USE_FUNCTION_CONTRACTS += s2n_stuffer_skip_expected_char
 USE_FUNCTION_CONTRACTS += s2n_stuffer_skip_to_char
 USE_FUNCTION_CONTRACTS += s2n_stuffer_skip_whitespace
 
@@ -30,7 +31,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_read_expected_str.c
-PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_skip_expected_char.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_read_base64.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_pem.c
