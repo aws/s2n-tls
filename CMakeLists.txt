@@ -422,6 +422,19 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
 endif()
 
+# Determine if EVP_MD_CTX_set_pkey_ctx is available in libcrypto
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md_ctx_set_pkey_ctx.c"
+        LINK_LIBRARIES crypto ${OS_LIBS}
+        CMAKE_FLAGS
+            "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>"
+)
+if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
     if (NOT LibCrypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")

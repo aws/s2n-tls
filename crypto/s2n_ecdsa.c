@@ -72,11 +72,6 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm s
     POSIX_ENSURE_REF(digest);
     sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
 
-    if (s2n_hash_evp_fully_supported()) {
-        POSIX_GUARD_RESULT(s2n_evp_sign(priv, sig_alg, digest, signature));
-        return S2N_SUCCESS;
-    }
-
     uint8_t digest_length = 0;
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
@@ -97,11 +92,6 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm 
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
-
-    if (s2n_hash_evp_fully_supported()) {
-        POSIX_GUARD_RESULT(s2n_evp_verify(pub, sig_alg, digest, signature));
-        return S2N_SUCCESS;
-    }
 
     const s2n_ecdsa_public_key *key = &pub->key.ecdsa_key;
     POSIX_ENSURE_REF(key->ec_key);
@@ -194,6 +184,7 @@ int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->match = &s2n_ecdsa_keys_match;
     pkey->free = &s2n_ecdsa_key_free;
     pkey->check_key = &s2n_ecdsa_check_key_exists;
+    POSIX_GUARD_RESULT(s2n_evp_signing_set_pkey_overrides(pkey));
     return 0;
 }
 

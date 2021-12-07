@@ -13,17 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
-
-#include "api/s2n.h"
-
-#include "crypto/s2n_hash.h"
-#include "crypto/s2n_signature.h"
-#include "utils/s2n_blob.h"
-
-bool s2n_evp_signing_supported();
-S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey);
-int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature);
-int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature);
+#include <openssl/evp.h>
+int main() {
+    EVP_MD_CTX_set_pkey_ctx(NULL, NULL);
+    return 0;
+}

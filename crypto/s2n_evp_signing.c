@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_evp_signing.h"
+
 #include "error/s2n_errno.h"
 
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_pkey.h"
 
-#include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
 /*
@@ -27,12 +28,9 @@
  * perform the signature.
  */
 
-/* Currently, EVP_MD_CTX_set_pkey_ctx is only available in OpenSSL.
- * AwsLC will need to add it in order to use this method of signing.
- */
 static S2N_RESULT s2n_evp_md_ctx_set_pkey_ctx(EVP_MD_CTX *ctx, EVP_PKEY_CTX *pctx)
 {
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,1,1)
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
     EVP_MD_CTX_set_pkey_ctx(ctx, pctx);
     return S2N_RESULT_OK;
 #else
@@ -40,108 +38,112 @@ static S2N_RESULT s2n_evp_md_ctx_set_pkey_ctx(EVP_MD_CTX *ctx, EVP_PKEY_CTX *pct
 #endif
 }
 
-S2N_RESULT s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *hash_state, struct s2n_blob *signature)
+bool s2n_evp_signing_supported()
 {
-    RESULT_ENSURE_REF(priv);
-    RESULT_ENSURE_REF(hash_state);
-    RESULT_ENSURE_REF(signature);
-
-    /* We can only use this signing method if the hash state has an EVP_MD_CTX
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+    /* We can only use EVP signing if the hash state has an EVP_MD_CTX
      * that we can pass to the EVP signing methods.
      */
-    RESULT_ENSURE(s2n_hash_evp_fully_supported(), S2N_ERR_HASH_NOT_READY);
+    return s2n_hash_evp_fully_supported();
+#else
+    return false;
+#endif
+}
 
-    switch(hash_state->alg) {
+static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg)
+{
+    switch(hash_alg) {
         case S2N_HASH_NONE:
-            /* No hash algorithm set when we calculate a digest + signature
-             * doesn't make much sense, but we treat it as a no-op instead
-             * of an error to match the behavior of s2n-tls's other signing
-             * methods.
-             */
-            return S2N_RESULT_OK;
         case S2N_HASH_MD5:
+            /* MD5 alone is never supported */
+            RESULT_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
+            break;
         case S2N_HASH_MD5_SHA1:
-            /* ECDSA does not support MD5.
-             * This should not be a problem, as we only allow MD5 when
-             * falling back to TLS1.0 or 1.1, which do not support ECDSA.
-             * No signature scheme supports ECDSA + MD5.
+            /* Only RSA supports MD5+SHA1.
+             * This should not be a problem, as we only allow MD5+SHA1 when
+             * falling back to TLS1.0 or 1.1, which only support RSA.
              */
-            RESULT_ENSURE(sig_alg != S2N_SIGNATURE_ECDSA, S2N_ERR_HASH_INVALID_ALGORITHM);
+            RESULT_ENSURE(sig_alg == S2N_SIGNATURE_RSA, S2N_ERR_HASH_INVALID_ALGORITHM);
             break;
         default:
             break;
     }
-
-    EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
-    RESULT_ENSURE_REF(ctx);
-
-    EVP_PKEY_CTX *pctx  = EVP_PKEY_CTX_new(priv->pkey, NULL);
-    RESULT_ENSURE_REF(pctx);
-    RESULT_GUARD(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
-
-    RESULT_GUARD_OSSL(EVP_PKEY_sign_init(pctx), S2N_ERR_PKEY_CTX_INIT);
-    RESULT_ENSURE_REF(s2n_hash_alg_to_evp_md(hash_state->alg));
-    RESULT_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
-    if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
-        RESULT_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
-        RESULT_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_PKEY_CTX_INIT);
-    }
-
-    size_t signature_size = signature->size;
-    RESULT_GUARD_OSSL(EVP_DigestSignFinal(ctx, signature->data, &signature_size), S2N_ERR_SIGN);
-    RESULT_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
-    signature->size = signature_size;
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
+/* If using EVP signing, override the sign and verify pkey methods.
+ * The EVP methods can handle all pkey types / signature algorithms.
+ */
+S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey)
+{
+    if (s2n_evp_signing_supported()) {
+        RESULT_ENSURE_REF(pkey);
+        pkey->sign = &s2n_evp_sign;
+        pkey->verify = &s2n_evp_verify;
+    }
+    return S2N_RESULT_OK;
+}
+
+int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
-    RESULT_ENSURE_REF(pub);
-    RESULT_ENSURE_REF(hash_state);
-    RESULT_ENSURE_REF(signature);
+    POSIX_ENSURE_REF(priv);
+    POSIX_ENSURE_REF(hash_state);
+    POSIX_ENSURE_REF(signature);
+    POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_HASH_NOT_READY);
+    POSIX_GUARD_RESULT(s2n_evp_signing_validate_hash_alg(sig_alg, hash_state->alg));
 
-    /* We can only use this verify method if the hash state has an EVP_MD_CTX
-     * that we can pass to the EVP verify methods.
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(priv->pkey, NULL);
+    POSIX_ENSURE_REF(pctx);
+    POSIX_GUARD_OSSL(EVP_PKEY_sign_init(pctx), S2N_ERR_PKEY_CTX_INIT);
+    POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+
+    /* RSA-PSS-RSAE uses PSS padding with an RSA certificate.
+     * Since the pkey context is initialized from a RSA certificate instead of a PSS certificate,
+     * we need to explicitly specify that we want PSS padding.
      */
-    RESULT_ENSURE(s2n_hash_evp_fully_supported(), S2N_ERR_HASH_NOT_READY);
-
-    switch(hash_state->alg) {
-        case S2N_HASH_NONE:
-            /* No hash algorithm set when we calculate a digest + signature
-             * doesn't make much sense, but we treat it as a no-op instead
-             * of an error to match the behavior of s2n-tls's other signing
-             * methods.
-             */
-            return S2N_RESULT_OK;
-        case S2N_HASH_MD5:
-        case S2N_HASH_MD5_SHA1:
-            /* ECDSA does not support MD5.
-             * This should not be a problem, as we only allow MD5 when
-             * falling back to TLS1.0 or 1.1, which do not support ECDSA.
-             * No signature scheme supports ECDSA + MD5.
-             */
-            RESULT_ENSURE(sig_alg != S2N_SIGNATURE_ECDSA, S2N_ERR_HASH_INVALID_ALGORITHM);
-            break;
-        default:
-            break;
+    if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
+        POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
+        POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_PKEY_CTX_INIT);
     }
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
-    RESULT_ENSURE_REF(ctx);
+    POSIX_ENSURE_REF(ctx);
+    POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
 
-    EVP_PKEY_CTX *pctx  = EVP_PKEY_CTX_new(pub->pkey, NULL);
-    RESULT_ENSURE_REF(pctx);
-    RESULT_GUARD(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
+    size_t signature_size = signature->size;
+    POSIX_GUARD_OSSL(EVP_DigestSignFinal(ctx, signature->data, &signature_size), S2N_ERR_SIGN);
+    POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
+    signature->size = signature_size;
+    return S2N_SUCCESS;
+}
 
-    RESULT_GUARD_OSSL(EVP_PKEY_verify_init(pctx), S2N_ERR_PKEY_CTX_INIT);
-    RESULT_ENSURE_REF(s2n_hash_alg_to_evp_md(hash_state->alg));
-    RESULT_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *hash_state, struct s2n_blob *signature)
+{
+    POSIX_ENSURE_REF(pub);
+    POSIX_ENSURE_REF(hash_state);
+    POSIX_ENSURE_REF(signature);
+    POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_HASH_NOT_READY);
+    POSIX_GUARD_RESULT(s2n_evp_signing_validate_hash_alg(sig_alg, hash_state->alg));
+
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(pub->pkey, NULL);
+    POSIX_ENSURE_REF(pctx);
+    POSIX_GUARD_OSSL(EVP_PKEY_verify_init(pctx), S2N_ERR_PKEY_CTX_INIT);
+    POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
+
+    /* RSA-PSS-RSAE uses PSS padding with an RSA certificate.
+     * Since the pkey context is initialized from a RSA certificate instead of a PSS certificate,
+     * we need to explicitly specify that we want PSS padding.
+     */
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
-        RESULT_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
+        POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
     }
 
-    RESULT_GUARD_OSSL(EVP_DigestVerifyFinal(ctx, signature->data, signature->size), S2N_ERR_VERIFY_SIGNATURE);
-    return S2N_RESULT_OK;
+    EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
+    POSIX_ENSURE_REF(ctx);
+    POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
+
+    POSIX_GUARD_OSSL(EVP_DigestVerifyFinal(ctx, signature->data, signature->size), S2N_ERR_VERIFY_SIGNATURE);
+    return S2N_SUCCESS;
 }
