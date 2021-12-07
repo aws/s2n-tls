@@ -114,6 +114,17 @@ int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
 
 /* Skips the stuffer until the first instance of the target character or until there is no more data. */
 int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
+/* Write set. */
+CONTRACT_ASSIGNS_ERR(stuffer->read_cursor)
+/* Preconditions. */
+CONTRACT_REQUIRES(s2n_result_is_ok(s2n_stuffer_validate(stuffer)))
+/* Postconditions. */
+CONTRACT_ENSURES_FAILURE(__CPROVER_old(stuffer->read_cursor) == stuffer->read_cursor)
+CONTRACT_ENSURES_SUCCESS(s2n_result_is_ok(s2n_stuffer_validate(stuffer)))
+CONTRACT_ENSURES_SUCCESS(__CPROVER_old(stuffer->read_cursor) <= stuffer->read_cursor && stuffer->read_cursor <= stuffer->write_cursor)
+CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES(s2n_stuffer_data_available(stuffer) > 0, stuffer->blob.data[ stuffer->read_cursor ] == target))
+CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES((__CPROVER_old(stuffer->write_cursor) - __CPROVER_old(stuffer->read_cursor)) == 0, stuffer->read_cursor == __CPROVER_old(stuffer->read_cursor)))
+
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     while (s2n_stuffer_data_available(stuffer) > 0) {
