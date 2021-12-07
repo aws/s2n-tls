@@ -45,19 +45,15 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipp
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(s2n_stuffer));
     uint32_t initial_read_cursor = s2n_stuffer->read_cursor;
-    while (s2n_stuffer->read_cursor < s2n_stuffer->write_cursor) {
-        switch (s2n_stuffer->blob.data[s2n_stuffer->read_cursor]) {
-        case ' ':              /* We don't use isspace, because it changes under locales */
-        case '\t':
-        case '\n':
-        case '\r':
+    while (s2n_stuffer_data_available(s2n_stuffer)) {
+        uint8_t c = s2n_stuffer->blob.data[s2n_stuffer->read_cursor];
+        /* We don't use isspace, because it changes under locales. */
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
             s2n_stuffer->read_cursor += 1;
+        } else {
             break;
-        default:
-            goto finished;
         }
     }
-    finished:
     if(skipped != NULL) *skipped = s2n_stuffer->read_cursor - initial_read_cursor;
     POSIX_POSTCONDITION(s2n_stuffer_validate(s2n_stuffer));
     return S2N_SUCCESS;
