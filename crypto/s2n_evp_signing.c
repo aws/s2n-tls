@@ -19,6 +19,7 @@
 
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_pkey.h"
+#include "crypto/s2n_rsa_pss.h"
 
 #include "utils/s2n_safety.h"
 
@@ -50,6 +51,19 @@ bool s2n_evp_signing_supported()
 #endif
 }
 
+/* If using EVP signing, override the sign and verify pkey methods.
+ * The EVP methods can handle all pkey types / signature algorithms.
+ */
+S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey)
+{
+    if (s2n_evp_signing_supported()) {
+        RESULT_ENSURE_REF(pkey);
+        pkey->sign = &s2n_evp_sign;
+        pkey->verify = &s2n_evp_verify;
+    }
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg)
 {
     switch(hash_alg) {
@@ -71,19 +85,6 @@ static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_
     return S2N_RESULT_OK;
 }
 
-/* If using EVP signing, override the sign and verify pkey methods.
- * The EVP methods can handle all pkey types / signature algorithms.
- */
-S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey)
-{
-    if (s2n_evp_signing_supported()) {
-        RESULT_ENSURE_REF(pkey);
-        pkey->sign = &s2n_evp_sign;
-        pkey->verify = &s2n_evp_verify;
-    }
-    return S2N_RESULT_OK;
-}
-
 int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
@@ -98,13 +99,13 @@ int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
     POSIX_GUARD_OSSL(EVP_PKEY_sign_init(pctx), S2N_ERR_PKEY_CTX_INIT);
     POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
 
-    /* RSA-PSS-RSAE uses PSS padding with an RSA certificate.
-     * Since the pkey context is initialized from a RSA certificate instead of a PSS certificate,
-     * we need to explicitly specify that we want PSS padding.
-     */
-    if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
+    if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
+#if RSA_PSS_SIGNING_SUPPORTED
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_PKEY_CTX_INIT);
+#else
+        POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+#endif
     }
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
@@ -132,11 +133,7 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     POSIX_GUARD_OSSL(EVP_PKEY_verify_init(pctx), S2N_ERR_PKEY_CTX_INIT);
     POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(pctx, s2n_hash_alg_to_evp_md(hash_state->alg)), S2N_ERR_PKEY_CTX_INIT);
 
-    /* RSA-PSS-RSAE uses PSS padding with an RSA certificate.
-     * Since the pkey context is initialized from a RSA certificate instead of a PSS certificate,
-     * we need to explicitly specify that we want PSS padding.
-     */
-    if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
+    if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
     }
 
