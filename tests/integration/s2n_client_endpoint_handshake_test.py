@@ -28,7 +28,7 @@ from s2n_test_constants import *
 # if the handshake is negotiated with any cipher.
 well_known_endpoints = [
     {"endpoint": "www.akamai.com"},
-    {"endpoint": "www.amazon.com"},
+#   {"endpoint": "www.amazon.com"},
     {"endpoint": "s3.us-west-2.amazonaws.com"},
     {"endpoint": "www.apple.com"},
     {"endpoint": "www.att.com"},
