@@ -133,12 +133,18 @@ extern void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict fro
 #    define CONTRACT_REQUIRES(...) __CPROVER_requires(__VA_ARGS__)
 #    define CONTRACT_ENSURES(...) __CPROVER_ensures(__VA_ARGS__)
 #    define CONTRACT_INVARIANT(...) __CPROVER_loop_invariant(__VA_ARGS__)
+#    define CONTRACT_LOOP_ENTRY(...) __CPROVER_loop_entry(__VA_ARGS__)
 #    define CONTRACT_RETURN_VALUE (__CPROVER_return_value)
+#    define CONTRACT_ENSURES_SUCCESS(...) __CPROVER_ensures(S2N_IMPLIES(CONTRACT_RETURN_VALUE >= S2N_SUCCESS, __VA_ARGS__))
+#    define CONTRACT_ENSURES_FAILURE(...) __CPROVER_ensures(S2N_IMPLIES(CONTRACT_RETURN_VALUE <= S2N_FAILURE, __VA_ARGS__))
 #else
 #    define CONTRACT_ASSIGNS(...)
 #    define CONTRACT_ASSIGNS_ERR(...)
 #    define CONTRACT_REQUIRES(...)
 #    define CONTRACT_ENSURES(...)
 #    define CONTRACT_INVARIANT(...)
+#    define CONTRACT_LOOP_ENTRY(...)
 #    define CONTRACT_RETURN_VALUE
+#    define CONTRACT_ENSURES_SUCCESS(...)
+#    define CONTRACT_ENSURES_FAILURE(...)
 #endif
