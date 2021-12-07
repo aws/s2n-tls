@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # Enough to get full coverage with 7 minutes of runtime.
-MAX_BLOB_SIZE = 10
+MAX_BLOB_SIZE = 20
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CHECKFLAGS +=
@@ -21,6 +21,7 @@ PROOF_UID = s2n_stuffer_certificate_from_pem
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
+USE_FUNCTION_CONTRACTS += s2n_stuffer_read_expected_str
 USE_FUNCTION_CONTRACTS += s2n_stuffer_skip_expected_char
 USE_FUNCTION_CONTRACTS += s2n_stuffer_skip_to_char
 USE_FUNCTION_CONTRACTS += s2n_stuffer_skip_whitespace
@@ -30,7 +31,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
-PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_read_expected_str.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_read_base64.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_pem.c
@@ -48,7 +48,7 @@ REMOVE_FUNCTION_BODY += s2n_stuffer_resize
 REMOVE_FUNCTION_BODY += s2n_stuffer_rewrite
 REMOVE_FUNCTION_BODY += s2n_add_overflow
 
-UNWINDSET += strlen.0:5 # size of S2N_PEM_PKCS1_RSA_PRIVATE_KEY
+UNWINDSET += strlen.0:12 # size of S2N_PEM_CERTIFICATE
 UNWINDSET += strncmp.0:5 # size of S2N_PEM_END_TOKEN
 UNWINDSET += __CPROVER_file_local_s2n_stuffer_pem_c_s2n_stuffer_pem_read_contents.11:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_to_char.3:$(call addone,$(MAX_BLOB_SIZE))

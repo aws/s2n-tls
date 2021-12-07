@@ -69,6 +69,15 @@ CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES(skipped != NULL && *skipped > 0, s2n_stuffe
 }
 
 int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected)
+/* Write set. */
+CONTRACT_ASSIGNS_ERR(stuffer->read_cursor)
+/* Preconditions. */
+CONTRACT_REQUIRES(s2n_result_is_ok(s2n_stuffer_validate(stuffer)))
+CONTRACT_REQUIRES(expected != NULL)
+/* Postconditions. */
+CONTRACT_ENSURES_SUCCESS(s2n_result_is_ok(s2n_stuffer_validate(stuffer)))
+CONTRACT_ENSURES_SUCCESS(stuffer->read_cursor == __CPROVER_old(stuffer->read_cursor) + strlen(expected))
+CONTRACT_ENSURES_FAILURE(__CPROVER_old(stuffer->read_cursor) == stuffer->read_cursor)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(expected);
