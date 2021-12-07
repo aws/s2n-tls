@@ -11,13 +11,14 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enough to get full coverage with 4 minutes of runtime.
-MAX_BLOB_SIZE = 2
+# Enough to get full coverage with 2 minutes of runtime.
+MAX_BLOB_SIZE = 5
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CHECKFLAGS +=
 
 PROOF_UID = s2n_stuffer_skip_whitespace
+CHECK_FUNCTION_CONTRACTS += $(PROOF_UID)
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
@@ -33,9 +34,5 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 UNWINDSET += s2n_stuffer_skip_whitespace.0:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_whitespace.1:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_whitespace.2:$(call addone,$(MAX_BLOB_SIZE))
-UNWINDSET += s2n_stuffer_skip_whitespace.3:$(call addone,$(MAX_BLOB_SIZE))
-UNWINDSET += s2n_stuffer_skip_whitespace.4:$(call addone,$(MAX_BLOB_SIZE))
-UNWINDSET += s2n_stuffer_skip_whitespace.5:$(call addone,$(MAX_BLOB_SIZE))
-UNWINDSET += s2n_stuffer_skip_whitespace.6:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common

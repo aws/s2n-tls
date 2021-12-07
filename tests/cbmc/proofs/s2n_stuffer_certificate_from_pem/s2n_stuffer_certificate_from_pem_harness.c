@@ -35,9 +35,9 @@ void s2n_stuffer_certificate_from_pem_harness()
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
-    s2n_stuffer_certificate_from_pem(pem, asn1);
-
-    /* Post-conditions. */
-    assert(s2n_result_is_ok(s2n_stuffer_validate(pem)));
-    assert(s2n_result_is_ok(s2n_stuffer_validate(asn1)));
+    if (s2n_stuffer_certificate_from_pem(pem, asn1) == S2N_SUCCESS) {
+        /* Post-conditions. */
+        assert(s2n_result_is_ok(s2n_stuffer_validate(pem)));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(asn1)));
+    }
 }

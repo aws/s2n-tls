@@ -24,20 +24,23 @@ void s2n_stuffer_skip_whitespace_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
-    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
-    uint32_t skipped;
+    uint32_t *skipped = malloc(sizeof(*skipped));
+
+
+    /* Limit input size for bounded proofs. */
+    __CPROVER_assume(S2N_IMPLIES(stuffer != NULL, s2n_stuffer_is_bounded(stuffer, MAX_BLOB_SIZE)));
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
-    struct store_byte_from_buffer old_byte_from_stuffer;
-    save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
+    struct s2n_stuffer old_stuffer = {0};
+    if (stuffer != NULL) {
+        old_stuffer = *stuffer;
+    }
 
     /* Operation under verification. */
-    if (s2n_stuffer_skip_whitespace(stuffer, &skipped) == S2N_SUCCESS) {
-        size_t idx;
-        if (skipped > 0) {
-            assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
+    if (s2n_stuffer_skip_whitespace(stuffer, skipped) == S2N_SUCCESS && skipped) {
+        /* Keep this check in the harness due to lack of quantifiers support in function contracts. */
+        if (*skipped > 0) {
+            size_t idx;
             __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < stuffer->read_cursor);
             assert(stuffer->blob.data[ idx ] == ' ' || stuffer->blob.data[ idx ] == '\t'
                    || stuffer->blob.data[ idx ] == '\n' || stuffer->blob.data[ idx ] == '\r');
@@ -49,6 +52,4 @@ void s2n_stuffer_skip_whitespace_harness()
                        && stuffer->blob.data[ old_stuffer.read_cursor ] != '\r'));
         }
     }
-    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

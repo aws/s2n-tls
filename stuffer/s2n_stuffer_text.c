@@ -42,6 +42,15 @@ int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *
 }
 
 int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipped)
+/* Write Set. */
+CONTRACT_ASSIGNS_ERR(s2n_stuffer->read_cursor, *skipped)
+/* Preconditions. */
+CONTRACT_REQUIRES(s2n_result_is_ok(s2n_stuffer_validate(s2n_stuffer)))
+/* Postconditions. */
+CONTRACT_ENSURES_FAILURE(__CPROVER_old(s2n_stuffer->read_cursor) == s2n_stuffer->read_cursor)
+CONTRACT_ENSURES_FAILURE(S2N_IMPLIES(skipped != NULL, __CPROVER_old(*skipped) == *skipped))
+CONTRACT_ENSURES_SUCCESS(s2n_result_is_ok(s2n_stuffer_validate(s2n_stuffer)))
+CONTRACT_ENSURES_SUCCESS(S2N_IMPLIES(skipped != NULL && *skipped > 0, s2n_stuffer->read_cursor == __CPROVER_old(s2n_stuffer->read_cursor) + *skipped))
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(s2n_stuffer));
     uint32_t initial_read_cursor = s2n_stuffer->read_cursor;
