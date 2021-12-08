@@ -118,26 +118,35 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
     """
     s2nc_cmd = ["../../bin/s2nc", "-f", "./trust-store/ca-bundle.crt", "-a", "http/1.1"] + arguments + [str(endpoint)]
     currentDir = os.path.dirname(os.path.realpath(__file__))
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=currentDir)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=currentDir, universal_newlines=True)
 
-    found = 0
-    expected_output = "Cipher negotiated: "
-    if expected_cipher:
-        expected_output += expected_cipher
+    try:
+        outs, errs = s2nc.communicate(timeout=5)
 
-    for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
-        output = str(s2nc.stdout.readline().decode("utf-8"))
-        if expected_output in output:
-            found = 1
-            break
+        found = 0
+        expected_output = "Cipher negotiated: "
+        if expected_cipher:
+            expected_output += expected_cipher
 
-    s2nc.kill()
-    s2nc.wait()
+        for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
+            output = str(outs)
+            print(output, end='')
+            if expected_output in output:
+                found = 1
+                break
 
-    if found == 0:
+        s2nc.kill()
+        s2nc.wait()
+
+        if found == 0:
+            return -1
+
+        return 0
+
+    except subprocess.TimeoutExpired:
+        print("Caught exception: subprocess.TimeoutExpired")
+        s2nc.kill()
         return -1
-
-    return 0
 
 def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
 
@@ -176,7 +185,10 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
 
         # Retry handshake in case there are any problems going over the internet
         for i in range(1, maxRetries):
+            print("Connecting to: %-35sAttempt: %-10s... " % (endpoint, i))
             ret = try_client_handshake(endpoint, arguments, expected_cipher)
+
+            print("return code: %s" % ret)
             if ret == 0:
                 break
             else:
@@ -189,7 +201,6 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
     return failed
 
 def main(argv):
-
     parser = argparse.ArgumentParser(description="Run client endpoint handshake tests")
     parser.add_argument("--no-tls13", action="store_true", help="Disable TLS 1.3 tests")
     args = parser.parse_args()
