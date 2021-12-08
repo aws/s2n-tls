@@ -68,6 +68,6 @@ bool s2n_handshake_type_check_tls13_flag(struct s2n_connection *conn, s2n_tls13_
 S2N_RESULT s2n_handshake_type_reset(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    conn->handshake.handshake_type = 0;
+    conn->handshake.handshake_type = INITIAL;
     return S2N_RESULT_OK;
 }
