@@ -23,10 +23,10 @@ void s2n_handshake_type_unset_tls12_flag_harness()
 
     /* Compute expected result. */
     s2n_handshake_type_flag expected_result;
-    if (s2n_connection) expected_result = s2n_connection->handshake.handshake_type & ~(flag);
+    //if (s2n_connection) expected_result = s2n_connection->handshake.handshake_type & ~(flag);
 
     /* Operation under verification. */
-    S2N_RESULT ret = s2n_handshake_type_unset_tls12_flag(s2n_connection, flag);
+    //S2N_RESULT ret = s2n_handshake_type_unset_tls12_flag(s2n_connection, flag);
 
     /* Post-conditions. */
     assert(S2N_IMPLIES(ret == S2N_RESULT_OK, s2n_connection->handshake.handshake_type == expected_result));
