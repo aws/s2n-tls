@@ -3,13 +3,12 @@ import copy
 import os
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS
-from common import ProviderOptions, Protocols, data_bytes
+from common import ProviderOptions, Protocols
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 S2N_RESUMPTION_MARKER = to_bytes("Resumed session")
-DATA_TO_SEND = data_bytes(10)
 
 TICKET_FILE = 'ticket'
 RESUMPTION_PROTOCOLS = [Protocols.TLS12, Protocols.TLS13]
