@@ -29,6 +29,7 @@
 
 int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type)
 {
+    POSIX_PRECONDITION(s2n_stuffer_validate(out));
     S2N_ERROR_IF(s2n_stuffer_data_available(out), S2N_ERR_HANDSHAKE_STATE);
 
     /* Write the message header */
