@@ -817,7 +817,7 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
         *client_cert_auth_type = conn->config->client_cert_auth_type;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
