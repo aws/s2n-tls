@@ -111,7 +111,6 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
         if validate_version(S2N_TLS12, server_line):
             server_version_correct = True
 
-    s2nc.kill()
     s2nc.wait()
 
     s2nd.kill()
