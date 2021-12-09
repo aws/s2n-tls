@@ -130,7 +130,6 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
 
         for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
             output = str(outs)
-            print(output, end='')
             if expected_output in output:
                 found = 1
                 break
@@ -144,7 +143,6 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
         return 0
 
     except subprocess.TimeoutExpired:
-        print("Caught exception: subprocess.TimeoutExpired")
         s2nc.kill()
         return -1
 
@@ -188,7 +186,6 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
             print("Connecting to: %-35sAttempt: %-10s... " % (endpoint, i))
             ret = try_client_handshake(endpoint, arguments, expected_cipher)
 
-            print("return code: %s" % ret)
             if ret == 0:
                 break
             else:
