@@ -1,5 +1,6 @@
 import pytest
 import threading
+import os
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
@@ -146,7 +147,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['hyperfine','--warmup','1','--time-unit','millisecond','s2nc', '--non-blocking']
+        cmd_line = ['cargo','bench','--bench','s2nc']
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
@@ -186,6 +187,11 @@ class S2N(Provider):
             cmd_line.extend(self.options.extra_flags)
 
         cmd_line.extend([self.options.host, self.options.port])
+
+        # For cargo, the args  are going into an ENV varible.
+        s2nc_args = cmd_line[4:]
+        os.environ['S2NC_ARGS'] = ' '.join(s2nc_args)
+        cmd_line = cmd_line[:4]
 
         # Clients are always ready to connect
         self.set_provider_ready()
