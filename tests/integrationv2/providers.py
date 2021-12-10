@@ -147,7 +147,8 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['cargo','bench','--bench','s2nc']
+        #cmd_line = ['cargo','bench','--bench','s2nc']
+        cmd_line = ['/opt/s2n/bindings/rust/target/release/deps/s2nc-effdcd4f02694584']
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
@@ -189,9 +190,9 @@ class S2N(Provider):
         cmd_line.extend([self.options.host, self.options.port])
 
         # For cargo, the args  are going into an ENV varible.
-        s2nc_args = cmd_line[4:]
+        s2nc_args = cmd_line[1:]
         os.environ['S2NC_ARGS'] = ' '.join(s2nc_args)
-        cmd_line = cmd_line[:4]
+        cmd_line = cmd_line[:1]
 
         # Clients are always ready to connect
         self.set_provider_ready()
