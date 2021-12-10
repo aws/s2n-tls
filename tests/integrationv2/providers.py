@@ -91,6 +91,7 @@ class Tcpdump(Provider):
     This class still follows the provider setup, but all values are hardcoded
     because this isn't expected to be used outside of the dynamic record test.
     """
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -99,22 +100,22 @@ class Tcpdump(Provider):
         tcpdump_filter = "dst port {}".format(self.options.port)
 
         cmd_line = ["tcpdump",
-            # Line buffer the output
-            "-l",
+                    # Line buffer the output
+                    "-l",
 
-            # Only read 10 packets before exiting. This is enough to find a large
-            # packet, and still exit before the timeout.
-            "-c", "10",
+                    # Only read 10 packets before exiting. This is enough to find a large
+                    # packet, and still exit before the timeout.
+                    "-c", "10",
 
-            # Watch the loopback device
-            "-i", "lo",
+                    # Watch the loopback device
+                    "-i", "lo",
 
-            # Don't resolve IP addresses
-            "-nn",
+                    # Don't resolve IP addresses
+                    "-nn",
 
-            # Set the buffer size to 1k
-            "-B", "1024",
-            tcpdump_filter]
+                    # Set the buffer size to 1k
+                    "-B", "1024",
+                    tcpdump_filter]
 
         return cmd_line
 
@@ -123,6 +124,7 @@ class S2N(Provider):
     """
     The S2N provider translates flags into s2nc/s2nd command line arguments.
     """
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -148,7 +150,8 @@ class S2N(Provider):
         Using the passed ProviderOptions, create a command line.
         """
         #cmd_line = ['cargo','bench','--bench','s2nc']
-        cmd_line = ['/opt/s2n/bindings/rust/target/release/deps/s2nc-effdcd4f02694584']
+        cmd_line = [
+            '/opt/s2n/bindings/rust/target/release/deps/s2nc-effdcd4f02694584']
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
@@ -237,7 +240,8 @@ class S2N(Provider):
             cmd_line.append('-T')
 
         if self.options.reconnects_before_exit is not None:
-            cmd_line.append('--max-conns={}'.format(self.options.reconnects_before_exit))
+            cmd_line.append(
+                '--max-conns={}'.format(self.options.reconnects_before_exit))
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -245,6 +249,44 @@ class S2N(Provider):
         cmd_line.extend([self.options.host, self.options.port])
 
         return cmd_line
+
+
+class CriterionS2N(S2N):
+    """
+    Wrap the S2N provider in criterion-rust
+    """
+    @classmethod
+    def _find_s2nc_benchmark(self):
+        return ['/opt/s2n/bindings/rust/target/release/deps/s2nc-effdcd4f02694584']
+
+    @classmethod
+    def _find_s2nd_benchmark(self):
+        return ['/opt/s2n/bindings/rust/target/release/deps/s2nd-effdcd4f02694584']
+
+    @classmethod
+    def _cargo_bench(self):
+        """
+        build the handlers
+        cargo bench --norun
+        """
+        pass
+
+    def __init__(self, options: ProviderOptions):
+        super().__init__(options)
+        if self.options.mode == Provider.ServerMode:
+            self.capture_server_args(self.setup_server())
+            self.cmd_line = self._find_s2nd_benchmark()
+        elif self.options.mode == Provider.ClientMode:
+            self.capture_client_args(self.setup_server())
+            self.cmd_line = self._find_s2nc_benchmark()
+
+    def capture_client_args(self, cmd_line):
+        s2n_args = cmd_line[1:]
+        os.environ['S2NC_ARGS'] = ' '.join(s2n_args)
+
+    def capture_server_args(self, cmd_line):
+        s2n_args = cmd_line[1:]
+        os.environ['S2ND_ARGS'] = ' '.join(s2n_args)
 
 
 class OpenSSL(Provider):
@@ -346,7 +388,8 @@ class OpenSSL(Provider):
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
-        cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])
+        cmd_line.extend(
+            ['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
@@ -402,7 +445,8 @@ class OpenSSL(Provider):
 
         if self.options.reconnects_before_exit is not None:
             # If the user request a specific reconnection count, set it here
-            cmd_line.extend(['-naccept', str(self.options.reconnects_before_exit)])
+            cmd_line.extend(
+                ['-naccept', str(self.options.reconnects_before_exit)])
         else:
             # Exit after the first connection by default
             cmd_line.extend(['-naccept', '1'])
@@ -442,11 +486,13 @@ class OpenSSL(Provider):
 
         return cmd_line
 
+
 class JavaSSL(Provider):
     """
-    NOTE: Only a Java SSL client has been set up. The server has not been 
+    NOTE: Only a Java SSL client has been set up. The server has not been
     implemented yet.
     """
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -463,7 +509,7 @@ class JavaSSL(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        # Java SSL does not support CHACHA20 
+        # Java SSL does not support CHACHA20
         if 'CHACHA20' in cipher.name:
             return False
 
@@ -494,12 +540,14 @@ class JavaSSL(Provider):
 
         return cmd_line
 
+
 class BoringSSL(Provider):
     """
     NOTE: In order to focus on the general use of this framework, BoringSSL
     is not yet supported. The client works, the server has not yet been
     implemented, neither are in the default configuration.
     """
+
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -538,5 +586,3 @@ class BoringSSL(Provider):
         self.set_provider_ready()
 
         return cmd_line
-
-

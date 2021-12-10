@@ -15,7 +15,3 @@ subprocess = "0.2.8"
 [[bench]]
 name = "handshake"
 harness = false
-
-[[bench]]
-name = "s2nc"
-harness = false
