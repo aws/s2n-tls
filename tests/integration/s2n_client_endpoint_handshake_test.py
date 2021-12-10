@@ -116,7 +116,7 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
     TODO: warn if there is drift between the OS CA certs and our own.
     see https://letsencrypt.org/docs/dst-root-ca-x3-expiration-september-2021/
     """
-    s2nc_cmd = ["../../bin/s2nc", "-f", "./trust-store/ca-bundle.crt", "-a", "http/1.1"] + arguments + [str(endpoint)]
+    s2nc_cmd = ["../../bin/s2nc", "-f", "./trust-store/ca-bundle.crt", "-a", "http/1.1", "-B"] + arguments + [str(endpoint)]
     currentDir = os.path.dirname(os.path.realpath(__file__))
     s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=currentDir, universal_newlines=True)
 
