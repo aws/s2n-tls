@@ -182,7 +182,9 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
 
         # Retry handshake in case there are any problems going over the internet
         for i in range(1, maxRetries):
-            print("Connecting to: %-35sAttempt: %-10s... " % (endpoint, i))
+            if i > 1:
+                print("Connecting to: %-35sAttempt: %-10s... " % (endpoint, i))
+
             ret = try_client_handshake(endpoint, arguments, expected_cipher)
 
             if ret == 0:
