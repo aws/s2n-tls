@@ -33,6 +33,9 @@ class Provider(object):
         self._provider_ready_condition = threading.Condition()
         self._provider_ready = False
 
+        # Directory to run commands from
+        self.cwd = None
+
         if type(options) is not ProviderOptions:
             raise TypeError
 
@@ -62,6 +65,9 @@ class Provider(object):
         This should be the last message printed before the client/server can send data.
         """
         return None
+
+    def get_cwd(self):
+        return self.cwd
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -273,6 +279,8 @@ class CriterionS2N(S2N):
 
     def __init__(self, options: ProviderOptions):
         super().__init__(options)
+        # TODO: automatically figure out where the criterion root is.
+        self.cwd = "/opt/s2n/bindings/rust"
         if self.options.mode == Provider.ServerMode:
             self.capture_server_args(self.setup_server())
             self.cmd_line = self._find_s2nd_benchmark()
