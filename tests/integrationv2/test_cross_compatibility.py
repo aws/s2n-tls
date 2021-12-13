@@ -57,7 +57,7 @@ def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, pro
 
     assert os.path.exists(ticket_file)
     client_options.extra_flags = ['-sess_in', ticket_file]
-    server_options.older_version = True
+    server_options.use_mainline_version = True
 
     s2n_server = managed_process(S2N, server_options)
     client = managed_process(provider, client_options)
@@ -99,7 +99,7 @@ def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, pro
 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
-    server_options.older_version = True
+    server_options.use_mainline_version = True
     server_options.key = certificate.key
     server_options.cert = certificate.cert
 
@@ -114,7 +114,7 @@ def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, pro
 
     assert os.path.exists(ticket_file)
     client_options.extra_flags = ['-sess_in', ticket_file]
-    server_options.older_version = False
+    server_options.use_mainline_version = False
 
     s2n_server = managed_process(S2N, server_options)
     client = managed_process(provider, client_options)
@@ -171,7 +171,7 @@ def test_s2n_old_client_new_ticket(managed_process, tmp_path, cipher, curve, pro
 
     assert os.path.exists(ticket_file)
     client_options.extra_flags = ['--ticket-in', ticket_file]
-    client_options.older_version = True
+    client_options.use_mainline_version = True
 
     server = managed_process(provider, server_options)
     s2n_client = managed_process(S2N, client_options)
@@ -211,7 +211,7 @@ def test_s2n_new_client_old_ticket(managed_process, tmp_path, cipher, curve, pro
     client_options = copy.copy(options)
     client_options.mode = Provider.ClientMode
     client_options.extra_flags = ['--ticket-out', ticket_file]
-    client_options.older_version = True
+    client_options.use_mainline_version = True
 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
@@ -229,7 +229,7 @@ def test_s2n_new_client_old_ticket(managed_process, tmp_path, cipher, curve, pro
 
     assert os.path.exists(ticket_file)
     client_options.extra_flags = ['--ticket-in', ticket_file]
-    client_options.older_version = False
+    client_options.use_mainline_version = False
 
     server = managed_process(provider, server_options)
     s2n_client = managed_process(S2N, client_options)

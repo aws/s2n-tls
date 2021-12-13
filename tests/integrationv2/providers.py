@@ -147,7 +147,7 @@ class S2N(Provider):
         Using the passed ProviderOptions, create a command line.
         """
         cmd_line = []
-        if self.options.older_version is True:
+        if self.options.use_mainline_version is True:
             cmd_line.append('s2nc_head')
         else:
             cmd_line.append('s2nc')
@@ -205,7 +205,7 @@ class S2N(Provider):
         Using the passed ProviderOptions, create a command line.
         """
         cmd_line = []
-        if self.options.older_version is True:
+        if self.options.use_mainline_version is True:
             cmd_line.append('s2nd_head')
         else:
             cmd_line.append('s2nd')
