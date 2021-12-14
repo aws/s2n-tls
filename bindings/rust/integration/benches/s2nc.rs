@@ -2,23 +2,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::env;
-use subprocess::{Exec, Redirection};
+use std::{
+    env,
+    io::{self, Write},
+    process::Command,
+};
 
 pub fn s2nc(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2n_client");
     let s2nc_args = env!("S2NC_ARGS");
     // Additions to PATH: .cargo/bin, s2n-tls/bin
-    let path = env::current_dir();
-    let mut output = File::create("s2nc_criterion.out")?;
     group.bench_function(format!("s2nc"), move |b| {
         b.iter(|| {
-            // Write out to a file so the tests can check output.
-            Exec::cmd("s2nc")
+            println!("Running command  {:?}", s2nc_args); 
+            let output = Command::new("/opt/s2n/bin/s2nc")
                 .arg(s2nc_args)
-                .stdout(Redirection::File(output))
-                .stderr(Redirection::Merge)
-                .capture()
+                .output()
+                .expect("failed to execute process");
+
+          io::stdout().write_all(&output.stdout).unwrap();
+           io::stderr().write_all(&output.stderr).unwrap();
         });
     });
 
@@ -27,3 +30,4 @@ pub fn s2nc(c: &mut Criterion) {
 
 criterion_group!(benches, s2nc);
 criterion_main!(benches);
+

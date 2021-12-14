@@ -263,7 +263,8 @@ class CriterionS2N(S2N):
     """
     @classmethod
     def _find_s2nc_benchmark(self):
-        return ['/opt/s2n/bindings/rust/target/release/deps/s2nc-effdcd4f02694584']
+        #return ['/opt/s2n/bindings/rust/target/release/deps/s2nd-1cec6d9e9a298d4c']
+        return ['cargo','bench','--bench','s2nc']
 
     @classmethod
     def _find_s2nd_benchmark(self):
