@@ -61,7 +61,7 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
-    POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->ems_negotiated));
 
     return S2N_SUCCESS;
@@ -154,7 +154,7 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     S2N_ERROR_IF(then > now, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     S2N_ERROR_IF(now - then > conn->config->session_state_lifetime_in_nanos, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
-    POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
 
     if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;
@@ -221,7 +221,7 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     uint64_t then = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &then));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
 
     if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;

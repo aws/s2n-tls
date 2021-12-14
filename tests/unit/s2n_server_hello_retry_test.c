@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.evp_pkey);
-        EXPECT_TRUE(memcmp(server_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN) == 0);
+        EXPECT_TRUE(memcmp(server_conn->server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN) == 0);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
 
-        POSIX_CHECKED_MEMCPY(server_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMCPY(server_conn->server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->kex_params.client_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
         /* Setup the client to receive a HelloRetryRequest */
-        POSIX_CHECKED_MEMCPY(client_conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMCPY(client_conn->server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
