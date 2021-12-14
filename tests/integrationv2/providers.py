@@ -2,6 +2,7 @@ import pytest
 import threading
 import os
 
+from subprocess import CalledProcessError, run
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 
@@ -263,8 +264,7 @@ class CriterionS2N(S2N):
     """
     @classmethod
     def _find_s2nc_benchmark(self):
-        #return ['/opt/s2n/bindings/rust/target/release/deps/s2nd-1cec6d9e9a298d4c']
-        return ['cargo','bench','--bench','s2nc']
+        return ['/opt/s2n/bindings/rust/target/release/deps/s2nd-1cec6d9e9a298d4c']
 
     @classmethod
     def _find_s2nd_benchmark(self):
@@ -274,12 +274,15 @@ class CriterionS2N(S2N):
     def _cargo_bench(self):
         """
         build the handlers
-        cargo bench --norun
         """
-        pass
+        try:
+            result = run(["cargo","bench","--no-run"], check=True,shell=False)
+        except CalledProcessError:
+            raise SystemError
 
     def __init__(self, options: ProviderOptions):
         super().__init__(options)
+        self._cargo_bench()
         # TODO: automatically figure out where the criterion root is.
         self.cwd = "/opt/s2n/bindings/rust"
         if self.options.mode == Provider.ServerMode:
