@@ -170,7 +170,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_hash_init(&hash_state, hash_alg));
             EXPECT_SUCCESS(s2n_rsa_pkcs1v15_verify(public_key, &hash_state, &evp_signature));
         }
-
     }
 
     /* EVP signing must match ECDSA signing */

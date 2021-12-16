@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_evp_signing.h"
-
 #include "error/s2n_errno.h"
 
 #include "crypto/s2n_evp.h"
+#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_pss.h"
 
@@ -33,6 +32,16 @@ static S2N_RESULT s2n_evp_md_ctx_set_pkey_ctx(EVP_MD_CTX *ctx, EVP_PKEY_CTX *pct
 {
 #ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
     EVP_MD_CTX_set_pkey_ctx(ctx, pctx);
+    return S2N_RESULT_OK;
+#else
+    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+#endif
+}
+
+static S2N_RESULT s2n_evp_pkey_set_rsa_pss_saltlen(EVP_PKEY_CTX *pctx)
+{
+#if RSA_PSS_SIGNING_SUPPORTED
+    RESULT_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_PKEY_CTX_INIT);
     return S2N_RESULT_OK;
 #else
     RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
@@ -82,6 +91,8 @@ static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_
         default:
             break;
     }
+    /* Hash algorithm must be recognized and supported by EVP_MD */
+    RESULT_ENSURE(s2n_hash_alg_to_evp_md(hash_alg) != NULL, S2N_ERR_HASH_INVALID_ALGORITHM);
     return S2N_RESULT_OK;
 }
 
@@ -101,11 +112,7 @@ int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
 
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
-#if RSA_PSS_SIGNING_SUPPORTED
-        POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_PKEY_CTX_INIT);
-#else
-        POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
-#endif
+        POSIX_GUARD_RESULT(s2n_evp_pkey_set_rsa_pss_saltlen(pctx));
     }
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
