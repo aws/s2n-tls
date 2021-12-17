@@ -49,12 +49,12 @@ struct s2n_tls12_secrets {
 };
 
 struct s2n_tls13_secrets {
-    uint8_t extracted_secret[S2N_TLS_SECRET_LEN];
-    uint8_t derived_secret[S2N_TLS_SECRET_LEN];
+    uint8_t extracted_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t derived_secret[S2N_TLS13_SECRET_MAX_LEN];
 
-    uint8_t client_app_secret[S2N_TLS_SECRET_LEN];
-    uint8_t server_app_secret[S2N_TLS_SECRET_LEN];
-    uint8_t resumption_master_secret[S2N_TLS_SECRET_LEN];
+    uint8_t client_app_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t server_app_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
 };
 
 union s2n_secrets {
