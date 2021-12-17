@@ -494,8 +494,8 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 
 int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    struct s2n_blob client_random = {.size = sizeof(conn->client_random), .data = conn->client_random};
-    struct s2n_blob server_random = {.size = sizeof(conn->server_random), .data = conn->server_random};
+    struct s2n_blob client_random = {.size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random};
+    struct s2n_blob server_random = {.size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random};
     struct s2n_blob master_secret = {.size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret};
 
     uint8_t master_secret_label[] = "master secret";
@@ -506,8 +506,8 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
 
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    struct s2n_blob client_random = {.size = sizeof(conn->client_random), .data = conn->client_random};
-    struct s2n_blob server_random = {.size = sizeof(conn->server_random), .data = conn->server_random};
+    struct s2n_blob client_random = {.size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random};
+    struct s2n_blob server_random = {.size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random};
     struct s2n_blob master_secret = {.size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret};
 
     uint8_t master_secret_label[] = "hybrid master secret";
@@ -814,8 +814,8 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuff
 
 int s2n_prf_key_expansion(struct s2n_connection *conn)
 {
-    struct s2n_blob client_random = {.data = conn->client_random,.size = sizeof(conn->client_random) };
-    struct s2n_blob server_random = {.data = conn->server_random,.size = sizeof(conn->server_random) };
+    struct s2n_blob client_random = {.data = conn->handshake_params.client_random,.size = sizeof(conn->handshake_params.client_random) };
+    struct s2n_blob server_random = {.data = conn->handshake_params.server_random,.size = sizeof(conn->handshake_params.server_random) };
     struct s2n_blob master_secret = {.data = conn->secrets.tls12.master_secret,.size = sizeof(conn->secrets.tls12.master_secret) };
     struct s2n_blob label, out;
     uint8_t key_expansion_label[] = "key expansion";

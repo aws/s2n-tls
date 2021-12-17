@@ -202,8 +202,6 @@ struct s2n_connection {
     struct s2n_crypto_parameters initial;
     struct s2n_crypto_parameters secure;
     union s2n_secrets secrets;
-    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
-    uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;

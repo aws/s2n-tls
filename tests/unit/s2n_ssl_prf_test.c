@@ -74,12 +74,12 @@ int main(int argc, char **argv)
     for (int i = 0; i < 32; i++) {
         uint8_t c = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-        conn->client_random[i] = c;
+        conn->handshake_params.client_random[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
-        conn->server_random[i] = c;
+        conn->handshake_params.server_random[i] = c;
     }
 
     /* Set the protocol version to sslv3 */
