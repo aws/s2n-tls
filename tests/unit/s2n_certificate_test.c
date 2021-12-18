@@ -678,8 +678,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(tls12_server_conn->handshake_params.client_cert_chain.size, 0);
         }
 
-        /* Perform TLS1.3 handshake and verify cert chain is NOT available */
-        {
+        /* Perform TLS1.3 handshake and verify cert chain is NOT available.
+         *
+         * The TLS1.3 handshake is only possible if TLS1.3 is fully supported because of client auth:
+         * the server doesn't know whether the client will offer a RSA-PSS certificate or not.
+         */
+        if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_connection_set_config(tls13_client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_config(tls13_server_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls13_client_conn, "default_tls13"));
@@ -710,7 +714,7 @@ int main(int argc, char **argv)
         /* Should produce same result for TLS1.2 and TLS1.3
          * (Both connections used the same certificate chain for the handshake)
          */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             uint8_t *tls12_output = NULL;
             uint32_t tls12_output_len = 0;
             EXPECT_SUCCESS(s2n_connection_get_client_cert_chain(tls12_server_conn, &tls12_output, &tls12_output_len));
