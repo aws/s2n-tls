@@ -142,6 +142,7 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
 
     if (sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_PKEY_CTX_INIT);
+        POSIX_GUARD_RESULT(s2n_evp_pkey_set_rsa_pss_saltlen(pctx));
     }
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;

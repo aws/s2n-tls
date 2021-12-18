@@ -193,11 +193,13 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     POSIX_ENSURE_REF(ctx);
 
     POSIX_GUARD_OSSL(EVP_PKEY_verify_init(ctx), S2N_ERR_VERIFY_SIGNATURE);
-    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_SIGN);
+    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_VERIFY_SIGNATURE);
     POSIX_GUARD(s2n_evp_pkey_ctx_set_rsa_signature_digest(ctx, digest_alg));
-    POSIX_GUARD_OSSL(EVP_PKEY_verify(ctx, signature_in->data, signature_in->size, digest_data, digest_length), S2N_ERR_VERIFY_SIGNATURE);
+    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_VERIFY_SIGNATURE);
 
-    return 0;
+    POSIX_GUARD_OSSL(EVP_PKEY_verify(ctx, signature_in->data, signature_in->size,
+            digest_data, digest_length), S2N_ERR_VERIFY_SIGNATURE);
+    return S2N_SUCCESS;
 }
 
 #else
