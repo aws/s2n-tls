@@ -45,5 +45,12 @@ struct s2n_evp_hmac_state {
 #define S2N_EVP_MD_CTX_FREE(md_ctx) (EVP_MD_CTX_destroy(md_ctx))
 #endif
 
+/* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
+ * which fails to compile when the "-Werror=cast-qual" compiler flag is enabled. So we work around this OpenSSL
+ * issue by turning off this compiler check for this one function with a cast through.
+ */
+#define S2N_EVP_PKEY_CTX_set_signature_md(ctx, md) \
+    EVP_PKEY_CTX_set_signature_md(ctx, (EVP_MD*) (uintptr_t) md)
+
 extern int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest);
 extern S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest, bool *out);
