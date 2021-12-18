@@ -42,6 +42,11 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
     return verify_data->allow;
 }
 
+static uint8_t always_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
+    return true;
+}
+
 static int s2n_noop_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 {
     return S2N_SUCCESS;
@@ -100,9 +105,13 @@ int main(int argc, char **argv)
 
     const uint8_t ocsp_data[] = "ocsp data";
 
-    struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    EXPECT_SUCCESS(
-        s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Test s2n_cert_chain_and_key_load_public_pem_bytes */
     {
@@ -624,6 +633,96 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
     }
 
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    /* Test s2n_connection_get_client_cert_chain */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config, always_verify_host_fn, NULL));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, NULL));
+
+        DEFER_CLEANUP(struct s2n_connection *tls12_client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *tls12_server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *tls13_client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *tls13_server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+
+        /* Should error before handshakes performed.
+         * This method is intended to be called after the handshake is complete and requires
+         * state set during the handshake.
+         */
+        {
+            uint8_t *output = NULL;
+            uint32_t output_len = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_client_cert_chain(tls12_server_conn, &output, &output_len),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_client_cert_chain(tls13_server_conn, &output, &output_len),
+                    S2N_ERR_NULL);
+            EXPECT_NULL(output);
+            EXPECT_EQUAL(output_len, 0);
+        }
+
+        /* Perform TLS1.2 handshake and verify cert chain is available */
+        {
+            EXPECT_SUCCESS(s2n_connection_set_config(tls12_client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(tls12_server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls12_client_conn, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls12_server_conn, "test_all_tls12"));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(tls12_client_conn, tls12_server_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(tls12_server_conn, tls12_client_conn));
+
+            EXPECT_EQUAL(tls12_server_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_NOT_NULL(tls12_server_conn->handshake_params.client_cert_chain.data);
+            EXPECT_NOT_EQUAL(tls12_server_conn->handshake_params.client_cert_chain.size, 0);
+        }
+
+        /* Perform TLS1.3 handshake and verify cert chain is NOT available */
+        {
+            EXPECT_SUCCESS(s2n_connection_set_config(tls13_client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(tls13_server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls13_client_conn, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls13_server_conn, "default_tls13"));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(tls13_client_conn, tls13_server_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(tls13_server_conn, tls13_client_conn));
+
+            EXPECT_EQUAL(tls13_server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_NOT_NULL(tls13_server_conn->handshake_params.client_cert_chain.data);
+            EXPECT_NOT_EQUAL(tls13_server_conn->handshake_params.client_cert_chain.size, 0);
+        }
+
+        /* Should error if called by client */
+        {
+            uint8_t *output = NULL;
+            uint32_t output_len = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_client_cert_chain(tls12_client_conn, &output, &output_len),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_client_cert_chain(tls13_client_conn, &output, &output_len),
+                    S2N_ERR_NULL);
+            EXPECT_NULL(output);
+            EXPECT_EQUAL(output_len, 0);
+        }
+
+        /* Should produce same result for TLS1.2 and TLS1.3
+         * (Both connections used the same certificate chain for the handshake)
+         */
+        {
+            uint8_t *tls12_output = NULL;
+            uint32_t tls12_output_len = 0;
+            EXPECT_SUCCESS(s2n_connection_get_client_cert_chain(tls12_server_conn, &tls12_output, &tls12_output_len));
+
+            uint8_t *tls13_output = NULL;
+            uint32_t tls13_output_len = 0;
+            EXPECT_SUCCESS(s2n_connection_get_client_cert_chain(tls13_server_conn, &tls13_output, &tls13_output_len));
+
+            EXPECT_EQUAL(tls12_output_len, tls13_output_len);
+            EXPECT_BYTEARRAY_EQUAL(tls12_output, tls13_output, tls13_output_len);
+        }
+    }
+
     END_TEST();
 }
