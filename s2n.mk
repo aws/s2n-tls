@@ -199,6 +199,12 @@ ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
 endif
 
+# Determine if EVP_MD_CTX_set_pkey_ctx is available
+TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
+ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+endif
+
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c
