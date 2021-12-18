@@ -332,6 +332,14 @@ static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *
     return 0;
 }
 
+S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD_POSIX(s2n_connection_free(*conn));
+    *conn = NULL;
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_free(struct s2n_connection *conn)
 {
     POSIX_GUARD(s2n_connection_wipe_keys(conn));
