@@ -646,7 +646,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *tls13_client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         DEFER_CLEANUP(struct s2n_connection *tls13_server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
-        /* Should error before handshakes performed.
+        /* Should error before the handshake is performed.
          * This method is intended to be called after the handshake is complete and requires
          * state set during the handshake.
          */
