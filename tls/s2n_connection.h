@@ -201,7 +201,7 @@ struct s2n_connection {
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
     struct s2n_crypto_parameters secure;
-    struct s2n_secrets secrets;
+    union s2n_secrets secrets;
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;
@@ -358,8 +358,6 @@ struct s2n_connection {
     /* Session ticket extension from client to attempt to decrypt as the server. */
     uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
     struct s2n_stuffer client_ticket_to_decrypt;
-
-    uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
 
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;

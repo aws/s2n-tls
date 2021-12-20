@@ -447,7 +447,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->secrets.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->secrets.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server done message was processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
@@ -539,7 +539,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->secrets.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_NOT_EQUAL(memcmp(conn->secrets.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_NOT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
@@ -631,7 +631,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data failed */
-    EXPECT_NOT_EQUAL(memcmp(conn->secrets.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_NOT_EQUAL(memcmp(conn->handshake_params.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed */
     EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
