@@ -185,7 +185,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
 
     /* Part 4.1 verify results as best we can, the client and server should at least have the same master secret */
     /* Compare byte arrays for equality */
-    POSIX_ENSURE_EQ(memcmp(server_conn->secrets.master_secret, client_conn->secrets.master_secret, S2N_TLS_SECRET_LEN), 0);
+    POSIX_ENSURE_EQ(memcmp(server_conn->secrets.tls12.master_secret, client_conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN), 0);
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Part 4.1.1 if we're running in known answer mode check that both the client and server got the expected master secret
@@ -193,8 +193,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     uint8_t expected_master_secret[S2N_TLS_SECRET_LEN];
     POSIX_GUARD(ReadHex(kat_file, expected_master_secret, S2N_TLS_SECRET_LEN, "expected_master_secret = "));
     /* Compare byte arrays for equality */
-    POSIX_ENSURE_EQ(memcmp(expected_master_secret, client_conn->secrets.master_secret, S2N_TLS_SECRET_LEN), 0);
-    POSIX_ENSURE_EQ(memcmp(expected_master_secret, server_conn->secrets.master_secret, S2N_TLS_SECRET_LEN), 0);
+    POSIX_ENSURE_EQ(memcmp(expected_master_secret, client_conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN), 0);
+    POSIX_ENSURE_EQ(memcmp(expected_master_secret, server_conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN), 0);
 #endif
 
     POSIX_GUARD(s2n_cert_chain_and_key_free(chain_and_key));

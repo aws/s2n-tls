@@ -127,6 +127,9 @@ struct s2n_handshake_parameters {
     struct s2n_cert_chain_and_key *wc_sni_matches[S2N_CERT_TYPE_COUNT];
     uint8_t exact_sni_match_exists;
     uint8_t wc_sni_match_exists;
+
+    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
+    uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
 };
 
 struct s2n_handshake {

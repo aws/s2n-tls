@@ -252,7 +252,7 @@ static int s2n_generate_session_secret(struct s2n_connection *conn, struct s2n_b
 
     s2n_tls13_connection_keys(secrets, conn);
     struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, secrets.size));
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls13.resumption_master_secret, secrets.size));
     POSIX_GUARD(s2n_realloc(output, secrets.size));
     POSIX_GUARD_RESULT(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, nonce, output));
 

@@ -43,13 +43,23 @@ struct s2n_kex_parameters {
     struct s2n_blob client_pq_kem_extension;
 };
 
-struct s2n_secrets {
+struct s2n_tls12_secrets {
     uint8_t rsa_premaster_secret[S2N_TLS_SECRET_LEN];
     uint8_t master_secret[S2N_TLS_SECRET_LEN];
-    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
-    uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
+};
+
+struct s2n_tls13_secrets {
+    uint8_t extracted_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t derived_secret[S2N_TLS13_SECRET_MAX_LEN];
+
     uint8_t client_app_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t server_app_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
+};
+
+union s2n_secrets {
+    struct s2n_tls12_secrets tls12;
+    struct s2n_tls13_secrets tls13;
 };
 
 struct s2n_crypto_parameters {
