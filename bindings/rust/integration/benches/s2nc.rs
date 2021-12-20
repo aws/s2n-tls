@@ -10,22 +10,22 @@ use std::{
 
 pub fn s2nc(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2n_client");
-    let s2nc_args = env::var("S2NC_ARGS").is_err();
-    assert_ne!(s2nc_args.len(), 0);
-    println!("In s2nc harness");
-    // Additions to PATH: .cargo/bin, s2n-tls/bin
-    group.bench_function(format!("s2nc"), move |b| {
-        b.iter(|| {
-            println!("Running command  s2nc {:?}", s2nc_args);
-            let output = Command::new("/opt/s2n/bin/s2nc")
-                .arg(s2nc_args)
-                .output()
-                .expect("failed to execute process");
+    group.bench_function(
+        format!("{:?}_s2nc", env::var("TOX_TEST_NAME").unwrap()),
+        move |b| {
+            b.iter(|| {
+                let s2nc_args = env::var("S2NC_ARGS").unwrap();
+                assert_ne!(s2nc_args.len(), 0);
+                let output = Command::new("/opt/s2n/bin/s2nc")
+                    .arg(s2nc_args)
+                    .output()
+                    .expect("failed to execute process");
 
-            io::stdout().write_all(&output.stdout).unwrap();
-            io::stderr().write_all(&output.stderr).unwrap();
-        });
-    });
+                io::stdout().write_all(&output.stdout).unwrap();
+                io::stderr().write_all(&output.stderr).unwrap();
+            });
+        },
+    );
 
     group.finish();
 }

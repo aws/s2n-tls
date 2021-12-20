@@ -5,6 +5,11 @@ import os
 from subprocess import CalledProcessError, run
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
+from utils import find_files, EXECUTABLE
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Provider(object):
@@ -156,10 +161,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        #cmd_line = ['cargo','bench','--bench','s2nc']
-        cmd_line = [
-            '/opt/s2n/bindings/rust/target/release/deps/s2nc-effdcd4f02694584']
-
+        cmd_line = []
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
         if self.options.reconnect is not True:
@@ -198,11 +200,6 @@ class S2N(Provider):
             cmd_line.extend(self.options.extra_flags)
 
         cmd_line.extend([self.options.host, self.options.port])
-
-        # For cargo, the args  are going into an ENV varible.
-        s2nc_args = cmd_line[1:]
-        os.environ['S2NC_ARGS'] = ' '.join(s2nc_args)
-        cmd_line = cmd_line[:1]
 
         # Clients are always ready to connect
         self.set_provider_ready()
@@ -262,47 +259,60 @@ class CriterionS2N(S2N):
     """
     Wrap the S2N provider in criterion-rust
     """
-    @classmethod
-    def _find_s2nc_benchmark(self):
-        return ['/opt/s2n/bindings/rust/target/release/deps/s2nd-1cec6d9e9a298d4c']
 
-    @classmethod
-    def _find_s2nd_benchmark(self):
-        return ['/opt/s2n/bindings/rust/target/release/deps/s2nd-effdcd4f02694584']
+    def _find_s2n_benchmark(self, pattern):
+        result = find_files(pattern, root_dir=self.cwd, mode=EXECUTABLE)
+        if len(result) > 0:
+            return result[0]
+        else:
+            return ''
 
-    @classmethod
+    # Does this belong in utils?
+    def _find_cargo(self):
+        # return a path to the highest level dir containing Cargo.toml
+        shortest = None
+        for file in find_files("Cargo.toml", root_dir="../.."):
+            if shortest is None:
+                shortest = file
+            else:
+                if len(file) < len(shortest):
+                    shortest = file
+        # Retrun the path, minus Cargo.toml
+        return str("/".join(shortest.split("/")[:-1]))
+
     def _cargo_bench(self):
         """
-        build the handlers
+        Find or build the handlers
         """
-        try:
-            result = run(["cargo","bench","--no-run"], check=True,shell=False)
-        except CalledProcessError:
-            raise SystemError
+        # Test the file name length returned by _find_s2n; if it doesn't exist run cargo
+        self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
+        self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
+
+        if len(self.s2nc_bench) < 1 or len(self.s2nd_bench) < 1:
+            try:
+                command = "{}/.cargo/bin/cargo bench --no-run".format(os.path.expandvars("$HOME"))
+                run(command.split(" "), check=True, shell=False, cwd=self.cwd)
+                self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
+                self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
+            except CalledProcessError:
+                raise SystemError
 
     def __init__(self, options: ProviderOptions):
         super().__init__(options)
+        # Set cwd for the benchmark
+        self.cwd = self._find_cargo()
         self._cargo_bench()
-        # TODO: automatically figure out where the criterion root is.
-        self.cwd = "/opt/s2n/bindings/rust"
-        if self.options.mode == Provider.ServerMode:
-            self.capture_server_args(self.setup_server())
-            self.cmd_line = self._find_s2nd_benchmark()
-        elif self.options.mode == Provider.ClientMode:
-            self.capture_client_args(self.setup_server())
-            self.cmd_line = self._find_s2nc_benchmark()
+        self.capture_client_args()
 
-    def capture_client_args(self, cmd_line):
-        s2n_args = cmd_line[1:]
-        os.environ['S2NC_ARGS'] = ' '.join(s2n_args)
+    def capture_client_args(self):
+        self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
+        self.cmd_line = [self.s2nc_bench]
 
     def capture_server_args(self, cmd_line):
-        s2n_args = cmd_line[1:]
-        os.environ['S2ND_ARGS'] = ' '.join(s2n_args)
-
+        self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
+        self.cmd_line = [self.s2nd_bench]
 
 class OpenSSL(Provider):
-
     _version = get_flag(S2N_PROVIDER_VERSION)
 
     def __init__(self, options: ProviderOptions):
@@ -339,7 +349,8 @@ class OpenSSL(Provider):
             mismatch = [c for c in cipher if (c.min_version >= Protocols.TLS13) != is_tls13_or_above]
 
             if len(mismatch) > 0:
-                raise Exception("Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format([c.name for c in cipher]))
+                raise Exception("Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format(
+                    [c.name for c in cipher]))
 
             ciphers.append(self._join_ciphers(cipher))
         else:

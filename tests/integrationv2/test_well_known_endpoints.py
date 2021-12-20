@@ -8,7 +8,6 @@ from global_flags import get_flag, S2N_FIPS_MODE
 from providers import Provider, CriterionS2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
-
 ENDPOINTS = [
     "www.akamai.com",
     "www.amazon.com",

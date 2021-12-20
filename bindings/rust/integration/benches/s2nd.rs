@@ -2,23 +2,30 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::{env, fs};
-use subprocess::{Exec, Redirection};
+use std::{
+    env,
+    io::{self, Write},
+    process::Command,
+};
 
 pub fn s2nd(c: &mut Criterion) {
-    let mut group = c.benchmark_group("s2n_daemon");
-    let s2nc_args = env!("S2ND_ARGS");
-    group.bench_function(format!("s2nd"), move |b| {
-        b.iter(|| {
-        let output = fs::File::create("s2nd_criterion.out").unwrap();
-            // Write out to a file so the tests can check output.
-            Exec::cmd("s2nd")
-                .arg(s2nc_args)
-                .stdout(Redirection::File(output))
-                .stderr(Redirection::Merge)
-                .capture()
-        });
-    });
+    let mut group = c.benchmark_group("s2n_server");
+    group.bench_function(
+        format!("{:?}_s2nd", env::var("TOX_TEST_NAME").unwrap()),
+        move |b| {
+            b.iter(|| {
+                let s2nd_args = env::var("S2ND_ARGS").unwrap();
+                assert_ne!(s2nd_args.len(), 0);
+                let output = Command::new("/opt/s2n/bin/s2nd")
+                    .arg(s2nd_args)
+                    .output()
+                    .expect("failed to execute process");
+
+                io::stdout().write_all(&output.stdout).unwrap();
+                io::stderr().write_all(&output.stderr).unwrap();
+            });
+        },
+    );
 
     group.finish();
 }
