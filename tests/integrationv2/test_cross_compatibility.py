@@ -61,8 +61,8 @@ def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, pro
     client_options.extra_flags = ['-sess_in', ticket_file]
     server_options.use_mainline_version = True
 
-    s2n_server = managed_process(S2N, server_options)
-    client = managed_process(provider, client_options)
+    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options, close_marker=str(CLOSE_MARKER_BYTES))
 
     for results in client.get_results():
         results.assert_success()
@@ -119,8 +119,8 @@ def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, pro
     client_options.extra_flags = ['-sess_in', ticket_file]
     server_options.use_mainline_version = False
 
-    s2n_server = managed_process(S2N, server_options)
-    client = managed_process(provider, client_options)
+    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options, close_marker=str(CLOSE_MARKER_BYTES))
 
     for results in client.get_results():
         results.assert_success()
