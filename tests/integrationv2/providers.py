@@ -261,7 +261,7 @@ class CriterionS2N(S2N):
     """
 
     def _find_s2n_benchmark(self, pattern):
-        result = find_files(pattern, root_dir=self.cwd, mode=EXECUTABLE)
+        result = find_files(pattern, root_dir=self.cargo_root, mode=EXECUTABLE)
         if len(result) > 0:
             return result[0]
         else:
@@ -291,7 +291,7 @@ class CriterionS2N(S2N):
         if len(self.s2nc_bench) < 1 or len(self.s2nd_bench) < 1:
             try:
                 command = "{}/.cargo/bin/cargo bench --no-run".format(os.path.expandvars("$HOME"))
-                run(command.split(" "), check=True, shell=False, cwd=self.cwd)
+                run(command.split(" "), check=True, shell=False, cwd=self.cargo_root)
                 self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
                 self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
             except CalledProcessError:
@@ -300,7 +300,7 @@ class CriterionS2N(S2N):
     def __init__(self, options: ProviderOptions):
         super().__init__(options)
         # Set cwd for the benchmark
-        self.cwd = self._find_cargo()
+        self.cargo_root = self._find_cargo()
         self._cargo_bench()
         self.capture_client_args()
 
