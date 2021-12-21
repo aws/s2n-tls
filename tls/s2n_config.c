@@ -334,6 +334,14 @@ int s2n_config_free_dhparams(struct s2n_config *config)
     return 0;
 }
 
+S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_GUARD_POSIX(s2n_config_free(*config));
+    *config = NULL;
+    return S2N_RESULT_OK;
+}
+
 int s2n_config_free(struct s2n_config *config)
 {
     s2n_config_cleanup(config);

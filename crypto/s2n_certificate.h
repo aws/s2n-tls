@@ -67,6 +67,7 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
 int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
 int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name);
 
+S2N_CLEANUP_RESULT s2n_cert_chain_and_key_ptr_free(struct s2n_cert_chain_and_key **cert_and_key);
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type);
 int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key);
 int s2n_send_empty_cert_chain(struct s2n_stuffer *out);

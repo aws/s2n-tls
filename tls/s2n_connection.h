@@ -381,6 +381,8 @@ struct s2n_connection {
     uint32_t server_keying_material_lifetime;
 };
 
+S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
+
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
 int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection);
 
