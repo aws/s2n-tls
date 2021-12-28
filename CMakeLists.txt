@@ -288,6 +288,9 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
+        -Wno-error=array-parameter -Wno-error=discarded-qualifiers -Wno-error=analyzer-null-dereference
+        -Wno-error=analyzer-file-leak -Wno-error=analyzer-malloc-leak -Wno-error=analyzer-possible-null-dereference
+        -Wno-error=stringop-overflow -Wno-error=stringop-overread
         -Wno-missing-braces -Wa,--noexecstack
 )
 
