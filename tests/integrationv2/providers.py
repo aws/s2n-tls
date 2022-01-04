@@ -301,16 +301,21 @@ class CriterionS2N(S2N):
         super().__init__(options)
         # Set cwd for the benchmark
         self.cargo_root = self._find_cargo()
+        # Generate a criterion binary
         self._cargo_bench()
+        # Copy the command arguments to an environment variable for the harness to read.
         self.capture_client_args()
+        # self.capture_server_args()
 
     def capture_client_args(self):
         self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
-        self.cmd_line = [self.s2nc_bench]
+        # Without this flag, criterion won't generate a report.
+        self.cmd_line = [self.s2nc_bench,"--bench"]
 
     def capture_server_args(self, cmd_line):
         self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
-        self.cmd_line = [self.s2nd_bench]
+        # Without this flag, criterion won't generate a report.
+        self.cmd_line = [self.s2nd_bench, "--bench"]
 
 class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
