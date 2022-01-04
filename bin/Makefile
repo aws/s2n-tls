@@ -25,3 +25,12 @@ s2nc: s2nc.c echo.c
 
 s2nd: s2nd.c echo.c
 	${CC} ${CFLAGS} s2nd.c echo.c https.c common.c -o s2nd ${LDFLAGS}
+
+$(bindir):
+	@mkdir -p $(bindir)
+
+install: s2nc s2nd $(bindir)
+	@cp s2n? $(bindir)
+
+uninstall:
+	@rm $(bindir)/s2n?

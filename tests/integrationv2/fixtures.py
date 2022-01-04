@@ -7,9 +7,7 @@ import time
 from processes import ManagedProcess
 from providers import Provider
 from common import ProviderOptions, Protocols
-import logging
 
-LOGGER = logging.getLogger(__name__)
 
 @pytest.fixture
 def managed_process():
@@ -33,7 +31,6 @@ def managed_process():
             provider.ready_to_send_input_marker = send_marker
         if expect_stderr is None:
             expect_stderr = provider.expect_stderr
-
         p = ManagedProcess(cmd_line,
                 provider.set_provider_ready,
                 wait_for_marker=provider.ready_to_test_marker,
