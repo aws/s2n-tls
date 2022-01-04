@@ -31,8 +31,6 @@ static S2N_RESULT s2n_handshake_hashes_new_hashes(struct s2n_handshake_hashes *h
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->sha384));
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->sha512));
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->md5_sha1));
-    RESULT_GUARD_POSIX(s2n_hash_new(&hashes->server_hello_copy));
-    RESULT_GUARD_POSIX(s2n_hash_new(&hashes->server_finished_copy));
     RESULT_GUARD_POSIX(s2n_hash_new(&hashes->hash_workspace));
     return S2N_RESULT_OK;
 }
@@ -47,8 +45,6 @@ static S2N_RESULT s2n_handshake_hashes_reset_hashes(struct s2n_handshake_hashes 
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->sha384));
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->sha512));
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->md5_sha1));
-    RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->server_hello_copy));
-    RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->server_finished_copy));
     RESULT_GUARD_POSIX(s2n_hash_reset(&hashes->hash_workspace));
     return S2N_RESULT_OK;
 }
@@ -65,8 +61,6 @@ static S2N_RESULT s2n_handshake_hashes_free_hashes(struct s2n_handshake_hashes *
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->sha384));
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->sha512));
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->md5_sha1));
-    RESULT_GUARD_POSIX(s2n_hash_free(&hashes->server_hello_copy));
-    RESULT_GUARD_POSIX(s2n_hash_free(&hashes->server_finished_copy));
     RESULT_GUARD_POSIX(s2n_hash_free(&hashes->hash_workspace));
     return S2N_RESULT_OK;
 }
@@ -95,8 +89,6 @@ static S2N_RESULT s2n_handshake_hashes_init_hashes(struct s2n_handshake_hashes *
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->sha384, S2N_HASH_SHA384));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->sha512, S2N_HASH_SHA512));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->md5_sha1, S2N_HASH_MD5_SHA1));
-    RESULT_GUARD_POSIX(s2n_hash_init(&hashes->server_hello_copy, S2N_HASH_NONE));
-    RESULT_GUARD_POSIX(s2n_hash_init(&hashes->server_finished_copy, S2N_HASH_NONE));
     RESULT_GUARD_POSIX(s2n_hash_init(&hashes->hash_workspace, S2N_HASH_NONE));
 
     return S2N_RESULT_OK;

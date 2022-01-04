@@ -268,6 +268,10 @@ int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_m
     s2n_tls13_connection_keys(secrets, conn);
     bool is_sending_secret = (mode == conn->mode);
 
+    struct s2n_blob message_digest = { 0 };
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    POSIX_GUARD(s2n_blob_init(&message_digest, conn->handshake.hashes->server_hello_digest, secrets.size));
+
     /* produce handshake secret */
     s2n_stack_blob(hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
 
@@ -293,8 +297,7 @@ int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_m
         conn->server = &conn->secure;
     }
 
-    POSIX_ENSURE_REF(conn->handshake.hashes);
-    POSIX_GUARD(s2n_tls13_derive_handshake_traffic_secret(&secrets, &conn->handshake.hashes->server_hello_copy, &hs_secret, mode));
+    POSIX_GUARD(s2n_tls13_derive_handshake_traffic_secret(&secrets, &message_digest, &hs_secret, mode));
 
     /* trigger secret callbacks */
     if (conn->secret_cb && s2n_connection_is_quic_enabled(conn)) {
@@ -337,6 +340,10 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
     s2n_tls13_connection_keys(keys, conn);
     bool is_sending_secret = (mode == conn->mode);
 
+    struct s2n_blob message_digest = { 0 };
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    POSIX_GUARD(s2n_blob_init(&message_digest, conn->handshake.hashes->server_finished_digest, keys.size));
+
     uint8_t *app_secret_data, *implicit_iv_data;
     struct s2n_session_key *session_key;
     s2n_secret_type_t secret_type;
@@ -352,13 +359,9 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
         secret_type = S2N_SERVER_APPLICATION_TRAFFIC_SECRET;
     }
 
-    /* use frozen hashes during the server finished state */
-    POSIX_ENSURE_REF(conn->handshake.hashes);
-    struct s2n_hash_state *hash_state = &conn->handshake.hashes->server_finished_copy;
-
     /* calculate secret */
     struct s2n_blob app_secret = { .data = app_secret_data, .size = keys.size };
-    POSIX_GUARD(s2n_tls13_derive_application_secret(&keys, hash_state, &app_secret, mode));
+    POSIX_GUARD(s2n_tls13_derive_application_secret(&keys, &message_digest, &app_secret, mode));
 
     /* trigger secret callback */
     if (conn->secret_cb && s2n_connection_is_quic_enabled(conn)) {
