@@ -167,6 +167,13 @@ ifndef COV_TOOL
 	endif
 endif
 
+# Used for testing.
+prefix ?= /usr/local
+exec_prefix ?= $(prefix)
+bindir ?= $(exec_prefix)/bin
+libdir ?= $(exec_prefix)/lib64
+includedir ?= $(exec_prefix)/include
+
 try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
 
 # Determine if execinfo.h is available

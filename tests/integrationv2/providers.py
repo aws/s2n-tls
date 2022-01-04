@@ -1,15 +1,9 @@
 import pytest
 import threading
-import os
 
-from subprocess import CalledProcessError, run
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 from utils import find_files, EXECUTABLE
-
-import logging
-
-LOGGER = logging.getLogger(__name__)
 
 
 class Provider(object):
@@ -103,7 +97,6 @@ class Tcpdump(Provider):
     This class still follows the provider setup, but all values are hardcoded
     because this isn't expected to be used outside of the dynamic record test.
     """
-
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -112,22 +105,22 @@ class Tcpdump(Provider):
         tcpdump_filter = "dst port {}".format(self.options.port)
 
         cmd_line = ["tcpdump",
-                    # Line buffer the output
-                    "-l",
+            # Line buffer the output
+            "-l",
 
-                    # Only read 10 packets before exiting. This is enough to find a large
-                    # packet, and still exit before the timeout.
-                    "-c", "10",
+            # Only read 10 packets before exiting. This is enough to find a large
+            # packet, and still exit before the timeout.
+            "-c", "10",
 
-                    # Watch the loopback device
-                    "-i", "lo",
+            # Watch the loopback device
+            "-i", "lo",
 
-                    # Don't resolve IP addresses
-                    "-nn",
+            # Don't resolve IP addresses
+            "-nn",
 
-                    # Set the buffer size to 1k
-                    "-B", "1024",
-                    tcpdump_filter]
+            # Set the buffer size to 1k
+            "-B", "1024",
+            tcpdump_filter]
 
         return cmd_line
 
@@ -136,7 +129,6 @@ class S2N(Provider):
     """
     The S2N provider translates flags into s2nc/s2nd command line arguments.
     """
-
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -255,8 +247,7 @@ class S2N(Provider):
             cmd_line.append('-T')
 
         if self.options.reconnects_before_exit is not None:
-            cmd_line.append(
-                '--max-conns={}'.format(self.options.reconnects_before_exit))
+            cmd_line.append('--max-conns={}'.format(self.options.reconnects_before_exit))
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -276,9 +267,8 @@ class CriterionS2N(S2N):
         if len(result) > 0:
             return result[0]
         else:
-            return ''
+            raise FileNotFoundError("s2n criterion benchmark not found.")
 
-    # Does this belong in utils?
     def _find_cargo(self):
         # return a path to the highest level dir containing Cargo.toml
         shortest = None
@@ -293,35 +283,34 @@ class CriterionS2N(S2N):
 
     def _cargo_bench(self):
         """
-        Find or build the handlers
+        Find the handlers
         """
-        # Test the file name length returned by _find_s2n; if it doesn't exist run cargo
         self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
         self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
-
-        if len(self.s2nc_bench) < 1 or len(self.s2nd_bench) < 1:
-            try:
-                command = "{}/.cargo/bin/cargo bench --no-run".format(os.path.expandvars("$HOME"))
-                run(command.split(" "), check=True, shell=False, cwd=self.cargo_root)
-                self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
-                self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
-            except CalledProcessError:
-                raise SystemError
 
     def __init__(self, options: ProviderOptions):
         super().__init__(options)
         # Set cwd for the benchmark
         self.cargo_root = self._find_cargo()
+        # Find the criterion binaries
         self._cargo_bench()
-        self.capture_client_args()
+
+        # Copy the command arguments to an environment variable for the harness to read.
+        if self.options.mode == Provider.ServerMode:
+            self.capture_server_args()
+        elif self.options.mode == Provider.ClientMode:
+            self.capture_client_args()
 
     def capture_client_args(self):
         self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
-        self.cmd_line = [self.s2nc_bench]
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nc_bench, "--bench"]
 
     def capture_server_args(self, cmd_line):
         self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
-        self.cmd_line = [self.s2nd_bench]
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nd_bench, "--bench"]
+
 
 class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
@@ -360,8 +349,7 @@ class OpenSSL(Provider):
             mismatch = [c for c in cipher if (c.min_version >= Protocols.TLS13) != is_tls13_or_above]
 
             if len(mismatch) > 0:
-                raise Exception("Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format(
-                    [c.name for c in cipher]))
+                raise Exception("Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format([c.name for c in cipher]))
 
             ciphers.append(self._join_ciphers(cipher))
         else:
@@ -422,8 +410,7 @@ class OpenSSL(Provider):
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
-        cmd_line.extend(
-            ['-connect', '{}:{}'.format(self.options.host, self.options.port)])
+        cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
@@ -479,8 +466,7 @@ class OpenSSL(Provider):
 
         if self.options.reconnects_before_exit is not None:
             # If the user request a specific reconnection count, set it here
-            cmd_line.extend(
-                ['-naccept', str(self.options.reconnects_before_exit)])
+            cmd_line.extend(['-naccept', str(self.options.reconnects_before_exit)])
         else:
             # Exit after the first connection by default
             cmd_line.extend(['-naccept', '1'])
@@ -520,13 +506,11 @@ class OpenSSL(Provider):
 
         return cmd_line
 
-
 class JavaSSL(Provider):
     """
     NOTE: Only a Java SSL client has been set up. The server has not been
     implemented yet.
     """
-
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
@@ -574,14 +558,12 @@ class JavaSSL(Provider):
 
         return cmd_line
 
-
 class BoringSSL(Provider):
     """
     NOTE: In order to focus on the general use of this framework, BoringSSL
     is not yet supported. The client works, the server has not yet been
     implemented, neither are in the default configuration.
     """
-
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
