@@ -77,10 +77,10 @@ static bool s2n_cleanup_atexit_impl(void)
 {
     /* all of these should run, regardless of result, but the
      * values to need to be consumed to prevent warnings */
+    s2n_wipe_static_configs();
     bool a = s2n_result_is_ok(s2n_rand_cleanup_thread());
     bool b = s2n_result_is_ok(s2n_rand_cleanup());
     bool c = s2n_mem_cleanup() == 0;
-    s2n_wipe_static_configs();
 
     return a && b && c;
 }
