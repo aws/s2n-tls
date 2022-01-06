@@ -25,6 +25,18 @@ impl<'a> Arguments<'a> {
         Err(())
     }
 
+    pub fn get_endpoint(self) -> Result<&'a str, ()> {
+        let mut counter = 0;
+        for element in &self.argument {
+            counter += 1;
+            if element.eq(&"-c") {
+                return Ok(self.argument[counter+1]);
+            }
+        }
+        Err(())
+    }
+
+
     // Should this use into?
     pub fn get_vec(self) -> Vec<&'a str> {
         self.argument

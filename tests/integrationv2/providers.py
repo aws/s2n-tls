@@ -288,6 +288,7 @@ class CriterionS2N(S2N):
         self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
         self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
 
+        #TODO: Cargo will need OPENSSL_DIR=$LIBCRYPTO_ROOT
         if len(self.s2nc_bench) < 1 or len(self.s2nd_bench) < 1:
             try:
                 command = "{}/.cargo/bin/cargo bench --no-run".format(os.path.expandvars("$HOME"))
