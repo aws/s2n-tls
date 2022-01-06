@@ -201,7 +201,7 @@ struct s2n_connection {
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
     struct s2n_crypto_parameters secure;
-    struct s2n_secrets secrets;
+    union s2n_secrets secrets;
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;
@@ -359,8 +359,6 @@ struct s2n_connection {
     uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
     struct s2n_stuffer client_ticket_to_decrypt;
 
-    uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
-
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;
 
@@ -382,6 +380,8 @@ struct s2n_connection {
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
 };
+
+S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
 int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection);

@@ -122,7 +122,7 @@ def run_connection_test(get_peer, scenarios, test_func=basic_write_test):
                 result = Result("Server process crashed")
 
         except AssertionError as error:
-            result = Result(error)
+            result = Result(str(error))
         finally:
             cleanup_processes(server, client)
             if client:

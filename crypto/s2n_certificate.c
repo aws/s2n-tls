@@ -420,6 +420,14 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
     return S2N_SUCCESS;
 }
 
+S2N_CLEANUP_RESULT s2n_cert_chain_and_key_ptr_free(struct s2n_cert_chain_and_key **cert_and_key)
+{
+    RESULT_ENSURE_REF(cert_and_key);
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_free(*cert_and_key));
+    *cert_and_key = NULL;
+    return S2N_RESULT_OK;
+}
+
 int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
 {
     if (cert_and_key == NULL) {

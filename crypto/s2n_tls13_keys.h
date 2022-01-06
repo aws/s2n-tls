@@ -27,6 +27,12 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+/* Unlike TLS1.2 secrets, TLS1.3 secret lengths vary depending
+ * on the hash algorithm used to calculate them.
+ * We allocate enough space for the largest possible secret.
+ * At the moment, that is 48 bytes for S2N_HASH_SHA384 and
+ * matches the TLS1.2 secret length.
+ */
 #define S2N_TLS13_SECRET_MAX_LEN SHA384_DIGEST_LENGTH
 
 struct s2n_tls13_keys {

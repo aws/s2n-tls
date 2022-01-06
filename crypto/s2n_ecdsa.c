@@ -27,6 +27,7 @@
 
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_ecc_evp.h"
+#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
@@ -183,6 +184,7 @@ int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->match = &s2n_ecdsa_keys_match;
     pkey->free = &s2n_ecdsa_key_free;
     pkey->check_key = &s2n_ecdsa_check_key_exists;
+    POSIX_GUARD_RESULT(s2n_evp_signing_set_pkey_overrides(pkey));
     return 0;
 }
 

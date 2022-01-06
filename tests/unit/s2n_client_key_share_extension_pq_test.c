@@ -329,7 +329,7 @@ int main() {
                                 conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve;
 
                         /* Setup the client to have received a HelloRetryRequest */
-                        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+                        EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
                         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
                         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
                         conn->early_data_state = S2N_EARLY_DATA_REJECTED;
