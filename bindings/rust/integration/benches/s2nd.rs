@@ -16,7 +16,7 @@ pub fn s2nd(c: &mut Criterion) {
             b.iter(|| {
                 let s2nd_args = env::var("S2ND_ARGS").unwrap();
                 assert_ne!(s2nd_args.len(), 0);
-                let output = Command::new("/opt/s2n/bin/s2nd")
+                let output = Command::new("/usr/local/bin/s2nd")
                     .arg(s2nd_args)
                     .output()
                     .expect("failed to execute process");

@@ -20,8 +20,7 @@ pub fn s2nc(c: &mut Criterion) {
             let s2nc_env: &str = &env::var("S2NC_ARGS").unwrap();
             let s2nc_args: utils::Arguments = s2nc_env.into();
             dbg!("s2nc harness: {:?}", &s2nc_args);
-            // TODO: utility fn to find this file
-            let output = Command::new("/opt/s2n/bin/s2nc")
+            let output = Command::new("/usr/local/bin/s2nc")
                 .args(s2nc_args.get_vec())
                 .output()
                 .expect("failed to execute process");
