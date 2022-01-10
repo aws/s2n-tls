@@ -30,22 +30,11 @@
 struct s2n_cipher_preferences;
 
 struct s2n_config {
-    /* The following bitfield flags are used in SAW proofs. The positions of
-     * these flags are important, as SAW looks up each flag by their index
-     * in the struct starting from 0. See the comments surrounding
-     * config_bitfield in tests/saw/spec/handshake/handshake_io_lowlevel.saw for
-     * more details. Make sure that any new flags are added after these ones
-     * so that the indices in the SAW proofs do not need to be changed each time.
-     *
-     * START OF SAW-TRACKED BITFIELD FLAGS */
-
     unsigned use_tickets:1;
 
     /* Whether a connection can be used by a QUIC implementation.
      * See s2n_quic_support.h */
     unsigned quic_enabled:1;
-
-    /* END OF SAW-TRACKED BITFIELD FLAGS */
 
     unsigned cert_allocated:1;
     unsigned default_certs_are_explicit:1;
