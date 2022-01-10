@@ -43,6 +43,13 @@ let equalNat_ite = core_axiom
   "(x y z : Nat) -> (b : Bool) -> Eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
 // Low-level handshake_io correspondence proof
+//
+// WARNING: Because `enable_lax_loads_and_stores` is enabled in this module,
+// these proofs must use What4-based proof tactics (i.e., those with a `w4_`
+// prefix). Otherwise, they will fail, likely with an error message to the
+// effect of:
+//
+//   FOTArray unimplemented for backend
 let prove_handshake_io_lowlevel = do {
     print "Beginning the low-level spec equivalence proof";
 
@@ -89,6 +96,12 @@ let prove_handshake_io_lowlevel = do {
     return ();
 };
 
+// WARNING: Because `enable_lax_loads_and_stores` is enabled in this module,
+// these proofs must use What4-based proof tactics (i.e., those with a `w4_`
+// prefix). Otherwise, they will fail, likely with an error message to the
+// effect of:
+//
+//   FOTArray unimplemented for backend
 let prove_state_machine = do {
     print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
     prove_print (w4_unint_z3 []) {{ tls12rfcSimulatesS2N `{16} }};
@@ -99,6 +112,12 @@ let prove_state_machine = do {
     return ();
 };
 
+// WARNING: Because `enable_lax_loads_and_stores` is enabled in this module,
+// these proofs must use What4-based proof tactics (i.e., those with a `w4_`
+// prefix). Otherwise, they will fail, likely with an error message to the
+// effect of:
+//
+//   FOTArray unimplemented for backend
 let prove_cork_uncork = do {
     print "Verifying the low-level->high-level cork-uncork simulation";
     prove_print (w4_unint_z3 []) {{ highLevelSimulatesLowLevel `{16} }};
