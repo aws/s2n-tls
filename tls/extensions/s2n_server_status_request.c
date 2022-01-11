@@ -39,7 +39,7 @@ static bool s2n_server_status_request_should_send(struct s2n_connection *conn)
 int s2n_server_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* Read nothing. The extension just needs to exist. */
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     conn->status_type = S2N_STATUS_REQUEST_OCSP;
     return S2N_SUCCESS;
 }

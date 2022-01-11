@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-CHECKFLAGS +=
+CHECKFLAGS += --memory-leak-check
 
 PROOF_UID = s2n_free_object
 HARNESS_ENTRY = $(PROOF_UID)_harness
@@ -19,7 +19,6 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c

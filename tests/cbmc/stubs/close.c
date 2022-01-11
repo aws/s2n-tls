@@ -15,7 +15,6 @@
 
 #include <assert.h>
 #include <cbmc_proof/nondet.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <errno.h>
 #include <unistd.h>
 

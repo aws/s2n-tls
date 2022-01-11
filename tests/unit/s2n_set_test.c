@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     struct array_element* ep = NULL;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_NULL(s2n_set_new(element_size, NULL));
 
     struct s2n_set* set = NULL;
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(ep->second, 'b');
     EXPECT_ERROR(s2n_set_get(set, 4, (void **)&ep));
 
-    /* Try removing non-existant elements */
+    /* Try removing non-existent elements */
     EXPECT_ERROR(s2n_set_remove(set, 4));
     EXPECT_OK(s2n_set_len(set, &set_len));
     EXPECT_EQUAL(set_len, 4);

@@ -8,6 +8,7 @@ have all the dependencies installed correctly. The integration test dependencies
  * openssl (based on the S2N_LIBCRYPTO env var)
  * tox
  * Compiled Java SSLSocketClient for the Java provider
+ * Compiled an s2nc executable named s2nc_head in the bin directory for the cross compatibility test
 
 ## Run all tests
 

@@ -19,7 +19,6 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c

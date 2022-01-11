@@ -27,10 +27,10 @@
 #include "utils/s2n_safety.h"
 
 int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_version) {
-    GUARD(s2n_stuffer_write_uint8(list, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    GUARD(s2n_stuffer_write_uint8(list, supported_version / 10));
-    GUARD(s2n_stuffer_write_uint8(list, supported_version % 10));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_version / 10));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_version % 10));
 
     return 0;
 }
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     uint8_t latest_version = S2N_TLS13;
 
     struct s2n_config *config;

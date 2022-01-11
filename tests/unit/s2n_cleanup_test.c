@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 #include <sys/wait.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 
 #include "utils/s2n_mem.h"
@@ -66,7 +66,7 @@ int check_dont_cleanup_null_on_fn_exit()
 int main()
 {
   BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
   int expected_cleanup_count = 0;
 
   /* check that the cleanup functions are called on each loop exit */

@@ -40,7 +40,7 @@
  * TLS1.2 cipher suites.
  */
 
-static int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
+int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
 {
     switch(cert_type) {
         case S2N_PKEY_TYPE_RSA:
@@ -52,9 +52,9 @@ static int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authen
             return S2N_SUCCESS;
         case S2N_PKEY_TYPE_UNKNOWN:
         case S2N_PKEY_TYPE_SENTINEL:
-            S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+            POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
     }
-    S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
 
 static int s2n_get_cert_type_for_sig_alg(s2n_signature_algorithm sig_alg, s2n_pkey_type *cert_type)
@@ -71,17 +71,17 @@ static int s2n_get_cert_type_for_sig_alg(s2n_signature_algorithm sig_alg, s2n_pk
             *cert_type = S2N_PKEY_TYPE_RSA_PSS;
             return S2N_SUCCESS;
         case S2N_SIGNATURE_ANONYMOUS:
-            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+            POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
-    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 }
 
 static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg, struct s2n_cipher_suite *cipher_suite)
 {
-    notnull_check(cipher_suite);
+    POSIX_ENSURE_REF(cipher_suite);
 
     s2n_pkey_type cert_type_for_sig_alg;
-    GUARD(s2n_get_cert_type_for_sig_alg(sig_alg, &cert_type_for_sig_alg));
+    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(sig_alg, &cert_type_for_sig_alg));
 
     /* Non-ephemeral key exchange methods require encryption, and RSA-PSS certificates
      * do not support encryption.
@@ -90,7 +90,7 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
      * algorithm that requires RSA-PSS certificates is not valid.
      */
     if (cipher_suite->key_exchange_alg != NULL && !cipher_suite->key_exchange_alg->is_ephemeral) {
-        ne_check(cert_type_for_sig_alg, S2N_PKEY_TYPE_RSA_PSS);
+        POSIX_ENSURE_NE(cert_type_for_sig_alg, S2N_PKEY_TYPE_RSA_PSS);
     }
 
     /* If a cipher suite includes an auth method, then the signature algorithm
@@ -98,8 +98,8 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
      */
     if (cipher_suite->auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL) {
         s2n_authentication_method auth_method_for_sig_alg;
-        GUARD(s2n_get_auth_method_for_cert_type(cert_type_for_sig_alg, &auth_method_for_sig_alg));
-        eq_check(cipher_suite->auth_method, auth_method_for_sig_alg);
+        POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type_for_sig_alg, &auth_method_for_sig_alg));
+        POSIX_ENSURE_EQ(cipher_suite->auth_method, auth_method_for_sig_alg);
     }
 
     return S2N_SUCCESS;
@@ -107,22 +107,22 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
 
 static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const struct s2n_signature_scheme *sig_scheme)
 {
-    notnull_check(sig_scheme);
+    POSIX_ENSURE_REF(sig_scheme);
 
     s2n_pkey_type cert_type;
-    GUARD(s2n_get_cert_type_for_sig_alg(sig_scheme->sig_alg, &cert_type));
+    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(sig_scheme->sig_alg, &cert_type));
 
     /* A valid cert must exist for the authentication method. */
     struct s2n_cert_chain_and_key *cert = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
-    notnull_check(cert);
+    POSIX_ENSURE_REF(cert);
 
     /* For sig_algs that include a curve, the group must also match. */
     if (sig_scheme->signature_curve != NULL) {
-        notnull_check(cert->private_key);
-        notnull_check(cert->cert_chain);
-        notnull_check(cert->cert_chain->head);
-        eq_check(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
-        GUARD(s2n_ecdsa_pkey_matches_curve(&cert->private_key->key.ecdsa_key, sig_scheme->signature_curve));
+        POSIX_ENSURE_REF(cert->private_key);
+        POSIX_ENSURE_REF(cert->cert_chain);
+        POSIX_ENSURE_REF(cert->cert_chain->head);
+        POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
+        POSIX_ENSURE_EQ(cert->cert_chain->head->ec_curve_nid, sig_scheme->signature_curve->libcrypto_nid);
     }
 
     return S2N_SUCCESS;
@@ -136,7 +136,7 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
 
     s2n_authentication_method auth_method_for_cert_type;
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
-        GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
+        POSIX_GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
 
         if (auth_method != auth_method_for_cert_type) {
             continue;
@@ -146,7 +146,7 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
             return S2N_SUCCESS;
         }
     }
-    S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
 
 /* TLS1.3 ciphers are always valid, as they don't include an auth method.
@@ -158,9 +158,9 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
  */
 int s2n_is_cipher_suite_valid_for_auth(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
 {
-    notnull_check(cipher_suite);
+    POSIX_ENSURE_REF(cipher_suite);
 
-    GUARD(s2n_certs_exist_for_auth_method(conn, cipher_suite->auth_method));
+    POSIX_GUARD(s2n_certs_exist_for_auth_method(conn, cipher_suite->auth_method));
 
     return S2N_SUCCESS;
 }
@@ -174,17 +174,17 @@ int s2n_is_cipher_suite_valid_for_auth(struct s2n_connection *conn, struct s2n_c
  */
 int s2n_is_sig_scheme_valid_for_auth(struct s2n_connection *conn, const struct s2n_signature_scheme *sig_scheme)
 {
-    notnull_check(conn);
-    notnull_check(sig_scheme);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(sig_scheme);
 
     struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
-    notnull_check(cipher_suite);
+    POSIX_ENSURE_REF(cipher_suite);
 
-    GUARD(s2n_certs_exist_for_sig_scheme(conn, sig_scheme));
+    POSIX_GUARD(s2n_certs_exist_for_sig_scheme(conn, sig_scheme));
 
     /* For the client side, signature algorithm does not need to match the cipher suite. */
     if (conn->mode == S2N_SERVER) {
-        GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
+        POSIX_GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
     }
     return S2N_SUCCESS;
 }
@@ -200,11 +200,11 @@ int s2n_is_sig_scheme_valid_for_auth(struct s2n_connection *conn, const struct s
  */
 int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type cert_type)
 {
-    notnull_check(conn);
-    notnull_check(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure.cipher_suite);
 
     s2n_authentication_method auth_method;
-    GUARD(s2n_get_auth_method_for_cert_type(cert_type, &auth_method));
+    POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type, &auth_method));
 
     if (conn->secure.cipher_suite->auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL) {
         S2N_ERROR_IF(auth_method != conn->secure.cipher_suite->auth_method, S2N_ERR_CERT_TYPE_UNSUPPORTED);
@@ -219,10 +219,10 @@ int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type c
  */
 int s2n_select_certs_for_server_auth(struct s2n_connection *conn, struct s2n_cert_chain_and_key **chosen_certs)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     s2n_pkey_type cert_type;
-    GUARD(s2n_get_cert_type_for_sig_alg(conn->secure.conn_sig_scheme.sig_alg, &cert_type));
+    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(conn->handshake_params.conn_sig_scheme.sig_alg, &cert_type));
 
     *chosen_certs = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     S2N_ERROR_IF(*chosen_certs == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);

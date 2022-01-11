@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     struct s2n_blob out = {.data = output_pad,.size = sizeof(output_pad) };
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
     EXPECT_SUCCESS(s2n_hmac_new(&copy));
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     if (s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
         /* Try SSLv3 MD5 */
         uint8_t hmac_sslv3_md5_size;
-        GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
+        POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
         EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *)sekrit)));
         EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     if (s2n_hmac_is_available(S2N_HMAC_SSLv3_SHA1)) {
         /* Try SSLv3 SHA1 */
         uint8_t hmac_sslv3_sha1_size;
-        GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_SHA1, &hmac_sslv3_sha1_size));
+        POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_SHA1, &hmac_sslv3_sha1_size));
         EXPECT_EQUAL(hmac_sslv3_sha1_size, 20);
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_SHA1, sekrit, strlen((char *)sekrit)));
         EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     if (s2n_hmac_is_available(S2N_HMAC_MD5)) {
         /* Try MD5 */
         uint8_t hmac_md5_size;
-        GUARD(s2n_hmac_digest_size(S2N_HMAC_MD5, &hmac_md5_size));
+        POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_MD5, &hmac_md5_size));
         EXPECT_EQUAL(hmac_md5_size, 16);
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_MD5, sekrit, strlen((char *)sekrit)));
         EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
     /* Try SHA1 */
     uint8_t hmac_sha1_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA1, &hmac_sha1_size));
+    POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA1, &hmac_sha1_size));
     EXPECT_EQUAL(hmac_sha1_size, 20);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA1, sekrit, strlen((char *)sekrit)));
     EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
     uint8_t hmac_sha224_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA224, &hmac_sha224_size));
+    POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA224, &hmac_sha224_size));
     EXPECT_EQUAL(hmac_sha224_size, 28);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA224, sekrit, strlen((char *)sekrit)));
     EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
     uint8_t hmac_sha256_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA256, &hmac_sha256_size));
+    POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA256, &hmac_sha256_size));
     EXPECT_EQUAL(hmac_sha256_size, 32);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA256, sekrit, strlen((char *)sekrit)));
     EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
     uint8_t hmac_sha384_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA384, &hmac_sha384_size));
+    POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA384, &hmac_sha384_size));
     EXPECT_EQUAL(hmac_sha384_size, 48);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA384, sekrit, strlen((char *)sekrit)));
     EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
     uint8_t hmac_sha512_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA512, &hmac_sha512_size));
+    POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA512, &hmac_sha512_size));
     EXPECT_EQUAL(hmac_sha512_size, 64);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SHA512, sekrit, strlen((char *)sekrit)));
     EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));

@@ -24,7 +24,6 @@ PROOF_SOURCES += $(OPENSSL_SOURCE)/dh_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 

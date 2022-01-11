@@ -139,45 +139,45 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Set up File Descriptors from client to server */
     int client_to_server[2];
-    GUARD(pipe(client_to_server));
+    POSIX_GUARD(pipe(client_to_server));
 
     for (int i = 0; i < 2; i++) {
-        GUARD(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK));
+        POSIX_GUARD(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK));
     }
 
     /* Set up Server Config */
     struct s2n_config *server_config;
-    notnull_check(server_config = s2n_config_new());
-    GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
-    GUARD(s2n_config_add_dhparams(server_config, dhparams));
+    POSIX_ENSURE_REF(server_config = s2n_config_new());
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
+    POSIX_GUARD(s2n_config_add_dhparams(server_config, dhparams));
 
     /* Set up Server Connection */
     struct s2n_connection *server_conn;
-    notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
-    GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-    GUARD(s2n_connection_set_config(server_conn, server_config));
-    GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+    POSIX_ENSURE_REF(server_conn = s2n_connection_new(S2N_SERVER));
+    POSIX_GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+    POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
+    POSIX_GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     server_conn->delay = 0;
 
     /* Set Server write FD to -1, to skip writing data since server out data is never read. */
-    GUARD(s2n_connection_set_write_fd(server_conn, -1));
+    POSIX_GUARD(s2n_connection_set_write_fd(server_conn, -1));
 
     /* Set up Client Connection */
     struct s2n_config *client_config = s2n_config_new();
-    notnull_check(client_config);
+    POSIX_ENSURE_REF(client_config);
     s2n_config_disable_x509_verification(client_config);
 
     struct s2n_connection *client_conn;
-    notnull_check(client_conn = s2n_connection_new(S2N_CLIENT));
-    GUARD(s2n_connection_set_config(client_conn, client_config));
-    GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+    POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
+    POSIX_GUARD(s2n_connection_set_config(client_conn, client_config));
+    POSIX_GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
     /* Write data to client out file descriptor so that it is received by the server */
     struct s2n_stuffer *client_out = &client_conn->out;
-    GUARD(s2n_stuffer_write_bytes(client_out, buf, len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(client_out, buf, len));
     s2n_blocked_status client_blocked;
-    GUARD(s2n_flush(client_conn, &client_blocked));
-    eq_check(client_blocked, S2N_NOT_BLOCKED);
+    POSIX_GUARD(s2n_flush(client_conn, &client_blocked));
+    POSIX_ENSURE_EQ(client_blocked, S2N_NOT_BLOCKED);
 
     /* Let Server receive data and attempt Negotiation */
     int num_attempted_negotiations = 0;
@@ -188,17 +188,17 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     } while(!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
 
     /* Clean up */
-    GUARD(s2n_connection_wipe(server_conn));
-    GUARD(s2n_connection_wipe(client_conn));
+    POSIX_GUARD(s2n_connection_wipe(server_conn));
+    POSIX_GUARD(s2n_connection_wipe(client_conn));
 
     for (int i = 0; i < 2; i++) {
-        GUARD(close(client_to_server[i]));
+        POSIX_GUARD(close(client_to_server[i]));
     }
 
-    GUARD(s2n_config_free(server_config));
-    GUARD(s2n_connection_free(server_conn));
-    GUARD(s2n_connection_free(client_conn));
-    GUARD(s2n_config_free(client_config));
+    POSIX_GUARD(s2n_config_free(server_config));
+    POSIX_GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_connection_free(client_conn));
+    POSIX_GUARD(s2n_config_free(client_config));
 
     return S2N_SUCCESS;
 }

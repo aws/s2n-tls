@@ -30,21 +30,42 @@
 struct s2n_cipher_preferences;
 
 struct s2n_config {
+    /* The following bitfield flags are used in SAW proofs. The positions of
+     * these flags are important, as SAW looks up each flag by their index
+     * in the struct starting from 0. See the comments surrounding
+     * config_bitfield in tests/saw/spec/handshake/handshake_io_lowlevel.saw for
+     * more details. Make sure that any new flags are added after these ones
+     * so that the indices in the SAW proofs do not need to be changed each time.
+     *
+     * START OF SAW-TRACKED BITFIELD FLAGS */
+
+    unsigned use_tickets:1;
+
+    /* Whether a connection can be used by a QUIC implementation.
+     * See s2n_quic_support.h */
+    unsigned quic_enabled:1;
+
+    /* END OF SAW-TRACKED BITFIELD FLAGS */
+
     unsigned cert_allocated:1;
     unsigned default_certs_are_explicit:1;
-    unsigned use_tickets:1;
     unsigned use_session_cache:1;
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     unsigned accept_mfl:1;
     unsigned check_ocsp:1;
     unsigned disable_x509_validation:1;
     unsigned max_verify_cert_chain_depth_set:1;
-    /* Whether a connection can be used by a QUIC implementation.
-     * See s2n_quic_support.h */
-    unsigned quic_enabled:1;
     /* Whether to add dss cert type during a server certificate request.
-     * See https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md */
+     * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md */
     unsigned cert_req_dss_legacy_compat_enabled:1;
+    /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
+     * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does
+     * not support RSA PSS signing (which is required for TLS 1.3). */
+    unsigned is_rsa_cert_configured:1;
+    /* It's possible to use a certificate without loading the private key,
+     * but async signing must be enabled. Use this flag to enforce that restriction.
+     */
+    unsigned no_signing_key:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
@@ -63,6 +84,8 @@ struct s2n_config {
     void *monotonic_clock_ctx;
 
     s2n_client_hello_fn *client_hello_cb;
+    s2n_client_hello_cb_mode client_hello_cb_mode;
+
     void *client_hello_cb_ctx;
 
     uint64_t session_state_lifetime_in_nanos;
@@ -104,11 +127,26 @@ struct s2n_config {
     uint16_t max_verify_cert_chain_depth;
 
     s2n_async_pkey_fn async_pkey_cb;
+
     s2n_psk_selection_callback psk_selection_cb;
+    void *psk_selection_ctx;
 
     s2n_key_log_fn key_log_cb;
     void *key_log_ctx;
+
+    s2n_session_ticket_fn session_ticket_cb;
+    void *session_ticket_ctx;
+
+    s2n_early_data_cb early_data_cb;
+
+    uint32_t server_max_early_data_size;
+
+    s2n_psk_mode psk_mode;
+
+    s2n_async_pkey_validation_mode async_pkey_validation_mode;
 };
+
+S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
 int s2n_config_defaults_init(void);
 extern struct s2n_config *s2n_fetch_default_config(void);

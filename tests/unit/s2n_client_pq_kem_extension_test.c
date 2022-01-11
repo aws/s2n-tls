@@ -22,7 +22,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const char *pq_security_policy_versions[] = {
             "KMS-PQ-TLS-1-0-2019-06",
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
             /* Should write ids */
             uint16_t actual_id;
             for (size_t i = 0; i < kem_preferences->kem_count; i++) {
-                GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
+                POSIX_GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
                 EXPECT_EQUAL(actual_id, kem_preferences->kems[i]->kem_extension_id);
             }
 
@@ -96,8 +96,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe_n(&stuffer, 1));
 
             EXPECT_SUCCESS(s2n_client_pq_kem_extension.recv(conn, &stuffer));
-            EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, 0);
-            EXPECT_NULL(conn->secure.client_pq_kem_extension.data);
+            EXPECT_EQUAL(conn->kex_params.client_pq_kem_extension.size, 0);
+            EXPECT_NULL(conn->kex_params.client_pq_kem_extension.data);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -117,13 +117,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_pq_kem_extension.recv(conn, &stuffer));
 
             if (s2n_pq_is_enabled()) {
-                EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size,kem_preferences->kem_count * sizeof(kem_extension_size));
-                EXPECT_NOT_NULL(conn->secure.client_pq_kem_extension.data);
+                EXPECT_EQUAL(conn->kex_params.client_pq_kem_extension.size,kem_preferences->kem_count * sizeof(kem_extension_size));
+                EXPECT_NOT_NULL(conn->kex_params.client_pq_kem_extension.data);
                 EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
             } else {
                 /* Server should ignore the extension if PQ is disabled */
-                EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, 0);
-                EXPECT_NULL(conn->secure.client_pq_kem_extension.data);
+                EXPECT_EQUAL(conn->kex_params.client_pq_kem_extension.size, 0);
+                EXPECT_NULL(conn->kex_params.client_pq_kem_extension.data);
             }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

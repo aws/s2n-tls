@@ -46,17 +46,17 @@ static int setup_connection(struct s2n_connection *server_conn)
     server_conn->actual_protocol_version = S2N_TLS12;
 
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
-    notnull_check(ecc_preferences);
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
+    POSIX_ENSURE_REF(ecc_preferences);
 
-    server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
-    server_conn->secure.kem_params.kem = &s2n_bike1_l1_r2;
+    server_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    server_conn->kex_params.server_ecc_evp_params.evp_pkey = NULL;
+    server_conn->kex_params.kem_params.kem = &s2n_bike1_l1_r2;
     server_conn->secure.cipher_suite = &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384;
-    server_conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    server_conn->handshake_params.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
 
-    GUARD(s2n_dup(&server_kem_params.private_key, &server_conn->secure.kem_params.private_key));
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_dup(&server_kem_params.private_key, &server_conn->kex_params.kem_params.private_key));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.server_ecc_evp_params));
 
     return S2N_SUCCESS;
 }
@@ -64,9 +64,9 @@ static int setup_connection(struct s2n_connection *server_conn)
 int s2n_fuzz_init(int *argc, char **argv[])
 {
     struct s2n_blob *public_key = &server_kem_params.public_key;
-    GUARD(s2n_alloc(public_key, BIKE1_L1_R2_PUBLIC_KEY_BYTES));
-    GUARD_AS_POSIX(s2n_kem_generate_keypair(&server_kem_params));
-    GUARD(s2n_free(public_key));
+    POSIX_GUARD(s2n_alloc(public_key, BIKE1_L1_R2_PUBLIC_KEY_BYTES));
+    POSIX_GUARD_RESULT(s2n_kem_generate_keypair(&server_kem_params));
+    POSIX_GUARD(s2n_free(public_key));
 
     return S2N_SUCCESS;
 }
@@ -74,12 +74,12 @@ int s2n_fuzz_init(int *argc, char **argv[])
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     struct s2n_connection *server_conn;
-    notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
-    GUARD(setup_connection(server_conn));
+    POSIX_ENSURE_REF(server_conn = s2n_connection_new(S2N_SERVER));
+    POSIX_GUARD(setup_connection(server_conn));
 
     /* You can't write 0 bytes to a stuffer but attempting to call s2n_client_key_recv with 0 data is an interesting test */
     if (len > 0) {
-        GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+        POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
     }
 
     /* The missing GUARD is because s2n_client_key_recv might fail due to bad input which is okay, the connection
@@ -88,7 +88,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
      * to be recv'd successfully. */
     s2n_client_key_recv(server_conn);
 
-    GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_connection_free(server_conn));
 
     return S2N_SUCCESS;
 }

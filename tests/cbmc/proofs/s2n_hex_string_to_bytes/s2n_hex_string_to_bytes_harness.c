@@ -15,7 +15,6 @@
 
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <string.h>
 
 #include "error/s2n_errno.h"
@@ -35,9 +34,14 @@ void s2n_hex_string_to_bytes_harness()
 
     /* Operation under verification. */
     if (s2n_hex_string_to_bytes(str, blob) == S2N_SUCCESS) {
-        size_t strLength = strlen(str);
-        assert(blob->size >= (strLength / 2));
+        size_t strLength = 0;
+        for (size_t i = 0; i < strlen(str); i++) {
+            if (str[i] != ' ') {
+                strLength++;
+            }
+        }
         assert(strLength % 2 == 0);
+        assert(blob->size == (strLength / 2));
     } else {
         assert(blob->allocated == old_blob.allocated);
         assert(blob->growable == old_blob.growable);

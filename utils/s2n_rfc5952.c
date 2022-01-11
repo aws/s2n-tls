@@ -17,7 +17,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
@@ -31,7 +31,7 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
     uint8_t *cursor = dst->data;
 
     if (af == AF_INET) {
-        ENSURE(dst->size >= sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
+        RESULT_ENSURE(dst->size >= sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
 
         for (int i = 0; i < 4; i++) {
             if (bytes[i] / 100) {
@@ -50,7 +50,7 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
     }
 
     if (af == AF_INET6) {
-        ENSURE(dst->size >= sizeof("1111:2222:3333:4444:5555:6666:7777:8888"), S2N_ERR_SIZE_MISMATCH);
+        RESULT_ENSURE(dst->size >= sizeof("1111:2222:3333:4444:5555:6666:7777:8888"), S2N_ERR_SIZE_MISMATCH);
 
         /* See Section 4 of RFC5952 for the rules we are going to follow here
          *
@@ -131,5 +131,5 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
         return S2N_RESULT_OK;
     }
 
-    BAIL(S2N_ERR_INVALID_ARGUMENT);
+    RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }

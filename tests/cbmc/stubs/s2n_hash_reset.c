@@ -21,8 +21,8 @@
 
 int s2n_hash_reset(struct s2n_hash_state *state)
 {
-    notnull_check(state);
-    notnull_check(state->hash_impl->reset);
+    POSIX_ENSURE_REF(state);
+    POSIX_ENSURE_REF(state->hash_impl->reset);
 
     /* return state->hash_impl->reset(state); */
     return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE;

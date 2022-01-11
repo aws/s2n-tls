@@ -54,10 +54,10 @@ static bool s2n_server_ec_point_format_should_send(struct s2n_connection *conn)
 static int s2n_ec_point_format_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     /* Point format list len. We only support one. */
-    GUARD(s2n_stuffer_write_uint8(out, 1));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, 1));
 
     /* Only allow uncompressed format */
-    GUARD(s2n_stuffer_write_uint8(out, TLS_EC_POINT_FORMAT_UNCOMPRESSED));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_EC_POINT_FORMAT_UNCOMPRESSED));
 
     return S2N_SUCCESS;
 }

@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
 
 /* A value which indicates the outcome of a function */
@@ -58,6 +58,3 @@ void s2n_result_ignore(s2n_result result);
  * We need a version of s2n_result which can be ignored.
  */
 #define S2N_CLEANUP_RESULT s2n_result
-
-/* converts the S2N_RESULT into posix error codes */
-#define S2N_RESULT_TO_POSIX( x ) (s2n_result_is_ok(x) ? S2N_SUCCESS : S2N_FAILURE)

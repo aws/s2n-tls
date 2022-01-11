@@ -34,13 +34,13 @@ int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const 
                      const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
 {
     uint8_t hmac_size;
-    GUARD(s2n_hmac_digest_size(alg, &hmac_size));
+    POSIX_GUARD(s2n_hmac_digest_size(alg, &hmac_size));
     pseudo_rand_key->size = hmac_size;
-    GUARD(s2n_hmac_init(hmac, alg, salt->data, salt->size));
-    GUARD(s2n_hmac_update(hmac, key->data, key->size));
-    GUARD(s2n_hmac_digest(hmac, pseudo_rand_key->data, pseudo_rand_key->size));
+    POSIX_GUARD(s2n_hmac_init(hmac, alg, salt->data, salt->size));
+    POSIX_GUARD(s2n_hmac_update(hmac, key->data, key->size));
+    POSIX_GUARD(s2n_hmac_digest(hmac, pseudo_rand_key->data, pseudo_rand_key->size));
 
-    GUARD(s2n_hmac_reset(hmac));
+    POSIX_GUARD(s2n_hmac_reset(hmac));
 
     return 0;
 }
@@ -51,8 +51,9 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
     uint8_t prev[MAX_DIGEST_SIZE] = { 0 };
 
     uint32_t done_len = 0;
-    uint8_t hash_len;
-    GUARD(s2n_hmac_digest_size(alg, &hash_len));
+    uint8_t hash_len = 0;
+    POSIX_GUARD(s2n_hmac_digest_size(alg, &hash_len));
+    POSIX_ENSURE_GT(hash_len, 0);
     uint32_t total_rounds = output->size / hash_len;
     if (output->size % hash_len) {
         total_rounds++;
@@ -62,24 +63,24 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
 
     for (uint32_t curr_round = 1; curr_round <= total_rounds; curr_round++) {
         uint32_t cat_len;
-        GUARD(s2n_hmac_init(hmac, alg, pseudo_rand_key->data, pseudo_rand_key->size));
+        POSIX_GUARD(s2n_hmac_init(hmac, alg, pseudo_rand_key->data, pseudo_rand_key->size));
         if (curr_round != 1) {
-            GUARD(s2n_hmac_update(hmac, prev, hash_len));
+            POSIX_GUARD(s2n_hmac_update(hmac, prev, hash_len));
         }
-        GUARD(s2n_hmac_update(hmac, info->data, info->size));
-        GUARD(s2n_hmac_update(hmac, &curr_round, 1));
-        GUARD(s2n_hmac_digest(hmac, prev, hash_len));
+        POSIX_GUARD(s2n_hmac_update(hmac, info->data, info->size));
+        POSIX_GUARD(s2n_hmac_update(hmac, &curr_round, 1));
+        POSIX_GUARD(s2n_hmac_digest(hmac, prev, hash_len));
 
         cat_len = hash_len;
         if (done_len + hash_len > output->size) {
             cat_len = output->size - done_len;
         }
 
-        memcpy_check(output->data + done_len, prev, cat_len);
+        POSIX_CHECKED_MEMCPY(output->data + done_len, prev, cat_len);
 
         done_len += cat_len;
     
-        GUARD(s2n_hmac_reset(hmac));
+        POSIX_GUARD(s2n_hmac_reset(hmac));
     }
 
     return 0;
@@ -96,19 +97,19 @@ int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, c
     /* RFC8446 specifies that labels must be 12 characters or less, to avoid
     ** incurring two hash rounds.
     */
-    lte_check(label->size, 12);
+    POSIX_ENSURE_LTE(label->size, 12);
 
-    GUARD(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
-    GUARD(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
-    GUARD(s2n_stuffer_write_uint16(&hkdf_label, output->size));
-    GUARD(s2n_stuffer_write_uint8(&hkdf_label, label->size + sizeof("tls13 ") - 1));
-    GUARD(s2n_stuffer_write_str(&hkdf_label, "tls13 "));
-    GUARD(s2n_stuffer_write(&hkdf_label, label));
-    GUARD(s2n_stuffer_write_uint8(&hkdf_label, context->size));
-    GUARD(s2n_stuffer_write(&hkdf_label, context));
+    POSIX_GUARD(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
+    POSIX_GUARD(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&hkdf_label, output->size));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, label->size + sizeof("tls13 ") - 1));
+    POSIX_GUARD(s2n_stuffer_write_str(&hkdf_label, "tls13 "));
+    POSIX_GUARD(s2n_stuffer_write(&hkdf_label, label));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, context->size));
+    POSIX_GUARD(s2n_stuffer_write(&hkdf_label, context));
 
     hkdf_label_blob.size = s2n_stuffer_data_available(&hkdf_label);
-    GUARD(s2n_hkdf_expand(hmac, alg, secret, &hkdf_label_blob, output));
+    POSIX_GUARD(s2n_hkdf_expand(hmac, alg, secret, &hkdf_label_blob, output));
 
     return 0;
 }
@@ -119,8 +120,8 @@ int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s
     uint8_t prk_pad[MAX_DIGEST_SIZE];
     struct s2n_blob pseudo_rand_key = {.data = prk_pad,.size = sizeof(prk_pad) };
 
-    GUARD(s2n_hkdf_extract(hmac, alg, salt, key, &pseudo_rand_key));
-    GUARD(s2n_hkdf_expand(hmac, alg, &pseudo_rand_key, info, output));
+    POSIX_GUARD(s2n_hkdf_extract(hmac, alg, salt, key, &pseudo_rand_key));
+    POSIX_GUARD(s2n_hkdf_expand(hmac, alg, &pseudo_rand_key, info, output));
 
     return 0;
 }

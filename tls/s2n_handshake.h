@@ -16,9 +16,11 @@
 #pragma once
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_handshake_hashes.h"
+#include "tls/s2n_handshake_type.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_parameters.h"
 
@@ -32,6 +34,7 @@
 #define TLS_CLIENT_HELLO               1
 #define TLS_SERVER_HELLO               2
 #define TLS_SERVER_NEW_SESSION_TICKET  4
+#define TLS_END_OF_EARLY_DATA          5
 #define TLS_ENCRYPTED_EXTENSIONS       8
 #define TLS_CERTIFICATE               11
 #define TLS_SERVER_KEY                12
@@ -67,23 +70,33 @@ typedef enum {
     ENCRYPTED_EXTENSIONS,
     SERVER_CERT_VERIFY,
     HELLO_RETRY_MSG,
+    END_OF_EARLY_DATA,
 
     APPLICATION_DATA,
 } message_type_t;
 
 typedef enum {
     S2N_ASYNC_NOT_INVOKED = 0,
-    S2N_ASYNC_INVOKING_CALLBACK,
-    S2N_ASYNC_INVOKED_WAITING,
-    S2N_ASYNC_INVOKED_COMPLETE,
+    S2N_ASYNC_INVOKED,
+    S2N_ASYNC_COMPLETE,
 } s2n_async_state;
 
 struct s2n_handshake_parameters {
+    /* Public keys for server / client */
+    struct s2n_pkey server_public_key;
+    struct s2n_pkey client_public_key;
+    struct s2n_blob client_cert_chain;
+    s2n_pkey_type client_cert_pkey_type;
+
     /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
     struct s2n_sig_scheme_list client_sig_hash_algs;
+    /* Signature scheme chosen by the server */
+    struct s2n_signature_scheme conn_sig_scheme;
 
     /* Signature/hash algorithm pairs offered by the server in the certificate request */
     struct s2n_sig_scheme_list server_sig_hash_algs;
+    /* Signature scheme chosen by the client */
+    struct s2n_signature_scheme client_cert_sig_scheme;
 
     /* The cert chain we will send the peer. */
     struct s2n_cert_chain_and_key *our_chain_and_key;
@@ -114,28 +127,15 @@ struct s2n_handshake_parameters {
     struct s2n_cert_chain_and_key *wc_sni_matches[S2N_CERT_TYPE_COUNT];
     uint8_t exact_sni_match_exists;
     uint8_t wc_sni_match_exists;
+
+    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
+    uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
 };
 
 struct s2n_handshake {
     struct s2n_stuffer io;
 
-    struct s2n_hash_state md5;
-    struct s2n_hash_state sha1;
-    struct s2n_hash_state sha224;
-    struct s2n_hash_state sha256;
-    struct s2n_hash_state sha384;
-    struct s2n_hash_state sha512;
-    struct s2n_hash_state md5_sha1;
-
-    /* A copy of the handshake messages hash used to validate the CertificateVerify message */
-    struct s2n_hash_state ccv_hash_copy;
-
-    /* Used for SSLv3, TLS 1.0, and TLS 1.1 PRFs */
-    struct s2n_hash_state prf_md5_hash_copy;
-    struct s2n_hash_state prf_sha1_hash_copy;
-    /*Used for TLS 1.2 PRF */
-    struct s2n_hash_state prf_tls12_hash_copy;
-    struct s2n_hash_state server_finished_copy;
+    struct s2n_handshake_hashes *hashes;
 
     /* Hash algorithms required for this handshake. The set of required hashes can be reduced as session parameters are
      * negotiated, i.e. cipher suite and protocol version.
@@ -145,52 +145,22 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
 
-    /* Handshake type is a bitset, with the following
-       bit positions */
+    /* Which message-order affecting features are enabled */
     uint32_t handshake_type;
-
-/* Has the handshake been negotiated yet? */
-#define INITIAL                     0x00
-#define NEGOTIATED                  0x01
-#define IS_NEGOTIATED( type ) ( (type) & NEGOTIATED )
-
-/* Handshake is a full handshake  */
-#define FULL_HANDSHAKE              0x02
-#define IS_FULL_HANDSHAKE( type )   ( (type) & FULL_HANDSHAKE )
-#define IS_RESUMPTION_HANDSHAKE( type ) ( !IS_FULL_HANDSHAKE( (type) ) && IS_NEGOTIATED ( (type) ) )
-
-/* Handshake uses perfect forward secrecy */
-#define TLS12_PERFECT_FORWARD_SECRECY 0x04
-
-/* Handshake needs OCSP status message */
-#define OCSP_STATUS                 0x08
-#define IS_OCSP_STAPLED( type ) ( ( (type) & OCSP_STATUS ) != 0 )
-
-/* Handshake should request a Client Certificate */
-#define CLIENT_AUTH                 0x10
-#define IS_CLIENT_AUTH_HANDSHAKE( type )   ( (type) & CLIENT_AUTH )
-
-/* Session Resumption via session-tickets */
-#define WITH_SESSION_TICKET         0x20
-#define IS_ISSUING_NEW_SESSION_TICKET( type )   ( (type) & WITH_SESSION_TICKET )
-
-/* Handshake requested a Client Certificate but did not get one */
-#define NO_CLIENT_CERT              0x40
-#define IS_CLIENT_AUTH_NO_CERT( type )   ( IS_CLIENT_AUTH_HANDSHAKE( (type) ) && ( (type) & NO_CLIENT_CERT) )
-
-/* A HelloRetryRequest was needed to proceed with the handshake */
-#define HELLO_RETRY_REQUEST         0x80
-
-/* Disguise a TLS1.3 handshake as a TLS1.2 handshake for backwards compatibility
- * with some middleboxes: https://tools.ietf.org/html/rfc8446#appendix-D.4 */
-#define MIDDLEBOX_COMPAT            0x100
-#define IS_MIDDLEBOX_COMPAT_MODE( type ) ( (type) & MIDDLEBOX_COMPAT )
 
     /* Which handshake message number are we processing */
     int message_number;
 
+    /* Last message in the handshake. Unless using early data or testing,
+     * should always be APPLICATION_DATA. */
+    message_type_t end_of_messages;
+
     /* State of the async pkey operation during handshake */
     s2n_async_state async_state;
+
+    /* State of the async early data callback.
+     * If not initialized, then the callback has not been triggered yet. */
+    struct s2n_offered_early_data early_data_async_state;
 
     /* Indicates the CLIENT_HELLO message has been completely received */
     unsigned client_hello_received:1;
@@ -202,19 +172,28 @@ struct s2n_handshake {
     unsigned rsa_failed:1;
 };
 
-extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
-extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
-extern int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
-extern int s2n_conn_set_handshake_read_block(struct s2n_connection *conn);
-extern int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn);
-extern int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
-extern uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
-extern int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
-extern int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
-extern int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg);
-extern int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
-extern int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);
+/* Only used in our test cases. */
+message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+
+/* s2n_handshake */
+int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
+uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
+int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
+int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
+int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg);
+int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
+int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type);
+S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message);
+S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake);
+
+/* s2n_handshake_io */
+int s2n_conn_set_handshake_type(struct s2n_connection *conn);
+int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
+
+/* s2n_handshake_transcript */
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);
+
+/* s2n_quic_support */
 S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
 S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);

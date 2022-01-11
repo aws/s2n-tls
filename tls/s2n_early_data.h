@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_crypto_constants.h"
 #include "utils/s2n_blob.h"
@@ -45,9 +45,19 @@ struct s2n_early_data_config {
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config);
 S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config);
 
-/* Public Interface -- will be made visible and moved to s2n.h when the 0RTT feature is released */
+struct s2n_offered_early_data {
+    struct s2n_connection *conn;
+};
 
-int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
-        uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
-int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
-int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
+bool s2n_early_data_is_valid_for_connection(struct s2n_connection *conn);
+S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn);
+
+S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
+
+S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data_len);
+S2N_RESULT s2n_early_data_validate_send(struct s2n_connection *conn, uint32_t bytes_to_send);
+S2N_RESULT s2n_early_data_validate_recv(struct s2n_connection *conn);
+bool s2n_early_data_is_trial_decryption_allowed(struct s2n_connection *conn, uint8_t record_type);
+
+int s2n_connection_set_early_data_expected(struct s2n_connection *conn);
+int s2n_connection_set_end_of_early_data(struct s2n_connection *conn);

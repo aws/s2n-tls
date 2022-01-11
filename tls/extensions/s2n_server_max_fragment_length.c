@@ -13,12 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "error/s2n_errno.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 
@@ -39,23 +42,42 @@ const s2n_extension_type s2n_server_max_fragment_length_extension = {
 
 static bool s2n_max_fragment_length_should_send(struct s2n_connection *conn)
 {
-    return conn && conn->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    return conn && conn->negotiated_mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
 }
 
 static int s2n_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
-    GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, conn->negotiated_mfl_code));
     return S2N_SUCCESS;
 }
 
 static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
-    notnull_check(conn->config);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->config);
 
     uint8_t mfl_code;
-    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+
+    /*
+     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *# Similarly, if a client
+     *# receives a maximum fragment length negotiation response that differs
+     *# from the length it requested, it MUST also abort the handshake with
+     *# an "illegal_parameter" alert.
+     */
     S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
+
+    /*
+     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *# Once a maximum fragment length other than 2^14 has been successfully
+     *# negotiated, the client and server MUST immediately begin fragmenting
+     *# messages (including handshake messages) to ensure that no fragment
+     *# larger than the negotiated length is sent.
+     */
+    conn->negotiated_mfl_code = mfl_code;
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, conn->max_outgoing_fragment_length));
+
     return S2N_SUCCESS;
 }

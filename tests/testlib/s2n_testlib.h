@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
+extern const struct s2n_security_policy security_policy_test_tls13_retry;
+
 /* Read and write hex */
 extern int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, uint32_t n);
 extern int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u);
@@ -37,6 +39,8 @@ extern int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, con
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
 int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
+int s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn);
+int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn);
 
 struct s2n_test_io_pair {
     int client;
@@ -58,6 +62,17 @@ int s2n_fd_set_non_blocking(int fd);
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
+S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn);
+
+S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn);
+
+S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_time_in_ns);
+
+struct s2n_psk* s2n_test_psk_new(struct s2n_connection *conn);
+S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
+        const struct s2n_cipher_suite *cipher_suite);
+S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
+        const struct s2n_cipher_suite *cipher_suite);
 
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
@@ -144,11 +159,16 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
+int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
+S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connection *server_conn,
+        struct s2n_connection *client_conn, message_type_t message_type);
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
+S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
+        struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,

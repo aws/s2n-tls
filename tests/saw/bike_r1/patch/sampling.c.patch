@@ -8,7 +8,7 @@
 21a27
 >     __breakpoint__get_rand_mod_len_loop(&rand_pos, &len, &prf_state, &mask, &res);
 23c29
-<     GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
+<     POSIX_GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
 ---
 >     OLD_GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)), res, EXIT);
 36c42,43
@@ -22,7 +22,7 @@
 102a112
 >   ret_t res = SUCCESS;
 107c117,118
-<     GUARD(get_rand_mod_len(&wlist[ctr], len, prf_state));
+<     POSIX_GUARD(get_rand_mod_len(&wlist[ctr], len, prf_state));
 ---
 >     __breakpoint__generate_sparse_rep_loop(&a, &wlist, &weight, &len, &padded_len, &prf_state, &res, &ctr);
 >     OLD_GUARD(get_rand_mod_len(&wlist[ctr], len, prf_state), res, EXIT);

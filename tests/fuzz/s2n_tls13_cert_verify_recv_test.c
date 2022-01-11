@@ -29,7 +29,10 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-static char *cert_chain, *private_key;
+uint8_t *cert_chain = NULL;
+uint8_t *private_key = NULL;
+uint32_t cert_chain_len = 0;
+uint32_t private_key_len = 0;
 struct s2n_cert_chain_and_key *default_cert;
 struct s2n_config *conn_config;
 
@@ -37,17 +40,17 @@ int s2n_fuzz_init(int *argc, char **argv[])
 {
     /* Initialize test chain and key */
     cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);
-    notnull_check(cert_chain);
+    POSIX_ENSURE_REF(cert_chain);
     private_key = malloc(S2N_MAX_TEST_PEM_SIZE);
-    notnull_check(private_key);
+    POSIX_ENSURE_REF(private_key);
     default_cert = s2n_cert_chain_and_key_new();
-    notnull_check(default_cert);
+    POSIX_ENSURE_REF(default_cert);
     conn_config = s2n_config_new();
-    notnull_check(conn_config);
-    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
-    GUARD(s2n_config_add_cert_chain_and_key_to_store(conn_config, default_cert));
+    POSIX_ENSURE_REF(conn_config);
+    POSIX_GUARD(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem_bytes(default_cert, cert_chain, cert_chain_len, private_key, private_key_len));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(conn_config, default_cert));
 
     return S2N_SUCCESS;
 }
@@ -59,13 +62,13 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Setup */
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    notnull_check(conn);
-    GUARD(s2n_connection_set_config(conn, conn_config));
-    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, buf, len));
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_connection_set_config(conn, conn_config));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, buf, len));
 
     /* Pull a byte off the libfuzzer input and use it to set the connection mode */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &randval));
     if (randval % 2) {
         conn->mode = S2N_CLIENT;
     }
@@ -76,7 +79,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_tls13_cert_verify_recv(conn);
 
     /* Cleanup */
-    GUARD(s2n_connection_free(conn));
+    POSIX_GUARD(s2n_connection_free(conn));
 
     return S2N_SUCCESS;
 }

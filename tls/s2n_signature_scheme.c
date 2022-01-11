@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
@@ -338,4 +338,20 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201110[] = {
 const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20201110),
     .signature_schemes = s2n_sig_scheme_pref_list_20201110,
+};
+
+/* Based on s2n_sig_scheme_pref_list_20140601 but with all hashes < SHA-384 removed */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20210816[] = {
+        /* RSA PKCS1 */
+        &s2n_rsa_pkcs1_sha384,
+        &s2n_rsa_pkcs1_sha512,
+
+        /* ECDSA - TLS 1.2 */
+        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
+        &s2n_ecdsa_sha512,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20210816 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20210816),
+    .signature_schemes = s2n_sig_scheme_pref_list_20210816
 };

@@ -15,7 +15,6 @@
 
 #include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_safety.h"
@@ -24,7 +23,7 @@ int s2n_mul_overflow_harness()
 {
     uint32_t  a;
     uint32_t  b;
-    uint32_t *out = can_fail_malloc(sizeof(uint32_t));
+    uint32_t *out = malloc(sizeof(uint32_t));
 
     /* a check on *out == a*b should be added here but the CBMC checking is too slow */
     /* the checking of assert(__CPROVER_overflow_mult(a, b)==false) is also slow */

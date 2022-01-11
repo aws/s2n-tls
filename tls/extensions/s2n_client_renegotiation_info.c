@@ -36,7 +36,7 @@ static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n
 {
     /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
     uint8_t renegotiated_connection_len;
-    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) || renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     conn->secure_renegotiation = 1;

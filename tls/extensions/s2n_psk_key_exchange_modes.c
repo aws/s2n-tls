@@ -18,9 +18,8 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/extensions/s2n_client_psk.h"
+#include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "utils/s2n_safety.h"
-
-#define PSK_KEY_EXCHANGE_MODE_SIZE sizeof(uint8_t)
 
 static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn);
 static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s2n_stuffer *out);
@@ -28,6 +27,7 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
 
 const s2n_extension_type s2n_psk_key_exchange_modes_extension = {
     .iana_value = TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES,
+    .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_psk_key_exchange_modes_send,
     .recv = s2n_psk_key_exchange_modes_recv,
@@ -43,26 +43,22 @@ static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn)
 
 static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
-    GUARD(s2n_stuffer_write_uint8(out, PSK_KEY_EXCHANGE_MODE_SIZE));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, PSK_KEY_EXCHANGE_MODE_SIZE));
 
     /* s2n currently only supports pre-shared keys with (EC)DHE key establishment */
-    GUARD(s2n_stuffer_write_uint8(out, TLS_PSK_DHE_KE_MODE));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, TLS_PSK_DHE_KE_MODE));
 
     return S2N_SUCCESS;
 }
 
 static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
-
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
+    POSIX_ENSURE_REF(conn);
 
     uint8_t psk_ke_mode_list_len;
-    GUARD(s2n_stuffer_read_uint8(extension, &psk_ke_mode_list_len));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &psk_ke_mode_list_len));
     if (psk_ke_mode_list_len > s2n_stuffer_data_available(extension)) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
@@ -70,7 +66,7 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
 
     for (size_t i = 0; i < psk_ke_mode_list_len; i++) {
         uint8_t wire_psk_ke_mode;
-        GUARD(s2n_stuffer_read_uint8(extension, &wire_psk_ke_mode));
+        POSIX_GUARD(s2n_stuffer_read_uint8(extension, &wire_psk_ke_mode));
         
         /* s2n currently only supports pre-shared keys with (EC)DHE key establishment */
         if (wire_psk_ke_mode == TLS_PSK_DHE_KE_MODE) {

@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
@@ -29,7 +28,7 @@ void s2n_stuffer_write_bytes_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint32_t idx;
     uint32_t size;
-    uint8_t *data = can_fail_malloc(size);
+    uint8_t *data = malloc(size);
 
     nondet_s2n_mem_init();
 

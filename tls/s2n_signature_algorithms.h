@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
@@ -29,7 +29,9 @@ struct s2n_sig_scheme_list {
     uint8_t len;
 };
 
-int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out);
+int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out, s2n_mode signer);
+int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out);
+
 int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *sig_hash_algs,
                                                             struct s2n_signature_scheme *sig_scheme_out);
 int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,

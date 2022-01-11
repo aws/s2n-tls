@@ -42,20 +42,20 @@ static bool s2n_client_status_request_should_send(struct s2n_connection *conn)
 
 static int s2n_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
 
     /* responder_id_list
      *
      * From https://tools.ietf.org/html/rfc6066#section-8:
      * A zero-length "responder_id_list" sequence has the special meaning that the responders are implicitly
      * known to the server, e.g., by prior arrangement */
-    GUARD(s2n_stuffer_write_uint16(out, 0));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, 0));
 
     /* request_extensions
      *
      * From https://tools.ietf.org/html/rfc6066#section-8:
      * A zero-length "request_extensions" value means that there are no extensions. */
-    GUARD(s2n_stuffer_write_uint16(out, 0));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, 0));
 
     return S2N_SUCCESS;
 }
@@ -68,7 +68,7 @@ static int s2n_client_status_request_recv(struct s2n_connection *conn, struct s2
     }
 
     uint8_t type;
-    GUARD(s2n_stuffer_read_uint8(extension, &type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &type));
     if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */
         return S2N_SUCCESS;

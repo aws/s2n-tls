@@ -44,10 +44,6 @@ bc:
 sike_r1_bc: bc
 	${MAKE} -C pq-crypto sike_r1_bc
 
-.PHONY : sike_r2_bc
-sike_r2_bc: bc
-	${MAKE} -C pq-crypto sike_r2_bc
-
 .PHONY : bike_r1_bc
 bike_r1_bc: bc
 	${MAKE} -C pq-crypto bike_r1_bc
@@ -132,7 +128,7 @@ run-lcov:
 	$(MAKE) -C tests lcov
 	$(MAKE) -C tls run-lcov
 	$(MAKE) -C utils lcov
-	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike_r1/coverage.info -a pq-crypto/sike_r2/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a $(wildcard tls/*/coverage.info) -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike_r1/coverage.info -a pq-crypto/sike_r3/coverage.info -a pq-crypto/bike_r1/coverage.info -a pq-crypto/bike_r2/coverage.info -a pq-crypto/bike_r3/coverage.info -a pq-crypto/kyber_r2/coverage.info -a pq-crypto/kyber_r3/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a $(wildcard tls/*/coverage.info) -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
 
 .PHONY : run-genhtml
 run-genhtml:

@@ -36,8 +36,11 @@ INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo in
 ifeq ($(S2N_LIBCRYPTO), boringssl)
 	DEFAULT_CFLAGS = -std=c11
 else ifeq ($(S2N_LIBCRYPTO), awslc)
-	# AWS-LC is a BoringSSL derivative.
-	DEFAULT_CFLAGS = -std=c11
+	# AWS-LC is a BoringSSL derivative and has fixed the c11 issues but not all -Wcast-qual warnings
+	DEFAULT_CFLAGS = -std=c99
+else ifeq ($(S2N_LIBCRYPTO), awslc-fips)
+	# AWS-LC is a BoringSSL derivative and has fixed the c11 issues but not all -Wcast-qual warnings
+	DEFAULT_CFLAGS = -std=c99
 else
 	DEFAULT_CFLAGS = -std=c99 -Wcast-qual
 endif
@@ -50,6 +53,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
+LDFLAGS = -z relro -z now -z noexecstack
 
 FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 
@@ -111,6 +115,11 @@ ifdef S2N_ADDRESS_SANITIZER
 	CFLAGS += -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1 ${DEBUG_CFLAGS}
 endif
 
+ifdef S2N_GDB
+    S2N_DEBUG = 1
+    CFLAGS += -O0
+endif
+
 ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
@@ -158,7 +167,7 @@ ifndef COV_TOOL
 	endif
 endif
 
-try_compile = $(shell cat $(1) | $(CC) -Werror -o tmp.o -xc - > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
+try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
 
 # Determine if execinfo.h is available
 TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
@@ -182,6 +191,18 @@ endif
 TRY_COMPILE__RESTRICT__ := $(call try_compile,$(S2N_ROOT)/tests/features/__restrict__.c)
 ifeq ($(TRY_COMPILE__RESTRICT__), 0)
 	DEFAULT_CFLAGS += -DS2N___RESTRICT__SUPPORTED
+endif
+
+# Determine if EVP_md5_sha1 is available
+TRY_EVP_MD5_SHA1_HASH := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md5_sha1.c)
+ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
+endif
+
+# Determine if EVP_MD_CTX_set_pkey_ctx is available
+TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
+ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

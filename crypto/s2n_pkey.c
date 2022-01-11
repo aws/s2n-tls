@@ -14,8 +14,8 @@
  */
 
 #include <openssl/evp.h>
-#include <crypto/s2n_openssl_evp.h>
-#include <crypto/s2n_openssl_x509.h>
+#include "crypto/s2n_openssl_evp.h"
+#include "crypto/s2n_openssl_x509.h"
 
 #include "error/s2n_errno.h"
 #include "crypto/s2n_rsa_pss.h"
@@ -51,26 +51,26 @@ int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_pkey_type pkey_type)
             return s2n_rsa_pss_pkey_init(pkey);
         case S2N_PKEY_TYPE_SENTINEL:
         case S2N_PKEY_TYPE_UNKNOWN:
-            S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+            POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
     }
-    S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
 
 int s2n_pkey_check_key_exists(const struct s2n_pkey *pkey)
 {
-    notnull_check(pkey->pkey);
-    notnull_check(pkey->check_key);
+    POSIX_ENSURE_REF(pkey->pkey);
+    POSIX_ENSURE_REF(pkey->check_key);
 
     return pkey->check_key(pkey);
 }
 
 S2N_RESULT s2n_pkey_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
-    ENSURE_REF(pkey);
-    ENSURE_REF(pkey->size);
-    ENSURE_REF(size_out);
+    RESULT_ENSURE_REF(pkey);
+    RESULT_ENSURE_REF(pkey->size);
+    RESULT_ENSURE_REF(size_out);
 
-    GUARD_RESULT(pkey->size(pkey, size_out));
+    RESULT_GUARD(pkey->size(pkey, size_out));
 
     return S2N_RESULT_OK;
 }
@@ -78,7 +78,7 @@ S2N_RESULT s2n_pkey_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    notnull_check(pkey->sign);
+    POSIX_ENSURE_REF(pkey->sign);
     
     return pkey->sign(pkey, sig_alg, digest, signature);
 }
@@ -86,29 +86,29 @@ int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
 int s2n_pkey_verify(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    notnull_check(pkey);
-    notnull_check(pkey->verify);
+    POSIX_ENSURE_REF(pkey);
+    POSIX_ENSURE_REF(pkey->verify);
 
     return pkey->verify(pkey, sig_alg, digest, signature);
 }
 
 int s2n_pkey_encrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out)
 {
-    notnull_check(pkey->encrypt);
+    POSIX_ENSURE_REF(pkey->encrypt);
 
     return pkey->encrypt(pkey, in, out);
 }
 
 int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out)
 {
-    notnull_check(pkey->decrypt);
+    POSIX_ENSURE_REF(pkey->decrypt);
 
     return pkey->decrypt(pkey, in, out);
 }
 
 int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key)
 {
-    notnull_check(pub_key->match);
+    POSIX_ENSURE_REF(pub_key->match);
 
     S2N_ERROR_IF(pub_key->match != priv_key->match, S2N_ERR_KEY_MISMATCH);
 
@@ -118,7 +118,7 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
 int s2n_pkey_free(struct s2n_pkey *key)
 {
     if (key != NULL && key->free != NULL) {
-        GUARD(key->free(key));
+        POSIX_GUARD(key->free(key));
     }
 
     if (key->pkey != NULL) {
@@ -141,7 +141,7 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     /* If key parsing is successful, d2i_AutoPrivateKey increments *key_to_parse to the byte following the parsed data */
     uint32_t parsed_len = key_to_parse - asn1der->data;
     if (parsed_len != asn1der->size) {
-        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
+        POSIX_BAIL(S2N_ERR_DECODE_PRIVATE_KEY);
     }
 
     /* Initialize s2n_pkey according to key type */
@@ -171,7 +171,7 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
         ret = s2n_evp_pkey_to_ecdsa_private_key(&priv_key->key.ecdsa_key, evp_private_key);
         break;
     default:
-        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
+        POSIX_BAIL(S2N_ERR_DECODE_PRIVATE_KEY);
     }
     
     priv_key->pkey = evp_private_key;
@@ -195,7 +195,7 @@ int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *
     /* Some TLS clients in the wild send extra trailing bytes after the Certificate.
      * Allow this in s2n for backwards compatibility with existing clients. */
     uint32_t trailing_bytes = asn1der->size - parsed_len;
-    ENSURE_POSIX(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
+    POSIX_ENSURE(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
 
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     S2N_ERROR_IF(evp_public_key == NULL, S2N_ERR_DECODE_CERTIFICATE);
@@ -230,7 +230,7 @@ int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *
         *pkey_type_out = S2N_PKEY_TYPE_ECDSA;
         break;
     default:
-        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+        POSIX_BAIL(S2N_ERR_DECODE_CERTIFICATE);
     }
 
     pub_key->pkey = evp_public_key;

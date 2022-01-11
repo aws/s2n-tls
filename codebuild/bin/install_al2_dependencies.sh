@@ -16,6 +16,11 @@
 set -eu
 source ./codebuild/bin/s2n_setup_env.sh
 
+if [[ ${DISTRO} != "amazon linux" ]]; then
+    echo "Target AL2, but running on $DISTRO: Nothing to do."
+    exit 0
+fi
+
 base_packages() {
     yum update -y
     yum erase -y openssl-devel || true
@@ -49,5 +54,5 @@ symlink_all_the_things() {
 base_packages
 mono
 yum groupinstall -y "Development tools"
-yum install -y which nettle-devel openssl11-devel which sudo python3-pip cmake3 tcpdump unzip zlib-devel libtool ninja-build wget
+yum install -y clang cmake3 iproute net-tools nettle-devel nettle openssl11-static openssl11-libs openssl11-devel which sudo psmisc python3-pip  tcpdump unzip zlib-devel libtool ninja-build valgrind  wget which
 symlink_all_the_things

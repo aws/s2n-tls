@@ -35,6 +35,7 @@ struct s2n_connection;
 typedef struct {
     uint16_t iana_value;
     unsigned is_response:1;
+    uint16_t minimum_version;
 
     int (*send) (struct s2n_connection *conn, struct s2n_stuffer *out);
     int (*recv) (struct s2n_connection *conn, struct s2n_stuffer *in);
@@ -64,6 +65,8 @@ static const uint16_t s2n_supported_extensions[] = {
     TLS_QUIC_TRANSPORT_PARAMETERS,
     TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES,
     TLS_EXTENSION_PRE_SHARED_KEY,
+    TLS_EXTENSION_EARLY_DATA,
+    TLS_EXTENSION_EMS,
 };
 
 typedef char s2n_extension_bitfield[S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN];

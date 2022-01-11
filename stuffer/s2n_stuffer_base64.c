@@ -74,8 +74,8 @@ bool s2n_is_base64_char(unsigned char c)
  */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
-    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
-    PRECONDITION_POSIX(s2n_stuffer_validate(out));
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    POSIX_PRECONDITION(s2n_stuffer_validate(out));
     int bytes_this_round = 3;
     s2n_stack_blob(o, 4, 4);
 
@@ -84,7 +84,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             break;
         }
 
-        GUARD(s2n_stuffer_read(stuffer, &o));
+        POSIX_GUARD(s2n_stuffer_read(stuffer, &o));
 
         uint8_t value1 = b64_inverse[o.data[0]];
         uint8_t value2 = b64_inverse[o.data[1]];
@@ -95,32 +95,32 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         if (value1 == 255) {
             /* Undo the read */
             stuffer->read_cursor -= o.size;
-            S2N_ERROR(S2N_ERR_INVALID_BASE64);
+            POSIX_BAIL(S2N_ERR_INVALID_BASE64);
         }
 
         /* The first two characters can never be '=' and in general
          * everything has to be a valid character.
          */
-        S2N_ERROR_IF(value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255, S2N_ERR_INVALID_BASE64);
+        POSIX_ENSURE(!(value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255), S2N_ERR_INVALID_BASE64);
 
         if (o.data[2] == '=') {
             /* If there is only one output byte, then the second value
              * should have none of its bottom four bits set.
              */
-            S2N_ERROR_IF(o.data[3] != '=' || value2 & 0x0f, S2N_ERR_INVALID_BASE64);
+            POSIX_ENSURE(!(o.data[3] != '=' || value2 & 0x0f), S2N_ERR_INVALID_BASE64);
             bytes_this_round = 1;
             value3 = 0;
             value4 = 0;
         } else if (o.data[3] == '=') {
             /* The last two bits of the final value should be unset */
-            S2N_ERROR_IF(value3 & 0x03, S2N_ERR_INVALID_BASE64);
+            POSIX_ENSURE(!(value3 & 0x03), S2N_ERR_INVALID_BASE64);
 
             bytes_this_round = 2;
             value4 = 0;
         }
 
         /* Advance by bytes_this_round, and then fill in the data */
-        GUARD(s2n_stuffer_skip_write(out, bytes_this_round));
+        POSIX_GUARD(s2n_stuffer_skip_write(out, bytes_this_round));
         uint8_t *ptr = out->blob.data + out->write_cursor - bytes_this_round;
 
         /* value1 maps to the first 6 bits of the first data byte */
@@ -147,13 +147,13 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
 
 int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in)
 {
-    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
-    PRECONDITION_POSIX(s2n_stuffer_validate(in));
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    POSIX_PRECONDITION(s2n_stuffer_validate(in));
     s2n_stack_blob(o, 4, 4);
     s2n_stack_blob(i, 3, 3);
 
     while (s2n_stuffer_data_available(in) > 2) {
-        GUARD(s2n_stuffer_read(in, &i));
+        POSIX_GUARD(s2n_stuffer_read(in, &i));
 
         /* Take the top 6-bits of the first data byte  */
         o.data[0] = b64[(i.data[0] >> 2) & 0x3f];
@@ -172,13 +172,13 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
          */
         o.data[3] = b64[i.data[2] & 0x3f];
 
-        GUARD(s2n_stuffer_write(stuffer, &o));
+        POSIX_GUARD(s2n_stuffer_write(stuffer, &o));
     }
 
     if (s2n_stuffer_data_available(in)) {
         /* Read just one byte */
         i.size = 1;
-        GUARD(s2n_stuffer_read(in, &i));
+        POSIX_GUARD(s2n_stuffer_read(in, &i));
         uint8_t c = i.data[0];
 
         /* We at least one data byte left to encode, encode
@@ -196,13 +196,13 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
             o.data[2] = '=';
         } else {
             /* Read the last byte */
-            GUARD(s2n_stuffer_read(in, &i));
+            POSIX_GUARD(s2n_stuffer_read(in, &i));
 
             o.data[1] = b64[((c << 4) & 0x30) | ((i.data[0] >> 4) & 0x0f)];
             o.data[2] = b64[((i.data[0] << 2) & 0x3c)];
         }
 
-        GUARD(s2n_stuffer_write(stuffer, &o));
+        POSIX_GUARD(s2n_stuffer_write(stuffer, &o));
     }
 
     return S2N_SUCCESS;

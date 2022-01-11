@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/extensions/s2n_extension_type_lists.h"
 #include "tls/s2n_connection.h"
@@ -31,6 +31,8 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/extensions/s2n_client_psk.h"
+#include "tls/extensions/s2n_ems.h"
+#include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 #include "tls/extensions/s2n_ec_point_format.h"
@@ -50,7 +52,13 @@
 
 static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_supported_versions_extension,
+
+        /* We MUST process key_share after supported_groups,
+         * because we need to choose the keyshare based on the
+         * mutually supported groups. */
+        &s2n_client_supported_groups_extension,
         &s2n_client_key_share_extension,
+
         &s2n_client_signature_algorithms_extension,
         &s2n_client_server_name_extension,
         &s2n_client_alpn_extension,
@@ -58,13 +66,14 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_sct_list_extension,
         &s2n_client_max_frag_len_extension,
         &s2n_client_session_ticket_extension,
-        &s2n_client_supported_groups_extension,
         &s2n_client_ec_point_format_extension,
         &s2n_client_pq_kem_extension,
         &s2n_client_renegotiation_info_extension,
         &s2n_client_cookie_extension,
         &s2n_quic_transport_parameters_extension,
         &s2n_psk_key_exchange_modes_extension,
+        &s2n_client_early_data_indication_extension,
+        &s2n_client_ems_extension,
         &s2n_client_psk_extension /* MUST be last */
 };
 
@@ -78,6 +87,7 @@ static const s2n_extension_type *const tls12_server_hello_extensions[] = {
         &s2n_server_sct_list_extension,
         &s2n_server_max_fragment_length_extension,
         &s2n_server_session_ticket_extension,
+        &s2n_server_ems_extension,
 };
 
 /**
@@ -109,6 +119,7 @@ static const s2n_extension_type *const encrypted_extensions[] = {
         &s2n_server_max_fragment_length_extension,
         &s2n_server_alpn_extension,
         &s2n_quic_transport_parameters_extension,
+        &s2n_server_early_data_indication_extension,
 };
 
 static const s2n_extension_type *const cert_req_extensions[] = {
@@ -118,6 +129,10 @@ static const s2n_extension_type *const cert_req_extensions[] = {
 static const s2n_extension_type *const certificate_extensions[] = {
         &s2n_tls13_server_status_request_extension,
         &s2n_server_sct_list_extension,
+};
+
+static const s2n_extension_type *const nst_extensions[] = {
+        &s2n_nst_early_data_indication_extension,
 };
 
 #define S2N_EXTENSION_LIST(list) { .extension_types = (list), .count = s2n_array_len(list) }
@@ -130,13 +145,14 @@ static s2n_extension_type_list extension_lists[] = {
         [S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS] = S2N_EXTENSION_LIST(encrypted_extensions),
         [S2N_EXTENSION_LIST_CERT_REQ] = S2N_EXTENSION_LIST(cert_req_extensions),
         [S2N_EXTENSION_LIST_CERTIFICATE] = S2N_EXTENSION_LIST(certificate_extensions),
+        [S2N_EXTENSION_LIST_NST] = S2N_EXTENSION_LIST(nst_extensions),
         [S2N_EXTENSION_LIST_EMPTY] = { .extension_types = NULL, .count = 0 },
 };
 
 int s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_list)
 {
-    notnull_check(extension_list);
-    lt_check(list_type, s2n_array_len(extension_lists));
+    POSIX_ENSURE_REF(extension_list);
+    POSIX_ENSURE_LT(list_type, s2n_array_len(extension_lists));
 
     *extension_list = &extension_lists[list_type];
     return S2N_SUCCESS;

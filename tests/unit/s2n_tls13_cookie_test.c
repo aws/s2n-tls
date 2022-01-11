@@ -17,7 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
@@ -34,32 +34,28 @@ int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test should_send */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        /* TLS1.2 and no cookie data: should not send */
-        conn->actual_protocol_version = S2N_TLS12;
+        /* No cookie data: should not send */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->cookie_stuffer));
         EXPECT_FALSE(s2n_server_cookie_extension.should_send(conn));
 
-        /* TLS1.2 and cookie data: should not send */
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->cookie_stuffer, 0));
-        EXPECT_FALSE(s2n_server_cookie_extension.should_send(conn));
-
-        /* TLS1.3 and no cookie data: should not send */
-        conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->cookie_stuffer));
-        EXPECT_FALSE(s2n_server_cookie_extension.should_send(conn));
-
-        /* TLS1.3 and cookie data: should send */
-        conn->actual_protocol_version = S2N_TLS13;
+        /* Cookie data: should send */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->cookie_stuffer, 0));
         EXPECT_TRUE(s2n_server_cookie_extension.should_send(conn));
+
+        /* If send is called with a NULL stuffer, it will fail.
+         * So a failure indicates that send was called.
+         */
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_extension_send(&s2n_server_cookie_extension, conn, NULL));
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_FAILURE(s2n_extension_send(&s2n_server_cookie_extension, conn, NULL));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -137,10 +133,10 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_server_cookie_extension.send(server_conn, &stuffer));
 
             client_conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_extension_recv(&s2n_server_cookie_extension, client_conn, &stuffer));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }

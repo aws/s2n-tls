@@ -29,23 +29,23 @@ uint8_t test_secret[] = "test secret";
 
 static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 {
-    ENSURE_REF(client_conn);
+    RESULT_ENSURE_REF(client_conn);
 
     /* Setup other client PSK */
     uint8_t other_client_data[] = "other client data";
     struct s2n_psk *other_client_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &other_client_psk));
-    GUARD_RESULT(s2n_psk_init(other_client_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(other_client_psk, other_client_data, sizeof(other_client_data)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(other_client_psk, other_client_data, sizeof(other_client_data)));
+    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &other_client_psk));
+    RESULT_GUARD(s2n_psk_init(other_client_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(other_client_psk, other_client_data, sizeof(other_client_data)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(other_client_psk, other_client_data, sizeof(other_client_data)));
     other_client_psk->hmac_alg = S2N_HMAC_SHA256;
 
     /* Setup shared PSK for client */
     struct s2n_psk *shared_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &shared_psk));
-    GUARD_RESULT(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
+    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &shared_psk));
+    RESULT_GUARD(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
     shared_psk->hmac_alg = TEST_PSK_HMAC;
 
     return S2N_RESULT_OK;
@@ -53,23 +53,25 @@ static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 
 static s2n_result setup_server_psks(struct s2n_connection *server_conn)
 {
-    ENSURE_REF(server_conn);
+    RESULT_ENSURE_REF(server_conn);
+
+    EXPECT_OK(s2n_connection_set_psk_type(server_conn, S2N_PSK_TYPE_EXTERNAL));
 
     /* Setup shared PSK for server */
     struct s2n_psk *shared_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &shared_psk));
-    GUARD_RESULT(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
+    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &shared_psk));
+    RESULT_GUARD(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
     shared_psk->hmac_alg = TEST_PSK_HMAC;
 
     /* Setup other server PSK */
     uint8_t other_server_data[] = "other server data";
     struct s2n_psk *other_server_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &other_server_psk));
-    GUARD_RESULT(s2n_psk_init(other_server_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(other_server_psk, other_server_data, sizeof(other_server_data)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(other_server_psk, other_server_data, sizeof(other_server_data)));
+    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &other_server_psk));
+    RESULT_GUARD(s2n_psk_init(other_server_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(other_server_psk, other_server_data, sizeof(other_server_data)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(other_server_psk, other_server_data, sizeof(other_server_data)));
     other_server_psk->hmac_alg = S2N_HMAC_SHA224;
 
     return S2N_RESULT_OK;
@@ -88,22 +90,22 @@ int main(int argc, char **argv)
 
         EXPECT_FALSE(s2n_server_psk_extension.should_send(NULL));
 
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_FALSE(s2n_server_psk_extension.should_send(conn));
-        conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_FALSE(s2n_server_psk_extension.should_send(conn));
-
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
-
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_FALSE(s2n_server_psk_extension.should_send(conn));
-        conn->actual_protocol_version = S2N_TLS13;
         EXPECT_FALSE(s2n_server_psk_extension.should_send(conn));
 
         conn->psk_params.chosen_psk_wire_index = 0;
         EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, conn->psk_params.chosen_psk_wire_index,
                                 (void **)&conn->psk_params.chosen_psk));
         EXPECT_TRUE(s2n_server_psk_extension.should_send(conn));
+
+        /* If send is called with a NULL stuffer, it will fail.
+         * So a failure indicates that send was called.
+         */
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_extension_send(&s2n_server_psk_extension, conn, NULL));
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_FAILURE(s2n_extension_send(&s2n_server_psk_extension, conn, NULL));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -158,7 +160,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, chosen_psk_wire_index));
 
             EXPECT_NULL(conn->psk_params.chosen_psk);
-            EXPECT_SUCCESS(s2n_server_psk_extension.recv(conn, &out));
+            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_SUCCESS(s2n_extension_recv(&s2n_server_psk_extension, conn, &out));
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -255,9 +258,9 @@ int main(int argc, char **argv)
     }
 
     /* Functional test */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         struct s2n_connection *client_conn, *server_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

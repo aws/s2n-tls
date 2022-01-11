@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_dhe.h"
@@ -32,7 +31,12 @@ void s2n_dh_params_free_harness()
 
     /* Operation under verification. */
     if (s2n_dh_params_free(dh_params) == S2N_SUCCESS) {
-        /* Postconditions. */
         assert(dh_params->dh == NULL);
     }
+    
+    /* Cleanup before memory leak check.
+     * `free` our heap-allocated `dh_params` object,
+     * since `s2n_dh_params_free` only `free`s the contents.
+     */
+    free(dh_params);
 }

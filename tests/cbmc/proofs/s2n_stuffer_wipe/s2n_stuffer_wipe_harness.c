@@ -15,7 +15,6 @@
 
 #include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -23,9 +22,7 @@
 void s2n_stuffer_wipe_harness()
 {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
-    __CPROVER_assume(stuffer->high_water_mark);
 
     if (s2n_stuffer_wipe(stuffer) == S2N_SUCCESS) {
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));

@@ -263,7 +263,7 @@ struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha = /* 0x00,0x0A */ {
 
 struct s2n_cipher_suite s2n_dhe_rsa_with_3des_ede_cbc_sha = /* 0x00,0x16 */ {
     .available = 0,
-    .name = "EDH-RSA-DES-CBC3-SHA",
+    .name = "DHE-RSA-DES-CBC3-SHA",
     .iana_value = { TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA },
     .key_exchange_alg = &s2n_dhe,
     .auth_method = S2N_AUTHENTICATION_RSA,
@@ -994,6 +994,14 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
     .suites = s2n_all_tls13_cipher_suites,
 };
 
+static bool should_init_crypto = true;
+static bool crypto_initialized = false;
+int s2n_crypto_disable_init(void) {
+    POSIX_ENSURE(!crypto_initialized, S2N_ERR_INITIALIZED);
+    should_init_crypto = false;
+    return S2N_SUCCESS;
+}
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
@@ -1026,7 +1034,7 @@ int s2n_cipher_suites_init(void)
         if (cur_suite->sslv3_record_alg && cur_suite->sslv3_record_alg->cipher->is_available()) {
             struct s2n_blob cur_suite_mem = { .data = (uint8_t *) cur_suite, .size = sizeof(struct s2n_cipher_suite) };
             struct s2n_blob new_suite_mem = { 0 };
-            GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
+            POSIX_GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
 
             struct s2n_cipher_suite *new_suite = (struct s2n_cipher_suite *)(void *)new_suite_mem.data;
             new_suite->available = 1;
@@ -1037,14 +1045,18 @@ int s2n_cipher_suites_init(void)
         }
     }
 
+    if (should_init_crypto) {
 #if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
-    OpenSSL_add_all_algorithms();
+        /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+        OpenSSL_add_all_algorithms();
 #else
-    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+        OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
 #endif
+    }
 
-    return 0;
+    crypto_initialized = true;
+
+    return S2N_SUCCESS;
 }
 
 /* Reset any selected record algorithms */
@@ -1058,27 +1070,29 @@ int s2n_cipher_suites_cleanup(void)
 
         /* Release custom SSLv3 cipher suites */
         if (cur_suite->sslv3_cipher_suite != cur_suite) {
-            GUARD(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
+            POSIX_GUARD(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
         }
         cur_suite->sslv3_cipher_suite = NULL;
     }
 
+    if (should_init_crypto) {
 #if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
-    EVP_cleanup();
+        /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+        EVP_cleanup();
 
-    /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
-     * cleanup in later versions */
+        /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
+        * cleanup in later versions */
 #endif
+    }
 
     return 0;
 }
 
 S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[], struct s2n_cipher_suite **cipher_suite)
 {
-    ENSURE_REF(cipher_suite);
+    RESULT_ENSURE_REF(cipher_suite);
     *cipher_suite = NULL;
-    ENSURE_REF(iana);
+    RESULT_ENSURE_REF(iana);
 
     int low = 0;
     int top = s2n_array_len(s2n_all_cipher_suites) - 1;
@@ -1098,17 +1112,17 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[], struct s2n_cipher_su
             low = mid + 1;
         }
     }
-    BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
-    notnull_check(conn);
-    notnull_check(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure.cipher_suite);
 
     const struct s2n_security_policy *security_policy;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    POSIX_ENSURE_REF(security_policy);
 
     struct s2n_cipher_suite *cipher_suite = NULL;
     for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
@@ -1118,8 +1132,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
             break;
         }
     }
-    ENSURE_POSIX(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
-    ENSURE_POSIX(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
@@ -1127,13 +1141,13 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# indicating a Hash associated with the PSK
      **/
     if (conn->psk_params.chosen_psk) {
-        ENSURE_POSIX(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
+        POSIX_ENSURE(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
     /* Verify cipher suite sent in server hello is the same as sent in hello retry */
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
-        ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
+        POSIX_ENSURE(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
 
@@ -1142,7 +1156,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     /* For SSLv3 use SSLv3-specific ciphers */
     if (conn->actual_protocol_version == S2N_SSLv3) {
         conn->secure.cipher_suite = conn->secure.cipher_suite->sslv3_cipher_suite;
-        notnull_check(conn->secure.cipher_suite);
+        POSIX_ENSURE_REF(conn->secure.cipher_suite);
     }
 
     return 0;
@@ -1150,7 +1164,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 
 static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    for (int i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
         if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
@@ -1174,7 +1188,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
         if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
             conn->closed = 1;
-            S2N_ERROR(S2N_ERR_FALLBACK_DETECTED);
+            POSIX_BAIL(S2N_ERR_FALLBACK_DETECTED);
         }
     }
 
@@ -1184,7 +1198,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     }
 
     const struct s2n_security_policy *security_policy;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     /* s2n supports only server order */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
@@ -1218,7 +1232,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             if (match->minimum_required_tls_version < S2N_TLS13) {
                 /* If the kex is not supported continue to the next candidate */
                 bool kex_supported = false;
-                GUARD_AS_POSIX(s2n_kex_supported(match, conn, &kex_supported));
+                POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
                 if (!kex_supported) {
                     continue;
                 }
@@ -1259,7 +1273,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         return S2N_SUCCESS;
     }
 
-    S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
@@ -1270,4 +1284,35 @@ int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, u
 int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
+}
+
+bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher)
+{
+    if(!cipher) {
+        return false;
+    }
+
+    /* TLS1.3 does not include key exchange algorithms in its cipher suites,
+     * but the elliptic curves extension is always required. */
+    if (cipher->minimum_required_tls_version >= S2N_TLS13) {
+        return true;
+    }
+
+    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_ecdhe)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher)
+{
+    if(!cipher) {
+        return false;
+    }
+
+    if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
+        return true;
+    }
+    return false;
 }

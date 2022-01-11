@@ -28,7 +28,7 @@
 int s2n_server_status_send(struct s2n_connection *conn)
 {
     if (s2n_server_can_send_ocsp(conn)) {
-        GUARD(s2n_server_certificate_status_send(conn, &conn->handshake.io));
+        POSIX_GUARD(s2n_server_certificate_status_send(conn, &conn->handshake.io));
     }
 
     return 0;

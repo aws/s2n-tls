@@ -1,4 +1,4 @@
-# s2n state machine graphs
+# s2n-tls state machine graphs
 
 ## TLS 1.2 State Machine
 

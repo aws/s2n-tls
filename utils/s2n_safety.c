@@ -55,27 +55,48 @@ pid_t s2n_actual_getpid()
  * Returns:
  *  Whether all bytes in arrays "a" and "b" are identical
  */
-bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
+bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len)
 {
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
-    ENSURE_POSIX((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
-    ENSURE_POSIX((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
 
-    if (len != 0 && (a == NULL || b == NULL)) {
-        return false;
+    /* if len is 0, they're always going to be equal */
+    if (len == 0) {
+        return true;
     }
 
-    uint8_t xor = 0;
-    for (int i = 0; i < len; i++) {
+    /* check if a and b are readable - if so, allow them to increment their pointer */
+    uint8_t a_inc = S2N_MEM_IS_READABLE(a, len) ? 1 : 0;
+    uint8_t b_inc = S2N_MEM_IS_READABLE(b, len) ? 1 : 0;
+
+    /* reserve a stand-in pointer to replace NULL pointers */
+    static uint8_t standin = 0;
+
+    /* if the pointers can increment their values, then use the
+     * original value; otherwise use the stand-in */
+    const uint8_t *a_ptr = a_inc ? a : &standin;
+    const uint8_t *b_ptr = b_inc ? b : &standin;
+
+    /* start by assuming they are equal only if both increment their pointer */
+    uint8_t xor = !((a_inc == 1) & (b_inc == 1));
+
+    /* iterate over each byte in the slices */
+    for (uint32_t i = 0; i < len; i++) {
         /* Invariants must hold for each execution of the loop
-	 * and at loop exit, hence the <= */
+         * and at loop exit, hence the <= */
         S2N_INVARIANT(i <= len);
-        xor |= a[i] ^ b[i];
+
+        /* mix the current cursor values in to the result */
+        xor |= *a_ptr ^ *b_ptr;
+
+        /* increment the pointers by their "inc" values */
+        a_ptr += a_inc;
+        b_ptr += b_inc;
     }
 
-    return !xor;
+    /* finally check to make sure xor is still 0 */
+    return (xor == 0);
 }
 
 /**
@@ -94,16 +115,7 @@ int s2n_constant_time_copy_or_dont(uint8_t * dest, const uint8_t * src, uint32_t
     S2N_PUBLIC_INPUT(src);
     S2N_PUBLIC_INPUT(len);
 
-/* This underflows a value of 0 to the maximum value via arithmetic underflow,
- * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
- * Additionally, uint_fast16_t is defined as the fastest available unsigned
- * integer with 16 bits or greater, and is not guaranteed to be 16 bits long.
- * To handle this, the conversion overflow check also needs to be enabled. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-#pragma CPROVER check disable "unsigned-overflow"
-    uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
-#pragma CPROVER check pop
+    uint8_t mask = (((0xFFFF & dont) - 1) >> 8) & 0xFF;
 
     /* dont = 0 : mask = 0xff */
     /* dont > 0 : mask = 0x00 */
@@ -147,33 +159,19 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, ui
 
     dont_copy |= src[0] ^ 0x00;
     dont_copy |= src[1] ^ 0x02;
+    dont_copy |= *(start_of_data-1) ^ 0x00;
 
-/* Since -1 is being used, we need to disable the pointer overflow check for CBMC. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer-overflow"
-    dont_copy |= start_of_data[-1] ^ 0x00;
-#pragma CPROVER check pop
-
-/* This underflows a value of 0 to the maximum value via arithmetic underflow,
- * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
- * Additionally, uint_fast16_t is defined as the fastest available unsigned
- * integer with 16 bits or greater, and is not guaranteed to be 16 bits long.
- * To handle this, the conversion overflow check also needs to be enabled. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-#pragma CPROVER check disable "unsigned-overflow"
     for (uint32_t i = 2; i < srclen - expectlen - 1; i++) {
         /* Note! We avoid using logical NOT (!) here; while in practice
          * many compilers will use constant-time sequences for this operator,
          * at least on x86 (e.g. cmp -> setcc, or vectorized pcmpeq), this is
          * not guaranteed to hold, and some architectures might not have a
          * convenient mechanism for generating a branchless logical not. */
-        uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(src[i]) - 1)) >> 8;
+        uint8_t mask = (((0xFFFF & src[i]) - 1) >> 8) & 0xFF;
         /* src[i] = 0 : mask = 0xff */
         /* src[i] > 0 : mask = 0x00 */
         dont_copy |= mask;
     }
-#pragma CPROVER check pop
 
     s2n_constant_time_copy_or_dont(dst, start_of_data, expectlen, dont_copy);
 
@@ -195,8 +193,8 @@ int s2n_in_unit_test_set(bool newval)
 
 int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
 {
-    notnull_check(out);
-    ENSURE_POSIX(alignment != 0, S2N_ERR_SAFETY);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE(alignment != 0, S2N_ERR_SAFETY);
     if (initial == 0) {
         *out = 0;
         return S2N_SUCCESS;
@@ -204,33 +202,33 @@ int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
     const uint64_t i = initial;
     const uint64_t a = alignment;
     const uint64_t result = a * (((i - 1) / a) + 1);
-    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
 
 int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
-    notnull_check(out);
+    POSIX_ENSURE_REF(out);
     const uint64_t result = ((uint64_t) a) * ((uint64_t) b);
-    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
 
 int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
-    notnull_check(out);
+    POSIX_ENSURE_REF(out);
     uint64_t result = ((uint64_t) a) + ((uint64_t) b);
-    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
 
 int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
-    notnull_check(out);
-    S2N_ERROR_IF(a < b, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE(a >= b, S2N_ERR_INTEGER_OVERFLOW);
     *out = a - b;
     return S2N_SUCCESS;
 }

@@ -13,12 +13,17 @@
 # permissions and limitations under the License.
 #
 
-S2N_FILES=$(find "$PWD" -type f -name "s2n_*.[ch]" | grep -v "test")
+set -eu
 
+which KWStyle
+
+S2N_FILES=$(find "$PWD" -type f -name "s2n_*.[ch]" | grep -v "test")
 FAILED=0
 
 for file in $S2N_FILES; do
+    set +e
     ERROR_LIST=$(KWStyle -gcc -v -xml codebuild/bin/KWStyle.xml "$file")
+    set -e
     if [ "$ERROR_LIST" != "" ] ;
     then
         echo "$ERROR_LIST"

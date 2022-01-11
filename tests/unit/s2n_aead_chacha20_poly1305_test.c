@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 
@@ -34,17 +34,17 @@
 
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
-    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
-    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
+    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
+    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
     return 0;
 }
 
 static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
 {
-    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
-    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.client_key));
-    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, key));
-    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, key));
+    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
+    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.client_key));
+    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, key));
+    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, key));
 
     return 0;
 }
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = { .data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Skip test if librcrypto doesn't support the cipher */
     if(!s2n_chacha20_poly1305.is_available()) {
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
     /* test the chacha20_poly1305 cipher */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
-    GUARD(setup_server_keys(conn, &chacha20_poly1305_key));
+    POSIX_GUARD(setup_server_keys(conn, &chacha20_poly1305_key));
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
     for (size_t i = 0; i <= max_fragment + 1; i++) {
@@ -182,8 +182,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-        GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
-        GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
+        POSIX_GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
+        POSIX_GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
 
         /* Tamper with the TAG and ensure decryption fails */
         for (size_t j = 0; j < S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
@@ -208,8 +208,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-            GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
-            GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
+            POSIX_GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
+            POSIX_GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
         }
 
         /* Tamper with the encrypted payload in the ciphertext and ensure decryption fails */
@@ -235,8 +235,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-            GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
-            GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
+            POSIX_GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
+            POSIX_GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
         }
     }
 

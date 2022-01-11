@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -33,13 +32,13 @@ void s2n_stuffer_erase_and_read_bytes_harness()
     save_byte_from_blob(&stuffer->blob, &old_byte);
 
     struct store_byte_from_buffer copied_byte;
-    if (s2n_stuffer_data_available(stuffer) >= blob->size) {
+    if (stuffer->blob.data && s2n_stuffer_data_available(stuffer) >= blob->size) {
         save_byte_from_array(&stuffer->blob.data[ old_stuffer.read_cursor ], blob->size, &copied_byte);
     }
 
     if (s2n_stuffer_erase_and_read_bytes(stuffer, blob->data, blob->size) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + old_blob.size);
-        assert_all_zeroes(&(stuffer->blob.data[ old_stuffer.read_cursor ]), old_blob.size);
+        if (stuffer->blob.data) assert_all_zeroes(&(stuffer->blob.data[ old_stuffer.read_cursor ]), old_blob.size);
         assert_byte_from_blob_matches(blob, &copied_byte);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);

@@ -14,7 +14,6 @@
  */
 
 #include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "crypto/s2n_hmac.h"
 

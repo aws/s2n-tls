@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 bool s2n_custom_send_fn_called = false;
 
@@ -40,6 +40,7 @@ int main(int argc, char **argv)
         /* Setup connections */
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_OK(s2n_connection_set_secrets(conn));
 
         /* Setup bad send callback */
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_expect_concurrent_error_send_fn));

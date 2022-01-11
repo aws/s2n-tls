@@ -14,7 +14,6 @@
  */
 
 #include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "crypto/s2n_hash.h"
 
@@ -22,8 +21,7 @@ void s2n_hash_block_size_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hash_algorithm alg;
-    uint64_t           block_length;
-    uint64_t *         block_size = bounded_malloc(block_length);
+    uint64_t *         block_size = malloc(sizeof(*block_size));
 
     /* Operation under verification. */
     if (s2n_hash_block_size(alg, block_size) == S2N_SUCCESS) {

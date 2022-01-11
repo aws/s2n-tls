@@ -33,7 +33,7 @@ const s2n_extension_type s2n_server_server_name_extension = {
 
 static bool s2n_server_name_should_send(struct s2n_connection *conn)
 {
-    return conn && conn->server_name_used && !s2n_connection_is_session_resumed(conn);
+    return conn && conn->server_name_used && !IS_RESUMPTION_HANDSHAKE(conn);
 }
 
 static int s2n_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -44,7 +44,7 @@ static int s2n_server_name_send(struct s2n_connection *conn, struct s2n_stuffer 
 
 static int s2n_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     /* Read nothing. The extension just needs to exist. */
     conn->server_name_used = 1;
     return S2N_SUCCESS;

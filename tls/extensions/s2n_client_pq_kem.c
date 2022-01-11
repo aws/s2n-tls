@@ -49,12 +49,12 @@ static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
-    notnull_check(kem_preferences);
+    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    POSIX_ENSURE_REF(kem_preferences);
 
-    GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kem_count * sizeof(kem_extension_size)));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kem_count * sizeof(kem_extension_size)));
     for (int i = 0; i < kem_preferences->kem_count; i++) {
-        GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[i]->kem_extension_id));
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[i]->kem_extension_id));
     }
 
     return S2N_SUCCESS;
@@ -63,14 +63,14 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
+    struct s2n_blob *proposed_kems = &conn->kex_params.client_pq_kem_extension;
 
     /* Ignore extension if PQ is disabled */
     if (!s2n_pq_is_enabled()) {
         return S2N_SUCCESS;
     }
 
-    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % sizeof(kem_extension_size)) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
@@ -78,7 +78,7 @@ static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffe
 
     proposed_kems->size = size_of_all;
     proposed_kems->data = s2n_stuffer_raw_read(extension, proposed_kems->size);
-    notnull_check(proposed_kems->data);
+    POSIX_ENSURE_REF(proposed_kems->data);
 
     return S2N_SUCCESS;
 }

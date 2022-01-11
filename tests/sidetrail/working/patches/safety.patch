@@ -9,9 +9,11 @@ index ae8e5783..cc06a2d0 100644
 -    S2N_PUBLIC_INPUT(a);
 -    S2N_PUBLIC_INPUT(b);
 -    S2N_PUBLIC_INPUT(len);
-     ENSURE_POSIX((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
-     ENSURE_POSIX((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
 
+     /* if len is 0, they're always going to be equal */
+     if (len == 0) {
+         return true;
+     }
 @@ -90,10 +87,6 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
   */
  int s2n_constant_time_copy_or_dont(uint8_t * dest, const uint8_t * src, uint32_t len, uint8_t dont)
@@ -20,6 +22,7 @@ index ae8e5783..cc06a2d0 100644
 -    S2N_PUBLIC_INPUT(src);
 -    S2N_PUBLIC_INPUT(len);
 -
- /* This underflows a value of 0 to the maximum value via arithmetic underflow,
-  * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
-  * Additionally, uint_fast16_t is defined as the fastest available unsigned
+     uint8_t mask = (((0xFFFF & dont) - 1) >> 8) & 0xFF;
+
+     /* dont = 0 : mask = 0xff */
+     /* dont > 0 : mask = 0x00 */

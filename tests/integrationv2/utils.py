@@ -2,6 +2,10 @@ from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
 
 
+def to_bytes(val):
+    return bytes(str(val).encode('utf-8'))
+
+
 def get_expected_s2n_version(protocol, provider):
     """
     s2nd and s2nc print a number for the negotiated TLS version.

@@ -14,7 +14,6 @@
  */
 
 #include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "crypto/s2n_hmac.h"
 
@@ -22,8 +21,7 @@ void s2n_hmac_xor_pad_size_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hmac_algorithm hmac_alg;
-    size_t             size;
-    uint16_t *         xor_pad_size = bounded_malloc(size);
+    uint16_t *         xor_pad_size = malloc(sizeof(*xor_pad_size));
 
     /* Operation under verification. */
     if (s2n_hmac_xor_pad_size(hmac_alg, xor_pad_size) == S2N_SUCCESS) {

@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 #include <string.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_random.h"
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = pad, .size = sizeof(pad)};
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
 
     /* Create a 100 byte stuffer */

@@ -14,7 +14,6 @@
  */
 
 #include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
@@ -32,8 +31,8 @@ void s2n_constant_time_pkcs1_unpad_or_dont_harness()
 
     /* This bound is required for our loop unwindings to be reasonably bound. */
     __CPROVER_assume(srclen >= len + 1 && srclen <= BOUND);
-    uint8_t *dest = can_fail_malloc(destlen);
-    uint8_t *src  = can_fail_malloc(srclen);
+    uint8_t *dest = malloc(destlen);
+    uint8_t *src  = malloc(srclen);
     uint8_t  old_src_byte;
     uint8_t  old_dest_byte;
     uint32_t idx;

@@ -5,7 +5,7 @@ from configuration import available_ports, MULTI_CERT_TEST_CASES, PROVIDERS, PRO
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 def filter_cipher_list(*args, **kwargs):
@@ -31,12 +31,10 @@ def filter_cipher_list(*args, **kwargs):
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
 @pytest.mark.parametrize("cert_test_case", MULTI_CERT_TEST_CASES)
 def test_sni_match(managed_process, provider, protocol, cert_test_case):
-    host = "localhost"
     port = next(available_ports)
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host=host,
         port=port,
         insecure=False,
         verify_hostname=True,
@@ -46,7 +44,6 @@ def test_sni_match(managed_process, provider, protocol, cert_test_case):
 
     server_options = ProviderOptions(
         mode = Provider.ServerMode,
-        host=host,
         port=port,
         extra_flags=[],
         protocol=protocol)
@@ -61,15 +58,13 @@ def test_sni_match(managed_process, provider, protocol, cert_test_case):
     client = managed_process(provider, client_options, timeout=5)
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
         if cert_test_case.client_sni is not None:
-            assert bytes("Server name: {}".format(cert_test_case.client_sni).encode('utf-8')) in results.stdout
+            assert to_bytes("Server name: {}".format(cert_test_case.client_sni)) in results.stdout
 

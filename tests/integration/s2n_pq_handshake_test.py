@@ -44,8 +44,8 @@ pq_handshake_test_vectors = [
     {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
 
     {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r2-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r2-KEM"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r3-KEM"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r3-KEM"},
 
     # The last set of vectors specify a "mismatch" between PQ cipher preferences - a classic handshake should be completed
     {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-TLS-1-0-2018-10", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
@@ -81,8 +81,8 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     expected_cipher_output = "Cipher negotiated: " + expected_cipher
     expected_kem_output = "KEM: " + expected_kem
 
-    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir)
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir)
+    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir, universal_newlines=True)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir, universal_newlines=True)
 
     client_kem_found = False
     client_cipher_found = False
@@ -92,7 +92,9 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     server_version_correct = False
 
     for i in range(0, NUM_EXPECTED_LINES_OUTPUT):
-        client_line = str(s2nc.stdout.readline().decode("utf-8"))
+        client_outs, errs = s2nc.communicate(timeout=5)
+        client_line = str(client_outs)
+
         if expected_kem_output in client_line:
             client_kem_found = True
         if expected_cipher_output in client_line:
@@ -100,7 +102,8 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
         if validate_version(S2N_TLS12, client_line):
             client_version_correct = True
 
-        server_line = str(s2nd.stdout.readline().decode("utf-8"))
+        server_outs, errs = s2nc.communicate(timeout=5)
+        server_line = str(server_outs)
         if expected_kem_output in server_line:
             server_kem_found = True
         if expected_cipher_output in server_line:
@@ -108,7 +111,6 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
         if validate_version(S2N_TLS12, server_line):
             server_version_correct = True
 
-    s2nc.kill()
     s2nc.wait()
 
     s2nd.kill()

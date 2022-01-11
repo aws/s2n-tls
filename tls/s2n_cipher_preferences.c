@@ -14,7 +14,7 @@
  */
 
 #include "tls/s2n_cipher_preferences.h"
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdint.h>
 #include <strings.h>
 #include "tls/s2n_config.h"
@@ -55,6 +55,31 @@ struct s2n_cipher_suite *cipher_suites_20190801[] = {
 const struct s2n_cipher_preferences cipher_preferences_20190801 = {
     .count = s2n_array_len(cipher_suites_20190801),
     .suites = cipher_suites_20190801,
+};
+
+/* Same as 20190801, but with ECDSA for TLS 1.2 added */
+struct s2n_cipher_suite *cipher_suites_20210831[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210831 = {
+    .count = s2n_array_len(cipher_suites_20210831),
+    .suites = cipher_suites_20210831,
 };
 
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
@@ -311,6 +336,110 @@ const struct s2n_cipher_preferences cipher_preferences_20190214 = {
     .suites = cipher_suites_20190214,
 };
 
+/* 20190214 with aes-gcm prioritized above aes-cbc */
+struct s2n_cipher_suite *cipher_suites_20190214_gcm[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190214_gcm = {
+    .count = s2n_array_len(cipher_suites_20190214_gcm),
+    .suites = cipher_suites_20190214_gcm,
+};
+
+/* Same as cipher_suites_20190214, but with TLS 1.3 Ciphers */
+struct s2n_cipher_suite *cipher_suites_20210825[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210825 = {
+    .count = s2n_array_len(cipher_suites_20210825),
+    .suites = cipher_suites_20210825,
+};
+
+/* Same as cipher_suites_20190214_gcm, but with TLS 1.3 Ciphers */
+struct s2n_cipher_suite *cipher_suites_20210825_gcm[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210825_gcm = {
+    .count = s2n_array_len(cipher_suites_20210825_gcm),
+    .suites = cipher_suites_20210825_gcm,
+};
+
 struct s2n_cipher_suite *cipher_suites_null[] = {
     &s2n_null_cipher_suite
 };
@@ -348,6 +477,34 @@ const struct s2n_cipher_preferences cipher_preferences_20170328 = {
     .suites = cipher_suites_20170328,
 };
 
+/* Equivalent to cipher_suites_20170328 with aes-gcm prioritized above aes-cbc */
+struct s2n_cipher_suite *cipher_suites_20170328_gcm[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170328_gcm = {
+    .count = s2n_array_len(cipher_suites_20170328_gcm),
+    .suites = cipher_suites_20170328_gcm,
+};
+
 /* Preferences optimized for FIPS compatibility. */
 struct s2n_cipher_suite *cipher_suites_20170405[] = {
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
@@ -366,6 +523,26 @@ struct s2n_cipher_suite *cipher_suites_20170405[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170405 = {
     .count = s2n_array_len(cipher_suites_20170405),
     .suites = cipher_suites_20170405,
+};
+
+/* Preferences optimized for FIPS compatibility with GCM prioritized */
+struct s2n_cipher_suite *cipher_suites_20170405_gcm[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170405_gcm = {
+    .count = s2n_array_len(cipher_suites_20170405_gcm),
+    .suites = cipher_suites_20170405_gcm,
 };
 
 /* Equivalent to cipher_suite_20160411 with 3DES removed.
@@ -388,6 +565,27 @@ struct s2n_cipher_suite *cipher_suites_20170718[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170718 = {
     .count = s2n_array_len(cipher_suites_20170718),
     .suites = cipher_suites_20170718,
+};
+
+/* Equivalent to cipher_suites_20170718 with aes-gcm prioritized above aes-cbc */
+struct s2n_cipher_suite *cipher_suites_20170718_gcm[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170718_gcm = {
+    .count = s2n_array_len(cipher_suites_20170718_gcm),
+    .suites = cipher_suites_20170718_gcm,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {
@@ -1004,6 +1202,79 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021 =
     .suites = cipher_suites_cloudfront_tls_1_2_2021,
 };
 
+/* Based on cipher_preferences_cloudfront_tls_1_0_2016, but with ordering changed and AES256-SHA256, DES-CBC3-SHA, and
+ * RC4-MD5 added for compatibility. */
+struct s2n_cipher_suite *cipher_suites_aws_crt_sdk_ssl_v3[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_md5
+};
+
+const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_ssl_v3 = {
+    .count = s2n_array_len(cipher_suites_aws_crt_sdk_ssl_v3),
+    .suites = cipher_suites_aws_crt_sdk_ssl_v3,
+};
+
+/* Based on cipher_preferences_cloudfront_tls_1_0_2016, but with ordering changed and AES256-SHA256 added for
+ * compatibility. */
+struct s2n_cipher_suite *cipher_suites_aws_crt_sdk_default[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_default = {
+    .count = s2n_array_len(cipher_suites_aws_crt_sdk_default),
+    .suites = cipher_suites_aws_crt_sdk_default,
+};
+
+struct s2n_cipher_suite *cipher_suites_aws_crt_sdk_tls_13[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716
+};
+
+const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_tls_13 = {
+    .count = s2n_array_len(cipher_suites_aws_crt_sdk_tls_13),
+    .suites = cipher_suites_aws_crt_sdk_tls_13,
+};
+
 struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -1020,6 +1291,26 @@ struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
 const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
     .count = s2n_array_len(cipher_suites_kms_tls_1_0_2018_10),
     .suites = cipher_suites_kms_tls_1_0_2018_10,
+};
+
+
+struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2021_08[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2021_08 = {
+    .count = s2n_array_len(cipher_suites_kms_tls_1_0_2021_08),
+    .suites = cipher_suites_kms_tls_1_0_2021_08,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
@@ -1077,7 +1368,7 @@ const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020
     .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
 };
 
-/* Includes Both Round 2 and Round 1 PQ Ciphers */
+/* Includes Kyber, BIKE, and SIKE PQ Ciphers */
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2020_07[] = {
     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
@@ -1121,6 +1412,306 @@ const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2020_12 = {
         .suites = cipher_suites_pq_tls_1_0_2020_12,
 };
 
+/* Same as ELBSecurityPolicy-TLS-1-1-2017-01, but with PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_1_2021_05_17[] = {
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_1_2021_05_17 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_1_2021_05_17),
+    .suites = cipher_suites_pq_tls_1_1_2021_05_17,
+};
+
+/* Same as cipher_preferences_20190214, but with PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_18[] = {
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_18 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_18),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_18,
+};
+
+/* Same as ELBSecurityPolicy-2016-08, but with PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_19[] = {
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_19 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_19),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_19,
+};
+
+/* Same as ELBSecurityPolicy-TLS-1-1-2017-01, but with TLS 1.3 and PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_1_2021_05_21[] = {
+    /* TLS 1.3 Ciphers don't specify their Key exchange method, allowing for Hybrid PQ KEMs to be negotiated separately */
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_1_2021_05_21 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_1_2021_05_21),
+    .suites = cipher_suites_pq_tls_1_1_2021_05_21,
+};
+
+/* Same as cipher_preferences_20190214, but with TLS 1.3 and PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_22[] = {
+    /* TLS 1.3 Ciphers don't specify their Key exchange method, allowing for Hybrid PQ KEMs to be negotiated separately */
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_22 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_22),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_22,
+};
+
+/* Same as ELBSecurityPolicy-2016-08, but with TLS 1.3 and PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_23[] = {
+    /* TLS 1.3 Ciphers don't specify their Key exchange method, allowing for Hybrid PQ KEMs to be negotiated separately */
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_23 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_23),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_23,
+};
+
+/* Same as cipher_preferences_kms_pq_tls_1_0_2020_07, but with TLS 1.3 appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_24[] = {
+    /* TLS 1.3 Ciphers don't specify their Key exchange method, allowing for Hybrid PQ KEMs to be negotiated separately */
+    S2N_TLS13_CIPHER_SUITES_20190801,
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_24 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_24),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_24,
+};
+
+/* Same as 20190214_gcm, but with PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_25[] = {
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_25 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_25),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_25,
+};
+
+/* Same as 20190214_gcm, but with TLS 1.3 and PQ Ciphers appended to top of preference list */
+struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2021_05_26[] = {
+    /* TLS 1.3 Ciphers don't specify their Key exchange method, allowing for Hybrid PQ KEMs to be negotiated separately */
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26 = {
+    .count = s2n_array_len(cipher_suites_pq_tls_1_0_2021_05_26),
+    .suites = cipher_suites_pq_tls_1_0_2021_05_26,
+};
+
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -1133,6 +1724,46 @@ struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
 const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 = {
     .count = s2n_array_len(cipher_suites_kms_fips_tls_1_2_2018_10),
     .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
+};
+
+struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2021_08[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2021_08 = {
+    .count = s2n_array_len(cipher_suites_kms_fips_tls_1_2_2021_08),
+    .suites = cipher_suites_kms_fips_tls_1_2_2021_08,
+};
+
+struct s2n_cipher_suite *cipher_suites_20210816[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210816 = {
+    .count = s2n_array_len(cipher_suites_20210816),
+    .suites = cipher_suites_20210816,
+};
+
+struct s2n_cipher_suite *cipher_suites_20210816_gcm[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20210816_gcm = {
+    .count = s2n_array_len(cipher_suites_20210816_gcm),
+    .suites = cipher_suites_20210816_gcm,
 };
 
 /* clang-format on */

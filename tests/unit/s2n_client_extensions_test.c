@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
@@ -74,9 +74,9 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     char *cert_chain;
     char *private_key;
 
-    GUARD_NONNULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-    GUARD_NONNULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    GUARD(setenv("S2N_DONT_MLOCK", "1", 0));
+    POSIX_GUARD_PTR(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD_PTR(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(setenv("S2N_DONT_MLOCK", "1", 0));
 
     struct s2n_connection *server_conn;
     struct s2n_config *server_config;
@@ -103,26 +103,26 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     size_t record_header_len = sizeof(record_header);
 
 
-    GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
-    GUARD(s2n_connection_set_io_pair(server_conn, io_pair));
+    POSIX_GUARD_PTR(server_conn = s2n_connection_new(S2N_SERVER));
+    POSIX_GUARD(s2n_connection_set_io_pair(server_conn, io_pair));
 
-    GUARD_NONNULL(server_config = s2n_config_new());
-    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-    GUARD_NONNULL(chain_and_key = s2n_cert_chain_and_key_new());
-    GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-    GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-    GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
-    GUARD(s2n_connection_set_config(server_conn, server_config));
-    server_conn->secure.kem_params.kem = NULL;
+    POSIX_GUARD_PTR(server_config = s2n_config_new());
+    POSIX_GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD_PTR(chain_and_key = s2n_cert_chain_and_key_new());
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+    POSIX_GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
+    POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
+    server_conn->kex_params.kem_params.kem = NULL;
 
     /* Send the client hello */
-    eq_check(write(io_pair->client, record_header, record_header_len),record_header_len);
-    eq_check(write(io_pair->client, message_header, message_header_len),message_header_len);
-    eq_check(write(io_pair->client, client_hello_message, client_hello_len),client_hello_len);
-    eq_check(write(io_pair->client, client_extensions, client_extensions_len),client_extensions_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len),record_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len),message_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len),client_hello_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len),client_extensions_len);
 
-    GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+    POSIX_GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     if (s2n_negotiate(server_conn, &server_blocked) == 0) {
         /* We expect the overall negotiation to fail and return non-zero, but it should get far enough
          * that a KEM extension was agreed upon. */
@@ -131,31 +131,31 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
 
     int negotiated_kem_id;
 
-    if (server_conn->secure.kem_params.kem != NULL) {
-        negotiated_kem_id = server_conn->secure.kem_params.kem->kem_extension_id;
+    if (server_conn->kex_params.kem_params.kem != NULL) {
+        negotiated_kem_id = server_conn->kex_params.kem_params.kem->kem_extension_id;
     } else {
         negotiated_kem_id = -1;
     }
 
-    GUARD(s2n_connection_free(server_conn));
-    GUARD(s2n_cert_chain_and_key_free(chain_and_key));
-    GUARD(s2n_config_free(server_config));
+    POSIX_GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+    POSIX_GUARD(s2n_config_free(server_config));
 
     free(cert_chain);
     free(private_key);
 
-    eq_check(negotiated_kem_id, expected_kem_id);
+    POSIX_ENSURE_EQ(negotiated_kem_id, expected_kem_id);
     
     return 0;
 }
 
 int main(int argc, char **argv)
 {
-    char *cert_chain;
-    char *private_key;
-    
+    char *cert_chain = NULL;
+    char *private_key = NULL;
+
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -276,6 +276,8 @@ int main(int argc, char **argv)
         const char *sent_server_name = "svr";
         const char *received_server_name;
         struct s2n_cert_chain_and_key *chain_and_key;
+        uint32_t cert_chain_len = 0;
+        uint32_t private_key_len = 0;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -342,10 +344,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_CERT_CHAIN, (uint8_t *)cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_PRIVATE_KEY, (uint8_t *)private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, (uint8_t *)cert_chain, cert_chain_len, (uint8_t *)private_key, private_key_len));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -895,7 +897,7 @@ int main(int argc, char **argv)
     }
 
     /* Server and client support the OCSP extension. Test Behavior for TLS 1.3 */
-    if(s2n_x509_ocsp_stapling_supported()) {
+    if(s2n_x509_ocsp_stapling_supported() && s2n_is_tls13_fully_supported()) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
@@ -903,7 +905,7 @@ int main(int argc, char **argv)
         const uint8_t *server_ocsp_reply;
         uint32_t length;
 
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -938,8 +940,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 1);
 
         /* Verify that the client received an OCSP response. */
-        /* Currently fails test. Remove when https://github.com/awslabs/s2n/issues/2239 is fixed */
-        /* EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1); */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
 
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
@@ -956,7 +957,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Client does not request SCT, but server is configured to serve them. */
@@ -1155,7 +1156,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[mfl_code]);
-        EXPECT_EQUAL(server_conn->mfl_code, mfl_code);
+        EXPECT_EQUAL(server_conn->negotiated_mfl_code, mfl_code);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -1205,7 +1206,7 @@ int main(int argc, char **argv)
 
         /* check that max_fragment_length did not get set due to invalid mfl_code */
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
-        EXPECT_EQUAL(server_conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+        EXPECT_EQUAL(server_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -1254,7 +1255,7 @@ int main(int argc, char **argv)
 
         /* check that max_fragment_length did not get set since accept_mfl is not set */
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
-        EXPECT_EQUAL(server_conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+        EXPECT_EQUAL(server_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -1269,13 +1270,13 @@ int main(int argc, char **argv)
 
     /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
     {
-        /* Client requests SIKE ciphersuite and provides SIKE_P434_R2 extension (plus other
+        /* Client requests SIKE ciphersuite and provides SIKE_P434_R3 extension (plus other
          * irrelevant KEM extensions); server is using the round 1 + round 2 preference list.
-         * If PQ is enabled, expect to negotiate sikep434r2; else, expect to negotiate no
+         * If PQ is enabled, expect to negotiate sikep434r3; else, expect to negotiate no
          * KEM (-1).*/
         int expected_kem_id;
         if (s2n_pq_is_enabled()) {
-            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2;
+            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3;
         } else {
             expected_kem_id = -1;
         }
@@ -1289,7 +1290,7 @@ int main(int argc, char **argv)
                 0x00, 0x06,
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0D,
@@ -1341,7 +1342,7 @@ int main(int argc, char **argv)
                 0x00, 0x06,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0D,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
@@ -1375,10 +1376,10 @@ int main(int argc, char **argv)
     {
         /* Client requests BIKE or SIKE ciphersuites and provides only SIKE extensions;
          * server is using the round 1 + round 2 preference list. If PQ is enabled, expect
-         * to negotiate sikep434r2; else, expect to negotiate no KEM (-1). */
+         * to negotiate sikep434r3; else, expect to negotiate no KEM (-1). */
         int expected_kem_id;
         if (s2n_pq_is_enabled()) {
-            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2;
+            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3;
         } else {
             expected_kem_id = -1;
         }
@@ -1392,7 +1393,7 @@ int main(int argc, char **argv)
                 0x00, 0x04,
                 /* SIKE_P503_R1 */
                 0x00, 0x0A,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
         };
         size_t client_extensions_len = sizeof(client_extensions);
@@ -1560,7 +1561,7 @@ int main(int argc, char **argv)
                 0x00, 0x06,
                 /* KEM names len */
                 0x00, 0x04,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0D,

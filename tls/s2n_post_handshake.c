@@ -20,38 +20,56 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-/* TLS 1.3 introducted several post handshake messages. This function currently only 
- * supports parsing for the KeyUpdate message. Once the other post-handshake messages
- * have been implemented, this function can be altered to include the other messages.
- */
 int s2n_post_handshake_recv(struct s2n_connection *conn) 
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     uint8_t post_handshake_id;
     uint32_t message_length;
-    S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
-    GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
-    GUARD(s2n_stuffer_read_uint24(&conn->in, &message_length));
+    while(s2n_stuffer_data_available(&conn->in)) {
+        POSIX_GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
+        POSIX_GUARD(s2n_stuffer_read_uint24(&conn->in, &message_length));
 
-    struct s2n_blob post_handshake_blob = {0};
-    uint8_t *message_data = s2n_stuffer_raw_read(&conn->in, message_length);
-    notnull_check(message_data);
-    GUARD(s2n_blob_init(&post_handshake_blob, message_data, message_length));
+        struct s2n_blob post_handshake_blob = { 0 };
+        uint8_t *message_data = s2n_stuffer_raw_read(&conn->in, message_length);
+        POSIX_ENSURE_REF(message_data);
+        POSIX_GUARD(s2n_blob_init(&post_handshake_blob, message_data, message_length));
 
-    struct s2n_stuffer post_handshake_stuffer = {0};
-    GUARD(s2n_stuffer_init(&post_handshake_stuffer, &post_handshake_blob));
-    GUARD(s2n_stuffer_skip_write(&post_handshake_stuffer, message_length));
+        struct s2n_stuffer post_handshake_stuffer = { 0 };
+        POSIX_GUARD(s2n_stuffer_init(&post_handshake_stuffer, &post_handshake_blob));
+        POSIX_GUARD(s2n_stuffer_skip_write(&post_handshake_stuffer, message_length));
 
-    switch (post_handshake_id) 
-    {
-        case TLS_KEY_UPDATE:
-            GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
-            break;
-        default:
-            /* Ignore all other messages */
-            break;
+        switch (post_handshake_id)
+        {
+            case TLS_KEY_UPDATE:
+                POSIX_GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
+                break;
+            case TLS_SERVER_NEW_SESSION_TICKET:
+                POSIX_GUARD_RESULT(s2n_tls13_server_nst_recv(conn, &post_handshake_stuffer));
+                break;
+            case TLS_HELLO_REQUEST:
+                POSIX_GUARD(s2n_client_hello_request_recv(conn));
+                break;
+            case TLS_CLIENT_HELLO:
+            case TLS_SERVER_HELLO:
+            case TLS_END_OF_EARLY_DATA:
+            case TLS_ENCRYPTED_EXTENSIONS:
+            case TLS_CERTIFICATE:
+            case TLS_SERVER_KEY:
+            case TLS_CERT_REQ:
+            case TLS_SERVER_HELLO_DONE:
+            case TLS_CERT_VERIFY:
+            case TLS_CLIENT_KEY:
+            case TLS_FINISHED:
+            case TLS_SERVER_CERT_STATUS:
+                /* All other known handshake messages should be rejected */
+                POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+                break;
+            default:
+                /* Ignore all other messages */
+                break;
+        }
     }
 
     return S2N_SUCCESS;
@@ -59,11 +77,10 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
 
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
-    GUARD(s2n_key_update_send(conn));
-    GUARD(s2n_flush(conn, blocked));
-    GUARD(s2n_stuffer_rewrite(&conn->out));
+    POSIX_GUARD(s2n_key_update_send(conn, blocked));
+    POSIX_GUARD_RESULT(s2n_tls13_server_nst_send(conn, blocked));
 
     return S2N_SUCCESS;
 }

@@ -44,7 +44,6 @@ struct s2n_hmac_state {
     struct s2n_hash_state outer;
     struct s2n_hash_state outer_just_key;
 
-
     /* key needs to be as large as the biggest block size */
     uint8_t xor_pad[128];
 

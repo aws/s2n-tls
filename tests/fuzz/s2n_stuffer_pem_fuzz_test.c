@@ -33,20 +33,20 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     struct s2n_stuffer in = {0};
     struct s2n_stuffer out = {0};
 
-    GUARD(s2n_stuffer_alloc(&in, len + 1));
-    GUARD(s2n_stuffer_alloc(&out, len));
-    GUARD(s2n_stuffer_write_bytes(&in, buf, len));
+    POSIX_GUARD(s2n_stuffer_alloc(&in, len + 1));
+    POSIX_GUARD(s2n_stuffer_alloc(&out, len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&in, buf, len));
 
     s2n_stuffer_certificate_from_pem(&in, &out);
 
     /* Reset in and out buffers */
-    GUARD(s2n_stuffer_reread(&in));
-    GUARD(s2n_stuffer_wipe(&out));
+    POSIX_GUARD(s2n_stuffer_reread(&in));
+    POSIX_GUARD(s2n_stuffer_wipe(&out));
 
     s2n_stuffer_dhparams_from_pem(&in, &out);
 
-    GUARD(s2n_stuffer_free(&in));
-    GUARD(s2n_stuffer_free(&out));
+    POSIX_GUARD(s2n_stuffer_free(&in));
+    POSIX_GUARD(s2n_stuffer_free(&out));
 
     return S2N_SUCCESS;
 }

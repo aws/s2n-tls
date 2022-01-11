@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -47,7 +47,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
-    GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
+    POSIX_GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
     s2n_connection_set_io_pair(client_conn, io_pair);
 
@@ -108,7 +108,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
-    GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
+    POSIX_GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
     s2n_connection_set_io_pair(client_conn, io_pair);
 
@@ -183,9 +183,9 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
 
     if (use_tls13) {
-        GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
+        POSIX_GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
     } else {
-        GUARD(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
+        POSIX_GUARD(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
     }
 
     /* Get some random data to send/receive */
@@ -267,7 +267,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
 
     /* Make sure we negotiated the expected version */
     if (use_tls13) {
-        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
     } else {
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
     }

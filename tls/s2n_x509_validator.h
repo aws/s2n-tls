@@ -21,13 +21,13 @@
 
 #include <openssl/x509v3.h>
 
-/* one day, BoringSSL/AWS-LC, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
+/* one day, BoringSSL may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
  * that would have to be there when they add support */
-#if (defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
+#if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
 #define S2N_OCSP_STAPLING_SUPPORTED 0
 #else
 #define S2N_OCSP_STAPLING_SUPPORTED 1
-#endif /* (defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
+#endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 typedef enum {
     S2N_CERT_OK = 0,
@@ -36,8 +36,16 @@ typedef enum {
     S2N_CERT_ERR_EXPIRED = -3,
     S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
     S2N_CERT_ERR_INVALID = -5,
-    S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6
+    S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6,
+    S2N_CERT_ERR_INTERNAL_ERROR = -7
 } s2n_cert_validation_code;
+
+typedef enum {
+    UNINIT,
+    INIT,
+    VALIDATED,
+    OCSP_VALIDATED,
+} validator_state;
 
 /** Return TRUE for trusted, FALSE for untrusted **/
 typedef uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
@@ -123,6 +131,12 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
  */
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
                                                                                 const uint8_t *ocsp_response, uint32_t size);
+
+/**
+ * Checks whether the peer's certificate chain has been received and validated.
+ * Should be verified before any use of the peer's certificate data.
+ */
+bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator);
 
 /**
  * Validates that each certificate in a peer's cert chain contains only signature algorithms in a security policy's

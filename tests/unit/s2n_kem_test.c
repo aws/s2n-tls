@@ -41,40 +41,40 @@ static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_
 static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA };
 
 int alloc_test_kem_params(struct s2n_kem_params *kem_params) {
-    GUARD(s2n_alloc(&(kem_params->private_key), TEST_PRIVATE_KEY_LENGTH));
+    POSIX_GUARD(s2n_alloc(&(kem_params->private_key), TEST_PRIVATE_KEY_LENGTH));
     struct s2n_stuffer private_key_stuffer = {0};
-    GUARD(s2n_stuffer_init(&private_key_stuffer, &(kem_params->private_key)));
-    GUARD(s2n_stuffer_write_bytes(&private_key_stuffer, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
+    POSIX_GUARD(s2n_stuffer_init(&private_key_stuffer, &(kem_params->private_key)));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&private_key_stuffer, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
 
-    GUARD(s2n_alloc(&(kem_params->public_key), TEST_PUBLIC_KEY_LENGTH));
+    POSIX_GUARD(s2n_alloc(&(kem_params->public_key), TEST_PUBLIC_KEY_LENGTH));
     struct s2n_stuffer public_key_stuffer = {0};
-    GUARD(s2n_stuffer_init(&public_key_stuffer, &(kem_params->public_key)));
-    GUARD(s2n_stuffer_write_bytes(&public_key_stuffer, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
+    POSIX_GUARD(s2n_stuffer_init(&public_key_stuffer, &(kem_params->public_key)));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&public_key_stuffer, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
 
-    GUARD(s2n_alloc(&(kem_params->shared_secret), TEST_SHARED_SECRET_LENGTH));
+    POSIX_GUARD(s2n_alloc(&(kem_params->shared_secret), TEST_SHARED_SECRET_LENGTH));
     struct s2n_stuffer shared_secret_stuffer = {0};
-    GUARD(s2n_stuffer_init(&shared_secret_stuffer, &(kem_params->shared_secret)));
-    GUARD(s2n_stuffer_write_bytes(&shared_secret_stuffer, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH));
+    POSIX_GUARD(s2n_stuffer_init(&shared_secret_stuffer, &(kem_params->shared_secret)));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&shared_secret_stuffer, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH));
 
-    ne_check(0, kem_params->private_key.allocated);
-    ne_check(0, kem_params->public_key.allocated);
-    ne_check(0, kem_params->shared_secret.allocated);
+    POSIX_ENSURE_NE(0, kem_params->private_key.allocated);
+    POSIX_ENSURE_NE(0, kem_params->public_key.allocated);
+    POSIX_ENSURE_NE(0, kem_params->shared_secret.allocated);
 
     return S2N_SUCCESS;
 }
 
 int assert_kem_params_free(struct s2n_kem_params *kem_params) {
-    eq_check(NULL, kem_params->private_key.data);
-    eq_check(0, kem_params->private_key.size);
-    eq_check(0, kem_params->private_key.allocated);
+    POSIX_ENSURE_EQ(NULL, kem_params->private_key.data);
+    POSIX_ENSURE_EQ(0, kem_params->private_key.size);
+    POSIX_ENSURE_EQ(0, kem_params->private_key.allocated);
 
-    eq_check(NULL, kem_params->public_key.data);
-    eq_check(0, kem_params->public_key.size);
-    eq_check(0, kem_params->public_key.allocated);
+    POSIX_ENSURE_EQ(NULL, kem_params->public_key.data);
+    POSIX_ENSURE_EQ(0, kem_params->public_key.size);
+    POSIX_ENSURE_EQ(0, kem_params->public_key.allocated);
 
-    eq_check(NULL, kem_params->shared_secret.data);
-    eq_check(0, kem_params->shared_secret.size);
-    eq_check(0, kem_params->shared_secret.allocated);
+    POSIX_ENSURE_EQ(NULL, kem_params->shared_secret.data);
+    POSIX_ENSURE_EQ(0, kem_params->shared_secret.size);
+    POSIX_ENSURE_EQ(0, kem_params->shared_secret.allocated);
 
     return S2N_SUCCESS;
 }
@@ -87,15 +87,15 @@ int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_
 }
 int s2n_test_encrypt(unsigned char *ciphertext, unsigned char *shared_secret, const unsigned char *public_key)
 {
-    GUARD(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
+    POSIX_GUARD(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
     memset(ciphertext, TEST_CIPHERTEXT_LENGTH, TEST_CIPHERTEXT_LENGTH);
     memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
     return 0;
 }
 int s2n_test_decrypt(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key)
 {
-    GUARD(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH));
-    GUARD(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
+    POSIX_GUARD(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH));
+    POSIX_GUARD(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
     memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
     return 0;
 }
@@ -115,11 +115,11 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
     const struct s2n_kem *negotiated_kem = NULL;
     struct s2n_blob client_kem_blob = { 0 };
     /* Each KEM ID is 2 bytes */
-    GUARD(s2n_blob_init(&client_kem_blob, client_kem_ids, 2 * num_client_kems));
-    GUARD(s2n_choose_kem_with_peer_pref_list(iana_value, &client_kem_blob, server_kem_pref_list, num_server_supported_kems, &negotiated_kem));
-    GUARD_NONNULL(negotiated_kem);
+    POSIX_GUARD(s2n_blob_init(&client_kem_blob, client_kem_ids, 2 * num_client_kems));
+    POSIX_GUARD(s2n_choose_kem_with_peer_pref_list(iana_value, &client_kem_blob, server_kem_pref_list, num_server_supported_kems, &negotiated_kem));
+    POSIX_GUARD_PTR(negotiated_kem);
 
-    S2N_ERROR_IF(negotiated_kem->kem_extension_id != expected_kem_id, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    POSIX_ENSURE(negotiated_kem->kem_extension_id == expected_kem_id, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     return 0;
 }
@@ -127,7 +127,7 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     {
         /* Regression test for network parsing data of expected sizes */
@@ -154,11 +154,11 @@ int main(int argc, char **argv)
         struct s2n_kem_params client_kem_params = { 0 };
         client_kem_params.kem = &s2n_test_kem;
         /* This would be handled by client/server key exchange methods which isn't being tested */
-        GUARD(s2n_alloc(&client_kem_params.public_key, TEST_PUBLIC_KEY_LENGTH));
+        POSIX_GUARD(s2n_alloc(&client_kem_params.public_key, TEST_PUBLIC_KEY_LENGTH));
         memset(client_kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
 
         DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
-        GUARD(s2n_alloc(&ciphertext, TEST_CIPHERTEXT_LENGTH));
+        POSIX_GUARD(s2n_alloc(&ciphertext, TEST_CIPHERTEXT_LENGTH));
 
         EXPECT_OK(s2n_kem_encapsulate(&client_kem_params, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, client_kem_params.shared_secret.size);
@@ -195,14 +195,14 @@ int main(int argc, char **argv)
                 0x00, 0x0d,
                 /* SIKE_P503_R1 */
                 0x00, 0x0a,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
                 0x00, 0x0a,
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0d
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
@@ -238,27 +238,27 @@ int main(int argc, char **argv)
             uint8_t client_kems[] = {
                 /* BIKE1_L1_R2 */
                 0x00, 0x0d,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13
             };
 
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
-            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
-            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             uint8_t client_kems[] = {
@@ -271,11 +271,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         }
         {
             uint8_t client_kems[] = {
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* SIKE_P503_R1 */
                 0x00, 0x0a
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
-            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3));
         }
         {
             /* If the client sends no KEMs, the server chooses whichever one it prefers. */
@@ -311,12 +311,12 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r2r1, 4, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3);
             negotiated_kem = NULL;
 
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3);
             negotiated_kem = NULL;
 
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(kyber_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
         }
         {
             const struct s2n_kem *sike_only_server_pref_list[] = {
-                &s2n_sike_p434_r2,
+                &s2n_sike_p434_r3,
                 &s2n_sike_p503_r1
             };
 
@@ -351,23 +351,25 @@ int main(int argc, char **argv)
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_bike1_l1_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_bike1_l1_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_bike_l1_r3.kem_extension_id);
 
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
         EXPECT_EQUAL(compatible_params->kem_count, 2);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
-        EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r3.kem_extension_id);
 
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(kyber_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r2.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_kyber_512_90s_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_kyber_512_r3.kem_extension_id);
     }
 
     {
@@ -392,10 +394,10 @@ int main(int argc, char **argv)
         /* Fill the kem_group_params with secrets */
         EXPECT_SUCCESS(alloc_test_kem_params(&kem_group_params.kem_params));
         struct s2n_stuffer wire;
-        GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
         kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-        GUARD(s2n_ecdhe_parameters_send(&kem_group_params.ecc_params, &wire));
-        GUARD(s2n_stuffer_free(&wire));
+        POSIX_GUARD(s2n_ecdhe_parameters_send(&kem_group_params.ecc_params, &wire));
+        POSIX_GUARD(s2n_stuffer_free(&wire));
         EXPECT_NOT_NULL(kem_group_params.ecc_params.evp_pkey);
 
         /* Ensure that secrets have been freed */
@@ -457,7 +459,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
         EXPECT_SUCCESS(s2n_alloc(&(kem_params.public_key), TEST_PUBLIC_KEY_LENGTH));
-        memcpy_check(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
+        POSIX_CHECKED_MEMCPY(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
 
         EXPECT_SUCCESS(s2n_kem_send_ciphertext(&io_stuffer, &kem_params));
 
@@ -507,7 +509,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
         s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH);
-        memcpy_check(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
+        POSIX_CHECKED_MEMCPY(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
 
         /* {0, 5} = length of ciphertext to follow
          * {5, 5, 5, 5, 5} = test ciphertext */
@@ -548,7 +550,7 @@ int main(int argc, char **argv)
 
         /* The given ciphertext length doesn't match the KEM's actual ciphertext length */
         EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
-        memcpy_check(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
+        POSIX_CHECKED_MEMCPY(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
         DEFER_CLEANUP(struct s2n_blob io_blob_3 = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&io_blob_3, TEST_CIPHERTEXT_LENGTH + 2));
         struct s2n_stuffer io_stuffer_3 = { 0 };
@@ -624,7 +626,7 @@ int main(int argc, char **argv)
                 TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
                 TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2,
                 TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1,
-                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
+                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3,
                 TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2
         };
 
@@ -632,7 +634,7 @@ int main(int argc, char **argv)
                 &s2n_bike1_l1_r1,
                 &s2n_bike1_l1_r2,
                 &s2n_sike_p503_r1,
-                &s2n_sike_p434_r2,
+                &s2n_sike_p434_r3,
                 &s2n_kyber_512_r2
         };
 
@@ -648,8 +650,8 @@ int main(int argc, char **argv)
     {
         /* Failure cases for s2n_get_kem_from_extension_id() */
         const struct s2n_kem *returned_kem = NULL;
-        kem_extension_size non_existant_kem_id = 65535;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existant_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        kem_extension_size non_existent_kem_id = 65535;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
     END_TEST();

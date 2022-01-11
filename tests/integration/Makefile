@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-S2ND_PORT=8888
+S2ND_PORT=18888
 S2ND_HOST=127.0.0.1
 
 # If the libcrypto that s2n was built with is not specified, assume latest(1.1.1).
@@ -39,7 +39,7 @@ ifndef S2N_NO_PQ
 TESTS += pq_handshake
 endif
 
-ifneq (S2N_NO_SSLYZE, "true")
+ifndef S2N_NO_SSLYZE
 TESTS += sslyze
 endif
 
