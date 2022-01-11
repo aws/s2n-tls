@@ -222,6 +222,10 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
 
 S2N_RESULT s2n_map_free(struct s2n_map *map)
 {
+    if (map == NULL) {
+        return S2N_RESULT_OK;
+    }
+
     /* Free the keys and values */
     for (uint32_t i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {
