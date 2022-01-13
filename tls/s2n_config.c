@@ -249,8 +249,8 @@ int s2n_config_defaults_init(void)
 
 void s2n_wipe_static_configs(void)
 {
-    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_fips_config);
+    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_tls13_config);
 }
 
