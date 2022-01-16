@@ -33,7 +33,7 @@
  */
 pid_t s2n_actual_getpid()
 {
-#if defined(__GNUC__) && defined(SYS_getpid)
+#if defined(__GNUC__) && defined(SYS_getpid) && !defined(__EMSCRIPTEN__)
     /* http://yarchive.net/comp/linux/getpid_caching.html */
     return (pid_t) syscall(SYS_getpid);
 #else
