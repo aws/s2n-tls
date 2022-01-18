@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -136,7 +136,9 @@ int main(int argc, char **argv)
     struct s2n_hash_state tls12_one = {0};
     struct s2n_hash_state tls12_two = {0};
 
-    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_pkey_size(&pub_key)));
+    uint32_t maximum_signature_length = 0;
+    EXPECT_OK(s2n_pkey_size(&pub_key, &maximum_signature_length));
+    EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
 
     if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
         /* TLS 1.0 use of RSA with DHE is not permitted when FIPS mode is set */

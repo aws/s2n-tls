@@ -31,8 +31,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* Setup */
     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-    notnull_check(server_conn);
-    GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+    POSIX_ENSURE_REF(server_conn);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
 
     /* We do not use a GUARD macro here as there may not be enough bytes to write the necessary
      * amount, and the result of a failed read_bytes call is an acceptable test input. */
@@ -44,7 +44,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_client_finished_recv(server_conn);
 
     /* Cleanup */
-    GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_connection_free(server_conn));
 
     return S2N_SUCCESS;
 }

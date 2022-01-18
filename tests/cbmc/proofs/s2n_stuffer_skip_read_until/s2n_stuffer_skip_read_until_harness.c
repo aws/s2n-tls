@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <string.h>
 
 #include "api/s2n.h"
@@ -26,7 +25,7 @@ void s2n_stuffer_skip_read_until_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
     char *target = nondet_bool() ? ensure_c_str_is_allocated(MAX_STRING_LEN) : NULL;
 
@@ -46,5 +45,5 @@ void s2n_stuffer_skip_read_until_harness()
 
     /* Post-conditions. */
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

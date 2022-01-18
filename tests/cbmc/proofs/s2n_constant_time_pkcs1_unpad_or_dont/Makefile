@@ -24,11 +24,11 @@ DEFINES += -DBOUND=$(BOUND)
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_constant_time_pkcs1_unpad_or_dont_harness
+PROOF_UID = s2n_constant_time_pkcs1_unpad_or_dont
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 

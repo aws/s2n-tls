@@ -96,12 +96,12 @@ compute_syndrome(OUT syndrome_t *syndrome, IN const ct_t *ct, IN const sk_t *sk)
   pad_ct[1].val = ct->val[1];
 
   // Compute s = c0*h0 + c1*h1:
-  GUARD(gf2x_mod_mul((uint64_t *)&pad_s[0], (uint64_t *)&pad_ct[0],
+  POSIX_GUARD(gf2x_mod_mul((uint64_t *)&pad_s[0], (uint64_t *)&pad_ct[0],
                      (uint64_t *)&pad_sk[0]));
-  GUARD(gf2x_mod_mul((uint64_t *)&pad_s[1], (uint64_t *)&pad_ct[1],
+  POSIX_GUARD(gf2x_mod_mul((uint64_t *)&pad_s[1], (uint64_t *)&pad_ct[1],
                      (uint64_t *)&pad_sk[1]));
 
-  GUARD(gf2x_add(pad_s[0].val.raw, pad_s[0].val.raw, pad_s[1].val.raw, R_SIZE));
+  POSIX_GUARD(gf2x_add(pad_s[0].val.raw, pad_s[0].val.raw, pad_s[1].val.raw, R_SIZE));
 
   memcpy((uint8_t *)syndrome->qw, pad_s[0].val.raw, R_SIZE);
   dup(syndrome);
@@ -118,13 +118,13 @@ recompute_syndrome(OUT syndrome_t *syndrome,
   ct_t tmp_ct = *ct;
 
   // Adapt the ciphertext
-  GUARD(gf2x_add(tmp_ct.val[0].raw, tmp_ct.val[0].raw, splitted_e->val[0].raw,
+  POSIX_GUARD(gf2x_add(tmp_ct.val[0].raw, tmp_ct.val[0].raw, splitted_e->val[0].raw,
                  R_SIZE));
-  GUARD(gf2x_add(tmp_ct.val[1].raw, tmp_ct.val[1].raw, splitted_e->val[1].raw,
+  POSIX_GUARD(gf2x_add(tmp_ct.val[1].raw, tmp_ct.val[1].raw, splitted_e->val[1].raw,
                  R_SIZE));
 
   // Recompute the syndrome
-  GUARD(compute_syndrome(syndrome, &tmp_ct, sk));
+  POSIX_GUARD(compute_syndrome(syndrome, &tmp_ct, sk));
 
   return SUCCESS;
 }
@@ -334,7 +334,7 @@ decode(OUT split_e_t *e,
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err1(e, &black_e, &gray_e, &s, sk->wlist, threshold);
-    GUARD(recompute_syndrome(&s, ct, sk, e));
+    POSIX_GUARD(recompute_syndrome(&s, ct, sk, e));
 #ifdef BGF_DECODER
     if(iter >= 1)
     {
@@ -346,14 +346,14 @@ decode(OUT split_e_t *e,
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err2(e, &black_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
-    GUARD(recompute_syndrome(&s, ct, sk, e));
+    POSIX_GUARD(recompute_syndrome(&s, ct, sk, e));
 
     DMSG("    Weight of e: %lu\n",
          r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err2(e, &gray_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
-    GUARD(recompute_syndrome(&s, ct, sk, e));
+    POSIX_GUARD(recompute_syndrome(&s, ct, sk, e));
   }
 
   if(r_bits_vector_weight((r_t *)s.qw) > 0)

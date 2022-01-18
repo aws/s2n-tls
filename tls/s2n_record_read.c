@@ -41,15 +41,16 @@ int s2n_sslv2_record_header_parse(
 
     S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
 
-    GUARD(s2n_stuffer_read_uint16(in, fragment_length));
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Adjust to account for the 3 bytes of payload data we consumed in the header */
+    POSIX_ENSURE_GTE(*fragment_length, 3);
     *fragment_length -= 3;
 
-    GUARD(s2n_stuffer_read_uint8(in, record_type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(in, record_type));
 
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     *client_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
 
@@ -65,10 +66,10 @@ int s2n_record_header_parse(
 
     S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
 
-    GUARD(s2n_stuffer_read_uint8(in, content_type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(in, content_type));
 
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
     /* https://tools.ietf.org/html/rfc5246#appendix-E.1 states that servers must accept any value {03,XX} as the record
@@ -82,13 +83,13 @@ int s2n_record_header_parse(
     S2N_ERROR_IF(conn->actual_protocol_version_established &&
         MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
         != version, S2N_ERR_BAD_MESSAGE);
-    GUARD(s2n_stuffer_read_uint16(in, fragment_length));
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Some servers send fragments that are above the maximum length.  (e.g.
      * Openssl 1.0.1, so we don't check if the fragment length is >
      * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. The on-the-wire max is 65k
      */
-    GUARD(s2n_stuffer_reread(in));
+    POSIX_GUARD(s2n_stuffer_reread(in));
 
     return 0;
 }
@@ -115,7 +116,7 @@ int s2n_record_parse(struct s2n_connection *conn)
 {
     uint8_t content_type;
     uint16_t encrypted_length;
-    GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
+    POSIX_GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
 
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
@@ -143,21 +144,27 @@ int s2n_record_parse(struct s2n_connection *conn)
         conn->server = current_server_crypto;
     }
 
+    /* The NULL stream cipher MUST NEVER be used for ApplicationData.
+     * If ApplicationData is unencrypted, we can't trust it. */
+    if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
+        POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
+    }
+
     switch (cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:
-        GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
         break;
     case S2N_CBC:
-        GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
         break;
     case S2N_COMPOSITE:
-        GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
         break;
     case S2N_STREAM:
-        GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
         break;
     default:
-        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
+        POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
         break;
     }
 
@@ -181,7 +188,7 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
     S2N_ERROR_IF(bytes_left > S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
     /* set cursor to the end of the stuffer */
-    GUARD(s2n_stuffer_skip_read(stuffer, bytes_left));
+    POSIX_GUARD(s2n_stuffer_skip_read(stuffer, bytes_left));
 
     /* Record type should have values greater than zero.
      * If zero, treat as padding, keep reading and wiping from the back
@@ -190,18 +197,18 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
     *record_type = 0;
     while (*record_type == 0) {
         /* back the cursor by one to read off the last byte */
-        GUARD(s2n_stuffer_rewind_read(stuffer, 1));
+        POSIX_GUARD(s2n_stuffer_rewind_read(stuffer, 1));
 
         /* set the record type */
-        GUARD(s2n_stuffer_read_uint8(stuffer, record_type));
+        POSIX_GUARD(s2n_stuffer_read_uint8(stuffer, record_type));
 
         /* wipe the last byte at the end of the stuffer */
-        GUARD(s2n_stuffer_wipe_n(stuffer, 1));
+        POSIX_GUARD(s2n_stuffer_wipe_n(stuffer, 1));
     }
 
     /* only the original plaintext should remain */
     /* now reset the read cursor at where it should be */
-    GUARD(s2n_stuffer_reread(stuffer));
+    POSIX_GUARD(s2n_stuffer_reread(stuffer));
 
     /* Even in the incorrect case above with up to 16 extra bytes, we should never see too much data after unpadding */
     S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) > S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH - 1, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);

@@ -14,7 +14,7 @@
  */
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 
@@ -32,23 +32,20 @@
  * provided session ID in its cache. */
 int s2n_establish_session(struct s2n_connection *conn)
 {
-    GUARD(s2n_conn_set_handshake_read_block(conn));
-
     /* Start by receiving and processing the entire CLIENT_HELLO message */
     if (!conn->handshake.client_hello_received) {
-        GUARD(s2n_client_hello_recv(conn));
+        POSIX_GUARD(s2n_client_hello_recv(conn));
         conn->handshake.client_hello_received = 1;
     }
 
-    GUARD(s2n_conn_set_handshake_type(conn));
+    POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
+    POSIX_GUARD(s2n_conn_set_handshake_type(conn));
 
     if (conn->client_hello_version != S2N_SSLv2)
     {
         /* We've selected the parameters for the handshake, update the required hashes for this connection */
-        GUARD(s2n_conn_update_required_handshake_hashes(conn));
+        POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
     }
-
-    GUARD(s2n_conn_clear_handshake_read_block(conn));
 
     return 0;
 }

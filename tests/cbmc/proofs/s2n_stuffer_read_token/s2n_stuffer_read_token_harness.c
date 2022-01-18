@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -25,10 +24,10 @@
 void s2n_stuffer_read_token_harness()
 {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
     struct s2n_stuffer *token = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(token));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(token)));
     char delim;
 
     /* Store previous state from the stuffer. */
@@ -44,7 +43,7 @@ void s2n_stuffer_read_token_harness()
     nondet_s2n_mem_init();
 
     if (s2n_stuffer_read_token(stuffer, token, delim) == S2N_SUCCESS) {
-        assert(s2n_stuffer_is_valid(token));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(token)));
         uint32_t token_size = token->write_cursor - old_token.write_cursor;
         if (token_size != 0)
             assert_bytes_match(token->blob.data + old_token.write_cursor, stuffer->blob.data + old_stuffer.read_cursor,
@@ -66,5 +65,5 @@ void s2n_stuffer_read_token_harness()
     }
 
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

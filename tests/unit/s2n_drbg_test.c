@@ -17,7 +17,7 @@
 
 #include <inttypes.h>
 #include <fcntl.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdlib.h>
 
 #include <openssl/aes.h>
@@ -263,7 +263,7 @@ int nist_fake_128_entropy_data(void *data, uint32_t size)
 {
     struct s2n_blob blob = {.data = data, .size = size};
 
-    GUARD(s2n_stuffer_read(&nist_aes128_reference_entropy, &blob));
+    POSIX_GUARD(s2n_stuffer_read(&nist_aes128_reference_entropy, &blob));
 
     return 0;
 }
@@ -272,7 +272,7 @@ int nist_fake_256_entropy_data(void *data, uint32_t size)
 {
     struct s2n_blob blob = {.data = data, .size = size};
 
-    GUARD(s2n_stuffer_read(&nist_aes256_reference_entropy, &blob));
+    POSIX_GUARD(s2n_stuffer_read(&nist_aes256_reference_entropy, &blob));
 
     return 0;
 }
@@ -283,9 +283,9 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
     DEFER_CLEANUP(struct s2n_stuffer personalization = {0}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer returned_bits = {0}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer reference_values = {0}, s2n_stuffer_free);
-    GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
-    GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
-    GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
 
     for (int i = 0; i < 14; i++) {
         uint8_t ps[S2N_DRBG_MAX_SEED_SIZE] = {0};
@@ -293,45 +293,45 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
         struct s2n_blob personalization_string = {.data = ps, .size = personalization_size};
 
         /* Read the next personalization string */
-        GUARD(s2n_stuffer_read(&personalization, &personalization_string));
+        POSIX_GUARD(s2n_stuffer_read(&personalization, &personalization_string));
 
         /* Over-ride the entropy sources */
-        GUARD(s2n_rand_set_callbacks(nist_fake_entropy_init_cleanup, nist_fake_entropy_init_cleanup, generator, generator));
+        POSIX_GUARD(s2n_rand_set_callbacks(nist_fake_entropy_init_cleanup, nist_fake_entropy_init_cleanup, generator, generator));
 
         /* Instantiate the DRBG */
-        GUARD(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
+        POSIX_GUARD(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
 
         uint8_t nist_v[16];
 
-        GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
-        eq_check(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
+        POSIX_GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
+        POSIX_ENSURE_EQ(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
 
         /* Generate 512 bits (FIRST CALL) */
         uint8_t out[64];
         struct s2n_blob generated = {.data = out, .size = 64 };
-        GUARD(s2n_drbg_generate(&nist_drbg, &generated));
+        POSIX_GUARD(s2n_drbg_generate(&nist_drbg, &generated));
 
-        GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
-        eq_check(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
+        POSIX_GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
+        POSIX_ENSURE_EQ(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
 
         /* Generate another 512 bits (SECOND CALL) */
-        GUARD(s2n_drbg_generate(&nist_drbg, &generated));
+        POSIX_GUARD(s2n_drbg_generate(&nist_drbg, &generated));
 
-        GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
-        eq_check(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
+        POSIX_GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
+        POSIX_ENSURE_EQ(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
 
         uint8_t nist_returned_bits[64];
-        GUARD(s2n_stuffer_read_bytes(&returned_bits, nist_returned_bits,
+        POSIX_GUARD(s2n_stuffer_read_bytes(&returned_bits, nist_returned_bits,
                                      sizeof(nist_returned_bits)));
-        eq_check(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)), 0);
+        POSIX_ENSURE_EQ(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)), 0);
 
         if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR){
-            eq_check(nist_drbg.mixes, 2);
+            POSIX_ENSURE_EQ(nist_drbg.mixes, 2);
         } else {
-            S2N_ERROR(S2N_ERR_DRBG);
+            POSIX_BAIL(S2N_ERR_DRBG);
         }
 
-        GUARD(s2n_drbg_wipe(&nist_drbg));
+        POSIX_GUARD(s2n_drbg_wipe(&nist_drbg));
     }
     return 0;
 }
@@ -339,7 +339,7 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     uint8_t data[256] = {0};
     struct s2n_drbg aes128_drbg = {0};
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
      * a common error is to incorrectly fill the last (not-aligned) bytes. Sometimes
      * they are left unchanged and sometimes a single byte is copied in. We ensure
      * that the last 15 bytes are not all equal to guard against this. */
-    memset_check((void*)data, 0, 31);
+    POSIX_CHECKED_MEMSET((void*)data, 0, 31);
     blob.size = 31;
     EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
     bool bytes_are_all_equal = true;
@@ -390,7 +390,7 @@ int main(int argc, char **argv)
     }
     EXPECT_FALSE(bytes_are_all_equal);
 
-    memset_check((void*)data, 0, 31);
+    POSIX_CHECKED_MEMSET((void*)data, 0, 31);
     blob.size = 31;
     EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     bytes_are_all_equal = true;

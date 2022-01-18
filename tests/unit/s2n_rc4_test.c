@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     if (s2n_is_in_fips_mode()) {
         /* Skip when FIPS mode is set as FIPS mode does not support RC4 */

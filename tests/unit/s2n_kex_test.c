@@ -20,7 +20,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test safety checks */
     {
@@ -32,17 +32,19 @@ int main(int argc, char **argv)
         test_cipher_with_null_kex.key_exchange_alg = NULL;
 
         /* Null cipher suite kex - possible with tls1.3 cipher suites */
-        EXPECT_FAILURE(s2n_configure_kex(NULL, &conn));
-        EXPECT_FAILURE(s2n_configure_kex(&test_cipher_with_null_kex, NULL));
+        EXPECT_ERROR(s2n_configure_kex(NULL, &conn));
+        EXPECT_ERROR(s2n_configure_kex(&test_cipher_with_null_kex, NULL));
 
         /* Null kex -- possible with tls1.3 cipher suites */
-        EXPECT_FAILURE(s2n_kex_is_ephemeral(NULL));
-        EXPECT_FAILURE(s2n_kex_server_key_recv_parse_data(NULL, &conn, &test_raw_server_data));
-        EXPECT_FAILURE(s2n_kex_server_key_recv_read_data(NULL, &conn, &blob, &test_raw_server_data));
-        EXPECT_FAILURE(s2n_kex_server_key_send(NULL, &conn, &blob));
-        EXPECT_FAILURE(s2n_kex_client_key_recv(NULL, &conn, &blob));
-        EXPECT_FAILURE(s2n_kex_client_key_send(NULL, &conn, &blob));
-        EXPECT_FAILURE(s2n_kex_tls_prf(NULL, &conn, &blob));
+        bool is_ephemeral = false;
+        EXPECT_ERROR(s2n_kex_is_ephemeral(NULL, &is_ephemeral));
+        EXPECT_ERROR(s2n_kex_is_ephemeral(&s2n_rsa, NULL));
+        EXPECT_ERROR(s2n_kex_server_key_recv_parse_data(NULL, &conn, &test_raw_server_data));
+        EXPECT_ERROR(s2n_kex_server_key_recv_read_data(NULL, &conn, &blob, &test_raw_server_data));
+        EXPECT_ERROR(s2n_kex_server_key_send(NULL, &conn, &blob));
+        EXPECT_ERROR(s2n_kex_client_key_recv(NULL, &conn, &blob));
+        EXPECT_ERROR(s2n_kex_client_key_send(NULL, &conn, &blob));
+        EXPECT_ERROR(s2n_kex_tls_prf(NULL, &conn, &blob));
     }
 
     /* Test s2n_kex_includes */

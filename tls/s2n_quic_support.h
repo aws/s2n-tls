@@ -30,6 +30,8 @@
  */
 
 S2N_API int s2n_config_enable_quic(struct s2n_config *config);
+S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
+bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
 
 /*
  * Set the data to be sent in the quic_transport_parameters extension.
@@ -73,4 +75,4 @@ typedef int (*s2n_secret_cb) (void* context, struct s2n_connection *conn,
  * The callback function will ONLY be triggered if QUIC is enabled. This API is not intended to be
  * used outside of a QUIC implementation.
  */
-int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx);
+S2N_API int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx);

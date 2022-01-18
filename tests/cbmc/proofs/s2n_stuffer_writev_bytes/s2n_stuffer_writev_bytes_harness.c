@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
@@ -27,14 +26,14 @@ void s2n_stuffer_writev_bytes_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     size_t iov_count;
     __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
-    struct iovec *iov = bounded_malloc(iov_count * sizeof(*iov));
+    struct iovec *iov = malloc(iov_count * sizeof(*iov));
     __CPROVER_assume(iov != NULL);
     for (int i = 0; i < iov_count; i++) {
-        iov[ i ].iov_base = bounded_malloc(iov[ i ].iov_len);
+        iov[ i ].iov_base = malloc(iov[ i ].iov_len);
     }
 
     uint32_t offs;
@@ -50,6 +49,6 @@ void s2n_stuffer_writev_bytes_harness()
     /* Operation under verification. */
     if (s2n_stuffer_writev_bytes(stuffer, iov, iov_count, offs, size) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     }
 }

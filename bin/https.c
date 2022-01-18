@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
+#include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
@@ -28,12 +28,12 @@ static s2n_blocked_status blocked;
 
 #define SEND(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
-    GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
+    POSIX_GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
 } while (0)
 
 #define BUFFER(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
-    GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
+    POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
 } while (0)
 
 static int flush(uint32_t left, uint8_t *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked_status)
@@ -69,7 +69,7 @@ int bench_handler(struct s2n_connection *conn, uint32_t bench) {
 
     while (bytes_remaining) {
         uint32_t buffer_remaining = bytes_remaining < len ? bytes_remaining : len;
-        GUARD(flush(buffer_remaining, big_buff, conn, &blocked));
+        POSIX_GUARD(flush(buffer_remaining, big_buff, conn, &blocked));
         bytes_remaining -= buffer_remaining;
     }
 
@@ -89,7 +89,7 @@ int https(struct s2n_connection *conn, uint32_t bench)
     }
 
     DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
-    GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
     BUFFER("<html><body><h1>Hello from s2n server</h1><pre>");
 
@@ -115,10 +115,10 @@ int https(struct s2n_connection *conn, uint32_t bench)
     uint32_t content_length = s2n_stuffer_data_available(&stuffer);
 
     uint8_t *content = s2n_stuffer_raw_read(&stuffer, content_length);
-    notnull_check(content);
+    POSIX_ENSURE_REF(content);
 
     HEADERS(content_length);
-    GUARD(flush(content_length, content, conn, &blocked));
+    POSIX_GUARD(flush(content_length, content, conn, &blocked));
 
     return S2N_SUCCESS;
 }

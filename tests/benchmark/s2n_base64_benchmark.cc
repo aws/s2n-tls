@@ -20,7 +20,7 @@
 
 #include <vector>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 extern "C" {
 #include "stuffer/s2n_stuffer.h"
@@ -41,7 +41,7 @@ public:
         rc = s2n_blob_init(&r, pad.data(), pad.size());
         assert(rc == 0);
 
-        result  = s2n_get_urandom_data(&r);
+        result  = s2n_get_public_random_data(&r);
         assert(s2n_result_is_ok(result));
         rc = s2n_stuffer_alloc(&entropy, pad.size());
         assert(rc == 0);

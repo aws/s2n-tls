@@ -17,17 +17,33 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+/* Generate and write an ecc point.
+ * This is used to write the ecc portion of PQ hybrid keyshares, which does NOT include the curve id.
+ */
+S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out)
+{
+    RESULT_ENSURE_REF(ecc_evp_params);
+    RESULT_ENSURE_REF(ecc_evp_params->negotiated_curve);
+
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
+    if (ecc_evp_params->evp_pkey == NULL) {
+        RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
+    }
+    RESULT_GUARD_POSIX(s2n_ecc_evp_write_params_point(ecc_evp_params, out));
+
+    return S2N_RESULT_OK;
+}
+
+/* Generate and write an ecc point and its corresponding curve id.
+ * This is used to write ecc keyshares for the client and server key_share extensions.
+ */
 int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out)
 {
-    notnull_check(out);
-    notnull_check(ecc_evp_params);
-    notnull_check(ecc_evp_params->negotiated_curve);
+    POSIX_ENSURE_REF(ecc_evp_params);
+    POSIX_ENSURE_REF(ecc_evp_params->negotiated_curve);
 
-    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
-    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
+    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_evp_params, out));
 
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
-    GUARD(s2n_ecc_evp_write_params_point(ecc_evp_params, out));
-
-    return 0;
+    return S2N_SUCCESS;
 }

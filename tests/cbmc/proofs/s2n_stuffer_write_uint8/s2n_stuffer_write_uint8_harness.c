@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -26,9 +25,9 @@ void s2n_stuffer_write_uint8_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint8_t  src;
-    uint32_t index;
+    uint32_t idx;
 
     /* Store a byte from the stuffer to compare if the write fails */
     struct s2n_stuffer            old_stuffer = *stuffer;
@@ -36,19 +35,19 @@ void s2n_stuffer_write_uint8_harness()
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Store a byte from the stuffer that won't be overwritten to compare if the write succeeds. */
-    __CPROVER_assume(index < stuffer->blob.size
-                     && (index < old_stuffer.write_cursor || index >= old_stuffer.write_cursor + sizeof(uint8_t)));
-    uint8_t untouched_byte = stuffer->blob.data[ index ];
+    __CPROVER_assume(idx < stuffer->blob.size
+                     && (idx < old_stuffer.write_cursor || idx >= old_stuffer.write_cursor + sizeof(uint8_t)));
+    uint8_t untouched_byte = stuffer->blob.data[ idx ];
 
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
     if (s2n_stuffer_write_uint8(stuffer, src) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + sizeof(uint8_t));
-        assert(stuffer->blob.data[ index ] == untouched_byte);
+        assert(stuffer->blob.data[ idx ] == untouched_byte);
         /* Ensure uint was correctly written to the stuffer */
         assert(stuffer->blob.data[ old_stuffer.write_cursor ] == src);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

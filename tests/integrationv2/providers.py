@@ -1,7 +1,7 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, TLS12_PQ_CIPHER_PREFS
+from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
@@ -15,13 +15,18 @@ class Provider(object):
     ServerMode = "server"
 
     def __init__(self, options: ProviderOptions):
+        # If the provider includes stderr output on a success, set this to True.
+        self.expect_stderr = False
+
         # If the test should wait for a specific output message before beginning,
         # put that message in ready_to_test_marker
         self.ready_to_test_marker = None
 
-        # If the test should wait for a specific output message before sending
-        # data, put that message in ready_to_send_input_marker
-        self.ready_to_send_input_marker = None
+        # By default, we expect clients to send, but not servers.
+        if options.mode == Provider.ClientMode:
+            self.ready_to_send_input_marker = self.get_send_marker()
+        else:
+            self.ready_to_send_input_marker = None
 
         # Allows users to determine if the provider is ready to begin testing
         self._provider_ready_condition = threading.Condition()
@@ -50,6 +55,12 @@ class Provider(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def get_send_marker(cls):
+        """
+        This should be the last message printed before the client/server can send data.
+        """
+        return None
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -112,8 +123,11 @@ class S2N(Provider):
     The S2N provider translates flags into s2nc/s2nd command line arguments.
     """
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return 's2n is ready'
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -132,42 +146,46 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc', '--non-blocking']
+        cmd_line = []
+        if self.options.use_mainline_version is True:
+            cmd_line.append('s2nc_head')
+        else:
+            cmd_line.append('s2nc')
+        cmd_line.append('--non-blocking')
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
         if self.options.reconnect is not True:
             cmd_line.append('-e')
 
-        # This is the last thing printed by s2nc before it is ready to send/receive data
-        self.ready_to_send_input_marker = 'Cipher negotiated:'
-
         if self.options.use_session_ticket is False:
             cmd_line.append('-T')
 
         if self.options.insecure is True:
             cmd_line.append('--insecure')
-        elif self.options.client_trust_store is not None:
-            cmd_line.extend(['-f', self.options.client_trust_store])
-        else:
-            if self.options.cert is not None:
-                cmd_line.extend(['-f', self.options.cert])
+        elif self.options.trust_store:
+            cmd_line.extend(['-f', self.options.trust_store])
+        elif self.options.cert:
+            cmd_line.extend(['-f', self.options.cert])
 
         if self.options.reconnect is True:
             cmd_line.append('-r')
 
+        # If the test provided a cipher (security policy) that is compatible with
+        # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
         cipher_prefs = 'test_all_tls12'
         if self.options.protocol is Protocols.TLS13:
             cipher_prefs = 'test_all'
-        if self.options.cipher in TLS12_PQ_CIPHER_PREFS:
+        if self.options.cipher and self.options.cipher.s2n:
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
 
-        if self.options.client_key_file:
-            cmd_line.extend(['--key', self.options.client_key_file])
-        if self.options.client_certificate_file:
-            cmd_line.extend(['--cert', self.options.client_certificate_file])
+        if self.options.use_client_auth:
+            if self.options.key:
+                cmd_line.extend(['--key', self.options.key])
+            if self.options.cert:
+                cmd_line.extend(['--cert', self.options.cert])
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -180,10 +198,18 @@ class S2N(Provider):
         return cmd_line
 
     def setup_server(self):
+        # s2nd prints this message after it begins listening for connections
+        self.ready_to_test_marker = 'Listening on'
+
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nd', '-X', '--self-service-blinding', '--non-blocking']
+        cmd_line = []
+        if self.options.use_mainline_version is True:
+            cmd_line.append('s2nd_head')
+        else:
+            cmd_line.append('s2nd')
+        cmd_line.extend(['-X', '--self-service-blinding', '--non-blocking'])
 
         if self.options.key is not None:
             cmd_line.extend(['--key', self.options.key])
@@ -192,15 +218,23 @@ class S2N(Provider):
 
         if self.options.insecure is True:
             cmd_line.append('--insecure')
+        elif self.options.trust_store:
+            cmd_line.extend(['-t', self.options.trust_store])
+        elif self.options.cert:
+            cmd_line.extend(['-t', self.options.cert])
 
-        if self.options.protocol == Protocols.TLS13:
-            cmd_line.extend(['-c', 'test_all'])
-        else:
-            cmd_line.extend(['-c', 'test_all_tls12'])
+        # If the test provided a cipher (security policy) that is compatible with
+        # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
+        cipher_prefs = 'test_all_tls12'
+        if self.options.protocol is Protocols.TLS13:
+            cipher_prefs = 'test_all'
+        if self.options.cipher and self.options.cipher.s2n:
+            cipher_prefs = self.options.cipher.name
+
+        cmd_line.extend(['-c', cipher_prefs])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
-            cmd_line.extend(['-t', self.options.client_certificate_file])
 
         if self.options.use_session_ticket is False:
             cmd_line.append('-T')
@@ -221,8 +255,13 @@ class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
 
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+        # We print some OpenSSL logging that includes stderr
+        self.expect_stderr = True
+
+    @classmethod
+    def get_send_marker(cls):
+        return 'Verify return code'
 
     def _join_ciphers(self, ciphers):
         """
@@ -309,14 +348,11 @@ class OpenSSL(Provider):
         return True
 
     def setup_client(self):
-        # s_client prints this message before it is ready to send/receive data
-        self.ready_to_send_input_marker = 'Verify return code'
-
         cmd_line = ['openssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug'])
+        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
 
         if self.options.key is not None:
             cmd_line.extend(['-key', self.options.key])
@@ -338,9 +374,11 @@ class OpenSSL(Provider):
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
 
-        if self.options.use_client_auth is True:
-            cmd_line.extend(['-key', self.options.client_key_file])
-            cmd_line.extend(['-cert', self.options.client_certificate_file])
+        if self.options.use_client_auth:
+            if self.options.key:
+                cmd_line.extend(['-key', self.options.key])
+            if self.options.cert:
+                cmd_line.extend(['-cert', self.options.cert])
 
         if self.options.reconnect is True:
             cmd_line.append('-reconnect')
@@ -373,9 +411,7 @@ class OpenSSL(Provider):
             cmd_line.extend(['-naccept', '1'])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug'])
-
-        cmd_line.append('-state')
+        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
 
         if self.options.cert is not None:
             cmd_line.extend(['-cert', self.options.cert])
@@ -401,7 +437,8 @@ class OpenSSL(Provider):
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
         if self.options.use_client_auth is True:
-            cmd_line.extend(['-verify', '1'])
+            # We use "Verify" instead of "verify" to require a client cert
+            cmd_line.extend(['-Verify', '1'])
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -414,8 +451,11 @@ class JavaSSL(Provider):
     implemented yet.
     """
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return "Starting handshake"
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -434,20 +474,21 @@ class JavaSSL(Provider):
 
     def setup_server(self):
         pytest.skip('JavaSSL does not support server mode at this time')
-    
+
     def setup_client(self):
-        self.ready_to_send_input_marker = "Starting handshake"
         cmd_line = ['java', "-classpath", "bin", "SSLSocketClient"]
 
         if self.options.port is not None:
             cmd_line.extend([self.options.port])
-        
-        if self.options.cert is not None:
-            cmd_line.extend([self.options.cert.cert])
-        
+
+        if self.options.trust_store:
+            cmd_line.extend([self.options.trust_store])
+        elif self.options.cert:
+            cmd_line.extend([self.options.cert])
+
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])
-        
+
         if self.options.cipher.iana_standard_name is not None:
             cmd_line.extend([self.options.cipher.iana_standard_name])
 
@@ -463,14 +504,16 @@ class BoringSSL(Provider):
     implemented, neither are in the default configuration.
     """
     def __init__(self, options: ProviderOptions):
-        self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return 'Cert issuer:'
 
     def setup_server(self):
         pytest.skip('BoringSSL does not support server mode at this time')
 
     def setup_client(self):
-        self.ready_to_send_input_marker = 'Cert issuer:'
         cmd_line = ['bssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])
         if self.options.cert is not None:

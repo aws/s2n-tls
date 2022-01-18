@@ -30,10 +30,7 @@ echo "Running ShellCheck..."
 find ./codebuild -type f -name '*.sh' -exec shellcheck -Cnever -s bash {} \;
 
 if [[ "$OS_NAME" == "linux" ]]; then
-    # Only run ubuntu install outside of CodeBuild
-    if [ ! "${CODEBUILD_BUILD_NUMBER}" ]; then
-        codebuild/bin/install_ubuntu_dependencies.sh;
-    fi
+    codebuild/bin/install_ubuntu_dependencies.sh;
 fi
 
 if [[ "$OS_NAME" == "darwin" ]]; then

@@ -39,13 +39,13 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     /* Setup */
     client_config = s2n_config_new();
     struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-    GUARD(s2n_connection_set_config(client_conn, client_config));
-    notnull_check(client_conn);
-    GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
+    POSIX_GUARD(s2n_connection_set_config(client_conn, client_config));
+    POSIX_ENSURE_REF(client_conn);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
     client_conn->client_protocol_version = TLS_VERSIONS[(randval & 0x0f) % s2n_array_len(TLS_VERSIONS)];
     client_conn->server_protocol_version = TLS_VERSIONS[(randval >> 4) % s2n_array_len(TLS_VERSIONS)];
     /* Run Test
@@ -54,8 +54,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_server_hello_recv(client_conn);
 
     /* Cleanup */
-    GUARD(s2n_config_free(client_config));
-    GUARD(s2n_connection_free(client_conn));
+    POSIX_GUARD(s2n_config_free(client_config));
+    POSIX_GUARD(s2n_connection_free(client_conn));
 
     return S2N_SUCCESS;
 }

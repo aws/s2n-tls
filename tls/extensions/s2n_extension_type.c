@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_extension_type.h"
@@ -72,7 +72,7 @@ s2n_extension_type_id s2n_extension_iana_value_to_id(const uint16_t iana_value)
 
 int s2n_extension_supported_iana_value_to_id(const uint16_t iana_value, s2n_extension_type_id *internal_id)
 {
-    notnull_check(internal_id);
+    POSIX_ENSURE_REF(internal_id);
 
     *internal_id = s2n_extension_iana_value_to_id(iana_value);
     S2N_ERROR_IF(*internal_id == s2n_unsupported_extension, S2N_ERR_UNRECOGNIZED_EXTENSION);
@@ -81,17 +81,22 @@ int s2n_extension_supported_iana_value_to_id(const uint16_t iana_value, s2n_exte
 
 int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(extension_type);
-    notnull_check(extension_type->should_send);
-    notnull_check(extension_type->send);
-    notnull_check(conn);
+    POSIX_ENSURE_REF(extension_type);
+    POSIX_ENSURE_REF(extension_type->should_send);
+    POSIX_ENSURE_REF(extension_type->send);
+    POSIX_ENSURE_REF(conn);
 
     s2n_extension_type_id extension_id;
-    GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not send response if request not received. */
     if (extension_type->is_response &&
             !S2N_CBIT_TEST(conn->extension_requests_received, extension_id)) {
+        return S2N_SUCCESS;
+    }
+
+    /* Do not send an extension that is not valid for the protocol version */
+    if (extension_type->minimum_version > conn->actual_protocol_version) {
         return S2N_SUCCESS;
     }
 
@@ -101,17 +106,17 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     }
 
     /* Write extension type */
-    GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
 
     /* Reserve space for extension size */
     struct s2n_stuffer_reservation extension_size_bytes = {0};
-    GUARD(s2n_stuffer_reserve_uint16(out, &extension_size_bytes));
+    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &extension_size_bytes));
 
     /* Write extension data */
-    GUARD(extension_type->send(conn, out));
+    POSIX_GUARD(extension_type->send(conn, out));
 
     /* Record extension size */
-    GUARD(s2n_stuffer_write_vector_size(&extension_size_bytes));
+    POSIX_GUARD(s2n_stuffer_write_vector_size(&extension_size_bytes));
 
     /* Set request bit flag */
     if (!extension_type->is_response) {
@@ -123,20 +128,37 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
 
 int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *in)
 {
-    notnull_check(extension_type);
-    notnull_check(extension_type->recv);
-    notnull_check(conn);
+    POSIX_ENSURE_REF(extension_type);
+    POSIX_ENSURE_REF(extension_type->recv);
+    POSIX_ENSURE_REF(conn);
 
     s2n_extension_type_id extension_id;
-    GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
-    /* Do not accept a response if we did not send a request */
-    if(extension_type->is_response &&
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+     *# Implementations MUST NOT send extension responses if the remote
+     *# endpoint did not send the corresponding extension requests, with the
+     *# exception of the "cookie" extension in the HelloRetryRequest.  Upon
+     *# receiving such an extension, an endpoint MUST abort the handshake
+     *# with an "unsupported_extension" alert.
+     *
+     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *# If the original session did not use the "extended_master_secret"
+     *# extension but the new ServerHello contains the extension, the
+     *# client MUST abort the handshake.
+     **/
+    if (extension_type->is_response &&
             !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
-        S2N_ERROR(S2N_ERR_UNSUPPORTED_EXTENSION);
+        POSIX_BAIL(S2N_ERR_UNSUPPORTED_EXTENSION);
     }
 
-    GUARD(extension_type->recv(conn, in));
+    /* Do not process an extension not valid for the protocol version */
+    if (extension_type->minimum_version > conn->actual_protocol_version) {
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD(extension_type->recv(conn, in));
 
     /* Set request bit flag */
     if (!extension_type->is_response) {
@@ -148,12 +170,12 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
 
 int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2n_connection *conn)
 {
-    notnull_check(extension_type);
-    notnull_check(extension_type->if_missing);
-    notnull_check(conn);
+    POSIX_ENSURE_REF(extension_type);
+    POSIX_ENSURE_REF(extension_type->if_missing);
+    POSIX_ENSURE_REF(conn);
 
     s2n_extension_type_id extension_id;
-    GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not consider an extension missing if we did not send a request */
     if(extension_type->is_response &&
@@ -161,19 +183,24 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
         return S2N_SUCCESS;
     }
 
-    GUARD(extension_type->if_missing(conn));
+    /* Do not consider an extension missing if it is not valid for the protocol version */
+    if (extension_type->minimum_version > conn->actual_protocol_version) {
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD(extension_type->if_missing(conn));
 
     return S2N_SUCCESS;
 }
 
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_extension_send_noop(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -203,7 +230,7 @@ bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn)
 
 int s2n_extension_error_if_missing(struct s2n_connection *conn)
 {
-    S2N_ERROR(S2N_ERR_MISSING_EXTENSION);
+    POSIX_BAIL(S2N_ERR_MISSING_EXTENSION);
 }
 
 int s2n_extension_noop_if_missing(struct s2n_connection *conn)

@@ -15,7 +15,7 @@
 
 #include <cbmc_proof/cbmc_utils.h>
 
-#include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 
 void s2n_hash_is_available_harness()
@@ -25,13 +25,22 @@ void s2n_hash_is_available_harness()
 
     /* Operation under verification. */
     bool is_available = s2n_hash_is_available(alg);
-    assert(IMPLIES(alg == S2N_HASH_MD5, is_available == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HASH_MD5_SHA1, is_available == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HASH_NONE, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA1, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA224, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA256, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA384, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA512, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SENTINEL, !is_available));
+
+    /* Postconditions. */
+    switch (alg) {
+        case S2N_HASH_MD5:
+        case S2N_HASH_MD5_SHA1:
+            assert(is_available == !s2n_is_in_fips_mode()); break;
+        case S2N_HASH_NONE:
+        case S2N_HASH_SHA1:
+        case S2N_HASH_SHA224:
+        case S2N_HASH_SHA256:
+        case S2N_HASH_SHA384:
+        case S2N_HASH_SHA512:
+            assert(is_available); break;
+        case S2N_HASH_SENTINEL:
+            assert(!is_available); break;
+        default:
+            __CPROVER_assert(!is_available, "Unssuported algorithm.");
+    }
 }

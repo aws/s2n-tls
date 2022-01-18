@@ -1,0 +1,21 @@
+[package]
+name = "s2n-tls"
+version = "0.1.0"
+authors = ["AWS s2n"]
+edition = "2018"
+license = "Apache-2.0"
+
+[features]
+default = []
+quic = []
+testing = ["errno", "bytes"]
+
+[dependencies]
+bytes = { version = "1", optional = true }
+errno = { version = "0.2", optional = true }
+libc = "0.2"
+s2n-tls-sys = { version = "0.1", path = "../s2n-tls-sys" }
+
+[dev-dependencies]
+bytes = { version = "1" }
+errno = { version = "0.2" }

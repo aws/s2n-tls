@@ -45,85 +45,85 @@ int s2n_record_parse_cbc(
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
-    notnull_check(header);
+    POSIX_ENSURE_REF(header);
 
-    lte_check(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, S2N_TLS_MAX_IV_LEN);
+    POSIX_ENSURE_LTE(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, S2N_TLS_MAX_IV_LEN);
 
     /* For TLS >= 1.1 the IV is in the packet */
     if (conn->actual_protocol_version > S2N_TLS10) {
-        GUARD(s2n_stuffer_read(&conn->in, &iv));
-        gte_check(encrypted_length, iv.size);
+        POSIX_GUARD(s2n_stuffer_read(&conn->in, &iv));
+        POSIX_ENSURE_GTE(encrypted_length, iv.size);
         encrypted_length -= iv.size;
     }
 
     struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
-    notnull_check(en.data);
+    POSIX_ENSURE_REF(en.data);
 
     uint16_t payload_length = encrypted_length;
     uint8_t mac_digest_size;
-    GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
+    POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
-    gte_check(payload_length, mac_digest_size);
+    POSIX_ENSURE_GTE(payload_length, mac_digest_size);
     payload_length -= mac_digest_size;
 
     /* Decrypt stuff! */
     /* Check that we have some data to decrypt */
-    ne_check(en.size, 0);
+    POSIX_ENSURE_NE(en.size, 0);
 
     /* ... and that we have a multiple of the block size */
-    eq_check(en.size % iv.size, 0);
+    POSIX_ENSURE_EQ(en.size % iv.size, 0);
 
     /* Copy the last encrypted block to be the next IV */
     if (conn->actual_protocol_version < S2N_TLS11) {
-        memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
+        POSIX_CHECKED_MEMCPY(ivpad, en.data + en.size - iv.size, iv.size);
     }
 
-    GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
 
     if (conn->actual_protocol_version < S2N_TLS11) {
-        memcpy_check(implicit_iv, ivpad, iv.size);
+        POSIX_CHECKED_MEMCPY(implicit_iv, ivpad, iv.size);
     }
 
     /* Subtract the padding length */
-    gt_check(en.size, 0);
+    POSIX_ENSURE_GT(en.size, 0);
     uint32_t out = 0;
-    GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
+    POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
     payload_length = out;
     /* Update the MAC */
     header[3] = (payload_length >> 8);
     header[4] = payload_length & 0xff;
-    GUARD(s2n_hmac_reset(mac));
-    GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    POSIX_GUARD(s2n_hmac_reset(mac));
+    POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        GUARD(s2n_hmac_update(mac, header, 1));
-        GUARD(s2n_hmac_update(mac, header + 3, 2));
+        POSIX_GUARD(s2n_hmac_update(mac, header, 1));
+        POSIX_GUARD(s2n_hmac_update(mac, header + 3, 2));
     } else {
-        GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
+        POSIX_GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
     }
 
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
-    GUARD(s2n_increment_sequence_number(&seq));
+    POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
-    /* Padding */
+    /* Padding. This finalizes the provided HMAC. */
     if (s2n_verify_cbc(conn, mac, &en) < 0) {
-        GUARD(s2n_stuffer_wipe(&conn->in));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
+        POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
      * for reading the plaintext data.
      */
-    GUARD(s2n_stuffer_reread(&conn->in));
-    GUARD(s2n_stuffer_reread(&conn->header_in));
+    POSIX_GUARD(s2n_stuffer_reread(&conn->in));
+    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
 
     /* Skip the IV, if any */
     if (conn->actual_protocol_version > S2N_TLS10) {
-        GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->record_alg->cipher->io.cbc.record_iv_size));
+        POSIX_GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->record_alg->cipher->io.cbc.record_iv_size));
     }
 
     /* Truncate and wipe the MAC and any padding */
-    GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
+    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
     conn->in_status = PLAINTEXT;
 
     return 0;

@@ -35,13 +35,23 @@ extern const struct s2n_cipher_preferences cipher_preferences_20160804;
 extern const struct s2n_cipher_preferences cipher_preferences_20160824;
 extern const struct s2n_cipher_preferences cipher_preferences_20170210;
 extern const struct s2n_cipher_preferences cipher_preferences_20170328;
+extern const struct s2n_cipher_preferences cipher_preferences_20170328_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20170405;
+extern const struct s2n_cipher_preferences cipher_preferences_20170405_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20170718;
+extern const struct s2n_cipher_preferences cipher_preferences_20170718_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20190214;
+extern const struct s2n_cipher_preferences cipher_preferences_20190214_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20190801;
 extern const struct s2n_cipher_preferences cipher_preferences_20190120;
 extern const struct s2n_cipher_preferences cipher_preferences_20190121;
 extern const struct s2n_cipher_preferences cipher_preferences_20190122;
+extern const struct s2n_cipher_preferences cipher_preferences_20210816;
+extern const struct s2n_cipher_preferences cipher_preferences_20210816_gcm;
+extern const struct s2n_cipher_preferences cipher_preferences_20210825;
+extern const struct s2n_cipher_preferences cipher_preferences_20210825_gcm;
+extern const struct s2n_cipher_preferences cipher_preferences_20210831;
+
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls12;
@@ -76,6 +86,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021;
 
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3_legacy;
@@ -84,21 +95,32 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016_legacy;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018_legacy;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019_legacy;
-/* CloudFront undocumented policies for testing */
-extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2020;
 
+/* AWS Common Runtime Cipher Preferences */
+extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_ssl_v3;
+extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_default;
+extern const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_tls_13;
+
+/* AWS KMS Cipher Preferences */
 extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
-
-#if !defined(S2N_NO_PQ)
-
+extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2021_08;
+extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10;
+extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2021_08;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_07;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019_11;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020_02;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2020_12;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_1_2021_05_17;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_18;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_19;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_1_2021_05_21;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_22;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_23;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_24;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_25;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26;
 
-#endif
-
-extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10;
 extern const struct s2n_cipher_preferences cipher_preferences_null;
 

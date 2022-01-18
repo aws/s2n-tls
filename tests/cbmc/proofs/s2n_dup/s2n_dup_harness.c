@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_blob.h"
@@ -32,8 +31,8 @@ void s2n_dup_harness()
 {
     struct s2n_blob *from = cbmc_allocate_s2n_blob();
     struct s2n_blob *to   = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(from));
-    __CPROVER_assume(s2n_blob_is_valid(to));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(from)));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(to)));
     const struct s2n_blob         old_from = *from;
     const struct s2n_blob         old_to   = *to;
     struct store_byte_from_buffer old_byte;
@@ -48,11 +47,11 @@ void s2n_dup_harness()
         assert(old_to.data == NULL);
         assert(to->size == from->size);
 
-        uint32_t index;
-        __CPROVER_assume(index < from->size);
-        assert(from->data[ index ] == to->data[ index ]);
+        uint32_t idx;
+        __CPROVER_assume(idx < from->size);
+        assert(from->data[ idx ] == to->data[ idx ]);
     }
-    assert(s2n_blob_is_valid(from));
-    assert(s2n_blob_is_valid(to));
+    assert(s2n_result_is_ok(s2n_blob_validate(from)));
+    assert(s2n_result_is_ok(s2n_blob_validate(to)));
     assert_blob_equivalence(from, &old_from, &old_byte);
 }

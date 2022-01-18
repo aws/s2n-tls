@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -25,13 +24,13 @@ void s2n_stuffer_skip_expected_char_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, BLOB_SIZE));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
+    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
     const char expected;
     uint32_t   min;
     uint32_t   max;
     uint32_t   skipped;
-    uint32_t   index;
+    uint32_t   idx;
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer            old_stuffer = *stuffer;
@@ -45,10 +44,10 @@ void s2n_stuffer_skip_expected_char_harness()
         assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
         if (stuffer->blob.size > 0) {
             /* The skipped bytes should match the expected element. */
-            __CPROVER_assume(index >= old_stuffer.read_cursor && index < (old_stuffer.read_cursor + skipped));
-            assert(stuffer->blob.data[ index ] == expected);
+            __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < (old_stuffer.read_cursor + skipped));
+            assert(stuffer->blob.data[ idx ] == expected);
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

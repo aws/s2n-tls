@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_blob.h"
@@ -25,7 +24,6 @@
 void s2n_alloc_harness()
 {
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(S2N_IMPLIES(blob != NULL, s2n_blob_is_valid(blob)));
     uint32_t size;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
@@ -37,8 +35,6 @@ void s2n_alloc_harness()
         if (size != 0) {
             assert(__CPROVER_w_ok(blob->data, blob->allocated));
         }
-        assert(s2n_blob_is_valid(blob));
-    } else {
-        assert(blob == NULL || s2n_blob_is_valid(blob));
+        assert(s2n_result_is_ok(s2n_blob_validate(blob)));
     }
 }

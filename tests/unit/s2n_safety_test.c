@@ -46,74 +46,74 @@
 
 static int failure_gte()
 {
-    gte_check(0, 1);
+    POSIX_ENSURE_GTE(0, 1);
 
     return 0;
 }
 
 static int success_gte()
 {
-    gte_check(0, 0);
-    gte_check(1, 0);
+    POSIX_ENSURE_GTE(0, 0);
+    POSIX_ENSURE_GTE(1, 0);
 
     return 0;
 }
 
 static int failure_gt()
 {
-    gt_check(0, 0);
-    gt_check(0, 1);
+    POSIX_ENSURE_GT(0, 0);
+    POSIX_ENSURE_GT(0, 1);
 
     return 0;
 }
 
 static int success_gt()
 {
-    gt_check(1, 0);
+    POSIX_ENSURE_GT(1, 0);
 
     return 0;
 }
 
 static int failure_lte()
 {
-    lte_check(1, 0);
+    POSIX_ENSURE_LTE(1, 0);
 
     return 0;
 }
 
 static int success_lte()
 {
-    lte_check(1, 1);
-    lte_check(0, 1);
+    POSIX_ENSURE_LTE(1, 1);
+    POSIX_ENSURE_LTE(0, 1);
 
     return 0;
 }
 
 static int failure_lt()
 {
-    lt_check(1, 0);
-    lt_check(1, 1);
+    POSIX_ENSURE_LT(1, 0);
+    POSIX_ENSURE_LT(1, 1);
 
     return 0;
 }
 
 static int success_lt()
 {
-    lt_check(0, 1);
+    POSIX_ENSURE_LT(0, 1);
 
     return 0;
 }
 
 static int success_notnull()
 {
-    notnull_check(&"");
+    POSIX_ENSURE_REF(&"");
 
     return 0;
 }
 
 static int failure_notnull()
 {
-    notnull_check(NULL);
+    POSIX_ENSURE_REF(NULL);
 
     return 0;
 }
@@ -123,7 +123,7 @@ static int success_memcpy()
     char dst[1024];
     char src[1024] = {0};
 
-    memcpy_check(dst, src, 1024);
+    POSIX_CHECKED_MEMCPY(dst, src, 1024);
 
     return 0;
 }
@@ -133,65 +133,65 @@ static int failure_memcpy()
     char src[1024];
     char *ptr = NULL;
 
-    memcpy_check(ptr, src, 1024);
+    POSIX_CHECKED_MEMCPY(ptr, src, 1024);
 
     return 0;
 }
 
 static int success_inclusive_range()
 {
-    inclusive_range_check(0, 0, 2);
-    inclusive_range_check(0, 1, 2);
-    inclusive_range_check(0, 2, 2);
+    POSIX_ENSURE_INCLUSIVE_RANGE(0, 0, 2);
+    POSIX_ENSURE_INCLUSIVE_RANGE(0, 1, 2);
+    POSIX_ENSURE_INCLUSIVE_RANGE(0, 2, 2);
 
     return 0;
 }
 
 static int failure_inclusive_range_too_high()
 {
-    inclusive_range_check(0, 3, 2);
+    POSIX_ENSURE_INCLUSIVE_RANGE(0, 3, 2);
 
     return 0;
 }
 
 static int failure_inclusive_range_too_low()
 {
-    inclusive_range_check(0, -1, 2);
+    POSIX_ENSURE_INCLUSIVE_RANGE(0, -1, 2);
 
     return 0;
 }
 
 static int success_exclusive_range()
 {
-    exclusive_range_check(0, 1, 2);
+    POSIX_ENSURE_EXCLUSIVE_RANGE(0, 1, 2);
 
     return 0;
 }
 
 static int failure_exclusive_range_too_high()
 {
-    exclusive_range_check(0, 3, 2);
+    POSIX_ENSURE_EXCLUSIVE_RANGE(0, 3, 2);
 
     return 0;
 }
 
 static int failure_exclusive_range_too_low()
 {
-    exclusive_range_check(0, -1, 2);
+    POSIX_ENSURE_EXCLUSIVE_RANGE(0, -1, 2);
 
     return 0;
 }
 
 static int failure_exclusive_range_eq_high()
 {
-    exclusive_range_check(0, 2, 2);
+    POSIX_ENSURE_EXCLUSIVE_RANGE(0, 2, 2);
 
     return 0;
 }
 
 static int failure_exclusive_range_eq_low()
 {
-    exclusive_range_check(0, 0, 2);
+    POSIX_ENSURE_EXCLUSIVE_RANGE(0, 0, 2);
 
     return 0;
 }
@@ -256,7 +256,7 @@ static int success_ct_pkcs1_negative()
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_FAILURE(failure_gte());
     EXPECT_FAILURE(failure_lte());
@@ -287,14 +287,18 @@ int main(int argc, char **argv)
     uint8_t c[4] = { 5, 6, 7, 8 };
     uint8_t d[4] = { 5, 6, 7, 8 };
     uint8_t e[4] = { 1, 2, 3, 4 };
+    uint8_t f[4] = { 1, 2, 3, 5 };
 
-    EXPECT_EQUAL(s2n_constant_time_equals(a, b, sizeof(a)), 1);
-    EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(a, NULL, sizeof(a)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(NULL, b, sizeof(b)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(NULL, NULL, 0), 1);
-    EXPECT_EQUAL(s2n_constant_time_equals(NULL, NULL, sizeof(a)), 0);
-    EXPECT_EQUAL(s2n_constant_time_equals(a, c, 0), 1);
+    EXPECT_TRUE(s2n_constant_time_equals(a, b, sizeof(a)));
+    EXPECT_FALSE(s2n_constant_time_equals(a, c, sizeof(a)));
+    EXPECT_FALSE(s2n_constant_time_equals(a, NULL, sizeof(a)));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, b, sizeof(b)));
+    EXPECT_TRUE(s2n_constant_time_equals(NULL, NULL, 0));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, NULL, sizeof(a)));
+    EXPECT_TRUE(s2n_constant_time_equals(a, c, 0));
+    /* ensure the function checks all of the bytes */
+    EXPECT_TRUE(s2n_constant_time_equals(a, f, 3));
+    EXPECT_FALSE(s2n_constant_time_equals(a, f, 4));
 
     EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(a, c, sizeof(a), 0));
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 1);

@@ -27,7 +27,7 @@
  *
  * ```c
  * uint8_t s2n_answer_to_the_ultimate_question() {
- *   GUARD(s2n_sleep_for_years(7500000));
+ *   POSIX_GUARD(s2n_sleep_for_years(7500000));
  *   return 42;
  * }
  * ```
@@ -43,7 +43,7 @@
  *
  * ```c
  * int s2n_deep_thought() {
- *   GUARD(s2n_answer_to_the_ultimate_question());
+ *   POSIX_GUARD(s2n_answer_to_the_ultimate_question());
  *   return 0;
  * }
  * ```
@@ -76,18 +76,24 @@
  * `warn_unused_result` attribute, which ensures they are GUARDed.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdbool.h>
-#include "s2n_result.h"
+#include "utils/s2n_result.h"
 
 /* returns true when the result is S2N_RESULT_OK */
-bool s2n_result_is_ok(s2n_result result)
+inline bool s2n_result_is_ok(s2n_result result)
 {
     return result.__error_signal == S2N_SUCCESS;
 }
 
 /* returns true when the result is S2N_RESULT_ERROR */
-bool s2n_result_is_error(s2n_result result)
+inline bool s2n_result_is_error(s2n_result result)
 {
     return result.__error_signal == S2N_FAILURE;
+}
+
+/* ignores the returned result of a function */
+inline void s2n_result_ignore(s2n_result result)
+{
+    /* noop */
 }

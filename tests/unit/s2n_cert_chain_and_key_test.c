@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 #include "utils/s2n_safety.h"
@@ -29,7 +29,7 @@
 
 struct s2n_connection *create_conn(s2n_mode mode, struct s2n_config *config) {
     struct s2n_connection *conn = s2n_connection_new(mode);
-    GUARD_PTR(s2n_connection_set_config(conn, config));
+    PTR_GUARD_POSIX(s2n_connection_set_config(conn, config));
     return conn;
 }
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     char *private_key;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_set_server_name(client_conn, "www.alligator.com"));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
         EXPECT_EQUAL(num_times_cb_executed, NUM_TIED_CERTS - 1);
         struct s2n_cert_chain_and_key *selected_cert = s2n_connection_get_selected_cert(server_conn);
         /* The last alligator certificate should have the highest priority */
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

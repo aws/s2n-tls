@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_client_session_ticket.h"
 #include "tls/s2n_resume.h"
@@ -30,7 +31,7 @@ static void s2n_set_test_ticket(struct s2n_connection *conn, const uint8_t *tick
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
@@ -53,12 +54,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
         EXPECT_TRUE(s2n_client_session_ticket_extension.should_send(conn));
 
+        /* session ticket should not be sent if TLS1.3 PSKs are being used */
+        DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_test_psk_new(conn), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_psk));
+        EXPECT_FALSE(s2n_client_session_ticket_extension.should_send(conn));
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
 
-    const uint8_t test_ticket[S2N_TICKET_SIZE_IN_BYTES] = "TICKET";
+    const uint8_t test_ticket[S2N_TLS12_TICKET_SIZE_IN_BYTES] = "TICKET";
 
     /* send */
     {
@@ -83,7 +89,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        s2n_set_test_ticket(client_conn, test_ticket, S2N_TICKET_SIZE_IN_BYTES);
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES);
         EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
 
         EXPECT_EQUAL(server_conn->session_ticket_status, S2N_NO_TICKET);
@@ -91,6 +97,31 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->session_ticket_status, S2N_DECRYPT_TICKET);
         EXPECT_BYTEARRAY_EQUAL(server_conn->client_ticket_to_decrypt.blob.data,
                 test_ticket, s2n_array_len(test_ticket));
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* recv - ignore extension if TLS1.3 */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES);
+        EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
+
+        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_client_session_ticket_extension.recv(server_conn, &stuffer));
+        EXPECT_EQUAL(server_conn->session_ticket_status, S2N_NO_TICKET);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->client_ticket_to_decrypt), 0);
+
+        server_conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_client_session_ticket_extension.recv(server_conn, &stuffer));
+        EXPECT_EQUAL(server_conn->session_ticket_status, S2N_DECRYPT_TICKET);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -105,7 +136,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        s2n_set_test_ticket(client_conn, test_ticket, S2N_TICKET_SIZE_IN_BYTES - 1);
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES - 1);
         EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
         uint8_t extension_data = s2n_stuffer_data_available(&stuffer);
 
@@ -126,7 +157,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        s2n_set_test_ticket(client_conn, test_ticket, S2N_TICKET_SIZE_IN_BYTES);
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES);
         EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
         uint8_t extension_data = s2n_stuffer_data_available(&stuffer);
 

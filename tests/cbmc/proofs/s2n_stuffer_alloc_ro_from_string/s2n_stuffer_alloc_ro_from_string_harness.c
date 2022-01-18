@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <string.h>
 
 #include "api/s2n.h"
@@ -27,7 +26,7 @@ void s2n_stuffer_alloc_ro_from_string_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     char *str = ensure_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Save previous state from stuffer. */
@@ -47,5 +46,5 @@ void s2n_stuffer_alloc_ro_from_string_harness()
         assert(stuffer->write_cursor == length);
         assert(stuffer->high_water_mark == length);
     }
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

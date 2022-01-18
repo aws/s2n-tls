@@ -84,15 +84,15 @@ If there are any functions in the warning that are not in that list, then one of
 
 When Sidetrail analyzes a program, it needs to know how many times a loop will execute.
 If Sidetrail encounters a loop, and can't tell how many times it will execute, it may give a spurious counterexample.
-You can fix this using the `S2N_INVARIENT` macro.
+You can fix this using the `S2N_INVARIANT` macro.
 A good example of this is in `s2n_constant_time_equals`.
 
 ```C
     uint8_t xor = 0;
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         /* Invariants must hold for each execution of the loop
 	 * and at loop exit, hence the <= */
-        S2N_INVARIENT(i <= len);
+        S2N_INVARIANT(i <= len);
         xor |= a[i] ^ b[i];
     }
 ```
@@ -105,9 +105,9 @@ This appears to be benign, although we are investigating and hope to close it ou
 ## SideTrail fails with a long error trace
 
 Your best bet here is to do delta-debugging to get a minimal reproducing test case.
-Take a look at the test-case.
-Did it introduce a timing violation?
-If so, fix it.
+- Take a look at the test-case.
+- Did it introduce a timing violation?
+- If so, fix it.
 
 If you can't see an obvious timing issue in the minimal reproducing case, it may be worth taking a look at the trace.
 The trace is not easy to read, and is super long.
@@ -115,6 +115,122 @@ I've found the best thing is to dump it to a file, and then to start annotating 
 In particular, the trace will consist of two sequential traces: the initial, and the "shadow" trace.
 Those should be equal - if they are not, that's where the timing violation comes in.
 Look for the place where the two traces diverged.
+It might be helpful to add/uncomment `printModel += true` in the `Makefile`.
+
+An example failure trace on `s2n-cbc`:
+
+```
+$ ./clean && ./run.sh
+.
+.
+.
+__     __        _  __
+\ \   / /__ _ __(_)/ _|_   _
+ \ \ / / _ \ '__| | |_| | | |
+  \ V /  __/ |  | |  _| |_| |
+   \_/ \___|_|  |_|_|  \__, |
+                       |___/
+simple_cbc_wrapper@cbc.c
+
++  boogie /doModSetAnalysis simple_cbc_wrapper@cbc.c.product.bpl
+Boogie program verifier version 2.3.0.61016, Copyright (c) 2003-2014, Microsoft.
+simple_cbc_wrapper@cbc.c.product.bpl(634,3): Error BP5001: This assertion might not hold.
+Execution trace:
+    simple_cbc_wrapper@cbc.c.product.bpl(630,3): anon0
+    simple_cbc_wrapper@cbc.c.product.bpl(121,40): inline$simple_cbc_wrapper$0$Entry
+.
+.
+.
+    simple_cbc_wrapper@cbc.c.product.bpl(2999,1): inline$s2n_verify_cbc.shadow$0$$bb20
+    simple_cbc_wrapper@cbc.c.product.bpl(691,1): inline$simple_cbc_wrapper.shadow$0$$bb0$13
+    simple_cbc_wrapper@cbc.c.product.bpl(630,3): anon0$2
+
+Boogie program verifier finished with 0 verified, 1 error
+
+real    0m20.076s
+user    0m20.322s
+sys     0m1.000s
+```
+
+The violated assertion (line 634 of simple_cbc_wrapper@cbc.c.product.bpl) is:
+
+```
+  assert ($l <= ($l.shadow + 68));
+```
+
+and the bound `68` appears to be specified using the `__VERIFIER_ASSERT_MAX_LEAKAGE` constant:
+
+```
+procedure {:entrypoint} {:cost_modeling} simple_cbc_wrapper.wrapper($i0: i32, $i0.shadow: i32, $i1: i32, $i1.shadow: i32, $p2: ref, $p2.shadow: ref, $p3: ref, $p3.shadow: ref) returns ($r: i32, $r.shadow: i32)
+requires {:__VERIFIER_ASSERT_MAX_LEAKAGE 68} true;
+requires {:public_in $i0} true;
+requires {:public_in $i1} true;
+requires ($i0 == $i0.shadow);
+requires ($i1 == $i1.shadow);
+{
+
+  call $r := simple_cbc_wrapper($i0, $i1, $p2, $p3);
+  call $r.shadow := simple_cbc_wrapper.shadow($i0.shadow, $i1.shadow, $p2.shadow, $p3.shadow);
+  assume ($l >= $l.shadow);
+  $__delta := ($l - $l.shadow);
+  assert ($l <= ($l.shadow + 68));
+  return;
+}
+```
+
+Now if we rerun the prover, we would get a counterexample model as well,
+and we can inspect the difference between `$l` and `$l.shadow` in this model:
+
+```
+$ ./clean && ./run.sh
+.
+.
+.
+__     __        _  __
+\ \   / /__ _ __(_)/ _|_   _
+ \ \ / / _ \ '__| | |_| | | |
+  \ V /  __/ |  | |  _| |_| |
+   \_/ \___|_|  |_|_|  \__, |
+                       |___/
+simple_cbc_wrapper@cbc.c
+
++  boogie /printModel 4 /doModSetAnalysis simple_cbc_wrapper@cbc.c.product.bpl
+Boogie program verifier version 2.3.0.61016, Copyright (c) 2003-2014, Microsoft.
+*** MODEL
+$__delta@0 -> 69
+$0 -> 0
+.
+.
+.
+$l.shadow@92 -> 29
+$l.shadow@93 -> 29
+$l.shadow@94 -> 30
+$l.shadow@95 -> 31
+$l.shadow@96 -> 31
+$l.shadow@97 -> 31
+$l.shadow@98 -> 32
+$l.shadow@99 -> 32
+$l@0 -> 0
+$l@1 -> 0
+$l@10 -> 1
+$l@100 -> 33
+$l@101 -> 33
+$l@102 -> 33
+$l@103 -> 33
+$l@104 -> 33
+$l@105 -> 33
+$l@106 -> 33
+$l@107 -> 33
+.
+.
+.
+```
+
+We see several different values for `$l` and `$l.shadow` at various points.
+To see why the assertion failed, we need to check the maximum difference between `$l` and `$l.shadow`,
+and if it exceeds our `__VERIFIER_ASSERT_MAX_LEAKAGE` bound.
+For this particular case, the maximum difference in the model was close to `100`,
+so bumping `__VERIFIER_ASSERT_MAX_LEAKAGE` up to `100` resolved the issue.
 
 ## What to do if the proof gets really slow
 
@@ -125,7 +241,7 @@ Look for the place where the two traces diverged.
 1. Slowdown is often because alias analysis has failed to distinguish cases that can't actually alias.
    Sidetrail exports information about how many alias sets it had as part of its output.
    Did that change from the last fast version?
-   In this case, sometimes simple syntatic changes are enough to fix it; if that doesn't work, consult an AR expert.
+   In this case, sometimes simple syntactic changes are enough to fix it; if that doesn't work, consult an AR expert.
 
 
 ## Expected runtimes:

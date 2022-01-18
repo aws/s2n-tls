@@ -2,26 +2,19 @@ diff --git a/utils/s2n_safety.c b/utils/s2n_safety.c
 index ae8e5783..cc06a2d0 100644
 --- a/utils/s2n_safety.c
 +++ b/utils/s2n_safety.c
-@@ -57,18 +57,12 @@ pid_t s2n_actual_getpid()
+@@ -57,9 +57,6 @@ pid_t s2n_actual_getpid()
   */
  bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
  {
 -    S2N_PUBLIC_INPUT(a);
 -    S2N_PUBLIC_INPUT(b);
 -    S2N_PUBLIC_INPUT(len);
--
-     if (len != 0 && (a == NULL || b == NULL)) {
-         return false;
+
+     /* if len is 0, they're always going to be equal */
+     if (len == 0) {
+         return true;
      }
- 
-     uint8_t xor = 0;
-     for (int i = 0; i < len; i++) {
--        /* Invariants must hold for each execution of the loop
--	 * and at loop exit, hence the <= */
-         S2N_INVARIENT(i <= len);
-         xor |= a[i] ^ b[i];
-     }
-@@ -88,10 +82,6 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
+@@ -90,10 +87,6 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
   */
  int s2n_constant_time_copy_or_dont(uint8_t * dest, const uint8_t * src, uint32_t len, uint8_t dont)
  {
@@ -29,6 +22,7 @@ index ae8e5783..cc06a2d0 100644
 -    S2N_PUBLIC_INPUT(src);
 -    S2N_PUBLIC_INPUT(len);
 -
- /* This underflows a value of 0 to the maximum value via arithmetic underflow,
-  * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
-  * Additionally, uint_fast16_t is defined as the fastest available unsigned
+     uint8_t mask = (((0xFFFF & dont) - 1) >> 8) & 0xFF;
+
+     /* dont = 0 : mask = 0xff */
+     /* dont > 0 : mask = 0x00 */

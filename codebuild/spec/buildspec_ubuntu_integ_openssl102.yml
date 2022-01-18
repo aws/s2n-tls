@@ -21,9 +21,14 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.7
+      python: 3.x
     commands:
       - echo Entered the install phase...
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
       - echo "We need a test PPA for gcc-9."
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz

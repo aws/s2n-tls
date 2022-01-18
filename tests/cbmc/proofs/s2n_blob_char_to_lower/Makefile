@@ -13,28 +13,27 @@
 
 
 # Enough to get full coverage with 10 seconds of runtime.
-BLOB_SIZE = 10
-DEFINES += -DBLOB_SIZE=$(BLOB_SIZE)
+MAX_BLOB_SIZE = 10
+DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_blob_char_to_lower_harness
+PROOF_UID = s2n_blob_char_to_lower
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
-
-PROOF_SOURCES += $(PROOF_STUB)/__tolower.c
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 PROJECT_SOURCES += $(SRCDIR)/error/s2n_errno.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
 REMOVE_FUNCTION_BODY += s2n_calculate_stacktrace
 
-UNWINDSET += s2n_blob_char_to_lower.3:$(call addone,$(BLOB_SIZE))
+UNWINDSET += s2n_blob_char_to_lower.1:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common

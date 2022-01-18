@@ -27,9 +27,9 @@
 int s2n_flip_random_bit(struct s2n_blob *blob) {
     /* Flip a random bit in the blob */
     uint64_t byte_flip_pos;
-    GUARD_AS_POSIX(s2n_public_random(blob->size, &byte_flip_pos));
+    POSIX_GUARD_RESULT(s2n_public_random(blob->size, &byte_flip_pos));
     uint64_t bit_flip_pos;
-    GUARD_AS_POSIX(s2n_public_random(8, &bit_flip_pos));
+    POSIX_GUARD_RESULT(s2n_public_random(8, &bit_flip_pos));
 
     uint8_t mask = 0x01 << (uint8_t)bit_flip_pos;
     blob->data[byte_flip_pos] ^= mask;
@@ -40,7 +40,7 @@ int s2n_flip_random_bit(struct s2n_blob *blob) {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Don't use RSA-PSS certs if unsupported */
 #if !RSA_PSS_CERTS_SUPPORTED
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
         /* Parse the leaf cert for the public key and certificate type */
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
-        S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        EXPECT_NOT_EQUAL(pkey_type, S2N_PKEY_TYPE_UNKNOWN);
         EXPECT_SUCCESS(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
         struct s2n_pkey *private_key = chain_and_key->private_key;
@@ -228,8 +228,8 @@ int main(int argc, char **argv)
         /* Parse the cert for the public key and certificate type */
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&root_public_key, &root_pkey_type, &root_chain_and_key->cert_chain->head->raw));
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&leaf_public_key, &leaf_pkey_type, &leaf_chain_and_key->cert_chain->head->raw));
-        S2N_ERROR_IF(root_pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        S2N_ERROR_IF(leaf_pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        EXPECT_NOT_EQUAL(root_pkey_type, S2N_PKEY_TYPE_UNKNOWN);
+        EXPECT_NOT_EQUAL(leaf_pkey_type, S2N_PKEY_TYPE_UNKNOWN);
 
         EXPECT_SUCCESS(s2n_cert_set_cert_type(root_chain_and_key->cert_chain->head, root_pkey_type));
         EXPECT_SUCCESS(s2n_cert_set_cert_type(leaf_chain_and_key->cert_chain->head, leaf_pkey_type));
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 
         /* Parse the leaf cert for the public key and certificate type */
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
-        S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        EXPECT_NOT_EQUAL(pkey_type, S2N_PKEY_TYPE_UNKNOWN);
         EXPECT_SUCCESS(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
         struct s2n_pkey *private_key = chain_and_key->private_key;

@@ -15,28 +15,29 @@ copywrite = """# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserv
 """
 
 import argparse
-import boto3
 import configparser
 import hashlib
 import json
 import logging
 import os
+import random
 import sys
 import time
 
+import boto3
 from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
 from awacs.sts import AssumeRole
 from botocore import exceptions
 from troposphere import GetAtt, Template, Ref, Output
+from troposphere.codebuild import Artifacts, Environment, Source, Project
 from troposphere.events import Rule, Target
 from troposphere.iam import Role, Policy
-from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def build_cw_event(template=Template, project_name=None, role=None, target_job=None, hour=12, input_json=None):
+def build_cw_event(template=Template, project_name=None, role=None, target_job=None, hour=12, minute=0, input_json=None):
     """ Create a CloudWatch Event to run a CodeBuild Project. """
     # CloudFormation doesn't allow underscores
     project_name = project_name.replace('_', '')
@@ -65,12 +66,12 @@ def build_cw_event(template=Template, project_name=None, role=None, target_job=N
 
     Rule(f"{project_name}Rule",
          template=template,
-         Name=f"{project_name}Evernt",
+         Name=f"{project_name}Event",
          Description="scheduled run Build with CloudFormation",
          Targets=[project_target],
          State='ENABLED',
          # Run at the top of hour.
-         ScheduleExpression=f"cron(0 {hour} * * ? *)",
+         ScheduleExpression=f"cron({minute} {hour} * * ? *)",
          DependsOn=target_job
          )
 
@@ -152,7 +153,7 @@ def build_artifacts(identifier: str, s3_bucketname: str) -> Artifacts:
 
 
 def build_project(template=Template(), section=None, project_name=None, raw_env=None,
-                  service_role: str = None) -> Template:
+                  service_role: str = None):
     """ Assemble all the requirements for a Troposphere CodeBuild Project. """
     template.set_version('2010-09-09')
     secondary_artifacts = list()
@@ -183,6 +184,10 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
     for i in env:
         k, v = i.split("=")
         env_list.append({"Name": k, "Value": v})
+
+    # Put the current account number into the ECR image path.
+    if 'AWS_AN' in config.get(section, 'image'):
+        config.set(section, 'image', config.get(section, 'image').replace('AWS_AN', get_account_number()))
 
     environment = Environment(
         ComputeType=config.get(section, 'compute_type'),
@@ -384,9 +389,15 @@ def validate_cfn(boto_client: boto3.client, cfn_template: str):
         raise SystemExit(f"Failed: {e}")
 
 
+def get_account_number():
+    # Look up the AWS account number.
+    return boto3.client('sts').get_caller_identity().get('Account')
+
+
 def main(args, config):
     """ Create the CFN template and do stuff with said template. """
     codebuild = Template()
+    config
     codebuild.set_version('2010-09-09')
     # Create a single CloudWatch Event role to allow codebuild:startBuild
     cw_event_role = build_cw_cb_role(codebuild, config)
@@ -401,7 +412,7 @@ def main(args, config):
         if ':' in job:
             job_title = job.split(':')[1]
         if 'CodeBuild:' in job:
-            service_role = build_codebuild_role(config,template=codebuild, project_name=job_title).to_dict()
+            service_role = build_codebuild_role(config, template=codebuild, project_name=job_title).to_dict()
 
             # Pull the env out of the section, and use the snippet for the other values.
             # Note: only env is over-ridden with snippets.
@@ -416,10 +427,48 @@ def main(args, config):
         if 'CloudWatchEvent' in job:
             # CloudWatch input allows us to over-ride environment variables passed to codebuild.
             cw_input = json.loads(config.get(job, 'input'))
-            # Note that for Cloudwatch, we're need to reference an existing CodeBuild Job.
+            # Note that for Cloudwatch need to reference an existing CodeBuild Job.
             build_cw_event(template=codebuild, project_name=job_title, target_job=config.get(job, 'build_job_name'),
                            role=cw_event_role,
                            hour=config.get(job, 'start_time'), input_json=cw_input)
+        if 'ScheduledTemplate' in job:
+            # Use a template within our config to create a list of scheduled CloudWatch events.
+            # Example
+            # [ScheduledTemplate:tests/fuzz/]
+            # start_time: 05:00
+            # jobnamesuffix: afl
+            # build_job_name: s2nFuzzAFLScheduled
+            # input: {"environmentVariablesOverride": [{"name": "FUZZ_TESTS","value": TESTNAME}]}
+
+            # tests/fuzz is the path to *test.c files, relative to the root of gitrepo
+            # start_time: scheduled UTC runtime of job
+            # jobnamesuffix: appended to the TESTNAME to make it uniq
+            # build_job_name: The existing CodeBuild job to use as the target for the scheduled run
+            # input: Over-ride environment variable JSON string
+
+            schedule_templates, test_name_list = [], []
+
+            # use the fileglob from the job name
+            try:
+                test_file_list = os.listdir(job_title)
+            except:
+                raise OSError(f'failed to read from {job_title}')
+            for i in list(filter(lambda x: ('test.c' in x), test_file_list)):
+                test_name_list.append(i.split('.')[:1][0])
+            cw_input = config.get(job, 'input')
+
+            for test_name in test_name_list:
+                # Make the case consistent, Camel with s2n lowered.
+                casefix = test_name.split('s2n')[1:][0].title()
+                casefix = 's2n' + casefix
+                # Randomize the minute, between 0-9, that schedule jobs start to avoid being throttled.
+                build_cw_event(template=codebuild,
+                               project_name=str(casefix + config.get(job, 'job_name_suffix').title()),
+                               target_job=config.get(job, 'build_job_name'),
+                               role=cw_event_role,
+                               hour=config.get(job, 'start_time'),
+                               minute=random.randrange(0,9),
+                               input_json=cw_input.replace('TESTNAME', test_name))
 
     # Write out a CloudFormation template.  This is ephemeral and is not used again.
     with(open(temp_yaml_filename, 'w')) as fh:
@@ -448,26 +497,35 @@ def main(args, config):
             create_new_stack(client, config, codebuild)
 
 
-
 if __name__ == '__main__':
     # Parse  options
     parser = argparse.ArgumentParser(description='Creates AWS CodeBuild Project CloudFormation files ' +
-                                                 'based on a simple config')
+                                                 'based on a simple config',
+                                     epilog="Additional reserved words used in the config files: " +
+                                            'AWS_AN: For customer codebuild images ECR URL, lookup the AWS account ' +
+                                            'number from the current session. ' +
+                                            'TESTTNAME: When using a ScheduledTemplate, this value will be replaced ' +
+                                            'with file names looked up from the filesystem.  See code for a sample.')
     parser.add_argument('--config', type=str, default="codebuild.config", help='The config filename to create the '
                                                                                'CodeBuild projects')
-    parser.add_argument('--production', dest='production', action='store_true', default=False, help='Validate CloudFormation yaml and create resources.')
-    parser.add_argument('--modify-existing', dest='modify_existing', action='store_true', default=False, help='Modify existing stack.')
+    parser.add_argument('--production', dest='production', action='store_true', default=False,
+                        help='Validate CloudFormation yaml and create resources.')
+    parser.add_argument('--modify-existing', dest='modify_existing', action='store_true', default=False,
+                        help='Modify existing stack.')
     parser.add_argument('--noop', dest='noop', action='store_true',
                         help='Create a local CFN yaml- but do no validation.')
     parser.add_argument('--output-dir', dest='output_dir', default='cfn', help="Directory to write CFN files")
     args = parser.parse_args()
+    if not os.path.exists(args.config):
+        raise FileNotFoundError(f"Config file not found {args.config}")
 
     config = configparser.RawConfigParser()
-    logging.debug(f'Try to load config file {args.config}')
+
     # The snippets/boilerplate should always be included.
     config.read('common.config')
     config.read(args.config)
-    assert config.get('CFNRole', 'account_number')
+    if not config.get('CFNRole', 'account_number'):
+        raise configparser.NoSectionError("Couldn't read the common.config, run from the codebuild dir.")
 
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)

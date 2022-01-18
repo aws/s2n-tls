@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
@@ -27,9 +26,9 @@ void s2n_stuffer_extract_blob_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
     nondet_s2n_mem_init();
 
@@ -40,16 +39,16 @@ void s2n_stuffer_extract_blob_harness()
 
     /* Operation under verification. */
     if (s2n_stuffer_extract_blob(stuffer, blob) == S2N_SUCCESS) {
-        assert(s2n_blob_is_valid(blob));
+        assert(s2n_result_is_ok(s2n_blob_validate(blob)));
         assert(blob->size == s2n_stuffer_data_available(stuffer));
         if (blob->size > 0) {
-            uint32_t index;
-            __CPROVER_assume(index < blob->size);
-            assert(blob->data[ index ] == stuffer->blob.data[ stuffer->read_cursor + index ]);
+            uint32_t idx;
+            __CPROVER_assume(idx < blob->size);
+            assert(blob->data[ idx ] == stuffer->blob.data[ stuffer->read_cursor + idx ]);
         }
     }
 
     /* Post-conditions. */
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
 }

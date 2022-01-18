@@ -52,13 +52,29 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
     }
 
     uint8_t mfl_code;
-    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
-    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096 || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+
+    /*
+     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= type=exception
+     *= reason=For compatibility, we choose to ignore malformed extensions if they are optional
+     *# If a server receives a maximum fragment length negotiation request
+     *# for a value other than the allowed values, it MUST abort the
+     *# handshake with an "illegal_parameter" alert.
+     */
+    if (mfl_code >= s2n_array_len(mfl_code_to_length) || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
         return S2N_SUCCESS;
     }
 
-    conn->mfl_code = mfl_code;
-    conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
+    /*
+     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *# Once a maximum fragment length other than 2^14 has been successfully
+     *# negotiated, the client and server MUST immediately begin fragmenting
+     *# messages (including handshake messages) to ensure that no fragment
+     *# larger than the negotiated length is sent.
+     */
+    conn->negotiated_mfl_code = mfl_code;
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, mfl_code_to_length[mfl_code]));
     return S2N_SUCCESS;
 }
 

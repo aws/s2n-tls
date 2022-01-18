@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <strings.h>
 
 #include "crypto/s2n_hash.h"
@@ -28,6 +28,7 @@ struct s2n_signature_scheme {
     s2n_signature_algorithm sig_alg;
     uint8_t minimum_protocol_version;
     uint8_t maximum_protocol_version;
+    uint16_t libcrypto_nid;
 
     /* Curve is only specified for ECDSA Signatures */
     struct s2n_ecc_named_curve const *signature_curve;
@@ -75,4 +76,7 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20140601;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20200207;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20201021;
+extern const struct s2n_signature_preferences s2n_signature_preferences_20210816;
 extern const struct s2n_signature_preferences s2n_signature_preferences_null;
+
+extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110;

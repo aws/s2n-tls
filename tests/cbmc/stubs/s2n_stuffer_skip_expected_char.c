@@ -23,8 +23,8 @@
 int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
                                    const uint32_t max, uint32_t *skipped)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
-    PRECONDITION_POSIX(min <= max);
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    POSIX_ENSURE(min <= max, S2N_FAILURE);
     /*
      * This is stub is incomplete and it needs to update stuffer
      * cursors appropriately https://github.com/awslabs/s2n/issues/2173.

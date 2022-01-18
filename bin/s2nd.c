@@ -13,32 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include <netinet/tcp.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <poll.h>
 #include <netdb.h>
-
-#include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
-#include <signal.h>
-#include <stdio.h>
 #include <getopt.h>
-
 #include <errno.h>
-
-#include <error/s2n_errno.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "common.h"
 
 #include "utils/s2n_safety.h"
@@ -133,102 +121,7 @@ static char default_private_key[] =
     "ggF9KQ0xWz7Km3GXv5+bwM5bcgt1A/s6sZCimXuj3Fle3RqOTF0="
     "-----END RSA PRIVATE KEY-----";
 
-static char dhparams[] =
-    "-----BEGIN DH PARAMETERS-----\n"
-    "MIIBCAKCAQEAy1+hVWCfNQoPB+NA733IVOONl8fCumiz9zdRRu1hzVa2yvGseUSq\n"
-    "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
-    "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
-    "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
-    "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
-    "-----END DH PARAMETERS-----\n";
 
-uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-
-uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
-                                  0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
-                                  0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
-                                  0xb3, 0xe5 };
-
-#define MAX_KEY_LEN 32
-#define MAX_VAL_LEN 255
-
-struct session_cache_entry {
-    uint8_t key[MAX_KEY_LEN];
-    uint8_t key_len;
-    uint8_t value[MAX_VAL_LEN];
-    uint8_t value_len;
-};
-
-struct session_cache_entry session_cache[256];
-
-int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
-{
-    struct session_cache_entry *cache = ctx;
-
-    S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(value_size == 0 || value_size > MAX_VAL_LEN, S2N_ERR_INVALID_ARGUMENT);
-
-    uint8_t index = ((const uint8_t *)key)[0];
-
-    memcpy(cache[index].key, key, key_size);
-    memcpy(cache[index].value, value, value_size);
-
-    cache[index].key_len = key_size;
-    cache[index].value_len = value_size;
-
-    return 0;
-}
-
-int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
-{
-    struct session_cache_entry *cache = ctx;
-
-    S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
-
-    uint8_t index = ((const uint8_t *)key)[0];
-
-    S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(*value_size < cache[index].value_len, S2N_ERR_INVALID_ARGUMENT);
-
-    *value_size = cache[index].value_len;
-    memcpy(value, cache[index].value, cache[index].value_len);
-
-    for (int i = 0; i < key_size; i++) {
-        printf("%02x", ((const uint8_t *)key)[i]);
-    }
-    printf("\n");
-
-    return 0;
-}
-
-int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
-{
-    struct session_cache_entry *cache = ctx;
-
-    S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
-
-    uint8_t index = ((const uint8_t *)key)[0];
-
-    S2N_ERROR_IF(cache[index].key_len != 0 && cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(cache[index].key_len != 0 && memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
-
-    cache[index].key_len = 0;
-    cache[index].value_len = 0;
-
-    return 0;
-}
-
-/*
- * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
- * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
- * the client (e.g. a reverse DNS lookup), you would plug that in here.
- */
-static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
-{
-    return 1;
-}
 
 void usage()
 {
@@ -286,30 +179,19 @@ void usage()
     fprintf(stderr, "    Run s2nd in a simple https server mode.\n");
     fprintf(stderr, "  -b --https-bench <bytes>\n");
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
+    fprintf(stderr, "  -L --key-log <path>\n");
+    fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -E, --max-early-data \n");
+    fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
     exit(1);
 }
-
-
-struct conn_settings {
-    unsigned mutual_auth:1;
-    unsigned self_service_blinding:1;
-    unsigned only_negotiate:1;
-    unsigned prefer_throughput:1;
-    unsigned prefer_low_latency:1;
-    unsigned enable_mfl:1;
-    unsigned session_ticket:1;
-    unsigned session_cache:1;
-    unsigned insecure:1;
-    unsigned use_corked_io:1;
-    unsigned https_server:1;
-    uint32_t https_bench;
-    int max_conns;
-    const char *ca_dir;
-    const char *ca_file;
-};
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
 {
@@ -319,37 +201,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    if (settings.self_service_blinding) {
-        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
-    }
-
-    if (settings.mutual_auth) {
-        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED), "Error setting client auth type");
-
-        if (settings.ca_dir || settings.ca_file) {
-            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir), "Error adding verify location");
-        }
-
-        if (settings.insecure) {
-            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
-        }
-    }
-
-    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
-
-    if (settings.prefer_throughput) {
-        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
-    }
-
-    if (settings.prefer_low_latency) {
-        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
-    }
-
-    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
-
-    if (settings.use_corked_io) {
-        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
-    }
+    s2n_setup_server_connection(conn, fd, config, settings);
 
     if (negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
@@ -362,12 +214,19 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
+    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
     if (settings.https_server) {
         https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {
-        echo(conn, fd);
+        bool stop_echo = false;
+        echo(conn, fd, &stop_echo);
     }
 
+    /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
+    /* peer fails to send a close_notify. */
+    /* TODO: However, we should expect to receive a close_notify from the peer and shutdown gracefully. */
+    /* Please see tracking issue for more detail: https://github.com/aws/s2n-tls/issues/2692 */
     s2n_blocked_status blocked;
     s2n_shutdown(conn, &blocked);
 
@@ -391,6 +250,7 @@ int main(int argc, char *const *argv)
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
     const char *alpn = NULL;
+    const char *key_log_path = NULL;
 
     /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
      * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
@@ -409,6 +269,8 @@ int main(int argc, char *const *argv)
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
     conn_settings.max_conns = -1;
+    conn_settings.psk_list_len = 0;
+    int max_early_data = 0;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -436,12 +298,15 @@ int main(int argc, char *const *argv)
         {"https-bench", required_argument, 0, 'b'},
         {"alpn", required_argument, 0, 'A'},
         {"non-blocking", no_argument, 0, 'B'},
+        {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
+        {"max-early-data", required_argument, 0, 'E'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -539,6 +404,19 @@ int main(int argc, char *const *argv)
         case 'B':
             non_blocking = 1;
             break;
+        case 'L':
+            key_log_path = optarg;
+            break;
+        case 'P':
+            if (conn_settings.psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
+                fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
+                exit(1);
+            }
+            conn_settings.psk_optarg_list[conn_settings.psk_list_len++] = optarg;
+            break;
+        case 'E':
+            max_early_data = atoi(optarg);
+            break;
         case '?':
         default:
             fprintf(stdout, "getopt_long returned: %d", c);
@@ -612,7 +490,7 @@ int main(int argc, char *const *argv)
     }
 
     if (fips_mode) {
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
@@ -679,61 +557,7 @@ int main(int argc, char *const *argv)
         close(fd);
     }
 
-    GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
-
-    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs),"Error setting cipher prefs");
-
-    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache), "Error setting cache store callback");
-
-    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache), "Error setting cache retrieve callback");
-
-    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache), "Error setting cache retrieve callback");
-
-    if (conn_settings.enable_mfl) {
-        GUARD_EXIT(s2n_config_accept_max_fragment_length(config), "Error enabling TLS maximum fragment length extension in server");
-    }
-
-    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
-        print_s2n_error("Failure to set hostname verification callback");
-        exit(1);
-    }
-
-    if (conn_settings.session_ticket) {
-        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
-    }
-
-    if (conn_settings.session_cache) {
-        GUARD_EXIT(s2n_config_set_session_cache_onoff(config, 1), "Error enabling session cache using id");
-    }
-
-    if (conn_settings.session_ticket || conn_settings.session_cache) {
-        /* Key initialization */
-        uint8_t *st_key;
-        uint32_t st_key_length;
-
-        if (session_ticket_key_file_path) {
-            int fd = open(session_ticket_key_file_path, O_RDONLY);
-            GUARD_EXIT(fd, "Error opening session ticket key file");
-
-            struct stat st;
-            GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
-
-            st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            S2N_ERROR_IF(st_key == MAP_FAILED, S2N_ERR_MMAP);
-
-            st_key_length = st.st_size;
-
-            close(fd);
-        } else {
-            st_key = default_ticket_key;
-            st_key_length = sizeof(default_ticket_key);
-        }
-
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), st_key, st_key_length, 0) != 0) {
-            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
-        }
-    }
+    s2n_set_common_server_config(max_early_data, config, conn_settings, cipher_prefs, session_ticket_key_file_path);
 
     if (parallelize) {
         struct sigaction sa;
@@ -749,6 +573,21 @@ int main(int argc, char *const *argv)
     if (alpn) {
         const char *protocols[] = { alpn };
         GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
+    }
+
+    FILE *key_log_file = NULL;
+
+    if (key_log_path) {
+        key_log_file = fopen(key_log_path, "a");
+        GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
+        GUARD_EXIT(
+            s2n_config_set_key_log_cb(
+                config,
+                key_log_callback,
+                (void *)key_log_file
+            ),
+            "Failed to set key log callback"
+        );
     }
 
     int fd;
@@ -796,6 +635,10 @@ int main(int argc, char *const *argv)
                 continue;
             }
         }
+    }
+
+    if (key_log_file) {
+        fclose(key_log_file);
     }
 
     GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");

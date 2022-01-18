@@ -1,0 +1,52 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.x
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
+      - TESTS=fuzz $CB_BIN_DIR/install_default_dependencies.sh
+      - mkdir tests/fuzz/results
+      - mount -t tmpfs -o size=8096m ramdisk tests/fuzz/results
+      - ln -s test-deps/libfuzzer fuzz_dependencies
+      - ln -s $(which afl-fuzz) /
+  build:
+    commands:
+      - AFL_NO_UI=true TESTS=fuzz AFL_FUZZ=true make fuzz
+artifacts:
+  files:
+    - "./tests/fuzz/results/$FUZZ_TESTS/*"
+  name: afl-fuzz-stats-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+  discard-paths: no
+  secondary-artifacts:
+    logs:
+      files:
+        - "./tests/fuzz/results/$FUZZ_TESTS/crashes/*"
+        - "./tests/fuzz/results/$FUZZ_TESTS/hangs/*"
+        - "./tests/fuzz/results/$FUZZ_TESTS/queue/*"
+      name: aflfuzz-corpus-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+      discard-paths: no

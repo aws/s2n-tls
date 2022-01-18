@@ -16,27 +16,27 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 
 void s2n_free_object_harness()
 {
+    /* Non-deterministic inputs. */
     uint32_t size;
-    uint8_t *data     = can_fail_malloc(size);
-    uint8_t *old_data = data;
+    uint8_t *data = malloc(size);
 
+    /* Assumptions. */
     nondet_s2n_mem_init();
 
-    if (s2n_free_object(&data, size) == S2N_SUCCESS) { assert(data == NULL); }
-
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /* Verify that the memory was zeroed */
-    if (size > 0 && old_data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < size);
-        assert(old_data[ i ] == 0);
+    /* Operation under verification. */
+    int result = s2n_free_object(&data, size);
+    if (result == S2N_SUCCESS) {
+        assert(data == NULL);
     }
-#pragma CPROVER check pop
+
+    /* Cleanup after expected error cases, for memory leak check. */
+    if (result != S2N_SUCCESS && s2n_errno == S2N_ERR_NOT_INITIALIZED) {
+        /* `s2n_free` failed because s2n was not initialized. */
+        free(data);
+    }
 }

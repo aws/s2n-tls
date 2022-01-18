@@ -24,13 +24,62 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and close_notify_received */
+    {
+        const uint8_t close_notify_alert[] = {  2 /* AlertLevel = fatal */,
+                                                0 /* AlertDescription = close_notify */ };
+
+        const uint8_t not_close_notify_alert[] = {  2 /* AlertLevel = fatal */,
+                                                   10 /* AlertDescription = unexpected_msg */ };
+
+
+        /* Don't mark close_notify_received = true if we receive an alert other than close_notify alert */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            /* Verify state prior to alert */
+            EXPECT_FALSE(conn->close_notify_received);
+
+            /* Write and process the alert */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, not_close_notify_alert, sizeof(not_close_notify_alert)));
+
+            /* This fails due to the alert. This is ok since we are only testing that close_notify_received was set */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
+
+            /* Verify state after alert */
+            EXPECT_FALSE(conn->close_notify_received);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Mark close_notify_received = true if we receive a close_notify alert */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            /* Verify state prior to alert */
+            EXPECT_FALSE(conn->close_notify_received);
+
+            /* Write and process the alert */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
+            EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
+
+            /* Verify state after alert */
+            EXPECT_TRUE(conn->close_notify_received);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+    }
+
     /* Test s2n_process_alert_fragment */
     {
         /* Safety check */
         EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(NULL), S2N_ERR_NULL);
 
         /* Fails if alerts not supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -159,7 +208,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_queue_writer_close_alert_warning(NULL), S2N_ERR_NULL);
 
         /* Does not send alert if alerts not supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -193,7 +242,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_handshake_failure_alert(NULL), S2N_ERR_NULL);
 
         /* Does not send alert if alerts not supported */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
 

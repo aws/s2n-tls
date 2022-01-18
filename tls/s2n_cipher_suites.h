@@ -31,15 +31,9 @@
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
 #define S2N_MAX_POSSIBLE_RECORD_ALGS    2
-#if !defined(S2N_NO_PQ)
-#define S2N_PQ_CIPHER_SUITE_COUNT       3
-#else
-#define S2N_PQ_CIPHER_SUITE_COUNT       0
-#endif
 
-/* Kept up-to-date by s2n_cipher_suite_match_test */
-#define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT)
-
+/* Kept up-to-date by s2n_cipher_suite_test */
+#define S2N_CIPHER_SUITE_COUNT          39
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
@@ -89,6 +83,8 @@ extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha384;
 extern const struct s2n_record_algorithm s2n_record_alg_aes128_gcm;
 extern const struct s2n_record_algorithm s2n_record_alg_aes256_gcm;
 extern const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305;
+extern const struct s2n_record_algorithm s2n_tls13_record_alg_aes128_gcm;
+extern const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305;
 
 struct s2n_cipher_suite {
     /* Is there an implementation available? Set in s2n_cipher_suites_init() */
@@ -166,7 +162,9 @@ extern struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256;
 
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);
-extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);
+S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_cipher_suite **cipher_suite);
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
 extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher);
+bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher);

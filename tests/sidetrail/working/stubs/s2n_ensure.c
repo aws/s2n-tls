@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_annotations.h"
-#include "s2n_safety.h"
+#include "utils/s2n_annotations.h"
+#include "utils/s2n_safety.h"
 #include "sidetrail.h"
 
 void* s2n_sidetrail_memset(void* ptr, int value, size_t num)
 {
     uint8_t* p = (uint8_t*)(ptr);
     __VERIFIER_assert(num >= 0);
-    for (int i = 0; i < num; ++i) {
-        S2N_INVARIENT(i <= num);
+    for (size_t i = 0; i < num; ++i) {
+        S2N_INVARIANT(i <= num);
         p[i] = value;
     }
 }

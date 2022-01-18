@@ -2,6 +2,10 @@ from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
 
 
+def to_bytes(val):
+    return bytes(str(val).encode('utf-8'))
+
+
 def get_expected_s2n_version(protocol, provider):
     """
     s2nd and s2nc print a number for the negotiated TLS version.
@@ -32,6 +36,8 @@ def get_expected_openssl_version(protocol):
 
 
 def get_parameter_name(item):
+    if isinstance(item, type):
+        return item.__name__
     return str(item)
 
 
@@ -44,8 +50,17 @@ def invalid_test_parameters(*args, **kwargs):
     protocol = kwargs.get('protocol')
     provider = kwargs.get('provider')
     certificate = kwargs.get('certificate')
+    client_certificate = kwargs.get('client_certificate')
     cipher = kwargs.get('cipher')
     curve = kwargs.get('curve')
+
+    # Only TLS1.3 supports RSA-PSS-PSS certificates
+    # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
+    if protocol and protocol is not Protocols.TLS13:
+        if client_certificate and client_certificate.algorithm == 'RSAPSS':
+            return True
+        if certificate and certificate.algorithm == 'RSAPSS':
+            return True
 
     if provider is not None and not provider.supports_protocol(protocol):
         return True
@@ -65,15 +80,18 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
     # If we are using a cipher that depends on a specific certificate algorithm
-    # deselect the test of the wrong certificate is used.
+    # deselect the test if the wrong certificate is used.
     if certificate is not None:
         if protocol is not None and provider.supports_protocol(protocol, with_cert=certificate) is False:
             return True
-
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 
-        if curve is not None and certificate.compatible_with_curve(curve) is False:
+    # If the curve is specified, then all signatures must use that curve
+    if curve:
+        if certificate and not certificate.compatible_with_curve(curve):
+            return True
+        if client_certificate and not client_certificate.compatible_with_curve(curve):
             return True
 
     # Prevent situations like using X25519 with TLS1.2

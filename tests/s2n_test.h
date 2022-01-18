@@ -86,11 +86,11 @@ int test_count;
                           int real_errno = errno; \
                           if (isatty(fileno(stderr))) { \
                             errno = real_errno; \
-                            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
+                            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                           else { \
                             errno = real_errno; \
-                            fprintf(stderr, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
+                            fprintf(stderr, "FAILED test %d\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                         } while(0)
 
@@ -153,6 +153,19 @@ int test_count;
         RESET_ERRNO(); \
     } while(0)
 
+#define EXPECT_NULL_WITH_ERRNO_NO_RESET( function_call, err ) \
+    do { \
+        EXPECT_NULL( (function_call) ); \
+        EXPECT_EQUAL(s2n_errno, err); \
+        EXPECT_NOT_NULL(s2n_debug_str); \
+    } while(0)
+
+#define EXPECT_NULL_WITH_ERRNO( function_call, err ) \
+    do { \
+        EXPECT_NULL_WITH_ERRNO_NO_RESET( function_call, err ); \
+        RESET_ERRNO(); \
+    } while(0)
+
 #define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
 /* for use with S2N_RESULT */
 #define EXPECT_OK( function_call )  EXPECT_TRUE( s2n_result_is_ok(function_call) )
@@ -174,7 +187,7 @@ int test_count;
             fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
             return 1; \
         } \
-        printf("s2nd entered FIPS mode\n"); \
+        printf("s2n entered FIPS mode\n"); \
     } while (0)
 
 #else
@@ -188,8 +201,8 @@ int test_count;
     do {                                                                       \
         __typeof(n) __tmp_n = (n);                                             \
         if (__tmp_n) {                                                         \
-            if (memcpy((d), (s), (__tmp_n)) == NULL) {                         \
-                FAIL_MSG(#d "is NULL, memcpy() failed");                       \
+            if (memmove((d), (s), (__tmp_n)) == NULL) {                         \
+                FAIL_MSG(#d "is NULL, memmove() failed");                       \
             }                                                                  \
         }                                                                      \
     } while (0)

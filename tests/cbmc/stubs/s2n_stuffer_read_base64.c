@@ -21,8 +21,8 @@
 
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    POSIX_PRECONDITION(s2n_stuffer_validate(out));
     /*
      * This is stub is incomplete and it needs to update stuffer
      * cursors appropriately https://github.com/awslabs/s2n/issues/2173.

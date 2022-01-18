@@ -36,8 +36,11 @@ INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo in
 ifeq ($(S2N_LIBCRYPTO), boringssl)
 	DEFAULT_CFLAGS = -std=c11
 else ifeq ($(S2N_LIBCRYPTO), awslc)
-	# AWS-LC is a BoringSSL derivative.
-	DEFAULT_CFLAGS = -std=c11
+	# AWS-LC is a BoringSSL derivative and has fixed the c11 issues but not all -Wcast-qual warnings
+	DEFAULT_CFLAGS = -std=c99
+else ifeq ($(S2N_LIBCRYPTO), awslc-fips)
+	# AWS-LC is a BoringSSL derivative and has fixed the c11 issues but not all -Wcast-qual warnings
+	DEFAULT_CFLAGS = -std=c99
 else
 	DEFAULT_CFLAGS = -std=c99 -Wcast-qual
 endif
@@ -50,6 +53,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
+LDFLAGS = -z relro -z now -z noexecstack
 
 FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 
@@ -88,25 +92,20 @@ ifdef S2N_NO_PQ
 	DEFAULT_CFLAGS += -DS2N_NO_PQ
 endif
 
-# All native platforms have execinfo.h, cross-compile targets often don't (android, ARM/alpine)
-ifndef CROSS_COMPILE
-	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
-endif
-
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION
 	ifneq ("$(GCC_VERSION)","NONE")
 		CC=gcc-$(GCC_VERSION)
-	endif
-	# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
-	# exit code and finally using the built in make `ifeq` to check if it was true and then add the extra flag.
-	ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?), 0)
-		CFLAGS += -Wimplicit-fallthrough
-	endif
+		# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
+		# exit code and finally uses the built in make `ifeq` to check if it was true and then adds the extra flag.
+		ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?), 0)
+			CFLAGS += -Wimplicit-fallthrough
+		endif
 
-	ifeq ($(shell test $(GCC_VERSION) -ge 10; echo $$?), 0)
-		CFLAGS += -fanalyzer
+		ifeq ($(shell test $(GCC_VERSION) -ge 10; echo $$?), 0)
+			CFLAGS += -fanalyzer
+		endif
 	endif
 endif
 
@@ -114,6 +113,11 @@ DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
 ifdef S2N_ADDRESS_SANITIZER
 	CFLAGS += -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1 ${DEBUG_CFLAGS}
+endif
+
+ifdef S2N_GDB
+    S2N_DEBUG = 1
+    CFLAGS += -O0
 endif
 
 ifdef S2N_DEBUG
@@ -163,10 +167,42 @@ ifndef COV_TOOL
 	endif
 endif
 
+try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
+
+# Determine if execinfo.h is available
+TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
+ifeq ($(TRY_COMPILE_EXECINFO), 0)
+	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
+endif
+
 # Determine if cpuid.h is available
-TRY_COMPILE_CPUID := $(shell echo "\#include <cpuid.h>\nint main() { return 0; }" | $(CC) -o test_cpuid.o -xc - > /dev/null 2>&1; echo $$?; rm test_cpuid.o > /dev/null 2>&1)
+TRY_COMPILE_CPUID := $(call try_compile,$(S2N_ROOT)/tests/features/cpuid.c)
 ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
+endif
+
+# Determine if __attribute__((fallthrough)) is available
+TRY_COMPILE_FALL_THROUGH := $(call try_compile,$(S2N_ROOT)/tests/features/fallthrough.c)
+ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
+	DEFAULT_CFLAGS += -DS2N_FALL_THROUGH_SUPPORTED
+endif
+
+# Determine if __restrict__ is available
+TRY_COMPILE__RESTRICT__ := $(call try_compile,$(S2N_ROOT)/tests/features/__restrict__.c)
+ifeq ($(TRY_COMPILE__RESTRICT__), 0)
+	DEFAULT_CFLAGS += -DS2N___RESTRICT__SUPPORTED
+endif
+
+# Determine if EVP_md5_sha1 is available
+TRY_EVP_MD5_SHA1_HASH := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md5_sha1.c)
+ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
+endif
+
+# Determine if EVP_MD_CTX_set_pkey_ctx is available
+TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
+ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

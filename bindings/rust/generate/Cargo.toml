@@ -1,0 +1,12 @@
+[package]
+name = "generate"
+version = "0.1.0"
+authors = ["AWS s2n"]
+edition = "2018"
+license = "Apache-2.0"
+# this is an internal tool for generating bindings
+publish = false
+
+[dependencies]
+bindgen = "0.58"
+glob = "0.3"

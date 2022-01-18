@@ -15,7 +15,6 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include "api/s2n.h"
 #include "crypto/s2n_hash.h"
 
 void s2n_hash_new_harness()
@@ -26,6 +25,6 @@ void s2n_hash_new_harness()
     /* Operation under verification. */
     if (s2n_hash_new(state) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(s2n_hash_state_is_valid(state));
+        assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
     }
 }

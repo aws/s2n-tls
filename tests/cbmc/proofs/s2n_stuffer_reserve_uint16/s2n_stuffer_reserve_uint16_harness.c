@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
@@ -27,7 +26,7 @@ void s2n_stuffer_reserve_uint16_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
 
     nondet_s2n_mem_init();
@@ -45,15 +44,15 @@ void s2n_stuffer_reserve_uint16_harness()
                == MAX(old_stuffer.write_cursor + sizeof(uint16_t), old_stuffer.high_water_mark));
         assert(reservation->length == sizeof(uint16_t));
         if (old_stuffer.blob.size > 0) {
-            size_t index;
-            __CPROVER_assume(index >= reservation->write_cursor
-                             && index < (reservation->write_cursor + reservation->length));
-            assert(stuffer->blob.data[ index ] == S2N_WIPE_PATTERN);
-            assert(reservation->stuffer->blob.data[ index ] == S2N_WIPE_PATTERN);
+            size_t idx;
+            __CPROVER_assume(idx >= reservation->write_cursor
+                             && idx < (reservation->write_cursor + reservation->length));
+            assert(stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
+            assert(reservation->stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
         }
         assert(stuffer == reservation->stuffer);
-        assert(s2n_stuffer_is_valid(stuffer));
-        assert(s2n_stuffer_reservation_is_valid(reservation));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
+        assert(s2n_result_is_ok(s2n_stuffer_reservation_validate(reservation)));
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
         assert(stuffer->alloced == old_stuffer.alloced);

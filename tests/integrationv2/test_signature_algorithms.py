@@ -5,7 +5,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, AL
 from common import ProviderOptions, Protocols, Ciphers, Certificates, Signatures, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 certs = [
@@ -23,20 +23,14 @@ all_sigs = [
     Signatures.RSA_SHA384,
     Signatures.RSA_SHA512,
     Signatures.ECDSA_SECP256r1_SHA256,
-    Signatures.RSA_PSS_SHA256,
+    Signatures.RSA_PSS_RSAE_SHA256,
+    Signatures.RSA_PSS_PSS_SHA256,
 ]
 
-# These ciphers don't print out the proper debugging information from s_client,
-# so we can't verify the signature algorithm used. When s2n provides the signature
-# algorithm to the client, we can enable these.
-unsupported_ciphers = [
-    Ciphers.AES128_SHA,
-    Ciphers.AES256_SHA,
-    Ciphers.AES128_SHA256,
-    Ciphers.AES256_SHA256,
-    Ciphers.AES128_GCM_SHA256,
-    Ciphers.AES256_GCM_SHA384,
-]
+
+def signature_marker(mode, signature):
+    return to_bytes("{mode} signature negotiated: {type}+{digest}" \
+        .format(mode=mode.title(), type=signature.sig_type, digest=signature.sig_digest))
 
 
 def skip_ciphers(*args, **kwargs):
@@ -51,13 +45,10 @@ def skip_ciphers(*args, **kwargs):
     if not cert.compatible_with_sigalg(sigalg):
         return True
 
-    if protocol is Protocols.TLS13 and sigalg.min_protocol is not Protocols.TLS13:
+    if protocol > sigalg.max_protocol:
         return True
 
     if protocol < sigalg.min_protocol:
-        return True
-
-    if cipher in unsupported_ciphers:
         return True
 
     return invalid_test_parameters(*args, **kwargs)
@@ -76,14 +67,13 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, prot
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
         insecure=False,
         use_client_auth=client_auth,
-        client_key_file=certificate.key,
-        client_certificate_file=certificate.cert,
+        key=certificate.key,
+        cert=certificate.cert,
         extra_flags=['-sigalgs', signature.name],
         protocol=protocol)
 
@@ -98,17 +88,15 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, prot
     client = managed_process(provider, client_options, timeout=5)
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes('Peer signing digest: {}'.format(signature.sig_digest).encode('utf-8')) in results.stdout
-        assert bytes('Peer signature type: {}'.format(signature.sig_type).encode('utf-8')) in results.stdout
+        results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert signature_marker(Provider.ServerMode, signature) in results.stdout
+        assert (signature_marker(Provider.ClientMode, signature) in results.stdout) == client_auth
         assert random_bytes in results.stdout
 
 
@@ -125,12 +113,13 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
         insecure=True,
         use_client_auth=client_auth,
+        key=certificate.key,
+        cert=certificate.cert,
         protocol=protocol)
 
     server_options = copy.copy(client_options)
@@ -138,34 +127,30 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
+    server_options.trust_store = certificate.cert
     server_options.extra_flags=['-sigalgs', signature.name]
-
-    if client_auth is True:
-        client_options.client_trust_store = Certificates.RSA_2048_SHA256_WILDCARD.cert
-        server_options.key = Certificates.RSA_2048_SHA256_WILDCARD.key
-        server_options.cert = Certificates.RSA_2048_SHA256_WILDCARD.cert
-
-        if signature.sig_type == 'RSA-PSS':
-            client_options.client_trust_store = Certificates.RSA_PSS_2048_SHA256.cert
-            server_options.key = Certificates.RSA_PSS_2048_SHA256.key
-            server_options.cert = Certificates.RSA_PSS_2048_SHA256.cert
-        elif signature.sig_type == 'ECDSA':
-            client_options.client_trust_store = Certificates.ECDSA_256.cert
-            server_options.key = Certificates.ECDSA_256.key
-            server_options.cert = Certificates.ECDSA_256.cert
 
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes('Shared Signature Algorithms: {}+{}'.format(signature.sig_type, signature.sig_digest).encode('utf-8')) in results.stdout
+        results.assert_success()
         assert random_bytes in results.stdout
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
+    # In versions before TLS1.3, the server uses the negotiated signature scheme for the
+    # ServerKeyExchange message. The server only sends the ServerKeyExchange message when using
+    # a key exchange method that provides forward secrecy, ie, NOT static RSA.
+    # So if using RSA key exchange, there is no actual "negotiated" signature scheme, because
+    # the server never sends the client a signature scheme.
+    #
+    # This mostly has to be inferred from the RFCs, but this blog post is a pretty good summary
+    # of the situation: https://timtaubert.de/blog/2016/07/the-evolution-of-signatures-in-tls/
+    server_sigalg_used = not cipher.iana_standard_name.startswith("TLS_RSA_WITH_")
+
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert signature_marker(Provider.ServerMode, signature) in results.stdout or not server_sigalg_used
+        assert (signature_marker(Provider.ClientMode, signature) in results.stdout) == client_auth

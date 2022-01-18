@@ -16,16 +16,17 @@ set -ex
 pushd "$(pwd)"
 
 usage() {
-    echo "install_awslc.sh build_dir install_dir"
+    echo "install_awslc.sh build_dir install_dir is_fips"
     exit 1
 }
 
-if [ "$#" -ne "2" ]; then
+if [ "$#" -ne "3" ]; then
     usage
 fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
+IS_FIPS=$3
 source codebuild/bin/jobs.sh
 
 cd "$BUILD_DIR"
@@ -33,7 +34,7 @@ git clone https://github.com/awslabs/aws-lc.git
 mkdir build
 cd build
 
-cmake ../aws-lc -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+cmake ../aws-lc -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
 ninja -j "${JOBS}" install
 
 popd

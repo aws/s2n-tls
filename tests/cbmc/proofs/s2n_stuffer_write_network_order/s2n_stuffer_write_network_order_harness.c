@@ -17,7 +17,6 @@
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/endian.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -27,7 +26,7 @@ void s2n_stuffer_write_network_order_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint64_t input;
     uint8_t  length;
 
@@ -41,7 +40,7 @@ void s2n_stuffer_write_network_order_harness()
     /* Operation under verification. */
     if (s2n_stuffer_write_network_order(stuffer, input, length) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + length);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
         if (length == 0) {
             assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         } else {

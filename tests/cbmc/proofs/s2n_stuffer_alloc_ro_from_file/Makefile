@@ -17,13 +17,13 @@ DEFINES += -DMAX_STRING_LEN=$(MAX_STRING_LEN)
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_stuffer_alloc_ro_from_file_harness
+PROOF_UID = s2n_stuffer_alloc_ro_from_file
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/close.c
 PROOF_SOURCES += $(PROOF_STUB)/fstat.c
 PROOF_SOURCES += $(PROOF_STUB)/mmap.c
@@ -33,6 +33,7 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_file.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET += s2n_stuffer_alloc_ro_from_file.9:3
 

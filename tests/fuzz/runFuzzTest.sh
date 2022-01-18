@@ -31,7 +31,8 @@ FUZZ_TIMEOUT_SEC=$2
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
-if [[ $TEST_NAME == *_negative_test ]];
+# Failures for negative tests on AFL can be ignored.
+if [[ $TEST_NAME == *_negative_test && "$AFL_FUZZ" != "true" ]];
 then
     EXPECTED_TEST_FAILURE=1
 else
@@ -41,7 +42,7 @@ fi
 ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
-NUM_CPU_THREADS=`nproc`
+NUM_CPU_THREADS=$(nproc)
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
@@ -59,12 +60,7 @@ fi
 FIPS_TEST_MSG=""
 if [ -n "${S2N_TEST_IN_FIPS_MODE}" ];
 then
-    if [[ $TEST_NAME == *bike* ]] || [[ $TEST_NAME == *sike* ]] || [[ $TEST_NAME == *kyber* ]]; then
-        printf "Skipping %s because PQ crypto is not supported in FIPS mode...\n" ${TEST_NAME}
-        exit 0
-    else
-        FIPS_TEST_MSG=" FIPS test"
-    fi
+    FIPS_TEST_MSG=" FIPS test"
 fi
 
 if [ ! -d "./corpus/${TEST_NAME}" ];
@@ -83,24 +79,33 @@ TEMP_CORPUS_DIR="$(mktemp -d)"
 cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 
 # Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
-if [[ "$AFL_FUZZ" == "true" && "$FUZZ_COVERAGE" != "true" ]]; then
-    printf "Running %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
+if [[ ${AFL_FUZZ} == "true" && ${FUZZ_COVERAGE} != "true" ]]; then
+    unset LD_PRELOAD
+    # See https://aflplus.plus/docs/env_variables/
+    export AFL_NO_UI=true
+    export AFL_HARDEN=true
+    printf "Running AFL %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
     mkdir -p results/${TEST_NAME}
     set +e
-    timeout ${FUZZ_TIMEOUT_SEC} ${LIBFUZZER_INSTALL_DIR}/afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}
-    returncode = $?
+    timeout ${FUZZ_TIMEOUT_SEC} ${LIBFUZZER_INSTALL_DIR}/afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}  2>&1> ./results/${TEST_NAME}/console_output.log
+    returncode=$?
     # See the timeout man page for specifics
-    if [[ "$returncode" -ne 124 ]]; then
-	    echo "AFL exited with an unexpected return value: $returncode"
+    if [[ ${returncode} -ne 124 ]]; then
+        printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
     fi
     set -e
-    CRASH_COUNT=`sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats`
-    TEST_COUNT=`sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats`
-    TESTS_PER_SEC=`sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats`
+    CRASH_COUNT=$(sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats)
+    TEST_COUNT=$(sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats)
+    FLOAT_TESTS_PER_SEC=$(sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats)
+    TESTS_PER_SEC=$(echo "($FLOAT_TESTS_PER_SEC+.5)/1"|bc)
+
+    if [[ ${TESTS_PER_SEC} -lt 10 ]]; then
+        printf "\033[33;1mWARNING!\033[0m %10d tests, only %6d tests per second; test is too slow.\n" ${TEST_COUNT} ${TESTS_PER_SEC}
+    fi
     if [[ ${CRASH_COUNT} -gt 0 ]]; then
         ACTUAL_TEST_FAILURE=1
     fi
-    if [[ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ]]; then
+    if [[ ${ACTUAL_TEST_FAILURE} == ${EXPECTED_TEST_FAILURE} ]]; then
         printf "\033[32;1mPASSED\033[0m %8d tests, %.1f test/sec\n" ${TEST_COUNT} ${TESTS_PER_SEC}
         exit 0
     else
@@ -120,9 +125,11 @@ else
     ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
-
-TEST_COUNT=`grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | awk '{test_count += $2} END {print test_count}'`
-TESTS_PER_SEC=`echo $(($TEST_COUNT / $FUZZ_TIMEOUT_SEC))`
+TEST_INFO=$(
+    grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | \
+    awk -v timeout=$FUZZ_TIMEOUT_SEC '{count += int($2); rate = int(count / timeout)} END {print count, "tests, " rate " test/sec"}' \
+)
+TESTS_PER_SEC=$(echo "$TEST_INFO" | cut -d ' ' -f 3)
 FEATURE_COVERAGE=`grep -o "ft: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}' | sort | tail -1`
 TARGET_FUNCS=''
 declare -i TARGET_TOTAL=0
@@ -161,7 +168,7 @@ fi
 
 if [ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ];
 then
-    printf "\033[32;1mPASSED\033[0m %8d tests, %6d test/sec" $TEST_COUNT $TESTS_PER_SEC
+    printf "\033[32;1mPASSED\033[0m %s" "$TEST_INFO"
 
     # Output target function coverage percentage if target functions are defined and fuzzing coverage is enabled
     # Otherwise, print number of features covered
@@ -198,6 +205,6 @@ then
 
 else
     cat ${TEST_NAME}_output.txt
-    printf "\033[31;1mFAILED\033[0m %10d tests, %6d features covered\n" $TEST_COUNT $FEATURE_COVERAGE
+    printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
     exit -1
 fi

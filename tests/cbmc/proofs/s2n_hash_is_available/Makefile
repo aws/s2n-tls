@@ -15,11 +15,11 @@
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_hash_is_available_harness
+PROOF_UID = s2n_hash_is_available
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 

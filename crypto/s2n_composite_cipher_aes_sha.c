@@ -130,18 +130,18 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL and AWS-LC.
      */
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-  S2N_ERROR(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+  POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 #else
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
     struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = S2N_TLS12_AAD_LEN };
     struct s2n_stuffer ctrl_stuffer = {0};
-    GUARD(s2n_stuffer_init(&ctrl_stuffer, &ctrl_blob));
+    POSIX_GUARD(s2n_stuffer_init(&ctrl_stuffer, &ctrl_blob));
 
-    GUARD(s2n_stuffer_write_bytes(&ctrl_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, content_type));
-    GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version / 10));
-    GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version % 10));
-    GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, payload_and_eiv_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&ctrl_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, content_type));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version / 10));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version % 10));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, payload_and_eiv_len));
 
     /* This will unnecessarily mangle the input buffer, which is fine since it's temporary
      * Return value will be length of digest, padding, and padding length byte.
@@ -159,27 +159,27 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 
 static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
-    eq_check(out->size, in->size);
+    POSIX_ENSURE_EQ(out->size, in->size);
 
-    GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
-    GUARD_OSSL(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size), S2N_ERR_ENCRYPT);
+    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size), S2N_ERR_ENCRYPT);
 
     return 0;
 }
 
 static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
-    eq_check(out->size, in->size);
+    POSIX_ENSURE_EQ(out->size, in->size);
 
-    GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
-    GUARD_OSSL(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size), S2N_ERR_DECRYPT);
+    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size), S2N_ERR_DECRYPT);
 
     return 0;
 }
 
 static int s2n_composite_cipher_aes_sha_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
 {
-    eq_check(mac_size, SHA_DIGEST_LENGTH);
+    POSIX_ENSURE_EQ(mac_size, SHA_DIGEST_LENGTH);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_MAC_KEY, mac_size, mac_key);
 
@@ -188,7 +188,7 @@ static int s2n_composite_cipher_aes_sha_set_mac_write_key(struct s2n_session_key
 
 static int s2n_composite_cipher_aes_sha256_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
 {
-    eq_check(mac_size, SHA256_DIGEST_LENGTH);
+    POSIX_ENSURE_EQ(mac_size, SHA256_DIGEST_LENGTH);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_MAC_KEY, mac_size, mac_key);
 
@@ -198,7 +198,7 @@ static int s2n_composite_cipher_aes_sha256_set_mac_write_key(struct s2n_session_
 
 static int s2n_composite_cipher_aes128_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 16);
+    POSIX_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
@@ -208,7 +208,7 @@ static int s2n_composite_cipher_aes128_sha_set_encryption_key(struct s2n_session
 
 static int s2n_composite_cipher_aes128_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 16);
+    POSIX_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
@@ -218,7 +218,7 @@ static int s2n_composite_cipher_aes128_sha_set_decryption_key(struct s2n_session
 
 static int s2n_composite_cipher_aes256_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 32);
+    POSIX_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
@@ -228,7 +228,7 @@ static int s2n_composite_cipher_aes256_sha_set_encryption_key(struct s2n_session
 
 static int s2n_composite_cipher_aes256_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 32);
+    POSIX_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
@@ -238,7 +238,7 @@ static int s2n_composite_cipher_aes256_sha_set_decryption_key(struct s2n_session
 
 static int s2n_composite_cipher_aes128_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 16);
+    POSIX_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
@@ -248,7 +248,7 @@ static int s2n_composite_cipher_aes128_sha256_set_encryption_key(struct s2n_sess
 
 static int s2n_composite_cipher_aes128_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 16);
+    POSIX_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
@@ -258,7 +258,7 @@ static int s2n_composite_cipher_aes128_sha256_set_decryption_key(struct s2n_sess
 
 static int s2n_composite_cipher_aes256_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 32);
+    POSIX_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
@@ -268,7 +268,7 @@ static int s2n_composite_cipher_aes256_sha256_set_encryption_key(struct s2n_sess
 
 static int s2n_composite_cipher_aes256_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    eq_check(in->size, 32);
+    POSIX_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);

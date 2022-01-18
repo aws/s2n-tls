@@ -15,7 +15,6 @@
 
 #include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
@@ -25,7 +24,7 @@ void s2n_blob_is_growable_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(S2N_IMPLIES(blob != NULL, s2n_blob_is_valid(blob)));
+    __CPROVER_assume(S2N_IMPLIES(blob != NULL, s2n_result_is_ok(s2n_blob_validate(blob))));
 
     /* Operation under verification. */
     if (s2n_blob_is_growable(blob)) {
@@ -33,5 +32,5 @@ void s2n_blob_is_growable_harness()
     }
 
     /* Post-condition. */
-    if (blob != NULL) assert(s2n_blob_is_valid(blob));
+    if (blob != NULL) assert(s2n_result_is_ok(s2n_blob_validate(blob)));
 }

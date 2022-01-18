@@ -15,16 +15,18 @@
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_hash_new_harness
+PROOF_UID = s2n_hash_new
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_evp.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_init

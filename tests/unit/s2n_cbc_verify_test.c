@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "testlib/s2n_testlib.h"
 
@@ -121,7 +121,7 @@ inline static uint64_t rdtsc(){
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 /*
  * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
  * that can't really be replaced with an analog for other architectures.
@@ -266,8 +266,8 @@ int main(int argc, char **argv)
         summarize(timings, 10001, &pad_count, &pad_avg, &pad_median, &pad_stddev, &pad_variance);
 
         /* Use a simple 3 sigma test for the median from the good */
-        lo = good_median - (good_stddev);
-        hi = good_median + (good_stddev);
+        lo = good_median - (3 * good_stddev);
+        hi = good_median + (3 * good_stddev);
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf("\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"

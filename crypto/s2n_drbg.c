@@ -31,9 +31,9 @@
     acceptable in DRBG */
 int s2n_increment_drbg_counter(struct s2n_blob *counter)
 {
-    for (int i = counter->size - 1; i >= 0; i--) {
-        counter->data[i] += 1;
-        if (counter->data[i]) {
+    for (uint32_t i = counter->size; i > 0; i--) {
+        counter->data[i-1] += 1;
+        if (counter->data[i-1]) {
             break;
         }
 
@@ -44,28 +44,28 @@ int s2n_increment_drbg_counter(struct s2n_blob *counter)
 
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
-    notnull_check(ctx);
+    POSIX_ENSURE_REF(ctx);
     int len = S2N_DRBG_BLOCK_SIZE;
-    GUARD_OSSL(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE), S2N_ERR_DRBG);
-    eq_check(len, S2N_DRBG_BLOCK_SIZE);
+    POSIX_GUARD_OSSL(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE), S2N_ERR_DRBG);
+    POSIX_ENSURE_EQ(len, S2N_DRBG_BLOCK_SIZE);
 
     return 0;
 }
 
 static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 {
-    notnull_check(drbg);
-    notnull_check(drbg->ctx);
-    notnull_check(out);
+    POSIX_ENSURE_REF(drbg);
+    POSIX_ENSURE_REF(drbg->ctx);
+    POSIX_ENSURE_REF(out);
 
     struct s2n_blob value = {0};
-    GUARD(s2n_blob_init(&value, drbg->v, sizeof(drbg->v)));
+    POSIX_GUARD(s2n_blob_init(&value, drbg->v, sizeof(drbg->v)));
     int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
     for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
-        GUARD(s2n_increment_drbg_counter(&value));
-        GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, out->data + i));
+        POSIX_GUARD(s2n_increment_drbg_counter(&value));
+        POSIX_GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, out->data + i));
         drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
     }
 
@@ -74,52 +74,52 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     }
 
     uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
-    GUARD(s2n_increment_drbg_counter(&value));
-    GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, spare_block));
+    POSIX_GUARD(s2n_increment_drbg_counter(&value));
+    POSIX_GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, spare_block));
     drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
 
-    memcpy_check(out->data + block_aligned_size, spare_block, out->size - block_aligned_size);
+    POSIX_CHECKED_MEMCPY(out->data + block_aligned_size, spare_block, out->size - block_aligned_size);
 
     return 0;
 }
 
 static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data)
 {
-    notnull_check(drbg);
-    notnull_check(drbg->ctx);
+    POSIX_ENSURE_REF(drbg);
+    POSIX_ENSURE_REF(drbg->ctx);
 
     s2n_stack_blob(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
-    eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
+    POSIX_ENSURE_EQ(provided_data->size, s2n_drbg_seed_size(drbg));
 
-    GUARD(s2n_drbg_bits(drbg, &temp_blob));
+    POSIX_GUARD(s2n_drbg_bits(drbg, &temp_blob));
 
     /* XOR in the provided data */
-    for (int i = 0; i < provided_data->size; i++) {
+    for (uint32_t i = 0; i < provided_data->size; i++) {
         temp_blob.data[i] ^= provided_data->data[i];
     }
 
     /* Update the key and value */
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, temp_blob.data, NULL), S2N_ERR_DRBG);
+    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, temp_blob.data, NULL), S2N_ERR_DRBG);
 
-    memcpy_check(drbg->v, temp_blob.data + s2n_drbg_key_size(drbg), S2N_DRBG_BLOCK_SIZE);
+    POSIX_CHECKED_MEMCPY(drbg->v, temp_blob.data + s2n_drbg_key_size(drbg), S2N_DRBG_BLOCK_SIZE);
 
     return 0;
 }
 
 static int s2n_drbg_mix_in_entropy(struct s2n_drbg *drbg, struct s2n_blob *entropy, struct s2n_blob *ps)
 {
-    notnull_check(drbg);
-    notnull_check(drbg->ctx);
-    notnull_check(entropy);
+    POSIX_ENSURE_REF(drbg);
+    POSIX_ENSURE_REF(drbg->ctx);
+    POSIX_ENSURE_REF(entropy);
 
-    gte_check(entropy->size, ps->size);
+    POSIX_ENSURE_GTE(entropy->size, ps->size);
 
-    for (int i = 0; i < ps->size; i++) {
+    for (uint32_t i = 0; i < ps->size; i++) {
         entropy->data[i] ^= ps->data[i];
     }
 
-    GUARD(s2n_drbg_update(drbg, entropy));
+    POSIX_GUARD(s2n_drbg_update(drbg, entropy));
 
     return 0;
 }
@@ -128,8 +128,8 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
     s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
-    GUARD_AS_POSIX(s2n_get_seed_entropy(&blob));
-    GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
+    POSIX_GUARD_RESULT(s2n_get_seed_entropy(&blob));
+    POSIX_GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
 
     drbg->bytes_used = 0;
 
@@ -140,8 +140,8 @@ static int s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
     s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
-    GUARD_AS_POSIX(s2n_get_mix_entropy(&blob));
-    GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
+    POSIX_GUARD_RESULT(s2n_get_mix_entropy(&blob));
+    POSIX_GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
 
     drbg->mixes += 1;
 
@@ -150,7 +150,7 @@ static int s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
-    notnull_check(drbg);
+    POSIX_ENSURE_REF(drbg);
 
     drbg->ctx = EVP_CIPHER_CTX_new();
     S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
@@ -159,57 +159,59 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
     switch(mode) {
         case S2N_AES_128_CTR_NO_DF_PR:
-            GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
+            POSIX_GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
             break;
         case S2N_AES_256_CTR_NO_DF_PR:
-            GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
+            POSIX_GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
             break;
         default:
-            S2N_ERROR(S2N_ERR_DRBG);
+            POSIX_BAIL(S2N_ERR_DRBG);
     }
 
-    lte_check(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
-    lte_check(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+    POSIX_ENSURE_LTE(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
+    POSIX_ENSURE_LTE(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
 
     /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
     memset(drbg->v, 0, sizeof(drbg->v));
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
+    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
     s2n_stack_blob(ps, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
-    GUARD(s2n_blob_zero(&ps));
+    POSIX_GUARD(s2n_blob_zero(&ps));
 
-    memcpy_check(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
+    POSIX_CHECKED_MEMCPY(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
 
     /* Seed the DRBG */
-    GUARD(s2n_drbg_seed(drbg, &ps));
+    POSIX_GUARD(s2n_drbg_seed(drbg, &ps));
 
     return 0;
 }
 
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
-    notnull_check(drbg);
-    notnull_check(drbg->ctx);
+    POSIX_ENSURE_REF(drbg);
+    POSIX_ENSURE_REF(drbg->ctx);
     s2n_stack_blob(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
-    /* Always mix in additional entropy, for prediction resistance */
-    GUARD(s2n_drbg_mix(drbg, &zeros));
-    GUARD(s2n_drbg_bits(drbg, blob));
-    GUARD(s2n_drbg_update(drbg, &zeros));
+    /* Always mix in additional entropy, for prediction resistance.
+        If s2n_drbg_mix is removed: must implement reseeding according to limit
+        specified in NIST SP800-90A 10.2.1 Table 3. */
+    POSIX_GUARD(s2n_drbg_mix(drbg, &zeros));
+    POSIX_GUARD(s2n_drbg_bits(drbg, blob));
+    POSIX_GUARD(s2n_drbg_update(drbg, &zeros));
 
     return 0;
 }
 
 int s2n_drbg_wipe(struct s2n_drbg *drbg)
 {
-    notnull_check(drbg);
+    POSIX_ENSURE_REF(drbg);
     if (drbg->ctx) {
-        GUARD_OSSL(EVP_CIPHER_CTX_cleanup(drbg->ctx), S2N_ERR_DRBG);
+        POSIX_GUARD_OSSL(EVP_CIPHER_CTX_cleanup(drbg->ctx), S2N_ERR_DRBG);
 
         EVP_CIPHER_CTX_free(drbg->ctx);
         drbg->ctx = NULL;
@@ -221,8 +223,8 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
 
 int s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used)
 {
-    notnull_check(drbg);
-    notnull_check(bytes_used);
+    POSIX_ENSURE_REF(drbg);
+    POSIX_ENSURE_REF(bytes_used);
     *bytes_used = drbg->bytes_used;
     return 0;
 }

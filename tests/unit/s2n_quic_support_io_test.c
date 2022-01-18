@@ -33,59 +33,59 @@ static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
 
-    GUARD_AS_RESULT(s2n_stuffer_wipe(&input_stuffer));
-    GUARD_AS_RESULT(s2n_stuffer_wipe(&output_stuffer));
-    GUARD_AS_RESULT(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&input_stuffer));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&output_stuffer));
+    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
 
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_setup_conn_for_client_hello(struct s2n_connection *conn)
 {
-    GUARD_RESULT(s2n_setup_conn(conn));
+    RESULT_GUARD(s2n_setup_conn(conn));
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
-    ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_HELLO);
+    RESULT_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_HELLO);
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_setup_conn_for_server_hello(struct s2n_connection *conn)
 {
-    GUARD_RESULT(s2n_setup_conn(conn));
+    RESULT_GUARD(s2n_setup_conn(conn));
 
     /* Use arbitrary cipher suite */
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     /* Setup secrets */
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD_AS_RESULT(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-    if(conn->secure.server_ecc_evp_params.evp_pkey == NULL) {
-        GUARD_AS_RESULT(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    if(conn->kex_params.server_ecc_evp_params.evp_pkey == NULL) {
+        RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
     }
-    if(conn->secure.client_ecc_evp_params[0].evp_pkey == NULL) {
-        GUARD_AS_RESULT(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    if(conn->kex_params.client_ecc_evp_params.evp_pkey == NULL) {
+        RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
     }
 
     /* Set handshake to write message */
     conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = 1;
-    ENSURE_EQ(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+    RESULT_ENSURE_EQ(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_write_test_message(struct s2n_blob *out, message_type_t message_type)
 {
-    GUARD_AS_RESULT(s2n_alloc(out, TEST_DATA_SIZE + TLS_HANDSHAKE_HEADER_LENGTH));
+    RESULT_GUARD_POSIX(s2n_alloc(out, TEST_DATA_SIZE + TLS_HANDSHAKE_HEADER_LENGTH));
 
     struct s2n_stuffer stuffer;
-    GUARD_AS_RESULT(s2n_stuffer_init(&stuffer, out));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&stuffer, out));
 
-    GUARD_AS_RESULT(s2n_stuffer_write_uint8(&stuffer, message_type));
-    GUARD_AS_RESULT(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
-    GUARD_AS_RESULT(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&stuffer, message_type));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
 
     return S2N_RESULT_OK;
 }
@@ -107,7 +107,10 @@ static int s2n_test_read_handler(struct s2n_connection* conn)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
 
     /* Test: s2n_quic_write_handshake_message */
     {
@@ -330,10 +333,10 @@ int main(int argc, char **argv)
 
             /* Write the record: record type, protocol version,
              *                   handshake message size, handshake message */
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, TLS_HANDSHAKE));
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
-            GUARD(s2n_stuffer_write_uint16(&input_stuffer, server_hello.size));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, TLS_HANDSHAKE));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&input_stuffer, server_hello.size));
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &server_hello));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_BAD_MESSAGE);
@@ -350,11 +353,11 @@ int main(int argc, char **argv)
 
             /* Write the record: record type, protocol version,
              *                   record data size, standard "0x01" record data */
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, TLS_CHANGE_CIPHER_SPEC));
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
-            GUARD(s2n_stuffer_write_uint16(&input_stuffer, 1));
-            GUARD(s2n_stuffer_write_uint8(&input_stuffer, 1));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, TLS_CHANGE_CIPHER_SPEC));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, 3));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&input_stuffer, 1));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&input_stuffer, 1));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_BAD_MESSAGE);
 

@@ -96,14 +96,6 @@ batch:
         variables:
           INTEGV2_TEST: test_sni_match
 
-    - identifier: s2nIntegrationV2CompatibilityWithOqsOpenssl
-      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          INTEGV2_TEST: test_compatibility_with_oqs_openssl
-
     - identifier: s2nIntegrationV2Fragmentation
       buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
       env:
@@ -151,6 +143,30 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
+
+    - identifier: s2nIntegrationV2EarlyData
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_early_data
+
+    - identifier: s2nIntegrationV2ExternalPSK
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_external_psk
+
+    - identifier: s2nIntegrationV2CrossCompatibility
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_cross_compatibility
 
     # Individual Integration tests
     - identifier: s2nIntegrationBoringSSLGcc9
@@ -291,7 +307,7 @@ batch:
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
-        compute-type: BUILD_GENERAL1_SMALL
+        compute-type: BUILD_GENERAL1_LARGE
         variables:
           TESTS: asan
           GCC_VERSION: '6'
@@ -305,11 +321,53 @@ batch:
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
-        compute-type: BUILD_GENERAL1_SMALL
+        compute-type: BUILD_GENERAL1_LARGE
         variables:
           TESTS: asan
           GCC_VERSION: '6'
           S2N_LIBCRYPTO: 'openssl-1.0.2'
+          BUILD_S2N: 'true'
+
+    - identifier: s2nUnitNoPQ
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_SMALL
+        variables:
+          TESTS: unit
+          GCC_VERSION: '9'
+          S2N_LIBCRYPTO: 'openssl-1.1.1'
+          S2N_NO_PQ: 1
+          BUILD_S2N: 'true'
+
+    - identifier: s2nUnitAl2Arm
+      buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      env:
+        type: ARM_CONTAINER
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
+        privileged-mode: true
+        variables:
+          S2N_NO_PQ: 1
+          TESTS: unit
+
+    - identifier: s2nUnitAl2
+      buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      env:
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_SMALL
+        variables:
+          TESTS: unit
+          S2N_NO_PQ: 1
+
+    - identifier: s2nLibcryptoInterning
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: interning
           BUILD_S2N: 'true'
 
     # Fuzz tests
@@ -318,6 +376,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           LATEST_CLANG: true
@@ -331,6 +390,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           LATEST_CLANG: true
@@ -342,23 +402,10 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2-fips
           LATEST_CLANG: true
           TESTS: fuzz
           FUZZ_TIMEOUT_SEC: 60
-
-    - identifier: s2nFuzzerAFLOpenSSL111
-      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
-      env:
-        compute-type: BUILD_GENERAL1_SMALL
-        privileged-mode: true
-        variables:
-          CODECOV_IO_UPLOAD: false
-          FUZZ_COVERAGE: false
-          FUZZ_TIMEOUT_SEC: 60
-          LATEST_CLANG: true
-          S2N_LIBCRYPTO: openssl-1.1.1
-          AFL_FUZZ: true
-          TESTS: fuzz
 

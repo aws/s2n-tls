@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include <string.h>
 
@@ -103,6 +104,10 @@ int main(int argc, char **argv)
         "dce71df4deda4ab42c309572cb7fffee5454b78f07"
         "18");
 
+    S2N_BLOB_FROM_HEX(client_finished, 
+        "14000020a8ec436d677634ae525ac"
+        "1fcebe11a039ec17694fac6e98527b642f2edd5ce61");
+
     S2N_BLOB_FROM_HEX(expect_server_finished_verify,
         "9b9b141d906337fbd2cbdce71df4"
         "deda4ab42c309572cb7fffee5454b78f0718");
@@ -138,6 +143,16 @@ int main(int argc, char **argv)
         "a11af9f05531f856ad47116b45a9"
         "50328204b4f44bfb6b3a4b4f1f3fcb631643");
 
+    S2N_BLOB_FROM_HEX(expect_derived_master_resumption_secret, 
+        "7df235f2031d2a051287d02b0241"
+        "b0bfdaf86cc856231f2d5aba46c434ec196c");
+    
+    S2N_BLOB_FROM_HEX(ticket_nonce, "0000");
+
+    S2N_BLOB_FROM_HEX(expected_session_ticket_secret, 
+        "4ecd0eb6ec3b4d87f5d6028f922c"
+        "a4c5851a277fd41311c9e62d2c9492e1c4f3");
+
     S2N_BLOB_FROM_HEX(expect_handshake_traffic_server_key,
         "3fce516009c21727d0f2e4e86ee403bc");
 
@@ -149,8 +164,8 @@ int main(int argc, char **argv)
         "d6b43f2ca3e6e95f02ed063cf0e1cad8");
 
     /* KeyUpdate Vectors from Openssl s_client implementation of KeyUpdate. The ciphersuite
-      * that produced this secret was s2n_tls13_aes_256_gcm_sha384.
-      */
+     * that produced this secret was s2n_tls13_aes_256_gcm_sha384.
+     */
 
     S2N_BLOB_FROM_HEX(application_secret,
         "4bc28934ddd802b00f479e14a72d7725dab45d32b3b145f29"
@@ -161,14 +176,14 @@ int main(int argc, char **argv)
         "531be2441d7c63e2b9729d145c11d84af35957727565a4");
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
 
     EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, S2N_HMAC_SHA256));
 
     /* Derive Early Secrets */
-    EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&secrets));
+    EXPECT_SUCCESS(s2n_tls13_derive_early_secret(&secrets, NULL));
 
     S2N_BLOB_EXPECT_EQUAL(secrets.extract_secret, expected_early_secret);
     S2N_BLOB_EXPECT_EQUAL(secrets.derive_secret, expect_derived_handshake_secret);
@@ -187,7 +202,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
 
     /* Derive Handshake Secrets */
-    EXPECT_SUCCESS(s2n_tls13_derive_handshake_secrets(&secrets, &ecdhe, &hash_state_copy, &client_handshake_secret, &server_handshake_secret));
+    EXPECT_SUCCESS(s2n_tls13_extract_handshake_secret(&secrets, &ecdhe));
+    EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state_copy, &client_handshake_secret, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state_copy, &server_handshake_secret, S2N_SERVER));
 
     /* this checks that the original hash state can still be used to derive a hash without being affected by the derive function */
     s2n_tls13_key_blob(client_server_hello_hash, secrets.size);
@@ -238,6 +255,19 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &hash_state, &server_application_secret, S2N_SERVER));
     S2N_BLOB_EXPECT_EQUAL(expect_derived_server_application_traffic_secret, server_application_secret);
 
+    /* Update handshake hashes with Client Finished */
+    EXPECT_SUCCESS(s2n_hash_update(&hash_state, client_finished.data, client_finished.size));
+    
+    /* Test session resumption secret */
+    s2n_tls13_key_blob(master_resumption_secret, secrets.size);
+    EXPECT_SUCCESS(s2n_tls13_derive_resumption_master_secret(&secrets, &hash_state, &master_resumption_secret));
+    S2N_BLOB_EXPECT_EQUAL(expect_derived_master_resumption_secret, master_resumption_secret);
+
+    /* Test individual session resumption ticket secret */
+    s2n_tls13_key_blob(session_ticket_secret, secrets.size);
+    EXPECT_OK(s2n_tls13_derive_session_ticket_secret(&secrets, &master_resumption_secret, &ticket_nonce, &session_ticket_secret));
+    S2N_BLOB_EXPECT_EQUAL(expected_session_ticket_secret, session_ticket_secret);
+
     /* Test Traffic Keys */
     s2n_tls13_key_blob(handshake_traffic_client_key, 16);
     s2n_tls13_key_blob(handshake_traffic_client_iv, 12);
@@ -279,6 +309,178 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(app_secret_update, updated_application_secret);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Verify binder_key calculation matches session resumption values from
+     * https://tools.ietf.org/html/rfc8448#section-4 */
+    {
+        S2N_BLOB_FROM_HEX(resumption_secret,
+            "4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3");
+        S2N_BLOB_FROM_HEX(expected_resumption_early_secret,
+            "9b2188e9b2fc6d64d71dc329900e20bb41915000f678aa839cbb797cb7d8332c");
+        S2N_BLOB_FROM_HEX(expected_binder_key,
+            "69fe131a3bbad5d63c64eebcc30e395b9d8107726a13d074e389dbc8a4e47256");
+
+        DEFER_CLEANUP(struct s2n_psk test_psk, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        EXPECT_SUCCESS(s2n_psk_set_secret(&test_psk, resumption_secret.data, resumption_secret.size));
+
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys, s2n_tls13_keys_free);
+        EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
+
+        EXPECT_SUCCESS(s2n_tls13_derive_binder_key(&test_keys, &test_psk));
+
+        S2N_BLOB_EXPECT_EQUAL(test_keys.extract_secret, expected_resumption_early_secret);
+        S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_binder_key);
+    }
+
+    /* Test s2n_tls13_derive_early_secret produces the correct secret when a psk is set. Values
+     * are taken from https://tools.ietf.org/html/rfc8448#section-4 */
+    {
+        S2N_BLOB_FROM_HEX(resumption_early_secret,
+            "9b2188e9b2fc6d64d71dc329900e20bb41915000f678aa839cbb797cb7d8332c");
+        S2N_BLOB_FROM_HEX(expected_derived_secret,
+            "5f1790bbd82c5e7d376ed2e1e52f8e6038c9346db61b43be9a52f77ef3998e80");
+
+        DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        test_psk.early_secret = resumption_early_secret;
+
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);
+        EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
+
+        EXPECT_SUCCESS(s2n_tls13_derive_early_secret(&test_keys, &test_psk));
+
+        S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_derived_secret);
+    }
+
+    /* s2n_tls13_derive_early_secret will error using a psk with an empty early secret */
+    {
+        struct s2n_blob empty_blob = { .data = NULL, .size = 0 };
+
+        DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        test_psk.early_secret = empty_blob;
+
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);
+        EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_derive_early_secret(&test_keys, &test_psk), S2N_ERR_SAFETY);
+    }
+
+    /* Test s2n_tls13_derive_early_traffic_secret */
+    {
+        /** ClientHello record needed for hash.
+         *
+         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= type=test
+         *# {client}  send handshake record:
+         *#
+         *#    payload (512 octets):  01 00 01 fc 03 03 1b c3 ce b6 bb e3 9c ff
+         *#       93 83 55 b5 a5 0a db 6d b2 1b 7a 6a f6 49 d7 b4 bc 41 9d 78 76
+         *#       48 7d 95 00 00 06 13 01 13 03 13 02 01 00 01 cd 00 00 00 0b 00
+         *#       09 00 00 06 73 65 72 76 65 72 ff 01 00 01 00 00 0a 00 14 00 12
+         *#       00 1d 00 17 00 18 00 19 01 00 01 01 01 02 01 03 01 04 00 33 00
+         *#       26 00 24 00 1d 00 20 e4 ff b6 8a c0 5f 8d 96 c9 9d a2 66 98 34
+         *#       6c 6b e1 64 82 ba dd da fe 05 1a 66 b4 f1 8d 66 8f 0b 00 2a 00
+         *#       00 00 2b 00 03 02 03 04 00 0d 00 20 00 1e 04 03 05 03 06 03 02
+         *#       03 08 04 08 05 08 06 04 01 05 01 06 01 02 01 04 02 05 02 06 02
+         *#       02 02 00 2d 00 02 01 01 00 1c 00 02 40 01 00 15 00 57 00 00 00
+         *#       00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+         *#       00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+         *#       00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+         *#       00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+         *#       00 29 00 dd 00 b8 00 b2 2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00
+         *#       00 00 00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70
+         *#       ad 3c 49 88 83 c9 36 7c 09 a2 be 78 5a bc 55 cd 22 60 97 a3 a9
+         *#       82 11 72 83 f8 2a 03 a1 43 ef d3 ff 5d d3 6d 64 e8 61 be 7f d6
+         *#       1d 28 27 db 27 9c ce 14 50 77 d4 54 a3 66 4d 4e 6d a4 d2 9e e0
+         *#       37 25 a6 a4 da fc d0 fc 67 d2 ae a7 05 29 51 3e 3d a2 67 7f a5
+         *#       90 6c 5b 3f 7d 8f 92 f2 28 bd a4 0d da 72 14 70 f9 fb f2 97 b5
+         *#       ae a6 17 64 6f ac 5c 03 27 2e 97 07 27 c6 21 a7 91 41 ef 5f 7d
+         *#       e6 50 5e 5b fb c3 88 e9 33 43 69 40 93 93 4a e4 d3 57 fa d6 aa
+         *#       cb 00 21 20 3a dd 4f b2 d8 fd f8 22 a0 ca 3c f7 67 8e f5 e8 8d
+         *#       ae 99 01 41 c5 92 4d 57 bb 6f a3 1b 9e 5f 9d
+         */
+        S2N_BLOB_FROM_HEX(payload,   "01 00 01 fc 03 03 1b c3 ce b6 bb e3 9c ff \
+                  93 83 55 b5 a5 0a db 6d b2 1b 7a 6a f6 49 d7 b4 bc 41 9d 78 76 \
+                  48 7d 95 00 00 06 13 01 13 03 13 02 01 00 01 cd 00 00 00 0b 00 \
+                  09 00 00 06 73 65 72 76 65 72 ff 01 00 01 00 00 0a 00 14 00 12 \
+                  00 1d 00 17 00 18 00 19 01 00 01 01 01 02 01 03 01 04 00 33 00 \
+                  26 00 24 00 1d 00 20 e4 ff b6 8a c0 5f 8d 96 c9 9d a2 66 98 34 \
+                  6c 6b e1 64 82 ba dd da fe 05 1a 66 b4 f1 8d 66 8f 0b 00 2a 00 \
+                  00 00 2b 00 03 02 03 04 00 0d 00 20 00 1e 04 03 05 03 06 03 02 \
+                  03 08 04 08 05 08 06 04 01 05 01 06 01 02 01 04 02 05 02 06 02 \
+                  02 02 00 2d 00 02 01 01 00 1c 00 02 40 01 00 15 00 57 00 00 00 \
+                  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                  00 29 00 dd 00 b8 00 b2 2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 \
+                  00 00 00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70 \
+                  ad 3c 49 88 83 c9 36 7c 09 a2 be 78 5a bc 55 cd 22 60 97 a3 a9 \
+                  82 11 72 83 f8 2a 03 a1 43 ef d3 ff 5d d3 6d 64 e8 61 be 7f d6 \
+                  1d 28 27 db 27 9c ce 14 50 77 d4 54 a3 66 4d 4e 6d a4 d2 9e e0 \
+                  37 25 a6 a4 da fc d0 fc 67 d2 ae a7 05 29 51 3e 3d a2 67 7f a5 \
+                  90 6c 5b 3f 7d 8f 92 f2 28 bd a4 0d da 72 14 70 f9 fb f2 97 b5 \
+                  ae a6 17 64 6f ac 5c 03 27 2e 97 07 27 c6 21 a7 91 41 ef 5f 7d \
+                  e6 50 5e 5b fb c3 88 e9 33 43 69 40 93 93 4a e4 d3 57 fa d6 aa \
+                  cb 00 21 20 3a dd 4f b2 d8 fd f8 22 a0 ca 3c f7 67 8e f5 e8 8d \
+                  ae 99 01 41 c5 92 4d 57 bb 6f a3 1b 9e 5f 9d")
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= type=test
+         *# {client}  derive secret "tls13 c e traffic":
+         *#
+         *#    PRK (32 octets):  9b 21 88 e9 b2 fc 6d 64 d7 1d c3 29 90 0e 20 bb
+         *#       41 91 50 00 f6 78 aa 83 9c bb 79 7c b7 d8 33 2c
+         **/
+        S2N_BLOB_FROM_HEX(prk,  "9b 21 88 e9 b2 fc 6d 64 d7 1d c3 29 90 0e 20 bb \
+                  41 91 50 00 f6 78 aa 83 9c bb 79 7c b7 d8 33 2c");
+        /**
+         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= type=test
+         *#
+         *#    hash (32 octets):  08 ad 0f a0 5d 7c 72 33 b1 77 5b a2 ff 9f 4c 5b
+         *#       8b 59 27 6b 7f 22 7f 13 a9 76 24 5f 5d 96 09 13
+         */
+        S2N_BLOB_FROM_HEX(hash,  "08 ad 0f a0 5d 7c 72 33 b1 77 5b a2 ff 9f 4c 5b \
+                  8b 59 27 6b 7f 22 7f 13 a9 76 24 5f 5d 96 09 13");
+        /**
+         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= type=test
+         *#
+         *#    info (53 octets):  00 20 11 74 6c 73 31 33 20 63 20 65 20 74 72 61
+         *#       66 66 69 63 20 08 ad 0f a0 5d 7c 72 33 b1 77 5b a2 ff 9f 4c 5b
+         *#       8b 59 27 6b 7f 22 7f 13 a9 76 24 5f 5d 96 09 13
+         *#
+         *#    expanded (32 octets):  3f bb e6 a6 0d eb 66 c3 0a 32 79 5a ba 0e
+         *#       ff 7e aa 10 10 55 86 e7 be 5c 09 67 8d 63 b6 ca ab 62
+         */
+        S2N_BLOB_FROM_HEX(expanded,  "3f bb e6 a6 0d eb 66 c3 0a 32 79 5a ba 0e \
+                  ff 7e aa 10 10 55 86 e7 be 5c 09 67 8d 63 b6 ca ab 62");
+
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);
+        EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, S2N_HMAC_SHA256));
+        test_keys.extract_secret = prk;
+
+        DEFER_CLEANUP(struct s2n_hash_state client_hello_hash = {0}, s2n_hash_free);
+        EXPECT_SUCCESS(s2n_hash_new(&client_hello_hash));
+        EXPECT_SUCCESS(s2n_hash_init(&client_hello_hash, S2N_HASH_SHA256));
+        EXPECT_SUCCESS(s2n_hash_update(&client_hello_hash, payload.data, payload.size));
+
+        /* Sanity check: Verify the hash is correct */
+        s2n_tls13_key_blob(actual_hash, test_keys.size);
+        DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
+        EXPECT_SUCCESS(s2n_hash_new(&hkdf_hash_copy));
+        EXPECT_SUCCESS(s2n_hash_copy(&hkdf_hash_copy, &client_hello_hash));
+        EXPECT_SUCCESS(s2n_hash_digest(&hkdf_hash_copy, actual_hash.data, actual_hash.size));
+        S2N_BLOB_EXPECT_EQUAL(actual_hash, hash);
+
+        s2n_tls13_key_blob(early_traffic_secret, test_keys.size);
+        EXPECT_SUCCESS(s2n_tls13_derive_early_traffic_secret(&test_keys, &client_hello_hash, &early_traffic_secret));
+        S2N_BLOB_EXPECT_EQUAL(early_traffic_secret, expanded);
     }
 
     END_TEST();

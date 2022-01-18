@@ -23,20 +23,24 @@
 typedef struct {
     uint16_t extension_type;
     struct s2n_blob extension;
+    uint16_t wire_index;
 } s2n_parsed_extension;
 
 typedef struct {
     s2n_parsed_extension parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT];
     struct s2n_blob raw; /* Needed by some ClientHello APIs */
+    uint16_t count;
 } s2n_parsed_extensions_list;
 
 typedef enum {
     S2N_EXTENSION_LIST_CLIENT_HELLO = 0,
+    S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST,
     S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT,
     S2N_EXTENSION_LIST_SERVER_HELLO_TLS13,
     S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
     S2N_EXTENSION_LIST_CERT_REQ,
     S2N_EXTENSION_LIST_CERTIFICATE,
+    S2N_EXTENSION_LIST_NST,
     S2N_EXTENSION_LIST_EMPTY,
     S2N_EXTENSION_LIST_IDS_COUNT,
 } s2n_extension_list_id;

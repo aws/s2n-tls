@@ -15,7 +15,6 @@
 
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -25,7 +24,7 @@ void s2n_stuffer_recv_from_fd_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     int      rfd;
     uint32_t len;
     uint32_t bytes_written;
@@ -40,7 +39,7 @@ void s2n_stuffer_recv_from_fd_harness()
     /* Operation under verification. */
     if (s2n_stuffer_recv_from_fd(stuffer, rfd, len, &bytes_written) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + bytes_written);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     }
     assert(stuffer->read_cursor == old_stuffer.read_cursor);
     assert(stuffer->alloced == old_stuffer.alloced);

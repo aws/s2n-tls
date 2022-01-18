@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -25,7 +24,7 @@ void s2n_stuffer_rewrite_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -44,5 +43,5 @@ void s2n_stuffer_rewrite_harness()
     assert(stuffer->growable == old_stuffer.growable);
     assert(stuffer->tainted == old_stuffer.tainted);
     assert_blob_equivalence(&stuffer->blob, &old_stuffer.blob, &old_byte_from_stuffer);
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

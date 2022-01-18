@@ -34,7 +34,19 @@
 
 #define __S2N_ENSURE_LIKELY( cond, action ) do {if ( s2n_unlikely( !(cond) ) ) { action; }} while (0)
 
-#define __S2N_ENSURE_CONDITION( cond, action ) __S2N_ENSURE_LIKELY( cond, action )
+#ifdef NDEBUG
+#define __S2N_ENSURE_DEBUG( cond, action ) do {} while (0)
+#else
+#define __S2N_ENSURE_DEBUG( cond, action ) __S2N_ENSURE_LIKELY((cond), action)
+#endif
+
+#define __S2N_ENSURE_PRECONDITION( result ) (s2n_likely(s2n_result_is_ok(result)) ? S2N_RESULT_OK : S2N_RESULT_ERROR)
+
+#ifdef NDEBUG
+#define __S2N_ENSURE_POSTCONDITION( result ) (S2N_RESULT_OK)
+#else
+#define __S2N_ENSURE_POSTCONDITION( result ) (s2n_likely(s2n_result_is_ok(result)) ? S2N_RESULT_OK : S2N_RESULT_ERROR)
+#endif
 
 #define __S2N_ENSURE_SAFE_MEMCPY( d , s , n , guard )                            \
   do {                                                                           \
@@ -55,4 +67,78 @@
     }                                                                            \
   } while(0)
 
+/**
+ * `restrict` is a part of the c99 standard and will work with any C compiler. If you're trying to
+ * compile with a C++ compiler `restrict` is invalid. However some C++ compilers support the behavior
+ * of `restrict` using the `__restrict__` keyword. Therefore if the compiler supports `__restrict__`
+ * use it.
+ *
+ * This is helpful for the benchmarks in tests/benchmark which use Google's Benchmark library and
+ * are all written in C++.
+ *
+ * https://gcc.gnu.org/onlinedocs/gcc/Restricted-Pointers.html
+ *
+ */
+#if defined(S2N___RESTRICT__SUPPORTED)
+extern void* s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restrict__ from, size_t size, const char *debug_str);
+#else
 extern void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
+#endif
+
+/**
+ * These macros should not be used in validate functions.
+ * All validate functions are also used in assumptions for CBMC proofs,
+ * which should not contain __CPROVER_*_ok primitives. The use of these primitives
+ * in assumptions may lead to spurious results.
+ * When the code is being verified using CBMC, these properties are formally verified;
+ * When the code is built in debug mode, they are checked as much as possible using assertions.
+ * When the code is built in production mode, non-fatal properties are not checked.
+ * Violations of these properties are undefined behaviour.
+ */
+#ifdef CBMC
+#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
+#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
+#else
+/* the C runtime does not give a way to check these properties,
+ * but we can at least check for nullness. */
+#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+#endif /* CBMC */
+
+/**
+ * These macros can safely be used in validate functions.
+ */
+#define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
+#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
+
+#define S2N_IMPLIES(a, b) (!(a) || (b))
+/**
+ * If and only if (iff) is a biconditional logical connective between statements a and b.
+ * Equivalent to (S2N_IMPLIES(a, b) && S2N_IMPLIES(b, a)).
+ */
+#define S2N_IFF(a, b) (!!(a) == !!(b))
+
+/**
+ * These macros are used to specify code contracts in CBMC proofs.
+ * Define function contracts.
+ * When the code is being verified using CBMC, these contracts are formally verified;
+ * When the code is built in production mode, contracts are not checked.
+ * Violations of the function contracts are undefined behaviour.
+ */
+#ifdef CBMC
+#    define CONTRACT_ASSIGNS(...) __CPROVER_assigns(__VA_ARGS__)
+#    define CONTRACT_ASSIGNS_ERR(...) CONTRACT_ASSIGNS(__VA_ARGS__, s2n_debug_str, s2n_errno)
+#    define CONTRACT_REQUIRES(...) __CPROVER_requires(__VA_ARGS__)
+#    define CONTRACT_ENSURES(...) __CPROVER_ensures(__VA_ARGS__)
+#    define CONTRACT_INVARIANT(...) __CPROVER_loop_invariant(__VA_ARGS__)
+#    define CONTRACT_RETURN_VALUE (__CPROVER_return_value)
+#else
+#    define CONTRACT_ASSIGNS(...)
+#    define CONTRACT_ASSIGNS_ERR(...)
+#    define CONTRACT_REQUIRES(...)
+#    define CONTRACT_ENSURES(...)
+#    define CONTRACT_INVARIANT(...)
+#    define CONTRACT_RETURN_VALUE
+#endif

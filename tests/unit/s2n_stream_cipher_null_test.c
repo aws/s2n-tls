@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "s2n_test.h"
 #include "crypto/s2n_stream_cipher_null.c"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test that in and out being the same size succeeds */
     {

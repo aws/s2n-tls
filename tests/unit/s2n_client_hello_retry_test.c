@@ -25,7 +25,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_connection.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 /* This include is required to access static function s2n_server_hello_parse */
 #include "tls/s2n_server_hello.c"
@@ -39,7 +39,11 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test s2n_server_hello_retry_recv */
     {
@@ -53,36 +57,16 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-            EXPECT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
-            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
-
-            EXPECT_SUCCESS(s2n_config_free(config));
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* s2n_server_hello_retry_recv must fail when a matching curve is not found, i.e the selected_group field
-         * does not correspond to a group which was provided in the "supported_groups" extension in the original ClientHello */
-        if (s2n_is_evp_apis_supported()) {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
-
-            EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190802")); /* does not contain x25519 */
-
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
+            EXPECT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
+            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -134,8 +118,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-            /* Force the HRR path by sending an empty list of keyshares */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -146,7 +130,7 @@ int main(int argc, char **argv)
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-            server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+            server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Server sends HelloRetryMessage */
@@ -170,10 +154,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
         }
-#if !defined(S2N_NO_PQ)
+
         {
             const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2,
             };
 
@@ -192,20 +176,20 @@ int main(int argc, char **argv)
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
             };
 
-            if (s2n_is_in_fips_mode()) {
+            if (!s2n_pq_is_enabled()) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->security_policy_override = &test_security_policy;
 
                 const struct s2n_kem_preferences *kem_pref = NULL;
-                GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
-                conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
-                EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+                conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_DISABLED);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             } else {
@@ -217,13 +201,13 @@ int main(int argc, char **argv)
                     conn->security_policy_override = &test_security_policy;
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
-                    conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
-                    EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+                    conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                    EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-                    struct s2n_kem_group_params *client_params = &conn->secure.client_kem_group_params[0];
+                    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
                     client_params->kem_group = kem_pref->tls13_kem_groups[0];
                     client_params->kem_params.kem = kem_pref->tls13_kem_groups[0]->kem;
                     client_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[0]->curve;
@@ -234,7 +218,7 @@ int main(int argc, char **argv)
                     kem_public_key_size public_key_size = kem_pref->tls13_kem_groups[0]->kem->public_key_length;
                     EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, public_key_size));
 
-                    EXPECT_SUCCESS(s2n_kem_generate_keypair(&client_params->kem_params));
+                    EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));
                     EXPECT_NOT_NULL(client_params->kem_params.private_key.data);
                     EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
                     EXPECT_NOT_NULL(client_params->ecc_params.evp_pkey);
@@ -244,22 +228,6 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_free(&client_params->kem_params.public_key));
                     EXPECT_SUCCESS(s2n_connection_free(conn));
                 }
-                /* s2n_server_hello_retry_recv must fail if the server chose a PQ KEM
-                 * that wasn't in the client's supported_groups */
-                {
-                    struct s2n_connection *conn;
-                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-                    conn->actual_protocol_version = S2N_TLS13;
-                    conn->security_policy_override = &test_security_policy;
-
-                    /* test_security_policy does not include kyber */
-                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
-                    EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
-
-                    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
-
-                    EXPECT_SUCCESS(s2n_connection_free(conn));
-                }
                 /* Test failure if exactly one of {named_curve, kem_group} isn't non-null */
                 {
                     struct s2n_connection *conn;
@@ -267,13 +235,13 @@ int main(int argc, char **argv)
                     conn->actual_protocol_version = S2N_TLS13;
                     conn->security_policy_override = &test_security_policy;
 
-                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r2;
-                    conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+                    conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r3;
+                    conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
-                    conn->secure.server_kem_group_params.kem_group = NULL;
-                    conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+                    conn->kex_params.server_kem_group_params.kem_group = NULL;
+                    conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -327,7 +295,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-#endif
     }
 
     /* Verify that the hash transcript recreation function is called correctly,
@@ -361,8 +328,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Force the HRR path by sending an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -375,7 +342,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* Server sends HelloRetryRequest message, note that s2n_server_hello_retry_recreate_transcript
          * is called within the s2n_server_hello_retry_send function */
@@ -387,12 +354,12 @@ int main(int argc, char **argv)
         /* Obtain the transcript hash recreated within the HelloRetryRequest message */
         struct s2n_hash_state server_hash, server_hash_state;
         uint8_t server_digest_out[S2N_MAX_DIGEST_LEN];
-        GUARD(s2n_handshake_get_hash_state(server_conn, server_keys.hash_algorithm, &server_hash_state));
+        POSIX_GUARD(s2n_handshake_get_hash_state(server_conn, server_keys.hash_algorithm, &server_hash_state));
 
-        GUARD(s2n_hash_new(&server_hash));
-        GUARD(s2n_hash_copy(&server_hash, &server_hash_state));
-        GUARD(s2n_hash_digest(&server_hash, server_digest_out, hash_digest_length));
-        GUARD(s2n_hash_free(&server_hash));
+        POSIX_GUARD(s2n_hash_new(&server_hash));
+        POSIX_GUARD(s2n_hash_copy(&server_hash, &server_hash_state));
+        POSIX_GUARD(s2n_hash_digest(&server_hash, server_digest_out, hash_digest_length));
+        POSIX_GUARD(s2n_hash_free(&server_hash));
 
         struct s2n_blob server_blob;
         EXPECT_SUCCESS(s2n_blob_init(&server_blob, server_digest_out, hash_digest_length));
@@ -411,12 +378,12 @@ int main(int argc, char **argv)
         /* Obtain the transcript hash recreated within ClientHello2 message */
         struct s2n_hash_state client_hash, client_hash_state;
         uint8_t client_digest_out[S2N_MAX_DIGEST_LEN];
-        GUARD(s2n_handshake_get_hash_state(client_conn, client_keys.hash_algorithm, &client_hash_state));
+        POSIX_GUARD(s2n_handshake_get_hash_state(client_conn, client_keys.hash_algorithm, &client_hash_state));
 
-        GUARD(s2n_hash_new(&client_hash));
-        GUARD(s2n_hash_copy(&client_hash, &client_hash_state));
-        GUARD(s2n_hash_digest(&client_hash, client_digest_out, hash_digest_length));
-        GUARD(s2n_hash_free(&client_hash));
+        POSIX_GUARD(s2n_hash_new(&client_hash));
+        POSIX_GUARD(s2n_hash_copy(&client_hash, &client_hash_state));
+        POSIX_GUARD(s2n_hash_digest(&client_hash, client_digest_out, hash_digest_length));
+        POSIX_GUARD(s2n_hash_free(&client_hash));
 
         struct s2n_blob client_blob;
         EXPECT_SUCCESS(s2n_blob_init(&client_blob, client_digest_out, hash_digest_length));
@@ -431,7 +398,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
-    /* Self-Talk test: the client initiates a handshake with an empty list of keyshares.
+    /* Self-Talk test: the client initiates a handshake with an unknown keyshare.
      * The server sends a HelloRetryRequest that requires the client to generate a
      * key share on the server negotiated curve. */
     {
@@ -469,9 +436,8 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-
-        /* Generate keyshare only for Curve x25519 */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -530,9 +496,8 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-
-        /* Generate keyshare only for Curve x25519 */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "x25519"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -576,11 +541,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
-
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Force the client to send an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -624,14 +588,14 @@ int main(int argc, char **argv)
     }
 
     /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
-     * when conn->secure.server_random is not set to the correct hello retry random value
+     * when conn->handshake_params.server_random is not set to the correct hello retry random value
      * specified in the RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         /* From RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
         const uint8_t not_hello_retry_request_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-        EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, not_hello_retry_request_random,
+        EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, not_hello_retry_request_random,
                               S2N_TLS_RANDOM_DATA_LEN);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
@@ -670,7 +634,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     END_TEST();
 }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   

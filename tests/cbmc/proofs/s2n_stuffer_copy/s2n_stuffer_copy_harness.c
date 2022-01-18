@@ -16,7 +16,7 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
+
 #include <error/s2n_errno.h>
 
 #include "api/s2n.h"
@@ -25,12 +25,12 @@
 void s2n_stuffer_copy_harness()
 {
     struct s2n_stuffer *from = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(from));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(from)));
     struct s2n_stuffer            old_stuffer = *from;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&from->blob, &old_byte);
     struct s2n_stuffer *to = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(to));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(to)));
     uint32_t length;
 
     nondet_s2n_mem_init();
@@ -46,5 +46,5 @@ void s2n_stuffer_copy_harness()
     assert(from->growable == old_stuffer.growable);
     assert(from->tainted == old_stuffer.tainted);
     assert_byte_from_blob_matches(&from->blob, &old_byte);
-    assert(s2n_stuffer_is_valid(from));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(from)));
 }

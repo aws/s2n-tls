@@ -22,7 +22,7 @@
 #include <time.h>
 #include <stdint.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-    EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+    EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
 
     char buffer[0xffff];
     for (int i = 1; i < 0xffff; i += 100) {
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
-    s2n_disable_tls13();
+    s2n_disable_tls13_in_test();
 
     END_TEST();
     return 0;

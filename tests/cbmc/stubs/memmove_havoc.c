@@ -30,9 +30,9 @@ __CPROVER_HIDE:;
     __CPROVER_precondition(dest != NULL && __CPROVER_w_ok(dest, n), "memmove destination region writeable");
 
     if (n > 0) {
-        size_t index;
-        __CPROVER_assume(index < n);
-        ((uint8_t *)dest)[index] = nondet_uint8_t();
+        size_t idx;
+        __CPROVER_assume(idx < n);
+        ((uint8_t *)dest)[idx] = nondet_uint8_t();
     }
 
     return dest;

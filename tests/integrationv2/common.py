@@ -3,8 +3,11 @@ import re
 import subprocess
 import string
 import threading
+import itertools
+
 
 from constants import TEST_CERT_DIRECTORY
+from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
 
 
 def data_bytes(n_bytes):
@@ -27,6 +30,13 @@ def data_bytes(n_bytes):
     return bytes(byte_array)
 
 
+def pq_enabled():
+    """
+    Returns true or false to indicate whether PQ crypto is enabled in s2n
+    """
+    return not (get_flag(S2N_NO_PQ, False) or get_flag(S2N_FIPS_MODE, False))
+
+
 class AvailablePorts(object):
     """
     This iterator will atomically return the next number.
@@ -35,6 +45,9 @@ class AvailablePorts(object):
     """
 
     def __init__(self, low=8000, high=30000):
+        worker_count = int(os.getenv('PYTEST_XDIST_WORKER_COUNT'))
+        chunk_size = int((high - low) / worker_count)
+
         # If xdist is being used, parse the workerid from the envvar. This can
         # be used to allocate unique ports to each worker.
         worker = os.getenv('PYTEST_XDIST_WORKER')
@@ -46,7 +59,11 @@ class AvailablePorts(object):
 
         # This is a naive way to allocate ports, but it allows us to cut
         # the run time in half without workers colliding.
-        self.ports = iter(range(low + (worker_id * 500), high))
+        worker_offset = (worker_id * chunk_size)
+        base_range = range(low + worker_offset, high)
+        wrap_range = range(low, low + worker_offset)
+        self.ports = iter(itertools.chain(base_range, wrap_range))
+
         self.lock = threading.Lock()
 
     def __iter__(self):
@@ -91,10 +108,10 @@ class Cert(object):
         if self.algorithm != 'EC':
             return True
 
-        return curve.name[:-3] == self.name[:-3]
+        return curve.name[-3:] == self.name[-3:]
 
     def compatible_with_sigalg(self, sigalg):
-        if self.algorithm is 'EC':
+        if self.algorithm == 'EC':
             if '384' in self.name and 'p256' in sigalg.name:
                 return False
 
@@ -168,19 +185,26 @@ class Protocols(object):
 
 
 class Cipher(object):
-    def __init__(self, name, min_version, openssl1_1_1, fips, parameters=None, iana_standard_name=None):
+    def __init__(self, name, min_version, openssl1_1_1, fips, parameters=None, iana_standard_name=None, s2n=False, pq=False):
         self.name = name
         self.min_version = min_version
         self.openssl1_1_1 = openssl1_1_1
         self.fips = fips
         self.parameters = parameters
         self.iana_standard_name = iana_standard_name
-        self.algorithm = 'ANY'
+        self.s2n = s2n
+        self.pq = pq
 
-        if 'ECDSA' in name:
+        if self.min_version >= Protocols.TLS13:
+            self.algorithm = 'ANY'
+        elif iana_standard_name is None:
+            self.algorithm = 'ANY'
+        elif 'ECDSA' in iana_standard_name:
             self.algorithm = 'EC'
-        elif 'RSA' in name:
+        elif 'RSA' in iana_standard_name:
             self.algorithm = 'RSA'
+        else:
+            pytest.fail("Unknown signature algorithm on cipher")
 
     def __eq__(self, other):
         return self.name == other
@@ -231,17 +255,13 @@ class Ciphers(object):
     ECDHE_RSA_CHACHA20_POLY1305 = Cipher("ECDHE-RSA-CHACHA20-POLY1305", Protocols.TLS12, True, False, iana_standard_name="TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256")
     CHACHA20_POLY1305_SHA256 = Cipher("TLS_CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False, iana_standard_name="TLS_CHACHA20_POLY1305_SHA256")
 
-    KMS_TLS_1_0_2018_10 = Cipher("KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False)
-    KMS_PQ_TLS_1_0_2019_06 = Cipher("KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10, False, False)
-    KMS_PQ_TLS_1_0_2020_02 = Cipher("KMS-PQ-TLS-1-0-2020-02", Protocols.TLS10, False, False)
-    KMS_PQ_TLS_1_0_2020_07 = Cipher("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False)
-    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False)
-    PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False)
-
-
-TLS12_PQ_CIPHER_PREFS = [Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
-                         Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_PQ_TLS_1_0_2020_02,
-                         Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02]
+    KMS_TLS_1_0_2018_10 = Cipher("KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False, s2n=True)
+    KMS_PQ_TLS_1_0_2019_06 = Cipher("KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10, False, False, s2n=True, pq=True)
+    KMS_PQ_TLS_1_0_2020_02 = Cipher("KMS-PQ-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
+    KMS_PQ_TLS_1_0_2020_07 = Cipher("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False, s2n=True, pq=True)
+    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False, s2n=True, pq=True)
+    PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
+    PQ_TLS_1_0_2020_12 = Cipher("PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
 
 
 class Curve(object):
@@ -264,18 +284,34 @@ class Curves(object):
     P521 = Curve("P-521")
 
 
+class KemGroup(object):
+    def __init__(self, oqs_name):
+        self.oqs_name = oqs_name
+
+    def __str__(self):
+        return self.oqs_name
+
+
+class KemGroups(object):
+    # oqs_openssl does not support x25519 based KEM groups
+    P256_KYBER512R2 = KemGroup("p256_kyber512")
+    P256_BIKE1L1FOR2 = KemGroup("p256_bike1l1fo")
+    P256_SIKEP434R3 = KemGroup("p256_sikep434")
+
+
 class Signature(object):
-    def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
+    def __init__(self, name, min_protocol=Protocols.SSLv3, max_protocol=Protocols.TLS13, sig_type=None, sig_digest=None):
         self.min_protocol = min_protocol
+        self.max_protocol = max_protocol
 
         if 'RSA' in name.upper():
             self.algorithm = 'RSA'
-        if 'PSS' in name.upper():
+        if 'PSS_PSS' in name.upper():
             self.algorithm = 'RSAPSS'
         if 'EC' in name.upper() or 'ED' in name.upper():
             self.algorithm = 'EC'
 
-        if '+' in name:
+        if not (sig_type or sig_digest) and '+' in name:
             sig_type, sig_digest = name.split('+')
 
         self.name = name
@@ -288,28 +324,25 @@ class Signature(object):
 
 
 class Signatures(object):
-    RSA_SHA1 = Signature('RSA+SHA1')
-    RSA_SHA224 = Signature('RSA+SHA224')
-    RSA_SHA256 = Signature('RSA+SHA256')
-    RSA_SHA384 = Signature('RSA+SHA384')
-    RSA_SHA512 = Signature('RSA+SHA512')
+    RSA_SHA1   = Signature('RSA+SHA1',   max_protocol=Protocols.TLS12)
+    RSA_SHA224 = Signature('RSA+SHA224', max_protocol=Protocols.TLS12)
+    RSA_SHA256 = Signature('RSA+SHA256', max_protocol=Protocols.TLS12)
+    RSA_SHA384 = Signature('RSA+SHA384', max_protocol=Protocols.TLS12)
+    RSA_SHA512 = Signature('RSA+SHA512', max_protocol=Protocols.TLS12)
 
-    # Using rss_pss_pss_sha256 results in a signature not found error, but using
-    # this naming scheme seems to work.
-    RSA_PSS_SHA256 = Signature(
+    RSA_PSS_RSAE_SHA256 = Signature(
         'RSA-PSS+SHA256',
+        sig_type='RSA-PSS-RSAE',
+        sig_digest='SHA256')
+
+    RSA_PSS_PSS_SHA256 = Signature(
+        'rsa_pss_pss_sha256',
         min_protocol=Protocols.TLS13,
-        sig_type='RSA-PSS',
+        sig_type='RSA-PSS-PSS',
         sig_digest='SHA256')
 
     ECDSA_SECP256r1_SHA256 = Signature(
         'ecdsa_secp256r1_sha256',
-        min_protocol=Protocols.TLS13,
-        sig_type='ECDSA',
-        sig_digest='SHA256')
-
-    ED25519 = Signature(
-        'ed25519',
         min_protocol=Protocols.TLS13,
         sig_type='ECDSA',
         sig_digest='SHA256')
@@ -333,14 +366,21 @@ class Results(object):
     # Any exception thrown while running the process
     exception = None
 
-    def __init__(self, stdout, stderr, exit_code, exception):
+    def __init__(self, stdout, stderr, exit_code, exception, expect_stderr=False):
         self.stdout = stdout
         self.stderr = stderr
         self.exit_code = exit_code
         self.exception = exception
+        self.expect_stderr = expect_stderr
 
     def __str__(self):
         return "Stdout: {}\nStderr: {}\nExit code: {}\nException: {}".format(self.stdout, self.stderr, self.exit_code, self.exception)
+
+    def assert_success(self):
+        assert self.exception is None
+        assert self.exit_code == 0
+        if not self.expect_stderr:
+            assert not self.stderr
 
 
 class ProviderOptions(object):
@@ -356,15 +396,14 @@ class ProviderOptions(object):
             insecure=False,
             data_to_send=None,
             use_client_auth=False,
-            client_key_file=None,
-            client_certificate_file=None,
             extra_flags=None,
-            client_trust_store=None,
+            trust_store=None,
             reconnects_before_exit=None,
             reconnect=None,
             verify_hostname=None,
             server_name=None,
             protocol=None,
+            use_mainline_version=None,
             env_overrides=dict()):
 
         # Client or server
@@ -372,6 +411,8 @@ class ProviderOptions(object):
 
         # Hostname
         self.host = host
+        if not self.host:
+            self.host = "localhost"
 
         # Port (string because this will be converted to a command line
         self.port = str(port)
@@ -388,6 +429,8 @@ class ProviderOptions(object):
         # Path to a certificate PEM
         self.cert = cert
 
+        self.trust_store = trust_store
+
         # Boolean whether to use a resumption ticket
         self.use_session_ticket = use_session_ticket
 
@@ -402,9 +445,6 @@ class ProviderOptions(object):
 
         # Parameters to configure client authentication
         self.use_client_auth = use_client_auth
-        self.client_certificate_file = client_certificate_file
-        self.client_trust_store = client_trust_store
-        self.client_key_file = client_key_file
 
         # Reconnects on the server side (includes first connection)
         self.reconnects_before_exit = reconnects_before_exit
@@ -421,6 +461,9 @@ class ProviderOptions(object):
 
         # Extra flags to pass to the provider
         self.extra_flags = extra_flags
+
+        # Boolean whether the provider is an older version of s2n
+        self.use_mainline_version = use_mainline_version
 
         # Extra environment parameters
         self.env_overrides = env_overrides

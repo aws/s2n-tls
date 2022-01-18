@@ -22,7 +22,7 @@
 #include <time.h>
 #include <stdint.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
@@ -50,20 +50,20 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
     uint8_t *client_implicit_iv = conn->client->client_implicit_iv;
  
     /* Initialize record algorithm */
-    GUARD(cipher_suite->record_alg->cipher->init(server_session_key));
-    GUARD(cipher_suite->record_alg->cipher->init(client_session_key));
-    GUARD(cipher_suite->record_alg->cipher->set_encryption_key(server_session_key, &key));
-    GUARD(cipher_suite->record_alg->cipher->set_encryption_key(client_session_key, &key));
-    GUARD(cipher_suite->record_alg->cipher->set_decryption_key(server_session_key, &key));
-    GUARD(cipher_suite->record_alg->cipher->set_decryption_key(client_session_key, &key));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->init(server_session_key));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->init(client_session_key));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->set_encryption_key(server_session_key, &key));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->set_encryption_key(client_session_key, &key));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(server_session_key, &key));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(client_session_key, &key));
 
     /* Initialized secrets */
-    memcpy_check(conn->secure.server_app_secret, application_secret.data, application_secret.size);
-    memcpy_check(conn->secure.client_app_secret, application_secret.data, application_secret.size);
+    POSIX_CHECKED_MEMCPY(conn->secrets.tls13.server_app_secret, application_secret.data, application_secret.size);
+    POSIX_CHECKED_MEMCPY(conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
  
     /* Copy iv bytes from input data */
-    memcpy_check(server_implicit_iv, iv.data, iv.size);
-    memcpy_check(client_implicit_iv, iv.data, iv.size);
+    POSIX_CHECKED_MEMCPY(server_implicit_iv, iv.data, iv.size);
+    POSIX_CHECKED_MEMCPY(client_implicit_iv, iv.data, iv.size);
  
     return S2N_SUCCESS;
 }
@@ -71,7 +71,7 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
 int main(int argc, char **argv)
 {   
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* The maximum record number converted to base 256 */
     uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
@@ -109,14 +109,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_send(server_conn, message, sizeof(message), &blocked));
         
         /* Verify key update happened */
-        EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secure.server_app_secret, client_conn->secure.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
+        EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secrets.tls13.server_app_secret, client_conn->secrets.tls13.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
         EXPECT_BYTEARRAY_EQUAL(server_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         /* Receive keyupdate message */
         uint8_t data[100];
         EXPECT_SUCCESS(s2n_recv(client_conn, data, sizeof(message), &blocked));
         EXPECT_BYTEARRAY_EQUAL(data, message, sizeof(message));
-        EXPECT_BYTEARRAY_EQUAL(client_conn->secure.server_app_secret, server_conn->secure.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
+        EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.server_app_secret, server_conn->secrets.tls13.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
         EXPECT_BYTEARRAY_EQUAL(client_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 
     /* TLS 1.2 Server that receives TLS 1.3 KeyUpdate from Client should close connection */
     {
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         char *cert_chain;
         char *private_key;
@@ -169,10 +169,10 @@ int main(int argc, char **argv)
 
         /* Force Client to send a TLS 1.3 KeyUpdate Message over TLS 1.2 connection */
         client_conn->key_update_pending = 1;
-        EXPECT_SUCCESS(s2n_key_update_send(client_conn));
+        s2n_blocked_status blocked = 0;
+        EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
 
         /* Next message sent will trigger key update message */
-        s2n_blocked_status blocked;
         char client_message[] = "client message";
         EXPECT_SUCCESS(s2n_send(client_conn, client_message, sizeof(client_message), &blocked));
 

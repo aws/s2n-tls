@@ -17,6 +17,8 @@
 #include <stdint.h>
 
 #include "tls/extensions/s2n_client_session_ticket.h"
+
+#include "tls/extensions/s2n_client_psk.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_resume.h"
@@ -38,18 +40,18 @@ const s2n_extension_type s2n_client_session_ticket_extension = {
 
 static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn)
 {
-    return conn->config->use_tickets;
+    return conn->config->use_tickets && !s2n_client_psk_should_send(conn);
 }
 
 static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    GUARD(s2n_stuffer_write(out, &conn->client_ticket));
+    POSIX_GUARD(s2n_stuffer_write(out, &conn->client_ticket));
     return S2N_SUCCESS;
 }
 
 static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (conn->config->use_tickets != 1) {
+    if (conn->config->use_tickets != 1 || conn->actual_protocol_version > S2N_TLS12) {
         /* Ignore the extension. */
         return S2N_SUCCESS;
     }
@@ -59,9 +61,9 @@ static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2
         return S2N_SUCCESS;
     }
 
-    if (s2n_stuffer_data_available(extension) == S2N_TICKET_SIZE_IN_BYTES) {
+    if (s2n_stuffer_data_available(extension) == S2N_TLS12_TICKET_SIZE_IN_BYTES) {
         conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TICKET_SIZE_IN_BYTES));
+        POSIX_GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     } else if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
         conn->session_ticket_status = S2N_NEW_TICKET;
     }

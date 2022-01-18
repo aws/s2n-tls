@@ -34,14 +34,14 @@ if [ "$#" -ne "0" ]; then
 fi
 
 case "$OS_NAME" in
-  "amazon linux")
+  "amazon linux"|"linux")
     which shellcheck || install_shellcheck
     ;;
   "darwin" )
     brew install shellcheck || true ;
     ;;
   *)
-    echo "Unknown platfom"
+    echo "Unknown platform"
     exit 255
     ;;
 esac

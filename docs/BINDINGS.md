@@ -1,8 +1,8 @@
-# Language Bindings for s2n
+# Language Bindings for s2n-tls
 
-The following are language bindings to s2n that we're aware of. They are not a part of the s2n project.
+The following are language bindings to s2n-tls that we're aware of. They are not a part of the s2n-tls project.
 
-Let us know if you know of a language binding to s2n that's not listed below. 
+Let us know if you know of a language binding to s2n-tls that's not listed below. 
 
 ## Lua
 

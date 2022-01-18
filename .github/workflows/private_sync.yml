@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     # This should only run in one place.
-    if: contains(github.repository, 'awslabs/s2n')
+    if: contains(github.repository, 'aws/s2n-tls')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
