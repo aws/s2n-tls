@@ -76,3 +76,16 @@ typedef int (*s2n_secret_cb) (void* context, struct s2n_connection *conn,
  * used outside of a QUIC implementation.
  */
 S2N_API int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx);
+
+/*
+ * Return the TLS alert description required by the TLS protocol.
+ *
+ * S2N-TLS only sends generic close_notify alerts for security reasons, and TLS never
+ * sends alerts when used by QUIC. This method returns the alert that would have been
+ * associated with a failed connection if S2N-TLS sent specific alerts.
+ *
+ * WARNING: this method is still considered experimental and will not always report
+ * the correct alert description. It may be used for testing and logging, but
+ * not relied on for production logic.
+ */
+S2N_API int s2n_connection_get_protocol_alert(struct s2n_connection *conn, uint8_t *alert);

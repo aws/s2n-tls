@@ -24,6 +24,101 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test s2n_connection_get_protocol_alert */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+
+        const uint8_t peer_alert_code = S2N_TLS_ALERT_ACCESS_DENIED;
+        conn->alert_in_data[1] = peer_alert_code;
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->alert_in, S2N_ALERT_LENGTH));
+
+        uint8_t alert = 0;
+
+        /* Test S2N_ERR_T_OK */
+        {
+            s2n_errno = S2N_ERR_OK;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_protocol_alert(conn, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_CLOSED */
+        {
+            s2n_errno = S2N_ERR_CLOSED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_protocol_alert(conn, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_BLOCKED */
+        for (size_t i = S2N_ERR_T_BLOCKED_START; i < S2N_ERR_T_BLOCKED_END; i++) {
+            s2n_errno = i;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_protocol_alert(conn, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_USAGE */
+        for (size_t i = S2N_ERR_T_USAGE_START; i < S2N_ERR_T_USAGE_END; i++) {
+            s2n_errno = i;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_protocol_alert(conn, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_ALERT */
+        {
+            /* Without peer alert */
+            {
+                s2n_errno = S2N_ERR_ALERT;
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&conn->alert_in));
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_protocol_alert(conn, &alert), S2N_ERR_NO_ALERT);
+            }
+
+            /* With peer alert */
+            {
+                s2n_errno = S2N_ERR_ALERT;
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->alert_in, S2N_ALERT_LENGTH));
+
+                EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &alert));
+                EXPECT_EQUAL(alert, peer_alert_code);
+            }
+        }
+
+        /* Test S2N_ERR_T_PROTO */
+        {
+            /* Test all protocol errors can be mapped to an alert */
+            int ret_val;
+            for (size_t i = S2N_ERR_T_PROTO_START; i < S2N_ERR_T_PROTO_END; i++) {
+                s2n_errno = i;
+                ret_val = s2n_connection_get_protocol_alert(conn, &alert);
+                if (ret_val != S2N_SUCCESS) {
+                    fprintf(stdout, "\n\nNo alert mapping for protocol error %s\n\n", s2n_strerror_name(i));
+                    FAIL_MSG("Missing alert mapping for protocol error.");
+                }
+                EXPECT_NOT_EQUAL(alert, S2N_TLS_ALERT_CLOSE_NOTIFY);
+            }
+
+            /* Test some known mappings */
+            {
+                s2n_errno = S2N_ERR_MISSING_EXTENSION;
+                EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_MISSING_EXTENSION, alert);
+
+                s2n_errno = S2N_ERR_BAD_MESSAGE;
+                EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_UNEXPECTED_MESSAGE, alert);
+            }
+        }
+
+        /* Test S2N_ERR_T_IO */
+        {
+            s2n_errno = S2N_ERR_IO;
+            EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &alert));
+            EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
+        }
+
+        /* Test S2N_ERR_T_INTERNAL */
+        for (size_t i = S2N_ERR_T_INTERNAL_START; i < S2N_ERR_T_INTERNAL_END; i++) {
+            s2n_errno = i;
+            EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &alert));
+            EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
+        }
+    }
+
     /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and close_notify_received */
     {
         const uint8_t close_notify_alert[] = {  2 /* AlertLevel = fatal */,
