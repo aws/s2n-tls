@@ -50,6 +50,9 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          */
         S2N_ALERT_CASE(S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
+        /* TODO: Add mappings for other protocol errors. This will require
+         * some cleanup: some of these errors likely aren't actually protocol errors.
+         */
         S2N_ALERT_CASE(S2N_ERR_ENCRYPT, S2N_TLS_ALERT_INTERNAL_ERROR);
         S2N_ALERT_CASE(S2N_ERR_DECRYPT, S2N_TLS_ALERT_INTERNAL_ERROR);
         S2N_ALERT_CASE(S2N_ERR_KEY_INIT, S2N_TLS_ALERT_INTERNAL_ERROR);
