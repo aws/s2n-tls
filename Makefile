@@ -157,10 +157,6 @@ DEV_VERSION ?= ubuntu_18.04_$(DEV_OPENSSL_VERSION)_gcc9
 dev:
 	@docker run -it --rm --ulimit memlock=-1 -v `pwd`:/home/s2n-dev/s2n $(DEV_IMAGE):$(DEV_VERSION)
 
-.PHONY: rpm
-rpm:
-	$(MAKE) -C srpm
-
 .PHONY : clean
 clean:
 	$(MAKE) -C pq-crypto clean

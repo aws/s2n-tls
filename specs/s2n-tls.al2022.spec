@@ -5,36 +5,43 @@
 
 
 Name:           s2n-tls
-Version:        1.1.1
+Version:        1.3.4
 Release:        0%{?dist}
 Summary:        A C99 TLS library
 
 License:        Apache2.0
 URL:            https://github.com/aws/${name}
-Source0:        https://github.com/aws/%{name}/archive/v%{version}.tar.gz
+Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 Group:          System Environment/Libraries
-BuildRequires:  openssl11-static cmake3 ninja-build zlib-devel
-Requires:       openssl11-static
+BuildRequires:  gcc openssl-devel cmake ninja-build
+Requires:       openssl
+Requires:       %{name}-libs%{?_isa} = 0:%{version}-%{release}
+
+# Don't include test binaries
+%bcond_with test
+
 %description
 A C99 TLS library
 
-%package tls
+%package libs
 Summary:        A C99 compatable TLS library
-%description tls
+%description libs
 s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
 
-%package tls-devel
+%package devel
 Summary:    Header files for s2n
-%description tls-devel
+%description devel
 Header files for s2n-tls, a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
 
 %prep
-%setup -q
+%autosetup
 
 %build
-cmake3 -GNinja -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release .
-ninja-build
-ninja-build test
+%cmake -DUNSAFE_TREAT_WARNINGS_AS_ERRORS=OFF -DBUILD_SHARED_LIBS=ON
+%cmake_build
+
+%install
+%cmake_install
 
 %clean
 rm -rf %{buildroot}
@@ -43,23 +50,21 @@ rm -rf %{buildroot}
 
 %postun -p /sbin/ldconfig
 
-%install
-mkdir -p %{buildroot}%{_libdir}/
-mkdir -p %{buildroot}%{_includedir}/
-install lib/*.{so,a} %{buildroot}%{_libdir}/
-
-
-%files tls
+%files libs
 %defattr(-,root,root)
 %license LICENSE
 %attr(755,root,root) %{_libdir}/libs2n.so
 
-%files tls-devel
-%{_includedir}/*.h
+%if %{with test}
+%attr(755,root,root) %{_bindir}/s2n*
+%endif
 
- %files tls-static
- %attr(0644,root,root) %{_libdir}/libs2n.a
+%files devel
+%{_includedir}/*.h
+%{_libdir}/cmake/s2n/modules/FindLibCrypto.cmake
+%{_libdir}/cmake/s2n/s2n-config.cmake
+%{_libdir}/cmake/s2n/shared/s2n-*.cmake
 
 %changelog
-* Mon May 14 2021 Doug Chapman <dougch@amazon.com>
-- Inital RPM spec build of v1.1.1
+* Thu Jan 20 2022 Doug Chapman <dougch@amazon.com>
+- Inital RPM spec build of v1.3.4
