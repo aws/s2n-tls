@@ -80,16 +80,15 @@ int main(int argc, char **argv)
 
         /* Test S2N_ERR_T_PROTO */
         {
-            /* Test all protocol errors can be mapped to an alert */
+            /* Test all protocol errors are handled */
             int ret_val;
             for (size_t i = S2N_ERR_T_PROTO_START; i < S2N_ERR_T_PROTO_END; i++) {
                 s2n_errno = i;
                 ret_val = s2n_connection_get_protocol_alert(conn, &alert);
-                if (ret_val != S2N_SUCCESS) {
+                if (ret_val != S2N_SUCCESS && s2n_errno == S2N_ERR_UNIMPLEMENTED) {
                     fprintf(stdout, "\n\nNo alert mapping for protocol error %s\n\n", s2n_strerror_name(i));
                     FAIL_MSG("Missing alert mapping for protocol error.");
                 }
-                EXPECT_NOT_EQUAL(alert, S2N_TLS_ALERT_CLOSE_NOTIFY);
             }
 
             /* Test some known mappings */
@@ -101,6 +100,12 @@ int main(int argc, char **argv)
                 s2n_errno = S2N_ERR_BAD_MESSAGE;
                 EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &alert));
                 EXPECT_EQUAL(S2N_TLS_ALERT_UNEXPECTED_MESSAGE, alert);
+            }
+
+            /* Test unknown mapping */
+            {
+                s2n_errno = S2N_ERR_EARLY_DATA_TRIAL_DECRYPT;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_protocol_alert(conn, &alert), S2N_ERR_NO_ALERT);
             }
         }
 
