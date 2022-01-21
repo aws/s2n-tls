@@ -139,10 +139,9 @@ static bool s2n_handle_as_warning(struct s2n_connection *conn, uint8_t level, ui
     return type == S2N_TLS_ALERT_USER_CANCELED;
 }
 
-int s2n_connection_get_protocol_alert(struct s2n_connection *conn, uint8_t *alert)
+int s2n_error_get_alert(int error, uint8_t *alert)
 {
-    int error_code = s2n_errno;
-    int error_type = s2n_error_get_type(s2n_errno);
+    int error_type = s2n_error_get_type(error);
 
     POSIX_ENSURE_REF(alert);
 
@@ -151,18 +150,11 @@ int s2n_connection_get_protocol_alert(struct s2n_connection *conn, uint8_t *aler
         case S2N_ERR_T_CLOSED:
         case S2N_ERR_T_BLOCKED:
         case S2N_ERR_T_USAGE:
+        case S2N_ERR_T_ALERT:
             POSIX_BAIL(S2N_ERR_NO_ALERT);
             break;
-        case S2N_ERR_T_ALERT:
-        {
-            int peer_alert = s2n_connection_get_alert(conn);
-            POSIX_ENSURE(peer_alert >= 0, S2N_ERR_NO_ALERT);
-            POSIX_ENSURE(peer_alert < UINT8_MAX, S2N_ERR_NO_ALERT);
-            *alert = peer_alert;
-            break;
-        }
         case S2N_ERR_T_PROTO:
-            POSIX_GUARD_RESULT(s2n_translate_protocol_error_to_alert(error_code, alert));
+            POSIX_GUARD_RESULT(s2n_translate_protocol_error_to_alert(error, alert));
             break;
         case S2N_ERR_T_IO:
         case S2N_ERR_T_INTERNAL:

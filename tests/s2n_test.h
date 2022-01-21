@@ -143,7 +143,7 @@ int test_count;
     do { \
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err); \
         uint8_t _alert_for_failure = 0; \
-        EXPECT_SUCCESS(s2n_connection_get_protocol_alert(conn, &_alert_for_failure)); \
+        EXPECT_SUCCESS(s2n_error_get_alert(s2n_errno, &_alert_for_failure)); \
         EXPECT_EQUAL(_alert_for_failure, (alert)); \
         RESET_ERRNO(); \
     } while(0)
