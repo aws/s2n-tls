@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_crypto_constants.h"
 #include "utils/s2n_blob.h"

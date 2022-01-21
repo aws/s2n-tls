@@ -16,10 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "tls/s2n_psk.h"
-
-/* Include source to test static functions */
-#include "tls/extensions/s2n_psk_key_exchange_modes.c"
+#include "tls/extensions/s2n_psk_key_exchange_modes.h"
 
 int main(int argc, char **argv)
 {
@@ -124,7 +121,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE + 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE * 2));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_KE_MODE));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_DHE_KE_MODE));
 
@@ -135,6 +132,93 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
+        }
+
+        /* Server receives GREASE values.
+         *
+         *= https://www.rfc-editor.org/rfc/rfc8701#section-3.1
+         *= type=test
+         *# A client MAY select one or more GREASE PskKeyExchangeMode values
+         *# and advertise them in the "psk_key_exchange_modes" extension, if
+         *# sent.
+         *
+         *= https://www.rfc-editor.org/rfc/rfc8701#section-3.2
+         *= type=test
+         *# When processing a ClientHello, servers MUST NOT treat GREASE values
+         *# differently from any unknown value.  Servers MUST NOT negotiate any
+         *# GREASE value when offered in a ClientHello.  Servers MUST correctly
+         *# ignore unknown values in a ClientHello and attempt to negotiate with
+         *# one of the remaining parameters.
+         **/
+        {
+            DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+
+            struct s2n_stuffer_reservation modes_size = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_reserve_uint8(&extension, &modes_size));
+
+            /*
+             *= https://www.rfc-editor.org/rfc/rfc8701#section-2
+             *= type=test
+             *# The following values are reserved as GREASE values for
+             *# PskKeyExchangeModes:
+             *#
+             *#    0x0B
+             *#
+             *#    0x2A
+             *#
+             *#    0x49
+             *#
+             *#    0x68
+             *#
+             *#    0x87
+             *#
+             *#    0xA6
+             *#
+             *#    0xC5
+             *#
+             *#    0xE4
+             */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x0B));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x2A));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x49));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x68));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x87));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0xA6));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0xC5));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0xE4));
+
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&modes_size));
+
+            /* No valid non-GREASE option */
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                conn->actual_protocol_version = S2N_TLS13;
+
+                EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &extension));
+                EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+                EXPECT_SUCCESS(s2n_stuffer_reread(&extension));
+            }
+
+            /* Valid non-GREASE option */
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                conn->actual_protocol_version = S2N_TLS13;
+
+                /* Add the valid option and rewrite size */
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, TLS_PSK_DHE_KE_MODE));
+                EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&modes_size));
+
+                EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &extension));
+                EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_DHE_KE);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+                EXPECT_SUCCESS(s2n_stuffer_reread(&extension));
+            }
         }
     }
 

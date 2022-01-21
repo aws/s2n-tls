@@ -13,31 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
-#include <poll.h>
+#include <sys/socket.h>
 #include <netdb.h>
 
-#include <stdlib.h>
-#include <signal.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <getopt.h>
-#include <strings.h>
-#include <errno.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
+#include "api/s2n.h"
 #include "common.h"
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
 
-#define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
+#define OPT_TICKET_IN 1000
+#define OPT_TICKET_OUT 1001
 
 void usage()
 {
@@ -51,6 +45,8 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  --enter-fips-mode\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  -h,--help\n");
@@ -77,6 +73,10 @@ void usage()
     fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
     fprintf(stderr, "  -T,--no-session-ticket \n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
+    fprintf(stderr, "  --ticket-out [file path]\n");
+    fprintf(stderr, "    Path to a file where the session ticket can be stored.\n");
+    fprintf(stderr, "  --ticket-in [file path]\n");
+    fprintf(stderr, "    Path to session ticket file to resume connection.\n");
     fprintf(stderr, "  -D,--dynamic\n");
     fprintf(stderr, "    Set dynamic record resize threshold\n");
     fprintf(stderr, "  -t,--timeout\n");
@@ -85,11 +85,6 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  -B,--non-blocking\n");
     fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
-    fprintf(stderr, "  -K ,--keyshares\n");
-    fprintf(stderr, "    Colon separated list of curve names.\n"
-                    "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
-                    "    The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares.\n"
-                    "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
@@ -102,25 +97,7 @@ void usage()
     exit(1);
 }
 
-struct verify_data {
-    const char *trusted_host;
-};
 
-static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
-    struct verify_data *verify_data = (struct verify_data *)data;
-
-    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
-        char *suffix = strstr(verify_data->trusted_host, ".");
-        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
-    }
-
-    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
-        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
-                || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
-    }
-
-    return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
-}
 
 size_t session_state_length = 0;
 uint8_t *session_state = NULL;
@@ -196,7 +173,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
                     fprintf(stderr, "Error allocating memory\n");
                     exit(1);
                 }
-                memcpy(protocols[idx], next, length);
+                memmove(protocols[idx], next, length);
                 protocols[idx][length] = '\0';
                 length = 0;
                 idx++;
@@ -213,7 +190,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
                 fprintf(stderr, "Error allocating memory\n");
                 exit(1);
             }
-            memcpy(protocols[idx], next, length);
+            memmove(protocols[idx], next, length);
             protocols[idx][length] = '\0';
         }
 
@@ -264,6 +241,8 @@ int main(int argc, char *const *argv)
     const char *client_key = NULL;
     bool client_cert_input = false;
     bool client_key_input = false;
+    const char *ticket_out = NULL;
+    char *ticket_in = NULL;
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
@@ -273,16 +252,13 @@ int main(int argc, char *const *argv)
     uint8_t dyn_rec_timeout = 0;
     /* required args */
     const char *cipher_prefs = "default";
+    int fips_mode = 0;
     const char *host = NULL;
     struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
     int use_corked_io = 0;
     uint8_t non_blocking = 0;
-    int keyshares_count = 0;
-    char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
-    char *input = NULL;
-    char *token = NULL;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
@@ -292,6 +268,7 @@ int main(int argc, char *const *argv)
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
         {"ciphers", required_argument, 0, 'c'},
+        {"enter-fips-mode", no_argument, NULL, 'F'},
         {"echo", no_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
@@ -303,12 +280,13 @@ int main(int argc, char *const *argv)
         {"key", required_argument, 0, 'k'},
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
+        {"ticket-out", required_argument, 0, OPT_TICKET_OUT},
+        {"ticket-in", required_argument, 0, OPT_TICKET_IN},
         {"no-session-ticket", no_argument, 0, 'T'},
         {"dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
-        {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
@@ -318,7 +296,7 @@ int main(int argc, char *const *argv)
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:P:E:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -332,22 +310,14 @@ int main(int argc, char *const *argv)
         case 'c':
             cipher_prefs = optarg;
             break;
+        case 'F':
+            fips_mode = 1;
+            break;
         case 'e':
             echo_input = 1;
             break;
         case 'h':
             usage();
-            break;
-        case 'K':
-            input = optarg;
-            token = strtok(input, ":");
-            while( token != NULL ) {
-                strcpy(keyshares[keyshares_count], token);
-                if (++keyshares_count == S2N_ECC_EVP_SUPPORTED_CURVES_COUNT) {
-                    break;
-                }
-                token = strtok(NULL, ":");
-            }
             break;
         case 'n':
             server_name = optarg;
@@ -377,6 +347,12 @@ int main(int argc, char *const *argv)
             break;
         case 'r':
             reconnect = 5;
+            break;
+        case OPT_TICKET_OUT:
+            ticket_out = optarg;
+            break;
+        case OPT_TICKET_IN:
+            ticket_in = optarg;
             break;
         case 'T':
             session_ticket = 0;
@@ -445,6 +421,21 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (fips_mode) {
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
+        if (FIPS_mode_set(1) == 0) {
+            unsigned long fips_rc = ERR_get_error();
+            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
+            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            exit(1);
+        }
+        printf("s2nc entered FIPS mode\n");
+#else
+        fprintf(stderr, "Error entering FIPS mode. s2nc is not linked with a FIPS-capable libcrypto.\n");
+        exit(1);
+#endif
+    }
+
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
@@ -496,6 +487,7 @@ int main(int argc, char *const *argv)
         }
 
         if (ca_file || ca_dir) {
+            GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
@@ -542,10 +534,13 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
         }
 
-        for (size_t i = 0; i < keyshares_count; i++) {
-            if (keyshares[i]) {
-                GUARD_EXIT(s2n_connection_set_keyshare_by_name_for_testing(conn, keyshares[i]), "Error setting keyshares to generate");
-            }
+        /* Read in session ticket from previous session */
+        if (ticket_in) {
+            GUARD_EXIT(get_file_size(ticket_in, &session_state_length), "Failed to read ticket-in file");
+            free(session_state);
+            session_state = calloc(session_state_length, sizeof(uint8_t));
+            GUARD_EXIT_NULL(session_state);
+            GUARD_EXIT(load_file_to_array(ticket_in, session_state, session_state_length), "Failed to read ticket-in file");
         }
 
         /* Update session state in connection if exists */
@@ -576,7 +571,7 @@ int main(int argc, char *const *argv)
         printf("Connected to %s:%s\n", host, port);
 
         /* Save session state from connection if reconnect is enabled. */
-        if (reconnect > 0) {
+        if (reconnect > 0 || ticket_out) {
             if (conn->actual_protocol_version >= S2N_TLS13) {
                 if (!session_ticket) {
                     print_s2n_error("s2nc can only reconnect in TLS1.3 with session tickets.");
@@ -596,6 +591,9 @@ int main(int argc, char *const *argv)
                     print_s2n_error("Error getting serialized session state");
                     exit(1);
                 }
+            }
+            if(ticket_out) {
+                GUARD_EXIT(write_array_to_file(ticket_out, session_state, session_state_length), "Failed to write to ticket-out file");
             }
         }
 

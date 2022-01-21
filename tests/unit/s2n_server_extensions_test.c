@@ -17,7 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
@@ -51,9 +51,9 @@ static int configure_tls13_connection(struct s2n_connection *conn)
     EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     EXPECT_NOT_NULL(ecc_pref);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     POSIX_GUARD(s2n_connection_allow_all_response_extensions(conn));
 
@@ -63,7 +63,7 @@ static int configure_tls13_connection(struct s2n_connection *conn)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_cert_chain_and_key *chain_and_key;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -92,7 +92,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -110,12 +112,12 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
 
             /* TLS 1.3: server name extension is not sent here */
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(configure_tls13_connection(conn));
             conn->server_name_used = 1;
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
-            EXPECT_SUCCESS(s2n_disable_tls13(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -124,7 +126,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_ALPN, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             strcpy(conn->application_protocol, "h2");
@@ -139,12 +143,12 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
 
             /* TLS 1.3: extension is not sent here */
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(configure_tls13_connection(conn));
             strcpy(conn->application_protocol, "h2");
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
-            EXPECT_SUCCESS(s2n_disable_tls13(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -153,7 +157,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_MAX_FRAG_LEN, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -167,11 +173,11 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MFL_EXT_SIZE + EXTENSION_LEN);
 
             /* TLS 1.3: extension is not sent here */
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(configure_tls13_connection(conn));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
-            EXPECT_SUCCESS(s2n_disable_tls13(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -180,7 +186,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SCT_LIST, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -195,11 +203,11 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size + EXTENSION_LEN);
 
             /* TLS 1.3: extension is not sent here */
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(configure_tls13_connection(conn));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
-            EXPECT_SUCCESS(s2n_disable_tls13(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -208,7 +216,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_STATUS_REQUEST, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -224,11 +234,11 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size + EXTENSION_LEN);
 
             /* TLS 1.3: extension is not sent here */
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_SUCCESS(configure_tls13_connection(conn));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
-            EXPECT_SUCCESS(s2n_disable_tls13(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -255,7 +265,9 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -271,10 +283,9 @@ int main(int argc, char **argv)
 
         /* Test TLS13 Extensions */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -282,26 +293,23 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_pref);
 
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-            const uint8_t size = P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE;
-
-            EXPECT_EQUAL(s2n_extensions_server_supported_versions_size(conn), SUPPORTED_VERSION_SIZE);
             EXPECT_EQUAL(s2n_extensions_server_key_share_send_size(conn), P256_KEYSHARE_SIZE);
 
             EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(hello_stuffer));
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
-            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size + EXTENSION_LEN);
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, P256_KEYSHARE_SIZE + EXTENSION_LEN);
 
             /* Test that s2n_server_extensions_send() do not send extension < TLS13 */
             conn->actual_protocol_version = S2N_TLS12;
@@ -309,16 +317,15 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* Test Secure Negotiation server_hello extension not sent with TLS13 or higher */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -326,21 +333,20 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_pref);
 
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             /* secure renegotiation is requested */
             conn->secure_renegotiation = 1;
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             /* secure_renegotiation extension not send >=TLS13*/
-            uint8_t size = s2n_extensions_server_key_share_send_size(conn)
-                + s2n_extensions_server_supported_versions_size(conn);
+            uint8_t size = s2n_extensions_server_key_share_send_size(conn);
 
             EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
 
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
@@ -352,16 +358,18 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, tls12_server_extension_size);
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* Test New Session Ticket server_hello extension not sent with TLS13 or higher */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            s2n_extension_type_id extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &extension_id));
+            S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -369,7 +377,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_pref);
 
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* New Session Ticket Requested*/
             conn->config->use_tickets = 1;
@@ -379,15 +387,14 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* nst extension not send >=TLS13*/
-            uint8_t size = s2n_extensions_server_key_share_send_size(conn)
-                + s2n_extensions_server_supported_versions_size(conn);
+            uint8_t size = s2n_extensions_server_key_share_send_size(conn);
 
             EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
 
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
@@ -400,7 +407,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             uint8_t tls12_server_extension_size = NEW_SESSION_TICKET_SIZE + EXTENSION_LEN;
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, tls12_server_extension_size);
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
@@ -415,10 +422,9 @@ int main(int argc, char **argv)
             };
             const uint8_t cipher_count_tls13 = sizeof(wire_ciphers_with_tls13) / S2N_TLS_CIPHER_SUITE_LEN;
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
@@ -427,7 +433,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->client_protocol_version = S2N_TLS13;
@@ -435,14 +441,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-            uint8_t size = s2n_extensions_server_key_share_send_size(conn)
-                + s2n_extensions_server_supported_versions_size(conn);
+            uint8_t size = s2n_extensions_server_key_share_send_size(conn);
 
             EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
 
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
@@ -454,7 +459,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
@@ -479,9 +484,9 @@ int main(int argc, char **argv)
 
                 /* Setup required for other server extensions */
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-                conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-                conn->secure.client_ecc_evp_params[0].negotiated_curve = &s2n_ecc_curve_secp256r1;
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+                conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+                conn->kex_params.client_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
                 if (is_hrr) {
                     EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
@@ -530,7 +535,7 @@ int main(int argc, char **argv)
     /* Test supported_versions extension can change extensions processed.
      * In TLS1.2, we receive status_request on the ServerHello. TLS1.3 expects it on the Certificate. */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -657,7 +662,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

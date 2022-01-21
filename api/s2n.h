@@ -77,6 +77,21 @@ extern int s2n_error_get_type(int error);
 struct s2n_config;
 struct s2n_connection;
 
+/**
+ * Prevents S2N from calling `OPENSSL_crypto_init`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
+ * prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate
+ * with S2N.
+ */
+S2N_API
+extern int s2n_crypto_disable_init(void);
+
+/**
+ * Prevents S2N from installing an atexit handler, which allows safe shutdown of S2N from within a
+ * re-entrant shared library
+ */
+S2N_API
+extern int s2n_disable_atexit(void);
+
 S2N_API
 extern unsigned long s2n_get_openssl_version(void);
 S2N_API
@@ -180,6 +195,8 @@ extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_
 S2N_API
 extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
 S2N_API
+extern int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+S2N_API
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 S2N_API
 extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
@@ -205,6 +222,21 @@ S2N_API
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 S2N_API
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
+
+/**
+ * Clear the trust store.
+ *
+ * Note that the trust store will be initialized with the common locations for
+ * the host operating system by default. To completely override those locations,
+ * call this before functions like `s2n_config_set_verification_ca_location()`
+ * or `s2n_config_add_pem_to_trust_store()`
+ *
+ * @param config The configuration object being updated
+ *
+ * @return 0 on success and -1 on error
+ */
+S2N_API
+extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
 typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
 /* will be inherited by s2n_connection. If s2n_connection specifies a callback, that callback will be used for that connection. */
@@ -311,6 +343,10 @@ S2N_API
 extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
 S2N_API
 extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+S2N_API
+extern int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
+S2N_API
+extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 S2N_API
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
@@ -318,6 +354,25 @@ S2N_API
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 S2N_API
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
+
+/**
+  * Gets the assigned file descriptor for the read channel of an s2n connection.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param readfd pointer to place the used file descriptor.
+ */
+S2N_API
+extern int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd);
+
+/**
+  * Gets the assigned file descriptor for the write channel of an s2n connection.
+  *
+  * @param conn A pointer to the s2n connection
+  * @param writefd pointer to place the used file descriptor.
+ */
+S2N_API
+extern int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd);
+
 S2N_API
 extern int s2n_connection_use_corked_io(struct s2n_connection *conn);
 
@@ -438,6 +493,20 @@ extern int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_
  */
 S2N_API
 extern int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+
+/**
+ * Returns the number of session tickets issued by the server.
+ *
+ * In TLS1.3, this number can be up to the limit configured by s2n_config_set_initial_ticket_count
+ * and s2n_connection_add_new_tickets_to_send. In earlier versions of TLS, this number will be either 0 or 1.
+ *
+ * This method only works for server connections.
+ *
+ * @param conn A pointer to the connection object.
+ * @param num The number of additional session tickets sent.
+ */
+S2N_API
+extern int s2n_connection_get_tickets_sent(struct s2n_connection *conn, uint16_t *num);
 
 /**
  * Sets the keying material lifetime for >=TLS1.3 session tickets so that one session doesn't get re-used ad infinitum.
@@ -1007,24 +1076,130 @@ struct s2n_async_pkey_op;
 typedef enum { S2N_ASYNC_PKEY_VALIDATION_FAST, S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
 
+/**
+ * Callback function for handling private key operations
+ *
+ * Invoked every time an operation requiring the private key is encountered
+ * during the handshake.
+ *
+ * # Safety
+ * * `op` is owned by the application and MUST be freed.
+ *
+ * @param conn Connection which triggered the callback
+ * @param op An opaque object representing the private key operation
+ */
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+
+/**
+ * Sets up the callback to invoke when private key operations occur.
+ *
+ * @param config Config to set the callback
+ * @param fn The function that should be called for each private key operation
+ */
 S2N_API
 extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
+
+/**
+ * Performs a private key operation using the given private key.
+ *
+ * # Safety
+ * * Can only be called once. Any subsequent calls will produce a `S2N_ERR_T_USAGE` error.
+ * * Safe to call from inside s2n_async_pkey_fn
+ * * Safe to call from a different thread, as long as no other thread is operating on `op`.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param s2n_cert_private_key The private key used for the operation. It can be extracted from
+ * `conn` through the `s2n_connection_get_selected_cert` and `s2n_cert_chain_and_key_get_key` calls
+ */
 S2N_API
 extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
+
+/**
+ * Finalizes a private key operation and unblocks the connection.
+ *
+ * # Safety
+ * * `conn` must match the connection that originally triggered the callback.
+ * * Must be called after the operation is performed.
+ * * Can only be called once. Any subsequent calls will produce a `S2N_ERR_T_USAGE` error.
+ * * Safe to call from inside s2n_async_pkey_fn
+ * * Safe to call from a different thread, as long as no other thread is operating on `op`.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param conn The connection associated with the operation that should be unblocked
+ */
 S2N_API
 extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
+
+/**
+ * Frees the opaque structure representing a private key operation.
+ *
+ * # Safety
+ * * MUST be called for every operation passed to s2n_async_pkey_fn
+ * * Safe to call before or after the connection that created the operation is freed
+ *
+ * @param op An opaque object representing the private key operation
+ */
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
+
+/**
+ * Configures whether or not s2n-tls will perform potentially expensive validation of
+ * the results of a private key operation.
+ *
+ * @param config Config to set the validation mode for
+ * @param mode What level of validation to perform
+ */
 S2N_API
 extern int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
 
+/**
+ * Returns the type of the private key operation.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param type A pointer to be set to the type
+ */
 S2N_API
 extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
+
+/**
+ * Returns the size of the input to the private key operation.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param data_len A pointer to be set to the size
+ */
 S2N_API
 extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
+
+/**
+ * Returns the input to the private key operation.
+ *
+ * When signing, the input is the digest to sign.
+ * When decrypting, the input is the data to decrypt.
+ *
+ * # Safety
+ * * `data` must be sufficiently large to contain the input.
+ *   `s2n_async_pkey_op_get_input_size` can be called to determine how much memory is required.
+ * * s2n-tls does not take ownership of `data`.
+ *   The application still owns the memory and must free it if necessary.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param data A pointer to a buffer to copy the input into
+ * @param data_len The maximum size of the `data` buffer
+ */
 S2N_API
 extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
+
+/**
+ * Sets the output of the private key operation.
+ *
+ * # Safety
+ * * s2n-tls does not take ownership of `data`.
+ *   The application still owns the memory and must free it if necessary.
+ *
+ * @param op An opaque object representing the private key operation
+ * @param data A pointer to a buffer containing the output
+ * @param data_len The size of the `data` buffer
+ */
 S2N_API
 extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 

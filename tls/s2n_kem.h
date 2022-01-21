@@ -82,17 +82,27 @@ extern const struct s2n_kem s2n_sike_p434_r3;
 
 /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 6
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 10
 #else
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 3
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 5
 #endif
 
+extern const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT];
+
+/* secp256r1 KEM Groups */
+extern const struct s2n_kem_group s2n_secp256r1_bike_l1_r3;
 extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r3;
+extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
 extern const struct s2n_kem_group s2n_secp256r1_bike1_l1_r2;
 extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r2;
+
+/* x25519 KEM Groups */
+extern const struct s2n_kem_group s2n_x25519_bike_l1_r3;
 extern const struct s2n_kem_group s2n_x25519_sike_p434_r3;
+extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
 extern const struct s2n_kem_group s2n_x25519_bike1_l1_r2;
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r2;
+
 
 extern S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 extern S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);

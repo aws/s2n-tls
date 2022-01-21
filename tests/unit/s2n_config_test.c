@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <stdlib.h>
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -34,7 +34,7 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, vo
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
@@ -57,9 +57,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(default_config, s2n_fetch_default_config());
 
         /* TLS1.3 default does not match non-TLS1.3 default */
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_EQUAL(default_config, s2n_fetch_default_config());
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         EXPECT_SUCCESS(s2n_config_free(config));
     }
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
         /* For TLS1.3 */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, tls13_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
         /* For fips */
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, fips_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
     }
 
@@ -124,15 +124,15 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
             EXPECT_SUCCESS(s2n_config_free(config));
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_EQUAL(config->security_policy, tls13_security_policy);
-            EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20190801);
+            EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20210831);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
             EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
             EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
             EXPECT_SUCCESS(s2n_config_free(config));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
     }
 

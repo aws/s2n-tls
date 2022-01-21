@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     uint8_t latest_version = S2N_TLS13;
 
     struct s2n_config *config;

@@ -23,7 +23,7 @@ are using CMake that step is unnecessary. Just follow the instructions here to u
 
 (Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
 
-(Optional): Set the CMake variable `CMAKE_INSTALL_PREFIX` to the location libcrypto is installed to. If you do not,
+(Optional): Set the CMake variable `CMAKE_PREFIX_PATH` to the location libcrypto is installed to. If you do not,
 the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
@@ -474,6 +474,37 @@ int s2n_init();
 before any other s2n-tls functions are called. Failure to call s2n_init() will result
 in errors from other s2n-tls functions.
 
+### s2n\_crypto\_disable\_init
+
+```c
+int s2n_crypto_disable_init();
+```
+
+**s2n_crypto_disable_init** prevents s2n-tls from initializing or tearing down the crypto
+library. This is most useful when s2n-tls is embedded in an application or environment that
+shares usage of the OpenSSL or libcrypto library. Note that if you disable this and are
+using a version of OpenSSL/libcrypto < 1.1.x, you will be responsible for library init
+and cleanup (specifically OPENSSL_add_all_algorithms() or OPENSSL_crypto_init), and
+`EVP_*` APIs will not be usable unless the library is initialized.
+
+This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
+if s2n is already initialized.
+
+### s2n\_disable\_atexit
+
+```c
+int s2n_disable_atexit();
+```
+
+**s2n_disable_atexit** prevents s2n-tls from installing an atexit() handler to clean itself
+up. This is most useful when s2n-tls is embedded in an application or environment that
+shares usage of the OpenSSL or libcrypto library. Note that this will cause `s2n_cleanup` to
+do complete cleanup of s2n-tls when called from the main thread (the thread `s2n_init` was
+called from).
+
+This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
+if s2n is already initialized.
+
 ### s2n\_cleanup
 
 ```c
@@ -533,7 +564,7 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190120"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
 |   "20190121"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
 |   "20190122"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
 |   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
@@ -778,9 +809,10 @@ will be used if this callback is not manually set.
 int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 ```
 
-**s2n_config_set_verification_ca_location**  initializes the trust store from a CA file or directory
-containing trusted certificates.  By default, the trust store will be initialized to the common locations
-for the host operating system. Call this function to override that behavior.
+**s2n_config_set_verification_ca_location** adds to the trust store from a CA file or directory
+containing trusted certificates. Note that the trust store will be initialized with the common locations
+for the host operating system by default. To completely override those locations, call
+[s2n_config_wipe_trust_store](#s2n_config_wipe_trust_store) before calling this function.
 Returns 0 on success and -1 on failure.
 
 ### s2n\_config\_add\_pem\_to\_trust\_store
@@ -788,7 +820,24 @@ Returns 0 on success and -1 on failure.
 int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 ```
 
-**s2n_config_add_pem_to_trust_store**  Initialize trust store from a PEM. This will allocate memory, and load PEM into the Trust Store
+**s2n_config_add_pem_to_trust_store**  adds a PEM to the trust store. This will allocate memory, and load PEM into the Trust Store.
+Note that the trust store will be initialized with the common locations for the host operating system by default.
+To completely override those locations, call [s2n_config_wipe_trust_store](#s2n_config_wipe_trust_store)
+before calling this function.
+This function returns 0 on success and -1 on error.
+
+
+### s2n\_config\_wipe\_trust\_store
+```c
+int s2n_config_wipe_trust_store(struct s2n_config *config);
+```
+
+***s2n_config_wipe_trust_store*** clears the trust store.
+Note that the trust store will be initialized with the common locations for the host operating system by default.
+To completely override those locations, call this before functions like
+[s2n_config_set_verification_ca_location](#s2n_config_set_verification_ca_location)
+or [s2n_config_add_pem_to_trust_store](#s2n_config_add_pem_to_trust_store).
+This function returns 0 on success and -1 on error.
 
 ### s2n\_verify\_host\_fn
 ```c
@@ -959,6 +1008,17 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
 **chain_pem_len** is the length of the certificate chain.
 **private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
 **private_key_pem_len** is the length of the private key.
+
+### s2n\_cert\_chain\_and\_key\_load\_public\_pem\_bytes
+
+```c
+int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
+```
+
+**s2n_cert_chain_and_key_load_public_pem_bytes** associates a public certificate chain with a **s2n_cert_chain_and_key** object. It does NOT set a private key, so the connection will need to be configured to [offload private key operations](#offloading-asynchronous-private-key-operations).
+
+**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
+**chain_pem_len** is the length in bytes of the PEM encoded certificate chain.
 
 ### s2n\_cert\_chain\_and\_key\_set\_ctx
 
@@ -1284,7 +1344,7 @@ number actually used by s2n-tls for the connection. **s2n_connection_get_client_
 returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
-**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
+**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11**, **S2N_TLS12**, and **S2N_TLS13**.
 
 ### s2n\_connection\_set\_verify\_host\_callback
 ```c
@@ -1368,6 +1428,19 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 **s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
 **s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
 
+### s2n\_client\_hello\_get\_session\_id
+
+```c
+int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
+int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
+```
+
+These functions retrieve the session id as sent by the client in the ClientHello message. The session id on the **s2n_connection** may change later when the server sends the ServerHello; see **s2n_connection_get_session_id** for how to get the final session id used for future session resumption.
+
+**s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
+
+**s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
+
 ### s2n\_connection\_client\_cert\_used
 
 ```c
@@ -1444,7 +1517,7 @@ negotiated by s2n-tls for a connection in Openssl format, e.g. "ECDHE-RSA-AES128
 const char * s2n_connection_get_curve(struct s2n_connection *conn);
 ```
 
-**s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
+**s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
 
 ### s2n\_connection\_get\_selected\_cert
 
@@ -1563,13 +1636,13 @@ If the first byte in **session** is 0, then the next byte will contain session i
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
-**s2n_connection_get_session_id_length** returns session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
+**s2n_connection_get_session_id_length** returns the latest session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
 
-**s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of copied bytes.
+**s2n_connection_get_session_id** gets the latest session id from the connection, copies it into the **session_id** buffer, and returns the number of copied bytes. The session id may change between s2n receiving the ClientHello and sending the ServerHello, but this function will always describe the latest session id. See **s2n_client_hello_get_session_id** to get the session id as it was sent by the client in the ClientHello message.
 
-**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
+**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 
-## TLS1.3 Session Resumption Related Calls
+### TLS1.3 Session Resumption Related Calls
 
 Session resumption works differently in versions TLS1.3 and higher. While some of the TLS1.2 session resumption APIs have relevance for TLS1.3 session resumption, you need additional APIs to utilize all the capabilities of TLS1.3 session resumption. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Additionally, multiple session tickets may be issued for the same connection.
 
@@ -1631,114 +1704,6 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
 
-### Asynchronous private key operations related calls
-
-When s2n-tls is used in non-blocking mode, this set of functions allows user
-to move execution of CPU-heavy private key operations out of the main
-event loop, preventing **s2n_negotiate** blocking the loop for a few
-milliseconds each time the private key operation needs to be performed.
-
-To enable asynchronous private key operations user needs to provide a
-callback function **s2n_async_pkey_fn** to
-**s2n_config_set_async_pkey_callback** call. This function will be
-executed during **s2n_negotiate** call every time an operation on private
-key needs to be performed. The argument **op** represents the operation
-to perform. From the callback the user can spawn the thread to perform
-**op** through **s2n_async_pkey_op_perform** call and immediately return
-**S2N_SUCCESS** from the function without waiting for thread to complete.
-The **s2n_negotiate** will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
-error type and **s2n_blocked_status** **S2N_BLOCKED_ON_APPLICATION_INPUT**,
-and will keep giving the same error until the **op** is performed and
-applied to the connection through **s2n_async_pkey_op_apply** call.
-
-Note, it is not safe to call multiple functions on the same **conn** or
-**op** objects from 2 different threads at the same time. Doing so will
-produce undefined behavior. However it is safe to have a call to
-function involving only **conn** at the same time with a call to
-function involving only **op**, as those 2 objects are not coupled with
-each other. It is also safe to free **conn** or **op** at any moment with
-respective function calls, with the only exception that **conn** cannot
-be freed inside the **s2n_async_pkey_fn** callback.
-
-```c
-typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
-extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
-extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
-extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
-extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
-```
-
-- **op** is an opaque object representing private key operation which
-needs to be performed.
-- **key** is a private key used for operation, can be extracted from
-  **conn** through **s2n_connection_get_selected_cert** and
-  **s2n_cert_chain_and_key_get_key** calls.
-
-**s2n_async_pkey_fn** is invoked every time some action involving
-private key is required during **s2n_negotiate**. The **conn** provides
-a pointer to the connection which triggered the callback, the **op** is
-a pointer to an operation to be performed. The callback takes the
-ownership of **op** object and is responsible for freeing the memory for
-it.
-
-**s2n_config_set_async_pkey_callback** sets up the callback to invoke
-for asynchronous private key operations and enables asynchronous mode.
-
-**s2n_async_pkey_op_perform** performs the **op** allowing it to be used
-to resume the handshake through **s2n_async_pkey_op_apply** call. This
-function can be called only once and any subsequent calls will produce a
-failure. It is safe to call from a different thread, as long as no other
-thread is operating on **op**.
-
-**s2n_async_pkey_op_apply** applies the performed **op** to **conn**
-allowing for the next call to **s2n_negotiate** to proceed through
-handshake. The function will fail if it is called from
-**s2n_async_pkey_fn** callback, or if **op** was not performed through
-**s2n_async_pkey_op_perform** call, or if provided **conn** is different
-from the original **conn** which initiated callback for this **op**. The
-function will succeed only once and any subsequent call will result in
-failure for the same **op**.
-
-**s2n_async_pkey_op_free** frees the memory for **op**. Should eventually
-be called for each of the **op** received in **s2n_async_pkey_fn** to
-avoid any memory leaks.
-
-### Offloading asynchronous private key operations
-**The s2n_async_pkey_op_\*** API can be used to perform a private key operation
-outside of the S2N context. The application can query the type of private
-key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
-an operation, the application must ask S2N to copy the operation's input into an
-application supplied buffer. The appropriate buffer size can be determined by calling
-**s2n_async_pkey_op_get_input_size**. Once a buffer of proper size is
-allocated, the application can request the input data from the **s2n_async_pkey_op**
-by calling **s2n_async_pkey_op_get_input**. After the operation is completed, the
-finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**.
-Once the output is set the asynchronous private key operation can be completed by
-following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
-to apply the operation and free the op object.
-
-
-```c
-typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
-
-extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
-extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
-extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
-extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
-```
-
-**s2n_async_pkey_op_type** contains the private key operation types.
-**s2n_async_pkey_op_get_op_type** retrieves the operation type of the **op**.
-**s2n_async_pkey_op_get_input_size** queries the **op** for the size of the input data.
-**s2n_async_pkey_op_get_input** retrieves the input data buffer from the **op**.
-The **op** will copy the data into a buffer passed in through the **data** parameter.
-This buffer is owned by the application, and it is the responsibility of the
-application to free it.
-**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it
-to complete the private key operation. The data buffer is owned by the application.
-Once **s2n_async_pkey_op_set_output** has returned, the application is free to
-release the data buffer.
-
 ### s2n\_connection\_free\_handshake
 
 ```c
@@ -1781,6 +1746,85 @@ int s2n_connection_free(struct s2n_connection *conn);
 handle. The handle is considered invalid after **s2n_connection_free** is used.
 [s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
 of sensitive data.
+
+## Private Key Operation Related Calls
+
+By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
+and decryption operations required for a tls handshake. However, this default behavior may not
+work for some situations.
+
+For example:
+* An application may want to perform the CPU-expensive signature and decryption operations
+asynchronously to avoid blocking the main event loop.
+See [Asynchronous private key operations](#Asynchronous-private-key-operations)
+* An application may not have direct access to the private key, such as when using PKCS#11.
+See [Offloading private key operations](#Offloading-private-key-operations)
+
+To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
+are performed. The callback is set via **s2n_config_set_async_pkey_callback** and is triggered 
+every time **s2n_negotiate** performs an action involving the private key. The callback is passed
+**op**, an opaque object representing the private key operation. To avoid memory leaks, **op** must
+always eventually be freed by calling **s2n_async_pkey_op_free**.
+
+The private key operation can be performed by calling **s2n_async_pkey_op_perform**
+(or **s2n_async_pkey_op_set_output**: see [Offloading private key operations](#Offloading-private-key-operations)).
+The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
+
+### Asynchronous Private Key Operations
+
+When s2n-tls is used in non-blocking mode, private key operations can be completed
+asynchronously. This model can be useful to move execution of
+CPU-heavy private key operations out of the main
+event loop, preventing **s2n_negotiate** from blocking the loop for a few
+milliseconds each time the private key operation needs to be performed.
+
+To handle private key operations asynchronously, return from the callback without calling
+**s2n_async_pkey_op_perform** or **s2n_async_pkey_op_apply**. Usually the user would do this
+by spawning a separate thread to perform **op** and immediately returning **S2N_SUCCESS**
+from the callback without waiting for that separate thread to complete. In response,
+**s2n_negotiate** will return **S2N_FAILURE** with an error of type **S2N_ERR_T_BLOCKED**
+and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**.
+All subsequent calls to **s2n_negotiate** will produce the same result until **s2n_async_pkey_op_apply**
+is called to finalize the **op**.
+
+Note: It is not safe to call multiple functions on the same **conn** or
+**op** objects from 2 different threads at the same time. Doing so will
+produce undefined behavior. However it is safe to have a call to a
+function involving only **conn** at the same time as a call to a
+function involving only **op**, as those objects are not coupled with
+each other. It is also safe to free **conn** or **op** at any moment with
+respective function calls, with the exception that **conn** cannot
+be freed inside the **s2n_async_pkey_fn** callback.
+
+### Synchronous Private Key Operations
+
+Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
+To complete an operation synchronously, simply call **s2n_async_pkey_op_perform** and **s2n_async_pkey_op_apply** inside the callback.
+If the callback succeeds, the handshake will continue uninterrupted.
+If the callback fails, **s2n_negotiate** will fail with an error of type **S2N_ERR_T_INTERNAL**.
+
+### Offloading Private Key Operations
+
+The **s2n_async_pkey_op_perform** call used to perform a private key operation requires
+direct access to the private key. In some cases, like when using PKCS#11, users may not
+have access to the private key. In these cases, we can substitute **s2n_async_pkey_op_set_output**
+for **s2n_async_pkey_op_perform** to tell s2n-tls the result of the operation rather than
+having s2n-tls perform the operation itself.
+
+s2n-tls provides a number of calls to gather the information necessary for
+an outside module or library to perform the operation. The application can query the type of private
+key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
+an operation, the application must ask s2n-tls to copy the operation's input into an
+application supplied buffer. The appropriate buffer size can be determined by calling
+**s2n_async_pkey_op_get_input_size**. Once a buffer of the proper size is
+allocated, the application can request the input data by calling **s2n_async_pkey_op_get_input**.
+After the operation is completed, the finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**.
+Once the output is set, the private key operation can be completed by calling **s2n_async_pkey_op_apply** as usual.
+
+Offloading can be performed either synchronously or asynchronously. If the offloaded operation
+fails synchronously, simply return S2N_FAILURE from the callback. If the offloaded operation
+fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
+simply shutdown and cleanup the connection as you would for any other error.
 
 ## TLS1.3 Pre-Shared Key Related Calls
 

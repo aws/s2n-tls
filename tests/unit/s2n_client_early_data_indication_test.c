@@ -36,6 +36,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     /* Test s2n_client_early_data_indication_should_send */
     {
         /* Safety check */
@@ -450,21 +454,9 @@ int main(int argc, char **argv)
 
         /* Hello Retry Request because of missing key share: still rejects early data */
         {
-            const struct s2n_ecc_named_curve *const curves_reversed_order[] = {
-                &s2n_ecc_curve_secp384r1,
-                &s2n_ecc_curve_secp256r1,
-            };
-            const struct s2n_ecc_preferences ecc_prefs_reversed_order = {
-                    .count = s2n_array_len(curves_reversed_order),
-                    .ecc_curves = curves_reversed_order,
-            };
-            struct s2n_security_policy sec_policy_reversed_order = security_policy_test_all_tls13;
-            sec_policy_reversed_order.ecc_preferences = &ecc_prefs_reversed_order;
-            const struct s2n_security_policy retry_policy = sec_policy_reversed_order;
-
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
-            client_conn->security_policy_override = &retry_policy;
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));

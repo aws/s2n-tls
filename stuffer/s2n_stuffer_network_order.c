@@ -63,6 +63,11 @@ int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u)
     return S2N_SUCCESS;
 }
 
+int s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
+{
+    return s2n_stuffer_reserve(stuffer, reservation, sizeof(uint8_t));
+}
+
 int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t * u)
 {
     POSIX_ENSURE_REF(u);

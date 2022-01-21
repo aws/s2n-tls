@@ -26,12 +26,50 @@
     (((client->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
      && ((server->handshake.handshake_type) & HELLO_RETRY_REQUEST))
 
+#define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
+
 struct s2n_early_data_test_case {
     bool ticket_supported;
     bool client_supported;
     bool server_supported;
     bool expect_success;
 };
+
+static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
+{
+    uint16_t tickets_sent = 0;
+    RESULT_GUARD_POSIX(s2n_connection_get_tickets_sent(conn, &tickets_sent));
+    RESULT_ENSURE_EQ(tickets_sent, expected_tickets_sent);
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_wipe_connections(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
+        struct s2n_test_io_pair *io_pair)
+{
+    RESULT_GUARD_POSIX(s2n_connection_wipe(server_conn));
+    RESULT_GUARD_POSIX(s2n_connection_wipe(client_conn));
+    RESULT_GUARD_POSIX(s2n_io_pair_close(io_pair));
+    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(io_pair));
+    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client_conn, server_conn, io_pair));
+    return S2N_RESULT_OK;
+}
+
+static int s2n_cache_retrieve_cb(struct s2n_connection *conn, void *ctx, const void *key,
+        uint64_t key_size, void *value, uint64_t *value_size)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_cache_store_cb(struct s2n_connection *conn, void *ctx, uint64_t ttl_in_seconds,
+        const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_cache_delete_cb(struct s2n_connection *conn,  void *ctx, const void *key, uint64_t key_size)
+{
+    return S2N_SUCCESS;
+}
 
 static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
@@ -142,6 +180,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
+
     /* For some session resumption test cases, we want to test all possible configurations of 0-RTT support. */
     size_t test_case_i = 0;
     struct s2n_early_data_test_case early_data_test_cases[ 2 * 2 * 2 ] = { 0 };
@@ -163,23 +205,19 @@ int main(int argc, char **argv)
     /* Setup server config */
     struct s2n_config *server_config = s2n_config_new();
     EXPECT_NOT_NULL(server_config);
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "AWS-CRT-SDK-TLSv1.0"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
     struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
-    struct s2n_cert_chain_and_key *tls12_chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls12_chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, 
-                                                   S2N_DEFAULT_TEST_PRIVATE_KEY));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls12_chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, true));
     EXPECT_SUCCESS(s2n_setup_test_ticket_key(server_config));
 
     /* Setup TLS1.3 client config */
     struct s2n_config *tls13_client_config = s2n_config_new();
     EXPECT_NOT_NULL(tls13_client_config);
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "AWS-CRT-SDK-TLSv1.0"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls13_client_config));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls13_client_config, true));
     DEFER_CLEANUP(struct s2n_stuffer cb_session_data = { 0 }, s2n_stuffer_free);
@@ -189,9 +227,10 @@ int main(int argc, char **argv)
     /* Setup TLS1.2 client config */
     struct s2n_config *tls12_client_config = s2n_config_new();
     EXPECT_NOT_NULL(tls12_client_config);
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "20170210"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "ELBSecurityPolicy-2016-08"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls12_client_config));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls12_client_config, true));
+    EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(tls12_client_config, s2n_test_session_ticket_cb, &cb_session_data));
 
     /* Test: Server and client resume a session multiple times */
     for (size_t early_data_i = 0; early_data_i < s2n_array_len(early_data_test_cases); early_data_i++) {
@@ -414,13 +453,12 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -437,8 +475,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Client sets up a resumption connection with the received session ticket data */
         size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
@@ -566,6 +603,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+        EXPECT_TICKETS_SENT(server_conn, 2);
         EXPECT_SUCCESS(s2n_stuffer_copy(&cb_session_data, &tls13_ticket, s2n_stuffer_data_available(&cb_session_data)));
 
         /* Prepare client and server for a second connection */
@@ -576,6 +614,7 @@ int main(int argc, char **argv)
         /* Negotiate initial TLS1.2 handshake */
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_client_config));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TICKETS_SENT(server_conn, 1);
         int tls12_ticket_length = s2n_connection_get_session_length(client_conn);
         EXPECT_SUCCESS(s2n_stuffer_skip_write(&tls12_ticket, tls12_ticket_length));
         EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_ticket.blob.data, tls12_ticket_length));
@@ -598,6 +637,9 @@ int main(int argc, char **argv)
             /* Client sets up a resumption connection with the received session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.blob.data, s2n_stuffer_data_available(&tls12_ticket)));
 
+            /* Check that no ticket has actually been sent */
+            EXPECT_TICKETS_SENT(server_conn, 0);
+
             /* s2n_connection_get_session will be non-zero if a TLS1.2 ticket was set on the connection */
             uint32_t session_length = s2n_connection_get_session_length(client_conn);
             EXPECT_TRUE(session_length > 0);
@@ -612,18 +654,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&session_state_stuffer, &session_state));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&session_state_stuffer, session_length));
             EXPECT_SUCCESS(s2n_client_deserialize_resumption_state(client_conn, &session_state_stuffer));
-
-            /* A TLS1.2 ticket set on a TLS1.3 connection will cause a downgrade error during negotiation,
-             * as seen in an earlier test */
-            if (client_config[j] == tls13_client_config) {
-                continue;
-            }
-
-            /* Negotiate TLS1.2 connection */
-            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
-            /* The session length should be non-zero after a client has received a session ticket */
-            EXPECT_TRUE(s2n_connection_get_session_length(client_conn) > 0);
         }
 
         /* Tests that if a TLS1.3 ticket is set on the connection, s2n_connection_get_session will
@@ -664,12 +694,242 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* If the server has no ticket key, no session tickets are issued or accepted.
+     * We should always fall back to a full handshake.
+     */
+    {
+        /* Setup config without session ticket key */
+        struct s2n_config *no_key_config = s2n_config_new();
+        EXPECT_NOT_NULL(no_key_config);
+        no_key_config->security_policy = server_config->security_policy;
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config, true));
+
+        struct s2n_config *no_key_config_with_cache = s2n_config_new();
+        EXPECT_NOT_NULL(no_key_config_with_cache);
+        no_key_config_with_cache->security_policy = server_config->security_policy;
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config_with_cache));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config_with_cache, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config_with_cache, true));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(no_key_config_with_cache, s2n_cache_store_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(no_key_config_with_cache, s2n_cache_retrieve_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(no_key_config_with_cache, s2n_cache_delete_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(no_key_config_with_cache, true));
+        EXPECT_TRUE(no_key_config_with_cache->use_session_cache);
+
+        /* TLS1.2 */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket, 0));
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_client_config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Initial handshake */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+                EXPECT_SUCCESS(s2n_stuffer_copy(&cb_session_data, &ticket, s2n_stuffer_data_available(&cb_session_data)));
+                EXPECT_TRUE(s2n_stuffer_data_available(&ticket) > 0);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Initial handshake with no ticket keys */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Initial handshake with no ticket keys and session id caching */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config_with_cache));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Resumption handshake */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn,
+                        ticket.blob.data, s2n_stuffer_data_available(&ticket)));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Resumption handshake with no ticket keys */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn,
+                        ticket.blob.data, s2n_stuffer_data_available(&ticket)));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Resumption handshake with no ticket keys and session id caching */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config_with_cache));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn,
+                        ticket.blob.data, s2n_stuffer_data_available(&ticket)));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        }
+
+        /* TLS1.3 */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket, 0));
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Initial handshake */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_TRUE(server_conn->tickets_sent > 1);
+                EXPECT_SUCCESS(s2n_stuffer_copy(&cb_session_data, &ticket, s2n_stuffer_data_available(&cb_session_data)));
+                EXPECT_TRUE(s2n_stuffer_data_available(&ticket) > 0);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Initial handshake with no ticket keys */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_EQUAL(server_conn->tickets_sent, 0);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Initial handshake with no ticket keys and session id caching */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config_with_cache));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_EQUAL(server_conn->tickets_sent, 0);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Resumption handshake */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn,
+                        ticket.blob.data, s2n_stuffer_data_available(&ticket)));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_EQUAL(server_conn->tickets_sent, 1);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Resumption handshake with no ticket keys */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn,
+                        ticket.blob.data, s2n_stuffer_data_available(&ticket)));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_EQUAL(server_conn->tickets_sent, 0);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            /* Resumption handshake with no ticket keys and session id caching */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config_with_cache));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn,
+                        ticket.blob.data, s2n_stuffer_data_available(&ticket)));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+                EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+                EXPECT_EQUAL(server_conn->tickets_sent, 0);
+
+                EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
+            }
+
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        }
+
+        EXPECT_SUCCESS(s2n_config_free(no_key_config));
+        EXPECT_SUCCESS(s2n_config_free(no_key_config_with_cache));
+    }
+
     /* Clean-up */
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(tls13_client_config));
     EXPECT_SUCCESS(s2n_config_free(tls12_client_config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls12_chain_and_key));
 
     END_TEST();
 }

@@ -15,10 +15,11 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_ecc_preferences.h"
-#include "s2n.h"
+#include "api/s2n.h"
 #include "tls/s2n_handshake.h"
 #include "pq-crypto/s2n_pq.h"
 
@@ -27,7 +28,7 @@
 
 int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
-        const struct s2n_ecc_named_curve *expected_curve, bool should_send_ec_shares, bool hrr_expected) {
+        const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected) {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
 
@@ -63,11 +64,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     server_conn->security_policy_override = server_sec_policy;
 
     /* Client sends ClientHello */
-    if (!should_send_ec_shares) {
-        /* In certain tests, we do not want to send any classic EC shares in order to force
-         * the server to choose PQ with HRR for negotiation. */
-        POSIX_GUARD(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
-    }
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
     POSIX_GUARD(s2n_handshake_write_io(client_conn));
 
@@ -83,15 +79,15 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
-        POSIX_ENSURE_EQ(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     } else {
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Server sends ServerHello or HRR */
@@ -147,25 +143,25 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* Assert that the correct group was negotiated (we re-check the server group to assert that
      * nothing unexpected changed between then and now while e.g. processing HRR) */
     if (expected_kem_group) {
-        POSIX_ENSURE_EQ(expected_kem_group, client_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, client_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-        POSIX_ENSURE_EQ(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     } else {
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(expected_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_group);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
-        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        POSIX_ENSURE_EQ(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Verify basic properties of secrets */
@@ -214,6 +210,10 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
 int main() {
     BEGIN_TEST();
+
+    if (!s2n_is_tls13_fully_supported()) {
+        END_TEST();
+    }
 
     /* Additional KEM preferences/security policies to test against. These policies can only be used
      * as the server's policy in this test: when generating the ClientHello, the client relies on
@@ -290,15 +290,25 @@ int main() {
             .ecc_preferences = &s2n_ecc_preferences_20200310,
     };
 
-    const struct s2n_kem_group *expected_kyber_group = &s2n_x25519_kyber_512_r2;
-    const struct s2n_kem_group *expected_bike_group = &s2n_x25519_bike1_l1_r2;
-    const struct s2n_kem_group *expected_sike_group = &s2n_x25519_sike_p434_r3;
+    const struct s2n_security_policy ecc_retry_policy = {
+            .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
+            .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
+            .kem_preferences = security_policy_pq_tls_1_0_2020_12.kem_preferences,
+            .signature_preferences = security_policy_pq_tls_1_0_2020_12.signature_preferences,
+            .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
+    };
+
+    const struct s2n_kem_group *expected_kyber_r2_group = &s2n_x25519_kyber_512_r2;
+    const struct s2n_kem_group *expected_bike_r2_group = &s2n_x25519_bike1_l1_r2;
+    const struct s2n_kem_group *expected_kyber_r3_group = &s2n_x25519_kyber_512_r3;
+    const struct s2n_kem_group *expected_sike_r3_group = &s2n_x25519_sike_p434_r3;
     const struct s2n_ecc_named_curve *expected_curve = &s2n_ecc_curve_x25519;
 
     if (!s2n_is_evp_apis_supported()) {
-        expected_kyber_group = &s2n_secp256r1_kyber_512_r2;
-        expected_bike_group = &s2n_secp256r1_bike1_l1_r2;
-        expected_sike_group = &s2n_secp256r1_sike_p434_r3;
+        expected_kyber_r2_group = &s2n_secp256r1_kyber_512_r2;
+        expected_bike_r2_group = &s2n_secp256r1_bike1_l1_r2;
+        expected_kyber_r3_group = &s2n_secp256r1_kyber_512_r3;
+        expected_sike_r3_group = &s2n_secp256r1_sike_p434_r3;
         expected_curve = &s2n_ecc_curve_secp256r1;
     }
 
@@ -307,7 +317,6 @@ int main() {
         const struct s2n_security_policy *server_policy;
         const struct s2n_kem_group *expected_kem_group;
         const struct s2n_ecc_named_curve *expected_curve;
-        bool should_send_ec_shares;
         bool hrr_expected;
     };
 
@@ -315,14 +324,50 @@ int main() {
      * If PQ is disabled, the expected negotiation outcome is overridden below
      * before performing the handshake test. */
     const struct pq_handshake_test_vector test_vectors[] = {
+            /* Server and Client both support PQ and TLS 1.3 */
+            {
+                    .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
+                    .server_policy = &security_policy_pq_tls_1_1_2021_05_21,
+                    .expected_kem_group = expected_kyber_r3_group,
+                    .expected_curve = NULL,
+                    .hrr_expected = false,
+            },
+            {
+                    .client_policy = &security_policy_pq_tls_1_0_2021_05_22,
+                    .server_policy = &security_policy_pq_tls_1_0_2021_05_22,
+                    .expected_kem_group = expected_kyber_r3_group,
+                    .expected_curve = NULL,
+                    .hrr_expected = false,
+            },
+            {
+                    .client_policy = &security_policy_pq_tls_1_0_2021_05_23,
+                    .server_policy = &security_policy_pq_tls_1_0_2021_05_23,
+                    .expected_kem_group = expected_kyber_r3_group,
+                    .expected_curve = NULL,
+                    .hrr_expected = false,
+            },
+            {
+                    .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                    .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                    .expected_kem_group = expected_kyber_r3_group,
+                    .expected_curve = NULL,
+                    .hrr_expected = false,
+            },
+            {
+                    .client_policy = &security_policy_pq_tls_1_0_2021_05_26,
+                    .server_policy = &security_policy_pq_tls_1_0_2021_05_26,
+                    .expected_kem_group = expected_kyber_r3_group,
+                    .expected_curve = NULL,
+                    .hrr_expected = false,
+            },
+
             /* Server supports all KEM groups; client sends a PQ key share and an EC key
              * share; server chooses to negotiate client's first choice PQ without HRR. */
             {
                     .client_policy = &security_policy_pq_tls_1_0_2020_12,
                     .server_policy = &security_policy_pq_tls_1_0_2020_12,
-                    .expected_kem_group = expected_kyber_group,
+                    .expected_kem_group = expected_kyber_r2_group,
                     .expected_curve = NULL,
-                    .should_send_ec_shares = true,
                     .hrr_expected = false,
             },
 
@@ -332,9 +377,8 @@ int main() {
             {
                     .client_policy = &security_policy_pq_tls_1_0_2020_12,
                     .server_policy = &kyber_test_policy,
-                    .expected_kem_group = expected_kyber_group,
+                    .expected_kem_group = expected_kyber_r2_group,
                     .expected_curve = NULL,
-                    .should_send_ec_shares = true,
                     .hrr_expected = false,
             },
 
@@ -342,19 +386,17 @@ int main() {
              * client sends only a PQ key share for its first choice (no ECC shares sent);
              * server sends HRR and negotiates a mutually supported PQ group. */
             {
-                    .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                    .client_policy = &ecc_retry_policy,
                     .server_policy = &bike_test_policy,
-                    .expected_kem_group = expected_bike_group,
+                    .expected_kem_group = expected_bike_r2_group,
                     .expected_curve = NULL,
-                    .should_send_ec_shares = false,
                     .hrr_expected = true,
             },
             {
-                    .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                    .client_policy = &ecc_retry_policy,
                     .server_policy = &sike_test_policy,
-                    .expected_kem_group = expected_sike_group,
+                    .expected_kem_group = expected_sike_r3_group,
                     .expected_curve = NULL,
-                    .should_send_ec_shares = false,
                     .hrr_expected = true,
             },
 
@@ -366,7 +408,6 @@ int main() {
                     .server_policy = &bike_test_policy,
                     .expected_kem_group = NULL,
                     .expected_curve = expected_curve,
-                    .should_send_ec_shares = true,
                     .hrr_expected = false,
             },
             {
@@ -374,7 +415,6 @@ int main() {
                     .server_policy = &sike_test_policy,
                     .expected_kem_group = NULL,
                     .expected_curve = expected_curve,
-                    .should_send_ec_shares = true,
                     .hrr_expected = false,
             },
 
@@ -385,18 +425,16 @@ int main() {
                     .server_policy = &security_policy_test_all_tls13,
                     .expected_kem_group = NULL,
                     .expected_curve = expected_curve,
-                    .should_send_ec_shares = true,
                     .hrr_expected = false,
             },
 
             /* Server does not support PQ; client sends a PQ key share, but no EC shares;
              * server should negotiate EC and send HRR. */
             {
-                    .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                    .client_policy = &ecc_retry_policy,
                     .server_policy = &security_policy_test_all_tls13,
                     .expected_kem_group = NULL,
                     .expected_curve = expected_curve,
-                    .should_send_ec_shares = false,
                     .hrr_expected = true,
             },
 
@@ -407,18 +445,16 @@ int main() {
                     .server_policy = &security_policy_pq_tls_1_0_2020_12,
                     .expected_kem_group = NULL,
                     .expected_curve = expected_curve,
-                    .should_send_ec_shares = true,
                     .hrr_expected = false,
             },
 
             /* Server supports PQ, but client does not. Client did not send any EC shares,
              * EC should be negotiated after exchanging HRR */
             {
-                    .client_policy = &security_policy_test_all_tls13,
+                    .client_policy = &security_policy_test_tls13_retry,
                     .server_policy = &security_policy_pq_tls_1_0_2020_12,
                     .expected_kem_group = NULL,
                     .expected_curve = expected_curve,
-                    .should_send_ec_shares = false,
                     .hrr_expected = true,
             },
     };
@@ -429,7 +465,6 @@ int main() {
         const struct s2n_security_policy *server_policy = vector->server_policy;
         const struct s2n_kem_group *kem_group = vector->expected_kem_group;
         const struct s2n_ecc_named_curve *curve = vector->expected_curve;
-        bool should_send_ec_shares = vector->should_send_ec_shares;
         bool hrr_expected = vector->hrr_expected;
 
         if (!s2n_pq_is_enabled()) {
@@ -438,8 +473,7 @@ int main() {
             curve = expected_curve;
         }
 
-        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve,
-                should_send_ec_shares, hrr_expected));
+        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected));
     }
 
     END_TEST();

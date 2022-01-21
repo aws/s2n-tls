@@ -61,11 +61,11 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     POSIX_GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
     POSIX_GUARD_PTR(security_policy);
 
-    client_conn->secure.kem_params.kem = negotiated_kem;
+    client_conn->kex_params.kem_params.kem = negotiated_kem;
     client_conn->secure.cipher_suite = cipher_suite;
     client_conn->security_policy_override = security_policy;
 
-    server_conn->secure.kem_params.kem = negotiated_kem;
+    server_conn->kex_params.kem_params.kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 
@@ -76,15 +76,15 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     const uint32_t KEM_PUBLIC_KEY_MESSAGE_SIZE = (*negotiated_kem).public_key_length + 4;
     POSIX_ENSURE_EQ(data_to_sign.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
 
-    POSIX_ENSURE_EQ((*negotiated_kem).private_key_length, server_conn->secure.kem_params.private_key.size);
+    POSIX_ENSURE_EQ((*negotiated_kem).private_key_length, server_conn->kex_params.kem_params.private_key.size);
     struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
             KEM_PUBLIC_KEY_MESSAGE_SIZE)};
     POSIX_GUARD_PTR(server_key_message.data);
 
     /* The KEM public key should get written directly to the server's handshake IO; kem_params.public_key
      * should point to NULL */
-    POSIX_ENSURE_EQ(NULL, server_conn->secure.kem_params.public_key.data);
-    POSIX_ENSURE_EQ(0, server_conn->secure.kem_params.public_key.size);
+    POSIX_ENSURE_EQ(NULL, server_conn->kex_params.kem_params.public_key.data);
+    POSIX_ENSURE_EQ(0, server_conn->kex_params.kem_params.public_key.size);
 
     /* Part 1.1: feed that to the client */
     POSIX_GUARD(s2n_stuffer_write(&client_conn->handshake.io, &server_key_message));
@@ -103,11 +103,11 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    POSIX_ENSURE_EQ((*negotiated_kem).public_key_length, client_conn->secure.kem_params.public_key.size);
+    POSIX_ENSURE_EQ((*negotiated_kem).public_key_length, client_conn->kex_params.kem_params.public_key.size);
 
     /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
     const uint32_t KEM_CIPHERTEXT_MESSAGE_SIZE = (*negotiated_kem).ciphertext_length + 2;
-    struct s2n_blob *client_shared_key = &(client_conn->secure.kem_params.shared_secret);
+    struct s2n_blob *client_shared_key = &(client_conn->kex_params.kem_params.shared_secret);
     POSIX_GUARD(s2n_kem_client_key_send(client_conn, client_shared_key));
     struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
             KEM_CIPHERTEXT_MESSAGE_SIZE)};
@@ -117,7 +117,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     POSIX_GUARD(s2n_stuffer_write(&server_conn->handshake.io, &client_key_message));
 
     /* Part 4: Call client key recv */
-    struct s2n_blob *server_shared_key = &(server_conn->secure.kem_params.shared_secret);
+    struct s2n_blob *server_shared_key = &(server_conn->kex_params.kem_params.shared_secret);
     POSIX_GUARD(s2n_kem_client_key_recv(server_conn, server_shared_key));
     POSIX_ENSURE_EQ(memcmp(client_shared_key->data, server_shared_key->data, (*negotiated_kem).shared_secret_key_length), 0);
 
@@ -133,7 +133,7 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
     POSIX_GUARD_PTR(security_policy);
-    server_conn->secure.kem_params.kem = negotiated_kem;
+    server_conn->kex_params.kem_params.kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 
@@ -159,7 +159,7 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     if (!s2n_pq_is_enabled()) {
         /* Verify s2n_check_kem() and s2n_configure_kem() are performing their pq-enabled checks appropriately. */
@@ -182,6 +182,26 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r3));
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p503_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_sike_p434_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_sike_p434_r3));
 
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
@@ -189,7 +209,58 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_bike1_l1_r2));
 
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_bike_l1_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_bike_l1_r3));
+
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_kyber_512_r3));
 
         /* Test Failure cases */
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);

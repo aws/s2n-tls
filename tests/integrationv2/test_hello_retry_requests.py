@@ -9,16 +9,8 @@ from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
+S2N_DEFAULT_CURVE = Curves.X25519
 S2N_HRR_MARKER = to_bytes("HELLO_RETRY_REQUEST")
-
-# List of keyshares for hello retry requests client side test.
-HRR_CLIENT_KEYSHARES = [
-    ["-K", "none"],
-    ["-K", "secp256r1"],
-    ["-K", "secp256r1:secp384r1"],
-    ["-K", "secp256r1:secp384r1:secp521r1"]
-]
-
 
 # Mapping list of curve_names for hello retry requests server side test.
 CURVE_NAMES = {
@@ -34,8 +26,10 @@ CURVE_NAMES = {
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("keyshare", HRR_CLIENT_KEYSHARES, ids=get_parameter_name)
-def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protocol, certificate, keyshare):
+def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protocol, certificate):
+    if curve == S2N_DEFAULT_CURVE:
+        pytest.skip("No retry if server curve matches client curve")
+        
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -45,8 +39,6 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
         cipher=cipher,
         data_to_send=random_bytes,
         insecure=True,
-        curve=curve,
-        extra_flags=keyshare,
         protocol=protocol)
 
     server_options = copy.copy(client_options)
@@ -55,7 +47,7 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
     server_options.key = certificate.key
     server_options.cert = certificate.cert
     server_options.extra_flags = None
-    server_options.curve = Curves.X25519
+    server_options.curve = curve
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
@@ -65,7 +57,7 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
     # The client should connect and return without error
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Curve: {}".format("x25519")) in results.stdout
+        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
@@ -74,8 +66,6 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
     for results in server.get_results():
         results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
-        if 'none' in keyshare:
-            assert b'"key share" (id=51), len=2\n0000 - 00 00' in results.stdout
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
         assert to_bytes("Shared Elliptic groups: {}".format(server_options.curve)) in results.stdout
         assert random_bytes in results.stdout

@@ -89,17 +89,17 @@ static int s2n_check_traffic_secret_order(void* context, struct s2n_connection *
 static S2N_RESULT s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
 {
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_hello_copy));
-    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_finished_copy));
+    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_hello_copy));
+    RESULT_GUARD_POSIX(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_finished_copy));
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     RESULT_ENSURE_REF(ecc_pref);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
     uint8_t test_value[SHA256_DIGEST_LENGTH] = "test";
     DEFER_CLEANUP(struct s2n_psk *s2n_test_psk = s2n_external_psk_new(), s2n_psk_free);
@@ -136,17 +136,16 @@ static S2N_RESULT s2n_test_key_schedule(s2n_mode mode, uint16_t handshake_type, 
         return S2N_RESULT_OK;
     }
 
-    struct s2n_config *config = s2n_config_new();
-    /* Enable QUIC to enable the secret callbacks. This does not affect the key schedule,
-     * since QUIC also uses TLS to generate early data secrets. */
-    config->quic_enabled = true;
 
     uint8_t secrets_handled[S2N_SECRET_TYPE_COUNT] = { 0 };
     for (uint16_t message_number = 0; message_number < S2N_MAX_HANDSHAKE_LENGTH; message_number++) {
         struct s2n_connection *conn = s2n_connection_new(mode);
         RESULT_ENSURE_REF(conn);
-        RESULT_GUARD_POSIX(s2n_connection_set_config(conn, config));
         RESULT_GUARD(s2n_setup_tls13_secrets_prereqs(conn));
+
+        /* Enable QUIC to enable the secret callbacks. This does not affect the key schedule,
+         * since QUIC also uses TLS to generate early data secrets. */
+        conn->quic_enabled = true;
 
         conn->actual_protocol_version = S2N_TLS13;
         conn->handshake.handshake_type = handshake_type;
@@ -195,7 +194,6 @@ static S2N_RESULT s2n_test_key_schedule(s2n_mode mode, uint16_t handshake_type, 
         RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_EARLY_TRAFFIC_SECRET], 0);
     }
 
-    RESULT_GUARD_POSIX(s2n_config_free(config));
     *valid_test_case = true;
     return S2N_RESULT_OK;
 }
@@ -547,7 +545,7 @@ int main()
             EXPECT_SUCCESS(s2n_dup(&early_secret, &psk->early_secret));
 
             /* Rewrite hashes with known ClientHello */
-            EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256,
+            EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.hashes->sha256,
                     client_hello_msg.data, client_hello_msg.size));
 
             client_conn->handshake.message_number = 0;
@@ -555,7 +553,7 @@ int main()
             EXPECT_SUCCESS(s2n_tls13_handle_secrets(client_conn));
 
             /* Check early secret secret set correctly */
-            EXPECT_BYTEARRAY_EQUAL(client_conn->secure.rsa_premaster_secret, early_secret.data, early_secret.size);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls12.rsa_premaster_secret, early_secret.data, early_secret.size);
 
             /* Check IV calculated correctly */
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_implicit_iv, iv.data, iv.size);

@@ -17,7 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
@@ -197,13 +197,13 @@ int async_pkey_apply_in_callback(struct s2n_connection *conn, struct s2n_async_p
     /* Perform the op */
     EXPECT_SUCCESS(s2n_async_pkey_op_perform(op, pkey));
 
-    /* Test that op can't be applied inside the callback */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(op, conn), S2N_ERR_ASYNC_APPLY_WHILE_INVOKING);
+    /* Test that op can be applied inside the callback */
+    EXPECT_SUCCESS(s2n_async_pkey_op_apply(op, conn));
 
     /* Free the op */
     EXPECT_SUCCESS(s2n_async_pkey_op_free(op));
 
-    return S2N_FAILURE;
+    return S2N_SUCCESS;
 }
 
 int async_pkey_store_callback(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
@@ -356,7 +356,7 @@ int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *si
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -418,8 +418,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-            EXPECT_FAILURE_WITH_ERRNO(
-                    try_handshake(server_conn, client_conn, async_handler_fail), S2N_ERR_ASYNC_CALLBACK_FAILED);
+            EXPECT_SUCCESS(try_handshake(server_conn, client_conn, async_handler_fail));
 
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));

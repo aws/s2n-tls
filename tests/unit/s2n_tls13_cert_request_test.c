@@ -17,7 +17,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "stuffer/s2n_stuffer.h"
@@ -29,7 +29,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* Test the output of s2n_tls13_cert_req_send() */
     {
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     END_TEST();
 
     return 0;

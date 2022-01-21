@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bindgen::CodegenConfig;
-use std::collections::BTreeSet;
-use std::sync::{Arc, Mutex};
-use std::{io, path::Path};
+use std::{
+    collections::BTreeSet,
+    io,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 fn main() {
     let out_dir = std::env::args().nth(1).expect("missing sys dir");
@@ -64,9 +67,7 @@ fn gen_bindings(entry: &str, s2n_dir: &Path) -> bindgen::Builder {
         .rustfmt_bindings(true)
         .header_contents("s2n-sys.h", entry)
         .enable_function_attribute_detection()
-        .default_enum_style(bindgen::EnumVariation::Rust {
-            non_exhaustive: true,
-        })
+        .default_enum_style(bindgen::EnumVariation::ModuleConsts)
         .rust_target(bindgen::RustTarget::Stable_1_40)
         // only export s2n-related stuff
         .blocklist_type("iovec")
@@ -77,7 +78,6 @@ fn gen_bindings(entry: &str, s2n_dir: &Path) -> bindgen::Builder {
         // rust can't access thread-local variables
         // https://github.com/rust-lang/rust/issues/29594
         .blocklist_item("s2n_errno")
-        .rustified_enum("s2n_.*")
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
         .ctypes_prefix("::libc")
@@ -120,8 +120,6 @@ impl bindgen::callbacks::ParseCallbacks for S2nCallbacks {
         variant_name: &str,
         _variant_value: bindgen::callbacks::EnumVariantValue,
     ) -> Option<String> {
-        use heck::CamelCase;
-
         if !variant_name.starts_with("S2N_") {
             return None;
         }
@@ -135,10 +133,18 @@ impl bindgen::callbacks::ParseCallbacks for S2nCallbacks {
             .trim_start_matches("S2N_CT_SUPPORT_")
             .trim_start_matches("S2N_STATUS_REQUEST_")
             .trim_start_matches("S2N_CERT_AUTH_")
+            .trim_start_matches("S2N_CLIENT_HELLO_CB_")
+            .trim_start_matches("S2N_TLS_SIGNATURE_")
+            .trim_start_matches("S2N_TLS_HASH_")
+            .trim_start_matches("S2N_PSK_HMAC_")
+            .trim_start_matches("S2N_PSK_MODE_")
+            .trim_start_matches("S2N_ASYNC_PKEY_VALIDATION_")
+            .trim_start_matches("S2N_ASYNC_")
+            .trim_start_matches("S2N_EARLY_DATA_STATUS_")
             // match everything else
             .trim_start_matches("S2N_");
 
-        Some(variant_name.to_camel_case())
+        Some(variant_name.to_owned())
     }
 }
 

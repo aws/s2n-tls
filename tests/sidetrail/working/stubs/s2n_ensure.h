@@ -42,3 +42,32 @@ void *s2n_sidetrail_memset(void * ptr, int value, size_t num);
       s2n_sidetrail_memset( __tmp_d, (c), __tmp_n);        \
     }                                                      \
   } while(0)
+
+
+/**
+ * The C runtime does not give a way to check these properties,
+ * but we can at least check for nullness.
+ */
+#define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+
+/**
+ * These macros can safely be used in validate functions.
+ */
+#define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
+#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
+
+#define S2N_IMPLIES(a, b) (!(a) || (b))
+#define S2N_IFF(a, b) (!!(a) == !!(b))
+
+/**
+ * These macros are used to specify code contracts in CBMC proofs.
+ */
+#define CONTRACT_ASSIGNS(...)
+#define CONTRACT_ASSIGNS_ERR(...)
+#define CONTRACT_REQUIRES(...)
+#define CONTRACT_ENSURES(...)
+#define CONTRACT_INVARIANT(...)
+#define CONTRACT_RETURN_VALUE

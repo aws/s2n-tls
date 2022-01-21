@@ -27,15 +27,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 /* The number of connection pairs to allocate before measuring memory
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
 /* This is roughly the current memory usage per connection */
-#define MEM_PER_CONNECTION (106 * 1024)
-
+#define MEM_PER_CONNECTION (49 * 1024)
 /* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
@@ -72,7 +71,7 @@ int main(int argc, char **argv)
     char *private_key;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -92,6 +91,7 @@ int main(int argc, char **argv)
     }
 
     const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
+    const ssize_t minAllowedMemDiff = maxAllowedMemDiff * 0.75;
 
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
     struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
@@ -186,6 +186,9 @@ int main(int argc, char **argv)
     EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < maxAllowedMemDiff);
     EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
     EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
+
+    /* If the maximum memory drops too much, we should tighten up the limits in this test. */
+    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial > minAllowedMemDiff);
 
     END_TEST();
 

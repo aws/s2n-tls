@@ -21,5 +21,5 @@ void s2n_socket_quickack_harness()
   int result = s2n_socket_quickack(s2n_connection);
 
   /* Post-condition. */
-  assert(S2N_IMPLIES(result == S2N_SUCCESS, (!s2n_connection->managed_io) || (s2n_connection->recv_io_context) != NULL));
+  assert(S2N_IMPLIES(result == S2N_SUCCESS, (!s2n_connection->managed_recv_io) || (s2n_connection->recv_io_context) != NULL));
 }

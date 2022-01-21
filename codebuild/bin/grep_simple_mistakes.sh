@@ -14,9 +14,62 @@
 
 FAILED=0
 
+#############################################
+# Grep for any instances of raw memcpy() function. s2n code should instead be
+# using one of the *_ENSURE_MEMCPY macros.
+#############################################
+S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*"  -not -path "*/pq-crypto/*")
+for file in $S2N_FILES_ASSERT_NOT_USING_MEMCPY; do
+  RESULT_NUM_LINES=`grep 'memcpy(' $file | wc -l`
+  if [ "${RESULT_NUM_LINES}" != 0 ]; then
+    echo "Found ${RESULT_NUM_LINES} raw 'memcpy' calls in $file"
+    FAILED=1
+  fi
+done
+
+#############################################
+# Grep for any instances of raw memcmp() function. s2n code should instead be
+# using s2n_constant_time_equals()
+#
+# KNOWN_MEMCMP_USAGE is used to capture all known uses of memcmp and acts as a
+# safeguard against any new uses of memcmp.
+#############################################
+S2N_FILES_ASSERT_NOT_USING_MEMCMP=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*" -not -path "*/bindings/*")
+declare -A KNOWN_MEMCMP_USAGE
+KNOWN_MEMCMP_USAGE["$PWD/crypto/s2n_rsa.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_early_data.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_kem.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=3
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_server_hello.c"]=3
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_security_policies.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_resume.c"]=2
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_connection.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
+KNOWN_MEMCMP_USAGE["$PWD/stuffer/s2n_stuffer_text.c"]=1
+
+for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do
+  # NOTE: this matches on 'memcmp', which will also match comments. However, there
+  # are no uses of 'memcmp' in comments so we opt for this stricter check.
+  RESULT_NUM_LINES=`grep -n 'memcmp' $file | wc -l`
+
+  # set default KNOWN_MEMCMP_USAGE value
+  [ -z "${KNOWN_MEMCMP_USAGE["$file"]}" ] && KNOWN_MEMCMP_USAGE["$file"]="0"
+
+  # check if memcmp usage is 0 or a known value
+  if [ "${RESULT_NUM_LINES}" != "${KNOWN_MEMCMP_USAGE["$file"]}" ]; then
+    echo "Expected: ${KNOWN_MEMCMP_USAGE["$file"]} Found: ${RESULT_NUM_LINES} usage of 'memcmp' in $file"
+    FAILED=1
+  fi
+done
+
+#############################################
 # Assert that functions do not return -1 or S2N_ERR* codes directly.
 # To indicate failure, functions should use the S2N_ERROR* macros defined
 # in s2n_errno.h.
+#############################################
 S2N_FILES_ASSERT_RETURN=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tests/*")
 for file in $S2N_FILES_ASSERT_RETURN; do
   RESULT_NEGATIVE_ONE=`grep -rn 'return -1;' $file`
@@ -37,7 +90,9 @@ for file in $S2N_FILES_ASSERT_RETURN; do
   fi
 done
 
+#############################################
 # Detect any array size calculations that are not using the s2n_array_len() function.
+#############################################
 S2N_FILES_ARRAY_SIZING_RETURN=$(find "$PWD" -type f -name "s2n*.c" -path "*")
 for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
   RESULT_ARR_DIV=`grep -Ern 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' $file`
@@ -48,10 +103,12 @@ for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
   fi
 done
 
+#############################################
 # Assert that all assignments from s2n_stuffer_raw_read() have a
 # notnull_check (or similar manual null check) on the same, or next, line.
 # The assertion is shallow; this doesn't guarantee that we're doing the
 # *correct* null check, just that we are doing *some* null check.
+#############################################
 S2N_FILES_ASSERT_NOTNULL_CHECK=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*")
 for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
   while read -r line_one; do
@@ -77,8 +134,10 @@ for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
   done < <(grep -rnE -A 1 "=\ss2n_stuffer_raw_read\(.*\)" $file)
 done
 
+#############################################
 # Assert that "index" is not a variable name. An "index" function exists in strings.h, and older compilers (<GCC 4.8) 
 # warn if any local variables called "index" are used because they are considered to shadow that declaration. 
+#############################################
 S2N_FILES_ASSERT_VARIABLE_NAME_INDEX=$(find "$PWD" -type f -name "s2n*.[ch]")
 for file in $S2N_FILES_ASSERT_VARIABLE_NAME_INDEX; do
   RESULT_VARIABLE_NAME_INDEX=`gcc -fpreprocessed -dD -E -w $file | grep -v '"' | grep '[\*|,|;|[:space:]]index[;|,|\)|[:space:]]'`
@@ -88,8 +147,10 @@ for file in $S2N_FILES_ASSERT_VARIABLE_NAME_INDEX; do
   fi
 done
 
+#############################################
 ## Assert that there are no new uses of S2N_ERROR_IF
 # TODO add crypto, tls (see https://github.com/aws/s2n-tls/issues/2635)
+#############################################
 S2N_ERROR_IF_FREE="bin error pq-crypto scram stuffer utils tests"
 for dir in $S2N_ERROR_IF_FREE; do
   files=$(find "$dir" -type f -name "*.c" -path "*")
@@ -102,6 +163,7 @@ for dir in $S2N_ERROR_IF_FREE; do
   done
 done
 
+#############################################
 if [ $FAILED == 1 ]; then
   printf "\\033[31;1mFAILED Grep For Simple Mistakes check\\033[0m\\n"
   exit -1

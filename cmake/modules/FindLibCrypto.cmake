@@ -26,45 +26,27 @@ if (crypto_FOUND)
 else()
     find_path(LibCrypto_INCLUDE_DIR
         NAMES openssl/crypto.h
-        HINTS
-            ${CMAKE_PREFIX_PATH}/include
-            ${CMAKE_INSTALL_PREFIX}/include
+        HINTS "${CMAKE_INSTALL_PREFIX}"
+        PATH_SUFFIXES include
         )
     find_library(LibCrypto_SHARED_LIBRARY
         NAMES libcrypto.so libcrypto.dylib
-        HINTS
-        ${CMAKE_PREFIX_PATH}/build/crypto
-        ${CMAKE_PREFIX_PATH}/build
-        ${CMAKE_PREFIX_PATH}
-        ${CMAKE_PREFIX_PATH}/lib64
-        ${CMAKE_PREFIX_PATH}/lib
-        ${CMAKE_INSTALL_PREFIX}/build/crypto
-        ${CMAKE_INSTALL_PREFIX}/build
-        ${CMAKE_INSTALL_PREFIX}
-        ${CMAKE_INSTALL_PREFIX}/lib64
-        ${CMAKE_INSTALL_PREFIX}/lib
+        HINTS "${CMAKE_INSTALL_PREFIX}"
+        PATH_SUFFIXES build/crypto build lib64 lib
         )
     find_library(LibCrypto_STATIC_LIBRARY
         NAMES libcrypto.a
-        HINTS
-        ${CMAKE_PREFIX_PATH}/build/crypto
-        ${CMAKE_PREFIX_PATH}/build
-        ${CMAKE_PREFIX_PATH}
-        ${CMAKE_PREFIX_PATH}/lib64
-        ${CMAKE_PREFIX_PATH}/lib
-        ${CMAKE_INSTALL_PREFIX}/build/crypto
-        ${CMAKE_INSTALL_PREFIX}/build
-        ${CMAKE_INSTALL_PREFIX}
-        ${CMAKE_INSTALL_PREFIX}/lib64
-        ${CMAKE_INSTALL_PREFIX}/lib
+        HINTS "${CMAKE_INSTALL_PREFIX}"
+        PATH_SUFFIXES build/crypto build lib64 lib
         )
 
-    if (BUILD_SHARED_LIBS)
-        set(LibCrypto_LIBRARY ${LibCrypto_SHARED_LIBRARY})
-    else()
-        set(LibCrypto_LIBRARY ${LibCrypto_STATIC_LIBRARY})
+    if (NOT LibCrypto_LIBRARY)
+        if (BUILD_SHARED_LIBS)
+            set(LibCrypto_LIBRARY ${LibCrypto_SHARED_LIBRARY})
+        else()
+            set(LibCrypto_LIBRARY ${LibCrypto_STATIC_LIBRARY})
+        endif()
     endif()
-
 
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(LibCrypto DEFAULT_MSG

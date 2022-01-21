@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_ecc_evp.h"
 #include "stuffer/s2n_stuffer.h"
@@ -26,7 +26,7 @@
 
 int main(int argc, char **argv) {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     {
         /* Test generate ephemeral keys for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {

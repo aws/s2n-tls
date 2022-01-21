@@ -230,13 +230,15 @@ int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 
 int s2n_config_defaults_init(void)
 {
-    /* Set up default */
-    POSIX_GUARD(s2n_config_init(&s2n_default_config));
-    POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
-
     /* Set up fips defaults */
-    POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
-    POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
+    if (s2n_is_in_fips_mode()) {
+        POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
+        POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
+    } else {
+        /* Set up default */
+        POSIX_GUARD(s2n_config_init(&s2n_default_config));
+        POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
+    }
 
     /* Set up TLS 1.3 defaults */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
@@ -247,8 +249,8 @@ int s2n_config_defaults_init(void)
 
 void s2n_wipe_static_configs(void)
 {
-    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_fips_config);
+    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_tls13_config);
 }
 
@@ -330,6 +332,14 @@ int s2n_config_free_dhparams(struct s2n_config *config)
 
     POSIX_GUARD(s2n_free_object((uint8_t **)&config->dhparams, sizeof(struct s2n_dh_params)));
     return 0;
+}
+
+S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_GUARD_POSIX(s2n_config_free(*config));
+    *config = NULL;
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_free(struct s2n_config *config)
@@ -424,6 +434,15 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
+int s2n_config_wipe_trust_store(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+
+    s2n_x509_trust_store_wipe(&config->trust_store);
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem)
 {
     POSIX_ENSURE_REF(config);
@@ -462,19 +481,23 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
-
+    s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+    config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
     POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
-        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
             config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         }
     }
 
-    return 0;
+    if (s2n_pkey_check_key_exists(cert_key_pair->private_key) != S2N_SUCCESS) {
+        config->no_signing_key = true;
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn)
@@ -516,6 +539,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
     for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
 

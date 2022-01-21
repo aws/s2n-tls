@@ -24,7 +24,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     char *tls13_private_key;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
      * tls12 connection */
     for (uint8_t i = 0; i < 2; i++)
     {
-        if (i == 1) { EXPECT_SUCCESS(s2n_enable_tls13()); }
+        if (i == 1) { EXPECT_SUCCESS(s2n_enable_tls13_in_test()); }
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
 
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test that a tls12 client legacy version and tls12 server version
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     /* Test that a tls12 client legacy version and tls12 server version
     will successfully set a tls12 connection, even when tls13 is enabled. */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
@@ -164,14 +164,14 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test that a tls11 client legacy version and tls12 server version
     will successfully set a tls11 connection. */
     for (uint8_t i = 0; i < 2; i++)
     {
-        if (i == 1) { EXPECT_SUCCESS(s2n_enable_tls13()); }
+        if (i == 1) { EXPECT_SUCCESS(s2n_enable_tls13_in_test()); }
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
 
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
     /* Test that a tls12 client and tls13 server will successfully
     set a tls12 connection. */
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_config));
 
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
@@ -221,12 +221,12 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
     /* Test that an erroneous client legacy version and tls13 server version
     will still successfully set a tls13 connection, when real client version is tls13. */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
@@ -249,24 +249,24 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(client_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test that a tls12 client legacy version and tls13 server version
     will still successfully set a tls13 connection, if possible. */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
@@ -281,20 +281,20 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
+        EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
      /* Test that an erroneous(tls13) client legacy version and tls13 server version
     will still successfully set a tls12 connection, if tls12 is the true client version. */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_config));
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
 
@@ -314,14 +314,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->server_protocol_version, s2n_get_highest_fully_supported_tls_version());
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* s2n receiving a client hello will error when parsing an empty cipher suite */
@@ -381,8 +381,8 @@ int main(int argc, char **argv)
     /* Test that S2N will accept a ClientHello with legacy_session_id set when running with QUIC.
      * Since this requirement is a SHOULD, we're accepting it for non-compliant endpoints.
      * https://tools.ietf.org/html/draft-ietf-quic-tls-32#section-8.4*/
-    {
-        EXPECT_SUCCESS(s2n_reset_tls13());
+    if (s2n_is_tls13_fully_supported()) {
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
         const size_t test_session_id_len = 10;
 
@@ -438,6 +438,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
 
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
@@ -448,7 +450,7 @@ int main(int argc, char **argv)
         server_conn->psk_params.chosen_psk = &chosen_psk;
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, 0);
+        EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.iana_value, 0);
         EXPECT_NULL(server_conn->handshake_params.our_chain_and_key);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -477,7 +479,7 @@ int main(int argc, char **argv)
         s2n_connection_free(client_conn);
         */
 
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
@@ -486,7 +488,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         /* ensure negotiated_curve == secp256r1 for maximum client compatibility */
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
+        EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
 
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
@@ -494,7 +496,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     s2n_config_free(tls12_config);

@@ -30,7 +30,7 @@
 int main()
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Test s2n_extension_should_send_if_ecc_enabled */
     {
@@ -177,7 +177,7 @@ int main()
 
         /* Test send with TLS 1.3 KEM groups */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
@@ -219,7 +219,7 @@ int main()
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
         /* Test that send does not send KEM group IDs for versions != TLS 1.3 */
         {
@@ -277,7 +277,7 @@ int main()
             };
 
             for (size_t i = 0; i < NUM_PQ_TEST_POLICY_OVERRIDES; i++) {
-                EXPECT_SUCCESS(s2n_enable_tls13());
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_connection *client_conn;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 client_conn->security_policy_override = test_policy_overrides[i][0];
@@ -299,33 +299,33 @@ int main()
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(client_conn, &stuffer));
 
-                EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+                EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
                 /* If PQ is disabled, s2n_client_supported_groups_extension.send will not have sent PQ IDs */
                 if (!s2n_pq_is_enabled()) {
-                    EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
-                    EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                    EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                    EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+                    EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
+                    EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                    EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+                    EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
                     for (size_t j = 0; j < server_kem_pref->tls13_kem_group_count; j++) {
-                        EXPECT_NULL(server_conn->secure.mutually_supported_kem_groups[j]);
+                        EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[j]);
                     }
                 } else {
-                    EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-                    EXPECT_EQUAL(server_conn->secure.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
-                    EXPECT_EQUAL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
-                    EXPECT_EQUAL(server_conn->secure.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
+                    EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
-                EXPECT_SUCCESS(s2n_disable_tls13());
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
         }
         /* Test recv - in each case, the security policy overrides do not allow for a successful PQ handshake,
@@ -347,7 +347,7 @@ int main()
             };
 
             for (size_t i = 0; i < NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES; i++) {
-                EXPECT_SUCCESS(s2n_enable_tls13());
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_connection *client_conn;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 client_conn->security_policy_override = test_policy_overrides[i][0];
@@ -365,27 +365,27 @@ int main()
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(client_conn, &stuffer));
 
-                EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+                EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+                EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
-                EXPECT_SUCCESS(s2n_disable_tls13());
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
         }
 
         /* Test recv - client sends exclusively unrecognized groups */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
             struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
@@ -401,25 +401,25 @@ int main()
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 102));
             POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
-            EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-            EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
         /* Test recv - server doesn't recognize PQ group IDs when TLS 1.3 is disabled */
         {
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_EQUAL(s2n_connection_get_protocol_version(client_conn), S2N_TLS12);
@@ -447,17 +447,17 @@ int main()
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
             POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
-            EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_ecc_pref->ecc_curves[0]);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-            EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+            EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, client_ecc_pref->ecc_curves[0]);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -466,7 +466,7 @@ int main()
         /* Test recv - server doesn't recognize PQ group IDs when PQ is disabled */
         {
             if (!s2n_pq_is_enabled()) {
-                EXPECT_SUCCESS(s2n_enable_tls13());
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_connection *client_conn;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 client_conn->security_policy_override = &test_pq_security_policy_sike_bike;
@@ -493,21 +493,21 @@ int main()
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
                 POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
-                EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+                EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve,client_ecc_pref->ecc_curves[0]);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
+                EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve,client_ecc_pref->ecc_curves[0]);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+                EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
-                EXPECT_SUCCESS(s2n_disable_tls13());
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
         }
     }
@@ -526,12 +526,12 @@ int main()
 
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
 
-        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_group);
-        EXPECT_NULL(conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_params.kem);
+        EXPECT_EQUAL(conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_group);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_params.kem);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -552,12 +552,12 @@ int main()
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "null"));
 
-        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &stuffer));
-        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_group);
-        EXPECT_NULL(conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_params.kem);
+        EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_group);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_params.kem);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -578,12 +578,12 @@ int main()
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
         EXPECT_SUCCESS(s2n_stuffer_wipe_n(&stuffer, 1));
 
-        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &stuffer));
-        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_group);
-        EXPECT_NULL(conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_params.kem);
+        EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_group);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_params.kem);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -608,12 +608,12 @@ int main()
 
         /* Force a bad value for the negotiated curve so we know extension was parsed and the curve was set to NULL */
         struct s2n_ecc_named_curve invalid_curve = { 0 };
-        conn->secure.server_ecc_evp_params.negotiated_curve = &invalid_curve;
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = &invalid_curve;
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &supported_groups_extension));
-        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_group);
-        EXPECT_NULL(conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        EXPECT_NULL(conn->secure.server_kem_group_params.kem_params.kem);
+        EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_group);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
+        EXPECT_NULL(conn->kex_params.server_kem_group_params.kem_params.kem);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&supported_groups_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));

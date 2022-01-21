@@ -38,7 +38,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    POSIX_GUARD(s2n_enable_tls13());
+    POSIX_GUARD(s2n_enable_tls13_in_test());
     return S2N_SUCCESS;
 }
 
@@ -64,11 +64,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     POSIX_GUARD(s2n_connection_get_ecc_preferences(client_conn, &ecc_preferences));
     POSIX_ENSURE_REF(ecc_preferences);
 
-    /* Generate ephemeral keys for all supported curves */
-    for (int i = 0; i < ecc_preferences->count; i++) {
-        client_conn->secure.client_ecc_evp_params[i].negotiated_curve = ecc_preferences->ecc_curves[i];
-        POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[i]));
-    }
+    client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[randval % ecc_preferences->count];
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.

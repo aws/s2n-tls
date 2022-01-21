@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 #include "testlib/s2n_testlib.h"
-#include <s2n.h>
+#include "api/s2n.h"
 
 int main(int argc, char **argv)
 {
