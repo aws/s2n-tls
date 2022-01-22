@@ -24,6 +24,67 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test s2n_error_get_alert */
+    {
+        uint8_t alert = 0;
+
+        /* Test S2N_ERR_T_OK */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_error_get_alert(S2N_ERR_OK, &alert), S2N_ERR_NO_ALERT);
+
+        /* Test S2N_ERR_T_CLOSED */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_error_get_alert(S2N_ERR_CLOSED, &alert), S2N_ERR_NO_ALERT);
+
+        /* Test S2N_ERR_T_ALERT */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_error_get_alert(S2N_ERR_ALERT, &alert), S2N_ERR_NO_ALERT);
+
+        /* Test S2N_ERR_T_BLOCKED */
+        for (size_t i = S2N_ERR_T_BLOCKED_START; i < S2N_ERR_T_BLOCKED_END; i++) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_error_get_alert(i, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_USAGE */
+        for (size_t i = S2N_ERR_T_USAGE_START; i < S2N_ERR_T_USAGE_END; i++) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_error_get_alert(i, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_PROTO */
+        {
+            /* Test all protocol errors are handled */
+            int ret_val;
+            for (size_t i = S2N_ERR_T_PROTO_START; i < S2N_ERR_T_PROTO_END; i++) {
+                ret_val = s2n_error_get_alert(i, &alert);
+                if (ret_val != S2N_SUCCESS && s2n_errno == S2N_ERR_UNIMPLEMENTED) {
+                    fprintf(stdout, "\n\nNo alert mapping for protocol error %s\n\n", s2n_strerror_name(i));
+                    FAIL_MSG("Missing alert mapping for protocol error.");
+                }
+            }
+
+            /* Test some known mappings */
+            {
+                EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_MISSING_EXTENSION, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_MISSING_EXTENSION, alert);
+
+                EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_MESSAGE, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_UNEXPECTED_MESSAGE, alert);
+            }
+
+            /* Test unknown mapping */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_error_get_alert(S2N_ERR_EARLY_DATA_TRIAL_DECRYPT, &alert), S2N_ERR_NO_ALERT);
+        }
+
+        /* Test S2N_ERR_T_IO */
+        {
+            EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_IO, &alert));
+            EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
+        }
+
+        /* Test S2N_ERR_T_INTERNAL */
+        for (size_t i = S2N_ERR_T_INTERNAL_START; i < S2N_ERR_T_INTERNAL_END; i++) {
+            EXPECT_SUCCESS(s2n_error_get_alert(i, &alert));
+            EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
+        }
+    }
+
     /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and close_notify_received */
     {
         const uint8_t close_notify_alert[] = {  2 /* AlertLevel = fatal */,

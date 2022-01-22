@@ -25,6 +25,7 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_result.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_tls13.h"
 
 int test_count;
@@ -135,6 +136,15 @@ int test_count;
 #define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) \
     do { \
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ); \
+        RESET_ERRNO(); \
+    } while(0)
+
+#define EXPECT_FAILURE_WITH_ALERT( function_call, err, alert ) \
+    do { \
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err); \
+        uint8_t _alert_for_failure = 0; \
+        EXPECT_SUCCESS(s2n_error_get_alert(s2n_errno, &_alert_for_failure)); \
+        EXPECT_EQUAL(_alert_for_failure, (alert)); \
         RESET_ERRNO(); \
     } while(0)
 
