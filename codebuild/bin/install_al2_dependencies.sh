@@ -22,6 +22,7 @@ if [[ ${DISTRO} != "amazon linux" ]]; then
 fi
 
 base_packages() {
+    yum erase -y nodejs
     yum update -y
     yum erase -y openssl-devel || true
     yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm || true
