@@ -6,7 +6,6 @@ variableScope:tests/unit/*
 // Reason: There are many Config options that aren't checked by Cppcheck, and it warns for each. Ignore these so that they don't clutter the output.
 ConfigurationNotChecked:bin/s2nd.c
 ConfigurationNotChecked:tls/s2n_x509_validator.c
-ConfigurationNotChecked:utils/s2n_safety.c
 ConfigurationNotChecked:utils/s2n_socket.c
 
 // cppcheck Message: (style:redundantAssignment) Variable 'mock_time' is reassigned a value before the old one has been used.
