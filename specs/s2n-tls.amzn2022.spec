@@ -37,7 +37,7 @@ Header files for s2n-tls, a C99 implementation of the TLS/SSL protocols that is 
 %autosetup
 
 %build
-%cmake -DUNSAFE_TREAT_WARNINGS_AS_ERRORS=OFF -DBUILD_SHARED_LIBS=ON
+%cmake -DBUILD_SHARED_LIBS=ON
 %cmake_build
 
 %install
