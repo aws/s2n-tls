@@ -265,6 +265,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KEYING_MATERIAL_EXPIRED, "The lifetime of the connection keying material has exceeded the limit. Perform a new full handshake.") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_TRIAL_DECRYPT, "Unable to decrypt rejected early data") \
     ERR_ENTRY(S2N_ERR_PKEY_CTX_INIT, "Unable to initialize the libcrypto pkey context") \
+    ERR_ENTRY(S2N_ERR_EXTENSION_NOT_FOUND, "Extension not found") \
 /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;

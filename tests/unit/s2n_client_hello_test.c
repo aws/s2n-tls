@@ -130,6 +130,7 @@ int main(int argc, char **argv)
             /* Fails with extension not exist */
             EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(&conn->client_hello,
                     0xFFFF, out, sizeof(out)), S2N_FAILURE);
+	    EXPECT_EQUAL(s2n_errno, S2N_ERR_EXTENSION_NOT_FOUND);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
