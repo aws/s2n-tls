@@ -91,6 +91,50 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_client_hello_get_raw_extension_by_id */
+    {
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            uint8_t data[] = {
+                    /* arbitrary extension with 2 data */
+                    0xFF, 0x00, /* extension type */
+                    0x00, 0x02, /* extension payload length */
+                    0xAB, 0xCD, /* extension payload */
+                    /* NPN extension without data */
+                    0x33, 0x74,
+                    0x00, 0x00
+            };
+            uint8_t out[sizeof(data)] = {0};
+
+            struct s2n_blob *raw_extension = &conn->client_hello.extensions.raw;
+            raw_extension->data = data;
+            raw_extension->size = sizeof(data);
+
+            /* Succeeds with NPN extension(0 data) */
+            EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(&conn->client_hello,
+                    0x3374, out, sizeof(out)), 0);
+
+            /* Succeeds get extension with payload */
+            EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(&conn->client_hello,
+                    0xFF00, out, sizeof(out)), 2);
+            EXPECT_EQUAL(out[0], 0xAB);
+            EXPECT_EQUAL(out[1], 0xCD);
+
+            /* Succeeds get extension with truncated payload */
+            EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(&conn->client_hello,
+                    0xFF00, out, 1), 1);
+            EXPECT_EQUAL(out[0], 0xAB);
+
+            /* Fails with extension not exist */
+            EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(&conn->client_hello,
+                    0xFFFF, out, sizeof(out)), S2N_FAILURE);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test setting cert chain on recv */
     {
         s2n_enable_tls13_in_test();
@@ -932,8 +976,31 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
+        /* Verify server name extension(raw) and it's length are returned correctly */
+        EXPECT_EQUAL(s2n_client_hello_get_raw_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME), server_name_extension_len);
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
+        EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len), server_name_extension_len);
+        EXPECT_BYTEARRAY_EQUAL(ext_data, server_name_extension, server_name_extension_len);
+        free(ext_data);
+        ext_data = NULL;
+
+        /* Verify server name extension(raw) is truncated if extension_size > max_len */
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len - 1));
+        EXPECT_EQUAL(s2n_client_hello_get_raw_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len - 1), server_name_extension_len - 1);
+        EXPECT_BYTEARRAY_EQUAL(ext_data, server_name_extension, server_name_extension_len - 1);
+        free(ext_data);
+        ext_data = NULL;
+
         /* Verify get extension and it's length calls for a non-existing extension type */
         EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
+        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
+        free(ext_data);
+        ext_data = NULL;
+
+        /* Verify get extension(raw) and it's length calls for a non-existing extension type */
+        EXPECT_EQUAL(s2n_client_hello_get_raw_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), S2N_FAILURE);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
@@ -1039,6 +1106,8 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_client_hello_get_extensions(NULL, out, len));
         EXPECT_FAILURE(s2n_client_hello_get_extension_length(NULL, S2N_EXTENSION_SERVER_NAME));
         EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(NULL, S2N_EXTENSION_SERVER_NAME, out, len));
+        EXPECT_FAILURE(s2n_client_hello_get_raw_extension_length(NULL, S2N_EXTENSION_SERVER_NAME));
+        EXPECT_FAILURE(s2n_client_hello_get_raw_extension_by_id(NULL, S2N_EXTENSION_SERVER_NAME, out, len));
         free(out);
         out = NULL;
     }

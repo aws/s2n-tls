@@ -603,3 +603,56 @@ int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, u
 
     return S2N_SUCCESS;
 }
+
+static int s2n_client_hello_get_raw_extension(uint16_t expected_extension_type, struct s2n_blob *raw_extensions, struct s2n_blob *extension)
+{
+    POSIX_ENSURE_REF(raw_extensions);
+    POSIX_ENSURE_REF(extension);
+
+    struct s2n_stuffer raw_extensions_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&raw_extensions_stuffer, raw_extensions));
+    POSIX_GUARD(s2n_stuffer_skip_write(&raw_extensions_stuffer, raw_extensions->size));
+
+    while(s2n_stuffer_data_available(&raw_extensions_stuffer) > 0) {
+        uint16_t extension_type;
+        POSIX_ENSURE(s2n_stuffer_read_uint16(&raw_extensions_stuffer, &extension_type) == S2N_SUCCESS,
+                     S2N_ERR_BAD_MESSAGE);
+
+        uint16_t extension_size;
+        POSIX_ENSURE(s2n_stuffer_read_uint16(&raw_extensions_stuffer, &extension_size) == S2N_SUCCESS,
+                     S2N_ERR_BAD_MESSAGE);
+
+        uint8_t *extension_data = s2n_stuffer_raw_read(&raw_extensions_stuffer, extension_size);
+        POSIX_ENSURE(extension_data != NULL, S2N_ERR_BAD_MESSAGE);
+
+        if (extension_type == expected_extension_type) {
+            POSIX_GUARD(s2n_blob_init(extension, extension_data, extension_size));
+            return S2N_SUCCESS;
+        }
+    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(&raw_extensions_stuffer) > 0, S2N_FAILURE);
+}
+
+ssize_t s2n_client_hello_get_raw_extension_length(struct s2n_client_hello *ch, uint16_t extension_type) {
+    POSIX_ENSURE_REF(ch);
+
+    struct s2n_blob extension = {0};
+    POSIX_ENSURE(s2n_client_hello_get_raw_extension(extension_type, &ch->extensions.raw, &extension) == S2N_SUCCESS,
+                 S2N_FAILURE);
+
+    return extension.size;
+}
+
+ssize_t s2n_client_hello_get_raw_extension_by_id(struct s2n_client_hello *ch, uint16_t extension_type, uint8_t *out, uint32_t max_length) {
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+
+    struct s2n_blob extension = {0};
+    POSIX_ENSURE(s2n_client_hello_get_raw_extension(extension_type, &ch->extensions.raw, &extension) == S2N_SUCCESS,
+                 S2N_FAILURE);
+
+    uint32_t len = min_size(&extension, max_length);
+    POSIX_CHECKED_MEMCPY(out, extension.data, len);
+    return len;
+}
+
