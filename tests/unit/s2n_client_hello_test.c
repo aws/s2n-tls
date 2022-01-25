@@ -94,9 +94,8 @@ int main(int argc, char **argv)
     /* Test s2n_client_hello_get_raw_extension_by_id */
     {
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
             uint8_t data[] = {
                     /* arbitrary extension with 2 data */
                     0xFF, 0x00, /* extension type */
