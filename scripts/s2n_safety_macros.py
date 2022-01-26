@@ -662,6 +662,7 @@ docs = """
 # S2N Safety Macros
 """
 checks = []
+deprecation_message = "DEPRECATED: all methods (except those in s2n.h) should return s2n_result."
 
 def push_doc(args):
     args['doc'] = textwrap.dedent(args['doc']).format_map(args).strip()
@@ -683,6 +684,10 @@ for context in CONTEXTS:
         args = {'macro': name}
         args.update(context)
         args.update(value)
+
+        args['doc'] = textwrap.dedent(args['doc']).strip()
+        if context['ret'] != DEFAULT['ret']:
+            args['doc'] = (deprecation_message + "\n\n" + args['doc'])
 
         docs += push_doc(args)
         header += push_macro(args)

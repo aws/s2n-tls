@@ -201,16 +201,22 @@
 #define RESULT_GUARD_PTR(result)                               __S2N_ENSURE((result) != NULL, return S2N_RESULT_ERROR)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Sets the global `s2n_errno` to `error` and returns with an `S2N_FAILURE`
  */
 #define POSIX_BAIL(error)                                     do { _S2N_ERROR((error)); return S2N_FAILURE; } while (0)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `condition` is `true`, otherwise the function will `POSIX_BAIL` with `error`
  */
 #define POSIX_ENSURE(condition, error)                        __S2N_ENSURE((condition), POSIX_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `condition` is `true`, otherwise the function will `POSIX_BAIL` with `error`
  *
  * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
@@ -219,6 +225,8 @@
 #define POSIX_DEBUG_ENSURE(condition, error)                  __S2N_ENSURE_DEBUG((condition), POSIX_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will `POSIX_BAIL` with `error`
  *
  * This can be useful for overriding the global `s2n_errno`
@@ -226,36 +234,50 @@
 #define POSIX_ENSURE_OK(result, error)                        __S2N_ENSURE((result) >= S2N_SUCCESS, POSIX_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is greater than or equal to `b`, otherwise the function will `POSIX_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define POSIX_ENSURE_GTE(a, b)                                __S2N_ENSURE((a) >= (b), POSIX_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is less than or equal to `b`, otherwise the function will `POSIX_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define POSIX_ENSURE_LTE(a, b)                                __S2N_ENSURE((a) <= (b), POSIX_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is greater than `b`, otherwise the function will `POSIX_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define POSIX_ENSURE_GT(a, b)                                 __S2N_ENSURE((a) > (b), POSIX_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is less than `b`, otherwise the function will `POSIX_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define POSIX_ENSURE_LT(a, b)                                 __S2N_ENSURE((a) < (b), POSIX_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is equal to `b`, otherwise the function will `POSIX_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define POSIX_ENSURE_EQ(a, b)                                 __S2N_ENSURE((a) == (b), POSIX_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is not equal to `b`, otherwise the function will `POSIX_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define POSIX_ENSURE_NE(a, b)                                 __S2N_ENSURE((a) != (b), POSIX_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `min <= n <= max`, otherwise the function will `POSIX_BAIL` with `S2N_ERR_SAFETY`
  */
 #define POSIX_ENSURE_INCLUSIVE_RANGE(min, n, max)              \
@@ -268,6 +290,8 @@
         } while(0)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `min < n < max`, otherwise the function will `POSIX_BAIL` with `S2N_ERR_SAFETY`
  */
 #define POSIX_ENSURE_EXCLUSIVE_RANGE(min, n, max)              \
@@ -280,16 +304,22 @@
         } while(0)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `x` is a readable reference, otherwise the function will `POSIX_BAIL` with `S2N_ERR_NULL`
  */
 #define POSIX_ENSURE_REF(x)                                   __S2N_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), POSIX_BAIL(S2N_ERR_NULL))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `x` is a mutable reference, otherwise the function will `POSIX_BAIL` with `S2N_ERR_NULL`
  */
 #define POSIX_ENSURE_MUT(x)                                   __S2N_ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), POSIX_BAIL(S2N_ERR_NULL))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  *
  * `POSIX_PRECONDITION` should be used at the beginning of a function to make assertions about
@@ -299,6 +329,8 @@
 #define POSIX_PRECONDITION(result)                            POSIX_GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  *
  * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
@@ -312,6 +344,8 @@
 #define POSIX_POSTCONDITION(result)                           POSIX_GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Performs a safer memcpy.
  *
  * The following checks are performed:
@@ -327,6 +361,8 @@
 #define POSIX_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), POSIX_GUARD_PTR)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Performs a safer memset
  *
  * The following checks are performed:
@@ -341,11 +377,15 @@
 #define POSIX_CHECKED_MEMSET(destination, value, len)         __S2N_ENSURE_SAFE_MEMSET((destination), (value), (len), POSIX_ENSURE_REF)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_FAILURE`
  */
 #define POSIX_GUARD(result)                                   __S2N_ENSURE((result) >= S2N_SUCCESS, return S2N_FAILURE)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `result == _OSSL_SUCCESS`, otherwise the function will `POSIX_BAIL` with `error`
  */
 #define POSIX_GUARD_OSSL(result, error)                       __S2N_ENSURE((result) == _OSSL_SUCCESS, POSIX_BAIL(error))
@@ -366,16 +406,22 @@
 #define POSIX_GUARD_PTR(result)                               __S2N_ENSURE((result) != NULL, return S2N_FAILURE)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Sets the global `s2n_errno` to `error` and returns with an `NULL`
  */
 #define PTR_BAIL(error)                                       do { _S2N_ERROR((error)); return NULL; } while (0)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `condition` is `true`, otherwise the function will `PTR_BAIL` with `error`
  */
 #define PTR_ENSURE(condition, error)                          __S2N_ENSURE((condition), PTR_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `condition` is `true`, otherwise the function will `PTR_BAIL` with `error`
  *
  * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
@@ -384,6 +430,8 @@
 #define PTR_DEBUG_ENSURE(condition, error)                    __S2N_ENSURE_DEBUG((condition), PTR_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `(result) != NULL`, otherwise the function will `PTR_BAIL` with `error`
  *
  * This can be useful for overriding the global `s2n_errno`
@@ -391,36 +439,50 @@
 #define PTR_ENSURE_OK(result, error)                          __S2N_ENSURE((result) != NULL, PTR_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is greater than or equal to `b`, otherwise the function will `PTR_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define PTR_ENSURE_GTE(a, b)                                  __S2N_ENSURE((a) >= (b), PTR_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is less than or equal to `b`, otherwise the function will `PTR_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define PTR_ENSURE_LTE(a, b)                                  __S2N_ENSURE((a) <= (b), PTR_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is greater than `b`, otherwise the function will `PTR_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define PTR_ENSURE_GT(a, b)                                   __S2N_ENSURE((a) > (b), PTR_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is less than `b`, otherwise the function will `PTR_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define PTR_ENSURE_LT(a, b)                                   __S2N_ENSURE((a) < (b), PTR_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is equal to `b`, otherwise the function will `PTR_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define PTR_ENSURE_EQ(a, b)                                   __S2N_ENSURE((a) == (b), PTR_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `a` is not equal to `b`, otherwise the function will `PTR_BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define PTR_ENSURE_NE(a, b)                                   __S2N_ENSURE((a) != (b), PTR_BAIL(S2N_ERR_SAFETY))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `min <= n <= max`, otherwise the function will `PTR_BAIL` with `S2N_ERR_SAFETY`
  */
 #define PTR_ENSURE_INCLUSIVE_RANGE(min, n, max)                \
@@ -433,6 +495,8 @@
         } while(0)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `min < n < max`, otherwise the function will `PTR_BAIL` with `S2N_ERR_SAFETY`
  */
 #define PTR_ENSURE_EXCLUSIVE_RANGE(min, n, max)                \
@@ -445,16 +509,22 @@
         } while(0)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `x` is a readable reference, otherwise the function will `PTR_BAIL` with `S2N_ERR_NULL`
  */
 #define PTR_ENSURE_REF(x)                                     __S2N_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), PTR_BAIL(S2N_ERR_NULL))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `x` is a mutable reference, otherwise the function will `PTR_BAIL` with `S2N_ERR_NULL`
  */
 #define PTR_ENSURE_MUT(x)                                     __S2N_ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), PTR_BAIL(S2N_ERR_NULL))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  *
  * `PTR_PRECONDITION` should be used at the beginning of a function to make assertions about
@@ -464,6 +534,8 @@
 #define PTR_PRECONDITION(result)                              PTR_GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  *
  * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
@@ -477,6 +549,8 @@
 #define PTR_POSTCONDITION(result)                             PTR_GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Performs a safer memcpy.
  *
  * The following checks are performed:
@@ -492,6 +566,8 @@
 #define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_GUARD_PTR)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Performs a safer memset
  *
  * The following checks are performed:
@@ -506,11 +582,15 @@
 #define PTR_CHECKED_MEMSET(destination, value, len)           __S2N_ENSURE_SAFE_MEMSET((destination), (value), (len), PTR_ENSURE_REF)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `(result) != NULL`, otherwise the function will return `NULL`
  */
 #define PTR_GUARD(result)                                     __S2N_ENSURE((result) != NULL, return NULL)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `result == _OSSL_SUCCESS`, otherwise the function will `PTR_BAIL` with `error`
  */
 #define PTR_GUARD_OSSL(result, error)                         __S2N_ENSURE((result) == _OSSL_SUCCESS, PTR_BAIL(error))
