@@ -662,6 +662,7 @@ docs = """
 # S2N Safety Macros
 """
 checks = []
+deprecation_message = "DEPRECATED: all methods (except those in s2n.h) should return s2n_result."
 
 def push_doc(args):
     args['doc'] = textwrap.dedent(args['doc']).format_map(args).strip()
@@ -684,6 +685,10 @@ for context in CONTEXTS:
         args.update(context)
         args.update(value)
 
+        args['doc'] = textwrap.dedent(args['doc']).strip()
+        if context['ret'] != DEFAULT['ret']:
+            args['doc'] = (deprecation_message + "\n\n" + args['doc'])
+
         docs += push_doc(args)
         header += push_macro(args)
 
@@ -699,6 +704,9 @@ for context in CONTEXTS:
     for other in CONTEXTS:
         if len(other['suffix']) > 0:
             doc = 'Ensures `{is_ok}`, otherwise the function will return `{error}`'
+            if other == PTR:
+                doc += '\n\nDoes not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for {prefix}ENSURE_REF.'
+
             impl = '__S2N_ENSURE({is_ok}, return {error})'
             args = {
                 'prefix': context['prefix'],
