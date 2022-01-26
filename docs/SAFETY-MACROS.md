@@ -158,6 +158,8 @@ Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_RESUL
 
 Ensures `(result) != NULL`, otherwise the function will return `S2N_RESULT_ERROR`
 
+Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for RESULT_ENSURE_REF.
+
 
 ## Macros for functions that return `int` (POSIX error signal)
 
@@ -352,6 +354,8 @@ Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_FAILU
 
 Ensures `(result) != NULL`, otherwise the function will return `S2N_FAILURE`
 
+Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for POSIX_ENSURE_REF.
+
 
 ## Macros for functions that return a pointer
 
@@ -545,4 +549,6 @@ Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
 ### PTR_GUARD_PTR(result)
 
 Ensures `(result) != NULL`, otherwise the function will return `NULL`
+
+Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for PTR_ENSURE_REF.
 

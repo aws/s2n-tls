@@ -704,6 +704,9 @@ for context in CONTEXTS:
     for other in CONTEXTS:
         if len(other['suffix']) > 0:
             doc = 'Ensures `{is_ok}`, otherwise the function will return `{error}`'
+            if other == PTR:
+                doc += '\n\nDoes not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for {prefix}ENSURE_REF.'
+
             impl = '__S2N_ENSURE({is_ok}, return {error})'
             args = {
                 'prefix': context['prefix'],
