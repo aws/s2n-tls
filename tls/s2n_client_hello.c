@@ -604,7 +604,7 @@ int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, u
     return S2N_SUCCESS;
 }
 
-static s2n_result s2n_client_hello_get_raw_extension(uint16_t expected_extension_type,
+static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t expected_extension_type,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension)
 {
     RESULT_GUARD_PTR(raw_extensions);
@@ -621,7 +621,7 @@ static s2n_result s2n_client_hello_get_raw_extension(uint16_t expected_extension
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&raw_extensions_stuffer, &extension_size));
 
         uint8_t *extension_data = s2n_stuffer_raw_read(&raw_extensions_stuffer, extension_size);
-        RESULT_GUARD_PTR(extension_data);
+        RESULT_ENSURE_REF(extension_data);
 
         if (expected_extension_type == extension_type) {
             RESULT_GUARD_POSIX(s2n_blob_init(extension, extension_data, extension_size));
