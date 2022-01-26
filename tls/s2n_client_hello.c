@@ -632,7 +632,8 @@ static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
     RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }
 
-int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_iana, bool *exists) {
+int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_iana, bool *exists)
+{
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(exists);
 
