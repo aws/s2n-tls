@@ -1,0 +1,32 @@
+name: FreeBSD
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  testfreebsd:
+    runs-on: macos-10.15
+    name: CI FreeBSD
+    env:
+      MYTOKEN : ${{ secrets.MYTOKEN }}
+      MYTOKEN2: "value2"
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and test in FreeBSD
+      id: test
+      uses: vmactions/freebsd-vm@v0.1.5
+      with:
+        copyback: false
+        prepare: pkg install -y ninja cmake
+        run: |
+          pwd
+          ls -lah
+          env
+          freebsd-version
+          cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
+          cmake --build ./build -j 4
+          export CTEST_PARALLEL_LEVEL=4
+          ninja -C build test
