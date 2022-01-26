@@ -93,41 +93,39 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_hello_has_extension */
     {
-        {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-            uint8_t data[] = {
-                    /* arbitrary extension with 2 data */
-                    0xFF, 0x00, /* extension type */
-                    0x00, 0x02, /* extension payload length */
-                    0xAB, 0xCD, /* extension payload */
-                    /* NPN extension without data */
-                    0x33, 0x74,
-                    0x00, 0x00
-            };
+        uint8_t data[] = {
+                /* arbitrary extension with 2 data */
+                0xFF, 0x00, /* extension type */
+                0x00, 0x02, /* extension payload length */
+                0xAB, 0xCD, /* extension payload */
+                /* NPN extension without data */
+                0x33, 0x74,
+                0x00, 0x00
+        };
 
-            struct s2n_blob *raw_extension = &conn->client_hello.extensions.raw;
-            raw_extension->data = data;
-            raw_extension->size = sizeof(data);
+        struct s2n_blob *raw_extension = &conn->client_hello.extensions.raw;
+        raw_extension->data = data;
+        raw_extension->size = sizeof(data);
 
-            /* Succeeds with NPN extension(0 data) */
-            bool exists = false;
-            EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
-            EXPECT_TRUE(exists);
+        /* Succeeds with NPN extension(0 data) */
+        bool exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
+        EXPECT_TRUE(exists);
 
-            /* Succeeds get extension with payload */
-            exists = false;
-            EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
-            EXPECT_TRUE(exists);
+        /* Succeeds get extension with payload */
+        exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
+        EXPECT_TRUE(exists);
 
-            /* Fails with extension not exist */
-            exists = false;
-            EXPECT_FAILURE(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
-            EXPECT_FALSE(exists);
+        /* Fails with extension not exist */
+        exists = false;
+        EXPECT_FAILURE(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
+        EXPECT_FALSE(exists);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Test setting cert chain on recv */

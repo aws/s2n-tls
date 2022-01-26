@@ -344,7 +344,7 @@ extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch
 S2N_API
 extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
 S2N_API
-extern int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_type, bool *contains);
+extern int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_iana, bool *exists);
 S2N_API
 extern int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
 S2N_API
