@@ -603,3 +603,50 @@ int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, u
 
     return S2N_SUCCESS;
 }
+
+static s2n_result s2n_client_hello_get_raw_extension(uint16_t expected_extension_type,
+        struct s2n_blob *raw_extensions, struct s2n_blob *extension)
+{
+    RESULT_GUARD_PTR(raw_extensions);
+
+    struct s2n_stuffer raw_extensions_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&raw_extensions_stuffer, raw_extensions));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&raw_extensions_stuffer, raw_extensions->size));
+
+    while(s2n_stuffer_data_available(&raw_extensions_stuffer) > 0) {
+        uint16_t extension_type = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&raw_extensions_stuffer, &extension_type));
+
+        uint16_t extension_size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&raw_extensions_stuffer, &extension_size));
+
+        uint8_t *extension_data = s2n_stuffer_raw_read(&raw_extensions_stuffer, extension_size);
+        RESULT_GUARD_PTR(extension_data);
+
+        if (expected_extension_type == extension_type) {
+            RESULT_GUARD_POSIX(s2n_blob_init(extension, extension_data, extension_size));
+            return S2N_RESULT_OK;
+        }
+    }
+    return S2N_RESULT_ERROR;
+}
+
+int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_type, bool *exists) {
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(exists);
+
+    *exists = false;
+
+    s2n_parsed_extension *parsed_extension = NULL;
+    if (s2n_client_hello_get_parsed_extension(extension_type, &ch->extensions, &parsed_extension) == S2N_SUCCESS) {
+        *exists = true;
+        return S2N_SUCCESS;
+    }
+
+    struct s2n_blob extension = { 0 };
+    s2n_result result = s2n_client_hello_get_raw_extension(extension_type, &ch->extensions.raw, &extension);
+    POSIX_GUARD_RESULT(result);
+
+    *exists = true;
+    return S2N_SUCCESS;
+}

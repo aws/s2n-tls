@@ -91,6 +91,45 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_client_hello_has_extension */
+    {
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            uint8_t data[] = {
+                    /* arbitrary extension with 2 data */
+                    0xFF, 0x00, /* extension type */
+                    0x00, 0x02, /* extension payload length */
+                    0xAB, 0xCD, /* extension payload */
+                    /* NPN extension without data */
+                    0x33, 0x74,
+                    0x00, 0x00
+            };
+
+            struct s2n_blob *raw_extension = &conn->client_hello.extensions.raw;
+            raw_extension->data = data;
+            raw_extension->size = sizeof(data);
+
+            /* Succeeds with NPN extension(0 data) */
+            bool exists = false;
+            EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
+            EXPECT_TRUE(exists);
+
+            /* Succeeds get extension with payload */
+            exists = false;
+            EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
+            EXPECT_TRUE(exists);
+
+            /* Fails with extension not exist */
+            exists = false;
+            EXPECT_FAILURE(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
+            EXPECT_FALSE(exists);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test setting cert chain on recv */
     {
         s2n_enable_tls13_in_test();
@@ -940,6 +979,16 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
+        /* Verify server name extension exists */
+        bool extension_exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_SERVER_NAME, &extension_exists));
+        EXPECT_TRUE(extension_exists);
+
+        /* Verify expected result for non-existing extension */
+        extension_exists = false;
+        EXPECT_FAILURE(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &extension_exists));
+        EXPECT_FALSE(extension_exists);
+
         /* Verify s2n_client_hello_get_session_id is what we received in ClientHello */
         uint8_t expected_ch_session_id[] = {ZERO_TO_THIRTY_ONE};
         uint8_t ch_session_id[sizeof(expected_ch_session_id)];
@@ -1041,6 +1090,10 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(NULL, S2N_EXTENSION_SERVER_NAME, out, len));
         free(out);
         out = NULL;
+
+        bool exists = false;
+        EXPECT_FAILURE(s2n_client_hello_has_extension(NULL, S2N_EXTENSION_SERVER_NAME, &exists));
+        EXPECT_FALSE(exists);
     }
 
     /* test_weird_client_hello_version() */
