@@ -610,6 +610,8 @@ static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
     RESULT_ENSURE_REF(raw_extensions);
     RESULT_ENSURE_REF(extension);
 
+    *extension = (struct s2n_blob) { .data = NULL, .size = 0 };
+
     struct s2n_stuffer raw_extensions_stuffer = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&raw_extensions_stuffer, raw_extensions));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&raw_extensions_stuffer, raw_extensions->size));
@@ -629,7 +631,7 @@ static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
             return S2N_RESULT_OK;
         }
     }
-    RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
+    return S2N_RESULT_OK;
 }
 
 int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_iana, bool *exists)
@@ -649,8 +651,9 @@ int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extensi
     }
 
     struct s2n_blob extension = { 0 };
-    if (s2n_result_is_ok(s2n_client_hello_get_raw_extension(extension_iana, &ch->extensions.raw, &extension))) {
-        *exists = true;
+    POSIX_GUARD_RESULT(s2n_client_hello_get_raw_extension(extension_iana, &ch->extensions.raw, &extension));
+    if (extension.data != NULL) {
+	*exists = true;
     }
     return S2N_SUCCESS;
 }
