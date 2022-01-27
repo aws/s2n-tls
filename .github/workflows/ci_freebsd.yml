@@ -22,11 +22,9 @@ jobs:
         copyback: false
         prepare: pkg install -y ninja cmake
         run: |
-          pwd
-          ls -lah
+          setenv CTEST_PARALLEL_LEVEL `sysctl hw.ncpu | awk '{print $2}'`
           env
           freebsd-version
           cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
-          cmake --build ./build -j 4
-          export CTEST_PARALLEL_LEVEL=4
+          cmake --build ./build -j $CTEST_PARALLEL_LEVEL
           ninja -C build test
