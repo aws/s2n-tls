@@ -9,8 +9,15 @@ from fixtures import managed_process
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
+
+def get_scan_attempts(scan_results):
+    scan_attribute_names = [attr_name for attr_name in dir(scan_results) if not attr_name.startswith("__")]
+    scan_attempts = [getattr(scan_results, attr_name) for attr_name in scan_attribute_names]
+    return scan_attempts
+
+
 def validate_scan_result(scan_attempt, protocol):
-    assert scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.COMPLETED
+    assert scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.COMPLETED, "scan attempt failed"
 
     scan_result = scan_attempt.result
     scan_passed = {
@@ -22,7 +29,8 @@ def validate_scan_result(scan_attempt, protocol):
         }.get(protocol.value)
     }.get(type(scan_result))
 
-    assert scan_passed(scan_result)
+    assert scan_passed is not None, "unexpected scan"
+    assert scan_passed(scan_result), "unexpected scan result"
 
 
 #@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
@@ -48,9 +56,11 @@ def test_sslyze_scans(managed_process):
     for result in scanner.get_results():
         print(result.connectivity_status)
 
-        scan_result = result.scan_result
-        print(scan_result.robot)
-        validate_scan_result(scan_result.robot, protocol)
+        scan_results = result.scan_result
+        scan_attempts = get_scan_attempts(scan_results)
+        for scan_attempt in scan_attempts:
+            print(scan_attempt)
+            validate_scan_result(scan_attempt, protocol)
 
 
 def test_func():
