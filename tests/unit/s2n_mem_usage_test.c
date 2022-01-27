@@ -13,6 +13,15 @@
  * permissions and limitations under the License.
  */
 
+
+#ifdef __FreeBSD__
+/* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)*/
+#undef _POSIX_C_SOURCE
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/user.h>
+#endif
+
 #include "s2n_test.h"
 
 #include "testlib/s2n_testlib.h"
@@ -34,7 +43,15 @@
 #define MAX_CONNECTIONS 1000
 
 /* This is roughly the current memory usage per connection */
+#ifdef __FreeBSD__
+#define MEM_PER_CONNECTION (58 * 1024)
+
+/* default values computed for Linux */
+#else
 #define MEM_PER_CONNECTION (49 * 1024)
+
+#endif
+
 /* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
@@ -57,6 +74,27 @@ ssize_t get_vm_data_size()
     fclose(status_file);
 
     return data * page_size;
+
+#elif defined (__FreeBSD__)
+    pid_t ppid = getpid();
+    int pidinfo[4];
+    pidinfo[0] = CTL_KERN;
+    pidinfo[1] = KERN_PROC;
+    pidinfo[2] = KERN_PROC_PID;
+    pidinfo[3] = (int)ppid;
+
+    struct kinfo_proc procinfo;
+    segsz_t lsize;
+
+    size_t len = sizeof(procinfo);
+
+    sysctl(pidinfo, nitems(pidinfo), &procinfo, &len, NULL, 0);
+
+    /* Taken from linprocfs implementation
+     * https://github.com/freebsd/freebsd-src/blob/779fd05344662aeec79c29470258bf657318eab3/sys/compat/linprocfs/linprocfs.c#L1019 */
+    lsize = (procinfo.ki_size >> PAGE_SHIFT) - procinfo.ki_dsize - procinfo.ki_ssize - procinfo.ki_tsize - 1;
+
+    return lsize << PAGE_SHIFT;
 #else
     /* Not implemented for other platforms */
     return 0;
