@@ -9,6 +9,14 @@ from fixtures import managed_process
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
+SSLYZE_SCANS_TO_TEST = {
+    sslyze.ScanCommand.ROBOT,
+    sslyze.ScanCommand.TLS_FALLBACK_SCSV,
+    sslyze.ScanCommand.HEARTBLEED,
+    sslyze.ScanCommand.OPENSSL_CCS_INJECTION,
+    sslyze.ScanCommand.SESSION_RENEGOTIATION
+}
+
 
 def get_scan_attempts(scan_results):
     scan_attribute_names = [attr_name for attr_name in dir(scan_results) if not attr_name.startswith("__")]
@@ -17,7 +25,8 @@ def get_scan_attempts(scan_results):
 
 
 def validate_scan_result(scan_attempt, protocol):
-    assert scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.COMPLETED, "scan attempt failed"
+    assert scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.COMPLETED, \
+        f"scan attempt ({scan_attempt}) failed: {scan_attempt.status}"
 
     scan_result = scan_attempt.result
     scan_passed = {
@@ -26,11 +35,19 @@ def validate_scan_result(scan_attempt, protocol):
                 scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE,
             Protocols.TLS13.value: lambda scan:
                 scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_RSA_NOT_SUPPORTED
-        }.get(protocol.value)
+        }.get(protocol.value),
+        sslyze.FallbackScsvScanResult:
+            lambda scan: scan.supports_fallback_scsv is True,
+        sslyze.HeartbleedScanResult:
+            lambda scan: scan.is_vulnerable_to_heartbleed is False,
+        sslyze.OpenSslCcsInjectionScanResult:
+            lambda scan: scan.is_vulnerable_to_ccs_injection is False,
+        sslyze.SessionRenegotiationScanResult:
+            lambda scan: scan.is_vulnerable_to_client_renegotiation_dos is False
     }.get(type(scan_result))
 
-    assert scan_passed is not None, "unexpected scan"
-    assert scan_passed(scan_result), "unexpected scan result"
+    assert scan_passed is not None, f"unexpected scan: {scan_attempt}"
+    assert scan_passed(scan_result), f"unexpected scan result: {scan_result}"
 
 
 #@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
@@ -48,7 +65,8 @@ def test_sslyze_scans(managed_process):
     server = managed_process(S2N, server_options, timeout=30)
 
     scan_request = sslyze.ServerScanRequest(
-        server_location=sslyze.ServerNetworkLocation(hostname="127.0.0.1", port=port)
+        server_location=sslyze.ServerNetworkLocation(hostname="127.0.0.1", port=port),
+        scan_commands=SSLYZE_SCANS_TO_TEST
     )
     scanner = sslyze.Scanner(per_server_concurrent_connections_limit=1)
     scanner.queue_scans([scan_request])
@@ -59,6 +77,9 @@ def test_sslyze_scans(managed_process):
         scan_results = result.scan_result
         scan_attempts = get_scan_attempts(scan_results)
         for scan_attempt in scan_attempts:
+            if scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.NOT_SCHEDULED:
+                continue
+
             print(scan_attempt)
             validate_scan_result(scan_attempt, protocol)
 
