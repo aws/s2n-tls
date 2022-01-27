@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         raw_extension->data = data;
         raw_extension->size = sizeof(data);
 
-        /* Succeeds with NPN extension(0 data) */
+        /* Succeeds on an unsupported extension with no payload */
         bool exists = false;
         EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
         EXPECT_TRUE(exists);
