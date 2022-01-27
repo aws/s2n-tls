@@ -10,16 +10,13 @@ jobs:
   testfreebsd:
     runs-on: macos-10.15
     name: CI FreeBSD
-    env:
-      MYTOKEN : ${{ secrets.MYTOKEN }}
-      MYTOKEN2: "value2"
     steps:
     - uses: actions/checkout@v2
     - name: Build and test in FreeBSD
       id: test
       uses: vmactions/freebsd-vm@v0.1.5
       with:
-        copyback: false
+        sync: sshfs
         prepare: pkg install -y ninja cmake
         run: |
           setenv CTEST_PARALLEL_LEVEL `sysctl hw.ncpu | awk '{print $2}'`
@@ -28,3 +25,9 @@ jobs:
           cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
           cmake --build ./build -j $CTEST_PARALLEL_LEVEL
           ninja -C build test
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@master
+      with:
+        name: all_test_output
+        path: build/Testing/Temporary
