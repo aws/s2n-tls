@@ -12,6 +12,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
@@ -397,25 +399,17 @@ if (__RESTRICT__SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
-
-if (SEARCH_LIBCRYPTO)
-    find_package(LibCrypto REQUIRED)
-else()
-    if (TARGET crypto)
-        message(STATUS "S2N found target: crypto")
-    else()
-        message(FATAL_ERROR "Target crypto is not defined, failed to find libcrypto")
-    endif()
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 #work around target differences
 if (TARGET crypto)
+    message(STATUS "S2N found target: crypto")
     set(ADDITIONAL_FLAGS "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>")
     set(LINK_LIB "crypto")
 else()
+    find_package(crypto REQUIRED)
     set(ADDITIONAL_FLAGS, "")
-    set(LINK_LIB "LibCrypto::Crypto")
+    set(LINK_LIB "AWS::crypto")
 endif()
 
 # Determine if EVP_md5_sha1 is available in libcrypto
@@ -499,7 +493,8 @@ if (S2N_INTERN_LIBCRYPTO)
         )
     endif()
 else()
-    target_link_libraries(${PROJECT_NAME} PUBLIC crypto)
+    find_package(crypto REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC AWS::crypto)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
@@ -658,6 +653,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/"
         COMPONENT Development)
 
-install(FILES "cmake/modules/FindLibCrypto.cmake"
+install(FILES "cmake/modules/FindCrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)
