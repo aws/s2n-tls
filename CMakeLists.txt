@@ -404,11 +404,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 #work around target differences
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
-    set(ADDITIONAL_FLAGS "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>")
     set(LINK_LIB "crypto")
 else()
     find_package(crypto REQUIRED)
-    set(ADDITIONAL_FLAGS, "")
+    message("Using libcrypto from the cmake path.")
     set(LINK_LIB "AWS::crypto")
 endif()
 
@@ -418,7 +417,6 @@ try_compile(
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md5_sha1.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
-        CMAKE_FLAGS ${ADDITIONAL_FLAGS}
 )
 if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
@@ -502,10 +500,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
-if (TARGET crypto)
-    target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
-endif()
-
 if (BUILD_TESTING)
     enable_testing()
 
@@ -516,10 +510,6 @@ if (BUILD_TESTING)
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
-    
-    if (TARGET crypto)
-        target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
-    endif()
 
     if (S2N_INTERN_LIBCRYPTO)
         # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
@@ -570,20 +560,12 @@ if (BUILD_TESTING)
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
-    
-    if (TARGET crypto)
-        target_include_directories(s2nc PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
-    endif()
 
     target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
-    
-    if (TARGET crypto)
-        target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
-    endif()
 
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
@@ -614,8 +596,6 @@ if (BUILD_TESTING)
 
     endif()
 endif()
-
-
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
