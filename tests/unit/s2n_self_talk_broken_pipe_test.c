@@ -43,6 +43,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
+    TEST_DEBUG_PRINT("Client connected %ld\n", time(0));
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
@@ -53,18 +54,26 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     if (result < 0) {
         exit(1);
     }
+    TEST_DEBUG_PRINT("Client handshake complete %ld\n", time(0));
 
     result = s2n_connection_free_handshake(conn);
     if (result < 0) {
         exit(1);
     }
 
+#ifdef __FreeBSD__
+    /* On FreeBSD shutdown from one end of the socket pair does not give EPIPE. Must use close. */
+    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
+#else
     /* Close client read fd to mock half closed pipe at server side */
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_RD);
+#endif
     /* Give server a chance to send data on broken pipe */
+    TEST_DEBUG_PRINT("Client shut down read %ld\n", time(0));
     sleep(2);
 
     s2n_shutdown(conn, &blocked);
+    TEST_DEBUG_PRINT("Client s2n shut down %ld\n", time(0));
 
     result = s2n_connection_free(conn);
     if (result < 0) {
@@ -80,6 +89,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     sleep(1);
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
+    TEST_DEBUG_PRINT("Client final write shutdown %ld\n", time(0));
 
     _exit(0);
 }
@@ -142,17 +152,20 @@ int main(int argc, char **argv)
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
+        TEST_DEBUG_PRINT("Server negotiate %ld\n", time(0));
 
         /* Give client a chance to close pipe at the receiving end */
         sleep(1);
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
+        TEST_DEBUG_PRINT("Server send %ld\n", time(0));
         size_t w = s2n_send(conn, buffer, 1, &blocked);
         EXPECT_EQUAL(w, -1);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
         EXPECT_EQUAL(errno, EPIPE);
 
         /* Second flush on half closed pipe should not get EPIPE as we write is skipped */
+        TEST_DEBUG_PRINT("Server shutdown %ld\n", time(0));
         w = s2n_shutdown(conn, &blocked);
         EXPECT_EQUAL(w, -1);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
