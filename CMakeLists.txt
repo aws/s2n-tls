@@ -491,8 +491,8 @@ if (S2N_INTERN_LIBCRYPTO)
         )
     endif()
 else()
-    find_package(crypto REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PUBLIC AWS::crypto)
+    # LINK_LIB is set above after checking targets. It handles the find_package craziness.
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
