@@ -36,6 +36,7 @@
 #include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
+#include "tls/s2n_client_hello.c"
 
 #define ZERO_TO_THIRTY_ONE 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
@@ -141,25 +142,22 @@ int main(int argc, char **argv)
         };
         struct s2n_blob raw_extension = {
                 .data = data,
-                .size = sizeof(data);
+                .size = sizeof(data),
         };
 
         struct s2n_blob extension = { 0 };
         /* Succeeds with extension exists without payload */
-        EXPECT_SUCCESS(s2n_client_hello_get_raw_extension(0x3374, &raw_extension, &extension));
+        EXPECT_OK(s2n_client_hello_get_raw_extension(0x3374, &raw_extension, &extension));
         EXPECT_EQUAL(extension.size, 0);
 
         /* Succeeds with extension exists with payload */
-        extension = { 0 };
-        EXPECT_SUCCESS(s2n_client_hello_get_raw_extension(0xFF00, &raw_extension, &extension));
+        EXPECT_OK(s2n_client_hello_get_raw_extension(0xFF00, &raw_extension, &extension));
         EXPECT_EQUAL(extension.size, 2);
         EXPECT_BYTEARRAY_EQUAL(extension.data, &data[4], 2);
 
         /* Failed with extension not exist */
-        extension = { 0 };
-        EXPECT_FAIL(s2n_client_hello_get_raw_extension(0xFFFF, &raw_extension, &extension));
+        EXPECT_ERROR_WITH_ERRNO(s2n_client_hello_get_raw_extension(0xFFFF, &raw_extension, &extension), S2N_ERR_INVALID_ARGUMENT);
         EXPECT_EQUAL(extension.size, 0);
-	EXPECT_EQUAL(s2n_errno, S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* Test setting cert chain on recv */
