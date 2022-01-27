@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
         EXPECT_TRUE(exists);
 
-        /* Succeeds with extension not exist */
+        /* Succeeds with an invalid extension */
         exists = false;
         EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
         EXPECT_FALSE(exists);
