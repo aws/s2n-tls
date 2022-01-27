@@ -4,7 +4,7 @@ import pytest
 import sslyze
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS, TLS13_CIPHERS
-from common import ProviderOptions, Protocols, Curves, data_bytes
+from common import ProviderOptions, Protocols, Curves, data_bytes, Cipher
 from fixtures import managed_process
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
@@ -50,9 +50,8 @@ def validate_scan_result(scan_attempt, protocol):
     assert scan_passed(scan_result), f"unexpected scan result: {scan_result}"
 
 
-#@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
-def test_sslyze_scans(managed_process):
-    protocol = Protocols.TLS12
+@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
+def test_sslyze_scans(managed_process, protocol):
     port = next(available_ports)
 
     server_options = ProviderOptions(
@@ -62,6 +61,11 @@ def test_sslyze_scans(managed_process):
         protocol=protocol,
         extra_flags=["--parallelize"]
     )
+
+    # test 1.3 exclusively
+    if protocol == Protocols.TLS13:
+        server_options.cipher = Cipher("test_all_tls13", Protocols.TLS13, False, False, s2n=True)
+
     server = managed_process(S2N, server_options, timeout=30)
 
     scan_request = sslyze.ServerScanRequest(
