@@ -99,11 +99,9 @@ int main(int argc, char **argv)
     /* Sanity check that we're enabling evp signing properly.
      * awslc-fips is known to require evp signing.
      */
-#if defined(OPENSSL_IS_AWSLC)
-    if (s2n_is_in_fips_mode()) {
+    if (s2n_is_in_fips_mode() && s2n_libcrypto_is_awslc()) {
         EXPECT_TRUE(s2n_evp_signing_supported());
     }
-#endif
 
     if (!s2n_evp_signing_supported()) {
         END_TEST();
