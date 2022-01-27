@@ -39,6 +39,12 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
+    /* If something goes wrong, and the server never finishes sending,
+     * we'll want to have the child process die eventually, or certain
+     * CI/CD pipelines might never complete */
+    int max_wait_time = 300;
+
+    time_t start_time = time(0);
 
     /* Give the server a chance to listen */
     sleep(1);
@@ -58,7 +64,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
 
     /* Receive 10MB of data */
     uint32_t remaining = size;
-    while(remaining) {
+    while(remaining && (start_time - time(0)) < max_wait_time) {
         int r = s2n_recv(client_conn, ptr, remaining, &blocked);
         TEST_DEBUG_PRINT("Client read: %d bytes\n", r);
         if (r < 0) {
@@ -95,6 +101,9 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     s2n_blocked_status blocked;
     int result = 0;
     int total_size = 0, i;
+    int max_wait_time = 300;
+
+    time_t start_time = time(0);
 
     for (i = 0; i < iov_size; i++) {
         total_size += iov[i].iov_len;
@@ -119,7 +128,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     }
 
     uint32_t remaining = total_size;
-    while(remaining) {
+    while(remaining && (start_time - time(0)) < max_wait_time) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         TEST_DEBUG_PRINT("Client iov read: %d bytes\n", r);
         if (r < 0) {
@@ -130,7 +139,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     }
 
     remaining = iov[0].iov_len;
-    while(remaining) {
+    while(remaining && (start_time - time(0)) < max_wait_time) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         TEST_DEBUG_PRINT("Client iov read: %d bytes\n", r);
         if (r < 0) {

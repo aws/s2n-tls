@@ -16,7 +16,6 @@ jobs:
       id: test
       uses: vmactions/freebsd-vm@v0.1.5
       with:
-        sync: sshfs
         prepare: pkg install -y ninja cmake
         run: |
           setenv CTEST_PARALLEL_LEVEL `sysctl hw.ncpu | awk '{print $2}'`
@@ -25,6 +24,7 @@ jobs:
           cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
           cmake --build ./build -j $CTEST_PARALLEL_LEVEL
           ninja -C build test
+          cmake --build ./build --target clean #Saves on copy back rsync time
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@master
