@@ -60,6 +60,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     uint32_t remaining = size;
     while(remaining) {
         int r = s2n_recv(client_conn, ptr, remaining, &blocked);
+        TEST_DEBUG_PRINT("Client read: %d bytes\n", r);
         if (r < 0) {
             return 1;
         }
@@ -120,6 +121,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     uint32_t remaining = total_size;
     while(remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
+        TEST_DEBUG_PRINT("Client iov read: %d bytes\n", r);
         if (r < 0) {
             return 1;
         }
@@ -130,6 +132,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     remaining = iov[0].iov_len;
     while(remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
+        TEST_DEBUG_PRINT("Client iov read: %d bytes\n", r);
         if (r < 0) {
             return 1;
         }
@@ -272,9 +275,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
     }
 
-    /* Pause the child process by sending it SIGSTP */
-    EXPECT_SUCCESS(kill(pid, SIGSTOP));
-
     /* Make our pipes non-blocking */
     s2n_fd_set_non_blocking(io_pair.server);
 
@@ -283,13 +283,37 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     uint32_t remaining = data_size;
     uint8_t *ptr = blob.data;
     uint32_t iov_offs = 0;
+    int client_stopped = 0;
+
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
+        if (r < 0 && (data_size - remaining) == 0) {
+            /* On some platforms (FreeBSD) it is possible for the first s2n_send to block
+             * if the first s2n_flush is sending more than 8K.
+             * We should keep trying until we have sent at least some bytes
+             * before halting the client */
+             continue;
+        }
+
         if (r < 0 && blocked == S2N_BLOCKED_ON_WRITE) {
+            TEST_DEBUG_PRINT("Server blocked\n");
             /* We reached a blocked state and made no forward progress last call */
             break;
         }
+
+        if (!client_stopped) {
+            /* If we have sent at least some bytes, we can send a SIGSTOP to the client 
+             * to force it to block */
+            TEST_DEBUG_PRINT("Server wrote: %d bytes. Sending SIGSTOP to client\n", r);
+            EXPECT_SUCCESS(kill(pid, SIGSTOP));
+
+            /* Give the client a little time to receive the SIGSTOP */
+            sleep(1);
+            client_stopped = 1;
+        }
+
+        TEST_DEBUG_PRINT("Server wrote: %d bytes\n", r);
         EXPECT_TRUE(r > 0);
         remaining -= r;
         if (!use_iov) {
@@ -305,6 +329,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
 
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
+    TEST_DEBUG_PRINT("Sending SIGCONT to client and resuming writing\n");
 
     /* Make our sockets blocking again */
     s2n_fd_set_blocking(io_pair.server);
@@ -314,6 +339,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         EXPECT_TRUE(r > 0);
+        TEST_DEBUG_PRINT("Server wrote: %d bytes\n", r);
         remaining -= r;
         if (!use_iov) {
             ptr += r;
