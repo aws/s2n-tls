@@ -64,6 +64,7 @@ rm -rf %{buildroot}
 %{_libdir}/cmake/s2n/modules/FindLibCrypto.cmake
 %{_libdir}/cmake/s2n/s2n-config.cmake
 %{_libdir}/cmake/s2n/shared/s2n-*.cmake
+%{_libdir}/pkgconfig/s2n-tls.pc
 
 %changelog
 * Thu Jan 20 2022 Doug Chapman <dougch@amazon.com>

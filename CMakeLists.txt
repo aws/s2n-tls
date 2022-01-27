@@ -628,6 +628,7 @@ else()
    set (TARGET_DIR "static")
 endif()
 
+configure_file(cmake/s2n-tls.pc.in s2n-tls.pc @ONLY)
 install(EXPORT "${PROJECT_NAME}-targets"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}/${TARGET_DIR}"
         NAMESPACE AWS::
@@ -640,3 +641,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
 install(FILES "cmake/modules/FindLibCrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}/modules/"
         COMPONENT Development)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/s2n-tls.pc"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/"
+        COMPONENT Development)
+
