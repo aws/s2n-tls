@@ -43,6 +43,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
      * we'll want to have the child process die eventually, or certain
      * CI/CD pipelines might never complete */
     int max_wait_time = 300;
+    int should_block = 1;
 
     time_t start_time = time(0);
 
@@ -72,12 +73,17 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
         }
         remaining -= r;
         ptr += r;
+        if (size - remaining > 32000 && should_block) {
+           TEST_DEBUG_PRINT("Client blocking until server sends SIGCONT\n");
+           raise(SIGSTOP);
+           should_block = 0;
+        }
     }
 
     int shutdown_rc= -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    } while(shutdown_rc != 0 && (start_time - time(0)) < max_wait_time);
 
     for (int i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
@@ -102,6 +108,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     int result = 0;
     int total_size = 0, i;
     int max_wait_time = 300;
+    int should_block = 1;
 
     time_t start_time = time(0);
 
@@ -136,6 +143,11 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
         }
         remaining -= r;
         buffer_offs += r;
+        if (total_size - remaining > 32000 && should_block) {
+           TEST_DEBUG_PRINT("Client blocking until server sends SIGCONT\n");
+           raise(SIGSTOP);
+           should_block = 0;
+        }
     }
 
     remaining = iov[0].iov_len;
@@ -152,7 +164,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     int shutdown_rc= -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    } while(shutdown_rc != 0 && (start_time - time(0)) < max_wait_time);
 
     for (i = 0, buffer_offs = 0; i < iov_size; i++) {
         if (memcmp(iov[i].iov_base, &buffer[buffer_offs], iov[i].iov_len)) {
@@ -292,12 +304,11 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     uint32_t remaining = data_size;
     uint8_t *ptr = blob.data;
     uint32_t iov_offs = 0;
-    int client_stopped = 0;
 
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
-        if (r < 0 && (data_size - remaining) == 0) {
+        if (r < 0 && (data_size - remaining) <= 32000) {
             /* On some platforms (FreeBSD) it is possible for the first s2n_send to block
              * if the first s2n_flush is sending more than 8K.
              * We should keep trying until we have sent at least some bytes
@@ -309,17 +320,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
             TEST_DEBUG_PRINT("Server blocked\n");
             /* We reached a blocked state and made no forward progress last call */
             break;
-        }
-
-        if (!client_stopped) {
-            /* If we have sent at least some bytes, we can send a SIGSTOP to the client 
-             * to force it to block */
-            TEST_DEBUG_PRINT("Server wrote: %d bytes. Sending SIGSTOP to client\n", r);
-            EXPECT_SUCCESS(kill(pid, SIGSTOP));
-
-            /* Give the client a little time to receive the SIGSTOP */
-            sleep(1);
-            client_stopped = 1;
         }
 
         TEST_DEBUG_PRINT("Server wrote: %d bytes\n", r);
@@ -336,6 +336,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_TRUE(remaining < data_size);
     EXPECT_TRUE(remaining > 0);
 
+    /* Wait for the child process to read 32000 bytes and block itself*/
+    sleep(1);
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
     TEST_DEBUG_PRINT("Sending SIGCONT to client and resuming writing\n");
