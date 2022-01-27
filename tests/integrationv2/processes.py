@@ -318,6 +318,9 @@ class ManagedProcess(threading.Thread):
                 print("Stdout: {}".format(proc_results[0].decode("utf-8", "backslashreplace")))
                 print("Stderr: {}".format(proc_results[1].decode("utf-8", "backslashreplace")))
 
+    def kill(self):
+        self.proc.kill()
+
     def _process_ready(self):
         """Condition variable predicate"""
         return self.process_ready is True
