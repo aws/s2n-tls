@@ -642,13 +642,15 @@ int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extensi
     s2n_extension_type_id extension_type_id = s2n_unsupported_extension;
     if (s2n_extension_supported_iana_value_to_id(extension_iana, &extension_type_id) == S2N_SUCCESS) {
         s2n_parsed_extension *parsed_extension = NULL;
-        POSIX_GUARD(s2n_client_hello_get_parsed_extension(extension_iana, &ch->extensions, &parsed_extension));
-        *exists = true;
+        if (s2n_client_hello_get_parsed_extension(extension_iana, &ch->extensions, &parsed_extension) == S2N_SUCCESS) {
+            *exists = true;
+        }
         return S2N_SUCCESS;
     }
 
     struct s2n_blob extension = { 0 };
-    POSIX_GUARD_RESULT(s2n_client_hello_get_raw_extension(extension_iana, &ch->extensions.raw, &extension));
-    *exists = true;
+    if (s2n_result_is_ok(s2n_client_hello_get_raw_extension(extension_iana, &ch->extensions.raw, &extension))) {
+        *exists = true;
+    }
     return S2N_SUCCESS;
 }

@@ -120,9 +120,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
         EXPECT_TRUE(exists);
 
-        /* Fails with extension not exist */
+        /* Succeeds with extension not exist */
         exists = false;
-        EXPECT_FAILURE(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
         EXPECT_FALSE(exists);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -984,7 +984,7 @@ int main(int argc, char **argv)
 
         /* Verify expected result for non-existing extension */
         extension_exists = false;
-        EXPECT_FAILURE(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &extension_exists));
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &extension_exists));
         EXPECT_FALSE(extension_exists);
 
         /* Verify s2n_client_hello_get_session_id is what we received in ClientHello */
