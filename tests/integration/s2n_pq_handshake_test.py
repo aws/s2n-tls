@@ -24,6 +24,7 @@ import os
 from os import environ
 import sys
 import subprocess
+from s2n_test_constants import S2N_LIBCRYPTO_CHOICES
 
 pq_handshake_test_vectors = [
     # The first set of vectors specify client and server cipher preference versions that are compatible for a successful PQ handshake
@@ -56,6 +57,13 @@ pq_handshake_test_vectors = [
     {"client_ciphers": "KMS-TLS-1-0-2018-10", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
     {"client_ciphers": "KMS-TLS-1-0-2018-10", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 ]
+
+
+def is_pq_enabled(libcrypto):
+    if os.getenv("S2N_NO_PQ"): return False
+    if libcrypto == "openssl-1.0.2-fips": return False
+    return True
+
 
 def validate_version(expected_version, line):
     return ACTUAL_VERSION_STR.format(expected_version or S2N_TLS12) in line
@@ -128,12 +136,15 @@ def main():
     parser = argparse.ArgumentParser(description='Runs PQ handshake integration tests using s2nd and s2nc.')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=S2N_LIBCRYPTO_CHOICES,
+            help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
+                    libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
     host = str(args.host)
     port = str(args.port)
 
-    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
-        print("\nFIPS mode detected. Skipping s2n_pq_handshake_test because PQ KEMs are not supported in FIPS mode...\n")
+    if not is_pq_enabled(args.libcrypto):
+        print("\nSkipping s2n_pq_handshake_test because PQ KEMs are not supported...\n")
         return 0
     else:
         print("\nRunning s2n_pq_handshake_test using s2nd and s2nc with host: %s and port: %s...\n" % (host, port))
