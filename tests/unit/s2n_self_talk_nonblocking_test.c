@@ -307,8 +307,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
-        /* We will up to send_at_least_percent bytes, after which the client will block itself.
-         * This allows us to cover the case which s2n_send gets EAGAIN on the very first call
+        /* We will send up to send_at_least_percent bytes, after which the client will block itself.
+         * This allows us to cover the case where s2n_send gets EAGAIN on the very first call
          * which can happen on certain platforms. By making sure we've successfully sent something
          * we can ensure write -> block -> client drain -> write ordering.*/
         if (r < 0 && PERCENT_COMPLETE(remaining, data_size) <= minimum_send_percent) {
