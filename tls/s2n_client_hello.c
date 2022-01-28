@@ -610,7 +610,7 @@ static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
     RESULT_ENSURE_REF(raw_extensions);
     RESULT_ENSURE_REF(extension);
 
-    *extension = (struct s2n_blob) { .data = NULL, .size = 0 };
+    *extension = (struct s2n_blob) { 0 };
 
     struct s2n_stuffer raw_extensions_stuffer = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&raw_extensions_stuffer, raw_extensions));
