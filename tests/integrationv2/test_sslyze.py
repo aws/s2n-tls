@@ -1,13 +1,11 @@
-from enum import Enum
-
 import pytest
 import sslyze
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS, TLS13_CIPHERS
-from common import ProviderOptions, Protocols, Curves, data_bytes, Cipher
+from configuration import available_ports
+from common import ProviderOptions, Protocols, Cipher
 from fixtures import managed_process
-from providers import Provider, S2N
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from providers import S2N
+from utils import get_parameter_name
 
 SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.ROBOT,
@@ -76,7 +74,6 @@ def test_sslyze_scans(managed_process, protocol):
     scanner.queue_scans([scan_request])
 
     for result in scanner.get_results():
-        print(result.connectivity_status)
         assert result.connectivity_status == sslyze.ServerConnectivityStatusEnum.COMPLETED, \
             "sslyze could not connect to server"
 
@@ -86,12 +83,6 @@ def test_sslyze_scans(managed_process, protocol):
             if scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.NOT_SCHEDULED:
                 continue
 
-            print(scan_attempt)
             validate_scan_result(scan_attempt, protocol)
 
     server.kill()
-
-
-def test_func():
-    print("test!!")
-    assert 1 == 1
