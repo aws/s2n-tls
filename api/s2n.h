@@ -343,7 +343,6 @@ S2N_API
 extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
 S2N_API
 extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
-S2N_API
 /**
  * Used to check if a particular extension exists in the client hello.
  *
