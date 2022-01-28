@@ -653,7 +653,7 @@ int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extensi
     struct s2n_blob extension = { 0 };
     POSIX_GUARD_RESULT(s2n_client_hello_get_raw_extension(extension_iana, &ch->extensions.raw, &extension));
     if (extension.data != NULL) {
-	*exists = true;
+        *exists = true;
     }
     return S2N_SUCCESS;
 }
