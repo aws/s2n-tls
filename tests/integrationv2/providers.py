@@ -1,8 +1,10 @@
+import os
 import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
+from global_flags import S2N_USECRITERION
 from utils import find_files, EXECUTABLE
 
 
@@ -35,6 +37,9 @@ class Provider(object):
 
         # Directory to run commands from
         self.cwd = None
+
+        # Store the test name
+        self.test_name = os.environ.get('PYTEST_CURRENT_TEST').split('::')[-1].split('[')[0]
 
         if type(options) is not ProviderOptions:
             raise TypeError
@@ -261,6 +266,9 @@ class CriterionS2N(S2N):
     """
     Wrap the S2N provider in criterion-rust
     """
+    criterion_off = 0
+    criterion_delta = 1
+    criterion_baseline = 2
 
     def _find_s2n_benchmark(self, pattern):
         result = find_files(pattern, root_dir=self.cargo_root, mode=EXECUTABLE)
@@ -295,21 +303,32 @@ class CriterionS2N(S2N):
         # Find the criterion binaries
         self._cargo_bench()
 
+        #Figure out what mode to run in: baseline or delta
+        self.criterion_mode = get_flag(S2N_USECRITERION)
+        assert self.criterion_mode  == 2
+
         # Copy the command arguments to an environment variable for the harness to read.
         if self.options.mode == Provider.ServerMode:
+            self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
             self.capture_server_args()
         elif self.options.mode == Provider.ClientMode:
-            self.capture_client_args()
-
-    def capture_client_args(self):
-        self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
-        # Without this flag, criterion won't run
-        self.cmd_line = [self.s2nc_bench, "--bench"]
+            self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
+            if self.criterion_mode == CriterionS2N.criterion_baseline:
+              self.capture_client_args_baseline()
+            if self.criterion_mode == CriterionS2N.criterion_delta:
+              self.capture_client_args_delta()
 
     def capture_server_args(self, cmd_line):
-        self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
         # Without this flag, criterion won't run
         self.cmd_line = [self.s2nd_bench, "--bench"]
+
+    def capture_client_args_baseline(self):
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--save-baseline","main"]
+
+    def capture_client_args_delta(self):
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nc_bench, "--bench","s2nc", "--load-baseline","new","--baseline","main"]
 
 
 class OpenSSL(Provider):

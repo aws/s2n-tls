@@ -6,7 +6,8 @@ def pytest_addoption(parser):
     parser.addoption("--provider-version", action="store", dest="provider-version", default=None, type=str, help="Set the version of the TLS provider")
     parser.addoption("--fips-mode", action="store", dest="fips-mode", default=False, type=int, help="S2N is running in FIPS mode")
     parser.addoption("--no-pq", action="store", dest="no-pq", default=False, type=int, help="Turn off PQ support")
-    parser.addoption("--provider-criterion", action="store", dest="provider-criterion", default=False, type=int, help="Run the test under a Criterion provider, if available.")
+    parser.addoption("--provider-criterion", action="store", dest="provider-criterion",
+      default=False, type=int, help="0=off(default, 1=Run the test under a Criterion provider in delta mode, 2=Run in baseline mode.")
 
 def pytest_configure(config):
     """
