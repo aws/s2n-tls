@@ -116,7 +116,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
         EXPECT_TRUE(exists);
 
-         /* Succeeds on an unsupported extension with payload */
+        /* Succeeds on an unsupported extension with payload */
         exists = false;
         EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
         EXPECT_TRUE(exists);
