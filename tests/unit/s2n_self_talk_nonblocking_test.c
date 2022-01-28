@@ -31,6 +31,12 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls13.h"
 
+static const float minimum_send_percent = 5.0;
+static const uint32_t max_client_run_time = 300;
+
+#define LESS_THAN_ELAPSED_SECONDS(start_time, max_time) ((start_time - time(0)) < max_time)
+#define MIN_PERCENT_COMPLETE(remaining, total) ((((total - remaining)/(total * 1.0)) * 100.0) > minimum_send_percent)
+
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32_t size)
 {
     uint8_t *buffer = malloc(size);
@@ -39,6 +45,12 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
+    /* If something goes wrong, and the server never finishes sending,
+     * we'll want to have the child process die eventually, or certain
+     * CI/CD pipelines might never complete */
+    int should_block = 1;
+
+    time_t start_time = time(0);
 
     /* Give the server a chance to listen */
     sleep(1);
@@ -58,19 +70,23 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
 
     /* Receive 10MB of data */
     uint32_t remaining = size;
-    while(remaining) {
+    while(remaining && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time)) {
         int r = s2n_recv(client_conn, ptr, remaining, &blocked);
         if (r < 0) {
             return 1;
         }
         remaining -= r;
         ptr += r;
+        if (should_block && MIN_PERCENT_COMPLETE(remaining, size)) {
+           raise(SIGSTOP);
+           should_block = 0;
+        }
     }
 
     int shutdown_rc= -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    } while(shutdown_rc != 0 && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time));
 
     for (int i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
@@ -94,6 +110,9 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     s2n_blocked_status blocked;
     int result = 0;
     int total_size = 0, i;
+    int should_block = 1;
+
+    time_t start_time = time(0);
 
     for (i = 0; i < iov_size; i++) {
         total_size += iov[i].iov_len;
@@ -118,17 +137,21 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     }
 
     uint32_t remaining = total_size;
-    while(remaining) {
+    while(remaining && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time)) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
         }
         remaining -= r;
         buffer_offs += r;
+        if (should_block && MIN_PERCENT_COMPLETE(remaining, total_size)) {
+           raise(SIGSTOP);
+           should_block = 0;
+        }
     }
 
     remaining = iov[0].iov_len;
-    while(remaining) {
+    while(remaining && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time)) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -140,7 +163,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     int shutdown_rc= -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    } while(shutdown_rc != 0 && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time));
 
     for (i = 0, buffer_offs = 0; i < iov_size; i++) {
         if (memcmp(iov[i].iov_base, &buffer[buffer_offs], iov[i].iov_len)) {
@@ -272,9 +295,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
     }
 
-    /* Pause the child process by sending it SIGSTP */
-    EXPECT_SUCCESS(kill(pid, SIGSTOP));
-
     /* Make our pipes non-blocking */
     s2n_fd_set_non_blocking(io_pair.server);
 
@@ -283,13 +303,23 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     uint32_t remaining = data_size;
     uint8_t *ptr = blob.data;
     uint32_t iov_offs = 0;
+
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
+        /* We will send up to minimum_send_percent, after which the client will automatically block itself.
+         * This allows us to cover the case where s2n_send gets EAGAIN on the very first call
+         * which can happen on certain platforms. By making sure we've successfully sent something
+         * we can ensure write -> block -> client drain -> write ordering.*/
+        if (r < 0 && !MIN_PERCENT_COMPLETE(remaining, data_size)) {
+             continue;
+        }
+
         if (r < 0 && blocked == S2N_BLOCKED_ON_WRITE) {
             /* We reached a blocked state and made no forward progress last call */
             break;
         }
+
         EXPECT_TRUE(r > 0);
         remaining -= r;
         if (!use_iov) {
@@ -303,6 +333,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_TRUE(remaining < data_size);
     EXPECT_TRUE(remaining > 0);
 
+    /* Wait for the child process to read some bytes and block itself*/
+    sleep(1);
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
 

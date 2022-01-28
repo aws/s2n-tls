@@ -1,0 +1,33 @@
+name: FreeBSD
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  testfreebsd:
+    runs-on: macos-10.15
+    name: CI FreeBSD
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and test in FreeBSD
+      id: test
+      uses: vmactions/freebsd-vm@v0.1.5
+      with:
+        prepare: pkg install -y ninja cmake
+        run: |
+          setenv CTEST_PARALLEL_LEVEL `sysctl hw.ncpu | awk '{print $2}'`
+          env
+          freebsd-version
+          cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
+          cmake --build ./build -j $CTEST_PARALLEL_LEVEL
+          ninja -C build test
+          cmake --build ./build --target clean #Saves on copy back rsync time
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@master
+      with:
+        name: all_test_output
+        path: build/Testing/Temporary
