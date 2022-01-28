@@ -15,7 +15,8 @@
 
 
 #ifdef __FreeBSD__
-/* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)*/
+/* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+ * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
 #undef _POSIX_C_SOURCE
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -83,8 +84,7 @@ ssize_t get_vm_data_size()
     pidinfo[2] = KERN_PROC_PID;
     pidinfo[3] = (int)ppid;
 
-    struct kinfo_proc procinfo;
-    segsz_t lsize;
+    struct kinfo_proc procinfo = {0};
 
     size_t len = sizeof(procinfo);
 
@@ -92,7 +92,7 @@ ssize_t get_vm_data_size()
 
     /* Taken from linprocfs implementation
      * https://github.com/freebsd/freebsd-src/blob/779fd05344662aeec79c29470258bf657318eab3/sys/compat/linprocfs/linprocfs.c#L1019 */
-    lsize = (procinfo.ki_size >> PAGE_SHIFT) - procinfo.ki_dsize - procinfo.ki_ssize - procinfo.ki_tsize - 1;
+    segsz_t lsize = (procinfo.ki_size >> PAGE_SHIFT) - procinfo.ki_dsize - procinfo.ki_ssize - procinfo.ki_tsize - 1;
 
     return lsize << PAGE_SHIFT;
 #else
