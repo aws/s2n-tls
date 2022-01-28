@@ -9,14 +9,29 @@
 #
 # Variables defined by this module:
 #
-#  Crypto_FOUND             System has libcrypto, include and library dirs found
-#  Crypto_INCLUDE_DIR       The crypto include directories.
-#  Crypto_LIBRARY           The crypto library, depending on the value of BUILD_SHARED_LIBS.
-#  Crypto_SHARED_LIBRARY    The path to libcrypto.so
-#  Crypto_STATIC_LIBRARY    The path to libcrypto.a
-if (NOT crypto_FOUND AND NOT Crypto_FOUND)
+#  crypto_FOUND             System has libcrypto, include and library dirs found
+#  crypto_INCLUDE_DIR       The crypto include directories.
+#  crypto_LIBRARY           The crypto library, depending on the value of BUILD_SHARED_LIBS.
+#  crypto_SHARED_LIBRARY    The path to libcrypto.so
+#  crypto_STATIC_LIBRARY    The path to libcrypto.a
 
-    find_path(Crypto_INCLUDE_DIR
+# the next branch exists purely for cmake compatibility with versions older than 3.15. Please do not remove it before
+# we baseline on a newer version. It does not like duplicate target declarations. Work around that by checking it isn't
+# defined first.
+if (TARGET crypto OR TARGET AWS::crypto)
+    if (TARGET crypto)
+        set(TARGET_NAME "crypto")
+    else()
+        set(TARGET_NAME "AWS::crypto")
+    endif()
+
+    get_target_property(crypto_INCLUDE_DIR ${TARGET_NAME} INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "S2N found target: ${TARGET_NAME}")
+    message(STATUS "crypto Include Dir: ${crypto_INCLUDE_DIR}")
+    set(CRYPTO_FOUND true)
+    set(crypto_FOUND true)
+else()
+    find_path(crypto_INCLUDE_DIR
         NAMES openssl/crypto.h
         HINTS
         "${CMAKE_PREFIX_PATH}"
@@ -24,7 +39,7 @@ if (NOT crypto_FOUND AND NOT Crypto_FOUND)
         PATH_SUFFIXES include
     )
 
-    find_library(Crypto_SHARED_LIBRARY
+    find_library(crypto_SHARED_LIBRARY
         NAMES libcrypto.so libcrypto.dylib
         HINTS
         "${CMAKE_PREFIX_PATH}"
@@ -32,7 +47,7 @@ if (NOT crypto_FOUND AND NOT Crypto_FOUND)
         PATH_SUFFIXES build/crypto build lib64 lib
     )
 
-    find_library(Crypto_STATIC_LIBRARY
+    find_library(crypto_STATIC_LIBRARY
         NAMES libcrypto.a
         HINTS
         "${CMAKE_PREFIX_PATH}"
@@ -40,49 +55,49 @@ if (NOT crypto_FOUND AND NOT Crypto_FOUND)
         PATH_SUFFIXES build/crypto build lib64 lib
     )
 
-    if (NOT Crypto_LIBRARY)
+    if (NOT crypto_LIBRARY)
         if (BUILD_SHARED_LIBS)
-            set(Crypto_LIBRARY ${Crypto_SHARED_LIBRARY})
+            set(crypto_LIBRARY ${crypto_SHARED_LIBRARY})
         else()
-            set(Crypto_LIBRARY ${Crypto_STATIC_LIBRARY})
+            set(crypto_LIBRARY ${crypto_STATIC_LIBRARY})
         endif()
     endif()
 
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(crypto DEFAULT_MSG
-        Crypto_LIBRARY
-        Crypto_INCLUDE_DIR
+        crypto_LIBRARY
+        crypto_INCLUDE_DIR
     )
 
     mark_as_advanced(
-        Crypto_ROOT_DIR
-        Crypto_INCLUDE_DIR
-        Crypto_LIBRARY
-        Crypto_SHARED_LIBRARY
-        Crypto_STATIC_LIBRARY
+        crypto_ROOT_DIR
+        crypto_INCLUDE_DIR
+        crypto_LIBRARY
+        crypto_SHARED_LIBRARY
+        crypto_STATIC_LIBRARY
     )
 
     # some versions of cmake have a super esoteric bug around capitalization differences between
     # find dependency and find package, just avoid that here by checking and
     # setting both.
-    if(Crypto_FOUND OR crypto_FOUND)
-        set(Crypto_FOUND true)
+    if(CRYPTO_FOUND OR crypto_FOUND)
+        set(CRYPTO_FOUND true)
         set(crypto_FOUND true)
 
-        message(STATUS "LibCrypto Include Dir: ${Crypto_INCLUDE_DIR}")
-        message(STATUS "LibCrypto Shared Lib:  ${Crypto_SHARED_LIBRARY}")
-        message(STATUS "LibCrypto Static Lib:  ${Crypto_STATIC_LIBRARY}")
+        message(STATUS "LibCrypto Include Dir: ${crypto_INCLUDE_DIR}")
+        message(STATUS "LibCrypto Shared Lib:  ${crypto_SHARED_LIBRARY}")
+        message(STATUS "LibCrypto Static Lib:  ${crypto_STATIC_LIBRARY}")
         if (NOT TARGET crypto AND
-            (EXISTS "${Crypto_LIBRARY}")
+            (EXISTS "${crypto_LIBRARY}")
         )
             set(THREADS_PREFER_PTHREAD_FLAG ON)
             find_package(Threads REQUIRED)
             add_library(AWS::crypto UNKNOWN IMPORTED)
             set_target_properties(AWS::crypto PROPERTIES
-                    INTERFACE_INCLUDE_DIRECTORIES "${Crypto_INCLUDE_DIR}")
+                    INTERFACE_INCLUDE_DIRECTORIES "${crypto_INCLUDE_DIR}")
             set_target_properties(AWS::crypto PROPERTIES
                     IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                    IMPORTED_LOCATION "${Crypto_LIBRARY}")
+                    IMPORTED_LOCATION "${crypto_LIBRARY}")
             add_dependencies(AWS::crypto Threads::Threads)
         endif()
     endif()
