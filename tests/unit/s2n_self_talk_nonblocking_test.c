@@ -31,11 +31,11 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls13.h"
 
-static float minimum_send_percent = 5.0;
-static uint32_t max_client_run_time = 300;
+static const float minimum_send_percent = 5.0;
+static const uint32_t max_client_run_time = 300;
 
 #define LESS_THAN_ELAPSED_SECONDS(start_time, max_time) ((start_time - time(0)) < max_time)
-#define PERCENT_COMPLETE(remaining, total) (((total - remaining)/(total * 1.0)) * 100.0)
+#define MIN_PERCENT_COMPLETE(remaining, total) ((((total - remaining)/(total * 1.0)) * 100.0) > minimum_send_percent)
 
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32_t size)
 {
@@ -77,7 +77,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
         }
         remaining -= r;
         ptr += r;
-        if (should_block && PERCENT_COMPLETE(remaining, size) > minimum_send_percent) {
+        if (should_block && MIN_PERCENT_COMPLETE(remaining, size)) {
            raise(SIGSTOP);
            should_block = 0;
         }
@@ -144,7 +144,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
         }
         remaining -= r;
         buffer_offs += r;
-        if (should_block && PERCENT_COMPLETE(remaining, total_size) > 5.0) {
+        if (should_block && MIN_PERCENT_COMPLETE(remaining, total_size)) {
            raise(SIGSTOP);
            should_block = 0;
         }
@@ -307,11 +307,11 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
-        /* We will send up to send_at_least_percent bytes, after which the client will block itself.
+        /* We will send up to minimum_send_percent, after which the client will automatically block itself.
          * This allows us to cover the case where s2n_send gets EAGAIN on the very first call
          * which can happen on certain platforms. By making sure we've successfully sent something
          * we can ensure write -> block -> client drain -> write ordering.*/
-        if (r < 0 && PERCENT_COMPLETE(remaining, data_size) <= minimum_send_percent) {
+        if (r < 0 && !MIN_PERCENT_COMPLETE(remaining, data_size)) {
              continue;
         }
 
