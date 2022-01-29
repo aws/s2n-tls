@@ -36,6 +36,7 @@
 #include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
+#include "tls/s2n_client_hello.c"
 
 #define ZERO_TO_THIRTY_ONE 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
@@ -89,6 +90,79 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+    }
+
+    /* Test s2n_client_hello_has_extension */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        uint8_t data[] = {
+                /* arbitrary extension with 2 data */
+                0xFF, 0x00, /* extension type */
+                0x00, 0x02, /* extension payload length */
+                0xAB, 0xCD, /* extension payload */
+                /* NPN extension without data */
+                0x33, 0x74,
+                0x00, 0x00
+        };
+
+        struct s2n_blob *raw_extension = &conn->client_hello.extensions.raw;
+        raw_extension->data = data;
+        raw_extension->size = sizeof(data);
+
+        /* Succeeds on an unsupported extension with no payload */
+        bool exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
+        EXPECT_TRUE(exists);
+
+        /* Succeeds on an unsupported extension with payload */
+        exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFF00, &exists));
+        EXPECT_TRUE(exists);
+
+        /* Succeeds with an invalid extension */
+        exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0xFFFF, &exists));
+        EXPECT_FALSE(exists);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_client_hello_get_raw_extension */
+    {
+        uint8_t data[] = {
+                /* arbitrary extension with 2 data */
+                0xFF, 0x00, /* extension type */
+                0x00, 0x02, /* extension payload length */
+                0xAB, 0xCD, /* extension payload */
+                /* NPN extension without data */
+                0x33, 0x74,
+                0x00, 0x00
+        };
+        struct s2n_blob raw_extension = {
+                .data = data,
+                .size = sizeof(data),
+        };
+
+        struct s2n_blob extension = { 0 };
+        /* Succeeds with extension exists without payload */
+        EXPECT_OK(s2n_client_hello_get_raw_extension(0x3374, &raw_extension, &extension));
+        EXPECT_EQUAL(extension.size, 0);
+        EXPECT_NOT_NULL(extension.data);
+
+        /* Succeeds with extension exists with payload */
+        extension = (struct s2n_blob) { 0 };
+        EXPECT_OK(s2n_client_hello_get_raw_extension(0xFF00, &raw_extension, &extension));
+        EXPECT_EQUAL(extension.size, 2);
+        EXPECT_NOT_NULL(extension.data);
+        EXPECT_BYTEARRAY_EQUAL(extension.data, &data[4], 2);
+
+        /* Failed with extension not exist */
+        extension = (struct s2n_blob) { 0 };
+        EXPECT_OK(s2n_client_hello_get_raw_extension(0xFFFF, &raw_extension, &extension));
+        EXPECT_EQUAL(extension.size, 0);
+        EXPECT_NULL(extension.data);
     }
 
     /* Test setting cert chain on recv */
@@ -940,6 +1014,16 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
+        /* Verify server name extension exists */
+        bool extension_exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_SERVER_NAME, &extension_exists));
+        EXPECT_TRUE(extension_exists);
+
+        /* Verify expected result for non-existing extension */
+        extension_exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &extension_exists));
+        EXPECT_FALSE(extension_exists);
+
         /* Verify s2n_client_hello_get_session_id is what we received in ClientHello */
         uint8_t expected_ch_session_id[] = {ZERO_TO_THIRTY_ONE};
         uint8_t ch_session_id[sizeof(expected_ch_session_id)];
@@ -1041,6 +1125,10 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(NULL, S2N_EXTENSION_SERVER_NAME, out, len));
         free(out);
         out = NULL;
+
+        bool exists = false;
+        EXPECT_FAILURE(s2n_client_hello_has_extension(NULL, S2N_EXTENSION_SERVER_NAME, &exists));
+        EXPECT_FALSE(exists);
     }
 
     /* test_weird_client_hello_version() */
