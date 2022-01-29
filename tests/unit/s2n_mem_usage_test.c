@@ -43,18 +43,26 @@
  * usage. The greater the value, the more accurate the end result. */
 #define MAX_CONNECTIONS 1000
 
-/* This is roughly the current memory usage per connection */
+/* This is roughly the current memory usage per connection, in KB */
 #ifdef __FreeBSD__
-#define MEM_PER_CONNECTION (58 * 1024)
-
-/* default values computed for Linux */
+#define MEM_PER_CONNECTION 57
 #else
-#define MEM_PER_CONNECTION (49 * 1024)
-
+#define MEM_PER_CONNECTION 48
 #endif
 
 /* This is the maximum memory per connection including 4KB of slack */
-#define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
+#define TEST_SLACK 4
+#define MAX_MEM_PER_CONNECTION \
+        ((MEM_PER_CONNECTION + TEST_SLACK) * 1024)
+
+/* This is the total maximum memory allowed */
+#define MAX_MEM_ALLOWED(num_connections) \
+    (2 * (num_connections) * MAX_MEM_PER_CONNECTION)
+
+/* This is the correct value of MEM_PER_CONNECTION based on test results.
+ * Basically, this calculation should reverse MAX_MEM_ALLOWED */
+#define ACTUAL_MEM_PER_CONNECTION(num_connections, max_mem) \
+    ((((max_mem) / 2 / (num_connections)) / 1024) - TEST_SLACK)
 
 ssize_t get_vm_data_size()
 {
@@ -128,7 +136,7 @@ int main(int argc, char **argv)
         connectionsToUse = MAX(1, (file_limit.rlim_cur - 16) / 4);
     }
 
-    const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
+    const ssize_t maxAllowedMemDiff = MAX_MEM_ALLOWED(connectionsToUse);
     const ssize_t minAllowedMemDiff = maxAllowedMemDiff * 0.75;
 
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
@@ -220,16 +228,20 @@ int main(int argc, char **argv)
     TEST_DEBUG_PRINT("Max VmData diff allowed:     %10zd\n", maxAllowedMemDiff);
     TEST_DEBUG_PRINT("Number of connections used:  %10zu\n", connectionsToUse);
 
-    EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < maxAllowedMemDiff);
-    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < maxAllowedMemDiff);
     EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
     EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
 
-    /* If the maximum memory drops too much, we should tighten up the limits in this test. */
-    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial > minAllowedMemDiff);
+    ssize_t handshake_diff = (vm_data_after_handshakes - vm_data_initial);
+    ssize_t allocation_diff = (vm_data_after_allocation - vm_data_initial);
+
+    if (allocation_diff > maxAllowedMemDiff
+            || handshake_diff > maxAllowedMemDiff
+            || handshake_diff < minAllowedMemDiff) {
+        fprintf(stdout, "\nActual KB per connection: %zd\n",
+                ACTUAL_MEM_PER_CONNECTION(connectionsToUse, handshake_diff));
+        FAIL_MSG("Unexpected memory usage. If expected, update MEM_PER_CONNECTION.");
+    }
 
     END_TEST();
-
-    return 0;
 }
 
