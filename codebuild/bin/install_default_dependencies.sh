@@ -109,6 +109,11 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
     if [[ "$DISTRO" == "ubuntu" && "$S2N_NO_SSLYZE" != "true" ]]; then
         codebuild/bin/install_sslyze.sh
     fi
+
+    if [[ ! -x "$PYTHON39_INSTALL_DIR/bin/python3.9" ]]; then
+        mkdir -p "$PYTHON39_INSTALL_DIR" || true
+        codebuild/bin/install_python39.sh "$(mktemp -d)" "$PYTHON39_INSTALL_DIR" > /dev/null ;
+    fi
 fi
 
 # Install SAW, Z3, and Yices for formal verification
