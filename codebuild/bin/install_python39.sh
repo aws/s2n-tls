@@ -18,7 +18,7 @@ curl https://www.python.org/ftp/python/3.9.10/Python-3.9.10.tgz > Python-3.9.10.
 tar -xzvf Python-3.9.10.tgz
 cd Python-3.9.10
 
-apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev
+apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev -y
 ./configure --prefix="$INSTALL_DIR"
 make -j $JOBS
 make install
