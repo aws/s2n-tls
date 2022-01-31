@@ -112,7 +112,7 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
 
     if [[ ! -x "$PYTHON39_INSTALL_DIR/bin/python3.9" ]]; then
         mkdir -p "$PYTHON39_INSTALL_DIR" || true
-        codebuild/bin/install_python39.sh "$(mktemp -d)" "$PYTHON39_INSTALL_DIR" > /dev/null ;
+        codebuild/bin/install_python39.sh "$(mktemp -d)" "$PYTHON39_INSTALL_DIR" ;
     fi
 fi
 
