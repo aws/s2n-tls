@@ -63,4 +63,5 @@ phases:
     commands:
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
+      - . $CB_BIN_DIR/s2n_setup_env.sh
       - TOX_TEST_NAME=$INTEGV2_TEST.py make integrationv2
