@@ -729,8 +729,6 @@ void cbmc_populate_s2n_handshake(struct s2n_handshake *s2n_handshake)
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha384));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha512));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->md5_sha1));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->server_hello_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->server_finished_copy));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->hash_workspace));
     /* `s2n_handshake->early_data_async_state.conn` is never allocated.
      * If required, this initialization should be done in the validation function.
