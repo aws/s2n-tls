@@ -74,8 +74,11 @@ def test_sslyze_scans(managed_process, protocol):
     scanner.queue_scans([scan_request])
 
     for result in scanner.get_results():
+        def get_connectivity_error_str(tb):
+            return "\n".join(tb.stack.format())
+
         assert result.connectivity_status == sslyze.ServerConnectivityStatusEnum.COMPLETED, \
-            "sslyze could not connect to server"
+            f"sslyze could not connect to server: {get_connectivity_error_str(result.connectivity_error_trace)}"
 
         scan_results = result.scan_result
         scan_attempts = get_scan_attempts(scan_results)
