@@ -38,4 +38,4 @@ apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev l
 make -j $JOBS
 make install
 
-${INSTALL_DIR}/bin/python3 -m pip install tox
+${INSTALL_DIR}/bin/python3 -m pip install tox tox-current-env pytest-xdist
