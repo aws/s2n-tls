@@ -27,5 +27,5 @@ fi
 INSTALL_DIR=$1
 cd "$INSTALL_DIR"
 
-curl https://files.pythonhosted.org/packages/d6/f0/14e68ea6e4bf9ef280c476fc1ab68782032d7fb1178124b1326ad6dfd039/tox-3.24.5-py2.py3-none-any.whl
+wget https://files.pythonhosted.org/packages/d6/f0/14e68ea6e4bf9ef280c476fc1ab68782032d7fb1178124b1326ad6dfd039/tox-3.24.5-py2.py3-none-any.whl
 /usr/bin/python3 -m pip install tox-3.24.5-py2.py3-none-any.whl
