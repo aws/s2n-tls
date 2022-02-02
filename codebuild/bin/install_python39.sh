@@ -37,3 +37,5 @@ apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev l
 ./configure --prefix="$INSTALL_DIR"
 make -j $JOBS
 make install
+
+${INSTALL_DIR}/bin/python3 -m pip install tox
