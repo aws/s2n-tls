@@ -114,6 +114,10 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
         mkdir -p "$PYTHON39_INSTALL_DIR" || true
         codebuild/bin/install_python39.sh "$(mktemp -d)" "$PYTHON39_INSTALL_DIR" ;
     fi
+
+    if [[ ! -x "$TEST_DEPS_DIR/tox-3.24.5-py2.py3-none-any.whl" ]]; then
+        codebuild/bin/install_tox.sh "$TEST_DEPS_DIR" ;
+    fi
 fi
 
 # Install SAW, Z3, and Yices for formal verification
