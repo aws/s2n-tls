@@ -39,8 +39,6 @@
 
 struct fgn_test_case {
     char *test_case_label;
-    /* Must exit gracefully for the parent thread to handle combining results
-     * for all test cases */
     int (*test_case_cb)(struct fgn_test_case *test_case);
     /* 0 (no), 1 (yes), 2 (determine at run-time) */
     int test_case_must_pass_clone_test;
