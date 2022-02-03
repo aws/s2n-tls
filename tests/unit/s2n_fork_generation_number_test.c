@@ -205,9 +205,9 @@ static int unit_test_clone(uint64_t parent_process_fgn)
     int proc_pid = clone(unit_test_clone_child_process, (char *)process_child_stack + PROCESS_CHILD_STACK_SIZE, SIGCHLD, (void *) &return_fork_generation_number);
     EXPECT_NOT_EQUAL(proc_pid, -1);
 
-    verify_child_exit_status(proc_pid);
-
     free(process_child_stack);
+
+    verify_child_exit_status(proc_pid);
 
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
