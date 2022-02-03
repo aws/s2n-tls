@@ -646,7 +646,7 @@
  */
 #define S2N_CONCAT(left, right) left##right
 #define S2N_STATIC_ASSERT_DEFINE(condition, msg) typedef struct { \
-        unsigned int S2N_CONCAT(static_assertion_, msg) : (condition) ? 1 : - 1; \
+        unsigned int S2N_CONCAT(static_assertion_, msg) : (condition) ? 1 : - 1 S2N_UNUSED_STATIC_ASSERT; \
     } S2N_CONCAT(static_assertion_, msg) S2N_UNUSED_STATIC_ASSERT;
 #define S2N_STATIC_ASSERT_ADD_LINE0(condition, suffix) S2N_STATIC_ASSERT_DEFINE(condition, S2N_CONCAT(at_line_, suffix))
 #define S2N_STATIC_ASSERT_ADD_LINE1(condition, line, suffix) S2N_STATIC_ASSERT_ADD_LINE0(condition, S2N_CONCAT(line, suffix))

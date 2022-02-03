@@ -69,6 +69,8 @@ static void * unit_test_thread_get_fgn(void *expected_fork_generation_number)
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
 
     EXPECT_EQUAL(return_fork_generation_number, *(uint64_t *) expected_fork_generation_number);
+
+    return NULL;
 }
 
 static int unit_test_thread(uint64_t expected_fork_generation_number)

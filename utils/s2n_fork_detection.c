@@ -201,9 +201,8 @@ static void initialise_fork_detection_methods(void)
      * OS's. But it is a mess. A more reliable method is to probe the system, at
      * run-time, whether madvise supports the MADV_WIPEONFORK advice. However,
      * the method to probe for this feature is equivalent to actually attempting
-     * to initialise the MADV_WIPEONFORK fork detection. Compare
-     * FOR_TESTING_probe_madv_wipeonfork_support() (used for testing) with
-     * initialise_wipeonfork_or_inherit_zero().
+     * to initialise the MADV_WIPEONFORK fork detection. Compare with
+     * probe_madv_wipeonfork_support() (used for testing).
      *
      * Instead, we apply best-effort to initialise the MADV_WIPEONFORK fork
      * detection and otherwise always require pthread_atfork to be initialised.
