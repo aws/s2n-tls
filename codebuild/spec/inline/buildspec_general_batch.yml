@@ -1,0 +1,129 @@
+batch:
+  build-list:
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_2XLARGE
+        privileged-mode: true
+        variables:
+          GCC_VERSION: NONE
+          S2N_LIBCRYPTO: openssl-1.0.2
+          SAW: true
+          TESTS: sawBIKE
+      identifier: s2nSawBike
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          GCC_VERSION: NONE
+          SAW: true
+          TESTS: sawHMACPlus
+      identifier: sawHMACPlus
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          GCC_VERSION: NONE
+          SAW: true
+          TESTS: tls
+      identifier: s2nSawTls
+    - buildspec: codebuild/spec/buildspec_sidetrail.yml
+      env:
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images:sidetrail
+        privileged-mode: true
+        variables:
+          TESTS: sidetrail
+      identifier: s2nSidetrail
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          BUILD_S2N: true
+          GCC_VERSION: 6
+          S2N_LIBCRYPTO: openssl-1.0.2-fips
+          TESTS: valgrind
+      identifier: s2nValgrindOpenSSL102Gcc6Fips
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          BUILD_S2N: true
+          GCC_VERSION: 9
+          S2N_LIBCRYPTO: openssl-1.1.1
+          TESTS: valgrind
+      identifier: s2nValgrindOpenSSL111Gcc9
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'openssl-1.0.2'
+          TESTS: valgrind
+      identifier: s2nValgrindOpenssl102
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          CODECOV_IO_UPLOAD: 'true'
+          CODECOV_TOKEN: 'e460b7c1-6019-4a50-b65d-555c4a8fbc22'
+          GCC_VERSION: '6'
+          S2N_COVERAGE: 'true'
+          S2N_LIBCRYPTO: 'openssl-1.1.1'
+          TESTS: asan
+      identifier: s2nAsanOpenSSL111Coverage
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'openssl-1.0.2'
+          TESTS: asan
+      identifier: s2nAsanOpenssl102
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '9'
+          S2N_LIBCRYPTO: 'openssl-1.1.1'
+          S2N_NO_PQ: 1
+          TESTS: unit
+      identifier: s2nUnitNoPQ
+    - buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          S2N_NO_PQ: 1
+          TESTS: unit
+      identifier: s2nUnitAl2Arm
+    - buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        privileged-mode: true
+        variables:
+          S2N_NO_PQ: 1
+          TESTS: unit
+      identifier: s2nUnitAl2
+    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          TESTS: interning
+      identifier: s2nLibcryptoInterning

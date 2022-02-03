@@ -1,0 +1,37 @@
+batch:
+  build-list:
+    - buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
+        privileged-mode: true
+        variables:
+          CODECOV_IO_UPLOAD: true
+          FUZZ_COVERAGE: true
+          FUZZ_TIMEOUT_SEC: 60
+          LATEST_CLANG: true
+          S2N_LIBCRYPTO: openssl-1.1.1
+          TESTS: fuzz
+      identifier: s2nFuzzerOpenSSL111Coverage
+    - buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
+        privileged-mode: true
+        variables:
+          FUZZ_TIMEOUT_SEC: 60
+          LATEST_CLANG: true
+          S2N_LIBCRYPTO: openssl-1.0.2
+          TESTS: fuzz
+      identifier: s2nFuzzerOpenSSL102
+    - buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
+        privileged-mode: true
+        variables:
+          FUZZ_TIMEOUT_SEC: 60
+          LATEST_CLANG: true
+          S2N_LIBCRYPTO: openssl-1.0.2-fips
+          TESTS: fuzz
+      identifier: s2nFuzzerOpenSSL102FIPS

@@ -1,0 +1,59 @@
+---
+version: 0.2
+env:
+  variables:
+    ARTIFACT_BUCKET: s3://s2n-tls-logs/main
+    ARTIFACT_FILE: benchmark
+batch:
+  build-list:
+    - identifier: handshake
+      compute-type: BUILD_GENERAL1_SMALL
+      env:
+        LATEST_CLANG: true
+        S2N_LIBCRYPTO: openssl-1.1.1
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+      - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list
+      - ./codebuild/bin/install_ubuntu_dependencies.sh
+      - apt install -y clang-10 sudo gh
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - . $HOME/.cargo/env
+      - rustup default nightly
+      - ./codebuild/bin/install_openssl_1_1_1.sh $(mktemp -d) $(pwd)/test-deps/openssl-1.1.1 linux
+      - cd ./bindings/rust
+      - OPENSSL_DIR=$(pwd)/../../test-deps/openssl-1.1.1 ./generate.sh
+  pre_build:
+    commands:
+      - mkdir -p target/criterion || true
+      - aws s3 cp ${ARTIFACT_BUCKET}/${ARTIFACT_FILE}_$(date +%Y-%m-%d).zip .
+      - unzip -o ${ARTIFACT_FILE}_$(date +%Y-%m-%d).zip -d ./target/criterion
+  build:
+    commands:
+      - cargo bench --bench $CODEBUILD_BATCH_BUILD_IDENTIFIER -- --load-baseline new --baseline main | tee bench.log
+  post_build:
+    commands:
+      - echo "Checking for negative results..."
+      - test $(grep -c 'Performance has regressed' ./bench.log ) -eq 0
+      - echo "Checking for positive/netrual results (must be > 0)"
+      - test $(grep -ce 'No change' -e 'Change within noise' -e 'Performance has improved' ./bench.log) -gt 0
+      - echo "Updating PR with a comment"
+      - TOKEN=$(aws secretsmanager get-secret-value --secret-id s2n_codebuild_PRs --query 'SecretString' --output text |jq -r '.secret_key')
+      - echo "$TOKEN"|gh auth login --with-token
+      - GITHUB_PR=$(echo $CODEBUILD_WEBHOOK_TRIGGER|sed 's|pr/||')
+      - JOB_ID=$(echo $CODEBUILD_BUILD_ID|cut -d ":" -f 2)
+      - BASE_URL=https://d17xuyslvs6yyp.cloudfront.net/reports
+      - REPORT_URL="$BASE_URL/$JOB_ID/handshake-s2nBenchmarkBatch/report/index.html"
+      - echo "[Benchmark report]($REPORT_URL)" > pr_comment
+      - grep -ie 'Change ' -ie 'Performance ' bench.log |sort|uniq >> pr_comment
+      - gh pr comment $GITHUB_PR --repo aws/s2n-tls --body-file pr_comment || true
+artifacts:
+  files:
+    - "**/index.html"
+    - "**/*.svg"
+    - "**/*.json"
+  base-directory: "bindings/rust/target/criterion"
+  discard-paths: no

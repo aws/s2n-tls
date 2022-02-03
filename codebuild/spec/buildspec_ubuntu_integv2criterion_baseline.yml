@@ -1,0 +1,28 @@
+---
+version: 0.2
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+phases:
+  install:
+    runtime-versions:
+      python: 3.x
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
+  build:
+    commands:
+      - $CB_BIN_DIR/criterion_baseline.sh
+
+artifacts:
+  files:
+    - "**/index.html"
+    - "**/*.svg"
+    - "**/*.json"
+  base-directory: "bindings/rust/target/criterion"
+  name: integv2criterion_${INTEGV2_TEST}_${RELEASE_VER}.zip
+  discard-paths: no

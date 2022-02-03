@@ -18,6 +18,10 @@
 
 set -e
 
+github_apt(){
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list
+}
 get_rust() {
   apt install -y clang-10 sudo
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -33,7 +37,7 @@ base_packages() {
   add-apt-repository ppa:longsleep/golang-backports -y
   apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-  DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl git tox cmake libtool ninja-build golang-go quilt"
+  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools  tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl shellcheck git tox cmake libtool ninja-build golang-go quilt gh netbase"
   if [[ -n "${GCC_VERSION:-}" ]] && [[ "${GCC_VERSION:-}" != "NONE" ]]; then
     DEPENDENCIES+=" gcc-$GCC_VERSION g++-$GCC_VERSION";
   fi
@@ -41,6 +45,8 @@ base_packages() {
   apt-get -y install --no-install-recommends ${DEPENDENCIES}
 }
 
+
+github_apt
 base_packages
 get_rust
 
