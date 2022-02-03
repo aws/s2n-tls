@@ -348,3 +348,7 @@ class ManagedProcess(threading.Thread):
                 raise Exception("Timeout")
 
         yield self.results
+
+    def kill(self):
+        if self.proc:
+            self.proc.kill()

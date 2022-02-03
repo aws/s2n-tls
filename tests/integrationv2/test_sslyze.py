@@ -57,7 +57,7 @@ def test_sslyze_scans(managed_process):
     if protocol == Protocols.TLS13:
         server_options.cipher = Cipher("test_all_tls13", Protocols.TLS13, False, False, s2n=True)
 
-    server = managed_process(S2N, server_options, timeout=30)
+    server = managed_process(S2N, server_options, timeout=60)
 
     server_test = ServerConnectivityTester(hostname="127.0.0.1", port=port)
     try:
@@ -69,3 +69,4 @@ def test_sslyze_scans(managed_process):
         plugin_result = plugin.process_task(server_info, scan_command)
         validate_plugin_result(plugin_result)
 
+    server.kill()
