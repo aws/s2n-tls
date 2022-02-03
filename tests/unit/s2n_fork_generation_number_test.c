@@ -61,7 +61,7 @@ static void verify_child_exit_status(pid_t proc_pid)
     EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
 }
 
-static void unit_test_thread_get_fgn(void *expected_fork_generation_number)
+static void * unit_test_thread_get_fgn(void *expected_fork_generation_number)
 {
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
