@@ -196,7 +196,7 @@ static int unit_test_clone(uint64_t parent_process_fgn)
     void *process_child_stack = calloc(1, PROCESS_CHILD_STACK_SIZE);
     EXPECT_NOT_NULL(process_child_stack);
 
-    int proc_pid = clone(unit_test_clone_child_process, process_child_stack + PROCESS_CHILD_STACK_SIZE, SIGCHLD, (void *) &return_fork_generation_number);
+    int proc_pid = clone(unit_test_clone_child_process, (char *)process_child_stack + PROCESS_CHILD_STACK_SIZE, SIGCHLD, (void *) &return_fork_generation_number);
     EXPECT_NOT_EQUAL(proc_pid, -1);
 
     verify_child_exit_status(proc_pid);
