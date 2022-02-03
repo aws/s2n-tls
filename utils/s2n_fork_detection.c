@@ -326,9 +326,8 @@ int assert_madv_wipeonfork_is_supported(void)
     int result = S2N_FAILURE;
 #if defined(USE_MADVISE)
     result = probe_madv_wipeonfork_support();
-#else
-    return result;
 #endif
+    return result;
 }
 
 int assert_map_inherit_zero_is_supported(void)
