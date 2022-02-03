@@ -616,3 +616,34 @@
  */
 #define PTR_GUARD_PTR(result)                                 __S2N_ENSURE((result) != NULL, return NULL)
 
+/**
+ * Define a C99-compliant static assert.
+ *
+ * Static_assert() is not defined before C11. So, we can't rely on it when we
+ * want to be C99 compliant. Instead, use a method that is guaranteed to be C99
+ * compliant and still give us an equivalent static assert mechanism.
+ *
+ * The solution below defines a struct type containing a bit field.
+ * The name of that type is `static_assertion_msg`. `msg` is a concatenation of
+ * a user-chosen error (which should be chosen with respect to actual assertion)
+ * and the line the assertion is defined. This should ensure name uniqueness.
+ * The width of the bit field is set to 1 or -1, depending on the evaluation of
+ * the boolean expression `condition`. If the condition is false, the width
+ * requested is -1, which is illegal and would cause the compiler to throw an
+ * error.
+ *
+ * An example of an error thrown during compilation:
+ * ```
+ * error: negative width in bit-field
+ *      'static_assertion_at_line_47_error_is_MADV_WIPEONFORK_is_not_18'
+ *```
+ */
+#define S2N_CONCAT(left, right) left##right
+#define S2N_STATIC_ASSERT_DEFINE(condition, msg) typedef struct { \
+        unsigned int S2N_CONCAT(static_assertion_, msg) : (condition) ? 1 : - 1; \
+    } S2N_CONCAT(static_assertion_, msg);
+#define S2N_STATIC_ASSERT_ADD_LINE0(condition, suffix) S2N_STATIC_ASSERT_DEFINE(condition, S2N_CONCAT(at_line_, suffix))
+#define S2N_STATIC_ASSERT_ADD_LINE1(condition, line, suffix) S2N_STATIC_ASSERT_ADD_LINE0(condition, S2N_CONCAT(line, suffix))
+#define S2N_STATIC_ASSERT_ADD_LINE2(condition, suffix) S2N_STATIC_ASSERT_ADD_LINE1(condition, __LINE__, suffix)
+#define S2N_STATIC_ASSERT_ADD_ERROR(condition, suffix) S2N_STATIC_ASSERT_ADD_LINE2(condition, S2N_CONCAT(_error_is_, suffix))
+#define S2N_STATIC_ASSERT(condition, error) S2N_STATIC_ASSERT_ADD_ERROR(condition, error)
