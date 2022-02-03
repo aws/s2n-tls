@@ -58,7 +58,7 @@
 #endif
 
 #if defined(USE_MADVISE) && defined(MADV_WIPEONFORK)
-S2N_STATIC_ASSERT(MADV_WIPEONFORK == 18, MADV_WIPEONFORK_is_defined_but_is_not_equal_to_18)
+S2N_STATIC_ASSERT(MADV_WIPEONFORK == 18);
 #else
 #define MADV_WIPEONFORK 18
 #endif

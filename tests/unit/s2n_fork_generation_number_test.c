@@ -301,8 +301,8 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
 /* s2n_array_len is run-time but standard static array length calculation is
  * captured by the simple errors script. So, try to trick the test script.
  */
-#define SIZE_OF_COPY(x) (sizeof(x))
-S2N_STATIC_ASSERT(NUMBER_OF_FGN_TEST_CASES == (SIZE_OF_COPY(fgn_test_cases) / SIZE_OF_COPY(fgn_test_cases[0])), NUMBER_OF_FGN_TEST_CASES_does_not_match_the_number_of_defined_test_cases)
+#define SIZE_OF_COPY(x) sizeof(x)
+S2N_STATIC_ASSERT(NUMBER_OF_FGN_TEST_CASES == (SIZE_OF_COPY(fgn_test_cases) / SIZE_OF_COPY(fgn_test_cases[0])));
 
 int main(int argc, char **argv)
 {
