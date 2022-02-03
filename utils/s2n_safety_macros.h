@@ -617,9 +617,9 @@
 #define PTR_GUARD_PTR(result)                                 __S2N_ENSURE((result) != NULL, return NULL)
 
 #if defined(__GNUC__) || defined(__clang__)
-#define S2N_UNUSED __attribute__((unused))
+#define S2N_UNUSED_STATIC_ASSERT __attribute__((unused))
 #else
-#define S2N_UNUSED
+#define S2N_UNUSED_STATIC_ASSERT
 #endif
 
 /**
@@ -647,7 +647,7 @@
 #define S2N_CONCAT(left, right) left##right
 #define S2N_STATIC_ASSERT_DEFINE(condition, msg) typedef struct { \
         unsigned int S2N_CONCAT(static_assertion_, msg) : (condition) ? 1 : - 1; \
-    } S2N_CONCAT(static_assertion_, msg) S2N_UNUSED;
+    } S2N_CONCAT(static_assertion_, msg) S2N_UNUSED_STATIC_ASSERT;
 #define S2N_STATIC_ASSERT_ADD_LINE0(condition, suffix) S2N_STATIC_ASSERT_DEFINE(condition, S2N_CONCAT(at_line_, suffix))
 #define S2N_STATIC_ASSERT_ADD_LINE1(condition, line, suffix) S2N_STATIC_ASSERT_ADD_LINE0(condition, S2N_CONCAT(line, suffix))
 #define S2N_STATIC_ASSERT_ADD_LINE2(condition, suffix) S2N_STATIC_ASSERT_ADD_LINE1(condition, __LINE__, suffix)
