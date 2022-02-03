@@ -1,0 +1,46 @@
+---
+version: 0.2
+batch:
+  build-list:
+    - identifier: handshake
+      compute-type: BUILD_GENERAL1_SMALL
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        LATEST_CLANG: true
+        S2N_LIBCRYPTO: openssl-1.1.1
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+  pre_build:
+    commands:
+      - ./codebuild/bin/install_ubuntu_dependencies.sh
+      - apt install -y clang-10 sudo
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - . $HOME/.cargo/env
+      - rustup default nightly
+      - ./codebuild/bin/install_openssl_1_1_1.sh $(mktemp -d) $(pwd)/test-deps/openssl-1.1.1 linux
+      - cd ./bindings/rust
+      - OPENSSL_DIR=$(pwd)/../../test-deps/openssl-1.1.1 ./generate.sh
+  build:
+    commands:
+      - cd integration
+      - cargo bench --bench handshake -- --save-baseline main
+      - cd ..
+  post_build:
+    commands:
+      - |
+        if [ -z "${CODEBUILD_WEBHOOK_EVENT}" ]; then
+          export BASELINE_DATE=$(date -d tomorrow +%Y-%m-%d);
+        else
+          export BASELINE_DATE=$(date +%Y-%m-%d);
+        fi
+artifacts:
+  files:
+    - "**/index.html"
+    - "**/*.svg"
+    - "**/*.json"
+  base-directory: "bindings/rust/target/criterion"
+  name: benchmark_${BASELINE_DATE}.zip
+  discard-paths: no
+
