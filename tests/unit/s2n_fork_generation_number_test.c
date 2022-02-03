@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
 
+#define _GNU_SOURCE
+
 #include <sched.h>
 #include <stdio.h>
 #include <sys/wait.h>
