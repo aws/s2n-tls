@@ -323,19 +323,21 @@ static int probe_madv_wipeonfork_support(void) {
 
 int assert_madv_wipeonfork_is_supported(void)
 {
+    int result = S2N_FAILURE;
 #if defined(USE_MADVISE)
-    return probe_madv_wipeonfork_support();
+    result = probe_madv_wipeonfork_support();
 #else
-    return S2N_FAILURE;
+    return result;
 #endif
 }
 
 int assert_map_inherit_zero_is_supported(void)
 {
+    int result = S2N_FAILURE;
 #if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
-    return S2N_SUCCESS;
+    result = S2N_SUCCESS;
 #else
-    return S2N_FAILURE;
+    return result;
 #endif
 }
 
