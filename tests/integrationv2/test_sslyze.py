@@ -41,8 +41,8 @@ def validate_plugin_result(plugin_result):
     assert scan_passed(plugin_result), f"unexpected plugin result: {plugin_result}"
 
 
-def test_sslyze_scans(managed_process):
-    protocol = Protocols.TLS12
+@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
+def test_sslyze_scans(managed_process, protocol):
     port = next(available_ports)
 
     server_options = ProviderOptions(
