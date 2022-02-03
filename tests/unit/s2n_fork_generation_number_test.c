@@ -16,7 +16,9 @@
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
 
+#include <sched.h>
 #include <stdio.h>
+#include <sys/wait.h>
 
 #if defined(__APPLE__)
 /* clone() is not a thing in Darwin */
@@ -38,7 +40,7 @@
     } while(0)
 
 struct fgn_test_case {
-    char *test_case_label;
+    const char *test_case_label;
     int (*test_case_cb)(struct fgn_test_case *test_case);
     /* 0 (no), 1 (yes), 2 (determine at run-time) */
     int test_case_must_pass_clone_test;
@@ -57,14 +59,12 @@ static void verify_child_exit_status(pid_t proc_pid)
     EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
 }
 
-static int unit_test_thread_get_fgn(void *expected_fork_generation_number)
+static void unit_test_thread_get_fgn(void *expected_fork_generation_number)
 {
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
 
     EXPECT_EQUAL(return_fork_generation_number, *(uint64_t *) expected_fork_generation_number);
-
-    return S2N_SUCCESS;
 }
 
 static int unit_test_thread(uint64_t expected_fork_generation_number)
@@ -72,7 +72,7 @@ static int unit_test_thread(uint64_t expected_fork_generation_number)
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
     for (size_t thread_index = 0; thread_index < MAX_NUMBER_OF_TEST_THREADS; thread_index++) {
-        EXPECT_EQUAL(pthread_create(&threads[thread_index], NULL, unit_test_thread_get_fgn, (void *) &expected_fork_generation_number), 0);
+        EXPECT_EQUAL(pthread_create(&threads[thread_index], NULL, &unit_test_thread_get_fgn, (void *) &expected_fork_generation_number), 0);
     }
 
     /* Wait for all threads to finish */
