@@ -50,7 +50,6 @@ int test_count;
     S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
     fprintf(stdout, "Running %-50s ... ", __FILE__);           \
-    fflush(stdout);                                            \
   } while(0)
 
 #define END_TEST()   do { \
