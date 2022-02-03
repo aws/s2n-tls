@@ -294,7 +294,7 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
     {"Only madv_wipeonfork fork detection mechanism.", test_case_madv_wipeonfork_cb, 1},
     {"Only map_inheret_zero fork detection mechanism.", test_case_map_inherit_zero_cb, 1},
 };
-S2N_STATIC_ASSERT(NUMBER_OF_FGN_TEST_CASES == (sizeof(fgn_test_cases) / sizeof(fgn_test_cases[0])), NUMBER_OF_FGN_TEST_CASES_does_not_match_the_number_of_defined_test_cases)
+S2N_STATIC_ASSERT(NUMBER_OF_FGN_TEST_CASES == s2n_array_len(fgn_test_cases), NUMBER_OF_FGN_TEST_CASES_does_not_match_the_number_of_defined_test_cases)
 
 int main(int argc, char **argv)
 {
