@@ -54,8 +54,7 @@ phases:
           cd third-party-src;
         fi
       - $CB_BIN_DIR/install_default_dependencies.sh
-      - . $CB_BIN_DIR/s2n_setup_env.sh
-      - codebuild-breakpoint
+      - $CB_BIN_DIR/s2n_setup_env.sh
       - printenv
       - make
       # Install the parent s2n commit in a temporary directory
@@ -64,5 +63,4 @@ phases:
     commands:
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
-      - . $CB_BIN_DIR/s2n_setup_env.sh
       - TOX_TEST_NAME=$INTEGV2_TEST.py make integrationv2
