@@ -35,7 +35,7 @@ define run_tox
 	PYTHON39_INSTALL_DIR="$(PYTHON39_INSTALL_DIR)" \
 	PYTHONNOUSERSITE=1 \
 	TOX_TEST_NAME=$(1) \
-	$(PYTHON39_INSTALL_DIR)/bin/python3 -m tox --current-env \
+	$(PYTHON39_INSTALL_DIR)/bin/python3 -m tox \
 	)
 endef
 
