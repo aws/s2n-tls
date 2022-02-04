@@ -6,7 +6,6 @@ get_latest_release(){
 
 gh_login(){
   # Takes secrets manager key as an argument
-  TOKEN=$(aws secretsmanager get-secret-value --secret-id "$1" --query 'SecretString' --output text |jq -r '.secret_key')
-  echo "$TOKEN"|gh auth login --with-token
+  aws secretsmanager get-secret-value --secret-id "$1" --query 'SecretString' --output text |jq -r '.secret_key'| gh auth login --with-token
   gh auth status
 }

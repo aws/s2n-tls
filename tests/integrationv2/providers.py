@@ -305,7 +305,11 @@ class CriterionS2N(S2N):
 
         #Figure out what mode to run in: baseline or delta
         self.criterion_mode = get_flag(S2N_USECRITERION)
-        assert self.criterion_mode  == 2
+        assert self.criterion_mode
+
+        #strip off the s2nc/d at the front because criterion
+        if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
+            self.cmd_line = self.cmd_line[1:]
 
         # Copy the command arguments to an environment variable for the harness to read.
         if self.options.mode == Provider.ServerMode:
