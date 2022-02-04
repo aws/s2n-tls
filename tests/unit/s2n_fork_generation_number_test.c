@@ -59,9 +59,7 @@ static void verify_child_exit_status(pid_t proc_pid)
      * that an error was encountered in the unit tests executed in that
      * child process.
      */
-fprintf(stderr, "\nchecking WIFEXITED(status)\n"); fflush(stderr);
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
-fprintf(stderr, "WEXITSTATUS(status) = %ld\n", (long) WEXITSTATUS(status)); fflush(stderr);
     EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
 }
 
@@ -200,11 +198,10 @@ static int unit_test_clone(uint64_t parent_process_fgn)
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
     EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
 
-    //void *process_child_stack = calloc(1, PROCESS_CHILD_STACK_SIZE);
     /* Use stack memory for this... We don't exit unit_test_clone() before this
      * memory has served its purpose.
-     * Why? Using dynamic memory causes Valgrind to squat on the allocated
-     * memory region when exiting the child process exists.
+     * Why? Using dynamically allocated memory causes Valgrind to squat on the
+     * allocated memory when the child process exists.
      */
     char process_child_stack[PROCESS_CHILD_STACK_SIZE];
     EXPECT_NOT_NULL(process_child_stack);
@@ -213,8 +210,6 @@ static int unit_test_clone(uint64_t parent_process_fgn)
     EXPECT_NOT_EQUAL(proc_pid, -1);
 
     verify_child_exit_status(proc_pid);
-
-    //free(process_child_stack);
 
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
