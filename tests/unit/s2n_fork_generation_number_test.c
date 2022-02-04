@@ -59,17 +59,20 @@ static void verify_child_exit_status(pid_t proc_pid)
      * that an error was encountered in the unit tests executed in that
      * child process.
      */
+fprintf(stderr, "checking WIFEXITED(status)"); fflush(stderr);
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
+fprintf(stderr, "WEXITSTATUS(status) = %ld", (long) WEXITSTATUS(status)); fflush(stderr);
     EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
 }
 
 static void * unit_test_thread_get_fgn(void *expected_fork_generation_number)
 {
+fprintf(stderr, "In unit_test_thread_get_fgn\n"); fflush(stderr);
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
-
+fprintf(stderr, "In unit_test_thread_get_fgn 1\n"); fflush(stderr);
     EXPECT_EQUAL(return_fork_generation_number, *(uint64_t *) expected_fork_generation_number);
-
+fprintf(stderr, "Exiting unit_test_thread_get_fgn\n"); fflush(stderr);
     return NULL;
 }
 
@@ -213,9 +216,9 @@ fprintf(stderr, "In unit_test_clone 3\n"); fflush(stderr);
     int proc_pid = clone(unit_test_clone_child_process, (char *)process_child_stack + PROCESS_CHILD_STACK_SIZE, SIGCHLD, (void *) &return_fork_generation_number);
     EXPECT_NOT_EQUAL(proc_pid, -1);
 fprintf(stderr, "In unit_test_clone 4\n"); fflush(stderr);
-    free(process_child_stack);
-fprintf(stderr, "In unit_test_clone 5\n"); fflush(stderr);
     verify_child_exit_status(proc_pid);
+fprintf(stderr, "In unit_test_clone 5\n"); fflush(stderr);
+    free(process_child_stack);
 fprintf(stderr, "In unit_test_clone 6\n"); fflush(stderr);
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
