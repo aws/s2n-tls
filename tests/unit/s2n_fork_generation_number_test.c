@@ -173,48 +173,58 @@ static int unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
 
 static int unit_test_clone_child_process(void *parent_process_fgn)
 {
+fprintf(stderr, "Entering unit_test_clone_child_process\n"); fflush(stderr);
     /* In child */
     uint64_t local_parent_process_fgn = *(uint64_t *) parent_process_fgn;
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+fprintf(stderr, "In unit_test_clone_child_process 1\n"); fflush(stderr);
     EXPECT_EQUAL(return_fork_generation_number, local_parent_process_fgn + 1);
-
+fprintf(stderr, "In unit_test_clone_child_process 2\n"); fflush(stderr);
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+fprintf(stderr, "In unit_test_clone_child_process 3\n"); fflush(stderr);
     EXPECT_EQUAL(return_fork_generation_number, local_parent_process_fgn + 1);
-
+fprintf(stderr, "In unit_test_clone_child_process 4\n"); fflush(stderr);
     /* Verify in threads */
     EXPECT_EQUAL(unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
+fprintf(stderr, "Exiting unit_test_clone_child_process\n"); fflush(stderr);
     return EXIT_SUCCESS;
 }
 
 #define PROCESS_CHILD_STACK_SIZE 1024 * 1024 /* Suggested by clone() man page... */
 static int unit_test_clone(uint64_t parent_process_fgn)
 {
+fprintf(stderr, "Entering unit_test_clone\n"); fflush(stderr);
 #if !defined(CLONE_NO_SUPPORTED)
+fprintf(stderr, "In unit_test_clone 1\n"); fflush(stderr);
+
     /* Verify stability */
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+fprintf(stderr, "In unit_test_clone 2\n"); fflush(stderr);
     EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
-
+fprintf(stderr, "In unit_test_clone 3\n"); fflush(stderr);
     void *process_child_stack = calloc(1, PROCESS_CHILD_STACK_SIZE);
     EXPECT_NOT_NULL(process_child_stack);
-
+fprintf(stderr, "In unit_test_clone 3\n"); fflush(stderr);
     int proc_pid = clone(unit_test_clone_child_process, (char *)process_child_stack + PROCESS_CHILD_STACK_SIZE, SIGCHLD, (void *) &return_fork_generation_number);
     EXPECT_NOT_EQUAL(proc_pid, -1);
-
+fprintf(stderr, "In unit_test_clone 4\n"); fflush(stderr);
     free(process_child_stack);
-
+fprintf(stderr, "In unit_test_clone 5\n"); fflush(stderr);
     verify_child_exit_status(proc_pid);
-
+fprintf(stderr, "In unit_test_clone 6\n"); fflush(stderr);
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+fprintf(stderr, "In unit_test_clone 7\n"); fflush(stderr);
     EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
+fprintf(stderr, "In unit_test_clone 8\n"); fflush(stderr);
 #endif
-
+fprintf(stderr, "Exiting unit_test_clone\n"); fflush(stderr);
     return S2N_SUCCESS;
 }
 
