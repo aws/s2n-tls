@@ -39,13 +39,13 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-#if defined(OPENSSL_IS_AWSLC)
     /* Sanity check that we're setting S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH properly.
      * AWS-LC is known to support EVP_md5_sha1(). If this fails, something is wrong with our
      * S2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH feature testing.
      */
-    EXPECT_NOT_NULL(s2n_hash_alg_to_evp_md(S2N_HASH_MD5_SHA1));
-#endif
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_NOT_NULL(s2n_hash_alg_to_evp_md(S2N_HASH_MD5_SHA1));
+    }
 
     POSIX_GUARD(s2n_hash_new(&hash));
     EXPECT_FALSE(s2n_hash_is_ready_for_input(&hash));

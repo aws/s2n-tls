@@ -21,6 +21,7 @@ import time
 
 from os import environ
 from s2n_test_constants import *
+from s2n_pq_handshake_test import is_pq_enabled
 
 # If a cipher_preference_version is specified, we will use it while attempting the handshake;
 # otherwise, s2n will use the default. If an expected_cipher is specified, the test will pass
@@ -61,40 +62,19 @@ well_known_endpoints = [
     {"endpoint": "www.wikipedia.org"},
     {"endpoint": "www.yahoo.com"},
     {"endpoint": "www.youtube.com"},
+    {
+        "endpoint": "kms.us-east-1.amazonaws.com",
+        "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06",
+        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+        "expected_pq_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
+    },
+    {
+        "endpoint": "kms.us-east-1.amazonaws.com",
+        "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11",
+        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+        "expected_pq_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
+    }
 ]
-
-if os.getenv("S2N_NO_PQ") is None and os.getenv("S2N_TEST_IN_FIPS_MODE") is None:
-    # If PQ was compiled into S2N, test the PQ preferences against KMS
-    pq_endpoints = [
-        {
-            "endpoint": "kms.us-east-1.amazonaws.com",
-            "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06",
-            "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384"
-        },
-        {
-            "endpoint": "kms.us-east-1.amazonaws.com",
-            "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11",
-            "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384"
-        }
-    ]
-
-    well_known_endpoints.extend(pq_endpoints)
-else:
-    # If either PQ was turned off, or we're testing in FIPS mode the KMS endpoint should get the regular cipher suite
-    pq_endpoints = [
-        {
-            "endpoint": "kms.us-east-1.amazonaws.com",
-            "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06",
-            "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384"
-        },
-        {
-            "endpoint": "kms.us-east-1.amazonaws.com",
-            "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11",
-            "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384"
-        }
-    ]
-
-    well_known_endpoints.extend(pq_endpoints)
 
 
 def print_result(result_prefix, return_code):
@@ -198,10 +178,18 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled, fips_mode):
 
     return failed
 
+
 def main(argv):
     parser = argparse.ArgumentParser(description="Run client endpoint handshake tests")
     parser.add_argument("--no-tls13", action="store_true", help="Disable TLS 1.3 tests")
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=S2N_LIBCRYPTO_CHOICES,
+            help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
+                    libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
+
+    if is_pq_enabled(args.libcrypto):
+        for endpoint in well_known_endpoints:
+            endpoint['expected_cipher'] = endpoint.get('expected_pq_cipher')
 
     fips_mode = False
     if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
