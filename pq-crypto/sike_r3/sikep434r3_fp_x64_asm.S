@@ -31,6 +31,10 @@
 
 #endif
 
+#if defined(__linux__) && defined(__ELF__)
+.section .note.GNU-stack,"",%progbits
+#endif
+
 .text
 
 #define asm_p434 S2N_SIKE_P434_R3_NAMESPACE(asm_p434)
