@@ -24,15 +24,26 @@
 /* Length of the synthetic message header */
 #define MESSAGE_HASH_HEADER_LENGTH  4
 
-static int s2n_tls13_conn_copy_hash(struct s2n_connection *conn, struct s2n_hash_state *copy) {
-    POSIX_ENSURE_REF(conn);
-    s2n_tls13_connection_keys(keys, conn);
+static S2N_RESULT s2n_tls13_calculate_digest(struct s2n_connection *conn, uint8_t *digest) {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(digest);
+
+    s2n_hash_algorithm hash_algorithm = S2N_HASH_NONE;
+    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure.cipher_suite->prf_alg, &hash_algorithm));
+
     struct s2n_hash_state hash_state = {0};
+    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, hash_algorithm, &hash_state));
 
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
-    POSIX_GUARD(s2n_hash_copy(copy, &hash_state));
+    uint8_t digest_size = 0;
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
 
-    return S2N_SUCCESS;
+    RESULT_ENSURE_REF(conn->handshake.hashes);
+    RESULT_GUARD_POSIX(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_digest(&conn->handshake.hashes->hash_workspace,
+            digest, digest_size));
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
@@ -83,12 +94,15 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
         POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha512, data->data, data->size));
     }
 
-    /* Copy hashes that TLS1.3 will need later. */
+    /*
+     * TLS1.3 secret derivation requires specific transcript hash digests as inputs.
+     * Save the relevant hash state digests for later use.
+     */
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
         if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
-            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_hello_copy));
+            POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_hello_digest));
         } else if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
-            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_finished_copy));
+            POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_finished_digest));
         }
     }
 

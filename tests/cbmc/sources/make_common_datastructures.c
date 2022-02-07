@@ -247,11 +247,11 @@ void cbmc_populate_s2n_evp_hmac_state(struct s2n_evp_hmac_state *evp_hmac_state)
 {
     CBMC_ENSURE_REF(evp_hmac_state);
     cbmc_populate_s2n_evp_digest(&(evp_hmac_state->evp_digest));
-#if defined(OPENSSL_IS_AWSLC) || defined(OPENSSL_IS_BORINGSSL)
-    evp_hmac_state->ctx.hmac_ctx = malloc(sizeof(*(evp_hmac_state->ctx.hmac_ctx)));
-#else
-    evp_hmac_state->ctx.evp_pkey = malloc(sizeof(*(evp_hmac_state->ctx.evp_pkey)));
-#endif
+    if (s2n_libcrypto_is_awslc() || s2n_libcrypto_is_boringssl()) {
+        evp_hmac_state->ctx.hmac_ctx = malloc(sizeof(*(evp_hmac_state->ctx.hmac_ctx)));
+    } else {
+        evp_hmac_state->ctx.evp_pkey = malloc(sizeof(*(evp_hmac_state->ctx.evp_pkey)));
+    }
 }
 
 struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state()
@@ -729,8 +729,6 @@ void cbmc_populate_s2n_handshake(struct s2n_handshake *s2n_handshake)
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha384));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->sha512));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->md5_sha1));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->server_hello_copy));
-    cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->server_finished_copy));
     cbmc_populate_s2n_hash_state(&(s2n_handshake->hashes->hash_workspace));
     /* `s2n_handshake->early_data_async_state.conn` is never allocated.
      * If required, this initialization should be done in the validation function.
