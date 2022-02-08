@@ -18,11 +18,3 @@ phases:
     commands:
       - $CB_BIN_DIR/criterion_baseline.sh
 
-artifacts:
-  files:
-    - "**/index.html"
-    - "**/*.svg"
-    - "**/*.json"
-  base-directory: "bindings/rust/target/criterion"
-  name: integv2criterion_${INTEGV2_TEST}_${RELEASE_VER}.zip
-  discard-paths: no

@@ -1,7 +1,7 @@
 # Utility functions
 get_latest_release(){
     export LATEST_RELEASE_URL=$(gh api /repos/aws/s2n-tls/releases/latest|jq -r '.tarball_url')
-    export LATEST_RELEASE_VER=$(echo $RELEASE_URL | sed 's|.*/||')
+    export LATEST_RELEASE_VER=$(echo $LATEST_RELEASE_URL | sed 's|.*/||')
 }
 
 gh_login(){
