@@ -31,4 +31,4 @@ macro_rules! policy {
 policy!(DEFAULT, "default");
 policy!(DEFAULT_TLS13, "default_tls13");
 
-pub const ALL_POLICIES: &'static [Policy] = &[DEFAULT, DEFAULT_TLS13];
+pub const ALL_POLICIES: &[Policy] = &[DEFAULT, DEFAULT_TLS13];

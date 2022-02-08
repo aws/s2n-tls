@@ -121,7 +121,7 @@ impl Connection {
     /// Client Hello message as the ALPN extension. As an S2N_SERVER, the list is used to negotiate
     /// a mutual application protocol with the client. After the negotiation for the connection has
     /// completed, the agreed upon protocol can be retrieved with s2n_get_application_protocol
-    pub fn set_alpn_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
+    pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
         &mut self,
         protocols: P,
     ) -> Result<&mut Self, Error> {
@@ -132,13 +132,16 @@ impl Connection {
         }?;
 
         for protocol in protocols {
-            self.append_alpn_preference(protocol.as_ref())?;
+            self.append_application_protocol_preference(protocol.as_ref())?;
         }
 
         Ok(self)
     }
 
-    pub fn append_alpn_preference(&mut self, protocol: &[u8]) -> Result<&mut Self, Error> {
+    pub fn append_application_protocol_preference(
+        &mut self,
+        protocol: &[u8],
+    ) -> Result<&mut Self, Error> {
         unsafe {
             s2n_connection_append_protocol_preference(
                 self.connection.as_ptr(),
@@ -234,8 +237,8 @@ impl Connection {
         Some(alert as u8)
     }
 
-    /// Sets the SNI value for the connection
-    pub fn set_sni(&mut self, sni: &[u8]) -> Result<&mut Self, Error> {
+    /// Sets the server name value for the connection
+    pub fn set_server_name(&mut self, sni: &[u8]) -> Result<&mut Self, Error> {
         let sni = std::ffi::CString::new(sni).map_err(|_| Error::InvalidInput)?;
         unsafe { s2n_set_server_name(self.connection.as_ptr(), sni.as_ptr()).into_result() }?;
         Ok(self)
@@ -244,6 +247,11 @@ impl Connection {
 
 #[cfg(feature = "quic")]
 impl Connection {
+    pub fn enable_quic(&mut self) -> Result<&mut Self, Error> {
+        unsafe { s2n_connection_enable_quic(self.connection.as_ptr()).into_result() }?;
+        Ok(self)
+    }
+
     pub fn set_quic_transport_parameters(&mut self, buffer: &[u8]) -> Result<&mut Self, Error> {
         unsafe {
             s2n_connection_set_quic_transport_parameters(

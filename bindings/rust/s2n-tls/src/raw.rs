@@ -9,4 +9,4 @@ pub mod connection;
 pub mod init;
 pub mod security;
 
-pub use s2n_tls_sys as fii;
+pub use s2n_tls_sys as ffi;
