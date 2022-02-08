@@ -32,17 +32,13 @@ static S2N_RESULT s2n_tls13_calculate_digest(struct s2n_connection *conn, uint8_
     RESULT_ENSURE_REF(conn->secure.cipher_suite);
     RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure.cipher_suite->prf_alg, &hash_algorithm));
 
-    struct s2n_hash_state hash_state = {0};
-    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, hash_algorithm, &hash_state));
-
     uint8_t digest_size = 0;
     RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
 
     RESULT_ENSURE_REF(conn->handshake.hashes);
-    RESULT_GUARD_POSIX(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &hash_state));
-    RESULT_GUARD_POSIX(s2n_hash_digest(&conn->handshake.hashes->hash_workspace,
-            digest, digest_size));
-
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
+    RESULT_GUARD(s2n_handshake_copy_hash_state(conn, hash_algorithm, hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, digest, digest_size));
     return S2N_RESULT_OK;
 }
 
@@ -117,6 +113,8 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
 int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
+    POSIX_ENSURE_REF(hashes);
 
     s2n_tls13_connection_keys(keys, conn);
     uint8_t hash_digest_length = keys.size;
@@ -127,17 +125,13 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     msghdr[MESSAGE_HASH_HEADER_LENGTH - 1] = hash_digest_length;
 
     /* Grab the current transcript hash to use as the ClientHello1 value. */
-    struct s2n_hash_state hash_state, client_hello1_hash;
-    uint8_t client_hello1_digest_out[S2N_MAX_DIGEST_LEN];
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
-
-    POSIX_GUARD(s2n_hash_new(&client_hello1_hash));
-    POSIX_GUARD(s2n_hash_copy(&client_hello1_hash, &hash_state));
-    POSIX_GUARD(s2n_hash_digest(&client_hello1_hash, client_hello1_digest_out, hash_digest_length));
-    POSIX_GUARD(s2n_hash_free(&client_hello1_hash));
+    struct s2n_hash_state *client_hello1_hash = &hashes->hash_workspace;
+    uint8_t client_hello1_digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
+    POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, keys.hash_algorithm, client_hello1_hash));
+    POSIX_GUARD(s2n_hash_digest(client_hello1_hash, client_hello1_digest_out, hash_digest_length));
 
     /* Step 1: Reset the hash state */
-    POSIX_GUARD(s2n_handshake_reset_hash_state(conn, keys.hash_algorithm));
+    POSIX_GUARD_RESULT(s2n_handshake_reset_hash_state(conn, keys.hash_algorithm));
 
     /* Step 2: Update the transcript with the synthetic message */
     struct s2n_blob msg_blob = {0};

@@ -377,27 +377,24 @@ int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity
 int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash)
 {
+    POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(partial_client_hello);
     POSIX_ENSURE_REF(output_binder_hash);
+    struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
+    POSIX_ENSURE_REF(hashes);
 
     /* Retrieve the current transcript.
      * The current transcript will be empty unless this handshake included a HelloRetryRequest. */
-    struct s2n_hash_state current_hash_state = {0};
-
-    s2n_hash_algorithm hash_alg;
+    s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
+    struct s2n_hash_state *hash_state = &hashes->hash_workspace;
     POSIX_GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, hash_alg, &current_hash_state));
-
-    /* Copy the current transcript to avoid modifying the original. */
-    DEFER_CLEANUP(struct s2n_hash_state hash_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hash_copy));
-    POSIX_GUARD(s2n_hash_copy(&hash_copy, &current_hash_state));
+    POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, hash_alg, hash_state));
 
     /* Add the partial client hello to the transcript. */
-    POSIX_GUARD(s2n_hash_update(&hash_copy, partial_client_hello->data, partial_client_hello->size));
+    POSIX_GUARD(s2n_hash_update(hash_state, partial_client_hello->data, partial_client_hello->size));
 
     /* Get the transcript digest */
-    POSIX_GUARD(s2n_hash_digest(&hash_copy, output_binder_hash->data, output_binder_hash->size));
+    POSIX_GUARD(s2n_hash_digest(hash_state, output_binder_hash->data, output_binder_hash->size));
 
     return S2N_SUCCESS;
 }
