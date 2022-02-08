@@ -1,6 +1,6 @@
 [package]
 name = "s2n-tls"
-version = "0.1.0"
+version = "0.0.2"
 authors = ["AWS s2n"]
 edition = "2018"
 license = "Apache-2.0"
