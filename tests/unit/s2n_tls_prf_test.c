@@ -211,11 +211,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
         /* Calculate the digest message after the Server read the Client Key message */
-        struct s2n_hash_state current_hash_state = { 0 };
+        DEFER_CLEANUP(struct s2n_hash_state current_hash_state = { 0 }, s2n_hash_free);
         uint8_t server_digest[S2N_MAX_DIGEST_LEN] = { 0 };
         uint8_t digest_size = 0;
         EXPECT_SUCCESS(s2n_hash_digest_size(hash_alg, &digest_size));
-        EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, hash_alg, &current_hash_state));
+        EXPECT_SUCCESS(s2n_hash_new(&current_hash_state));
+        EXPECT_OK(s2n_handshake_copy_hash_state(server_conn, hash_alg, &current_hash_state));
         EXPECT_SUCCESS(s2n_hash_digest(&current_hash_state, server_digest, digest_size));
 
         /* Digest for generating the EMS and digest after reading the Client Key message

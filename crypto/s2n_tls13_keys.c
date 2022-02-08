@@ -206,12 +206,7 @@ int s2n_tls13_derive_early_traffic_secret(struct s2n_tls13_keys *keys,
     POSIX_ENSURE_REF(secret);
 
     s2n_tls13_key_blob(message_digest, keys->size);
-
-    /* copy the hash */
-    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hkdf_hash_copy));
-    POSIX_GUARD(s2n_hash_copy(&hkdf_hash_copy, client_hello_hash));
-    POSIX_GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
+    POSIX_GUARD(s2n_hash_digest(client_hello_hash, message_digest.data, message_digest.size));
 
     /* produce traffic secret */
     POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
@@ -325,18 +320,10 @@ int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *
  */
 int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
 {
-    /* Set up a blob to contain hash */
     s2n_tls13_key_blob(transcript_hash, keys->size);
-
-    /* Make a copy of the hash state */
-    DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hash_state_copy));
-    POSIX_GUARD(s2n_hash_copy(&hash_state_copy, hash_state));
-    POSIX_GUARD(s2n_hash_digest(&hash_state_copy, transcript_hash.data, transcript_hash.size));
-
+    POSIX_GUARD(s2n_hash_digest(hash_state, transcript_hash.data, transcript_hash.size));
     POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, finished_key, &transcript_hash, finished_verify));
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*
@@ -364,12 +351,7 @@ int s2n_tls13_derive_resumption_master_secret(struct s2n_tls13_keys *keys, struc
     POSIX_ENSURE(keys->hash_algorithm == hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
 
     s2n_tls13_key_blob(message_digest, keys->size);
-
-    /* Copy the hashes into the message_digest */
-    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hkdf_hash_copy));
-    POSIX_GUARD(s2n_hash_copy(&hkdf_hash_copy, hashes));
-    POSIX_GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
+    POSIX_GUARD(s2n_hash_digest(hashes, message_digest.data, message_digest.size));
 
     /* Derive master session resumption from master secret */
     POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
