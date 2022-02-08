@@ -104,18 +104,14 @@ int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn,
 {
     s2n_tls13_connection_keys(tls13_ctx, conn);
 
-    struct s2n_hash_state handshake_hash, hash_copy;
     uint8_t hash_digest_length = tls13_ctx.size;
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
 
     /* Get current handshake hash */
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, tls13_ctx.hash_algorithm, &handshake_hash));
-
-    /* Copy current hash content */
-    POSIX_GUARD(s2n_hash_new(&hash_copy));
-    POSIX_GUARD(s2n_hash_copy(&hash_copy, &handshake_hash));
-    POSIX_GUARD(s2n_hash_digest(&hash_copy, digest_out, hash_digest_length));
-    POSIX_GUARD(s2n_hash_free(&hash_copy));
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
+    POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, tls13_ctx.hash_algorithm, hash_state));
+    POSIX_GUARD(s2n_hash_digest(hash_state, digest_out, hash_digest_length));
 
     /* Concatenate the content to be signed/verified */
     POSIX_GUARD(s2n_stuffer_alloc(unsigned_content, hash_digest_length + s2n_tls13_cert_verify_header_length(mode)));

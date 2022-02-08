@@ -301,27 +301,23 @@ int main(int argc, char **argv)
         uint8_t hash_digest_length = keys.size;
         struct s2n_blob compare_blob;
 
-        struct s2n_hash_state hash_state, client_hello1_hash;
-        POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
-
-        uint8_t client_hello1_digest_out[S2N_MAX_DIGEST_LEN];
+        DEFER_CLEANUP(struct s2n_hash_state client_hello1_hash = { 0 }, s2n_hash_free);
         EXPECT_SUCCESS(s2n_hash_new(&client_hello1_hash));
-        EXPECT_SUCCESS(s2n_hash_copy(&client_hello1_hash, &hash_state));
+        POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, keys.hash_algorithm, &client_hello1_hash));
+
+        uint8_t client_hello1_digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
         EXPECT_SUCCESS(s2n_hash_digest(&client_hello1_hash, client_hello1_digest_out, hash_digest_length));
-        EXPECT_SUCCESS(s2n_hash_free(&client_hello1_hash));
 
         EXPECT_SUCCESS(s2n_blob_init(&compare_blob, client_hello1_digest_out, hash_digest_length));
         S2N_BLOB_EXPECT_EQUAL(client_hello1_expected_hash, compare_blob);
 
         EXPECT_SUCCESS(s2n_server_hello_retry_recreate_transcript(conn));
 
-        struct s2n_hash_state recreated_hash;
-        uint8_t recreated_transcript_digest_out[S2N_MAX_DIGEST_LEN];
-        POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+        DEFER_CLEANUP(struct s2n_hash_state recreated_hash = { 0 }, s2n_hash_free);
+        uint8_t recreated_transcript_digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
         EXPECT_SUCCESS(s2n_hash_new(&recreated_hash));
-        EXPECT_SUCCESS(s2n_hash_copy(&recreated_hash, &hash_state));
+        POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, keys.hash_algorithm, &recreated_hash));
         EXPECT_SUCCESS(s2n_hash_digest(&recreated_hash, recreated_transcript_digest_out, hash_digest_length));
-        EXPECT_SUCCESS(s2n_hash_free(&recreated_hash));
 
         EXPECT_SUCCESS(s2n_blob_init(&compare_blob, recreated_transcript_digest_out, hash_digest_length));
         S2N_BLOB_EXPECT_EQUAL(synthetic_message_with_ch1_expected_hash, compare_blob);
