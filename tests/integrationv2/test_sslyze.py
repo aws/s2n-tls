@@ -7,6 +7,8 @@ from fixtures import managed_process
 from providers import S2N
 from utils import get_parameter_name
 
+HOST = "127.0.0.1"
+
 SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.ROBOT,
     sslyze.ScanCommand.TLS_FALLBACK_SCSV,
@@ -54,7 +56,7 @@ def test_sslyze_scans(managed_process, protocol):
 
     server_options = ProviderOptions(
         mode=S2N.ServerMode,
-        host="127.0.0.1",
+        host=HOST,
         port=port,
         protocol=protocol,
         extra_flags=["--parallelize"]
@@ -67,7 +69,7 @@ def test_sslyze_scans(managed_process, protocol):
     server = managed_process(S2N, server_options, timeout=30)
 
     scan_request = sslyze.ServerScanRequest(
-        server_location=sslyze.ServerNetworkLocation(hostname="127.0.0.1", port=port),
+        server_location=sslyze.ServerNetworkLocation(hostname=HOST, port=port),
         scan_commands=SSLYZE_SCANS_TO_TEST
     )
     scanner = sslyze.Scanner(per_server_concurrent_connections_limit=1)
