@@ -31,6 +31,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13_handshake.h"
+#include "tls/s2n_tls13_key_schedule.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -192,6 +193,9 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
      * state of the connection (for example, that the prf is the early data prf).
      */
     POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
+    if (conn->early_data_state == S2N_EARLY_DATA_REJECTED) {
+        POSIX_GUARD_RESULT(s2n_tls13_key_schedule_reset(conn));
+    }
 
     return 0;
 }

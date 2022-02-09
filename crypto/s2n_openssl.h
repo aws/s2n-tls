@@ -41,7 +41,7 @@
 #if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) && (!defined(OPENSSL_IS_BORINGSSL)) && (!defined(OPENSSL_IS_AWSLC))
 #define s2n_evp_ctx_init(ctx) POSIX_GUARD_OSSL(EVP_CIPHER_CTX_init(ctx), S2N_ERR_DRBG)
 #else
-#define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_init(ctx)
+#define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_reset(ctx)
 #endif
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_AWSLC) && !defined(OPENSSL_NO_ENGINE)

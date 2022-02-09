@@ -47,6 +47,7 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(data);
     POSIX_ENSURE_REF(conn->handshake.hashes);
+    struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
         /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
@@ -55,11 +56,11 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
          * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
          * as per NIST Special Publication 800-52 Revision 1.
          */
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->md5, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->md5, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha1, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->sha1, data->data, data->size));
     }
 
     const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
@@ -71,23 +72,23 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
          * CertificateVerify message and the PRF. NIST SP 800-52r1 approves use
          * of MD5_SHA1 for these use cases (see footnotes 15 and 20, and section
          * 3.3.2) */
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->md5_sha1, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->md5_sha1, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA224)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha224, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->sha224, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA256)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha256, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->sha256, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA384)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha384, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->sha384, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
-        POSIX_GUARD(s2n_hash_update(&conn->handshake.hashes->sha512, data->data, data->size));
+        POSIX_GUARD(s2n_hash_update(&hashes->sha512, data->data, data->size));
     }
 
     /*
@@ -95,10 +96,24 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
      * Save the relevant hash state digests for later use.
      */
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
-        if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
-            POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_hello_digest));
-        } else if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
-            POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_finished_digest));
+        switch(s2n_conn_get_current_message_type(conn)) {
+            case CLIENT_HELLO:
+                POSIX_ENSURE_REF(conn->secure.cipher_suite);
+                if (conn->secure.cipher_suite->prf_alg != S2N_HMAC_NONE) {
+                    POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->client_hello_digest));
+                }
+                break;
+            case SERVER_HELLO:
+                POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->server_hello_digest));
+                break;
+            case SERVER_FINISHED:
+                POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->server_finished_digest));
+                break;
+            case CLIENT_FINISHED:
+                POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->client_finished_digest));
+                break;
+            default:
+                break;
         }
     }
 

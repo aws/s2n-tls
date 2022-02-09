@@ -20,6 +20,7 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/extensions/s2n_client_key_share.h"
+#include "tls/s2n_tls13_secrets.h"
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
@@ -59,6 +60,7 @@ int s2n_init(void)
     POSIX_GUARD(s2n_config_defaults_init());
     POSIX_GUARD(s2n_extension_type_init());
     POSIX_GUARD_RESULT(s2n_pq_init());
+    POSIX_GUARD_RESULT(s2n_tls13_secrets_init());
 
     if (atexit_cleanup) {
         POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
