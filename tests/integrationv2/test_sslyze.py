@@ -10,6 +10,7 @@ from utils import get_parameter_name
 HOST = "127.0.0.1"
 
 PROTOCOLS_TO_TEST = [
+    Protocols.SSLv3,
     Protocols.TLS10,
     Protocols.TLS11,
     Protocols.TLS12,
