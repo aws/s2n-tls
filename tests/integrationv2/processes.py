@@ -177,7 +177,7 @@ class _processCommunicator(object):
                                 selector.register(self.proc.stdin, selectors.EVENT_WRITE)
                                 message = input_data.pop(0)
                                 # Data destined for stdin is stored in a memoryview
-                                input_view = memoryview(message)
+                                input_view = memoryview(message + b"\n")
                                 input_data_len = len(message)
                             else:
                                 input_data_sent = True
