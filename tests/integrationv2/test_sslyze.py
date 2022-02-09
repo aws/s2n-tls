@@ -9,6 +9,13 @@ from utils import get_parameter_name
 
 HOST = "127.0.0.1"
 
+PROTOCOLS_TO_TEST = [
+    Protocols.TLS10,
+    Protocols.TLS11,
+    Protocols.TLS12,
+    Protocols.TLS13
+]
+
 SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.ROBOT,
     sslyze.ScanCommand.TLS_FALLBACK_SCSV,
@@ -31,11 +38,13 @@ def validate_scan_result(scan_attempt, protocol):
     scan_result = scan_attempt.result
     scan_passed = {
         sslyze.RobotScanResult: {
-            Protocols.TLS12.value: lambda scan:
-                scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE,
             Protocols.TLS13.value: lambda scan:
                 scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_RSA_NOT_SUPPORTED
-        }.get(protocol.value),
+        }.get(
+            protocol.value,
+            lambda scan:
+                scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE
+        ),
         sslyze.FallbackScsvScanResult:
             lambda scan: scan.supports_fallback_scsv is True,
         sslyze.HeartbleedScanResult:
@@ -50,7 +59,7 @@ def validate_scan_result(scan_attempt, protocol):
     assert scan_passed(scan_result), f"unexpected scan result: {scan_result}"
 
 
-@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 def test_sslyze_scans(managed_process, protocol):
     port = next(available_ports)
 
