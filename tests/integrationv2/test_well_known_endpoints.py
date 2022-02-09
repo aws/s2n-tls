@@ -112,7 +112,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
 
     # expect_stderr=True because S2N sometimes receives OCSP responses:
     # https://github.com/aws/s2n-tls/blob/14ed186a13c1ffae7fbb036ed5d2849ce7c17403/bin/echo.c#L180-L184
-    client = managed_process(provider, client_options, timeout=300, expect_stderr=True)
+    client = managed_process(provider, client_options, timeout=30, expect_stderr=True)
 
     expected_result = EXPECTED_RESULTS.get((endpoint, cipher), None)
 

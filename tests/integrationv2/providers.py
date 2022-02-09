@@ -316,7 +316,11 @@ class CriterionS2N(S2N):
             self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
             self.capture_server_args()
         elif self.options.mode == Provider.ClientMode:
-            self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
+            # echo is causing s2nc to wait too long.
+            try:
+                self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line.remove('-e'))})
+            except ValueError:
+                pass
             if self.criterion_mode == CriterionS2N.criterion_baseline:
               self.capture_client_args_baseline()
             if self.criterion_mode == CriterionS2N.criterion_delta:
