@@ -543,3 +543,40 @@ class BoringSSL(Provider):
         return cmd_line
 
 
+class GnuTLS(Provider):
+    def __init__(self, options: ProviderOptions):
+        Provider.__init__(self, options)
+
+    @classmethod
+    def get_send_marker(cls):
+        return None
+
+    def setup_client(self):
+        pass
+
+    def setup_server(self):
+        self.ready_to_test_marker = "Echo Server listening on"
+
+        cmd_line = [
+            "gnutls-serv",
+            f"--port={self.options.port}",
+            "--echo",
+            "--debug=9999"
+        ]
+
+        if self.options.cert is not None:
+            cmd_line.extend(["--x509certfile", self.options.cert])
+        if self.options.key is not None:
+            cmd_line.extend(["--x509keyfile", self.options.key])
+
+        # TODO construct priority string with ciphers, tls version, compression algorithms, etc.
+
+        return cmd_line
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        return True
+
+    @classmethod
+    def supports_cipher(cls, cipher, with_curve=None):
+        return True
