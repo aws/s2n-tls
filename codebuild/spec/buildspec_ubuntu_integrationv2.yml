@@ -55,7 +55,6 @@ phases:
         fi
       - $CB_BIN_DIR/install_default_dependencies.sh
       - $CB_BIN_DIR/s2n_setup_env.sh
-      - codebuild-breakpoint
       - printenv
       - make
       # Install the parent s2n commit in a temporary directory
