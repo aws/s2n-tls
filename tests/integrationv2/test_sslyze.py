@@ -18,6 +18,7 @@ PROTOCOLS_TO_TEST = [
 
 SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.ROBOT,
+    sslyze.ScanCommand.TLS_COMPRESSION,
     sslyze.ScanCommand.TLS_FALLBACK_SCSV,
     sslyze.ScanCommand.HEARTBLEED,
     sslyze.ScanCommand.OPENSSL_CCS_INJECTION,
@@ -45,6 +46,8 @@ def validate_scan_result(scan_attempt, protocol):
             lambda scan:
                 scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE
         ),
+        sslyze.CompressionScanResult:
+            lambda scan: scan.supports_compression is False,
         sslyze.FallbackScsvScanResult:
             lambda scan: scan.supports_fallback_scsv is True,
         sslyze.HeartbleedScanResult:
