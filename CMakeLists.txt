@@ -231,6 +231,13 @@ try_compile(
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/cpuid.c"
 )
 
+# Determine if features.h is available
+try_compile(
+        S2N_FEATURES_AVAILABLE
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/features.c"
+)
+
 # Determine if __attribute__((fallthrough)) is available
 try_compile(
         FALL_THROUGH_SUPPORTED
@@ -374,6 +381,10 @@ endif()
 
 if(S2N_CPUID_AVAILABLE)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_CPUID_AVAILABLE)
+endif()
+
+if(S2N_FEATURES_AVAILABLE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_FEATURES_AVAILABLE)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
