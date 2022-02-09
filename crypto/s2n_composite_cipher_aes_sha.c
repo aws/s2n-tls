@@ -26,14 +26,14 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-/* LibreSSL, BoringSSL and AWS-LC support the cipher, but the interface is different from Openssl's. We
- * should define a separate s2n_cipher struct for LibreSSL, BoringSSL and AWS-LC.
+/* LibreSSL and BoringSSL support the cipher, but the interface is different from Openssl's. We
+ * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
  */
-#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
+#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
 /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1
  * These composite ciphers exhibit erratic behavior in LibreSSL releases.
  */
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) 
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1)
 #define S2N_AES_SHA1_COMPOSITE_AVAILABLE
 #endif
 /* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2
@@ -129,7 +129,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      * constants used below. This method should never be called with BoringSSL or AWS-LC because the isAvaliable checked
      * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL and AWS-LC.
      */
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#if defined(OPENSSL_IS_BORINGSSL)
   POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 #else
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
