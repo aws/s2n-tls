@@ -14,8 +14,8 @@
  */
 
 #define  _DEFAULT_SOURCE 1
-#if defined(DS2N_FEATURES_AVAILABLE)
-    #include <features.h>
+#if defined(S2N_FEATURES_AVAILABLE)
+#include <features.h>
 #endif
 
 #include <stdint.h>
