@@ -33,6 +33,14 @@ CERTS_TO_TEST = [
     }
 ]
 
+CIPHER_SUITE_SCANS = {
+    Protocols.SSLv3.value: sslyze.ScanCommand.SSL_3_0_CIPHER_SUITES,
+    Protocols.TLS10.value: sslyze.ScanCommand.TLS_1_0_CIPHER_SUITES,
+    Protocols.TLS11.value: sslyze.ScanCommand.TLS_1_1_CIPHER_SUITES,
+    Protocols.TLS12.value: sslyze.ScanCommand.TLS_1_2_CIPHER_SUITES,
+    Protocols.TLS13.value: sslyze.ScanCommand.TLS_1_3_CIPHER_SUITES
+}
+
 
 def get_scan_attempts(scan_results):
     scan_attribute_names = [attr_name for attr_name in dir(scan_results) if not attr_name.startswith("__")]
@@ -140,6 +148,55 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
     server.kill()
 
 
+def validate_certificate_scan_result(scan_attempt, protocol, certificate):
+    assert_scan_attempt_completed(scan_attempt)
+    result = scan_attempt.result
+
+    def validate_cipher_scan(result, protocol, certificate):
+        assert result.is_tls_version_supported is True
+
+        rejected_ciphers = [
+            cipher for rejected_cipher in result.rejected_cipher_suites
+            if (cipher := Ciphers.from_iana(rejected_cipher.cipher_suite.name))
+        ]
+
+        for cipher in rejected_ciphers:
+            # if a cipher is rejected, it should be an invalid test parameter in combination with the
+            # protocol/provider/cert
+            assert invalid_test_parameters(
+                protocol=protocol,
+                provider=S2N,
+                certificate=certificate,
+                cipher=cipher
+            )
+
+    def validate_curves_scan(result, protocol, certificate):
+        assert result.supports_ecdh_key_exchange is True
+
+        rejected_curves = [
+            curve for rejected_curve in result.rejected_curves
+            if (curve := {
+                "X25519": Curves.X25519,
+                "prime256v1": Curves.P256,
+                "prime384v1": Curves.P384,
+                "prime521v1": Curves.P521
+            }.get(rejected_curve.name))
+        ]
+
+        for curve in rejected_curves:
+            assert invalid_test_parameters(
+                protocol=protocol,
+                provider=S2N,
+                certificate=certificate,
+                curve=curve
+            )
+
+    {
+        sslyze.CipherSuitesScanResult: validate_cipher_scan,
+        sslyze.SupportedEllipticCurvesScanResult: validate_curves_scan,
+    }.get(type(result))(result, protocol, certificate)
+
+
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_sslyze_certificate_scans(managed_process, protocol, certificate):
@@ -157,39 +214,21 @@ def test_sslyze_certificate_scans(managed_process, protocol, certificate):
     )
     server = managed_process(S2N, server_options, timeout=30)
 
-    cipher_suite_scan = {
-        Protocols.SSLv3.value: sslyze.ScanCommand.SSL_3_0_CIPHER_SUITES,
-        Protocols.TLS10.value: sslyze.ScanCommand.TLS_1_0_CIPHER_SUITES,
-        Protocols.TLS11.value: sslyze.ScanCommand.TLS_1_1_CIPHER_SUITES,
-        Protocols.TLS12.value: sslyze.ScanCommand.TLS_1_2_CIPHER_SUITES,
-        Protocols.TLS13.value: sslyze.ScanCommand.TLS_1_3_CIPHER_SUITES
-    }.get(protocol.value)
+    scans = [CIPHER_SUITE_SCANS.get(protocol.value)]
 
-    scan_attempt_results = run_sslyze_scan(HOST, port, [cipher_suite_scan])
+    # sslyze doesn't like ECDSA certs for curve scan
+    if "ECDSA" not in certificate.name:
+        scans.append(sslyze.ScanCommand.ELLIPTIC_CURVES)
+
+    scan_attempt_results = run_sslyze_scan(HOST, port, scans)
 
     for scan_attempt_result in scan_attempt_results:
         assert_scan_result_completed(scan_attempt_result)
 
         scan_result = scan_attempt_result.scan_result
-        scan_attempt = get_scan_attempts(scan_result)[0]
-        assert_scan_attempt_completed(scan_attempt)
+        scan_attempts = get_scan_attempts(scan_result)
 
-        result = scan_attempt.result
-        assert result.is_tls_version_supported is True
-
-        rejected_ciphers = [
-            cipher for rejected_cipher in result.rejected_cipher_suites
-            if (cipher := Ciphers.from_iana(rejected_cipher.cipher_suite.name))
-        ]
-
-        for cipher in rejected_ciphers:
-            # if a cipher is rejected, it should be an invalid test parameter in combination with the
-            # protocol/provider/cert
-            assert invalid_test_parameters(
-                protocol=protocol,
-                provider=S2N,
-                certificate=certificate,
-                cipher=cipher
-            )
+        for scan_attempt in scan_attempts:
+            validate_certificate_scan_result(scan_attempt, protocol, certificate)
 
     server.kill()
