@@ -1,8 +1,8 @@
 import pytest
 import sslyze
 
-from configuration import available_ports
-from common import ProviderOptions, Protocols, Cipher
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
+from common import ProviderOptions, Protocols, Cipher, Ciphers, Certificates, Curves
 from fixtures import managed_process
 from providers import S2N
 from utils import get_parameter_name
@@ -64,7 +64,8 @@ def validate_scan_result(scan_attempt, protocol):
 
 
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
-def test_sslyze_scans(managed_process, protocol):
+@pytest.mark.parametrize("scan_command", SSLYZE_SCANS_TO_TEST, ids=get_parameter_name)
+def test_sslyze_scans(managed_process, protocol, scan_command):
     port = next(available_ports)
 
     server_options = ProviderOptions(
@@ -83,7 +84,7 @@ def test_sslyze_scans(managed_process, protocol):
 
     scan_request = sslyze.ServerScanRequest(
         server_location=sslyze.ServerNetworkLocation(hostname=HOST, port=port),
-        scan_commands=SSLYZE_SCANS_TO_TEST
+        scan_commands=[scan_command]
     )
     scanner = sslyze.Scanner(per_server_concurrent_connections_limit=1)
     scanner.queue_scans([scan_request])
@@ -104,3 +105,7 @@ def test_sslyze_scans(managed_process, protocol):
             validate_scan_result(scan_attempt, protocol)
 
     server.kill()
+
+
+
+
