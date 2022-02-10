@@ -19,6 +19,7 @@ PROTOCOLS_TO_TEST = [
 
 SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.ROBOT,
+    sslyze.ScanCommand.SESSION_RESUMPTION,
     sslyze.ScanCommand.TLS_COMPRESSION,
     sslyze.ScanCommand.TLS_FALLBACK_SCSV,
     sslyze.ScanCommand.HEARTBLEED,
@@ -69,6 +70,13 @@ def validate_scan_result(scan_attempt, protocol):
             lambda scan:
                 scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE
         ),
+        sslyze.SessionResumptionSupportScanResult: {
+            Protocols.TLS13.value: lambda scan: True  # ignore session resumption scan result for tls13
+        }.get(
+            protocol.value,
+            lambda scan:
+                scan.tls_ticket_resumption_result == sslyze.TlsResumptionSupportEnum.FULLY_SUPPORTED
+        ),
         sslyze.CompressionScanResult:
             lambda scan: scan.supports_compression is False,
         sslyze.FallbackScsvScanResult:
@@ -112,6 +120,11 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
     if protocol == Protocols.TLS13:
         server_options.cipher = Cipher("test_all_tls13", Protocols.TLS13, False, False, s2n=True)
 
+    if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
+        server_options.reconnect = True,
+        server_options.reconnects_before_exit = 6,
+        server_options.use_session_ticket = True,
+
     server = managed_process(S2N, server_options, timeout=30)
 
     scan_results = run_sslyze_scan(HOST, port, [scan_command])
@@ -129,7 +142,7 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
 
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_cipher_suites(managed_process, protocol, certificate):
+def test_sslyze_certificate_scans(managed_process, protocol, certificate):
     port = next(available_ports)
 
     server_options = ProviderOptions(
