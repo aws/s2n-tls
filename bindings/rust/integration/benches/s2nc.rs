@@ -6,6 +6,7 @@ use std::{
     dbg, env,
     io::{self, Write},
     process::Command,
+    time::Duration,
 };
 mod utils;
 
@@ -34,5 +35,7 @@ pub fn s2nc(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, s2nc);
+criterion_group!(name = benches;
+                 config = Criterion::default().sample_size(10).measurement_time(Duration::from_secs(1));
+                 targets = s2nc);
 criterion_main!(benches);

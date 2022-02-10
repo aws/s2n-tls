@@ -14,6 +14,7 @@ impl<'a> From<&'a str> for Arguments<'a> {
 }
 
 impl<'a> Arguments<'a> {
+    #[allow(dead_code)]
     pub fn get_dash_c(self) -> Result<&'a str, ()> {
         let mut counter = 0;
         for element in &self.argument {
