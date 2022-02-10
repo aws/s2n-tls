@@ -21,6 +21,7 @@ SSLYZE_SCANS_TO_TEST = {
     sslyze.ScanCommand.ROBOT,
     sslyze.ScanCommand.SESSION_RESUMPTION,
     sslyze.ScanCommand.TLS_COMPRESSION,
+    sslyze.ScanCommand.TLS_1_3_EARLY_DATA,
     sslyze.ScanCommand.TLS_FALLBACK_SCSV,
     sslyze.ScanCommand.HEARTBLEED,
     sslyze.ScanCommand.OPENSSL_CCS_INJECTION,
@@ -71,8 +72,9 @@ def validate_scan_result(scan_attempt, protocol):
     scan_result = scan_attempt.result
     scan_passed = {
         sslyze.RobotScanResult: {
-            Protocols.TLS13.value: lambda scan:
-                scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_RSA_NOT_SUPPORTED
+            Protocols.TLS13.value:
+                lambda scan:
+                    scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_RSA_NOT_SUPPORTED
         }.get(
             protocol.value,
             lambda scan:
@@ -87,6 +89,13 @@ def validate_scan_result(scan_attempt, protocol):
         ),
         sslyze.CompressionScanResult:
             lambda scan: scan.supports_compression is False,
+        sslyze.EarlyDataScanResult: {
+            Protocols.TLS13.value:
+                lambda scan: scan.supports_early_data is True
+        }.get(
+            protocol.value,
+            lambda scan: scan.supports_early_data is False
+        ),
         sslyze.FallbackScsvScanResult:
             lambda scan: scan.supports_fallback_scsv is True,
         sslyze.HeartbleedScanResult:
@@ -132,6 +141,14 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
         server_options.reconnect = True,
         server_options.reconnects_before_exit = 6,
         server_options.use_session_ticket = True,
+
+    if scan_command == sslyze.ScanCommand.TLS_1_3_EARLY_DATA:
+        server_options.insecure = True
+        server_options.use_session_ticket = True
+        server_options.extra_flags.extend([
+            "--max-early-data", "65535",
+            "--https-server"  # early data scan sends http requests
+        ])
 
     server = managed_process(S2N, server_options, timeout=30)
 
