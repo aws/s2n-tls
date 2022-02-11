@@ -26,7 +26,6 @@
 
 struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 const struct s2n_ecc_named_curve *curve = &s2n_ecc_curve_x25519;
-const int openssl_type = EVP_PKEY_X25519;
 
 const uint32_t test_handshake_type = NEGOTIATED | FULL_HANDSHAKE;
 const int server_hello_message_num = 1;
@@ -38,13 +37,6 @@ S2N_RESULT s2n_extract_early_secret(struct s2n_psk *psk);
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    /* The RFC values use x25519,
-     * which is only supported via EVP APIs.
-     */
-    if (!s2n_is_evp_apis_supported()) {
-        END_TEST();
-    }
 
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
@@ -105,8 +97,14 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(handshake_secret, "1d c8 26 e9 36 06 aa 6f dc 0a ad c1 2f 74 1b \
                01 04 6a a6 b9 9f 69 1e d2 21 a9 f0 ca 04 3f be ac");
 
-        /* Extract HANDSHAKE_SECRET */
-        {
+        /* Extract HANDSHAKE_SECRET
+         *
+         * The RFC values use x25519, which is only supported via EVP APIs.
+         * Additionally, the specific APIs we use to set the EVP key require Openssl-1.1.1.
+         */
+#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1))
+            const int openssl_type = EVP_PKEY_X25519;
+
             /**
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
              *#    {client}  create an ephemeral x25519 key pair:
@@ -179,6 +177,7 @@ int main(int argc, char **argv)
                         handshake_secret.data, handshake_secret.size);
             }
         }
+#endif
 
         /* Derive S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET */
         {

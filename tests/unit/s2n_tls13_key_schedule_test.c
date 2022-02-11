@@ -107,22 +107,25 @@ int main(int argc, char **argv)
     };
     for (uint32_t handshake_type = 0; handshake_type < S2N_HANDSHAKES_COUNT; handshake_type++) {
         handshake_test_conn.handshake.handshake_type = handshake_type;
-        if (s2n_conn_get_current_message_type(&handshake_test_conn) == CLIENT_HELLO) {
-            /* Skip empty, all-CLIENT_HELLO handshakes */
-            continue;
-        }
-        if (!IS_NEGOTIATED(&handshake_test_conn)) {
-            /* Skip initial / incomplete handshakes */
-            continue;
-        }
         for (size_t req_i = 0; req_i < s2n_array_len(early_data_req_states); req_i++) {
-            if (WITH_EARLY_DATA(&handshake_test_conn) && !early_data_req_states[req_i]) {
-                /* Skip handshakes with inconsistent early data states */
-                continue;
-            }
-
-            for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
-                for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
+            for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
+                for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+                    if (s2n_conn_get_current_message_type(&handshake_test_conn) == CLIENT_HELLO) {
+                        /* Skip empty, all-CLIENT_HELLO handshakes */
+                        continue;
+                    }
+                    if (WITH_EARLY_DATA(&handshake_test_conn) && !early_data_req_states[req_i]) {
+                        /* Skip handshakes with inconsistent early data states */
+                        continue;
+                    }
+                    if (!IS_NEGOTIATED(&handshake_test_conn)) {
+                        /* Skip initial / incomplete handshakes */
+                        continue;
+                    }
+                    if (!ciphers->suites[cipher_i]->available) {
+                        /* Skip unavailable ciphers */
+                        continue;
+                    }
                     test_cases[test_cases_count] = (struct s2n_tls13_key_schedule_test_case) {
                         .conn_mode = modes[mode_i],
                         .handshake_type = handshake_type,
