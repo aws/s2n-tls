@@ -103,6 +103,7 @@ int main(int argc, char **argv)
          * Additionally, the specific APIs we use to set the EVP key require Openssl-1.1.1.
          */
 #if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1))
+        {
             const int openssl_type = EVP_PKEY_X25519;
 
             /**
