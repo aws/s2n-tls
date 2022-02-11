@@ -102,7 +102,7 @@ int main(int argc, char **argv)
          * The RFC values use x25519, which is only supported via EVP APIs.
          * Additionally, the specific APIs we use to set the EVP key require Openssl-1.1.1.
          */
-#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1))
+#if EVP_APIS_SUPPORTED && S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1)
         {
             const int openssl_type = EVP_PKEY_X25519;
 
