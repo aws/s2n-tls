@@ -84,15 +84,12 @@ S2N_RESULT s2n_tls13_secrets_init()
     DEFER_CLEANUP(struct s2n_hash_state hash = { 0 }, s2n_hash_free);
     RESULT_GUARD_POSIX(s2n_hash_new(&hash));
 
-    s2n_hmac_algorithm hmac_alg = S2N_HMAC_NONE;
     s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
-    struct s2n_blob digest = { 0 };
     for (size_t i = 0; i < s2n_array_len(supported_hmacs); i++) {
-        hmac_alg = supported_hmacs[i];
-        digest = EMPTY_CONTEXT(hmac_alg);
+        s2n_hmac_algorithm hmac_alg = supported_hmacs[i];
+        struct s2n_blob digest = EMPTY_CONTEXT(hmac_alg);
 
         RESULT_GUARD_POSIX(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
-
         RESULT_GUARD_POSIX(s2n_hash_init(&hash, hash_alg));
         RESULT_GUARD_POSIX(s2n_hash_digest(&hash, digest.data, digest.size));
     }
