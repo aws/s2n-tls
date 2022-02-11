@@ -139,7 +139,6 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
 
     if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
         server_options.reconnect = True,
-        server_options.reconnects_before_exit = 6,
         server_options.use_session_ticket = True,
 
     if scan_command == sslyze.ScanCommand.TLS_1_3_EARLY_DATA:
