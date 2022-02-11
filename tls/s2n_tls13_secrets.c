@@ -26,12 +26,12 @@
 #define CONN_SECRETS(conn)  ((conn)->secrets.tls13)
 #define CONN_HASHES(conn)   ((conn)->handshake.hashes)
 
-#define CONN_SECRET(conn, secret) \
-    ((struct s2n_blob) { .data = CONN_SECRETS(conn).secret, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn))})
-#define CONN_HASH(conn, hash) \
-    ((struct s2n_blob) { .data = CONN_HASHES(conn)->hash, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn))})
-#define CONN_FINISHED(conn, mode) \
-    ((struct s2n_blob) { .data = (conn)->handshake.mode##_finished, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn))})
+#define CONN_SECRET(conn, secret) ( \
+    (struct s2n_blob) { .data = CONN_SECRETS(conn).secret, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn))} )
+#define CONN_HASH(conn, hash) ( \
+    (struct s2n_blob) { .data = CONN_HASHES(conn)->hash, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn))} )
+#define CONN_FINISHED(conn, mode) ( \
+    (struct s2n_blob) { .data = (conn)->handshake.mode##_finished, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn))})
 
 /**
  *= https://tools.ietf.org/rfc/rfc8446#section-7.1
@@ -39,16 +39,16 @@
  *# string of Hash.length bytes set to zeros is used.
  */
 static uint8_t zero_value_bytes[S2N_MAX_HASHLEN] = { 0 };
-#define ZERO_VALUE(hmac_alg) \
-    ((const struct s2n_blob) { .data = zero_value_bytes, .size = s2n_get_hash_len(hmac_alg)})
+#define ZERO_VALUE(hmac_alg) ( \
+    (const struct s2n_blob) { .data = zero_value_bytes, .size = s2n_get_hash_len(hmac_alg)})
 
 /**
  *= https://tools.ietf.org/rfc/rfc8446#section-7.1
  *# Note that in some cases a zero-
  *# length Context (indicated by "") is passed to HKDF-Expand-Label
  */
-#define EMPTY_CONTEXT(hmac_alg) \
-    ((const struct s2n_blob) { .data = s2n_get_empty_context(hmac_alg), .size = s2n_get_hash_len(hmac_alg)})
+#define EMPTY_CONTEXT(hmac_alg) ( \
+    (const struct s2n_blob) { .data = s2n_get_empty_context(hmac_alg), .size = s2n_get_hash_len(hmac_alg)})
 
 static uint8_t s2n_get_hash_len(s2n_hmac_algorithm hmac_alg)
 {
