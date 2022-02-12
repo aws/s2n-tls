@@ -20,15 +20,18 @@
     typedef struct _opaque_pthread_once_t  __darwin_pthread_once_t;
     typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
-    #include <sys/mman.h>
-    #if !defined(MAP_ANONYMOUS)
-        #define MAP_ANONYMOUS MAP_ANON
-    #endif
+
 #else
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
     #endif
-    #include <sys/mman.h>
+#endif
+
+#include <sys/mman.h>
+
+/* Not always defined for Darwin */
+#if !defined(MAP_ANONYMOUS)
+    #define MAP_ANONYMOUS MAP_ANON
 #endif
 
 #include "error/s2n_errno.h"
