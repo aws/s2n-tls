@@ -372,7 +372,6 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), trigger_message);
 
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-                EXPECT_TRUE(conn->client == &conn->secure || conn->client == &conn->secure);
                 EXPECT_BYTEARRAY_EQUAL(conn->secure.client_implicit_iv, iv.data, iv.size);
             }
         }
