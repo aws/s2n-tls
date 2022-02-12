@@ -244,8 +244,8 @@ static int unit_tests_common(struct fgn_test_case *test_case)
         EXPECT_EQUAL(unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
     }
     else if (test_case->test_case_must_pass_clone_test == 2) {
-        if (assert_madv_wipeonfork_is_supported() == S2N_SUCCESS ||
-            assert_map_inherit_zero_is_supported() == S2N_SUCCESS) {
+        if (s2n_assert_madv_wipeonfork_is_supported() == S2N_SUCCESS ||
+            s2n_assert_map_inherit_zero_is_supported() == S2N_SUCCESS) {
             EXPECT_EQUAL(unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
         }
     }
@@ -262,7 +262,7 @@ static int test_case_default_cb(struct fgn_test_case *test_case)
 
 static int test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 {
-    FOR_TESTING_ignore_wipeonfork_and_inherit_zero();
+    s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero();
     EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
@@ -270,12 +270,12 @@ static int test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 
 static int test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 {
-    if (assert_madv_wipeonfork_is_supported() == S2N_FAILURE) {
+    if (s2n_assert_madv_wipeonfork_is_supported() == S2N_FAILURE) {
         FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
         return S2N_SUCCESS;
     }
 
-    FOR_TESTING_ignore_pthread_atfork();
+    s2n_FOR_TESTING_ignore_pthread_atfork();
     EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
@@ -283,12 +283,12 @@ static int test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 
 static int test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 {
-    if (assert_map_inherit_zero_is_supported() == S2N_FAILURE) {
+    if (s2n_assert_map_inherit_zero_is_supported() == S2N_FAILURE) {
         FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
         return S2N_SUCCESS;
     }
 
-    FOR_TESTING_ignore_pthread_atfork();
+    s2n_FOR_TESTING_ignore_pthread_atfork();
     EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;

@@ -315,7 +315,7 @@ static int probe_madv_wipeonfork_support(void) {
 }
 #endif
 
-int assert_madv_wipeonfork_is_supported(void)
+int s2n_assert_madv_wipeonfork_is_supported(void)
 {
     int result = S2N_FAILURE;
 #if defined(USE_MADVISE)
@@ -324,7 +324,7 @@ int assert_madv_wipeonfork_is_supported(void)
     return result;
 }
 
-int assert_map_inherit_zero_is_supported(void)
+int s2n_assert_map_inherit_zero_is_supported(void)
 {
     int result = S2N_FAILURE;
 #if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
@@ -335,11 +335,11 @@ int assert_map_inherit_zero_is_supported(void)
 }
 
 /* Use for testing only */
-void FOR_TESTING_ignore_wipeonfork_and_inherit_zero(void) {
+void s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero(void) {
     ignore_wipeonfork_or_inherit_zero_method_for_testing = S2N_FORK_DETECT_IGNORE;
 }
 
-void FOR_TESTING_ignore_pthread_atfork(void) {
+void s2n_FOR_TESTING_ignore_pthread_atfork(void) {
     ignore_pthread_atfork_method_for_testing = S2N_FORK_DETECT_IGNORE;
 }
 

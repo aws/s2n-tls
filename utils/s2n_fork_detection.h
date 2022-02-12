@@ -18,9 +18,9 @@
 #include <stdint.h>
 
 int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number);
-int assert_madv_wipeonfork_is_supported(void);
-int assert_map_inherit_zero_is_supported(void);
+int s2n_assert_madv_wipeonfork_is_supported(void);
+int s2n_assert_map_inherit_zero_is_supported(void);
 
 /* Use for testing only */
-void FOR_TESTING_ignore_wipeonfork_and_inherit_zero(void);
-void FOR_TESTING_ignore_pthread_atfork(void);
+void s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero(void);
+void s2n_FOR_TESTING_ignore_pthread_atfork(void);
