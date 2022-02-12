@@ -615,17 +615,3 @@
  * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for PTR_ENSURE_REF.
  */
 #define PTR_GUARD_PTR(result)                                 __S2N_ENSURE((result) != NULL, return NULL)
-
-/**
- * Define a C99-compliant static assert.
- *
- * Static_assert() is not defined before C11. So, we can't rely on it when we
- * want to be C99 compliant. Instead, use a method that is guaranteed to be C99
- * compliant and still give us an equivalent static assert mechanism.
- *
- * Taken from aws-c-common: https://github.com/awslabs/aws-c-common/blob/main/include/aws/common/macros.h#L19
- */
-#define S2N_CONCAT(A, B) A##B
-#define S2N_STATIC_ASSERT0(cond, msg) typedef char S2N_CONCAT(static_assertion_, msg)[(!!(cond)) * 2 - 1]
-#define S2N_STATIC_ASSERT1(cond, line) S2N_STATIC_ASSERT0(cond, S2N_CONCAT(at_line_, line))
-#define S2N_STATIC_ASSERT(cond) S2N_STATIC_ASSERT1(cond, __LINE__)

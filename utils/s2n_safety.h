@@ -111,3 +111,17 @@ extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
 extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
 extern int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
+
+/**
+ * Define a C99-compliant static assert.
+ *
+ * Static_assert() is not defined before C11. So, we can't rely on it when we
+ * want to be C99 compliant. Instead, use a method that is guaranteed to be C99
+ * compliant and still give us an equivalent static assert mechanism.
+ *
+ * Taken from aws-c-common: https://github.com/awslabs/aws-c-common/blob/main/include/aws/common/macros.h#L19
+ */
+#define S2N_CONCAT(A, B) A##B
+#define S2N_STATIC_ASSERT0(cond, msg) typedef char S2N_CONCAT(static_assertion_, msg)[(!!(cond)) * 2 - 1]
+#define S2N_STATIC_ASSERT1(cond, line) S2N_STATIC_ASSERT0(cond, S2N_CONCAT(at_line_, line))
+#define S2N_STATIC_ASSERT(cond) S2N_STATIC_ASSERT1(cond, __LINE__)
