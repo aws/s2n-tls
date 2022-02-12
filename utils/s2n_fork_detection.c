@@ -113,19 +113,8 @@ static struct FGN_STATE fgn_state = {
 static inline void initialise_wipeonfork_best_effort(void *addr, long page_size)
 {
 #if defined(USE_MADVISE)
-    /* Make sure that madvise() rejects invalid memory advice arguments.
-     * Some versions of qemu (up to at least 5.0.0-rc4, see
-     * linux-user/syscall.c) ignore madvise calls and just return zero (i.e.
-     * success). Therefore try an invalid call to check that the implementation
-     * of madvise is actually rejecting unknown "advice" values.
-     *
-     * This is not regarded as an error, but an inability to determine whether
-     * MADV_WIPEFORK is supported or not. We fall back to pthread_atfork if not.
-     */
-    if (madvise(addr, (size_t) page_size, -1) != 0) {
-        /* Ignored on purpose. Best-effort initialisation. */
-        madvise(addr, (size_t) page_size, MADV_WIPEONFORK);
-    }
+    /* Ignored on purpose. */
+    madvise(addr, (size_t) page_size, MADV_WIPEONFORK);
 #endif
 }
 
