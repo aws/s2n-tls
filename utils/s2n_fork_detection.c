@@ -36,7 +36,7 @@
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_fork_detection.h"
-#include "utils/s2n_safety_macros.h"
+#include "utils/s2n_safety.h"
 
 #include <pthread.h>
 #include <stdlib.h>
