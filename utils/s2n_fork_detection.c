@@ -15,12 +15,12 @@
 
 /* This captures Darwin specialities. This is the only APPLE flavor we care
  * about.
+ * Here we also capture varius required feature test macro's.
  */
 #if defined(__APPLE__)
     typedef struct _opaque_pthread_once_t  __darwin_pthread_once_t;
     typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
-
 #else
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
@@ -75,8 +75,8 @@ static int ignore_wipeonfork_or_inherit_zero_method_for_testing = S2N_FORK_DETEC
 static int ignore_pthread_atfork_method_for_testing = S2N_FORK_DETECT_DO_NOT_IGNORE;
 static int ignore_fork_detection_for_testing = S2N_FORK_DETECT_DO_NOT_IGNORE;
 
-#define FORK_EVENT 0
-#define NO_FORK_EVENT 1
+#define S2N_FORK_EVENT 0
+#define S2N_NO_FORK_EVENT 1
 
 struct FGN_STATE {
     /* The current cached fork generation number for this process */
@@ -227,7 +227,7 @@ static void initialise_fork_detection_methods(void)
     }
 
     fgn_state.zero_on_fork_addr = addr;
-    *fgn_state.zero_on_fork_addr = NO_FORK_EVENT;
+    *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
     fgn_state.is_fork_detection_enabled = S2N_SUCCESS;
 
 end:
@@ -264,7 +264,7 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
      */
     POSIX_ENSURE(pthread_rwlock_rdlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
-    if (*fgn_state.zero_on_fork_addr != FORK_EVENT) {
+    if (*fgn_state.zero_on_fork_addr != S2N_FORK_EVENT) {
         POSIX_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
         return S2N_SUCCESS;
     }
@@ -276,12 +276,12 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
      */
     POSIX_ENSURE(pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
-    if (*fgn_state.zero_on_fork_addr == FORK_EVENT) {
+    if (*fgn_state.zero_on_fork_addr == S2N_FORK_EVENT) {
         /* Fork has been detected; reset sentinel, increment cached fork
          * generation nunber (which is now "current" in this child process), and
          * write incremented fork generation number to the output parameter.
          */
-        *fgn_state.zero_on_fork_addr = NO_FORK_EVENT;
+        *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
         fgn_state.current_fork_generation_number = fgn_state.current_fork_generation_number + 1;
         *return_fork_generation_number = fgn_state.current_fork_generation_number;
     }
