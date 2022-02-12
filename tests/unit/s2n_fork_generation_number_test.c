@@ -301,7 +301,8 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
     {"Only map_inheret_zero fork detection mechanism.", test_case_map_inherit_zero_cb, 1}
 };
 /* s2n_array_len is run-time but standard static array length calculation is
- * captured by the simple errors script. So, try to trick the test script.
+ * captured by the simple errors script. However, the script is perfoming static
+ * analysis on the pure source code, so, we can easily trick it :).
  */
 #define SIZE_OF_COPY(x) sizeof(x)
 S2N_STATIC_ASSERT(NUMBER_OF_FGN_TEST_CASES == (SIZE_OF_COPY(fgn_test_cases) / SIZE_OF_COPY(fgn_test_cases[0])));
