@@ -300,7 +300,10 @@ static int probe_madv_wipeonfork_support(void) {
                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     POSIX_ENSURE(probe_addr != MAP_FAILED, S2N_ERR_FORK_DETECTION_INIT);
 
-
+    /* Some versions of qemu (up to at least 5.0.0-rc4, see
+     * linux-user/syscall.c) ignore invalid advice arguments. Hence, we first
+     * verify that madvise() rejects advice arguments it doesn't know about.
+     */
     if (madvise(probe_addr, (size_t) page_size, -1) != 0 &&
         madvise(probe_addr, (size_t) page_size, MADV_WIPEONFORK) == 0) {
         result = S2N_SUCCESS;
