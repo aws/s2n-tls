@@ -31,7 +31,8 @@ impl<'a> Arguments<'a> {
         for element in &self.argument {
             counter += 1;
             if element.eq(&"-c") {
-                return Ok(self.argument[counter + 1]);
+                let result = self.argument[counter + 1].trim_end_matches("_").trim_start_matches("_");
+                return Ok(result);
             }
         }
         Err(())
