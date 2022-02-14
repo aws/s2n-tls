@@ -12,6 +12,9 @@ use std::ffi::CString;
 
 struct Owned(NonNull<s2n_config>);
 
+/// Safety: s2n_config objects can be sent across threads
+unsafe impl Send for Owned {}
+
 impl Default for Owned {
     fn default() -> Self {
         Self::new()
@@ -36,11 +39,12 @@ impl Drop for Owned {
     }
 }
 
-/// Safety: s2n_config objects can be sent across threads
-unsafe impl Send for Owned {}
-
 #[derive(Clone, Default)]
 pub struct Config(Arc<Owned>);
+
+/// Safety: s2n_config objects can be sent across threads
+#[allow(unknown_lints, clippy::non_send_fields_in_send_ty)]
+unsafe impl Send for Config {}
 
 impl Config {
     pub fn new() -> Self {
@@ -88,7 +92,7 @@ impl Builder {
     /// list is used to negotiate a mutual application protocol with the client. After
     /// the negotiation for the connection has completed, the agreed upon protocol can
     /// be retrieved with s2n_get_application_protocol
-    pub fn set_alpn_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
+    pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
         &mut self,
         protocols: P,
     ) -> Result<&mut Self, Error> {
@@ -99,9 +103,24 @@ impl Builder {
         }?;
 
         for protocol in protocols {
-            self.append_alpn_preference(protocol.as_ref())?;
+            self.append_application_protocol_preference(protocol.as_ref())?;
         }
 
+        Ok(self)
+    }
+
+    pub fn append_application_protocol_preference(
+        &mut self,
+        protocol: &[u8],
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_append_protocol_preference(
+                self.as_mut_ptr(),
+                protocol.as_ptr(),
+                protocol.len().try_into().map_err(|_| Error::InvalidInput)?,
+            )
+            .into_result()
+        }?;
         Ok(self)
     }
 
@@ -137,18 +156,6 @@ impl Builder {
         Ok(self)
     }
 
-    pub fn append_alpn_preference(&mut self, protocol: &[u8]) -> Result<&mut Self, Error> {
-        unsafe {
-            s2n_config_append_protocol_preference(
-                self.as_mut_ptr(),
-                protocol.as_ptr(),
-                protocol.len().try_into().map_err(|_| Error::InvalidInput)?,
-            )
-            .into_result()
-        }?;
-        Ok(self)
-    }
-
     /// # Safety
     ///
     /// The `context` pointer must live at least as long as the config
@@ -170,6 +177,11 @@ impl Builder {
         context: *mut core::ffi::c_void,
     ) -> Result<&mut Self, Error> {
         s2n_config_set_key_log_cb(self.as_mut_ptr(), callback, context).into_result()?;
+        Ok(self)
+    }
+
+    pub fn set_max_cert_chain_depth(&mut self, depth: u16) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_max_cert_chain_depth(self.as_mut_ptr(), depth).into_result() }?;
         Ok(self)
     }
 
