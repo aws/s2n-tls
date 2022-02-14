@@ -31,7 +31,7 @@ SSLYZE_SCANS_TO_TEST = {
 
 CERTS_TO_TEST = [
     cert for cert in ALL_TEST_CERTS if cert.name not in {
-        "RSA_PSS_2048_SHA256"  # sslyze doesn't like this cert
+        "RSA_PSS_2048_SHA256"  # sslyze errors when given an RSA PSS cert
     }
 ]
 
@@ -68,7 +68,7 @@ class CipherSuitesVerifier(ScanVerifier):
 
         for cipher in rejected_ciphers:
             # if a cipher is rejected, it should be an invalid test parameter in combination with the
-            # protocol/provider/cert
+            # protocol/provider/cert, otherwise it should have been accepted
             assert invalid_test_parameters(
                 protocol=self.protocol,
                 provider=S2N,
@@ -92,6 +92,8 @@ class EllipticCurveVerifier(ScanVerifier):
         ]
 
         for curve in rejected_curves:
+            # if a curve is rejected, it should be an invalid test parameter in combination with the
+            # protocol/provider/cert, otherwise it should have been accepted
             assert invalid_test_parameters(
                 protocol=self.protocol,
                 provider=S2N,
@@ -173,6 +175,8 @@ def validate_scan_result(scan_attempt, protocol, certificate=None):
 
 
 def get_scan_attempts(scan_results):
+    # scan_results (sslyze.AllScanCommandsAttempts) is an object containing parameters mapped to scan attempts. convert
+    # this to a list containing just scan attempts, and then filter out tests that were not scheduled.
     scan_attribute_names = [attr_name for attr_name in dir(scan_results) if not attr_name.startswith("__")]
     scan_attempts = [getattr(scan_results, attr_name) for attr_name in scan_attribute_names]
     scan_attempts = [
@@ -268,7 +272,7 @@ def test_sslyze_certificate_scans(managed_process, protocol, certificate):
 
     scans = [CIPHER_SUITE_SCANS.get(protocol.value)]
 
-    # sslyze doesn't like ECDSA certs for curve scan
+    # sslyze curves scan errors when given ECDSA certs
     if "ECDSA" not in certificate.name:
         scans.append(sslyze.ScanCommand.ELLIPTIC_CURVES)
 
