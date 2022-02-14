@@ -1,5 +1,6 @@
 import pytest
 import sslyze
+import abc
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Cipher, Ciphers, Certificates, Curves
@@ -43,6 +44,134 @@ CIPHER_SUITE_SCANS = {
 }
 
 
+class ScanVerifier:
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, scan_result, protocol, certificate=None):
+        self.scan_result = scan_result
+        self.protocol = protocol
+        self.certificate = certificate
+
+    @abc.abstractmethod
+    def assert_scan_success(self):
+        pass
+
+
+class CipherSuitesVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.is_tls_version_supported is True
+
+        rejected_ciphers = [
+            cipher for rejected_cipher in self.scan_result.rejected_cipher_suites
+            if (cipher := Ciphers.from_iana(rejected_cipher.cipher_suite.name))
+        ]
+
+        for cipher in rejected_ciphers:
+            # if a cipher is rejected, it should be an invalid test parameter in combination with the
+            # protocol/provider/cert
+            assert invalid_test_parameters(
+                protocol=self.protocol,
+                provider=S2N,
+                certificate=self.certificate,
+                cipher=cipher
+            )
+
+
+class EllipticCurveVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.supports_ecdh_key_exchange is True
+
+        rejected_curves = [
+            curve for rejected_curve in self.scan_result.rejected_curves
+            if (curve := {
+                "X25519": Curves.X25519,
+                "prime256v1": Curves.P256,
+                "prime384v1": Curves.P384,
+                "prime521v1": Curves.P521
+            }.get(rejected_curve.name))
+        ]
+
+        for curve in rejected_curves:
+            assert invalid_test_parameters(
+                protocol=self.protocol,
+                provider=S2N,
+                certificate=self.certificate,
+                curve=curve
+            )
+
+
+class RobotVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        if self.protocol == Protocols.TLS13:
+            assert self.scan_result.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_RSA_NOT_SUPPORTED
+        else:
+            assert self.scan_result.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE
+
+
+class SessionResumptionVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        if self.protocol == Protocols.TLS13:
+            pass  # sslyze does not support session resumption scans for tls 1.3
+        else:
+            assert self.scan_result.tls_ticket_resumption_result == sslyze.TlsResumptionSupportEnum.FULLY_SUPPORTED
+
+
+class CrimeVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.supports_compression is False
+
+
+class EarlyDataVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        if self.protocol == Protocols.TLS13:
+            assert self.scan_result.supports_early_data is True
+        else:
+            assert self.scan_result.supports_early_data is False
+
+
+class DowngradePreventionVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.supports_fallback_scsv is True
+
+
+class HeartbleedVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.is_vulnerable_to_heartbleed is False
+
+
+class CCSInjectionVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.is_vulnerable_to_ccs_injection is False
+
+
+class InsecureRenegotiationVerifier(ScanVerifier):
+    def assert_scan_success(self):
+        assert self.scan_result.is_vulnerable_to_client_renegotiation_dos is False
+
+
+def validate_scan_result(scan_attempt, protocol, certificate=None):
+    assert_scan_attempt_completed(scan_attempt)
+    scan_result = scan_attempt.result
+
+    verifier_cls = {
+        sslyze.CipherSuitesScanResult:              CipherSuitesVerifier,
+        sslyze.SupportedEllipticCurvesScanResult:   EllipticCurveVerifier,
+        sslyze.RobotScanResult:                     RobotVerifier,
+        sslyze.SessionResumptionSupportScanResult:  SessionResumptionVerifier,
+        sslyze.CompressionScanResult:               CrimeVerifier,
+        sslyze.EarlyDataScanResult:                 EarlyDataVerifier,
+        sslyze.FallbackScsvScanResult:              DowngradePreventionVerifier,
+        sslyze.HeartbleedScanResult:                HeartbleedVerifier,
+        sslyze.OpenSslCcsInjectionScanResult:       CCSInjectionVerifier,
+        sslyze.SessionRenegotiationScanResult:      InsecureRenegotiationVerifier
+    }.get(type(scan_result))
+
+    assert verifier_cls is not None, f"unexpected scan: {scan_attempt}"
+
+    verifier = verifier_cls(scan_result, protocol, certificate)
+    verifier.assert_scan_success()
+
+
 def get_scan_attempts(scan_results):
     scan_attribute_names = [attr_name for attr_name in dir(scan_results) if not attr_name.startswith("__")]
     scan_attempts = [getattr(scan_results, attr_name) for attr_name in scan_attribute_names]
@@ -64,50 +193,6 @@ def assert_scan_result_completed(scan_result):
 def assert_scan_attempt_completed(scan_attempt):
     assert scan_attempt.status == sslyze.ScanCommandAttemptStatusEnum.COMPLETED, \
         f"scan attempt ({scan_attempt}) failed: {scan_attempt.status}"
-
-
-def validate_scan_result(scan_attempt, protocol):
-    assert_scan_attempt_completed(scan_attempt)
-
-    scan_result = scan_attempt.result
-    scan_passed = {
-        sslyze.RobotScanResult: {
-            Protocols.TLS13.value:
-                lambda scan:
-                    scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_RSA_NOT_SUPPORTED
-        }.get(
-            protocol.value,
-            lambda scan:
-                scan.robot_result == sslyze.RobotScanResultEnum.NOT_VULNERABLE_NO_ORACLE
-        ),
-        sslyze.SessionResumptionSupportScanResult: {
-            Protocols.TLS13.value: lambda scan: True  # ignore session resumption scan result for tls13
-        }.get(
-            protocol.value,
-            lambda scan:
-                scan.tls_ticket_resumption_result == sslyze.TlsResumptionSupportEnum.FULLY_SUPPORTED
-        ),
-        sslyze.CompressionScanResult:
-            lambda scan: scan.supports_compression is False,
-        sslyze.EarlyDataScanResult: {
-            Protocols.TLS13.value:
-                lambda scan: scan.supports_early_data is True
-        }.get(
-            protocol.value,
-            lambda scan: scan.supports_early_data is False
-        ),
-        sslyze.FallbackScsvScanResult:
-            lambda scan: scan.supports_fallback_scsv is True,
-        sslyze.HeartbleedScanResult:
-            lambda scan: scan.is_vulnerable_to_heartbleed is False,
-        sslyze.OpenSslCcsInjectionScanResult:
-            lambda scan: scan.is_vulnerable_to_ccs_injection is False,
-        sslyze.SessionRenegotiationScanResult:
-            lambda scan: scan.is_vulnerable_to_client_renegotiation_dos is False
-    }.get(type(scan_result))
-
-    assert scan_passed is not None, f"unexpected scan: {scan_attempt}"
-    assert scan_passed(scan_result), f"unexpected scan result: {scan_result}"
 
 
 def run_sslyze_scan(host, port, scans):
@@ -164,55 +249,6 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
     server.kill()
 
 
-def validate_certificate_scan_result(scan_attempt, protocol, certificate):
-    assert_scan_attempt_completed(scan_attempt)
-    result = scan_attempt.result
-
-    def validate_cipher_scan(result, protocol, certificate):
-        assert result.is_tls_version_supported is True
-
-        rejected_ciphers = [
-            cipher for rejected_cipher in result.rejected_cipher_suites
-            if (cipher := Ciphers.from_iana(rejected_cipher.cipher_suite.name))
-        ]
-
-        for cipher in rejected_ciphers:
-            # if a cipher is rejected, it should be an invalid test parameter in combination with the
-            # protocol/provider/cert
-            assert invalid_test_parameters(
-                protocol=protocol,
-                provider=S2N,
-                certificate=certificate,
-                cipher=cipher
-            )
-
-    def validate_curves_scan(result, protocol, certificate):
-        assert result.supports_ecdh_key_exchange is True
-
-        rejected_curves = [
-            curve for rejected_curve in result.rejected_curves
-            if (curve := {
-                "X25519": Curves.X25519,
-                "prime256v1": Curves.P256,
-                "prime384v1": Curves.P384,
-                "prime521v1": Curves.P521
-            }.get(rejected_curve.name))
-        ]
-
-        for curve in rejected_curves:
-            assert invalid_test_parameters(
-                protocol=protocol,
-                provider=S2N,
-                certificate=certificate,
-                curve=curve
-            )
-
-    {
-        sslyze.CipherSuitesScanResult: validate_cipher_scan,
-        sslyze.SupportedEllipticCurvesScanResult: validate_curves_scan,
-    }.get(type(result))(result, protocol, certificate)
-
-
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 def test_sslyze_certificate_scans(managed_process, protocol, certificate):
@@ -243,8 +279,7 @@ def test_sslyze_certificate_scans(managed_process, protocol, certificate):
 
         scan_result = scan_attempt_result.scan_result
         scan_attempts = get_scan_attempts(scan_result)
-
         for scan_attempt in scan_attempts:
-            validate_certificate_scan_result(scan_attempt, protocol, certificate)
+            validate_scan_result(scan_attempt, protocol, certificate)
 
     server.kill()
