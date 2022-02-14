@@ -68,22 +68,25 @@ fi
 
 if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
     # Install tox
-    if [[ ! -x `which tox` ]]; then
-        case "$DISTRO" in
-        "ubuntu")
-          python3.9 -m pip install tox pytest-xdist
-          ;;
-        "amazon linux")
-          yum install -y python3-pip
-          python3 -m pip install --user tox          ;;
-        "apple")
-          brew install python@3
-          python3 -m pip install --user tox          ;;
-        *)
-          echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
-          exit 1
-          ;;
-        esac
+    if [[ "$DISTRO" == "ubuntu" ]]; then
+        if [[ ! -x `python3.9 -m tox --version` ]]; then
+            python3.9 -m pip install tox
+        fi
+    else
+        if [[ ! -x `which tox` ]]; then
+            case "$DISTRO" in
+            "amazon linux")
+                yum install -y python3-pip
+                python3 -m pip install --user tox ;;
+            "apple")
+                brew install python@3
+                python3 -m pip install --user tox ;;
+            *)
+                echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
+                exit 1
+                ;;
+            esac
+        fi
     fi
 
     if [[ ! -x "$OPENSSL_0_9_8_INSTALL_DIR/bin/openssl" ]]; then
