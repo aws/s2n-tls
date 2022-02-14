@@ -71,7 +71,7 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
     if [[ ! -x `which tox` ]]; then
         case "$DISTRO" in
         "ubuntu")
-          apt-get -y install tox
+          python3.9 -m pip install tox pytest-xdist
           ;;
         "amazon linux")
           yum install -y python3-pip
@@ -108,11 +108,6 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
     # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
     if [[ "$DISTRO" == "ubuntu" && "$S2N_NO_SSLYZE" != "true" ]]; then
         codebuild/bin/install_sslyze.sh
-    fi
-
-    if [[ ! -x "$PYTHON39_INSTALL_DIR/bin/python3.9" ]]; then
-        mkdir -p "$PYTHON39_INSTALL_DIR" || true
-        codebuild/bin/install_python39.sh "$(mktemp -d)" "$PYTHON39_INSTALL_DIR" ;
     fi
 fi
 

@@ -25,19 +25,15 @@ ifeq ($(S2N_CORKED_IO),true)
 	HANDSHAKE_TEST_PARAMS:=--use_corked_io $(HANDSHAKE_TEST_PARAMS)
 endif
 
-export PYTHON39_BIN="$(S2N_ROOT)/test-deps/python39/bin"
-
-
 define run_tox
 	( \
 	DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	PATH="../../bin":$(LIBCRYPTO_ROOT)/bin:$(PATH) \
-	PYTHON39_BIN="$(PYTHON39_BIN)" \
 	PYTHONNOUSERSITE=1 \
 	TOX_TEST_NAME=$(1) \
-	$(PYTHON39_BIN)/python3 -m tox \
+	python3.9 -m tox \
 	)
 endef
 
