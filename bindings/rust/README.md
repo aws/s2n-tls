@@ -19,3 +19,9 @@ Generating rust bindings can be accomplished by running the `generate.sh` script
 ```
 $ ./bindings/rust/generate.sh
 ```
+
+### NixOS
+
+```
+LIBCLANG_PATH="$(nix eval --raw nixpkgs.llvmPackages_12.libclang.lib.outPath)/lib" CPATH="$(nix eval --raw nixpkgs.openssl.dev.outPath)/include" ./generate.sh
+```
