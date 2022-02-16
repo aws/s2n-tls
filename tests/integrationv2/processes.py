@@ -150,7 +150,7 @@ class _processCommunicator(object):
                         chunk = input_view[input_data_offset :
                                            input_data_offset + _PIPE_BUF]
                         try:
-                            input_data_offset += os.write(key.fd, chunk)
+                            input_data_offset += self.proc.stdin.write(chunk)
                         except BrokenPipeError:
                             selector.unregister(key.fileobj)
                         else:
