@@ -187,7 +187,7 @@ class _processCommunicator(object):
                             selector.unregister(self.proc.stderr)
                             return None, None
 
-                        if kill_marker is not None and kill_marker in str(data):
+                        if kill_marker is not None and kill_marker in data:
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
                             self.proc.kill()
