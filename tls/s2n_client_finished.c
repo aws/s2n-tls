@@ -71,14 +71,15 @@ int s2n_tls13_client_finished_recv(struct s2n_connection *conn) {
     s2n_tls13_connection_keys(keys, conn);
 
     /* get transcript hash */
-    struct s2n_hash_state hash_state = {0};
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
+    POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, keys.hash_algorithm, hash_state));
 
     struct s2n_blob finished_key = {0};
     POSIX_GUARD(s2n_blob_init(&finished_key, conn->handshake.client_finished, keys.size));
 
     s2n_tls13_key_blob(client_finished_mac, keys.size);
-    POSIX_GUARD(s2n_tls13_calculate_finished_mac(&keys, &finished_key, &hash_state, &client_finished_mac));
+    POSIX_GUARD(s2n_tls13_calculate_finished_mac(&keys, &finished_key, hash_state, &client_finished_mac));
 
     POSIX_GUARD(s2n_tls13_mac_verify(&keys, &client_finished_mac, &wire_finished_mac));
 
@@ -92,8 +93,9 @@ int s2n_tls13_client_finished_send(struct s2n_connection *conn) {
     s2n_tls13_connection_keys(keys, conn);
 
     /* get transcript hash */
-    struct s2n_hash_state hash_state = {0};
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+    POSIX_ENSURE_REF(conn->handshake.hashes);
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
+    POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, keys.hash_algorithm, hash_state));
 
     /* look up finished secret key */
     struct s2n_blob finished_key = {0};
@@ -101,7 +103,7 @@ int s2n_tls13_client_finished_send(struct s2n_connection *conn) {
 
     /* generate the hashed message authenticated code */
     s2n_stack_blob(client_finished_mac, keys.size, S2N_TLS13_SECRET_MAX_LEN);
-    POSIX_GUARD(s2n_tls13_calculate_finished_mac(&keys, &finished_key, &hash_state, &client_finished_mac));
+    POSIX_GUARD(s2n_tls13_calculate_finished_mac(&keys, &finished_key, hash_state, &client_finished_mac));
 
     /* write to handshake io */
     POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &client_finished_mac));

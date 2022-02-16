@@ -14,6 +14,7 @@
  */
 
 #include "s2n_pq.h"
+#include "crypto/s2n_openssl.h"
 
 static bool sikep434r3_asm_enabled = false;
 
@@ -219,7 +220,8 @@ bool s2n_pq_is_enabled() {
 #if defined(S2N_NO_PQ)
     return false;
 #else
-    return !s2n_is_in_fips_mode();
+    /* aws-lc is currently the only supported FIPS library known to support PQ. */
+    return s2n_libcrypto_is_awslc() || (!s2n_is_in_fips_mode());
 #endif
 }
 
