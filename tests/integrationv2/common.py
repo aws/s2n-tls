@@ -379,19 +379,21 @@ class Results(object):
     # Any exception thrown while running the process
     exception = None
 
-    def __init__(self, stdout, stderr, exit_code, exception, expect_stderr=False):
+    def __init__(self, stdout, stderr, exit_code, exception, expect_stderr=False, expect_nonzero_exit=False):
         self.stdout = stdout
         self.stderr = stderr
         self.exit_code = exit_code
         self.exception = exception
         self.expect_stderr = expect_stderr
+        self.expect_nonzero_exit = expect_nonzero_exit
 
     def __str__(self):
         return "Stdout: {}\nStderr: {}\nExit code: {}\nException: {}".format(self.stdout, self.stderr, self.exit_code, self.exception)
 
     def assert_success(self):
         assert self.exception is None
-        assert self.exit_code == 0
+        if not self.expect_nonzero_exit:
+            assert self.exit_code == 0
         if not self.expect_stderr:
             assert not self.stderr
 
