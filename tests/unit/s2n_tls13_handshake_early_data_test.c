@@ -33,9 +33,273 @@
 const uint8_t empty_secret[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
 message_type_t empty_handshake[S2N_MAX_HANDSHAKE_LENGTH] = { 0 };
 
+static int s2n_check_traffic_secret_order(void* context, struct s2n_connection *conn,
+                                          s2n_secret_type_t secret_type,
+                                          uint8_t *secret, uint8_t secret_size)
+{
+    uint8_t *secrets_handled = (uint8_t *) context;
+    secrets_handled[secret_type] += 1;
+
+    switch(secret_type) {
+        case S2N_CLIENT_EARLY_TRAFFIC_SECRET:
+            /* For the timing: must be calculated on the ClientHello */
+            /* For the digest: must be calculated on the ClientHello */
+            POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_HELLO);
+            /* For the extracted secret: must be calculated before all other secrets */
+            POSIX_ENSURE_EQ(secrets_handled[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET], 0);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET], 0);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET], 0);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_SERVER_APPLICATION_TRAFFIC_SECRET], 0);
+            break;
+        case S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET:
+            /* For the timing: must be calculated before the ClientCert or ClientFinished */
+            for (uint16_t i = 0; i < conn->handshake.message_number; i++) {
+                POSIX_ENSURE_NE(tls13_handshakes[conn->handshake.handshake_type][i], CLIENT_CERT);
+                POSIX_ENSURE_NE(tls13_handshakes[conn->handshake.handshake_type][i], CLIENT_FINISHED);
+            }
+            /* For the digest: no requirements. We use a stored copy of the ServerHello digest. */
+            /* For the extracted secret: must be calculated before application secrets */
+            POSIX_ENSURE_EQ(secrets_handled[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET], 0);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_SERVER_APPLICATION_TRAFFIC_SECRET], 0);
+            break;
+        case S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET:
+            /* For the timing: must be calculated before EncryptedExtensions */
+            for (uint16_t i = 0; i <= conn->handshake.message_number; i++) {
+                POSIX_ENSURE_NE(tls13_handshakes[conn->handshake.handshake_type][i], ENCRYPTED_EXTENSIONS);
+            }
+            /* For the digest: no requirements. We use a stored copy of the ServerHello digest. */
+            /* For the extracted secret: must be calculated before application secrets */
+            POSIX_ENSURE_EQ(secrets_handled[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET], 0);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_SERVER_APPLICATION_TRAFFIC_SECRET], 0);
+            break;
+        case S2N_CLIENT_APPLICATION_TRAFFIC_SECRET:
+        case S2N_SERVER_APPLICATION_TRAFFIC_SECRET:
+            /* For the timing: must be calculated before ApplicationData */
+            for (uint16_t i = 0; i <= conn->handshake.message_number; i++) {
+                POSIX_ENSURE_NE(tls13_handshakes[conn->handshake.handshake_type][i], APPLICATION_DATA);
+            }
+            /* For the digest: no requirements. We use a stored copy of the ServerFinished digest. */
+            /* For the extracted secret: no requirements */
+            break;
+    }
+
+    return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
+{
+    conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+    RESULT_GUARD(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_hello_digest));
+    RESULT_GUARD(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_finished_digest));
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
+
+    conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
+
+    uint8_t test_value[SHA256_DIGEST_LENGTH] = "test";
+    DEFER_CLEANUP(struct s2n_psk *s2n_test_psk = s2n_external_psk_new(), s2n_psk_free);
+    EXPECT_SUCCESS(s2n_psk_set_identity(s2n_test_psk, test_value, sizeof(test_value)));
+    EXPECT_SUCCESS(s2n_psk_set_secret(s2n_test_psk, test_value, sizeof(test_value)));
+    EXPECT_SUCCESS(s2n_alloc(&s2n_test_psk->early_secret, sizeof(test_value)));
+    EXPECT_SUCCESS(s2n_psk_configure_early_data(s2n_test_psk, 1,
+            s2n_tls13_aes_128_gcm_sha256.iana_value[0], s2n_tls13_aes_128_gcm_sha256.iana_value[1]));
+    RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, s2n_test_psk));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_test_key_schedule(s2n_mode mode, uint16_t handshake_type, s2n_early_data_state *early_data_transitions,
+        bool *valid_test_case)
+{
+    RESULT_ENSURE_REF(valid_test_case);
+    *valid_test_case = false;
+
+    /* Ignore empty handshakes */
+    if (memcmp(tls13_handshakes[handshake_type], empty_handshake, sizeof(empty_handshake)) == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Ignore incomplete handshakes */
+    if (!(handshake_type & NEGOTIATED)) {
+        return S2N_RESULT_OK;
+    }
+
+    /* WITH_EARLY_DATA only makes sense if the early data is accepted */
+    bool includes_end_of_early_data_message = (handshake_type & WITH_EARLY_DATA);
+    bool requires_end_of_early_data_message = (early_data_transitions[END_OF_EARLY_DATA]);
+    if (requires_end_of_early_data_message != includes_end_of_early_data_message) {
+        return S2N_RESULT_OK;
+    }
+
+
+    uint8_t secrets_handled[S2N_SECRET_TYPE_COUNT] = { 0 };
+    for (uint16_t message_number = 0; message_number < S2N_MAX_HANDSHAKE_LENGTH; message_number++) {
+        struct s2n_connection *conn = s2n_connection_new(mode);
+        RESULT_ENSURE_REF(conn);
+        RESULT_GUARD(s2n_setup_tls13_secrets_prereqs(conn));
+
+        /* Enable QUIC to enable the secret callbacks. This does not affect the key schedule,
+         * since QUIC also uses TLS to generate early data secrets. */
+        conn->quic_enabled = true;
+
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->handshake.handshake_type = handshake_type;
+        conn->handshake.message_number = message_number;
+
+        if (s2n_conn_get_current_message_type(conn) == APPLICATION_DATA) {
+            RESULT_GUARD_POSIX(s2n_connection_free(conn));
+            break;
+        }
+
+        /* Set traffic secret validation.
+         * This performs the bulk of the testing. */
+        RESULT_GUARD_POSIX(s2n_connection_set_secret_callback(conn, s2n_check_traffic_secret_order, secrets_handled));
+
+        /* Set early data state */
+        conn->early_data_state = early_data_transitions[CLIENT_HELLO];
+        for (size_t i = 1; i <= message_number; i++) {
+            s2n_early_data_state next_state = early_data_transitions[tls13_handshakes[handshake_type][i]];
+            /* Skip empty state transitions */
+            if (next_state == S2N_UNKNOWN_EARLY_DATA_STATE) {
+                continue;
+            }
+            /* Skip duplicate ClientHellos */
+            if ((tls13_handshakes[handshake_type][i] == CLIENT_HELLO)) {
+                continue;
+            }
+            RESULT_GUARD(s2n_connection_set_early_data_state(conn, next_state));
+        }
+
+        RESULT_GUARD_POSIX(s2n_tls13_handle_secrets(conn));
+        RESULT_GUARD_POSIX(s2n_connection_free(conn));
+    }
+
+    RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET], 1);
+    RESULT_ENSURE_EQ(secrets_handled[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET], 1);
+    RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET], 1);
+    RESULT_ENSURE_EQ(secrets_handled[S2N_SERVER_APPLICATION_TRAFFIC_SECRET], 1);
+
+    /* The client calculates the early traffic secret if it attempts early data */
+    if ((mode == S2N_CLIENT) && (early_data_transitions[CLIENT_HELLO] == S2N_EARLY_DATA_REQUESTED)) {
+        RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_EARLY_TRAFFIC_SECRET], 1);
+    /* The server calculates the early traffic secret if it accepts early data */
+    } else if ((mode == S2N_SERVER) && (handshake_type & WITH_EARLY_DATA)) {
+        RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_EARLY_TRAFFIC_SECRET], 1);
+    } else {
+        RESULT_ENSURE_EQ(secrets_handled[S2N_CLIENT_EARLY_TRAFFIC_SECRET], 0);
+    }
+
+    *valid_test_case = true;
+    return S2N_RESULT_OK;
+}
+
 int main()
 {
     BEGIN_TEST();
+
+    /* Test key schedule */
+    {
+        bool valid_test_case = false;
+
+        const size_t early_data_not_requested_i = 0;
+        const size_t early_data_rejected_i = 1;
+        const size_t early_data_accepted_i = 2;
+
+        s2n_early_data_state client_early_data_transitions[][APPLICATION_DATA] = {
+                /* early data never requested */
+                { [CLIENT_HELLO] = S2N_EARLY_DATA_NOT_REQUESTED },
+                /* early data rejected */
+                { [CLIENT_HELLO] = S2N_EARLY_DATA_REQUESTED, [HELLO_RETRY_MSG] = S2N_EARLY_DATA_REJECTED,
+                        [ENCRYPTED_EXTENSIONS] = S2N_EARLY_DATA_REJECTED },
+                /* early data accepted */
+                { [CLIENT_HELLO] = S2N_EARLY_DATA_REQUESTED, [HELLO_RETRY_MSG] = S2N_EARLY_DATA_REJECTED,
+                        [ENCRYPTED_EXTENSIONS] = S2N_EARLY_DATA_ACCEPTED, [END_OF_EARLY_DATA] = S2N_END_OF_EARLY_DATA },
+        };
+        s2n_early_data_state server_early_data_transitions[][APPLICATION_DATA] = {
+                /* early data never requested */
+                { [CLIENT_HELLO] = S2N_EARLY_DATA_NOT_REQUESTED },
+                /* early data rejected */
+                { [CLIENT_HELLO] = S2N_EARLY_DATA_REJECTED },
+                /* early data accepted */
+                { [CLIENT_HELLO] = S2N_EARLY_DATA_ACCEPTED, [END_OF_EARLY_DATA] = S2N_END_OF_EARLY_DATA },
+        };
+
+        /* Sanity check: Test invalid cases are ignored */
+        {
+            /* Incomplete handshake */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, 0,
+                    client_early_data_transitions[early_data_accepted_i], &valid_test_case));
+            EXPECT_FALSE(valid_test_case);
+
+            /* Invalid handshake type */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED | FULL_HANDSHAKE | WITH_EARLY_DATA,
+                    client_early_data_transitions[early_data_accepted_i], &valid_test_case));
+            EXPECT_FALSE(valid_test_case);
+
+            /* WITH_EARLY_DATA handshake type, but early data not accepted */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED | WITH_EARLY_DATA,
+                    client_early_data_transitions[early_data_rejected_i], &valid_test_case));
+            EXPECT_FALSE(valid_test_case);
+
+            /* Not WITH_EARLY_DATA handshake type, but early data accepted */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED,
+                    client_early_data_transitions[early_data_accepted_i], &valid_test_case));
+            EXPECT_FALSE(valid_test_case);
+        }
+
+        /* Test a specific known cases */
+        {
+            /* Early data not requested */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED,
+                    client_early_data_transitions[early_data_not_requested_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+            EXPECT_OK(s2n_test_key_schedule(S2N_SERVER, NEGOTIATED,
+                    server_early_data_transitions[early_data_not_requested_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+
+            /* Early data rejected with HRR */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED | HELLO_RETRY_REQUEST,
+                    client_early_data_transitions[early_data_rejected_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+
+            /* Early data rejected with extension */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED,
+                    client_early_data_transitions[early_data_rejected_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+            EXPECT_OK(s2n_test_key_schedule(S2N_SERVER, NEGOTIATED,
+                    server_early_data_transitions[early_data_rejected_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+
+            /* Early data accepted */
+            EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, NEGOTIATED | WITH_EARLY_DATA,
+                    client_early_data_transitions[early_data_accepted_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+            EXPECT_OK(s2n_test_key_schedule(S2N_SERVER, NEGOTIATED | WITH_EARLY_DATA,
+                    server_early_data_transitions[early_data_accepted_i], &valid_test_case));
+            EXPECT_TRUE(valid_test_case);
+        }
+
+        /* Test all client cases */
+        for (size_t state_i = 0; state_i < s2n_array_len(client_early_data_transitions); state_i++) {
+            for (uint16_t handshake_type = 0; handshake_type < S2N_HANDSHAKES_COUNT; handshake_type++) {
+                EXPECT_OK(s2n_test_key_schedule(S2N_CLIENT, handshake_type, client_early_data_transitions[state_i],
+                        &valid_test_case));
+            }
+        }
+
+        /* Test all server_cases */
+        for (size_t state_i = 0; state_i < s2n_array_len(server_early_data_transitions); state_i++) {
+            for (uint16_t handshake_type = 0; handshake_type < S2N_HANDSHAKES_COUNT; handshake_type++) {
+                EXPECT_OK(s2n_test_key_schedule(S2N_SERVER, handshake_type, server_early_data_transitions[state_i],
+                        &valid_test_case));
+            }
+        }
+    }
 
     /* Test early data encryption */
     {
