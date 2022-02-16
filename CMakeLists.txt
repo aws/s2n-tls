@@ -447,7 +447,7 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
-    if (NOT LibCrypto_STATIC_LIBRARY)
+    if (NOT crypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
@@ -455,7 +455,7 @@ if (S2N_INTERN_LIBCRYPTO)
         OUTPUT libcrypto.symbols
         COMMAND
           # copy the static version of libcrypto
-          cp ${LibCrypto_STATIC_LIBRARY} libcrypto.a &&
+          cp ${crypto_STATIC_LIBRARY} libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
           bash -c "nm libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
