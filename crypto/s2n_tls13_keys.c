@@ -198,23 +198,6 @@ int s2n_tls13_derive_early_secret(struct s2n_tls13_keys *keys, struct s2n_psk *p
     return S2N_SUCCESS;
 }
 
-int s2n_tls13_derive_early_traffic_secret(struct s2n_tls13_keys *keys,
-        struct s2n_hash_state *client_hello_hash, struct s2n_blob *secret)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(client_hello_hash);
-    POSIX_ENSURE_REF(secret);
-
-    s2n_tls13_key_blob(message_digest, keys->size);
-    POSIX_GUARD(s2n_hash_digest(client_hello_hash, message_digest.data, message_digest.size));
-
-    /* produce traffic secret */
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-            &s2n_tls13_label_client_early_traffic_secret, &message_digest, secret));
-
-    return S2N_SUCCESS;
-}
-
 /* Extract handshake master secret */
 int s2n_tls13_extract_handshake_secret(struct s2n_tls13_keys *keys, const struct s2n_blob *ecdhe)
 {
