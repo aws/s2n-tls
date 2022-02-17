@@ -547,9 +547,66 @@ class GnuTLS(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
+    @staticmethod
+    def cipher_to_priority_str(cipher):
+        return {
+            Ciphers.AES128_SHA:         "RSA:+AES-128-CBC:+SHA1",
+            Ciphers.AES256_SHA:         "RSA:+AES-256-CBC:+SHA1",
+            Ciphers.AES128_SHA256:      "RSA:+AES-128-CBC:+SHA256",
+            Ciphers.AES256_SHA256:      "RSA:+AES-256-CBC:+SHA256",
+
+            Ciphers.ECDHE_ECDSA_AES128_SHA:         "ECDHE-ECDSA:+AES-128-CBC:+SHA1",
+            Ciphers.ECDHE_ECDSA_AES256_SHA:         "ECDHE-ECDSA:+AES-256-CBC:+SHA1",
+            Ciphers.ECDHE_ECDSA_AES128_SHA256:      "ECDHE-ECDSA:+AES-128-CBC:+SHA256",
+            Ciphers.ECDHE_ECDSA_AES256_SHA384:      "ECDHE-ECDSA:+AES-256-CBC:+SHA384",
+            Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256:  "ECDHE-ECDSA:+AES-128-GCM:+AEAD",
+            Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384:  "ECDHE-ECDSA:+AES-256-GCM:+AEAD",
+        }.get(cipher)
+
+    @staticmethod
+    def protocol_to_priority_str(protocol):
+        return {
+            Protocols.TLS10.value: "VERS-TLS1.0",
+            Protocols.TLS11.value: "VERS-TLS1.1",
+            Protocols.TLS12.value: "VERS-TLS1.2",
+            Protocols.TLS13.value: "VERS-TLS1.3"
+        }.get(protocol.value)
+
+    @staticmethod
+    def curve_to_priority_str(curve):
+        return {
+            Curves.P256:    "CURVE-SECP256R1",
+            Curves.P384:    "CURVE-SECP384R1",
+            Curves.P521:    "CURVE-SECP521R1",
+            Curves.X25519:  "CURVE-X25519"
+        }.get(curve)
+
     @classmethod
     def get_send_marker(cls):
         return None
+
+    def create_priority_str(self):
+        priority_str = "NONE"
+
+        if self.options.protocol:
+            priority_str += ":+" + self.protocol_to_priority_str(self.options.protocol)
+        else:
+            priority_str += ":+VERS-ALL"
+
+        if self.options.cipher:
+            priority_str += ":+" + self.cipher_to_priority_str(self.options.cipher)
+        else:
+            priority_str += ":+KX-ALL:+CIPHER-ALL:+MAC-ALL"
+
+        if self.options.curve:
+            priority_str += ":+" + self.curve_to_priority_str(self.options.curve)
+        else:
+            priority_str += ":+GROUP-ALL"
+
+        priority_str += ":+SIGN-ALL"
+        priority_str += ":+COMP-NULL"
+
+        return priority_str
 
     def setup_client(self):
         pass
@@ -569,14 +626,15 @@ class GnuTLS(Provider):
         if self.options.key is not None:
             cmd_line.extend(["--x509keyfile", self.options.key])
 
-        # TODO construct priority string with ciphers, tls version, compression algorithms, etc.
+        priority_str = self.create_priority_str()
+        cmd_line.extend(["--priority", priority_str])
 
         return cmd_line
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        return True
+        return GnuTLS.protocol_to_priority_str(protocol) is not None
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        return True
+        return GnuTLS.cipher_to_priority_str(cipher) is not None
