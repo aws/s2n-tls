@@ -25,7 +25,6 @@ pub fn s2nc(c: &mut Criterion) {
                 .args(s2nc_args.get_vec())
                 .output()
                 .expect("failed to execute process");
-
             io::stdout().write_all(&output.stdout).unwrap();
             io::stderr().write_all(&output.stderr).unwrap();
             dbg!("DEBUG: return code {:?}", &output.status);

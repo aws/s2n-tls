@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from constants import TRUST_STORE_BUNDLE
