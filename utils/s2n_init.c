@@ -60,7 +60,7 @@ int s2n_init(void)
     POSIX_GUARD(s2n_config_defaults_init());
     POSIX_GUARD(s2n_extension_type_init());
     POSIX_GUARD_RESULT(s2n_pq_init());
-    POSIX_GUARD_RESULT(s2n_tls13_secrets_init());
+    POSIX_GUARD_RESULT(s2n_tls13_empty_transcripts_init());
 
     if (atexit_cleanup) {
         POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);

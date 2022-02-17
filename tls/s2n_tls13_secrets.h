@@ -42,7 +42,7 @@ struct s2n_tls13_secrets {
     uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
 };
 
-S2N_RESULT s2n_tls13_secrets_init();
+S2N_RESULT s2n_tls13_empty_transcripts_init();
 
 S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type);
 S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,

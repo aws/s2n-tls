@@ -1423,6 +1423,15 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         }
 
         if (ACTIVE_STATE(conn).writer == 'B') {
+            /*
+             * Prepare TLS1.3 resumption secret.
+             * A ticket can be requested any time after the handshake ends,
+             * so we need to calculate this before the handshake ends.
+             */
+            if (conn->actual_protocol_version >= S2N_TLS13) {
+                POSIX_GUARD_RESULT(s2n_derive_resumption_master_secret(conn));
+            }
+
             /* Send any pending post-handshake messages */
             POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
 

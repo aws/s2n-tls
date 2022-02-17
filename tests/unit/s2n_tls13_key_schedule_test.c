@@ -172,7 +172,8 @@ int main(int argc, char **argv)
             uint8_t saved_derive_methods[sizeof(derive_methods)] = { 0 };
             EXPECT_MEMCPY_SUCCESS(saved_derive_methods, derive_methods, sizeof(derive_methods));
             for (size_t i = 0; i < s2n_array_len(derive_methods); i++) {
-                derive_methods[i] = &s2n_mock_derive_method;
+                derive_methods[i][S2N_CLIENT] = &s2n_mock_derive_method;
+                derive_methods[i][S2N_SERVER] = &s2n_mock_derive_method;
             }
             uint8_t saved_extract_methods[sizeof(extract_methods)] = { 0 };
             EXPECT_MEMCPY_SUCCESS(saved_extract_methods, extract_methods, sizeof(extract_methods));

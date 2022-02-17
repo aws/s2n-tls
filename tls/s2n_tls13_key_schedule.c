@@ -21,6 +21,11 @@
  */
 #define S2N_APPLICATION_SECRET S2N_MASTER_SECRET
 
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#appendix-A
+ *# The notation "K_{send,recv} = foo" means "set
+ *# the send/recv key to the given key".
+ */
 #define K_send(conn, secret_type) RESULT_GUARD(s2n_set_key(conn, secret_type, (conn)->mode))
 #define K_recv(conn, secret_type) RESULT_GUARD(s2n_set_key(conn, secret_type, S2N_PEER_MODE((conn)->mode)))
 
@@ -142,6 +147,14 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
 static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
 {
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
+
+    /**
+     * How client keys are set varies depending on early data state.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#appendix-A
+     *# Actions which are taken only in certain circumstances
+     *# are indicated in [].
+     */
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1

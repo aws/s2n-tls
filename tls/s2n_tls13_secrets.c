@@ -43,6 +43,9 @@ static uint8_t zero_value_bytes[S2N_MAX_HASHLEN] = { 0 };
     (const struct s2n_blob) { .data = zero_value_bytes, .size = s2n_get_hash_len(hmac_alg)})
 
 /**
+ * When an operation doesn't need an actual transcript hash,
+ * it uses an empty transcript hash as an input instead.
+ *
  *= https://tools.ietf.org/rfc/rfc8446#section-7.1
  *# Note that in some cases a zero-
  *# length Context (indicated by "") is passed to HKDF-Expand-Label
@@ -79,7 +82,7 @@ static s2n_hmac_algorithm supported_hmacs[] = {
         S2N_HMAC_SHA384
 };
 
-S2N_RESULT s2n_tls13_secrets_init()
+S2N_RESULT s2n_tls13_empty_transcripts_init()
 {
     DEFER_CLEANUP(struct s2n_hash_state hash = { 0 }, s2n_hash_free);
     RESULT_GUARD_POSIX(s2n_hash_new(&hash));
@@ -169,13 +172,20 @@ S2N_RESULT s2n_tls13_compute_finished_key(s2n_hmac_algorithm hmac_alg,
 }
 
 static S2N_RESULT s2n_trigger_secret_callbacks(struct s2n_connection *conn,
-        const struct s2n_blob *secret, s2n_secret_type_t secret_type)
+        const struct s2n_blob *secret, s2n_extract_secret_type_t secret_type, s2n_mode mode)
 {
+    static const s2n_secret_type_t conversions[][2] = {
+        [S2N_EARLY_SECRET]     = { S2N_CLIENT_EARLY_TRAFFIC_SECRET, S2N_CLIENT_EARLY_TRAFFIC_SECRET },
+        [S2N_HANDSHAKE_SECRET] = { S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET, S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET },
+        [S2N_MASTER_SECRET]    = { S2N_SERVER_APPLICATION_TRAFFIC_SECRET, S2N_CLIENT_APPLICATION_TRAFFIC_SECRET },
+    };
+    s2n_secret_type_t callback_secret_type = conversions[secret_type][mode];
+
     if (conn->secret_cb && (s2n_connection_is_quic_enabled(conn) || s2n_in_unit_test())) {
-        RESULT_GUARD_POSIX(conn->secret_cb(conn->secret_cb_context, conn, secret_type,
+        RESULT_GUARD_POSIX(conn->secret_cb(conn->secret_cb_context, conn, callback_secret_type,
                 secret->data, secret->size));
     }
-    s2n_result_ignore(s2n_key_log_tls13_secret(conn, secret, secret_type));
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, secret, callback_secret_type));
     return S2N_RESULT_OK;
 }
 
@@ -403,7 +413,6 @@ static S2N_RESULT s2n_derive_client_application_traffic_secret(struct s2n_connec
             &CONN_HASH(conn, server_finished_digest),
             output));
     RESULT_CHECKED_MEMCPY(CONN_SECRETS(conn).client_app_secret, output->data, output->size);
-    RESULT_GUARD(s2n_derive_resumption_master_secret(conn));
     return S2N_RESULT_OK;
 }
 
@@ -443,9 +452,9 @@ S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn)
 }
 
 static s2n_result (*extract_methods[])(struct s2n_connection *conn) = {
-    [S2N_EARLY_SECRET] = &s2n_extract_early_secret_for_schedule,
+    [S2N_EARLY_SECRET]     = &s2n_extract_early_secret_for_schedule,
     [S2N_HANDSHAKE_SECRET] = &s2n_extract_handshake_secret,
-    [S2N_MASTER_SECRET] = &s2n_extract_master_secret,
+    [S2N_MASTER_SECRET]    = &s2n_extract_master_secret,
 };
 
 S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type)
@@ -466,18 +475,10 @@ S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_sec
     return S2N_RESULT_OK;
 }
 
-static s2n_secret_type_t extract_type_to_derive_type[][2] = {
-        [S2N_EARLY_SECRET] =        { S2N_CLIENT_EARLY_TRAFFIC_SECRET,  S2N_CLIENT_EARLY_TRAFFIC_SECRET},
-        [S2N_HANDSHAKE_SECRET] =    { S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET, S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET },
-        [S2N_MASTER_SECRET] =       { S2N_SERVER_APPLICATION_TRAFFIC_SECRET, S2N_CLIENT_APPLICATION_TRAFFIC_SECRET },
-};
-
-static s2n_result (*derive_methods[])(struct s2n_connection *conn, struct s2n_blob *secret) = {
-    [S2N_CLIENT_EARLY_TRAFFIC_SECRET] = &s2n_derive_client_early_traffic_secret,
-    [S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET] = &s2n_derive_client_handshake_traffic_secret,
-    [S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET] = &s2n_derive_server_handshake_traffic_secret,
-    [S2N_CLIENT_APPLICATION_TRAFFIC_SECRET] = &s2n_derive_client_application_traffic_secret,
-    [S2N_SERVER_APPLICATION_TRAFFIC_SECRET] = &s2n_derive_server_application_traffic_secret,
+static s2n_result (*derive_methods[][2])(struct s2n_connection *conn, struct s2n_blob *secret) = {
+        [S2N_EARLY_SECRET]     = { &s2n_derive_client_early_traffic_secret,       &s2n_derive_client_early_traffic_secret       },
+        [S2N_HANDSHAKE_SECRET] = { &s2n_derive_server_handshake_traffic_secret,   &s2n_derive_client_handshake_traffic_secret   },
+        [S2N_MASTER_SECRET]    = { &s2n_derive_server_application_traffic_secret, &s2n_derive_client_application_traffic_secret },
 };
 
 S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
@@ -490,13 +491,11 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
 
     RESULT_GUARD(s2n_tls13_extract_secret(conn, secret_type));
 
-    s2n_secret_type_t derive_secret_type = extract_type_to_derive_type[secret_type][mode];
-    RESULT_ENSURE_GTE(derive_secret_type, 0);
-    RESULT_ENSURE_LT(derive_secret_type, s2n_array_len(derive_methods));
+    RESULT_ENSURE_GTE(secret_type, 0);
+    RESULT_ENSURE_LT(secret_type, s2n_array_len(derive_methods));
+    RESULT_ENSURE_REF(derive_methods[secret_type][mode]);
+    RESULT_GUARD(derive_methods[secret_type][mode](conn, secret));
 
-    RESULT_ENSURE_REF(derive_methods[derive_secret_type]);
-    RESULT_GUARD(derive_methods[derive_secret_type](conn, secret));
-
-    RESULT_GUARD(s2n_trigger_secret_callbacks(conn, secret, derive_secret_type));
+    RESULT_GUARD(s2n_trigger_secret_callbacks(conn, secret, secret_type, mode));
     return S2N_RESULT_OK;
 }
