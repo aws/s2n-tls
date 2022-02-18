@@ -309,7 +309,7 @@ static int s2n_probe_madv_wipeonfork_support(void) {
         result = S2N_SUCCESS;
     }
 
-    munmap(probe_addr, (size_t) page_size);
+    POSIX_ENSURE(munmap(probe_addr, (size_t) page_size) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
     return result;
 }
