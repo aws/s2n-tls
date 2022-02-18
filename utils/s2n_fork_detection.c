@@ -110,7 +110,7 @@ static struct FGN_STATE fgn_state = {
 /* Can currently never fail. See initialise_fork_detection_methods() for
  * motivation.
  */
-static inline void initialise_wipeonfork_best_effort(void *addr, long page_size)
+static inline void s2n_initialise_wipeonfork_best_effort(void *addr, long page_size)
 {
 #if defined(USE_MADVISE)
     /* Ignored on purpose. */
@@ -118,7 +118,7 @@ static inline void initialise_wipeonfork_best_effort(void *addr, long page_size)
 #endif
 }
 
-static inline int initialise_inherit_zero(void *addr, long page_size)
+static inline int s2n_initialise_inherit_zero(void *addr, long page_size)
 {
 #if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
     POSIX_ENSURE(minherit(addr, pagesize, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
@@ -127,7 +127,7 @@ static inline int initialise_inherit_zero(void *addr, long page_size)
     return S2N_SUCCESS;
 }
 
-static void pthread_atfork_on_fork(void)
+static void s2n_pthread_atfork_on_fork(void)
 {
   /* This zeroises the first byte of the memory page pointed to by
    * *zero_on_fork_addr. This is the same byte used as fork event detection
@@ -152,17 +152,17 @@ static void pthread_atfork_on_fork(void)
   }
 }
 
-static int inititalise_pthread_atfork(void)
+static int s2n_inititalise_pthread_atfork(void)
 {
   /* Register the fork handler pthread_atfork_on_fork that is excuted in the
    * child process after a fork.
    */
-  POSIX_ENSURE(pthread_atfork(NULL, NULL, pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+  POSIX_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
   return S2N_SUCCESS;
 }
 
-static void initialise_fork_detection_methods(void)
+static void s2n_initialise_fork_detection_methods(void)
 {
     void *addr = MAP_FAILED;
     long page_size = 0;
@@ -202,16 +202,16 @@ static void initialise_fork_detection_methods(void)
      * a safe default.
      */
     if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE) {
-        initialise_wipeonfork_best_effort(addr, page_size);
+        s2n_initialise_wipeonfork_best_effort(addr, page_size);
     }
 
     if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE &&
-        initialise_inherit_zero(addr, page_size) != S2N_SUCCESS) {
+        s2n_initialise_inherit_zero(addr, page_size) != S2N_SUCCESS) {
         goto end;
     }
 
     if (ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE &&
-        inititalise_pthread_atfork() != S2N_SUCCESS) {
+        s2n_inititalise_pthread_atfork() != S2N_SUCCESS) {
         goto end;
     }
 
@@ -232,7 +232,7 @@ end:
  */
 int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
 {
-    POSIX_ENSURE(pthread_once(&fgn_state.fork_detection_once, initialise_fork_detection_methods) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    POSIX_ENSURE(pthread_once(&fgn_state.fork_detection_once, s2n_initialise_fork_detection_methods) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
     if (ignore_fork_detection_for_testing == S2N_FORK_DETECT_IGNORE) {
         /* Fork detection is meant to be disabled. Hence, return success. */
@@ -287,7 +287,7 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
  *  If not supported, returns S2N_FAILURE.
  *  If supported, returns S2N_SUCCESS.
  */
-static int probe_madv_wipeonfork_support(void) {
+static int s2n_probe_madv_wipeonfork_support(void) {
 
     void *probe_addr = MAP_FAILED;
     long page_size = 0;
@@ -319,7 +319,7 @@ int s2n_assert_madv_wipeonfork_is_supported(void)
 {
     int result = S2N_FAILURE;
 #if defined(USE_MADVISE)
-    result = probe_madv_wipeonfork_support();
+    result = s2n_probe_madv_wipeonfork_support();
 #endif
     return result;
 }

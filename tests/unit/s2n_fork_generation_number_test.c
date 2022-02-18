@@ -26,7 +26,7 @@
 
 #if defined(__APPLE__)
 /* clone() is not a thing in Darwin */
-#define CLONE_NO_SUPPORTED 1
+#define CLONE_NOT_SUPPORTED 1
 #endif
 
 #define NUMBER_OF_FGN_TEST_CASES 4
@@ -50,7 +50,7 @@ struct fgn_test_case {
     int test_case_must_pass_clone_test;
 };
 
-static void verify_child_exit_status(pid_t proc_pid)
+static void s2n_verify_child_exit_status(pid_t proc_pid)
 {
     int status = 0;
     EXPECT_EQUAL(waitpid(proc_pid, &status, __WALL), proc_pid);
@@ -63,7 +63,7 @@ static void verify_child_exit_status(pid_t proc_pid)
     EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
 }
 
-static void * unit_test_thread_get_fgn(void *expected_fork_generation_number)
+static void * s2n_unit_test_thread_get_fgn(void *expected_fork_generation_number)
 {
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
@@ -72,12 +72,12 @@ static void * unit_test_thread_get_fgn(void *expected_fork_generation_number)
     return NULL;
 }
 
-static int unit_test_thread(uint64_t expected_fork_generation_number)
+static int s2n_unit_test_thread(uint64_t expected_fork_generation_number)
 {
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
     for (size_t thread_index = 0; thread_index < MAX_NUMBER_OF_TEST_THREADS; thread_index++) {
-        EXPECT_EQUAL(pthread_create(&threads[thread_index], NULL, &unit_test_thread_get_fgn, (void *) &expected_fork_generation_number), 0);
+        EXPECT_EQUAL(pthread_create(&threads[thread_index], NULL, &s2n_unit_test_thread_get_fgn, (void *) &expected_fork_generation_number), 0);
     }
 
     /* Wait for all threads to finish */
@@ -88,7 +88,7 @@ static int unit_test_thread(uint64_t expected_fork_generation_number)
     return S2N_SUCCESS;
 }
 
-static int unit_test_fork(uint64_t parent_process_fgn, int fork_level)
+static int s2n_unit_test_fork(uint64_t parent_process_fgn, int fork_level)
 {
     pid_t proc_pid = fork();
     EXPECT_TRUE(proc_pid >= 0);
@@ -107,11 +107,11 @@ static int unit_test_fork(uint64_t parent_process_fgn, int fork_level)
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn + 1);
 
         /* Verify in threads */
-        EXPECT_EQUAL(unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
         if (fork_level > 0) {
             /* Fork again and verify fork generation number */
-            EXPECT_EQUAL(unit_test_fork(parent_process_fgn + 1, fork_level), S2N_SUCCESS);
+            EXPECT_EQUAL(s2n_unit_test_fork(parent_process_fgn + 1, fork_level), S2N_SUCCESS);
         }
 
         /* Exit code EXIT_SUCCESS means that tests in this process finished
@@ -121,7 +121,7 @@ static int unit_test_fork(uint64_t parent_process_fgn, int fork_level)
         exit(EXIT_SUCCESS);
     }
     else {
-        verify_child_exit_status(proc_pid);
+        s2n_verify_child_exit_status(proc_pid);
 
         /* Verify stability */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
@@ -133,14 +133,14 @@ static int unit_test_fork(uint64_t parent_process_fgn, int fork_level)
 }
 
 /* Similar test to unit_test_fork() but verify in threads first */
-static int unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
+static int s2n_unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
 {
     pid_t proc_pid = fork();
     EXPECT_TRUE(proc_pid >= 0);
 
     if (proc_pid == 0) {
         /* In child. Verify threads first. */
-        EXPECT_EQUAL(unit_test_thread(parent_process_fgn + 1), S2N_SUCCESS);
+        EXPECT_EQUAL(s2n_unit_test_thread(parent_process_fgn + 1), S2N_SUCCESS);
 
         /* Then in the thread spawned when forking */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
@@ -159,7 +159,7 @@ static int unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
         exit(EXIT_SUCCESS);
     }
     else {
-        verify_child_exit_status(proc_pid);
+        s2n_verify_child_exit_status(proc_pid);
 
         /* Verify stability */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
@@ -170,7 +170,7 @@ static int unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
     return S2N_SUCCESS;
 }
 
-static int unit_test_clone_child_process(void *parent_process_fgn)
+static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
 {
     /* In child */
     uint64_t local_parent_process_fgn = *(uint64_t *) parent_process_fgn;
@@ -184,15 +184,15 @@ static int unit_test_clone_child_process(void *parent_process_fgn)
     EXPECT_EQUAL(return_fork_generation_number, local_parent_process_fgn + 1);
 
     /* Verify in threads */
-    EXPECT_EQUAL(unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
     return EXIT_SUCCESS;
 }
 
 #define PROCESS_CHILD_STACK_SIZE 1024 * 1024 /* Suggested by clone() man page... */
-static int unit_test_clone(uint64_t parent_process_fgn)
+static int s2n_unit_test_clone(uint64_t parent_process_fgn)
 {
-#if !defined(CLONE_NO_SUPPORTED)
+#if !defined(CLONE_NOT_SUPPORTED)
     /* Verify stability */
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
@@ -206,10 +206,10 @@ static int unit_test_clone(uint64_t parent_process_fgn)
     char process_child_stack[PROCESS_CHILD_STACK_SIZE];
     EXPECT_NOT_NULL(process_child_stack);
 
-    int proc_pid = clone(unit_test_clone_child_process, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) &return_fork_generation_number);
+    int proc_pid = clone(s2n_unit_test_clone_child_process, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) &return_fork_generation_number);
     EXPECT_NOT_EQUAL(proc_pid, -1);
 
-    verify_child_exit_status(proc_pid);
+    s2n_verify_child_exit_status(proc_pid);
 
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
@@ -220,7 +220,7 @@ static int unit_test_clone(uint64_t parent_process_fgn)
     return S2N_SUCCESS;
 }
 
-static int unit_tests_common(struct fgn_test_case *test_case)
+static int s2n_unit_tests_common(struct fgn_test_case *test_case)
 {
     uint64_t return_fork_generation_number = 0;
 
@@ -233,42 +233,42 @@ static int unit_tests_common(struct fgn_test_case *test_case)
     EXPECT_EQUAL(return_fork_generation_number, 0);
 
     /* Should be idempotent in threaded environment as well */
-    EXPECT_EQUAL(unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
     /* Cached FGN should increment if a fork event occurs */
-    EXPECT_EQUAL(unit_test_fork(return_fork_generation_number, FORK_LEVEL_FOR_TESTS), S2N_SUCCESS);
-    EXPECT_EQUAL(unit_test_fork_check_threads_first(return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_test_fork(return_fork_generation_number, FORK_LEVEL_FOR_TESTS), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_test_fork_check_threads_first(return_fork_generation_number), S2N_SUCCESS);
 
     /* Some fork detection mechanisms can also detect forks through clone() */
     if (test_case->test_case_must_pass_clone_test == 1) {
-        EXPECT_EQUAL(unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
     }
     else if (test_case->test_case_must_pass_clone_test == 2) {
         if (s2n_assert_madv_wipeonfork_is_supported() == S2N_SUCCESS ||
             s2n_assert_map_inherit_zero_is_supported() == S2N_SUCCESS) {
-            EXPECT_EQUAL(unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
+            EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
         }
     }
 
     return S2N_SUCCESS;
 }
 
-static int test_case_default_cb(struct fgn_test_case *test_case)
+static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
 {
-    EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
 }
 
-static int test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
+static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 {
     s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero();
-    EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
 }
 
-static int test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
+static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 {
     if (s2n_assert_madv_wipeonfork_is_supported() == S2N_FAILURE) {
         FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
@@ -276,12 +276,12 @@ static int test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
     }
 
     s2n_FOR_TESTING_ignore_pthread_atfork();
-    EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
 }
 
-static int test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
+static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 {
     if (s2n_assert_map_inherit_zero_is_supported() == S2N_FAILURE) {
         FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
@@ -289,16 +289,16 @@ static int test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
     }
 
     s2n_FOR_TESTING_ignore_pthread_atfork();
-    EXPECT_EQUAL(unit_tests_common(test_case), S2N_SUCCESS);
+    EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
 }
 
 struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
-    {"Default fork detect mechanisms.", test_case_default_cb, 2},
-    {"Only pthread_atfork fork detection mechanism.", test_case_pthread_atfork_cb, 0},
-    {"Only madv_wipeonfork fork detection mechanism.", test_case_madv_wipeonfork_cb, 1},
-    {"Only map_inheret_zero fork detection mechanism.", test_case_map_inherit_zero_cb, 1}
+    {"Default fork detect mechanisms.", s2n_test_case_default_cb, 2},
+    {"Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, 0},
+    {"Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, 1},
+    {"Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, 1}
 };
 /* s2n_array_len is run-time but standard static array length calculation is
  * captured by the simple errors script. However, the script is perfoming static
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         }
         else {
-            verify_child_exit_status(proc_pids[i]);
+            s2n_verify_child_exit_status(proc_pids[i]);
         }
     }
 
