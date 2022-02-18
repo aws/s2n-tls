@@ -270,6 +270,8 @@ class CriterionS2N(S2N):
     criterion_delta = 1
     criterion_baseline = 2
     criterion_report = 3
+    # Figure out what mode to run in: baseline, delta or report
+    criterion_mode = get_flag(S2N_USECRITERION)
 
     def _find_s2n_benchmark(self, pattern):
         result = find_files(pattern, root_dir=self.cargo_root, mode=EXECUTABLE)
@@ -306,10 +308,6 @@ class CriterionS2N(S2N):
         # Find the criterion binaries
         self._cargo_bench()
 
-        #Figure out what mode to run in: baseline or delta
-        self.criterion_mode = get_flag(S2N_USECRITERION)
-        assert self.criterion_mode
-
         #strip off the s2nc/d at the front because criterion
         if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
             self.cmd_line = self.cmd_line[1:]
@@ -341,6 +339,7 @@ class CriterionS2N(S2N):
 
     def capture_client_args_report(self):
         self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--load-baseline", "new", "--baseline", "main"]
+
 
 class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
