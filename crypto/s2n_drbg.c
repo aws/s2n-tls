@@ -197,8 +197,8 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
-    /* s2n_drbg_mix() mix in additional entropy for every randomness generation
-     * call. This defense mechanism is referred to as "prediction resistance".
+    /* Mix in additional entropy for every randomness generation call. This
+     * defense mechanism is referred to as "prediction resistance".
      * If we ever relax this defense, we must:
      *  1. Implement reseeding according to limit specified in
      *     NIST SP800-90A 10.2.1 Table 3.
