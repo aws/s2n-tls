@@ -615,3 +615,4 @@
  * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for PTR_ENSURE_REF.
  */
 #define PTR_GUARD_PTR(result)                                 __S2N_ENSURE((result) != NULL, return NULL)
+
