@@ -449,6 +449,7 @@ class OpenSSL(Provider):
 
         return cmd_line
 
+
 class JavaSSL(Provider):
     """
     NOTE: Only a Java SSL client has been set up. The server has not been 
@@ -500,6 +501,7 @@ class JavaSSL(Provider):
         self.set_provider_ready()
 
         return cmd_line
+
 
 class BoringSSL(Provider):
     """
@@ -567,7 +569,7 @@ class GnuTLS(Provider):
             Ciphers.AES128_SHA256:      "RSA:+AES-128-CBC:+SHA256",
             Ciphers.AES256_SHA256:      "RSA:+AES-256-CBC:+SHA256",
 
-            # syntax error for tls 1.3. appears to work correctly in newer gnutls versions.
+            # syntax error when used with tls 1.3. appears to work correctly in newer gnutls versions.
             # Ciphers.AES128_GCM_SHA256:  "RSA:+AES-128-GCM:+AEAD",
             # Ciphers.AES256_GCM_SHA384:  "RSA:+AES-256-GCM:+AEAD",
 
@@ -688,6 +690,9 @@ class GnuTLS(Provider):
 
     @classmethod
     def supports_certificate(cls, certificate):
+        # there are many cipher/certificate conflicts with the normal test certificates
+        # that are used. in order to test all the ciphers with gnutls, the certificates
+        # are limited to only these two.
         return certificate in {
             Certificates.OCSP,
             Certificates.OCSP_ECDSA
