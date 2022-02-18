@@ -567,6 +567,10 @@ class GnuTLS(Provider):
             Ciphers.AES128_SHA256:      "RSA:+AES-128-CBC:+SHA256",
             Ciphers.AES256_SHA256:      "RSA:+AES-256-CBC:+SHA256",
 
+            # syntax error for tls 1.3. appears to work correctly in newer gnutls versions.
+            # Ciphers.AES128_GCM_SHA256:  "RSA:+AES-128-GCM:+AEAD",
+            # Ciphers.AES256_GCM_SHA384:  "RSA:+AES-256-GCM:+AEAD",
+
             Ciphers.ECDHE_ECDSA_AES128_SHA:         "ECDHE-ECDSA:+AES-128-CBC:+SHA1",
             Ciphers.ECDHE_ECDSA_AES256_SHA:         "ECDHE-ECDSA:+AES-256-CBC:+SHA1",
             Ciphers.ECDHE_ECDSA_AES128_SHA256:      "ECDHE-ECDSA:+AES-128-CBC:+SHA256",
@@ -574,7 +578,13 @@ class GnuTLS(Provider):
             Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256:  "ECDHE-ECDSA:+AES-128-GCM:+AEAD",
             Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384:  "ECDHE-ECDSA:+AES-256-GCM:+AEAD",
 
-            Ciphers.ECDHE_RSA_AES128_GCM_SHA256:    "ECDHE-RSA:+AES-128-GCM:+AEAD"
+            Ciphers.ECDHE_RSA_AES128_SHA:           "ECDHE-RSA:+AES-128-CBC:+SHA1",
+            Ciphers.ECDHE_RSA_AES256_SHA:           "ECDHE-RSA:+AES-256-CBC:+SHA1",
+            Ciphers.ECDHE_RSA_AES128_SHA256:        "ECDHE-RSA:+AES-128-CBC:+SHA256",
+            Ciphers.ECDHE_RSA_AES256_SHA384:        "ECDHE-RSA:+AES-256-CBC:+SHA384",
+            Ciphers.ECDHE_RSA_AES128_GCM_SHA256:    "ECDHE-RSA:+AES-128-GCM:+AEAD",
+            Ciphers.ECDHE_RSA_AES256_GCM_SHA384:    "ECDHE-RSA:+AES-256-GCM:+AEAD",
+            Ciphers.ECDHE_RSA_CHACHA20_POLY1305:    "ECDHE-RSA:+CHACHA20-POLY1305:+AEAD"
         }.get(cipher)
 
     @staticmethod
