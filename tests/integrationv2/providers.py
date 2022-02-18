@@ -554,6 +554,14 @@ class GnuTLS(Provider):
     @staticmethod
     def cipher_to_priority_str(cipher):
         return {
+            Ciphers.DHE_RSA_AES128_SHA:         "DHE-RSA:+AES-128-CBC:+SHA1",
+            Ciphers.DHE_RSA_AES256_SHA:         "DHE-RSA:+AES-256-CBC:+SHA1",
+            Ciphers.DHE_RSA_AES128_SHA256:      "DHE-RSA:+AES-128-CBC:+SHA256",
+            Ciphers.DHE_RSA_AES256_SHA256:      "DHE-RSA:+AES-256-CBC:+SHA256",
+            Ciphers.DHE_RSA_AES128_GCM_SHA256:  "DHE-RSA:+AES-128-GCM:+AEAD",
+            Ciphers.DHE_RSA_AES256_GCM_SHA384:  "DHE-RSA:+AES-256-GCM:+AEAD",
+            Ciphers.DHE_RSA_CHACHA20_POLY1305:  "DHE-RSA:+CHACHA20-POLY1305:+AEAD",
+
             Ciphers.AES128_SHA:         "RSA:+AES-128-CBC:+SHA1",
             Ciphers.AES256_SHA:         "RSA:+AES-256-CBC:+SHA1",
             Ciphers.AES128_SHA256:      "RSA:+AES-128-CBC:+SHA256",
@@ -634,6 +642,10 @@ class GnuTLS(Provider):
 
         priority_str = self.create_priority_str()
         cmd_line.extend(["--priority", priority_str])
+
+        if self.options.cipher:
+            if self.options.cipher.parameters:
+                cmd_line.extend(["--dhparams", self.options.cipher.parameters])
 
         return cmd_line
 
