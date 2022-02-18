@@ -607,7 +607,7 @@ class GnuTLS(Provider):
 
     @classmethod
     def get_send_marker(cls):
-        return None
+        return "Simple Client Mode:"
 
     def create_priority_str(self):
         priority_str = "NONE"
@@ -633,7 +633,26 @@ class GnuTLS(Provider):
         return priority_str
 
     def setup_client(self):
-        pass
+        self.set_provider_ready()
+
+        cmd_line = [
+            "gnutls-cli",
+            "--port", str(self.options.port),
+            self.options.host,
+            "--debug", "9999"
+        ]
+
+        if self.options.cert and self.options.key:
+            cmd_line.extend(["--x509certfile", self.options.cert])
+            cmd_line.extend(["--x509keyfile", self.options.key])
+
+        priority_str = self.create_priority_str()
+        cmd_line.extend(["--priority", priority_str])
+
+        if self.options.insecure:
+            cmd_line.extend(["--insecure"])
+
+        return cmd_line
 
     def setup_server(self):
         self.ready_to_test_marker = "Echo Server listening on"
