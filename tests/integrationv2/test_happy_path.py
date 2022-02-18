@@ -44,11 +44,11 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(S2N, server_options, timeout=20)
+    server = managed_process(S2N, server_options, timeout=30)
     client = managed_process(
         provider,
         client_options,
-        timeout=20,
+        timeout=30,
         expect_stderr=True if is_gnutls else False
     )
 
@@ -110,11 +110,11 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     server = managed_process(
         provider,
         server_options,
-        timeout=20,
+        timeout=30,
         expect_stderr=True if is_gnutls else False,
         kill_marker=random_bytes
     )
-    client = managed_process(S2N, client_options, timeout=20)
+    client = managed_process(S2N, client_options, timeout=30)
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
