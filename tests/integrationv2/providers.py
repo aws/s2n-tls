@@ -70,6 +70,10 @@ class Provider(object):
     def supports_cipher(cls, cipher, with_curve=None):
         raise NotImplementedError
 
+    @classmethod
+    def supports_certificate(cls, certificate):
+        return True
+
     def get_cmd_line(self):
         return self.cmd_line
 
@@ -561,6 +565,8 @@ class GnuTLS(Provider):
             Ciphers.ECDHE_ECDSA_AES256_SHA384:      "ECDHE-ECDSA:+AES-256-CBC:+SHA384",
             Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256:  "ECDHE-ECDSA:+AES-128-GCM:+AEAD",
             Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384:  "ECDHE-ECDSA:+AES-256-GCM:+AEAD",
+
+            Ciphers.ECDHE_RSA_AES128_GCM_SHA256:    "ECDHE-RSA:+AES-128-GCM:+AEAD"
         }.get(cipher)
 
     @staticmethod
@@ -638,3 +644,10 @@ class GnuTLS(Provider):
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         return GnuTLS.cipher_to_priority_str(cipher) is not None
+
+    @classmethod
+    def supports_certificate(cls, certificate):
+        return certificate in {
+            Certificates.OCSP,
+            Certificates.OCSP_ECDSA
+        }

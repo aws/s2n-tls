@@ -82,6 +82,8 @@ def invalid_test_parameters(*args, **kwargs):
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test if the wrong certificate is used.
     if certificate is not None:
+        if provider is not None and not provider.supports_certificate(certificate):
+            return True
         if protocol is not None and provider.supports_protocol(protocol, with_cert=certificate) is False:
             return True
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
