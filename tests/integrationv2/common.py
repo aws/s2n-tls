@@ -105,9 +105,6 @@ class Cert(object):
         return (self.algorithm == cipher.algorithm) or (cipher.algorithm == 'ANY')
 
     def compatible_with_curve(self, curve):
-        if "OCSP" in self.name:
-            return True
-
         if self.algorithm != 'EC':
             return True
 
@@ -148,7 +145,7 @@ class Certificates(object):
     RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "localhost_rsa_pss_2048_sha256")
 
     OCSP = Cert("OCSP_RSA", "ocsp/server")
-    OCSP_ECDSA = Cert("OCSP_ECDSA", "ocsp/server_ecdsa")
+    OCSP_ECDSA = Cert("OCSP_ECDSA_256", "ocsp/server_ecdsa")
 
 
 class Protocol(object):
