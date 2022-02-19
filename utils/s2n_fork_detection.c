@@ -78,6 +78,9 @@ static int ignore_fork_detection_for_testing = S2N_FORK_DETECT_DO_NOT_IGNORE;
 #define S2N_FORK_EVENT 0
 #define S2N_NO_FORK_EVENT 1
 
+#define S2N_FORK_DETECT_NOT_ENABLED 0
+#define S2N_FORK_DETECT_ENABLED 1
+
 struct FGN_STATE {
     /* The current cached fork generation number for this process */
     uint64_t current_fork_generation_number;
@@ -100,7 +103,7 @@ struct FGN_STATE {
  */
 static struct FGN_STATE fgn_state = {
     .current_fork_generation_number = 0,
-    .is_fork_detection_enabled = S2N_FAILURE,
+    .is_fork_detection_enabled = S2N_FORK_DETECT_NOT_ENABLED,
     .zero_on_fork_addr = NULL,
     .fork_detection_once = PTHREAD_ONCE_INIT,
     .fork_detection_rw_lock = PTHREAD_RWLOCK_INITIALIZER,
@@ -162,30 +165,8 @@ static int s2n_inititalise_pthread_atfork(void)
     return S2N_SUCCESS;
 }
 
-static void s2n_initialise_fork_detection_methods(void)
+static int s2n_initialise_fork_detection_methods_try(void *addr, long page_size)
 {
-    void *addr = MAP_FAILED;
-    long page_size = 0;
-
-    /* Only used to disable fork detection mechanisms during testing. */
-    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_IGNORE &&
-        ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_IGNORE) {
-
-        ignore_fork_detection_for_testing = S2N_FORK_DETECT_IGNORE;
-        goto end;
-    }
-
-    page_size = sysconf(_SC_PAGESIZE);
-    if (page_size <= 0) {
-        goto end;
-    }
-
-    addr = mmap(NULL, (size_t) page_size, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (addr == MAP_FAILED) {
-        goto end;
-    }
-
     /* Some system don't define MADV_WIPEONFORK in sys/mman.h but the kernel
      * still supports the mechanism (AL2 being a prime example). Likely because
      * glibc on the system is old. We might be able to include kernel header
@@ -205,25 +186,55 @@ static void s2n_initialise_fork_detection_methods(void)
         s2n_initialise_wipeonfork_best_effort(addr, page_size);
     }
 
-    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE &&
-        s2n_initialise_inherit_zero(addr, page_size) != S2N_SUCCESS) {
-        goto end;
+    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE) {
+        POSIX_GUARD(s2n_initialise_inherit_zero(addr, page_size));
     }
 
-    if (ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE &&
-        s2n_inititalise_pthread_atfork() != S2N_SUCCESS) {
-        goto end;
+    if (ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE) {
+        POSIX_GUARD(s2n_inititalise_pthread_atfork());
     }
 
     fgn_state.zero_on_fork_addr = addr;
     *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
-    fgn_state.is_fork_detection_enabled = S2N_SUCCESS;
+    fgn_state.is_fork_detection_enabled = S2N_FORK_DETECT_ENABLED;
 
-end:
-    if (fgn_state.is_fork_detection_enabled == S2N_FAILURE && addr != MAP_FAILED) {
+    return S2N_SUCCESS;
+}
+
+static void s2n_initialise_fork_detection_methods(void)
+{
+    void *addr = MAP_FAILED;
+    long page_size = 0;
+
+    /* Only used to disable fork detection mechanisms during testing. */
+    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_IGNORE &&
+        ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_IGNORE) {
+
+        ignore_fork_detection_for_testing = S2N_FORK_DETECT_IGNORE;
+        return;
+    }
+
+    page_size = sysconf(_SC_PAGESIZE);
+    if (page_size <= 0) {
+        return;
+    }
+
+    addr = mmap(NULL, (size_t) page_size, PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (addr == MAP_FAILED) {
+        return;
+    }
+
+    /* Now we know that we have some memory mapped. Try to initialise fork
+     * detection methods. Unmap the memory if we fail for some reason!
+     */
+    if (s2n_initialise_fork_detection_methods_try(addr, page_size) != S2N_SUCCESS) {
+        /* No reason to verify return value of munmap() since we can't use that
+         * information for anything anyway. */
         munmap(addr, (size_t) page_size);
         addr = NULL;
         fgn_state.zero_on_fork_addr = NULL;
+        fgn_state.is_fork_detection_enabled = S2N_FORK_DETECT_NOT_ENABLED;
     }
 }
 
@@ -239,7 +250,7 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
         return S2N_SUCCESS;
     }
 
-    POSIX_ENSURE(fgn_state.is_fork_detection_enabled == S2N_SUCCESS, S2N_ERR_FORK_DETECTION_INIT);
+    POSIX_ENSURE(fgn_state.is_fork_detection_enabled == S2N_FORK_DETECT_ENABLED, S2N_ERR_FORK_DETECTION_INIT);
 
     /* In most cases, we would not need to increment the fork generation number.
      * So, it is cheaper, in the expected case, to take an optimistic read lock
@@ -259,9 +270,9 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
     }
     POSIX_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
 
-    /* We are mutating the process-global, cached fork generation number. Need to
-     * acquire the write lock for that. Set returned fgn before checking the if
-     * condition with the same reasons as above.
+    /* We are mutating the process-global, cached fork generation number. Need
+     * to acquire the write lock for that. Set returned fgn before checking the
+     * if condition with the same reasons as above.
      */
     POSIX_ENSURE(pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
