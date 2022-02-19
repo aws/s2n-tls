@@ -244,8 +244,8 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
         EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
     }
     else if (test_case->test_case_must_pass_clone_test == 2) {
-        if (s2n_assert_madv_wipeonfork_is_supported() == S2N_SUCCESS ||
-            s2n_assert_map_inherit_zero_is_supported() == S2N_SUCCESS) {
+        if (s2n_assert_madv_wipeonfork_is_supported() == true ||
+            s2n_assert_map_inherit_zero_is_supported() == true) {
             EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
         }
     }
@@ -270,7 +270,7 @@ static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 
 static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 {
-    if (s2n_assert_madv_wipeonfork_is_supported() == S2N_FAILURE) {
+    if (s2n_assert_madv_wipeonfork_is_supported() == false) {
         FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
         return S2N_SUCCESS;
     }
@@ -283,7 +283,7 @@ static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 
 static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 {
-    if (s2n_assert_map_inherit_zero_is_supported() == S2N_FAILURE) {
+    if (s2n_assert_map_inherit_zero_is_supported() == false) {
         FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
         return S2N_SUCCESS;
     }
