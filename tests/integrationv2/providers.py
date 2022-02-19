@@ -303,8 +303,7 @@ class CriterionS2N(S2N):
         super().__init__(options)
         # Set cargo root
         self.cargo_root = self._find_cargo()
-        # Set cwd for the benchmark
-        self.cwd = self.cargo_root
+
         # Find the criterion binaries
         self._cargo_bench()
 

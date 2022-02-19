@@ -152,3 +152,23 @@ An example of how to test that the server and the client can send and receive ap
 An error similar to this is caused by a runtime error in a test. In `tox.ini` change `-n8` to `-n0` to
 see the actual error causing the OSError.
 
+
+# Criterion
+
+### What is the basic flow of running crition in between pyest and s2nc/d?
+
+Normally, you'd run criterion with `cargo bench --bench <name>`, but cargo does some checks to see if it needs to rebuild
+the benchmark and other housekeeping that slows things down a bit.  Running `cargo bench --no-run` is the benchmark equivilent to `cargo build` and will produce a binary executable.
+
+The binary created by no-run has a uniqe name and must be searched for, which the CriterionS2N provider finds and replaces in the final command.
+The arguments to s2nc/d are moved to `S2NC_ARS` or `S2ND_ARGS`, which is read by the rust benchmark when spawning s2nc/d as subprocesses.
+
+Criterion needs 3 passes to generate a report showing changes between two runs. The first pass estabalishes a base line, the second run a delta dataset, and the final a report.
+These modes have slightly different command line arguments to criterion and are controlled with the environment variable S2N_USECRITERION in the provider.
+
+## Troubleshooting CriterionS2N
+
+The most direct trouble-shooting is done using the [interactive troubleshooting CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/session-manager.html#ssm-pause-build) `codebuild-break` line in the buildspec. Put the break right before the main build step and run interactivly.
+
+As mentioned above, in order to get more output from the tests, set the -n/XDIST_WORKER environment variable to 0 and add a -v to the pytest command line in tox.ini.
+

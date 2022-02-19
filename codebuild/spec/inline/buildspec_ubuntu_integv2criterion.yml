@@ -5,12 +5,6 @@ env:
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
-    TESTS: integrationv2crit
-    GCC_VERSION: 6
-    XDIST_WORKERS: 1
-    ARTIFACT_BUCKET: s3://s2n-tls-logs/main
-    ARTIFACT_FILE: integv2criterion
-
 
 # Doc for batch https://docs.aws.amazon.com/codebuild/latest/userguide/batch-build-buildspec.html#build-spec.batch.build-list
 batch:
@@ -23,13 +17,25 @@ batch:
         variables:
           INTEGV2_TEST: test_well_known_endpoints
           S2N_USECRITERION: 2
+          S2N_NO_PQ: 1
+          TESTS: integrationv2crit
+          GCC_VERSION: 6
+          XDIST_WORKERS: 2
+          RUST_BACKTRACE: 1
     - identifier: s2nIntegrationv2WellKnownEndpoints
+      debug-session: true
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
           S2N_USECRITERION: 1
+          S2N_NO_PQ: 1
+          TESTS: integrationv2crit
+          GCC_VERSION: 6
+          XDIST_WORKERS: 2
+          ARTIFACT_BUCKET: s3://s2n-tls-logs/release
+          ARTIFACT_FILE: integv2criterion
       depend-on:
         - s2nIntegrationv2WellKnownEndpointsBaseline
 
@@ -38,58 +44,20 @@ phases:
     runtime-versions:
       python: 3.x
     commands:
-      - . $CB_BIN_DIR/utils.sh
-      - gh_login s2n_codebuild_PRs
-      - get_latest_release
-      - mkdir -p target/criterion || true
-      - aws s3 cp ${ARTIFACT_BUCKET}/${ARTIFACT_FILE}_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip .
-      - unzip -o ${ARTIFACT_FILE}_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip -d ./target/criterion
-  pre_build:
-    commands:
-      - echo Entered the install phase...
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-        fi
       - $CB_BIN_DIR/install_ubuntu_dependencies.sh
-      - |
-        if expr "${GCC_VERSION}" : "9" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-9 gcc gcc-9;
-        fi
-      - |
-        if expr "${GCC_VERSION}" : "6" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
-        fi
-      # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
-      - |
-        if expr "${LATEST_CLANG}" != "true" >/dev/null; then
-          apt-get install -y --no-install-recommends clang-3.9 llvm-3.9;
-        fi
-      - apt-get install -y --no-install-recommends indent iproute2 kwstyle lcov libssl-dev m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc cmake tox libtool ninja-build
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-        fi
-      - $CB_BIN_DIR/install_default_dependencies.sh
+      - $CB_BIN_DIR/utils.sh gh_login s2n_codebuild_PRs
+      - export LATEST_RELEASE_VER=$($CB_BIN_DIR/utils.sh get_latest_release)
+      - mkdir -p tests/integrationv2/target/criterion || true
+      - aws s3 cp ${ARTIFACT_BUCKET}/${ARTIFACT_FILE}_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip .
+      - unzip -o ${ARTIFACT_FILE}_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip -d ./tests/integrationv2/target/criterion
   build:
     commands:
-      - make install
-      - . $HOME/.cargo/env
-      - make -C bindings/rust
       - codebuild-breakpoint
-      - TOX_TEST_NAME=$INTEGV2_TEST.py make integrationv2
-  post_build:
-    commands:
-      - |
-        if [ -z "${CODEBUILD_WEBHOOK_EVENT}" ]; then
-          export BASELINE_DATE=$(date -d tomorrow +%Y-%m-%d);
-        else
-          export BASELINE_DATE=$(date +%Y-%m-%d);
-        fi
+      - $CB_BIN_DIR/criterion_delta.sh
 artifacts:
   files:
     - "**/index.html"
     - "**/*.svg"
     - "**/*.json"
-  base-directory: "bindings/rust/target/criterion"
+  base-directory: "tests/integrationv2/target/criterion"
   discard-paths: no

@@ -17,14 +17,14 @@ phases:
   build:
     commands:
       - $CB_BIN_DIR/criterion_baseline.sh
-      - mkdir -p bindings/rust/target/criterion
-      - echo "{id:$CODEBUILD_BUILD_ID}" >> bindings/rust/target/criterion/artifact.json
+      - mkdir -p tests/integrationv2/target/criterion
+      - echo "{id:$CODEBUILD_BUILD_ID}" >> tests/integrationv2/target/criterion/artifact.json
 
 artifacts:
   files:
     - "**/index.html"
     - "**/*.svg"
     - "**/*.json"
-  base-directory: "bindings/rust/target/criterion"
+  base-directory: "tests/integrationv2/target/criterion"
   discard-paths: no
 
