@@ -335,11 +335,19 @@ int s2n_assert_map_inherit_zero_is_supported(void)
 }
 
 /* Use for testing only */
-void s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero(void) {
+S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void) {
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
     ignore_wipeonfork_or_inherit_zero_method_for_testing = S2N_FORK_DETECT_IGNORE;
+
+    return S2N_RESULT_OK;
 }
 
-void s2n_FOR_TESTING_ignore_pthread_atfork(void) {
+S2N_RESULT s2n_ignore_pthread_atfork_for_testing(void) {
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
     ignore_pthread_atfork_method_for_testing = S2N_FORK_DETECT_IGNORE;
+
+    return S2N_RESULT_OK;
 }
 

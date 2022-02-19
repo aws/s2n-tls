@@ -262,7 +262,7 @@ static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
 
 static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 {
-    s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero();
+    POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
@@ -275,7 +275,7 @@ static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
         return S2N_SUCCESS;
     }
 
-    s2n_FOR_TESTING_ignore_pthread_atfork();
+    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;
@@ -288,7 +288,7 @@ static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
         return S2N_SUCCESS;
     }
 
-    s2n_FOR_TESTING_ignore_pthread_atfork();
+    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
     return S2N_SUCCESS;

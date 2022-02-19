@@ -17,10 +17,12 @@
 
 #include <stdint.h>
 
+#include "utils/s2n_result.h"
+
 int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number);
 int s2n_assert_madv_wipeonfork_is_supported(void);
 int s2n_assert_map_inherit_zero_is_supported(void);
 
 /* Use for testing only */
-void s2n_FOR_TESTING_ignore_wipeonfork_and_inherit_zero(void);
-void s2n_FOR_TESTING_ignore_pthread_atfork(void);
+S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void);
+S2N_RESULT s2n_ignore_pthread_atfork_for_testing(void);
