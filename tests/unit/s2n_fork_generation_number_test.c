@@ -69,7 +69,7 @@ static void s2n_verify_child_exit_status(pid_t proc_pid)
 static void * s2n_unit_test_thread_get_fgn(void *expected_fork_generation_number)
 {
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, *(uint64_t *) expected_fork_generation_number);
 
     return NULL;
@@ -101,12 +101,12 @@ static int s2n_unit_test_fork(uint64_t parent_process_fgn, int fork_level)
     if (proc_pid == 0) {
         /* In child */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-        EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn + 1);
 
         /* Verify stability */
         return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-        EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn + 1);
 
         /* Verify in threads */
@@ -128,7 +128,7 @@ static int s2n_unit_test_fork(uint64_t parent_process_fgn, int fork_level)
 
         /* Verify stability */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-        EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
     }
 
@@ -147,12 +147,12 @@ static int s2n_unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
 
         /* Then in the thread spawned when forking */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-        EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn + 1);
 
         /* Verify stability */
         return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-        EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn + 1);
 
         /* Exit code EXIT_SUCCESS means that tests in this process finished
@@ -166,7 +166,7 @@ static int s2n_unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
 
         /* Verify stability */
         uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-        EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+        EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
         EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
     }
 
@@ -178,12 +178,12 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
     /* In child */
     uint64_t local_parent_process_fgn = *(uint64_t *) parent_process_fgn;
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, local_parent_process_fgn + 1);
 
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, local_parent_process_fgn + 1);
 
     /* Verify in threads */
@@ -198,7 +198,7 @@ static int s2n_unit_test_clone(uint64_t parent_process_fgn)
 #if !defined(CLONE_NOT_SUPPORTED)
     /* Verify stability */
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
 
     /* Use stack memory for this... We don't exit unit_test_clone() before this
@@ -216,7 +216,7 @@ static int s2n_unit_test_clone(uint64_t parent_process_fgn)
 
     /* Verify stability */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, parent_process_fgn);
 #endif
 
@@ -227,12 +227,12 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
 {
     uint64_t return_fork_generation_number = 0;
 
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, 0);
 
     /* Should be idempotent if no fork event occurred */
     return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
-    EXPECT_EQUAL(s2n_get_fork_generation_number(&return_fork_generation_number), S2N_SUCCESS);
+    EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
     EXPECT_EQUAL(return_fork_generation_number, 0);
 
     /* Should be idempotent in threaded environment as well */

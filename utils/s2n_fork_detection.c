@@ -241,16 +241,16 @@ static void s2n_initialise_fork_detection_methods(void)
 /* Returns the current fork generation number in return_fork_generation_number.
  * Caller must synchronise access to return_fork_generation_number.
  */
-int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
+S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
 {
-    POSIX_ENSURE(pthread_once(&fgn_state.fork_detection_once, s2n_initialise_fork_detection_methods) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(pthread_once(&fgn_state.fork_detection_once, s2n_initialise_fork_detection_methods) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
     if (ignore_fork_detection_for_testing == S2N_FORK_DETECT_IGNORE) {
         /* Fork detection is meant to be disabled. Hence, return success. */
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
-    POSIX_ENSURE(fgn_state.is_fork_detection_enabled == S2N_FORK_DETECT_ENABLED, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(fgn_state.is_fork_detection_enabled == S2N_FORK_DETECT_ENABLED, S2N_ERR_FORK_DETECTION_INIT);
 
     /* In most cases, we would not need to increment the fork generation number.
      * So, it is cheaper, in the expected case, to take an optimistic read lock
@@ -262,22 +262,23 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
      * s2n_get_fork_generation_number() without setting the returned fgn
      * appropriately.
      */
-    POSIX_ENSURE(pthread_rwlock_rdlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
+    RESULT_ENSURE(pthread_rwlock_rdlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
     if (*fgn_state.zero_on_fork_addr != S2N_FORK_EVENT) {
-        POSIX_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
-        return S2N_SUCCESS;
+        /* No fork event detection. */
+        RESULT_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
+        return S2N_RESULT_OK;
     }
-    POSIX_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
+    RESULT_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
 
     /* We are mutating the process-global, cached fork generation number. Need
      * to acquire the write lock for that. Set returned fgn before checking the
      * if condition with the same reasons as above.
      */
-    POSIX_ENSURE(pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
+    RESULT_ENSURE(pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
     if (*fgn_state.zero_on_fork_addr == S2N_FORK_EVENT) {
-        /* Fork has been detected; reset sentinel, increment cached fork
+        /* Fork event has been detected; reset sentinel, increment cached fork
          * generation nunber (which is now "current" in this child process), and
          * write incremented fork generation number to the output parameter.
          */
@@ -285,9 +286,9 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
         fgn_state.current_fork_generation_number = fgn_state.current_fork_generation_number + 1;
         *return_fork_generation_number = fgn_state.current_fork_generation_number;
     }
-    POSIX_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
+    RESULT_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork
