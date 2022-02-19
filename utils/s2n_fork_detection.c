@@ -279,7 +279,6 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
     return S2N_SUCCESS;
 }
 
-#if defined(USE_MADVISE)
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork
  * detection mechanism.
  *
@@ -287,18 +286,24 @@ int s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
  *  If not supported, returns S2N_FAILURE.
  *  If supported, returns S2N_SUCCESS.
  */
-static int s2n_probe_madv_wipeonfork_support(void) {
+static bool s2n_probe_madv_wipeonfork_support(void) {
 
+    bool result = false;
+
+#if defined(USE_MADVISE)
     void *probe_addr = MAP_FAILED;
     long page_size = 0;
-    int result = S2N_FAILURE;
 
     page_size = sysconf(_SC_PAGESIZE);
-    POSIX_ENSURE(page_size > 0, S2N_ERR_FORK_DETECTION_INIT);
+    if (page_size <= 0) {
+        return false;
+    }
 
     probe_addr = mmap(NULL, (size_t) page_size, PROT_READ | PROT_WRITE,
                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    POSIX_ENSURE(probe_addr != MAP_FAILED, S2N_ERR_FORK_DETECTION_INIT);
+    if (probe_addr == MAP_FAILED) {
+        return false;
+    }
 
     /* Some versions of qemu (up to at least 5.0.0-rc4, see
      * linux-user/syscall.c) ignore invalid advice arguments. Hence, we first
@@ -306,31 +311,26 @@ static int s2n_probe_madv_wipeonfork_support(void) {
      */
     if (madvise(probe_addr, (size_t) page_size, -1) != 0 &&
         madvise(probe_addr, (size_t) page_size, MADV_WIPEONFORK) == 0) {
-        result = S2N_SUCCESS;
+        result = true;
     }
 
-    POSIX_ENSURE(munmap(probe_addr, (size_t) page_size) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    munmap(probe_addr, (size_t) page_size);
+#endif
 
     return result;
 }
-#endif
 
-int s2n_assert_madv_wipeonfork_is_supported(void)
+bool s2n_assert_madv_wipeonfork_is_supported(void)
 {
-    int result = S2N_FAILURE;
-#if defined(USE_MADVISE)
-    result = s2n_probe_madv_wipeonfork_support();
-#endif
-    return result;
+    return s2n_probe_madv_wipeonfork_support();
 }
 
-int s2n_assert_map_inherit_zero_is_supported(void)
+bool s2n_assert_map_inherit_zero_is_supported(void)
 {
-    int result = S2N_FAILURE;
 #if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
-    result = S2N_SUCCESS;
+    return true
 #else
-    return result;
+    return false;
 #endif
 }
 

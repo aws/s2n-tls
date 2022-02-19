@@ -37,6 +37,10 @@
  */
 #define UNEXPECTED_RETURNED_FGN 0xFF
 
+#define CLONE_TEST_NO 0
+#define CLONE_TEST_YES 1
+#define CLONE_TEST_DETERMINE_AT_RUNTIME 2
+
 #define FGN_TEST_CASE_PRINT_MSG_INFO( info_msg, _test_case ) do {          \
     fprintf(stdout, "\nFGN test case: %s\n", _test_case->test_case_label); \
     fprintf(stdout, "%s\n", info_msg);                                     \
@@ -46,7 +50,6 @@
 struct fgn_test_case {
     const char *test_case_label;
     int (*test_case_cb)(struct fgn_test_case *test_case);
-    /* 0 (no), 1 (yes), 2 (determine at run-time) */
     int test_case_must_pass_clone_test;
 };
 
@@ -240,10 +243,11 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
     EXPECT_EQUAL(s2n_unit_test_fork_check_threads_first(return_fork_generation_number), S2N_SUCCESS);
 
     /* Some fork detection mechanisms can also detect forks through clone() */
-    if (test_case->test_case_must_pass_clone_test == 1) {
+    if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
+        EXPECT_EQUAL(s2n_assert_madv_wipeonfork_is_supported() || s2n_assert_map_inherit_zero_is_supported(), true);
         EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
     }
-    else if (test_case->test_case_must_pass_clone_test == 2) {
+    else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
         if (s2n_assert_madv_wipeonfork_is_supported() == true ||
             s2n_assert_map_inherit_zero_is_supported() == true) {
             EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
@@ -295,10 +299,10 @@ static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 }
 
 struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
-    {"Default fork detect mechanisms.", s2n_test_case_default_cb, 2},
-    {"Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, 0},
-    {"Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, 1},
-    {"Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, 1}
+    {"Default fork detect mechanisms.", s2n_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME},
+    {"Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, CLONE_TEST_NO},
+    {"Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, CLONE_TEST_YES},
+    {"Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES}
 };
 /* s2n_array_len is run-time but standard static array length calculation is
  * captured by the simple errors script. However, the script is perfoming static
