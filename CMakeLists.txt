@@ -516,8 +516,8 @@ if (S2N_INTERN_LIBCRYPTO)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
-    # LINK_LIB is set above after checking targets. It handles the find_package craziness.
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIB})
+    # Don't call link_target_libraries here, just make sure the libcrypto include dir is in the path
+    include_directories("${crypto_INCLUDE_DIR}")
 
     add_custom_command(
         OUTPUT libcrypto.symbols
@@ -543,18 +543,28 @@ if (S2N_INTERN_LIBCRYPTO)
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
 
+    if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
+        # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
+        add_custom_command(
+            TARGET ${PROJECT_NAME} PRE_LINK
+            COMMAND
+              find "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}.dir" -name '*.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
+        )
+    endif()
+
     # copy the static libcrypto into the final artifact
     if (BUILD_SHARED_LIBS)
         if (BUILD_TESTING)
-          # if we're building tests, we export the prefixed symbols so tests can link to them
-          set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
-              "-Wl,--whole-archive s2n_libcrypto.a -Wl,--no-whole-archive")
+            # if we're building tests, we export the prefixed symbols so tests can link to them
+            set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
+                "-Wl,--whole-archive s2n_libcrypto.a -Wl,--no-whole-archive")
         else()
-          # if we're not building tests, then just copy the original archive, unmodified
-          set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
-              "-Wl,--whole-archive ${crypto_STATIC_LIBRARY} -Wl,--no-whole-archive -Wl,--exclude-libs=ALL")
+            # if we're not building tests, then just copy the original archive, unmodified
+            set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
+                "-Wl,--whole-archive ${crypto_STATIC_LIBRARY} -Wl,--no-whole-archive -Wl,--exclude-libs=ALL")
         endif()
     else()
+        # add all of the prefixed symbols to the archive
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
             DEPENDS libcrypto.symbols
@@ -585,9 +595,6 @@ if (BUILD_TESTING)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
 
     if (S2N_INTERN_LIBCRYPTO)
-        # build the tests with the correct headers
-        include_directories("${crypto_INCLUDE_DIR}")
-
         # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
         add_custom_command(
             TARGET testss2n POST_BUILD
