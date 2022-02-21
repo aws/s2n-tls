@@ -42,9 +42,12 @@ ldd ./build/shared-default/lib/libs2n.so | grep -q libcrypto || fail "libcrypto 
 # ensure libcrypto interning works with shared libs and testing
 cmake . -Bbuild/shared-testing -DCMAKE_PREFIX_PATH="$OPENSSL_1_1" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on -DS2N_INTERN_LIBCRYPTO=on
 cmake --build ./build/shared-testing -- -j $JOBS
-make -C build/shared-testing test ARGS="-j $JOBS"
 # s2n should not publicly depend on libcrypto
 ldd ./build/shared-testing/lib/libs2n.so | grep -q libcrypto && fail "libcrypto was not interned"
+# run the tests and make sure they all pass with the prefixed version
+make -C build/shared-testing test ARGS="-j $JOBS"
+# load the wrong version of libcrypto and the tests should still pass
+LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so make -C build/shared-testing test ARGS="-j $JOBS"
 
 # ensure libcrypto interning works with shared libs and no testing
 cmake . -Bbuild/shared -DCMAKE_PREFIX_PATH="$OPENSSL_1_1" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off -DS2N_INTERN_LIBCRYPTO=on
@@ -82,17 +85,24 @@ do
   $target/bin/test-app
 done
 
+run_connection_test() {
+    local TARGET="$1"
+    LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nd -c default_tls13 localhost 4433 &> /dev/null &
+    local SERVER_PID=$!
+    LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
+    kill $SERVER_PID &> /dev/null || true
+
+    # ensure a TLS 1.3 session was negotiated
+    echo "checking for TLS 1.3"
+    grep -q "Actual protocol version: 34" build/client.log
+}
+
 # without interning, the connection should fail when linking the wrong version of libcrypto
-LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/shared-default/bin/s2nd -c default_tls13 localhost 4433 &
-SERVER_PID=$!
-! LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/shared-default/bin/s2nc -i -c default_tls13 localhost 4433
-kill $SERVER_PID || true
+echo "running pair: TLS 1.3 failure expected"
+run_connection_test shared-default && fail "TLS 1.3 handshake was expected to fail"
 
 # with interning, the connection should succeed even though we've linked the wrong version of libcrypto
-LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/shared-testing/bin/s2nd -c default_tls13 localhost 4433 &
-SERVER_PID=$!
-LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/shared-testing/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
-kill $SERVER_PID || true
+echo "running pair: TLS 1.3 success expected"
+run_connection_test shared-testing || fail "TLS 1.3 handshake was expected to succeed"
 
-# ensure a TLS 1.3 session was negotiated
-grep -q "Actual protocol version: 34" build/client.log || fail "TLS 1.3 was not negotiated"
+echo "SUCCESS!"

@@ -516,53 +516,50 @@ if (S2N_INTERN_LIBCRYPTO)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
+    # LINK_LIB is set above after checking targets. It handles the find_package craziness.
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIB})
+
     add_custom_command(
         OUTPUT libcrypto.symbols
         COMMAND
           # copy the static version of libcrypto
-          cp ${crypto_STATIC_LIBRARY} libcrypto.a &&
+          cp ${crypto_STATIC_LIBRARY} s2n_libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
-          bash -c "nm libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
+          bash -c "nm s2n_libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
-          objcopy --redefine-syms libcrypto.symbols libcrypto.a &&
-          rm -rf libcrypto &&
-          mkdir libcrypto &&
-          cd libcrypto &&
+          objcopy --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
+          rm -rf s2n_libcrypto &&
+          mkdir s2n_libcrypto &&
+          cd s2n_libcrypto &&
           # extract libcrypto objects from the archive
-          ar x ../libcrypto.a &&
+          ar x ../s2n_libcrypto.a &&
           # rename all of the object files so we don't have any object name collisions
           bash -c "find . -name '*.o' -type f -print0 | xargs -0 -n1 -- basename | xargs -I{} mv {} s2n_crypto__{}"
         VERBATIM
     )
 
-    add_custom_target(libcrypto ALL
+    add_custom_target(s2n_libcrypto ALL
       DEPENDS libcrypto.symbols
     )
-    add_dependencies(${PROJECT_NAME} libcrypto)
-
-    add_custom_command(
-        TARGET ${PROJECT_NAME} PRE_LINK
-        DEPENDS libcrypto.symbols
-        COMMAND
-        find ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir -name '*.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
-    )
+    add_dependencies(${PROJECT_NAME} s2n_libcrypto)
 
     # copy the static libcrypto into the final artifact
     if (BUILD_SHARED_LIBS)
-        # if we're building for testing, we export the prefixed symbols so tests can link to them
         if (BUILD_TESTING)
+          # if we're building tests, we export the prefixed symbols so tests can link to them
           set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
-              "-Wl,--whole-archive libcrypto.a -Wl,--no-whole-archive")
+              "-Wl,--whole-archive s2n_libcrypto.a -Wl,--no-whole-archive")
         else()
+          # if we're not building tests, then just copy the original archive, unmodified
           set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS
-              "-Wl,--whole-archive libcrypto.a -Wl,--no-whole-archive -Wl,--exclude-libs=ALL")
+              "-Wl,--whole-archive ${crypto_STATIC_LIBRARY} -Wl,--no-whole-archive -Wl,--exclude-libs=ALL")
         endif()
     else()
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
             DEPENDS libcrypto.symbols
             COMMAND
-              bash -c "ar -r lib/libs2n.a libcrypto/*.o"
+              bash -c "ar -r lib/libs2n.a s2n_libcrypto/*.o"
             VERBATIM
         )
     endif()
@@ -588,6 +585,9 @@ if (BUILD_TESTING)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
 
     if (S2N_INTERN_LIBCRYPTO)
+        # build the tests with the correct headers
+        include_directories("${crypto_INCLUDE_DIR}")
+
         # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
         add_custom_command(
             TARGET testss2n POST_BUILD
