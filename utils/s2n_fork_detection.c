@@ -133,19 +133,19 @@ static inline int s2n_initialise_inherit_zero(void *addr, long page_size)
 static void s2n_pthread_atfork_on_fork(void)
 {
     /* This zeroises the first byte of the memory page pointed to by
-    * *zero_on_fork_addr. This is the same byte used as fork event detection
-    * sentinel in s2n_get_fork_generation_number(). The same memory page, and in
-    * turn, the byte, is also the memory zeroised by the MADV_WIPEONFORK fork
-    * detection mechanism.
-    *
-    * Aquire locks to be on the safe side. We want to avoid the checks in
-    * s2n_get_fork_generation_number() getting executed before setting the sentinel
-    * flag. The write lock prevents any other thread from owning any other type
-    * of lock.
-    *
-    * pthread_atfork_on_fork() cannot return errors. Hence, there is no way to
-    * gracefully recover if [un]locking fails.
-    */
+     * *zero_on_fork_addr. This is the same byte used as fork event detection
+     * sentinel in s2n_get_fork_generation_number(). The same memory page, and in
+     * turn, the byte, is also the memory zeroised by the MADV_WIPEONFORK fork
+     * detection mechanism.
+     *
+     * Aquire locks to be on the safe side. We want to avoid the checks in
+     * s2n_get_fork_generation_number() getting executed before setting the sentinel
+     * flag. The write lock prevents any other thread from owning any other type
+     * of lock.
+     *
+     * pthread_atfork_on_fork() cannot return errors. Hence, there is no way to
+     * gracefully recover if [un]locking fails.
+     */
     if (pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) != 0) {
         abort();
     }
@@ -158,8 +158,8 @@ static void s2n_pthread_atfork_on_fork(void)
 static int s2n_inititalise_pthread_atfork(void)
 {
     /* Register the fork handler pthread_atfork_on_fork that is excuted in the
-    * child process after a fork.
-    */
+     * child process after a fork.
+     */
     POSIX_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
     return S2N_SUCCESS;
@@ -238,8 +238,12 @@ static void s2n_initialise_fork_detection_methods(void)
     }
 }
 
-/* Returns the current fork generation number in return_fork_generation_number.
- * Caller must synchronise access to return_fork_generation_number.
+/* s2n_get_fork_generation_number returns S2N_RESULT_OK on success and
+ * S2N_RESULT_ERROR otherwise.
+ *
+ * On success, returns the current fork generation number in
+ * return_fork_generation_number. Caller must synchronise access to
+ * return_fork_generation_number.
  */
 S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_number)
 {
@@ -295,8 +299,8 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
  * detection mechanism.
  *
  * Return value:
- *  If not supported, returns S2N_FAILURE.
- *  If supported, returns S2N_SUCCESS.
+ *  If not supported, returns false.
+ *  If supported, returns true.
  */
 static bool s2n_probe_madv_wipeonfork_support(void) {
 
