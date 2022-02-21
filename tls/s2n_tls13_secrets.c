@@ -107,6 +107,7 @@ static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
     /*
      * TODO: We should be able to reuse the prf_work_space rather
      * than allocating a new HMAC every time.
+     * https://github.com/aws/s2n-tls/issues/3206
      */
     DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
@@ -129,6 +130,7 @@ static S2N_RESULT s2n_derive_secret(s2n_hmac_algorithm hmac_alg,
     /*
      * TODO: We should be able to reuse the prf_work_space rather
      * than allocating a new HMAC every time.
+     * https://github.com/aws/s2n-tls/issues/3206
      */
     DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));

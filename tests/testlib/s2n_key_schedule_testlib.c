@@ -15,7 +15,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-S2N_RESULT s2n_connection_set_early_secret(struct s2n_connection *conn,
+S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn,
         const struct s2n_blob *early_secret)
 {
     RESULT_ENSURE_REF(conn);
@@ -26,7 +26,7 @@ S2N_RESULT s2n_connection_set_early_secret(struct s2n_connection *conn,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_connection_set_handshake_secret(struct s2n_connection *conn,
+S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn,
         const struct s2n_blob *handshake_secret)
 {
     RESULT_ENSURE_REF(conn);
@@ -37,7 +37,7 @@ S2N_RESULT s2n_connection_set_handshake_secret(struct s2n_connection *conn,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_connection_set_master_secret(struct s2n_connection *conn,
+S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn,
         const struct s2n_blob *master_secret)
 {
     RESULT_ENSURE_REF(conn);

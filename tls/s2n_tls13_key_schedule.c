@@ -84,8 +84,8 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
      *#
      *# -  A purpose value indicating the specific value being generated
      **/
-    const struct s2n_blob *purpose_iv = &s2n_tls13_label_traffic_secret_iv;
-    const struct s2n_blob *purpose_key = &s2n_tls13_label_traffic_secret_key;
+    const struct s2n_blob *key_purpose = &s2n_tls13_label_traffic_secret_key;
+    const struct s2n_blob *iv_purpose = &s2n_tls13_label_traffic_secret_iv;
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
@@ -98,6 +98,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     /*
      * TODO: We should be able to reuse the prf_work_space rather
      * than allocating a new HMAC every time.
+     * https://github.com/aws/s2n-tls/issues/3206
      */
     s2n_hmac_algorithm hmac_alg = cipher_suite->prf_alg;
     DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
@@ -115,7 +116,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     uint8_t key_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&key, key_bytes, key_size));
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
-            &secret, purpose_key, &s2n_zero_length_context, &key));
+            &secret, key_purpose, &s2n_zero_length_context, &key));
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
      *# [sender]_write_iv  = HKDF-Expand-Label(Secret, "iv", "", iv_length)
@@ -123,7 +124,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     struct s2n_blob iv = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&iv, implicit_iv_data, iv_size));
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
-            &secret, purpose_iv, &s2n_zero_length_context, &iv));
+            &secret, iv_purpose, &s2n_zero_length_context, &iv));
 
     bool is_sending_secret = (mode == conn->mode);
     if (is_sending_secret) {

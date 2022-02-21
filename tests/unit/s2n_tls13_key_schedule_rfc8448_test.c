@@ -24,9 +24,39 @@
 
 #include "tls/s2n_cipher_suites.h"
 
-struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+const s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
 
-const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
+static uint8_t test_send_key[S2N_TLS_AES_256_GCM_KEY_LEN] = { 0 };
+static int s2n_test_set_send_key(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_ENSURE_REF(key);
+    POSIX_ENSURE_REF(in);
+    POSIX_CHECKED_MEMCPY(test_send_key, in->data, in->size);
+    return S2N_SUCCESS;
+}
+
+static uint8_t test_recv_key[S2N_TLS_AES_256_GCM_KEY_LEN] = { 0 };
+static int s2n_test_set_recv_key(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_ENSURE_REF(key);
+    POSIX_ENSURE_REF(in);
+    POSIX_CHECKED_MEMCPY(test_recv_key, in->data, in->size);
+    return S2N_SUCCESS;
+}
+
+#define EXPECT_IVS_EQUAL(conn, iv, iv_mode) \
+    if ((iv_mode) == S2N_CLIENT) { \
+        EXPECT_BYTEARRAY_EQUAL((conn)->secure.client_implicit_iv, (iv).data, (iv).size); \
+    } else { \
+        EXPECT_BYTEARRAY_EQUAL((conn)->secure.server_implicit_iv, (iv).data, (iv).size); \
+    }
+
+#define EXPECT_KEYS_EQUAL(conn, key, key_mode) \
+    if ((conn)->mode == (key_mode)) { \
+        EXPECT_BYTEARRAY_EQUAL(test_send_key, (key).data, (key).size); \
+    } else { \
+        EXPECT_BYTEARRAY_EQUAL(test_recv_key, (key).data, (key).size); \
+    }
 
 int main(int argc, char **argv)
 {
@@ -38,6 +68,18 @@ int main(int argc, char **argv)
     if (!s2n_is_evp_apis_supported()) {
         END_TEST();
     }
+
+    /* Once a key is set via the standard ciphers, we are unable to retrieve it.
+     * So use a custom cipher to store the keys for later verification.
+     */
+    struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
+    struct s2n_record_algorithm test_record_alg = *(test_cipher_suite.record_alg);
+    struct s2n_cipher test_cipher = *(test_record_alg.cipher);
+    test_cipher.set_decryption_key = &s2n_test_set_recv_key;
+    test_cipher.set_encryption_key = &s2n_test_set_send_key;
+    test_record_alg.cipher = &test_cipher;
+    test_cipher_suite.record_alg = &test_record_alg;
+    struct s2n_cipher_suite *cipher_suite = &test_cipher_suite;
 
     /*
      * Simple 1-RTT Handshake
@@ -52,6 +94,7 @@ int main(int argc, char **argv)
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+         *= type=test
          *#    {client}  extract secret "handshake" (same as server handshake
          *# secret)
          *
@@ -72,6 +115,7 @@ int main(int argc, char **argv)
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+         *= type=test
          *#       hash (32 octets):  86 0c 06 ed c0 78 58 ee 8e 78 f0 e7 42 8c 58 ed
          *#          d6 b4 3f 2c a3 e6 e9 5f 02 ed 06 3c f0 e1 ca d8
          */
@@ -82,10 +126,12 @@ int main(int argc, char **argv)
         {
             /**
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {client}  derive read traffic keys for handshake data (same as server
              *#        handshake data write traffic keys)
              *
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {server}  derive write traffic keys for handshake data:
              *#
              *#       PRK (32 octets):  b6 7b 7d 69 0c c1 6c 4e 75 e5 42 13 cb 2d 37 b4
@@ -108,7 +154,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_OK(s2n_connection_set_handshake_secret(conn, &handshake_secret));
+                EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
                 EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_hello_digest,
                         server_hello_hash.data, server_hello_hash.size);
 
@@ -117,7 +163,8 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-                EXPECT_BYTEARRAY_EQUAL(conn->secure.server_implicit_iv, iv.data, iv.size);
+                EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
+                EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
         }
 
@@ -125,10 +172,12 @@ int main(int argc, char **argv)
         {
             /**
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {client}  derive write traffic keys for handshake data (same as
              *#       server handshake data read traffic keys)
              *
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {server}  derive read traffic keys for handshake data:
              *#
              *#       PRK (32 octets):  b3 ed db 12 6e 06 7f 35 a7 80 b3 ab f4 5e 2d 8f
@@ -151,7 +200,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_OK(s2n_connection_set_handshake_secret(conn, &handshake_secret));
+                EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
                 EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_hello_digest,
                         server_hello_hash.data, server_hello_hash.size);
 
@@ -160,15 +209,18 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
 
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-                EXPECT_BYTEARRAY_EQUAL(conn->secure.client_implicit_iv, iv.data, iv.size);
+                EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
+                EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
         }
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+         *= type=test
          *#    {client}  extract secret "master" (same as server master secret)
          *
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+         *= type=test
          *#    {server}  extract secret "master":
          *#
          *#       salt (32 octets):  43 de 77 e0 c7 77 13 85 9a 94 4d b9 db 25 90 b5
@@ -178,6 +230,7 @@ int main(int argc, char **argv)
          *#          00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
          **
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+         *= type=test
          *#       secret (32 octets):  18 df 06 84 3d 13 a0 8b f2 a4 49 84 4c 5f 8a
          *#          47 80 01 bc 4d 4c 62 79 84 d5 a4 1d a8 d0 40 29 19
          */
@@ -186,6 +239,7 @@ int main(int argc, char **argv)
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+         *= type=test
          *#       hash (32 octets):  96 08 10 2a 0f 1c cc 6d b6 25 0b 7b 7e 41 7b 1a
          *#          00 0e aa da 3d aa e4 77 7a 76 86 c9 ff 83 df 13
          */
@@ -196,10 +250,12 @@ int main(int argc, char **argv)
         {
             /**
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {client}  derive read traffic keys for application data (same as
              *#       server application data write traffic keys)
              *
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {server}  derive write traffic keys for application data:
              *#
              *#       PRK (32 octets):  a1 1a f9 f0 55 31 f8 56 ad 47 11 6b 45 a9 50 32
@@ -228,7 +284,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_OK(s2n_connection_set_master_secret(conn, &master_secret));
+                EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
                 EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_finished_digest,
                         server_finished_hash.data, server_finished_hash.size);
 
@@ -237,7 +293,8 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), trigger_message);
 
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-                EXPECT_BYTEARRAY_EQUAL(conn->secure.server_implicit_iv, iv.data, iv.size);
+                EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
+                EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
         }
 
@@ -245,10 +302,12 @@ int main(int argc, char **argv)
         {
             /**
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {server}  derive read traffic keys for application data (same as
              *#       client application data write traffic keys)
              *
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= type=test
              *#    {client}  derive write traffic keys for application data:
              *#
              *#       PRK (32 octets):  9e 40 64 6c e7 9a 7f 9d c0 5a f8 88 9b ce 65 52
@@ -271,7 +330,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_OK(s2n_connection_set_master_secret(conn, &master_secret));
+                EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
                 EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_finished_digest,
                         server_finished_hash.data, server_finished_hash.size);
 
@@ -280,7 +339,8 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
 
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-                EXPECT_BYTEARRAY_EQUAL(conn->secure.client_implicit_iv, iv.data, iv.size);
+                EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
+                EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
         }
     }
@@ -295,9 +355,11 @@ int main(int argc, char **argv)
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+         *= type=test
          *#    {server}  extract secret "early" (same as client early secret)
          *
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+         *= type=test
          *#    {client}  extract secret "early":
          *#
          *#       salt:  0 (all zero octets)
@@ -313,6 +375,7 @@ int main(int argc, char **argv)
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+         *= type=test
          *#       hash (32 octets):  08 ad 0f a0 5d 7c 72 33 b1 77 5b a2 ff 9f 4c 5b
          *#          8b 59 27 6b 7f 22 7f 13 a9 76 24 5f 5d 96 09 13
          */
@@ -323,10 +386,12 @@ int main(int argc, char **argv)
         {
             /**
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+             *= type=test
              *#    {server}  derive read traffic keys for early application data (same
              *#       as client early application data write traffic keys)
              *
              *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+             *= type=test
              *#    {client}  derive write traffic keys for early application data:
              *#
              *#       PRK (32 octets):  3f bb e6 a6 0d eb 66 c3 0a 32 79 5a ba 0e ff 7e
@@ -356,7 +421,7 @@ int main(int argc, char **argv)
                 conn->secure.cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-                EXPECT_OK(s2n_connection_set_early_secret(conn, &early_secret));
+                EXPECT_OK(s2n_connection_set_test_early_secret(conn, &early_secret));
                 EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->client_hello_digest,
                         client_hello_hash.data, client_hello_hash.size);
 
@@ -365,14 +430,15 @@ int main(int argc, char **argv)
                  * but needs to be set to something because the server derives the handshake
                  * secret before it calculates the early data key.
                  */
-                EXPECT_OK(s2n_connection_set_handshake_secret(conn, &(struct s2n_blob){ 0 }));
+                EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &(struct s2n_blob){ 0 }));
 
                 conn->handshake.handshake_type = resumed_handshake_type;
                 conn->handshake.message_number = resumed_message_nums[trigger_message];
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), trigger_message);
 
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-                EXPECT_BYTEARRAY_EQUAL(conn->secure.client_implicit_iv, iv.data, iv.size);
+                EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
+                EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
         }
     }

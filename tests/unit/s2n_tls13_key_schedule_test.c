@@ -216,33 +216,56 @@ int main(int argc, char **argv)
                      */
                     switch(s2n_conn_get_current_message_type(conn)) {
                         case CLIENT_HELLO:
+                            /* Expect not encrypted */
                             EXPECT_EQUAL(conn->client, &conn->initial);
+                            /* Expect all secrets not available yet */
+                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size, 0);
+                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case HELLO_RETRY_MSG:
                         case SERVER_HELLO:
+                            /* Expect not encrypted  */
                             EXPECT_EQUAL(conn->server, &conn->initial);
+                            /* Expect all secrets not available yet */
+                            EXPECT_EQUAL(secrets.blobs[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET].size, 0);
+                            EXPECT_EQUAL(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case END_OF_EARLY_DATA:
+                            /* Expect encrypted */
                             EXPECT_EQUAL(conn->client, &conn->secure);
+                            /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_EARLY_TRAFFIC_SECRET].size > 0);
+                            /* Expect other secrets not available yet */
+                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size, 0);
+                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case ENCRYPTED_EXTENSIONS:
                         case SERVER_CERT:
                         case SERVER_CERT_VERIFY:
                         case SERVER_FINISHED:
                         case SERVER_CERT_REQ:
+                            /* Expect encrypted */
                             EXPECT_EQUAL(conn->server, &conn->secure);
+                            /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET].size > 0);
+                            /* Expect other secrets not available yet */
+                            EXPECT_EQUAL(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case CLIENT_CERT:
                         case CLIENT_CERT_VERIFY:
                         case CLIENT_FINISHED:
+                            /* Expect encrypted */
                             EXPECT_EQUAL(conn->client, &conn->secure);
+                            /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size > 0);
+                            /* Expect other secrets not available yet */
+                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case APPLICATION_DATA:
+                            /* Expect encrypted */
                             EXPECT_EQUAL(conn->client, &conn->secure);
                             EXPECT_EQUAL(conn->server, &conn->secure);
+                            /* Expect correct secrets available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size > 0);
                             EXPECT_TRUE(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size > 0);
                             break;

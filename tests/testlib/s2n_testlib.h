@@ -74,9 +74,9 @@ S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint
 S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite);
 
-S2N_RESULT s2n_connection_set_early_secret(struct s2n_connection *conn, const struct s2n_blob *early_secret);
-S2N_RESULT s2n_connection_set_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
-S2N_RESULT s2n_connection_set_master_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
+S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, const struct s2n_blob *early_secret);
+S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
+S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
 
 #define S2N_MAX_TEST_PEM_SIZE 4096
 

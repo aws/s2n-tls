@@ -46,8 +46,8 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(data);
-    POSIX_ENSURE_REF(conn->handshake.hashes);
     struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
+    POSIX_ENSURE_REF(hashes);
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
         /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
