@@ -339,7 +339,7 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
      * The client finished key needs to be calculated using the
      * same connection state as the client handshake secret.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
@@ -368,7 +368,7 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
      * The server finished key needs to be calculated using the
      * same connection state as the server handshake secret.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
