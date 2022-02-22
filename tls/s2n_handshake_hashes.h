@@ -34,8 +34,10 @@ struct s2n_handshake_hashes {
      * calculate a secret that requires a specific state, we store
      * copies of digests used for secret derivation.
      */
+    uint8_t client_hello_digest[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t server_hello_digest[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t server_finished_digest[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t client_finished_digest[S2N_TLS13_SECRET_MAX_LEN];
 
     /* To avoid allocating memory for hash objects, we reuse one temporary hash object.
      * Do NOT rely on this hash state maintaining its value outside of the current context.

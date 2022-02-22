@@ -147,6 +147,13 @@ static int s2n_client_early_data_indication_send(struct s2n_connection *conn, st
 {
     POSIX_GUARD_RESULT(s2n_setup_middlebox_compat_for_early_data(conn));
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
+
+    /* Set the cipher suite for early data */
+    struct s2n_psk *first_psk = NULL;
+    POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
+    POSIX_ENSURE_REF(first_psk);
+    conn->secure.cipher_suite = first_psk->early_data_config.cipher_suite;
+
     return S2N_SUCCESS;
 }
 

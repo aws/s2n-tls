@@ -21,6 +21,7 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_tls13_secrets.h"
 
 #include "utils/s2n_array.h"
 #include "utils/s2n_mem.h"
@@ -416,12 +417,9 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     POSIX_ENSURE_EQ(binder_hash->size, psk_keys.size);
     POSIX_ENSURE_EQ(output_binder->size, psk_keys.size);
 
-    /* Make sure the early secret is saved on the psk structure for later use */
-    POSIX_GUARD(s2n_realloc(&psk->early_secret, psk_keys.size));
-    POSIX_GUARD(s2n_blob_init(&psk_keys.extract_secret, psk->early_secret.data, psk_keys.size));
-
     /* Derive the binder key */
-    POSIX_GUARD(s2n_tls13_derive_binder_key(&psk_keys, psk));
+    POSIX_GUARD_RESULT(s2n_derive_binder_key(psk, &psk_keys.derive_secret));
+    POSIX_GUARD(s2n_blob_init(&psk_keys.extract_secret, psk->early_secret.data, psk_keys.size));
     struct s2n_blob *binder_key = &psk_keys.derive_secret;
 
     /* Expand the binder key into the finished key */
