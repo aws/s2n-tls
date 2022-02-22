@@ -104,8 +104,14 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, prot
         }.get(certificate.algorithm),
     )
 
-    server = managed_process(S2N, server_options, timeout=20)
-    client = managed_process(provider, client_options, timeout=20)
+    kill_marker = None
+    if provider == GnuTLS:
+        # the gnutls client hangs for a while after sending. speed up the tests by killing
+        # it immediately after sending the message.
+        kill_marker = b"Sent: "
+
+    server = managed_process(S2N, server_options, timeout=2000)
+    client = managed_process(provider, client_options, timeout=2000, kill_marker=kill_marker)
 
     for client_results in client.get_results():
         client_results.assert_success()
