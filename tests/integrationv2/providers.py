@@ -245,6 +245,9 @@ class S2N(Provider):
         if self.options.reconnects_before_exit is not None:
             cmd_line.append('--max-conns={}'.format(self.options.reconnects_before_exit))
 
+        if self.options.ocsp_response is not None:
+            cmd_line.extend(["--ocsp", self.options.ocsp_response])
+
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
 
@@ -443,6 +446,9 @@ class OpenSSL(Provider):
             # We use "Verify" instead of "verify" to require a client cert
             cmd_line.extend(['-Verify', '1'])
 
+        if self.options.ocsp_response is not None:
+            cmd_line.extend(["-status_file", self.options.ocsp_response])
+
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
 
@@ -551,6 +557,8 @@ class BoringSSL(Provider):
 class GnuTLS(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
+
+        self.expect_stderr = True
 
     @staticmethod
     def cipher_to_priority_str(cipher):

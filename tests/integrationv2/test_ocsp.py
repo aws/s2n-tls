@@ -13,7 +13,7 @@ OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [GnuTLS])
+@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS])
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
@@ -46,12 +46,16 @@ def test_s2n_client_ocsp_response(managed_process, cipher, provider, curve, prot
         }.get(certificate.algorithm),
     )
 
+    kill_marker = None
+
+    if provider == GnuTLS:
+        kill_marker = random_bytes
+
     server = managed_process(
         provider,
         server_options,
         timeout=30,
-        kill_marker=random_bytes,
-        expect_stderr=True
+        kill_marker=kill_marker
     )
     client = managed_process(S2N, client_options, timeout=30)
 
