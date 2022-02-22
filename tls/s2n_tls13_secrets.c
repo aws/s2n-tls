@@ -503,3 +503,31 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
     RESULT_GUARD(s2n_trigger_secret_callbacks(conn, secret, secret_type, mode));
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_tls13_secrets_finish(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_RESULT_OK;
+    }
+
+    /*
+     * Prepare TLS1.3 resumption secret.
+     * A ticket can be requested any time after the handshake ends,
+     * so we need to calculate this before the handshake ends.
+     */
+    RESULT_GUARD(s2n_derive_resumption_master_secret(conn));
+
+    /*
+     * Wipe base secrets.
+     * Not strictly necessary, but probably safer than leaving them.
+     * Compromising a secret compromises all secrets derived from it,
+     * so these are the most sensitive secrets.
+     */
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, early_secret)));
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, handshake_secret)));
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, master_secret)));
+    conn->secrets.tls13.secrets_count = 0;
+
+    return S2N_RESULT_OK;
+}

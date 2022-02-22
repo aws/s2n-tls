@@ -224,5 +224,63 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_tls13_secrets_finish */
+    {
+        /* Safety */
+        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_finish(NULL), S2N_ERR_NULL);
+
+        struct s2n_blob test_secret = { 0 };
+        uint8_t test_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = "hello world";
+        EXPECT_SUCCESS(s2n_blob_init(&test_secret, test_secret_bytes, sizeof(test_secret_bytes)));
+
+        /* Wipes all secrets */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
+
+            EXPECT_OK(s2n_connection_set_test_early_secret(conn, &test_secret));
+            EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &test_secret));
+            EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
+
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
+
+            EXPECT_OK(s2n_tls13_secrets_finish(conn));
+
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
+        }
+
+        /* Stores TLS1.3 resumption secret */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,
+                    empty_secret, sizeof(empty_secret));
+
+            /* Does NOT calculate secret if TLS1.2 */
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_OK(s2n_tls13_secrets_finish(conn));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,
+                    empty_secret, sizeof(empty_secret));
+
+            /* Calculates secret if TLS1.3 */
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_tls13_secrets_finish(conn));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.resumption_master_secret,
+                    empty_secret, sizeof(empty_secret));
+        }
+    }
+
     END_TEST();
 }
