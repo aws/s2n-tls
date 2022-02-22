@@ -4,8 +4,8 @@ name: Linters
 on:
   pull_request:
     branches:
-      - master
       - main
+      - flake8
 
 jobs:
   cppcheck:
@@ -70,3 +70,16 @@ jobs:
         run: |
           ./codebuild/bin/run_kwstyle.sh
           ./codebuild/bin/cpp_style_comment_linter.sh
+
+  python_flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python environment
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.8"
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
+        with:
+          path: "tests/integrationv2"

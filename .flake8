@@ -1,0 +1,6 @@
+[flake8]
+ignore = E501
+exclude = .git,__pycache__,bin,.tox
+max-complexity = 10
+count=True
+
