@@ -68,7 +68,7 @@ S2N_RESULT s2n_key_log_hex_encode(struct s2n_stuffer *output, uint8_t *bytes, si
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, struct s2n_blob *secret, s2n_secret_type_t secret_type)
+S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, const struct s2n_blob *secret, s2n_secret_type_t secret_type)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);

@@ -165,34 +165,32 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     }
 
     /* Verify basic properties of secrets */
-    s2n_tls13_connection_keys(server_secrets, server_conn);
-    s2n_tls13_connection_keys(client_secrets, client_conn);
-    POSIX_ENSURE_REF(server_secrets.extract_secret.data);
-    POSIX_ENSURE_REF(server_secrets.derive_secret.data);
-    POSIX_ENSURE_REF(client_secrets.extract_secret.data);
-    POSIX_ENSURE_REF(client_secrets.derive_secret.data);
+    s2n_tls13_connection_keys(server_secret_info, server_conn);
+    s2n_tls13_connection_keys(client_secret_info, client_conn);
     POSIX_ENSURE_EQ(server_conn->secure.cipher_suite, client_conn->secure.cipher_suite);
     if (server_conn->secure.cipher_suite == &s2n_tls13_aes_256_gcm_sha384) {
-        POSIX_ENSURE_EQ(server_secrets.size, 48);
-        POSIX_ENSURE_EQ(client_secrets.size, 48);
+        POSIX_ENSURE_EQ(server_secret_info.size, 48);
+        POSIX_ENSURE_EQ(client_secret_info.size, 48);
     } else {
-        POSIX_ENSURE_EQ(server_secrets.size, 32);
-        POSIX_ENSURE_EQ(client_secrets.size, 32);
+        POSIX_ENSURE_EQ(server_secret_info.size, 32);
+        POSIX_ENSURE_EQ(client_secret_info.size, 32);
     }
 
     /* Verify secrets aren't just zero'ed memory */
     uint8_t all_zeros[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     POSIX_CHECKED_MEMSET((void *)all_zeros, 0, S2N_TLS13_SECRET_MAX_LEN);
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets.derive_secret.data, client_secrets.derive_secret.size));
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets.extract_secret.data, client_secrets.extract_secret.size));
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets.derive_secret.data, server_secrets.derive_secret.size));
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets.extract_secret.data, server_secrets.extract_secret.size));
+    struct s2n_tls13_secrets *client_secrets = &client_conn->secrets.tls13;
+    struct s2n_tls13_secrets *server_secrets = &server_conn->secrets.tls13;
+    POSIX_ENSURE_EQ(server_secret_info.size, client_secret_info.size);
+    uint8_t size = server_secret_info.size;
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->early_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->handshake_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->early_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->handshake_secret, size));
 
     /* Verify client and server secrets are equal to each other */
-    POSIX_ENSURE_EQ(server_secrets.derive_secret.size, client_secrets.derive_secret.size);
-    POSIX_ENSURE_EQ(0, memcmp(server_secrets.derive_secret.data, client_secrets.derive_secret.data, client_secrets.derive_secret.size));
-    POSIX_ENSURE_EQ(server_secrets.extract_secret.size, client_secrets.extract_secret.size);
-    POSIX_ENSURE_EQ(0, memcmp(server_secrets.extract_secret.data, client_secrets.extract_secret.data, client_secrets.extract_secret.size));
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets->early_secret, client_secrets->early_secret, size));
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets->handshake_secret, client_secrets->handshake_secret, size));
 
     /* Clean up */
     POSIX_GUARD(s2n_stuffer_free(&client_to_server));
