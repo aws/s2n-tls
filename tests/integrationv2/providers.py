@@ -70,10 +70,6 @@ class Provider(object):
     def supports_cipher(cls, cipher, with_curve=None):
         raise NotImplementedError
 
-    @classmethod
-    def supports_certificate(cls, certificate):
-        return True
-
     def get_cmd_line(self):
         return self.cmd_line
 
@@ -687,13 +683,3 @@ class GnuTLS(Provider):
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         return GnuTLS.cipher_to_priority_str(cipher) is not None
-
-    @classmethod
-    def supports_certificate(cls, certificate):
-        # there are many cipher/certificate conflicts with the normal test certificates
-        # that are used. in order to test all the ciphers with gnutls, the certificates
-        # are limited to only these two.
-        return certificate in {
-            Certificates.OCSP,
-            Certificates.OCSP_ECDSA
-        }
