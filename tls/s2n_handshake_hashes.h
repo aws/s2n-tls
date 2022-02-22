@@ -18,6 +18,7 @@
 #include "api/s2n.h"
 
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_tls13_keys.h"
 
 struct s2n_handshake_hashes {
     struct s2n_hash_state md5;
@@ -28,11 +29,13 @@ struct s2n_handshake_hashes {
     struct s2n_hash_state sha512;
     struct s2n_hash_state md5_sha1;
 
-    /* TLS1.3 does not always use a hash immediately.
-     * We save copies of some states for later use in the key schedule.
+    /* TLS1.3 requires transcript hash digests to calculate secrets.
+     * Because the transcript hash may be updated again before we
+     * calculate a secret that requires a specific state, we store
+     * copies of digests used for secret derivation.
      */
-    struct s2n_hash_state server_hello_copy;
-    struct s2n_hash_state server_finished_copy;
+    uint8_t server_hello_digest[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t server_finished_digest[S2N_TLS13_SECRET_MAX_LEN];
 
     /* To avoid allocating memory for hash objects, we reuse one temporary hash object.
      * Do NOT rely on this hash state maintaining its value outside of the current context.

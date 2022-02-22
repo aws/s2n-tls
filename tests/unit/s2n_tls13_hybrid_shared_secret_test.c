@@ -552,17 +552,19 @@ int main(int argc, char **argv) {
             EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, test_vector->cipher_suite->prf_alg));
             EXPECT_SUCCESS(s2n_tls13_derive_early_secret(&secrets, NULL));
 
+            s2n_tls13_key_blob(client_traffic_secret, secrets.size);
+            s2n_tls13_key_blob(server_traffic_secret, secrets.size);
+            s2n_tls13_key_blob(message_digest, secrets.size);
+
             DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
             EXPECT_SUCCESS(s2n_hash_new(&hash_state));
             EXPECT_SUCCESS(s2n_hash_init(&hash_state, secrets.hash_algorithm));
             EXPECT_SUCCESS(s2n_hash_update(&hash_state, test_vector->transcript, strlen(test_vector->transcript)));
-
-            s2n_tls13_key_blob(client_traffic_secret, secrets.size);
-            s2n_tls13_key_blob(server_traffic_secret, secrets.size);
+            EXPECT_SUCCESS(s2n_hash_digest(&hash_state, message_digest.data, message_digest.size));
 
             EXPECT_SUCCESS(s2n_tls13_extract_handshake_secret(&secrets, &client_calculated_shared_secret));
-            EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state, &client_traffic_secret, S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state, &server_traffic_secret, S2N_SERVER));
+            EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &message_digest, &client_traffic_secret, S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &message_digest, &server_traffic_secret, S2N_SERVER));
 
             /* Assert correctness of traffic secrets */
             EXPECT_EQUAL(test_vector->expected_client_traffic_secret->size, client_traffic_secret.size);

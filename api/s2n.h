@@ -343,6 +343,15 @@ S2N_API
 extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
 S2N_API
 extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+/**
+ * Used to check if a particular extension exists in the client hello.
+ *
+ * @param ch A pointer to the client hello object
+ * @param extension_iana The iana value of the extension
+ * @param exists A pointer that will be set to whether or not the extension exists
+ */
+S2N_API
+extern int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extension_iana, bool *exists);
 S2N_API
 extern int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
 S2N_API

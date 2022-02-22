@@ -46,8 +46,8 @@
 static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
 {
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_hello_copy));
-    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.hashes->server_finished_copy));
+    POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_hello_digest));
+    POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, conn->handshake.hashes->server_finished_digest));
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -199,8 +199,8 @@ int main(int argc, char **argv)
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         /* populating server hello hash is now a requirement for s2n_tls13_handle_handshake_traffic_secret */
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.hashes->server_hello_copy));
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.hashes->server_hello_copy));
+        EXPECT_OK(s2n_tls13_calculate_digest(server_conn, server_conn->handshake.hashes->server_hello_digest));
+        EXPECT_OK(s2n_tls13_calculate_digest(client_conn, client_conn->handshake.hashes->server_hello_digest));
 
         EXPECT_SUCCESS(s2n_tls13_handle_early_secret(server_conn));
         EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(server_conn));
@@ -274,8 +274,8 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, TLS_APPLICATION_DATA, uint8);
 
         /* populating server finished hash is now a requirement for s2n_tls13_handle_application_secrets */
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.hashes->server_finished_copy));
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.hashes->server_finished_copy));
+        EXPECT_OK(s2n_tls13_calculate_digest(server_conn, server_conn->handshake.hashes->server_finished_digest));
+        EXPECT_OK(s2n_tls13_calculate_digest(client_conn, client_conn->handshake.hashes->server_finished_digest));
 
         EXPECT_SUCCESS(s2n_tls13_handle_master_secret(client_conn));
         EXPECT_SUCCESS(s2n_tls13_handle_master_secret(server_conn));

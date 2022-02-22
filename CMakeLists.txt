@@ -12,6 +12,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
@@ -229,6 +231,13 @@ try_compile(
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/cpuid.c"
 )
 
+# Determine if features.h is available
+try_compile(
+        S2N_FEATURES_AVAILABLE
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/features.c"
+)
+
 # Determine if __attribute__((fallthrough)) is available
 try_compile(
         FALL_THROUGH_SUPPORTED
@@ -378,6 +387,10 @@ if(S2N_CPUID_AVAILABLE)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_CPUID_AVAILABLE)
 endif()
 
+if(S2N_FEATURES_AVAILABLE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_FEATURES_AVAILABLE)
+endif()
+
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE -D_POSIX_C_SOURCE=200809L)
@@ -401,16 +414,16 @@ if (__RESTRICT__SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
-if (SEARCH_LIBCRYPTO)
-    find_package(LibCrypto REQUIRED)
+#work around target differences
+if (TARGET crypto)
+    message(STATUS "S2N found target: crypto")
+    set(LINK_LIB "crypto")
 else()
-    if (TARGET crypto)
-        message(STATUS "S2N found target: crypto")
-    else()
-        message(FATAL_ERROR "Target crypto is not defined, failed to find libcrypto")
-    endif()
+    find_package(crypto REQUIRED)
+    message("Using libcrypto from the cmake path.")
+    set(LINK_LIB "AWS::crypto")
 endif()
 
 # Determine if EVP_md5_sha1 is available in libcrypto
@@ -418,9 +431,7 @@ try_compile(
         LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md5_sha1.c"
-        LINK_LIBRARIES crypto ${OS_LIBS}
-        CMAKE_FLAGS
-            "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
 )
 if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
@@ -431,16 +442,16 @@ try_compile(
         LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md_ctx_set_pkey_ctx.c"
-        LINK_LIBRARIES crypto ${OS_LIBS}
-        CMAKE_FLAGS
-            "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+        CMAKE_FLAGS ${ADDITIONAL_FLAGS}
 )
+
 if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
-    if (NOT LibCrypto_STATIC_LIBRARY)
+    if (NOT crypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
@@ -448,7 +459,7 @@ if (S2N_INTERN_LIBCRYPTO)
         OUTPUT libcrypto.symbols
         COMMAND
           # copy the static version of libcrypto
-          cp ${LibCrypto_STATIC_LIBRARY} libcrypto.a &&
+          cp ${crypto_STATIC_LIBRARY} libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
           bash -c "nm libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
@@ -495,15 +506,14 @@ if (S2N_INTERN_LIBCRYPTO)
         )
     endif()
 else()
-    target_link_libraries(${PROJECT_NAME} PUBLIC crypto)
+    # LINK_LIB is set above after checking targets. It handles the find_package craziness.
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
-
-target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
 if (BUILD_TESTING)
     enable_testing()
@@ -515,7 +525,6 @@ if (BUILD_TESTING)
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
-    target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
     if (S2N_INTERN_LIBCRYPTO)
         # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
@@ -566,13 +575,13 @@ if (BUILD_TESTING)
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
-    target_include_directories(s2nc PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
     target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
-    target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
@@ -602,8 +611,6 @@ if (BUILD_TESTING)
 
     endif()
 endif()
-
-
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
@@ -641,6 +648,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/"
         COMPONENT Development)
 
-install(FILES "cmake/modules/FindLibCrypto.cmake"
+install(FILES "cmake/modules/Findcrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)

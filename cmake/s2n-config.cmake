@@ -6,7 +6,7 @@ if (NOT MSVC)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/modules")
-find_dependency(LibCrypto)
+find_dependency(crypto)
 
 if (BUILD_SHARED_LIBS)
     include(${CMAKE_CURRENT_LIST_DIR}/shared/@PROJECT_NAME@-targets.cmake)

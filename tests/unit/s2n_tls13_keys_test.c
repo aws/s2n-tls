@@ -196,21 +196,19 @@ int main(int argc, char **argv)
 
     s2n_tls13_key_blob(client_handshake_secret, secrets.size);
     s2n_tls13_key_blob(server_handshake_secret, secrets.size);
+    s2n_tls13_key_blob(message_digest, secrets.size);
 
     DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
     EXPECT_SUCCESS(s2n_hash_new(&hash_state_copy));
+
     EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
+    EXPECT_SUCCESS(s2n_hash_digest(&hash_state_copy, message_digest.data, message_digest.size));
+    S2N_BLOB_EXPECT_EQUAL(expect_derived_client_handshake_secret_digest, message_digest);
 
     /* Derive Handshake Secrets */
     EXPECT_SUCCESS(s2n_tls13_extract_handshake_secret(&secrets, &ecdhe));
-    EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state_copy, &client_handshake_secret, S2N_CLIENT));
-    EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state_copy, &server_handshake_secret, S2N_SERVER));
-
-    /* this checks that the original hash state can still be used to derive a hash without being affected by the derive function */
-    s2n_tls13_key_blob(client_server_hello_hash, secrets.size);
-    EXPECT_SUCCESS(s2n_hash_digest(&hash_state_copy, client_server_hello_hash.data, client_server_hello_hash.size));
-    S2N_BLOB_EXPECT_EQUAL(expect_derived_client_handshake_secret_digest, client_server_hello_hash);
-    EXPECT_SUCCESS(s2n_hash_free(&hash_state_copy));
+    EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &message_digest, &client_handshake_secret, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &message_digest, &server_handshake_secret, S2N_SERVER));
 
     S2N_BLOB_EXPECT_EQUAL(expect_derived_client_handshake_secret, client_handshake_secret);
     S2N_BLOB_EXPECT_EQUAL(expect_derived_server_handshake_secret, server_handshake_secret);
@@ -230,7 +228,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_tls13_derive_finished_key(&secrets, &server_handshake_secret, &server_finished_key));
 
     s2n_tls13_key_blob(server_finished_verify, secrets.size);
-    EXPECT_SUCCESS(s2n_tls13_calculate_finished_mac(&secrets, &server_finished_key, &hash_state, &server_finished_verify));
+    EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
+    EXPECT_SUCCESS(s2n_tls13_calculate_finished_mac(&secrets, &server_finished_key, &hash_state_copy, &server_finished_verify));
 
     S2N_BLOB_EXPECT_EQUAL(expect_server_finished_verify, server_finished_verify);
 
@@ -241,7 +240,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_tls13_derive_finished_key(&secrets, &client_handshake_secret, &client_finished_key));
 
     s2n_tls13_key_blob(client_finished_verify, secrets.size);
-    EXPECT_SUCCESS(s2n_tls13_calculate_finished_mac(&secrets, &client_finished_key, &hash_state, &client_finished_verify));
+    EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
+    EXPECT_SUCCESS(s2n_tls13_calculate_finished_mac(&secrets, &client_finished_key, &hash_state_copy, &client_finished_verify));
 
     /* Test Client Finished MAC hash */
     S2N_BLOB_EXPECT_EQUAL(expect_client_finished_verify, client_finished_verify);
@@ -249,10 +249,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_tls13_extract_master_secret(&secrets));
     S2N_BLOB_EXPECT_EQUAL(expect_extract_master_secret, secrets.extract_secret);
 
-    EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &hash_state, &client_application_secret, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
+    EXPECT_SUCCESS(s2n_hash_digest(&hash_state_copy, message_digest.data, message_digest.size));
+
+    EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &message_digest, &client_application_secret, S2N_CLIENT));
     S2N_BLOB_EXPECT_EQUAL(expect_derived_client_application_traffic_secret, client_application_secret);
 
-    EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &hash_state, &server_application_secret, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &message_digest, &server_application_secret, S2N_SERVER));
     S2N_BLOB_EXPECT_EQUAL(expect_derived_server_application_traffic_secret, server_application_secret);
 
     /* Update handshake hashes with Client Finished */
