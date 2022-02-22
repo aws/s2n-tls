@@ -53,9 +53,6 @@ int main(int argc, char **argv)
 
     /* Test wiping PSKs after use */
     {
-        DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_realloc(&shared_secret, SHA256_DIGEST_LENGTH));
-
         /* PSKs are wiped when chosen PSK is NULL */
         {
             struct s2n_connection *conn;
@@ -89,6 +86,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
+            DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
             /* Verify secrets are wiped */
@@ -147,6 +145,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
+            DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
             /* Verify secrets are wiped */
