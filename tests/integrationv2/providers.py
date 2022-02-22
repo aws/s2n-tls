@@ -187,6 +187,9 @@ class S2N(Provider):
             if self.options.cert:
                 cmd_line.extend(['--cert', self.options.cert])
 
+        if self.options.enable_client_ocsp:
+            cmd_line.extend(["--status"])
+
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
 
@@ -673,6 +676,9 @@ class GnuTLS(Provider):
         if self.options.cipher:
             if self.options.cipher.parameters:
                 cmd_line.extend(["--dhparams", self.options.cipher.parameters])
+
+        if self.options.ocsp_response:
+            cmd_line.extend(["--ocsp-response", self.options.ocsp_response])
 
         return cmd_line
 

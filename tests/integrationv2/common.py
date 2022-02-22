@@ -402,7 +402,8 @@ class Results(object):
 
 
 class ProviderOptions(object):
-    def __init__(self,
+    def __init__(
+            self,
             mode=None,
             host=None,
             port=None,
@@ -422,7 +423,10 @@ class ProviderOptions(object):
             server_name=None,
             protocol=None,
             use_mainline_version=None,
-            env_overrides=dict()):
+            env_overrides=dict(),
+            enable_client_ocsp=False,
+            ocsp_response=None
+    ):
 
         # Client or server
         self.mode = mode
@@ -485,3 +489,9 @@ class ProviderOptions(object):
 
         # Extra environment parameters
         self.env_overrides = env_overrides
+
+        # Enable OCSP on the client
+        self.enable_client_ocsp = enable_client_ocsp
+
+        # Path to OCSP response on the server
+        self.ocsp_response = ocsp_response

@@ -1,0 +1,65 @@
+import pytest
+
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, PROTOCOLS
+from common import ProviderOptions, Protocols, data_bytes, Certificates
+from fixtures import managed_process
+from constants import TEST_OCSP_DIRECTORY
+from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS
+from utils import invalid_test_parameters, get_parameter_name
+
+
+OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [GnuTLS])
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
+def test_s2n_client_ocsp_response(managed_process, cipher, provider, curve, protocol, certificate):
+    port = next(available_ports)
+
+    random_bytes = data_bytes(128)
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        protocol=protocol,
+        insecure=True,
+        data_to_send=random_bytes,
+        enable_client_ocsp=True
+    )
+
+    server_options = ProviderOptions(
+        mode=Provider.ServerMode,
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        protocol=protocol,
+        key=certificate.key,
+        cert=certificate.cert,
+        ocsp_response={
+            "RSA":  TEST_OCSP_DIRECTORY + "ocsp_response.der",
+            "EC":   TEST_OCSP_DIRECTORY + "ocsp_ecdsa_response.der"
+        }.get(certificate.algorithm),
+    )
+
+    server = managed_process(
+        provider,
+        server_options,
+        timeout=30,
+        kill_marker=random_bytes,
+        expect_stderr=True
+    )
+    client = managed_process(S2N, client_options, timeout=30)
+
+    for client_results in client.get_results():
+        client_results.assert_success()
+        assert b"OCSP response received" in client_results.stdout
+
+    for server_results in server.get_results():
+        server_results.assert_success()
+        assert random_bytes[1:] in server_results.stdout or random_bytes[1:] in server_results.stderr
+
