@@ -8,8 +8,9 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [features]
-default = []
+default = ["internal"]
 quic = ["s2n-tls-sys/quic"]
+internal = ["s2n-tls-sys/internal"]
 pq = ["s2n-tls-sys/pq"]
 testing = ["errno", "bytes"]
 
