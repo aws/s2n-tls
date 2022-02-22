@@ -397,6 +397,9 @@ class OpenSSL(Provider):
             if self.options.verify_hostname is not None:
                 cmd_line.extend(['-verify_hostname', self.options.server_name])
 
+        if self.options.enable_client_ocsp:
+            cmd_line.append("-status")
+
         # Clients are always ready to connect
         self.set_provider_ready()
 
@@ -648,7 +651,8 @@ class GnuTLS(Provider):
             "gnutls-cli",
             "--port", str(self.options.port),
             self.options.host,
-            "--debug", "9999"
+            "--debug", "9999",
+            "--verbose"
         ]
 
         if self.options.cert and self.options.key:
@@ -660,6 +664,9 @@ class GnuTLS(Provider):
 
         if self.options.insecure:
             cmd_line.extend(["--insecure"])
+
+        if self.options.enable_client_ocsp:
+            cmd_line.append("--ocsp")
 
         return cmd_line
 

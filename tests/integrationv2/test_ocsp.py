@@ -67,3 +67,56 @@ def test_s2n_client_ocsp_response(managed_process, cipher, provider, curve, prot
         server_results.assert_success()
         assert random_bytes[1:] in server_results.stdout or random_bytes[1:] in server_results.stderr
 
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [GnuTLS, OpenSSL])
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
+def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, protocol, certificate):
+    port = next(available_ports)
+
+    random_bytes = data_bytes(128)
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        protocol=protocol,
+        insecure=True,
+        data_to_send=random_bytes,
+        enable_client_ocsp=True
+    )
+
+    server_options = ProviderOptions(
+        mode=Provider.ServerMode,
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        protocol=protocol,
+        insecure=True,
+        key=certificate.key,
+        cert=certificate.cert,
+        ocsp_response={
+            "RSA":  TEST_OCSP_DIRECTORY + "ocsp_response.der",
+            "EC":   TEST_OCSP_DIRECTORY + "ocsp_ecdsa_response.der"
+        }.get(certificate.algorithm),
+    )
+
+    server = managed_process(S2N, server_options, timeout=20)
+    client = managed_process(provider, client_options, timeout=20)
+
+    for client_results in client.get_results():
+        client_results.assert_success()
+
+        assert any([
+            {
+                GnuTLS:  b"OCSP Response Information:\n\tResponse Status: Successful",
+                OpenSSL: b"OCSP Response Status: successful"
+            }.get(provider) in stream for stream in client_results.output_streams()
+        ])
+
+    for server_results in server.get_results():
+        server_results.assert_success()
+        assert any([random_bytes[1:] in stream for stream in server_results.output_streams()])

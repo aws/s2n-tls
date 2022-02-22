@@ -400,6 +400,9 @@ class Results(object):
         if not self.expect_stderr:
             assert not self.stderr
 
+    def output_streams(self):
+        return {self.stdout, self.stderr}
+
 
 class ProviderOptions(object):
     def __init__(
