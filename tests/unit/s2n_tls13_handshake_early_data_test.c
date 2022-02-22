@@ -535,25 +535,24 @@ int main()
             EXPECT_NOT_NULL(client_conn);
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->server_protocol_version = S2N_TLS13;
+            client_conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
             struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &psk));
             psk->hmac_alg = S2N_HMAC_SHA256;
             EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, max_early_data, 0x13, 0x01));
+            client_conn->secure.cipher_suite = psk->early_data_config.cipher_suite;
 
             /* Rewrite early secret with known early secret. */
             EXPECT_SUCCESS(s2n_dup(&early_secret, &psk->early_secret));
 
             /* Rewrite hashes with known ClientHello */
-            EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.hashes->sha256,
-                    client_hello_msg.data, client_hello_msg.size));
+            EXPECT_SUCCESS(s2n_conn_update_handshake_hashes(client_conn, &client_hello_msg));
 
-            client_conn->handshake.message_number = 0;
-            client_conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_tls13_handle_secrets(client_conn));
+            EXPECT_OK(s2n_tls13_key_schedule_update(client_conn));
 
             /* Check early secret secret set correctly */
-            EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls12.rsa_premaster_secret, early_secret.data, early_secret.size);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.early_secret, early_secret.data, early_secret.size);
 
             /* Check IV calculated correctly */
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_implicit_iv, iv.data, iv.size);

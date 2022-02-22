@@ -41,27 +41,9 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
     return S2N_SUCCESS;
 }
 
-/*
- * Initializes the tls13_keys struct
- */
-static int s2n_tls13_keys_init_with_ref(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg, uint8_t * extract,  uint8_t * derive)
-{
-    POSIX_ENSURE_REF(handshake);
-
-    handshake->hmac_algorithm = alg;
-    POSIX_GUARD(s2n_hmac_hash_alg(alg, &handshake->hash_algorithm));
-    POSIX_GUARD(s2n_hash_digest_size(handshake->hash_algorithm, &handshake->size));
-    POSIX_GUARD(s2n_blob_init(&handshake->extract_secret, extract, handshake->size));
-    POSIX_GUARD(s2n_blob_init(&handshake->derive_secret, derive, handshake->size));
-    POSIX_GUARD(s2n_hmac_new(&handshake->hmac));
-
-    return S2N_SUCCESS;
-}
-
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_tls13_keys_init_with_ref(keys, conn->secure.cipher_suite->prf_alg,
-            conn->secrets.tls13.extracted_secret, conn->secrets.tls13.derived_secret));
+    POSIX_GUARD(s2n_tls13_keys_init(keys, conn->secure.cipher_suite->prf_alg));
     return S2N_SUCCESS;
 }
 
