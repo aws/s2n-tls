@@ -22,7 +22,7 @@ def managed_process():
     processes = []
 
     def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None,
-            expect_stderr=None, kill_marker=None):
+            expect_stderr=None, kill_marker=None, send_with_newline=None):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
         # The process will default to send markers in the providers.py file
@@ -31,6 +31,8 @@ def managed_process():
             provider.ready_to_send_input_marker = send_marker
         if expect_stderr is None:
             expect_stderr = provider.expect_stderr
+        if send_with_newline is None:
+            send_with_newline = provider.send_with_newline
         p = ManagedProcess(
             cmd_line,
             provider.set_provider_ready,
@@ -41,7 +43,8 @@ def managed_process():
             timeout=timeout,
             env_overrides=options.env_overrides,
             expect_stderr=expect_stderr,
-            kill_marker=kill_marker
+            kill_marker=kill_marker,
+            send_with_newline=send_with_newline
         )
 
         processes.append(p)

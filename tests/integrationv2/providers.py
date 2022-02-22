@@ -22,6 +22,10 @@ class Provider(object):
         # put that message in ready_to_test_marker
         self.ready_to_test_marker = None
 
+        # If a newline character should be added to messages being sent. Required
+        # with some providers to properly write to stdin.
+        self.send_with_newline = False
+
         # By default, we expect clients to send, but not servers.
         if options.mode == Provider.ClientMode:
             self.ready_to_send_input_marker = self.get_send_marker()
@@ -124,6 +128,8 @@ class S2N(Provider):
     """
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
+
+        self.send_with_newline = True
 
     @classmethod
     def get_send_marker(cls):
@@ -562,6 +568,7 @@ class GnuTLS(Provider):
         Provider.__init__(self, options)
 
         self.expect_stderr = True
+        self.send_with_newline = True
 
     @staticmethod
     def cipher_to_priority_str(cipher):
