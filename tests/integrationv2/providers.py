@@ -585,10 +585,8 @@ class GnuTLS(Provider):
             Ciphers.AES256_SHA:         "RSA:+AES-256-CBC:+SHA1",
             Ciphers.AES128_SHA256:      "RSA:+AES-128-CBC:+SHA256",
             Ciphers.AES256_SHA256:      "RSA:+AES-256-CBC:+SHA256",
-
-            # syntax error when used with tls 1.3. appears to work correctly in newer gnutls versions.
-            # Ciphers.AES128_GCM_SHA256:  "RSA:+AES-128-GCM:+AEAD",
-            # Ciphers.AES256_GCM_SHA384:  "RSA:+AES-256-GCM:+AEAD",
+            Ciphers.AES128_GCM_SHA256:  "RSA:+AES-128-GCM:+AEAD",
+            Ciphers.AES256_GCM_SHA384:  "RSA:+AES-256-GCM:+AEAD",
 
             Ciphers.ECDHE_ECDSA_AES128_SHA:         "ECDHE-ECDSA:+AES-128-CBC:+SHA1",
             Ciphers.ECDHE_ECDSA_AES256_SHA:         "ECDHE-ECDSA:+AES-256-CBC:+SHA1",
@@ -667,6 +665,7 @@ class GnuTLS(Provider):
             cmd_line.extend(["--x509keyfile", self.options.key])
 
         priority_str = self.create_priority_str()
+        priority_str += ":%COMPAT"
         cmd_line.extend(["--priority", priority_str])
 
         if self.options.insecure:
@@ -693,6 +692,7 @@ class GnuTLS(Provider):
             cmd_line.extend(["--x509keyfile", self.options.key])
 
         priority_str = self.create_priority_str()
+        priority_str += ":%DEBUG_ALLOW_KEY_USAGE_VIOLATIONS"
         cmd_line.extend(["--priority", priority_str])
 
         if self.options.cipher:

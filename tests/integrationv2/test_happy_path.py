@@ -10,7 +10,7 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", PROVIDERS)
+@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS, JavaSSL])
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
@@ -66,7 +66,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N, OpenSSL])
+@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS])
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
@@ -96,9 +96,13 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     server_options.key = certificate.key
     server_options.cert = certificate.cert
 
+    kill_marker = None
+    if provider == GnuTLS:
+        kill_marker = random_bytes
+
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(provider, server_options, timeout=5)
+    server = managed_process(provider, server_options, timeout=5, kill_marker=kill_marker)
     client = managed_process(S2N, client_options, timeout=5)
 
     expected_version = get_expected_s2n_version(protocol, provider)
@@ -115,4 +119,4 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     for server_results in server.get_results():
         server_results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character
-        assert random_bytes[1:] in server_results.stdout
+        assert any([random_bytes[1:] in stream for stream in server_results.output_streams()])
