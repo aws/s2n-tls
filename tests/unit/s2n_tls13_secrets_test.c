@@ -22,9 +22,6 @@
 
 #include "crypto/s2n_ecc_evp.h"
 
-#define TYPE_TO_COUNT(type)  (type + 1)
-#define NUM_EXTRACT_SECRET_TYPES (TYPE_TO_COUNT(S2N_MASTER_SECRET))
-
 static S2N_RESULT s2n_set_test_key_shares(struct s2n_connection *conn, const struct s2n_ecc_named_curve *curve)
 {
     conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
@@ -37,12 +34,12 @@ static S2N_RESULT s2n_set_test_key_shares(struct s2n_connection *conn, const str
 }
 
 struct s2n_tls13_secrets_test_case {
-    s2n_extract_secret_type_t secret_type;
+    s2n_extract_secret_type_t curr_secret_type;
+    s2n_extract_secret_type_t next_secret_type;
     s2n_mode secret_mode;
     s2n_mode conn_mode;
     struct s2n_cipher_suite *cipher_suite;
     const struct s2n_ecc_named_curve *curve;
-    uint8_t existing_secrets;
 };
 
 int main(int argc, char **argv)
@@ -57,19 +54,19 @@ int main(int argc, char **argv)
 
     struct s2n_tls13_secrets_test_case test_cases[1000] = { 0 };
     size_t test_cases_count = 0;
-    for (s2n_extract_secret_type_t type = 0; type < NUM_EXTRACT_SECRET_TYPES; type++) {
-        for (uint8_t count = 0; count <= NUM_EXTRACT_SECRET_TYPES; count++) {
+    for (s2n_extract_secret_type_t next_type = S2N_EARLY_SECRET; next_type <= S2N_MASTER_SECRET; next_type++) {
+        for (s2n_extract_secret_type_t curr_type = S2N_NONE_SECRET; curr_type <= S2N_MASTER_SECRET; curr_type++) {
             for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
                 for (size_t curve_i = 0; curve_i < curves->count; curve_i++) {
                     for (size_t m1_i = 0; m1_i < s2n_array_len(modes); m1_i++) {
                         for (size_t m2_i = 0; m2_i < s2n_array_len(modes); m2_i++) {
                             test_cases[test_cases_count] = (struct s2n_tls13_secrets_test_case) {
-                                .secret_type = type,
+                                .curr_secret_type = curr_type,
+                                .next_secret_type = next_type,
                                 .secret_mode = modes[m1_i],
                                 .conn_mode = modes[m2_i],
                                 .cipher_suite = ciphers->suites[cipher_i],
                                 .curve = curves->ecc_curves[curve_i],
-                                .existing_secrets = count,
                             };
                             test_cases_count++;
                         }
@@ -92,7 +89,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(&empty_conn, S2N_EARLY_SECRET), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, -1), S2N_ERR_SAFETY);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, 255), S2N_ERR_SAFETY);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, NUM_EXTRACT_SECRET_TYPES), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, (S2N_MASTER_SECRET + 1)), S2N_ERR_SAFETY);
         }
 
         /* No-op if secret already exists */
@@ -100,10 +97,10 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            conn->secrets.tls13.secrets_count = TYPE_TO_COUNT(S2N_EARLY_SECRET);
+            conn->secrets.tls13.secrets_state = S2N_EARLY_SECRET;
 
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
-            EXPECT_EQUAL(conn->secrets.tls13.secrets_count, TYPE_TO_COUNT(S2N_EARLY_SECRET));
+            EXPECT_EQUAL(conn->secrets.tls13.secrets_state, S2N_EARLY_SECRET);
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
         }
 
@@ -112,23 +109,23 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-            conn->secrets.tls13.secrets_count = 0;
+            conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
 
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
-            EXPECT_EQUAL(conn->secrets.tls13.secrets_count, TYPE_TO_COUNT(S2N_EARLY_SECRET));
+            EXPECT_EQUAL(conn->secrets.tls13.secrets_state, S2N_EARLY_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
 
             EXPECT_OK(s2n_set_test_key_shares(conn, &s2n_ecc_curve_secp256r1));
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_HANDSHAKE_SECRET));
-            EXPECT_EQUAL(conn->secrets.tls13.secrets_count, TYPE_TO_COUNT(S2N_HANDSHAKE_SECRET));
+            EXPECT_EQUAL(conn->secrets.tls13.secrets_state, S2N_HANDSHAKE_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
 
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_MASTER_SECRET));
-            EXPECT_EQUAL(conn->secrets.tls13.secrets_count, TYPE_TO_COUNT(S2N_MASTER_SECRET));
+            EXPECT_EQUAL(conn->secrets.tls13.secrets_state, S2N_MASTER_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
@@ -139,11 +136,11 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            conn->secrets.tls13.secrets_count = 0;
+            conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
             EXPECT_OK(s2n_set_test_key_shares(conn, &s2n_ecc_curve_secp256r1));
 
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_MASTER_SECRET));
-            EXPECT_EQUAL(conn->secrets.tls13.secrets_count, TYPE_TO_COUNT(S2N_MASTER_SECRET));
+            EXPECT_EQUAL(conn->secrets.tls13.secrets_state, S2N_MASTER_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
@@ -154,9 +151,9 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = test_cases[i].cipher_suite;
-            conn->secrets.tls13.secrets_count = test_cases[i].existing_secrets;
+            conn->secrets.tls13.secrets_state = test_cases[i].curr_secret_type;
             EXPECT_OK(s2n_set_test_key_shares(conn, test_cases[i].curve));
-            EXPECT_OK(s2n_tls13_extract_secret(conn, test_cases[i].secret_type));
+            EXPECT_OK(s2n_tls13_extract_secret(conn, test_cases[i].next_secret_type));
         }
     }
 
@@ -185,7 +182,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            conn->secrets.tls13.secrets_count = 0;
+            conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
 
             EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET, S2N_SERVER, &output));
             EXPECT_BYTEARRAY_NOT_EQUAL(output.data, empty_secret, sizeof(empty_secret));
@@ -200,11 +197,11 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            conn->secrets.tls13.secrets_count = 0;
+            conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
             EXPECT_OK(s2n_set_test_key_shares(conn, &s2n_ecc_curve_secp256r1));
 
             EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET, S2N_SERVER, &output));
-            EXPECT_EQUAL(conn->secrets.tls13.secrets_count, TYPE_TO_COUNT(S2N_HANDSHAKE_SECRET));
+            EXPECT_EQUAL(conn->secrets.tls13.secrets_state, S2N_HANDSHAKE_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
@@ -220,9 +217,9 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = test_cases[i].cipher_suite;
-            conn->secrets.tls13.secrets_count = test_cases[i].existing_secrets;
+            conn->secrets.tls13.secrets_state = test_cases[i].curr_secret_type;
             EXPECT_OK(s2n_set_test_key_shares(conn, test_cases[i].curve));
-            EXPECT_OK(s2n_tls13_derive_secret(conn, test_cases[i].secret_type, test_cases[i].secret_mode, &output));
+            EXPECT_OK(s2n_tls13_derive_secret(conn, test_cases[i].next_secret_type, test_cases[i].secret_mode, &output));
             EXPECT_BYTEARRAY_NOT_EQUAL(output.data, empty_secret, sizeof(empty_secret));
         }
     }
