@@ -1,7 +1,7 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
+from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
@@ -73,6 +73,10 @@ class Provider(object):
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         raise NotImplementedError
+
+    @classmethod
+    def supports_signature(cls, signature):
+        return True
 
     def get_cmd_line(self):
         return self.cmd_line
@@ -406,6 +410,9 @@ class OpenSSL(Provider):
         if self.options.enable_client_ocsp:
             cmd_line.append("-status")
 
+        if self.options.signature_algorithm is not None:
+            cmd_line.extend(["-sigalgs", self.options.signature_algorithm.name])
+
         # Clients are always ready to connect
         self.set_provider_ready()
 
@@ -457,6 +464,9 @@ class OpenSSL(Provider):
 
         if self.options.ocsp_response is not None:
             cmd_line.extend(["-status_file", self.options.ocsp_response])
+
+        if self.options.signature_algorithm is not None:
+            cmd_line.extend(["-sigalgs", self.options.signature_algorithm.name])
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -622,6 +632,24 @@ class GnuTLS(Provider):
             Curves.X25519:  "CURVE-X25519"
         }.get(curve)
 
+    @staticmethod
+    def sigalg_to_priority_str(sigalg):
+        return {
+            Signatures.RSA_SHA1:    "SIGN-RSA-SHA1",
+            Signatures.RSA_SHA256:  "SIGN-RSA-SHA256",
+            Signatures.RSA_SHA384:  "SIGN-RSA-SHA384",
+            Signatures.RSA_SHA512:  "SIGN-RSA-SHA512",
+
+            # GnuTLS only supports this signature in TLS 1.1
+            # Signatures.RSA_SHA224:  "SIGN-RSA-SHA224",
+
+            # signature algorithm is not enabled
+            # Signatures.RSA_PSS_RSAE_SHA256:     "SIGN-RSA-PSS-SHA256",
+
+            # GnuTLS is unable to find any supported cipher suites with this signature
+            # Signatures.ECDSA_SECP256r1_SHA256:  "SIGN-ECDSA-SHA256"
+        }.get(sigalg)
+
     @classmethod
     def get_send_marker(cls):
         return "Simple Client Mode:"
@@ -644,8 +672,15 @@ class GnuTLS(Provider):
         else:
             priority_str += ":+GROUP-ALL"
 
-        priority_str += ":+SIGN-ALL"
+        if self.options.signature_algorithm:
+            priority_str += ":+" + self.sigalg_to_priority_str(self.options.signature_algorithm)
+        else:
+            priority_str += ":+SIGN-ALL"
+
         priority_str += ":+COMP-NULL"
+
+        priority_str += ":%COMPAT"
+        priority_str += ":%DEBUG_ALLOW_KEY_USAGE_VIOLATIONS"
 
         return priority_str
 
@@ -665,7 +700,6 @@ class GnuTLS(Provider):
             cmd_line.extend(["--x509keyfile", self.options.key])
 
         priority_str = self.create_priority_str()
-        priority_str += ":%COMPAT"
         cmd_line.extend(["--priority", priority_str])
 
         if self.options.insecure:
@@ -692,7 +726,6 @@ class GnuTLS(Provider):
             cmd_line.extend(["--x509keyfile", self.options.key])
 
         priority_str = self.create_priority_str()
-        priority_str += ":%DEBUG_ALLOW_KEY_USAGE_VIOLATIONS"
         cmd_line.extend(["--priority", priority_str])
 
         if self.options.cipher:
@@ -701,6 +734,9 @@ class GnuTLS(Provider):
 
         if self.options.ocsp_response:
             cmd_line.extend(["--ocsp-response", self.options.ocsp_response])
+
+        if self.options.use_client_auth:
+            cmd_line.append("--require-client-cert")
 
         return cmd_line
 
@@ -711,3 +747,7 @@ class GnuTLS(Provider):
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         return GnuTLS.cipher_to_priority_str(cipher) is not None
+
+    @classmethod
+    def supports_signature(cls, signature):
+        return GnuTLS.sigalg_to_priority_str(signature) is not None

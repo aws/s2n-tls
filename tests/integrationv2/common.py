@@ -428,7 +428,8 @@ class ProviderOptions(object):
             use_mainline_version=None,
             env_overrides=dict(),
             enable_client_ocsp=False,
-            ocsp_response=None
+            ocsp_response=None,
+            signature_algorithm=None
     ):
 
         # Client or server
@@ -498,3 +499,5 @@ class ProviderOptions(object):
 
         # Path to OCSP response on the server
         self.ocsp_response = ocsp_response
+
+        self.signature_algorithm = signature_algorithm
