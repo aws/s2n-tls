@@ -51,183 +51,6 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
-    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-
-    /* Test: TLS 1.3 key and secrets generation is symmetrical */
-    {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-
-        client_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->actual_protocol_version = S2N_TLS13;
-
-        const struct s2n_ecc_preferences *server_ecc_preferences = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &server_ecc_preferences));
-        EXPECT_NOT_NULL(server_ecc_preferences);
-
-        struct s2n_stuffer client_hello_key_share;
-        struct s2n_stuffer server_hello_key_share;
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_hello_key_share, 1024));
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_hello_key_share, 1024));
-
-        /* Client sends ClientHello key_share */
-        EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &client_hello_key_share));
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn)
-            - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
-
-        /* Server configures the "supported_groups" shared with the client */
-        server_conn->kex_params.mutually_supported_curves[0] = server_ecc_preferences->ecc_curves[0];
-
-        EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
-
-        /* Server configures the "negotiated_curve" */
-        server_conn->kex_params.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[0];
-
-        /* Server sends ServerHello key_share */
-        EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
-
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, s2n_extensions_server_key_share_send_size(server_conn)
-            - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
-        EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, &server_hello_key_share));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_hello_key_share), 0);
-
-        EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-
-        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-
-        /* populating server hello hash is now a requirement for s2n_tls13_handle_handshake_traffic_secret */
-        EXPECT_OK(s2n_tls13_calculate_digest(server_conn, server_conn->handshake.hashes->server_hello_digest));
-        EXPECT_OK(s2n_tls13_calculate_digest(client_conn, client_conn->handshake.hashes->server_hello_digest));
-
-        EXPECT_SUCCESS(s2n_tls13_handle_early_secret(server_conn));
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(server_conn));
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(server_conn, S2N_SERVER));
-        EXPECT_EQUAL(server_conn->server, &server_conn->secure);
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(server_conn, S2N_CLIENT));
-        EXPECT_EQUAL(server_conn->client, &server_conn->secure);
-
-        EXPECT_SUCCESS(s2n_tls13_handle_early_secret(client_conn));
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(client_conn));
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(client_conn, S2N_SERVER));
-        EXPECT_EQUAL(client_conn->server, &client_conn->secure);
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(client_conn, S2N_CLIENT));
-        EXPECT_EQUAL(client_conn->client, &client_conn->secure);
-
-        s2n_tls13_connection_keys(server_secrets, server_conn);
-        s2n_tls13_connection_keys(client_secrets, client_conn);
-
-        /* verify that derive and extract secrets match */
-        S2N_BLOB_EXPECT_EQUAL(server_secrets.derive_secret, client_secrets.derive_secret);
-        S2N_BLOB_EXPECT_EQUAL(server_secrets.extract_secret, client_secrets.extract_secret);
-
-        /* verify that client and server finished secrets match */
-        EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.server_finished, client_conn->handshake.server_finished, server_secrets.size);
-        EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.client_finished, client_conn->handshake.client_finished, client_secrets.size);
-
-        /* server writes message to client in plaintext */
-        server_conn->server = &server_conn->initial;
-        S2N_BLOB_FROM_HEX(deadbeef_from_server, "DEADBEEF");
-
-        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_HANDSHAKE, &deadbeef_from_server));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), 9);
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
-
-        /* server writes message to client with encryption */
-        server_conn->server = &server_conn->secure;
-        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &deadbeef_from_server));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), 26);
-
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
-
-        /* client reads encrypted message from server */
-        client_conn->server = &client_conn->secure;
-        EXPECT_SUCCESS(s2n_record_parse(client_conn));
-        EXPECT_EQUAL(5, s2n_stuffer_data_available(&client_conn->in));
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, 0xDEADBEEF, uint32);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, TLS_APPLICATION_DATA, uint8);
-
-        /* client writes message to server in plaintext */
-        client_conn->client = &client_conn->initial;
-        S2N_BLOB_FROM_HEX(cafefood_from_client, "CAFED00D");
-        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_HANDSHAKE, &cafefood_from_client));
-
-        /* unencrypted length */
-        EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 9);
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->out));
-
-        /* let client write an encrypted message to server */
-        client_conn->client = &client_conn->secure;
-        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
-
-        /* verify that server decrypts client's msg */
-        server_conn->client = &server_conn->secure;
-        EXPECT_SUCCESS(s2n_record_parse(server_conn));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->in), 5);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, 0xCAFED00D, uint32);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, TLS_APPLICATION_DATA, uint8);
-
-        /* populating server finished hash is now a requirement for s2n_tls13_handle_application_secrets */
-        EXPECT_OK(s2n_tls13_calculate_digest(server_conn, server_conn->handshake.hashes->server_finished_digest));
-        EXPECT_OK(s2n_tls13_calculate_digest(client_conn, client_conn->handshake.hashes->server_finished_digest));
-
-        EXPECT_SUCCESS(s2n_tls13_handle_master_secret(client_conn));
-        EXPECT_SUCCESS(s2n_tls13_handle_master_secret(server_conn));
-
-        /* verify that application derive and extract secrets match */
-        S2N_BLOB_EXPECT_EQUAL(server_secrets.derive_secret, client_secrets.derive_secret);
-        S2N_BLOB_EXPECT_EQUAL(server_secrets.extract_secret, client_secrets.extract_secret);
-
-        EXPECT_SUCCESS(s2n_tls13_handle_application_secret(server_conn, S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_tls13_handle_application_secret(server_conn, S2N_SERVER));
-        EXPECT_SUCCESS(s2n_tls13_handle_application_secret(client_conn, S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_tls13_handle_application_secret(client_conn, S2N_SERVER));
-
-        /* wipe all the stuffers */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->header_in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->header_in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->out));
-
-        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &deadbeef_from_server));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), 26);
-
-        /* test that client decrypts deadbeef correctly with application data */
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
-        EXPECT_SUCCESS(s2n_record_parse(client_conn));
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, 0xDEADBEEF, uint32);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, TLS_APPLICATION_DATA, uint8);
-
-        /* let client write an application message to server */
-        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
-
-        EXPECT_SUCCESS(s2n_record_parse(server_conn));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->in), 5);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, 0xCAFED00D, uint32);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, TLS_APPLICATION_DATA, uint8);
-
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_stuffer_free(&client_hello_key_share));
-        EXPECT_SUCCESS(s2n_stuffer_free(&server_hello_key_share));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
-
     /* Test wiping PSKs after use */
     {
         /* PSKs are wiped when chosen PSK is NULL */
@@ -263,7 +86,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
-            EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(conn));
+            DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
             /* Verify secrets are wiped */
             for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
@@ -321,7 +145,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
-            EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(conn));
+            DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
             /* Verify secrets are wiped */
             for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
