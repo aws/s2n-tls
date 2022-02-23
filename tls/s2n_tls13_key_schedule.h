@@ -15,13 +15,8 @@
 
 #pragma once
 
-#include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_quic_support.h"
-#include "utils/s2n_blob.h"
-#include "utils/s2n_safety.h"
+#include "utils/s2n_result.h"
 
-S2N_RESULT s2n_key_log_hex_encode(struct s2n_stuffer *output, uint8_t *bytes, size_t len);
-S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn);
-S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, const struct s2n_blob *secret, s2n_secret_type_t secret_type);
+S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn);
+S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn);
 
