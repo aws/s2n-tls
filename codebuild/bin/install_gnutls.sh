@@ -51,27 +51,27 @@ esac
 
 cd "$GNUTLS_BUILD_DIR"
 
-# libnettle is a dependency of GnuTLS
-# Originally from: https://ftp.gnu.org/gnu/nettle/
-curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2021-01-04_nettle-3.7.tar.gz --output nettle-3.7.tar.gz
-tar -xzf nettle-3.7.tar.gz
-cd nettle-3.7
-./configure --prefix="$GNUTLS_INSTALL_DIR"/nettle \
-            --disable-openssl \
-            --enable-shared
+# Originally from: https://ftp.gnu.org/gnu/nettle/nettle-3.3.tar.gz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_nettle-3.3.tar.gz --output nettle-3.3.tar.gz
+tar -xzf nettle-3.3.tar.gz
+cd nettle-3.3
+./configure --prefix="$GNUTLS_INSTALL_DIR"/nettle
 make -j $JOBS
 make -j $JOBS install
 cd ..
 
 # Install GnuTLS
-# Originally from: https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/
-curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2022-01-18_gnutls-3.7.3.tar.xz --output gnutls-3.7.3.tar.xz
-tar -xJf gnutls-3.7.3.tar.xz
-cd gnutls-3.7.3
-PKG_CONFIG_PATH="$GNUTLS_INSTALL_DIR"/nettle/lib/pkgconfig:$PKG_CONFIG_PATH \
-  ./configure --prefix="$GNUTLS_INSTALL_DIR" \
-              --without-p11-kit \
-              --with-included-libtasn1 \
-              --with-included-unistring
+# Originally from: ftp://ftp.gnutls.org/gcrypt/gnutls/v3.5/gnutls-3.5.5.tar.xz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_gnutls-3.5.5.tar.xz --output gnutls-3.5.5.tar.xz
+tar -xJf gnutls-3.5.5.tar.xz
+cd gnutls-3.5.5
+./configure LD_FLAGS="-R$GNUTLS_INSTALL_DIR/nettle/lib -L$GNUTLS_INSTALL_DIR/nettle/lib -lnettle -lhogweed" \
+            NETTLE_LIBS="-R$GNUTLS_INSTALL_DIR/nettle/lib -L$GNUTLS_INSTALL_DIR/nettle/lib -lnettle" \
+            NETTLE_CFLAGS="-I$GNUTLS_INSTALL_DIR/nettle/include" \
+            HOGWEED_LIBS="-R$GNUTLS_INSTALL_DIR/nettle/lib -L$GNUTLS_INSTALL_DIR/nettle/lib -lhogweed" \
+            HOGWEED_CFLAGS="-I$GNUTLS_INSTALL_DIR/nettle/include" \
+            --without-p11-kit \
+            --with-included-libtasn1 \
+            --prefix="$GNUTLS_INSTALL_DIR"
 make -j $JOBS
 make -j $JOBS install

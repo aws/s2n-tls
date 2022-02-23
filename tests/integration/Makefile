@@ -102,7 +102,7 @@ gnutls_cli:
 	# Run gnutls-cli handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:"$(S2N_ROOT)/test-deps/gnutls/nettle/lib":$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_gnutls-cli.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
@@ -111,7 +111,7 @@ gnutls_serv:
 	# Run gnutls-serv handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:"$(S2N_ROOT)/test-deps/gnutls/nettle/lib":$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_gnutls-serv.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
