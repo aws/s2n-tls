@@ -22,7 +22,7 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn,
     RESULT_ENSURE_REF(early_secret);
     RESULT_CHECKED_MEMCPY(conn->secrets.tls13.early_secret,
             early_secret->data, early_secret->size);
-    conn->secrets.tls13.secrets_count = 1;
+    conn->secrets.tls13.secrets_state = S2N_EARLY_SECRET;
     return S2N_RESULT_OK;
 }
 
@@ -33,7 +33,7 @@ S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn,
     RESULT_ENSURE_REF(handshake_secret);
     RESULT_CHECKED_MEMCPY(conn->secrets.tls13.handshake_secret,
             handshake_secret->data, handshake_secret->size);
-    conn->secrets.tls13.secrets_count = 2;
+    conn->secrets.tls13.secrets_state = S2N_HANDSHAKE_SECRET;
     return S2N_RESULT_OK;
 }
 
@@ -44,6 +44,6 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn,
     RESULT_ENSURE_REF(master_secret);
     RESULT_CHECKED_MEMCPY(conn->secrets.tls13.master_secret,
             master_secret->data, master_secret->size);
-    conn->secrets.tls13.secrets_count = 3;
+    conn->secrets.tls13.secrets_state = S2N_MASTER_SECRET;
     return S2N_RESULT_OK;
 }

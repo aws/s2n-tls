@@ -464,15 +464,16 @@ S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_sec
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure.cipher_suite);
     RESULT_ENSURE_REF(conn->handshake.hashes);
+    RESULT_ENSURE_NE(secret_type, S2N_NONE_SECRET);
 
     RESULT_ENSURE_GTE(secret_type, 0);
     RESULT_ENSURE_LT(secret_type, s2n_array_len(extract_methods));
 
-    s2n_extract_secret_type_t next_secret_type = CONN_SECRETS(conn).secrets_count;
+    s2n_extract_secret_type_t next_secret_type = CONN_SECRETS(conn).secrets_state + 1;
     for (s2n_extract_secret_type_t i = next_secret_type; i <= secret_type; i++) {
         RESULT_ENSURE_REF(extract_methods[i]);
         RESULT_GUARD(extract_methods[i](conn));
-        CONN_SECRETS(conn).secrets_count++;
+        CONN_SECRETS(conn).secrets_state = i;
     }
     return S2N_RESULT_OK;
 }
@@ -490,6 +491,7 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
     RESULT_ENSURE_REF(secret);
     RESULT_ENSURE_REF(conn->secure.cipher_suite);
     RESULT_ENSURE_REF(conn->handshake.hashes);
+    RESULT_ENSURE_NE(secret_type, S2N_NONE_SECRET);
 
     RESULT_GUARD(s2n_tls13_extract_secret(conn, secret_type));
 
