@@ -18,7 +18,7 @@
 #include "api/s2n.h"
 
 /*
- * Internal APIs used for exploring experimental APIs.
+ * Internal APIs.
  *
  * These APIs change the behavior of S2N in potentially dangerous ways and should only be
  * used for testing purposes. All Internal APIs are subject to change without notice.
