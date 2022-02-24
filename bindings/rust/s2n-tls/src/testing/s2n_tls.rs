@@ -210,4 +210,59 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         s2n_tls_pair(config)
     }
+
+    #[test]
+    fn static_config_and_clone_interaction() {
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+        {
+            let mut server = crate::raw::connection::Connection::new_server();
+            // default config is not returned on the connection
+            assert!(server.test_config_exists().is_err());
+            assert_eq!(config.test_get_refcount().unwrap(), 1);
+            server.set_config(config.clone()).unwrap();
+            assert_eq!(config.test_get_refcount().unwrap(), 2);
+            assert!(server.test_config_exists().is_ok());
+
+            let mut client = crate::raw::connection::Connection::new_client();
+            // default config is not returned on the connection
+            assert!(client.test_config_exists().is_err());
+            assert_eq!(config.test_get_refcount().unwrap(), 2);
+            client.set_config(config.clone()).unwrap();
+            assert_eq!(config.test_get_refcount().unwrap(), 3);
+            assert!(client.test_config_exists().is_ok());
+
+            let mut third = crate::raw::connection::Connection::new_server();
+            // default config is not returned on the connection
+            assert!(third.test_config_exists().is_err());
+            assert_eq!(config.test_get_refcount().unwrap(), 3);
+            third.set_config(config.clone()).unwrap();
+            assert_eq!(config.test_get_refcount().unwrap(), 4);
+            assert!(third.test_config_exists().is_ok());
+
+            // drop all the clones
+        }
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+    }
+
+    #[test]
+    fn set_config_multiple_times() {
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+
+        let mut server = crate::raw::connection::Connection::new_server();
+        // default config is not returned on the connection
+        assert!(server.test_config_exists().is_err());
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+
+        // call set_config once
+        server.set_config(config.clone()).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 2);
+        assert!(server.test_config_exists().is_ok());
+
+        // calling set_config multiple times works since we drop the previous config
+        server.set_config(config.clone()).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 2);
+        assert!(server.test_config_exists().is_ok());
+    }
 }

@@ -2,48 +2,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::raw::{
+    connection::Connection,
     error::{Error, Fallible},
     security,
 };
-use alloc::sync::Arc;
-use core::{convert::TryInto, ptr::NonNull};
+use core::{
+    convert::TryInto,
+    ptr::NonNull,
+    task::{Context, Poll, Waker},
+};
 use s2n_tls_sys::*;
-use std::ffi::CString;
+use std::{
+    ffi::{c_void, CString},
+    mem::ManuallyDrop,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
-struct Owned(NonNull<s2n_config>);
-
-/// Safety: s2n_config objects can be sent across threads
-unsafe impl Send for Owned {}
-
-impl Default for Owned {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Owned {
-    fn new() -> Self {
-        crate::raw::init::init();
-        let config = unsafe { s2n_config_new().into_result() }.unwrap();
-        Self(config)
-    }
-
-    pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
-        self.0.as_ptr()
-    }
-}
-
-impl Drop for Owned {
-    fn drop(&mut self) {
-        let _ = unsafe { s2n_config_free(self.0.as_ptr()).into_result() };
-    }
-}
-
-#[derive(Clone, Default)]
-pub struct Config(Arc<Owned>);
+pub struct Config(NonNull<s2n_config>);
 
 /// Safety: s2n_config objects can be sent across threads
-#[allow(unknown_lints, clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for Config {}
 
 impl Config {
@@ -55,17 +32,119 @@ impl Config {
         Builder::default()
     }
 
+    /// # Safety
+    ///
+    /// This config _MUST_ have been initialized with a [`Builder`].
+    pub unsafe fn from_raw(config: NonNull<s2n_config>) -> Self {
+        Self(config)
+    }
+
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
-        (self.0).0.as_ptr()
+        self.0.as_ptr()
+    }
+
+    #[cfg(test)]
+    /// Get the refcount associated with the config
+    pub fn test_get_refcount(&self) -> Result<usize, Error> {
+        let mut context = core::ptr::null_mut();
+        unsafe {
+            let _ = s2n_config_get_ctx(self.0.as_ptr(), &mut context).into_result()?;
+            let context = &*(context as *const AtomicUsize);
+            Ok(context.load(Ordering::SeqCst))
+        }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Builder::new().build().unwrap()
+    }
+}
+
+impl Clone for Config {
+    fn clone(&self) -> Self {
+        let mut context = core::ptr::null_mut();
+        let _ = unsafe {
+            s2n_config_get_ctx(self.0.as_ptr(), &mut context)
+                .into_result()
+                .unwrap()
+        };
+        let context = unsafe { &*(context as *const AtomicUsize) };
+
+        // Safety
+        //
+        // Using a relaxed ordering is alright here, as knowledge of the
+        // original reference prevents other threads from erroneously deleting
+        // the object.
+        // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1329
+        let _count = context.fetch_add(1, Ordering::Relaxed);
+        Self(self.0)
+    }
+}
+
+impl Drop for Config {
+    fn drop(&mut self) {
+        let mut context = core::ptr::null_mut();
+        // Safety
+        //
+        // The use of Ordering and fence mirrors the `Arc` implementation in
+        // the standard library.
+        //
+        // This fence is needed to prevent reordering of use of the data and
+        // deletion of the data.  Because it is marked `Release`, the decreasing
+        // of the reference count synchronizes with this `Acquire` fence. This
+        // means that use of the data happens before decreasing the reference
+        // count, which happens before this fence, which happens before the
+        // deletion of the data.
+        // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1637
+
+        // NOTE: explicitly detect a static config based on if the context is set.
+        // This will break if s2n-tls starts setting the context on the static
+        // config. A different option is to set an explicit flag on the config.
+        if unsafe {
+            s2n_config_get_ctx(self.0.as_ptr(), &mut context)
+                .into_result()
+                .is_ok()
+        } {
+            let context = unsafe { &*(context as *const AtomicUsize) };
+            let count = context.fetch_sub(1, Ordering::Release);
+            debug_assert!(count > 0, "refcount should not drop below 1 instance");
+
+            // only free the config if this is the last instance
+            if count != 1 {
+                return;
+            }
+        }
+
+        std::sync::atomic::fence(Ordering::Acquire);
+
+        unsafe {
+            let context = Box::from_raw(context as *mut AtomicUsize);
+            drop(context);
+
+            let _ = s2n_config_free(self.0.as_ptr()).into_result();
+        }
     }
 }
 
 #[derive(Default)]
-pub struct Builder(Owned);
+pub struct Builder(Config);
 
 impl Builder {
     pub fn new() -> Self {
-        Default::default()
+        crate::raw::init::init();
+        let config = unsafe { s2n_config_new().into_result() }.unwrap();
+
+        // The AtomicUsize is used to manually track the reference count of the Config.
+        let refcount: Box<AtomicUsize> = Box::new(AtomicUsize::new(1));
+        let refcount = Box::into_raw(refcount) as *mut c_void;
+        unsafe {
+            s2n_config_set_ctx(config.as_ptr(), refcount)
+                .into_result()
+                .unwrap();
+        }
+
+        Self(Config(config))
     }
 
     pub fn set_alert_behavior(
@@ -185,8 +264,55 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn set_client_hello_handler<T: ClientHelloHandler>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn client_hello_cb<T: ClientHelloHandler>(
+            connection_ptr: *mut s2n_connection,
+            context: *mut core::ffi::c_void,
+        ) -> libc::c_int {
+            let handler = &*(context as *const T);
+            let ctx_ptr = s2n_connection_get_ctx(connection_ptr);
+            let waker = &*(ctx_ptr as *const Waker);
+
+            let connection_ptr =
+                NonNull::new(connection_ptr).expect("connection should not be null");
+            // Since this is a callback, which receives a pointer to the connection, do
+            // not call drop on the connection object.
+            let mut connection = ManuallyDrop::new(Connection::from_raw(connection_ptr));
+
+            match handler.poll_client_hello(&mut connection, &Context::from_waker(waker)) {
+                Poll::Ready(Ok(())) => {
+                    s2n_client_hello_cb_done(connection_ptr.as_ptr());
+                    s2n_status_code::SUCCESS
+                }
+                Poll::Ready(Err(_)) => {
+                    s2n_client_hello_cb_done(connection_ptr.as_ptr());
+                    s2n_status_code::FAILURE
+                }
+                Poll::Pending => s2n_status_code::SUCCESS,
+            }
+        }
+
+        let context = Box::new(handler);
+        let context = Box::into_raw(context) as *mut core::ffi::c_void;
+
+        unsafe {
+            s2n_config_set_client_hello_cb_mode(
+                self.as_mut_ptr(),
+                s2n_client_hello_cb_mode::NONBLOCKING,
+            )
+            .into_result()?;
+            s2n_config_set_client_hello_cb(self.as_mut_ptr(), Some(client_hello_cb::<T>), context)
+                .into_result()?;
+        }
+
+        Ok(self)
+    }
+
     pub fn build(self) -> Result<Config, Error> {
-        Ok(Config(Arc::new(self.0)))
+        Ok(self.0)
     }
 
     fn as_mut_ptr(&mut self) -> *mut s2n_config {
@@ -200,4 +326,12 @@ impl Builder {
         unsafe { s2n_tls_sys::s2n_config_enable_quic(self.as_mut_ptr()).into_result() }?;
         Ok(self)
     }
+}
+
+pub trait ClientHelloHandler: Send + Sync {
+    fn poll_client_hello(
+        &self,
+        connection: &mut Connection,
+        ctx: &Context,
+    ) -> core::task::Poll<Result<(), ()>>;
 }

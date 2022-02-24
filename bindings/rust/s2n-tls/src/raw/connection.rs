@@ -11,14 +11,12 @@ use crate::raw::{
 use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use libc::c_void;
 use s2n_tls_sys::*;
+use std::{ffi::CStr, mem};
 
 pub use s2n_tls_sys::s2n_mode;
 
 pub struct Connection {
     connection: NonNull<s2n_connection>,
-    // The config needs to be stored so the reference count is accurate
-    #[allow(dead_code)]
-    config: Option<Config>,
 }
 
 impl fmt::Debug for Connection {
@@ -43,17 +41,19 @@ impl Connection {
                 s2n_connection_get_config(connection.as_ptr(), &mut config).into_result().is_err()
             };
         }
-        Self {
-            connection,
-            config: None,
-        }
+        Self { connection }
     }
+
     pub fn new_client() -> Self {
         Self::new(s2n_mode::CLIENT)
     }
 
     pub fn new_server() -> Self {
         Self::new(s2n_mode::SERVER)
+    }
+
+    pub unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
+        Self { connection }
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
@@ -80,18 +80,43 @@ impl Connection {
         Ok(self)
     }
 
+    /// Attempts to drop the config on the connection
+    unsafe fn drop_config(&mut self) -> Result<(), Error> {
+        let mut prev_config = core::ptr::null_mut();
+        if s2n_connection_get_config(self.connection.as_ptr(), &mut prev_config)
+            .into_result()
+            .is_ok()
+        {
+            let prev_config = NonNull::new(prev_config)
+                .expect("the call to s2n_connection_get_config was successful");
+            drop(Config::from_raw(prev_config));
+        }
+
+        Ok(())
+    }
+
     /// Associates a configuration object with a connection.
     pub fn set_config(&mut self, mut config: Config) -> Result<&mut Self, Error> {
+        debug_assert!(!self.connection.as_ptr().is_null());
+        debug_assert!(!config.as_mut_ptr().is_null());
+
         unsafe {
-            s2n_connection_set_config(self.connection.as_ptr(), config.as_mut_ptr()).into_result()
-        }?;
-        unsafe {
-            let mut config = core::ptr::null_mut();
+            // attempt to drop the currently set config
+            self.drop_config()?;
+
+            s2n_connection_set_config(self.connection.as_ptr(), config.as_mut_ptr())
+                .into_result()?;
+
             debug_assert! {
-                s2n_connection_get_config(self.connection.as_ptr(), &mut config).into_result().is_ok()
+                s2n_connection_get_config(self.connection.as_ptr(), &mut core::ptr::null_mut()).into_result().is_ok(),
+                "s2n_connection_set_config was successful"
             };
+
+            // Setting the config on the connection creates one additional reference to the config
+            // so do not call drop.
+            mem::forget(config);
         }
-        self.config = Some(config);
+
         Ok(self)
     }
 
@@ -256,6 +281,29 @@ impl Connection {
         unsafe { s2n_set_server_name(self.connection.as_ptr(), sni.as_ptr()).into_result() }?;
         Ok(self)
     }
+
+    /// Get the server name associated with the connection client hello.
+    pub fn server_name(&self) -> Option<&[u8]> {
+        let server_name: *const i8 = unsafe { s2n_get_server_name(self.connection.as_ptr()) };
+        if server_name.is_null() {
+            None
+        } else {
+            unsafe { Some(CStr::from_ptr(server_name).to_bytes()) }
+        }
+    }
+
+    #[cfg(test)]
+    /// Test if a config has been set on the connection.
+    ///
+    /// `s2n_connection_get_config` should return a NULL pointer if the `s2n_connection_set_config`
+    /// has not been called by the application.
+    pub fn test_config_exists(&mut self) -> Result<(), Error> {
+        let mut config = core::ptr::null_mut();
+        let _config = unsafe {
+            s2n_connection_get_config(self.connection.as_ptr(), &mut config).into_result()?
+        };
+        Ok(())
+    }
 }
 
 #[cfg(feature = "quic")]
@@ -309,6 +357,9 @@ impl Connection {
 impl Drop for Connection {
     fn drop(&mut self) {
         // ignore failures since there's not much we can do about it
-        let _ = unsafe { s2n_connection_free(self.connection.as_ptr()).into_result() };
+        unsafe {
+            let _ = self.drop_config();
+            let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
+        }
     }
 }
