@@ -26,7 +26,7 @@ def get_expected_openssl_version(protocol):
     return {
         Protocols.TLS10.value: "TLSv1",
         Protocols.TLS11.value: "TLSv1.1",
-        Protocols.TLS12.value: "TlSv1.2",
+        Protocols.TLS12.value: "TLSv1.2",
         Protocols.TLS13.value: "TLSv1.3"
     }.get(protocol.value)
 
