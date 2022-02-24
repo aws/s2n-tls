@@ -916,6 +916,8 @@ int s2n_config_set_ctx(struct s2n_config *config, void *ctx) {
     return S2N_SUCCESS;
 }
 
-void *s2n_config_get_ctx(const struct s2n_config *config) {
-    return config->context;
+int s2n_config_get_ctx(struct s2n_config *config, void **context) {
+    *context = config->context;
+
+    return S2N_SUCCESS;
 }

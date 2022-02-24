@@ -262,7 +262,8 @@ int main(int argc, char **argv)
 
         s2n_config_set_ctx(config, &context);
 
-        void *returned_context = s2n_config_get_ctx(config);
+        void *returned_context = NULL;
+        EXPECT_SUCCESS(s2n_config_get_ctx(config, &returned_context));
 
         EXPECT_NOT_NULL(returned_context);
         EXPECT_EQUAL(*((uint8_t *)returned_context), context);

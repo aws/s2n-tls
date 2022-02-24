@@ -305,7 +305,7 @@ extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 S2N_API
 extern int s2n_config_set_ctx(struct s2n_config *config, void *ctx);
 S2N_API
-extern void *s2n_config_get_ctx(const struct s2n_config *config);
+extern int s2n_config_get_ctx(struct s2n_config *config, void **context);
 
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 S2N_API
