@@ -527,7 +527,7 @@ S2N_RESULT s2n_tls13_secrets_finish(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, early_secret)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, handshake_secret)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, master_secret)));
-    conn->secrets.tls13.secrets_count = 0;
+    conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
 
     return S2N_RESULT_OK;
 }
