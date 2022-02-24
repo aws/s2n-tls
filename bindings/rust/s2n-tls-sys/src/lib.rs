@@ -11,6 +11,12 @@ mod quic;
 #[cfg(feature = "quic")]
 pub use quic::*;
 
+#[cfg(feature = "internal")]
+mod internal;
+
+#[cfg(feature = "internal")]
+pub use internal::*;
+
 // Additional defines that don't get imported with bindgen
 
 pub mod s2n_status_code {
