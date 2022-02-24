@@ -916,11 +916,11 @@ int s2n_config_set_ctx(struct s2n_config *config, void *ctx) {
     return S2N_SUCCESS;
 }
 
-int s2n_config_get_ctx(struct s2n_config *config, void **context) {
+int s2n_config_get_ctx(struct s2n_config *config, void **ctx) {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE_REF(context);
+    POSIX_ENSURE_REF(ctx);
 
-    *context = config->context;
+    *ctx = config->context;
 
     return S2N_SUCCESS;
 }

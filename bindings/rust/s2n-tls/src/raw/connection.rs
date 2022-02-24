@@ -40,7 +40,7 @@ impl Connection {
         unsafe {
             let mut config = core::ptr::null_mut();
             debug_assert! {
-                s2n_connection_get_config(connection.as_ptr(), core::ptr::addr_of_mut!(config)).into_result().is_err()
+                s2n_connection_get_config(connection.as_ptr(), &mut config).into_result().is_err()
             };
         }
         Self {
@@ -88,7 +88,7 @@ impl Connection {
         unsafe {
             let mut config = core::ptr::null_mut();
             debug_assert! {
-                s2n_connection_get_config(self.connection.as_ptr(), core::ptr::addr_of_mut!(config)).into_result().is_ok()
+                s2n_connection_get_config(self.connection.as_ptr(), &mut config).into_result().is_ok()
             };
         }
         self.config = Some(config);
