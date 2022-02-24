@@ -256,16 +256,18 @@ int main(int argc, char **argv)
     {
         uint8_t context = 42;
         uint8_t other = 123;
+        void *returned_context = NULL;
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        s2n_config_set_ctx(config, &context);
-
-        void *returned_context = NULL;
         EXPECT_SUCCESS(s2n_config_get_ctx(config, &returned_context));
+        EXPECT_NULL(returned_context);
 
+        EXPECT_SUCCESS(s2n_config_set_ctx(config, &context));
+        EXPECT_SUCCESS(s2n_config_get_ctx(config, &returned_context));
         EXPECT_NOT_NULL(returned_context);
+
         EXPECT_EQUAL(*((uint8_t *)returned_context), context);
         EXPECT_NOT_EQUAL(*((uint8_t *)returned_context), other);
 

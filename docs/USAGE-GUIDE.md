@@ -545,7 +545,7 @@ int s2n_config_set_ctx(struct s2n_config *config, void *ctx);
 ### s2n\_config\_get\_ctx
 
 ```c
-void *s2n_config_get_ctx(const struct s2n_config *config);
+int s2n_config_get_ctx(struct s2n_config *config, void **context);
 ```
 
 **s2n_config_get_ctx** gets user defined context from the **s2n_config** object.

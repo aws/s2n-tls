@@ -15,7 +15,14 @@
 
 #pragma once
 
-#include "api/s2n.h"
+#if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
+#    define S2N_API __attribute__((visibility("default")))
+#else
+#    define S2N_API
+#endif /* __GNUC__ >= 4 || defined(__clang__) */
+
+
+#include <stdint.h>
 
 /*
  * Internal APIs.
@@ -25,8 +32,11 @@
  */
 
 
+struct s2n_config;
+struct s2n_connection;
+
 /*
- * Return a pointer to the config set on the connection.
+ * Gets the config set on the connection.
  *
  * This function will return a pointer to the config set by `s2n_connection_set_config`.
  * It will return NULL prior to `s2n_connection_set_config` being called and a config
@@ -39,6 +49,5 @@
  * the correct alert description. It may be used for testing and logging, but
  * not relied on for production logic.
  */
-
 S2N_API
-extern struct s2n_config *s2n_internal_connection_get_config(struct s2n_connection *conn);
+extern int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config);

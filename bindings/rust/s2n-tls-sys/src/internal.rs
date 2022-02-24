@@ -13,5 +13,8 @@ use crate::api::*;
 
 
 extern "C" {
-    pub fn s2n_internal_connection_get_config(conn: *mut s2n_connection) -> *mut s2n_config;
+    pub fn s2n_connection_get_config(
+        conn: *mut s2n_connection,
+        config: *mut *mut s2n_config,
+    ) -> ::libc::c_int;
 }

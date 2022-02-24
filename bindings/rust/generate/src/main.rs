@@ -34,7 +34,7 @@ fn main() {
         .unwrap();
 
     gen_bindings("#include \"tls/s2n_internal.h\"", &out_dir.join("lib"))
-        .allowlist_function("s2n_internal.*")
+        .allowlist_function("s2n_.*")
         .blocklist_type("s2n_config")
         .blocklist_type("s2n_connection")
         .raw_line("use crate::api::*;\n")

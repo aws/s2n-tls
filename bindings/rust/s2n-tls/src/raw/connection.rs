@@ -36,6 +36,13 @@ impl Connection {
     pub fn new(mode: s2n_mode::Type) -> Self {
         crate::raw::init::init();
         let connection = unsafe { s2n_connection_new(mode).into_result() }.unwrap();
+
+        unsafe {
+            let mut config = core::ptr::null_mut();
+            debug_assert! {
+                s2n_connection_get_config(connection.as_ptr(), core::ptr::addr_of_mut!(config)).into_result().is_err()
+            };
+        }
         Self {
             connection,
             config: None,
@@ -78,6 +85,12 @@ impl Connection {
         unsafe {
             s2n_connection_set_config(self.connection.as_ptr(), config.as_mut_ptr()).into_result()
         }?;
+        unsafe {
+            let mut config = core::ptr::null_mut();
+            debug_assert! {
+                s2n_connection_get_config(self.connection.as_ptr(), core::ptr::addr_of_mut!(config)).into_result().is_ok()
+            };
+        }
         self.config = Some(config);
         Ok(self)
     }
