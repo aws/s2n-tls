@@ -429,7 +429,8 @@ class ProviderOptions(object):
             env_overrides=dict(),
             enable_client_ocsp=False,
             ocsp_response=None,
-            signature_algorithm=None
+            signature_algorithm=None,
+            record_size=None
     ):
 
         # Client or server
@@ -501,3 +502,5 @@ class ProviderOptions(object):
         self.ocsp_response = ocsp_response
 
         self.signature_algorithm = signature_algorithm
+
+        self.record_size = record_size

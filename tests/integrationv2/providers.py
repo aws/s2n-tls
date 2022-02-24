@@ -413,6 +413,9 @@ class OpenSSL(Provider):
         if self.options.signature_algorithm is not None:
             cmd_line.extend(["-sigalgs", self.options.signature_algorithm.name])
 
+        if self.options.record_size is not None:
+            cmd_line.extend(["-max_send_frag", str(self.options.record_size)])
+
         # Clients are always ready to connect
         self.set_provider_ready()
 
@@ -707,6 +710,9 @@ class GnuTLS(Provider):
 
         if self.options.enable_client_ocsp:
             cmd_line.append("--ocsp")
+
+        if self.options.record_size:
+            cmd_line.extend(["--recordsize", str(self.options.record_size)])
 
         return cmd_line
 
