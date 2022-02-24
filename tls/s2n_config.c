@@ -917,6 +917,9 @@ int s2n_config_set_ctx(struct s2n_config *config, void *ctx) {
 }
 
 int s2n_config_get_ctx(struct s2n_config *config, void **context) {
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(context);
+
     *context = config->context;
 
     return S2N_SUCCESS;

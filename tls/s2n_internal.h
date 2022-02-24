@@ -16,9 +16,9 @@
 #pragma once
 
 #if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
-#    define S2N_API __attribute__((visibility("default")))
+#    define S2N_PRIVATE_API __attribute__((visibility("default")))
 #else
-#    define S2N_API
+#    define S2N_PRIVATE_API
 #endif /* __GNUC__ >= 4 || defined(__clang__) */
 
 
@@ -44,10 +44,6 @@ struct s2n_connection;
  *
  * Caution: A config can be associated with multiple connections and should not be
  * modified after it has been built. Doing so is undefined behavior.
- *
- * WARNING: this method is still considered experimental and will not always report
- * the correct alert description. It may be used for testing and logging, but
- * not relied on for production logic.
  */
-S2N_API
+S2N_PRIVATE_API
 extern int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config);

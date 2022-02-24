@@ -34,7 +34,6 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_internal.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
@@ -1541,11 +1540,12 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
 }
 
 /*
- * Internal API.
- *
  * Gets the config set on the connection.
  */
 int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config) {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(config);
+
     if (s2n_fetch_default_config() == conn->config) {
         POSIX_BAIL(S2N_ERR_NULL);
     }

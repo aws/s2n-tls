@@ -19,7 +19,6 @@
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_internal.h"
 #include "tls/s2n_tls.h"
 
 #include "crypto/s2n_hash.h"
