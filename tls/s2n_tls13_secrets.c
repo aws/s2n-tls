@@ -521,7 +521,7 @@ S2N_RESULT s2n_tls13_secrets_finish(struct s2n_connection *conn)
     /*
      * Wipe base secrets.
      * Not strictly necessary, but probably safer than leaving them.
-     * Compromising a secret compromises all secrets derived from it,
+     * A compromised secret additionally compromises all secrets derived from it,
      * so these are the most sensitive secrets.
      */
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, early_secret)));
