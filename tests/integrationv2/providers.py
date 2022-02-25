@@ -682,6 +682,10 @@ class GnuTLS(Provider):
 
         priority_str += ":+COMP-NULL"
 
+        # digital signature option is not included for all the test RSA certs, so GnuTLS must be
+        # told to use these certs regardless. the %COMPAT priority string option enables this for
+        # client certificates, and the undocumented %DEBUG_ALLOW_KEY_USAGE_VIOLATIONS priority
+        # string option enables this for server certificates.
         priority_str += ":%COMPAT"
         priority_str += ":%DEBUG_ALLOW_KEY_USAGE_VIOLATIONS"
 
