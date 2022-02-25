@@ -61,7 +61,6 @@ phases:
       - $CB_BIN_DIR/install_s2n_head.sh "$(mktemp -d)"
   build:
     commands:
-      - codebuild-breakpoint
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
       - TOX_TEST_NAME=$INTEGV2_TEST.py make integrationv2
