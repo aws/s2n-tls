@@ -51,6 +51,7 @@ esac
 
 cd "$GNUTLS_BUILD_DIR"
 
+# libnettle is a dependency of GnuTLS
 # Originally from: https://ftp.gnu.org/gnu/nettle/nettle-3.3.tar.gz
 curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_nettle-3.3.tar.gz --output nettle-3.3.tar.gz
 tar -xzf nettle-3.3.tar.gz
