@@ -422,26 +422,7 @@ pub trait ClientHelloHandler: Send + Sync {
 /// Trait which a user must implement to verify host name(s) during X509 verification when using
 /// mutual TLS.
 pub trait VerifyClientCertificateHandler: Send + Sync {
-    /// Verify the host name by returning `true` if the certificate host name is valid, and false
-    /// otherwise.
-    fn verify_host_name(&self, host_name: &str) -> bool;
-}
-
-/// A `VerifyClientCertificateHandler` that rejects every certificate.
-#[derive(Debug, Default)]
-pub struct RejectAllClientCertificatesHandler {}
-impl VerifyClientCertificateHandler for RejectAllClientCertificatesHandler {}
-
-/// A `VerifyClientCertificateHandler` handler that accepts every certificate's host name.
-///
-/// Note: further x509 validation is still performed beyond the host name check.
-/// This handler is by nature not secure and should not be used other than in development or
-/// testing.
-/// Also see: `disable_x509_verification()` to turn off all certificate verification.
-#[derive(Debug, Default)]
-pub struct UnsecureAcceptAllClientCertificatesHandler {}
-impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
-    fn verify_host_name(&self, _host_name: &str) -> bool {
-        true
-    }
+    /// The implementation shall verify the host name by returning `true` if the certificate host name is valid,
+    /// and `false` otherwise.
+    fn verify_host_name(&self, _host_name: &str) -> bool;
 }

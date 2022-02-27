@@ -134,6 +134,14 @@ impl CertKeyPair {
     }
 }
 
+#[derive(Default)]
+pub struct UnsecureAcceptAllClientCertificatesHandler {}
+impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        true
+    }
+}
+
 pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
     let builder = config_builder(cipher_prefs)?;
     Ok(builder.build().expect("Unable to build server config"))
