@@ -9,7 +9,7 @@ use crate::raw::{
 use core::{convert::TryInto, ptr::NonNull, task::Poll};
 use s2n_tls_sys::*;
 use std::{
-    ffi::{c_void, CString},
+    ffi::{c_void, CStr, CString},
     mem::ManuallyDrop,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -245,15 +245,55 @@ impl Builder {
         Ok(self)
     }
 
-    /// # Safety
-    ///
-    /// The `context` pointer must live at least as long as the config
-    pub unsafe fn set_verify_host_callback(
+    pub fn wipe_trust_store(&mut self) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_wipe_trust_store(self.as_mut_ptr()).into_result()? };
+        Ok(self)
+    }
+
+    /// Sets whether or not a client certificate should be required to complete the TLS connection.
+    /// See: https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#client-auth-related-calls
+    pub fn set_client_auth_type(
         &mut self,
-        callback: s2n_verify_host_fn,
-        context: *mut core::ffi::c_void,
+        auth_type: s2n_cert_auth_type::Type,
     ) -> Result<&mut Self, Error> {
-        s2n_config_set_verify_host_callback(self.as_mut_ptr(), callback, context).into_result()?;
+        unsafe { s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type).into_result() }?;
+        Ok(self)
+    }
+
+    /// Set a custom callback function which is run during client certificate validation during
+    /// a mutual TLS handshake.
+    ///
+    /// The callback may be called more than once during certificate validation as each SAN on
+    /// the certificate will be checked.
+    pub fn set_verify_host_handler<T: 'static + VerifyClientCertificateHandler>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn verify_host_cb(
+            host_name: *const ::libc::c_char,
+            _host_name_len: usize,
+            context: *mut ::libc::c_void,
+        ) -> u8 {
+            let maybe_cstr = CStr::from_ptr(host_name).to_str();
+            if let Ok(host_name_str) = maybe_cstr {
+                let context = &mut *(context as *mut Context);
+                let handler = context.verify_host_handler.as_mut().unwrap();
+                return handler.verify_host_name(host_name_str) as u8;
+            }
+            0 // If the host name can't be parsed, fail closed.
+        }
+
+        let handler = Box::new(handler);
+        let context = unsafe { self.0.context_mut() };
+        context.verify_host_handler = Some(handler);
+        unsafe {
+            s2n_config_set_verify_host_callback(
+                self.as_mut_ptr(),
+                Some(verify_host_cb),
+                self.0.context_mut() as *mut _ as *mut c_void,
+            )
+            .into_result()?;
+        }
         Ok(self)
     }
 
@@ -354,6 +394,7 @@ impl Builder {
 pub(crate) struct Context {
     refcount: AtomicUsize,
     client_hello_handler: Option<Box<dyn ClientHelloHandler>>,
+    verify_host_handler: Option<Box<dyn VerifyClientCertificateHandler>>,
 }
 
 impl Default for Context {
@@ -365,6 +406,7 @@ impl Default for Context {
         Self {
             refcount,
             client_hello_handler: None,
+            verify_host_handler: None,
         }
     }
 }
@@ -374,4 +416,33 @@ impl Default for Context {
 /// Use in conjunction with [`Builder::set_client_hello_handler()`].
 pub trait ClientHelloHandler: Send + Sync {
     fn poll_client_hello(&self, connection: &mut Connection) -> core::task::Poll<Result<(), ()>>;
+}
+
+/// Trait which a user must implement to verify host name(s) during X509 verification when using
+/// mutual TLS.
+pub trait VerifyClientCertificateHandler: Send + Sync {
+    /// Verify the host name by returning `true` if the certificate host name is valid, and false
+    /// otherwise.
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        false
+    }
+}
+
+/// A `VerifyClientCertificateHandler` that rejects every certificate.
+#[derive(Debug, Default)]
+pub struct RejectAllClientCertificatesHandler {}
+impl VerifyClientCertificateHandler for RejectAllClientCertificatesHandler {}
+
+/// A `VerifyClientCertificateHandler` handler that accepts every certificate's host name.
+///
+/// Note: further x509 validation is still performed beyond the host name check.
+/// This handler is by nature not secure and should not be used other than in development or
+/// testing.
+/// Also see: `disable_x509_verification()` to turn off all certificate verification.
+#[derive(Debug, Default)]
+pub struct UnsecureAcceptAllClientCertificatesHandler {}
+impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        true
+    }
 }
