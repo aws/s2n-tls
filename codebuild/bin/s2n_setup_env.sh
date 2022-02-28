@@ -15,6 +15,8 @@
 
 # TODO: Flag user if they didn't source this, values won't stick.
 
+source codebuild/bin/s2n_set_build_preset.sh
+
 # Setup Default Build Config
 : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
 : "${BUILD_S2N:=false}"

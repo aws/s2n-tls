@@ -29,18 +29,6 @@ phases:
           cd third-party-src;
         fi
       - $CB_BIN_DIR/install_ubuntu_dependencies.sh
-      - echo "We need a test PPA for gcc-9."
-      - add-apt-repository ppa:ubuntu-toolchain-r/test -y
-      - apt-get update -o Acquire::CompressionTypes::Order::=gz
-      - apt-get update -y
-      - |
-        if expr "${GCC_VERSION}" : "9" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-9 gcc gcc-9;
-        fi
-      - |
-        if expr "${GCC_VERSION}" : "6" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
-        fi
       # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
       - |
         if expr "${LATEST_CLANG}" != "true" >/dev/null; then
