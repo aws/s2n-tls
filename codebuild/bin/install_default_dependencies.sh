@@ -104,7 +104,7 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
     if [[ ! -x "$OQS_OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
       # Download and Install OQS OpenSSL for integration tests
       mkdir -p "$OQS_OPENSSL_1_1_1_INSTALL_DIR" ||true
-      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" ;
+      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
     fi
 
     # Install SSLyze for all Integration Tests on Ubuntu.
