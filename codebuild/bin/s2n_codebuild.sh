@@ -53,6 +53,7 @@ fi
 
 if [[ "$OS_NAME" == "linux" && ( ("$TESTS" == "integration") || ("$TESTS" == "integrationv2") ) ]]; then
     make -j $JOBS
+    $CB_BIN_DIR/install_s2n_head.sh "$(mktemp -d)"
 fi
 
 # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
