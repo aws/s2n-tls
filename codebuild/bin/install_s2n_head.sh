@@ -25,11 +25,12 @@ if [ "$#" -ne "1" ]; then
 fi
 
 BUILD_DIR=$1
+source codebuild/bin/jobs.sh
 cd "$BUILD_DIR"
 
 # Clone the most recent s2n commit
 git clone --depth=1 https://github.com/aws/s2n-tls s2n_head
-
+cd s2n_head
 make -j $JOBS
 
 # Copy new executables to bin directory
