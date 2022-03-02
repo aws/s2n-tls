@@ -29,5 +29,43 @@ case "$S2N_BUILD_PRESET" in
         : "${S2N_LIBCRYPTO:=awslc-fips}"
         : "${GCC_VERSION:=9}"
         ;;
+    "libressl_gcc6")
+        : "${S2N_LIBCRYPTO:=libressl}"
+        : "${GCC_VERSION:=6}"
+        ;;
+    "libressl_gcc9")
+        : "${S2N_LIBCRYPTO:=libressl}"
+        : "${GCC_VERSION:=9}"
+        ;;
+    "boringssl")
+        : "${S2N_LIBCRYPTO:=boringssl}"
+        : "${GCC_VERSION:=9}"
+        ;;
+    "openssl-1-0-2")
+        : "${S2N_LIBCRYPTO:=openssl-1.0.2}"
+        : "${GCC_VERSION:=6}"
+        ;;
+    "openssl-1.0.2-fips")
+        : "${S2N_LIBCRYPTO:=openssl-1.0.2-fips}"
+        : "${GCC_VERSION:=6}"
+        ;;
+    "openssl-1.1.1_gcc4-8")
+        : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
+        : "${GCC_VERSION:=4.8}"
+        ;;
+    "openssl-1.1.1_gcc6")
+        : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
+        : "${GCC_VERSION:=6}"
+        : "${S2N_CORKED_IO:=true}"
+        ;;
+    "openssl-1.1.1_gcc6_softcrypto")
+        : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
+        : "${GCC_VERSION:=6}"
+        : "${OPENSSL_ia32cap:=~0x200000200000000}"
+        ;;
+    "openssl-1.1.1_gcc9")
+        : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
+        : "${GCC_VERSION:=9}"
+        ;;
 esac
 
