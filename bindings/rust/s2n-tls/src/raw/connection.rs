@@ -8,7 +8,12 @@ use crate::raw::{
     error::{Error, Fallible},
     security,
 };
-use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
+use core::{
+    convert::TryInto,
+    fmt,
+    ptr::NonNull,
+    task::{Poll, Waker},
+};
 use libc::c_void;
 use s2n_tls_sys::*;
 use std::{ffi::CStr, mem};
@@ -289,6 +294,35 @@ impl Connection {
             None
         } else {
             unsafe { Some(CStr::from_ptr(server_name).to_bytes()) }
+        }
+    }
+
+    /// The `context` pointer must live at least as long as the connection
+    pub fn set_waker(&mut self, waker: Option<&mut Waker>) -> Result<&mut Self, Error> {
+        unsafe {
+            match waker {
+                Some(waker) => {
+                    let waker = waker as *mut Waker as *mut c_void;
+                    s2n_connection_set_ctx(self.connection.as_ptr(), waker).into_result()?
+                }
+                None => s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut())
+                    .into_result()?,
+            };
+        }
+        Ok(self)
+    }
+
+    /// The `context` pointer must live at least as long as the connection
+    pub fn get_waker(&mut self) -> Option<&mut Waker> {
+        unsafe {
+            let p = s2n_connection_get_ctx(self.connection.as_ptr());
+            match p.into_result() {
+                Ok(p) => {
+                    let a = &mut *(p.as_ptr() as *mut Waker);
+                    Some(a)
+                }
+                Err(_) => None,
+            }
         }
     }
 

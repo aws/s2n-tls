@@ -6,11 +6,7 @@ use crate::raw::{
     error::{Error, Fallible},
     security,
 };
-use core::{
-    convert::TryInto,
-    ptr::NonNull,
-    task::{Context, Poll, Waker},
-};
+use core::{convert::TryInto, ptr::NonNull, task::Poll};
 use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
@@ -273,8 +269,6 @@ impl Builder {
             context: *mut core::ffi::c_void,
         ) -> libc::c_int {
             let handler = &*(context as *const T);
-            let ctx_ptr = s2n_connection_get_ctx(connection_ptr);
-            let waker = &*(ctx_ptr as *const Waker);
 
             let connection_ptr =
                 NonNull::new(connection_ptr).expect("connection should not be null");
@@ -282,7 +276,7 @@ impl Builder {
             // not call drop on the connection object.
             let mut connection = ManuallyDrop::new(Connection::from_raw(connection_ptr));
 
-            match handler.poll_client_hello(&mut connection, &Context::from_waker(waker)) {
+            match handler.poll_client_hello(&mut connection) {
                 Poll::Ready(Ok(())) => {
                     s2n_client_hello_cb_done(connection_ptr.as_ptr());
                     s2n_status_code::SUCCESS
@@ -329,9 +323,5 @@ impl Builder {
 }
 
 pub trait ClientHelloHandler: Send + Sync {
-    fn poll_client_hello(
-        &self,
-        connection: &mut Connection,
-        ctx: &Context,
-    ) -> core::task::Poll<Result<(), ()>>;
+    fn poll_client_hello(&self, connection: &mut Connection) -> core::task::Poll<Result<(), ()>>;
 }

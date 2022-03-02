@@ -265,4 +265,21 @@ mod tests {
         assert_eq!(config.test_get_refcount().unwrap(), 2);
         assert!(server.test_config_exists().is_ok());
     }
+
+    #[test]
+    fn connnection_waker() {
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+
+        let mut server = crate::raw::connection::Connection::new_server();
+        server.set_config(config).unwrap();
+
+        assert!(server.get_waker().is_none());
+
+        server.set_waker(Some(&mut TestWaker::get_waker())).unwrap();
+        assert!(server.get_waker().is_some());
+
+        server.set_waker(None).unwrap();
+        assert!(server.get_waker().is_none());
+    }
 }

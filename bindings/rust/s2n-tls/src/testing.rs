@@ -5,9 +5,10 @@ use crate::{
     raw::{config::*, security},
     testing::s2n_tls::Harness,
 };
+use alloc::sync::Arc;
 use bytes::Bytes;
-use core::task::Poll;
-use std::collections::VecDeque;
+use core::task::{Poll, Waker};
+use std::{collections::VecDeque, task::Wake};
 
 pub mod s2n_tls;
 
@@ -202,4 +203,17 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
     }
 
     // TODO add assertions to make sure the handshake actually succeeded
+}
+
+struct TestWaker {}
+
+impl Wake for TestWaker {
+    fn wake(self: Arc<Self>) {}
+}
+
+impl TestWaker {
+    pub fn get_waker() -> Waker {
+        let data = Arc::new(TestWaker {});
+        Waker::from(data)
+    }
 }
