@@ -162,44 +162,48 @@ else()
         # First, check if the compiler supports the specific instruction set
         # extensions. For example, gcc-4 doesn't fully support AVX-512, while
         # gcc-7 doesn't support VPCLMUL extension.
-        set(BIKE_R3_AVX2_FLAGS "-mavx2 -DS2N_BIKE_R3_AVX2")
+        set(BIKE_R3_AVX2_FLAGS "-mavx2")
         try_compile(
                 BIKE_R3_AVX2_SUPPORTED
                 ${CMAKE_BINARY_DIR}
                 SOURCES
                 "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
                 "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_avx2.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_AVX2_FLAGS}
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_AVX2_FLAGS} -DS2N_BIKE_R3_AVX2"
         )
 
-        set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq -DS2N_BIKE_R3_AVX512")
+        set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
         try_compile(
                 BIKE_R3_AVX512_SUPPORTED
                 ${CMAKE_BINARY_DIR}
                 SOURCES
                 "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
                 "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_avx512.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS}
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_AVX512_FLAGS} -DS2N_BIKE_R3_AVX512"
         )
 
-        set(BIKE_R3_PCLMUL_FLAGS "-mpclmul -msse2 -DS2N_BIKE_R3_PCLMUL")
+        set(BIKE_R3_PCLMUL_FLAGS "-mpclmul -msse2")
         try_compile(
                 BIKE_R3_PCLMUL_SUPPORTED
                 ${CMAKE_BINARY_DIR}
                 SOURCES
                 "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
                 "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_base_pclmul.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_PCLMUL_FLAGS}
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_PCLMUL_FLAGS} -DS2N_BIKE_R3_PCLMUL"
         )
 
-        set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq -DS2N_BIKE_R3_VPCLMUL")
+        set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
         try_compile(
                 BIKE_R3_VPCLMUL_SUPPORTED
                 ${CMAKE_BINARY_DIR}
                 SOURCES
                 "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
                 "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_base_vpclmul.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_VPCLMUL_FLAGS}
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_VPCLMUL_FLAGS} -DS2N_BIKE_R3_VPCLMUL"
         )
 
         if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
