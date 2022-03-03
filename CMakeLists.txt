@@ -356,31 +356,36 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
     # If any of the BIKE_R3 x86_64 optimizations is supported (this was checked
     # earlier in the file), we add the required compile flags to files that
     # contain the optimized code.
+
+    message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
+
     if(BIKE_R3_AVX2_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_AVX2")
         FILE(GLOB BIKE_R3_AVX2_SRCS "pq-crypto/bike_r3/*_avx2.c")
         set_source_files_properties(${BIKE_R3_AVX2_SRCS} PROPERTIES COMPILE_FLAGS -mavx2)
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX2)
     endif()
 
     if(BIKE_R3_AVX512_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_AVX512")
         FILE(GLOB BIKE_R3_AVX512_SRCS "pq-crypto/bike_r3/*_avx512.c")
         set_source_files_properties(${BIKE_R3_AVX512_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_AVX512_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX512)
     endif()
 
     if(BIKE_R3_PCLMUL_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_PCLMUL")
         FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
         set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_PCLMUL_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_PCLMUL)
     endif()
 
     if(BIKE_R3_VPCLMUL_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_VPCLMUL")
         FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
         set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_VPCLMUL_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_VPCLMUL)
     endif()
-
-    message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
