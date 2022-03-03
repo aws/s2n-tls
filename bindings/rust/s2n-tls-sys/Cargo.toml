@@ -21,6 +21,7 @@ include = [
 default = []
 pq = []
 quic = []
+internal = []
 
 [dependencies]
 libc = "0.2"
