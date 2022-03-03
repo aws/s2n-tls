@@ -30,7 +30,7 @@ define run_tox
 	DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
-	PATH="../../bin":$(LIBCRYPTO_ROOT)/bin:$(PATH) \
+	PATH="$(S2N_ROOT)/bin":"$(S2N_ROOT)/test-deps/openssl-1.1.1/bin":$(PATH) \
 	PYTHONNOUSERSITE=1 \
 	TOX_TEST_NAME=$(1) \
 	python3.9 -m tox \
