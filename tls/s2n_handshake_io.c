@@ -1285,7 +1285,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          */
         if (message_type == TLS_HELLO_REQUEST) {
             POSIX_GUARD(s2n_client_hello_request_recv(conn));
-            return S2N_SUCCESS;
+            POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+            continue;
         }
 
         POSIX_ENSURE(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
