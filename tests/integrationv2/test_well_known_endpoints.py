@@ -1,13 +1,13 @@
+import os
 import pytest
 
 from constants import TRUST_STORE_BUNDLE
 from configuration import available_ports, PROTOCOLS
-from common import ProviderOptions, Protocols, Ciphers, pq_enabled
 from fixtures import managed_process
-from global_flags import get_flag, S2N_FIPS_MODE
-from providers import Provider, S2N
+from common import ProviderOptions, Protocols, Ciphers, pq_enabled
+from global_flags import get_flag, S2N_FIPS_MODE, S2N_USECRITERION
+from providers import Provider, S2N, CriterionS2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
-
 
 ENDPOINTS = [
     "www.akamai.com",
@@ -84,11 +84,15 @@ else:
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
     }
 
+if get_flag(S2N_USECRITERION):
+    provider = [CriterionS2N]
+else:
+    provider = [S2N]
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("endpoint", ENDPOINTS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", provider, ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", CIPHERS, ids=get_parameter_name)
 def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cipher):
     port = "443"
@@ -117,6 +121,10 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
     for results in client.get_results():
         results.assert_success()
 
+    if provider is CriterionS2N and provider.criterion_mode is CriterionS2N.criterion_report:
+        # In report mode, criterion doesn't actually run the test, so no output to check.
+        return
+    else:
         if expected_result is not None:
             assert to_bytes(expected_result['cipher']) in results.stdout
             assert to_bytes(expected_result['kem']) in results.stdout

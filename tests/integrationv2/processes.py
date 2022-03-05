@@ -277,6 +277,9 @@ class ManagedProcess(threading.Thread):
         self.results_condition = threading.Condition()
         self.results = None
 
+        # Set current working dir
+        self.cwd = cwd
+
         # Condition variable indicating when this subprocess has been launched successfully
         self.ready_condition = threading.Condition()
         self.process_ready = False

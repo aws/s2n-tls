@@ -1,8 +1,11 @@
+import os
 import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
+from global_flags import S2N_USECRITERION
+from utils import find_files, EXECUTABLE
 
 
 TLS_13_LIBCRYPTOS = {
@@ -42,6 +45,12 @@ class Provider(object):
         self._provider_ready_condition = threading.Condition()
         self._provider_ready = False
 
+        # Directory to run commands from
+        self.cwd = None
+
+        # Store the test name
+        self.test_name = os.environ.get('PYTEST_CURRENT_TEST').split('::')[-1].split('[')[0]
+
         if type(options) is not ProviderOptions:
             raise TypeError
 
@@ -71,6 +80,9 @@ class Provider(object):
         This should be the last message printed before the client/server can send data.
         """
         return None
+
+    def get_cwd(self):
+        return self.cwd
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -308,8 +320,85 @@ class S2N(Provider):
         return cmd_line
 
 
-class OpenSSL(Provider):
+class CriterionS2N(S2N):
+    """
+    Wrap the S2N provider in criterion-rust
+    """
+    criterion_off = 0
+    criterion_delta = 1
+    criterion_baseline = 2
+    criterion_report = 3
+    # Figure out what mode to run in: baseline, delta or report
+    criterion_mode = get_flag(S2N_USECRITERION)
 
+    def _find_s2n_benchmark(self, pattern):
+        result = find_files(pattern, root_dir=self.cargo_root, mode=EXECUTABLE)
+        if len(result) > 0:
+            return result[0]
+        else:
+            raise FileNotFoundError("s2n criterion benchmark not found.")
+
+    def _find_cargo(self):
+        # return a path to the highest level dir containing Cargo.toml
+        shortest = None
+        for file in find_files("Cargo.toml", root_dir="../.."):
+            if shortest is None:
+                shortest = file
+            else:
+                if len(file) < len(shortest):
+                    shortest = file
+        # Retrun the path, minus Cargo.toml
+        return str("/".join(shortest.split("/")[:-1]))
+
+    def _cargo_bench(self):
+        """
+        Find the handlers
+        """
+        self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
+        self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
+
+    def __init__(self, options: ProviderOptions):
+        super().__init__(options)
+        # Set cargo root
+        self.cargo_root = self._find_cargo()
+
+        # Find the criterion binaries
+        self._cargo_bench()
+
+        #strip off the s2nc/d at the front because criterion
+        if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
+            self.cmd_line = self.cmd_line[1:]
+
+        # Copy the command arguments to an environment variable for the harness to read.
+        if self.options.mode == Provider.ServerMode:
+            self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
+            self.capture_server_args()
+        elif self.options.mode == Provider.ClientMode:
+            self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
+            if self.criterion_mode == CriterionS2N.criterion_baseline:
+                self.capture_client_args_baseline()
+            if self.criterion_mode == CriterionS2N.criterion_delta:
+                self.capture_client_args_delta()
+            if self.criterion_mode == CriterionS2N.criterion_report:
+                self.capture_client_args_report()
+
+    def capture_server_args(self, cmd_line):
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nd_bench, "--bench"]
+
+    def capture_client_args_baseline(self):
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--save-baseline", "main"]
+
+    def capture_client_args_delta(self):
+        # Without this flag, criterion won't run
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc"]
+
+    def capture_client_args_report(self):
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--load-baseline", "new", "--baseline", "main"]
+
+
+class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
 
     def __init__(self, options: ProviderOptions):
@@ -509,7 +598,7 @@ class OpenSSL(Provider):
 
 class JavaSSL(Provider):
     """
-    NOTE: Only a Java SSL client has been set up. The server has not been 
+    NOTE: Only a Java SSL client has been set up. The server has not been
     implemented yet.
     """
 

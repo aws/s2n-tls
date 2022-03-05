@@ -25,6 +25,7 @@ def managed_process():
             expect_stderr=None, kill_marker=None, send_with_newline=None):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
+        cwd = provider.get_cwd()
         # The process will default to send markers in the providers.py file
         # if not specified by a test.
         if send_marker is not None:
