@@ -32,7 +32,10 @@ impl fmt::Debug for Connection {
     }
 }
 
-/// Safety: s2n_connection objects can be sent across threads
+// FIXME: is this always true or application dependent??
+/// # Safety
+///
+/// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
 impl Connection {
@@ -57,7 +60,10 @@ impl Connection {
         Self::new(s2n_mode::SERVER)
     }
 
-    pub unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
+    /// # Safety
+    ///
+    /// Caller must ensure s2n_connection is a valid reference to a [`s2n_connection`] object
+    pub(crate) unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
         Self { connection }
     }
 
@@ -85,9 +91,16 @@ impl Connection {
         Ok(self)
     }
 
-    /// Attempts to drop the config on the connection
+    /// Attempts to drop the config on the connection.
+    ///
+    /// # Safety
+    ///
+    /// Manual memory management is error prone and users must not use after free.
     unsafe fn drop_config(&mut self) -> Result<(), Error> {
         let mut prev_config = core::ptr::null_mut();
+
+        // A valid non-null pointer is returned only if the application previously called
+        // [`Self::set_config()`].
         if s2n_connection_get_config(self.connection.as_ptr(), &mut prev_config)
             .into_result()
             .is_ok()
@@ -118,7 +131,7 @@ impl Connection {
             };
 
             // Setting the config on the connection creates one additional reference to the config
-            // so do not call drop.
+            // so do not drop so prevent Rust from calling `drop()` at the end of this function.
             mem::forget(config);
         }
 
@@ -289,15 +302,14 @@ impl Connection {
 
     /// Get the server name associated with the connection client hello.
     pub fn server_name(&self) -> Option<&[u8]> {
-        let server_name: *const i8 = unsafe { s2n_get_server_name(self.connection.as_ptr()) };
-        if server_name.is_null() {
-            None
-        } else {
-            unsafe { Some(CStr::from_ptr(server_name).to_bytes()) }
+        let server_name = unsafe { s2n_get_server_name(self.connection.as_ptr()) };
+        match server_name.into_result() {
+            Ok(server_name) => unsafe { Some(CStr::from_ptr(server_name).to_bytes()) },
+            Err(_) => None,
         }
     }
 
-    /// The `context` pointer must live at least as long as the connection
+    /// Sets a Waker on the connection context or clears it if Non is passed.
     pub fn set_waker(&mut self, waker: Option<&mut Waker>) -> Result<&mut Self, Error> {
         unsafe {
             match waker {
@@ -312,7 +324,7 @@ impl Connection {
         Ok(self)
     }
 
-    /// The `context` pointer must live at least as long as the connection
+    /// Returns the Waker set on the connection context.
     pub fn get_waker(&mut self) -> Option<&mut Waker> {
         unsafe {
             let p = s2n_connection_get_ctx(self.connection.as_ptr());

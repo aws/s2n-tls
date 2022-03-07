@@ -16,14 +16,21 @@ use std::{
 
 pub struct Config(NonNull<s2n_config>);
 
-/// Safety: s2n_config objects can be sent across threads
+// FIXME: is this always true or application dependent??
+/// # Safety
+///
+/// s2n_config objects can be sent across threads
 unsafe impl Send for Config {}
 
 impl Config {
+    /// Returns a Config object with pre-defined defaults.
+    ///
+    /// Use the [`Builder`] if custom configure is desired.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Returns a Builder which can be used to configure the Config
     pub fn builder() -> Builder {
         Builder::default()
     }
@@ -31,7 +38,7 @@ impl Config {
     /// # Safety
     ///
     /// This config _MUST_ have been initialized with a [`Builder`].
-    pub unsafe fn from_raw(config: NonNull<s2n_config>) -> Self {
+    pub(crate) unsafe fn from_raw(config: NonNull<s2n_config>) -> Self {
         Self(config)
     }
 
@@ -60,12 +67,16 @@ impl Default for Config {
 impl Clone for Config {
     fn clone(&self) -> Self {
         let mut context = core::ptr::null_mut();
-        let _ = unsafe {
+        // Safety
+        //
+        // This config _MUST_ have been initialized with a [`Builder`].
+        let context = unsafe {
             s2n_config_get_ctx(self.0.as_ptr(), &mut context)
                 .into_result()
-                .unwrap()
+                .unwrap();
+
+            &*(context as *const AtomicUsize)
         };
-        let context = unsafe { &*(context as *const AtomicUsize) };
 
         // Safety
         //
@@ -81,6 +92,31 @@ impl Clone for Config {
 impl Drop for Config {
     fn drop(&mut self) {
         let mut context = core::ptr::null_mut();
+
+        // Detect if this is an Application built Config or one of the default s2n-tls configs.
+        //
+        // NOTE: explicitly detect the default s2n-tls configs based on if the context is set.
+        // This will break if s2n-tls starts setting the context on the static
+        // config. A different option is to set an explicit flag on the config.
+        unsafe {
+            if s2n_config_get_ctx(self.0.as_ptr(), &mut context)
+                .into_result()
+                .is_ok()
+            {
+                let context = &*(context as *const AtomicUsize);
+                let count = context.fetch_sub(1, Ordering::Release);
+                debug_assert!(count > 0, "refcount should not drop below 1 instance");
+
+                // only free the config if this is the last instance
+                if count != 1 {
+                    return;
+                }
+            } else {
+                // This is a default s2n-tls config so just return.
+                return;
+            }
+        }
+
         // Safety
         //
         // The use of Ordering and fence mirrors the `Arc` implementation in
@@ -93,28 +129,10 @@ impl Drop for Config {
         // count, which happens before this fence, which happens before the
         // deletion of the data.
         // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1637
-
-        // NOTE: explicitly detect a static config based on if the context is set.
-        // This will break if s2n-tls starts setting the context on the static
-        // config. A different option is to set an explicit flag on the config.
-        if unsafe {
-            s2n_config_get_ctx(self.0.as_ptr(), &mut context)
-                .into_result()
-                .is_ok()
-        } {
-            let context = unsafe { &*(context as *const AtomicUsize) };
-            let count = context.fetch_sub(1, Ordering::Release);
-            debug_assert!(count > 0, "refcount should not drop below 1 instance");
-
-            // only free the config if this is the last instance
-            if count != 1 {
-                return;
-            }
-        }
-
         std::sync::atomic::fence(Ordering::Acquire);
 
         unsafe {
+            // This is the last instance so we can free the config.
             let context = Box::from_raw(context as *mut AtomicUsize);
             drop(context);
 
@@ -132,6 +150,7 @@ impl Builder {
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
         // The AtomicUsize is used to manually track the reference count of the Config.
+        // This mechanism is used to track when the Config object should be freed.
         let refcount: Box<AtomicUsize> = Box::new(AtomicUsize::new(1));
         let refcount = Box::into_raw(refcount) as *mut c_void;
         unsafe {
@@ -260,6 +279,7 @@ impl Builder {
         Ok(self)
     }
 
+    /// Set a custom callback function which is run after parsing the client hello.
     pub fn set_client_hello_handler<T: ClientHelloHandler>(
         &mut self,
         handler: T,
@@ -278,6 +298,13 @@ impl Builder {
 
             match handler.poll_client_hello(&mut connection) {
                 Poll::Ready(Ok(())) => {
+                    // FIXME: If any of the connection properties were changed based on the server_name
+                    // extension the callback must either return a value greater than 0 or invoke
+                    // **s2n_connection_server_name_extension_used**, otherwise the callback returns 0
+                    // to continue the handshake.
+                    //
+                    // Is there a more ergonomic way to handle this rather than impose this
+                    // requirement the application.
                     s2n_client_hello_cb_done(connection_ptr.as_ptr());
                     s2n_status_code::SUCCESS
                 }
@@ -322,6 +349,9 @@ impl Builder {
     }
 }
 
+/// This trait represents the client_hello callback which is run after parsing the client_hello.
+///
+/// Use in conjunction with [`Builder::set_client_hello_handler()`].
 pub trait ClientHelloHandler: Send + Sync {
     fn poll_client_hello(&self, connection: &mut Connection) -> core::task::Poll<Result<(), ()>>;
 }
