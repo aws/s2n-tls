@@ -5,10 +5,9 @@ use crate::{
     raw::{config::*, security},
     testing::s2n_tls::Harness,
 };
-use alloc::sync::Arc;
 use bytes::Bytes;
-use core::task::{Poll, Waker};
-use std::{collections::VecDeque, task::Wake};
+use core::task::Poll;
+use std::collections::VecDeque;
 
 pub mod s2n_tls;
 
@@ -135,6 +134,13 @@ impl CertKeyPair {
 }
 
 pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
+    let builder = config_builder(cipher_prefs)?;
+    Ok(builder.build().expect("Unable to build server config"))
+}
+
+pub fn config_builder(
+    cipher_prefs: &security::Policy,
+) -> Result<crate::raw::config::Builder, Error> {
     let mut builder = Builder::new();
     let mut keypair = CertKeyPair::default();
     // Build a config
@@ -153,7 +159,7 @@ pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::confi
             .disable_x509_verification()
             .expect("Unable to disable x509 verification");
     };
-    Ok(builder.build().expect("Unable to build server config"))
+    Ok(builder)
 }
 
 // host verify callback for x509
@@ -191,7 +197,11 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
         .expect("Unabel to set client config");
     let client = Harness::new(client);
 
-    let mut pair = Pair::new(server, client, SAMPLES);
+    let pair = Pair::new(server, client, SAMPLES);
+    poll_tls_pair(pair);
+}
+
+pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
     loop {
         match pair.poll() {
             Poll::Ready(result) => {
@@ -205,15 +215,14 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
     // TODO add assertions to make sure the handshake actually succeeded
 }
 
-struct TestWaker {}
+struct MockClientHelloHandler {}
 
-impl Wake for TestWaker {
-    fn wake(self: Arc<Self>) {}
-}
-
-impl TestWaker {
-    pub fn get_waker() -> Waker {
-        let data = Arc::new(TestWaker {});
-        Waker::from(data)
+impl ClientHelloHandler for MockClientHelloHandler {
+    fn poll_client_hello(
+        &mut self,
+        connection: &mut crate::raw::connection::Connection,
+    ) -> core::task::Poll<Result<(), ()>> {
+        connection.waker().unwrap().wake_by_ref();
+        Poll::Ready(Ok(()))
     }
 }

@@ -198,6 +198,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::testing::*;
+    use futures_test::task::new_count_waker;
 
     #[test]
     fn handshake_default() {
@@ -274,12 +275,59 @@ mod tests {
         let mut server = crate::raw::connection::Connection::new_server();
         server.set_config(config).unwrap();
 
-        assert!(server.get_waker().is_none());
+        assert!(server.waker().is_none());
 
-        server.set_waker(Some(&mut TestWaker::get_waker())).unwrap();
-        assert!(server.get_waker().is_some());
+        let (waker, wake_count) = new_count_waker();
+        server.set_waker(Some(&waker)).unwrap();
+        assert!(server.waker().is_some());
 
         server.set_waker(None).unwrap();
-        assert!(server.get_waker().is_none());
+        assert!(server.waker().is_none());
+
+        assert_eq!(wake_count, 0);
+    }
+
+    #[test]
+    fn client_hello_callback() {
+        let (waker, wake_count) = new_count_waker();
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13).unwrap();
+            config
+                .set_client_hello_handler(MockClientHelloHandler {})
+                .unwrap();
+            // multiple calls to set_client_hello_handler should succeed
+            config
+                .set_client_hello_handler(MockClientHelloHandler {})
+                .unwrap();
+            config.build().unwrap()
+        };
+
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::raw::connection::Connection::new_server();
+            server
+                .set_config(config.clone())
+                .expect("Failed to bind config to server connection");
+            server
+                .set_client_auth_type(s2n_tls_sys::s2n_cert_auth_type::NONE)
+                .expect("Unable to set server client auth type");
+
+            server.set_waker(Some(&waker)).unwrap();
+            Harness::new(server)
+        };
+
+        let client = {
+            // create a client connection
+            let mut client = crate::raw::connection::Connection::new_client();
+            client
+                .set_config(config)
+                .expect("Unable to set client config");
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+
+        poll_tls_pair(pair);
+        assert_eq!(wake_count, 1);
     }
 }

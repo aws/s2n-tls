@@ -22,3 +22,4 @@ s2n-tls-sys = { version = "0.0.2", path = "../s2n-tls-sys", features = ["interna
 [dev-dependencies]
 bytes = { version = "1" }
 errno = { version = "0.2" }
+futures-test = "0.3"

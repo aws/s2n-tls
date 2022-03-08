@@ -48,6 +48,15 @@ impl Connection {
                 s2n_connection_get_config(connection.as_ptr(), &mut config).into_result().is_err()
             };
         }
+        let context = Box::new(Context::default());
+        let context = Box::into_raw(context) as *mut c_void;
+        // allocate a new context object
+        unsafe {
+            s2n_connection_set_ctx(connection.as_ptr(), context)
+                .into_result()
+                .unwrap();
+        }
+
         Self { connection }
     }
 
@@ -293,49 +302,64 @@ impl Connection {
     }
 
     /// Sets the server name value for the connection
-    pub fn set_server_name(&mut self, sni: &[u8]) -> Result<&mut Self, Error> {
-        let sni = std::ffi::CString::new(sni).map_err(|_| Error::InvalidInput)?;
-        unsafe { s2n_set_server_name(self.connection.as_ptr(), sni.as_ptr()).into_result() }?;
+    pub fn set_server_name(&mut self, server_name: &str) -> Result<&mut Self, Error> {
+        let server_name = std::ffi::CString::new(server_name).map_err(|_| Error::InvalidInput)?;
+        unsafe {
+            s2n_set_server_name(self.connection.as_ptr(), server_name.as_ptr()).into_result()
+        }?;
         Ok(self)
     }
 
     /// Get the server name associated with the connection client hello.
-    pub fn server_name(&self) -> Option<&[u8]> {
+    pub fn server_name(&self) -> Option<&str> {
         unsafe {
             let server_name = s2n_get_server_name(self.connection.as_ptr());
             match server_name.into_result() {
-                Ok(server_name) => Some(CStr::from_ptr(server_name).to_bytes()),
+                Ok(server_name) => CStr::from_ptr(server_name).to_str().ok(),
                 Err(_) => None,
             }
         }
     }
 
     /// Sets a Waker on the connection context or clears it if Non is passed.
-    pub fn set_waker(&mut self, waker: Option<&mut Waker>) -> Result<&mut Self, Error> {
-        unsafe {
-            match waker {
-                Some(waker) => {
-                    let waker = waker as *mut Waker as *mut c_void;
-                    s2n_connection_set_ctx(self.connection.as_ptr(), waker).into_result()?
+    pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
+        let ctx = self.context_mut();
+
+        if let Some(waker) = waker {
+            if let Some(prev_waker) = ctx.waker.as_mut() {
+                if !prev_waker.will_wake(waker) {
+                    *prev_waker = waker.clone();
                 }
-                None => s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut())
-                    .into_result()?,
-            };
+            } else {
+                ctx.waker = Some(waker.clone());
+            }
+        } else {
+            ctx.waker = None;
         }
         Ok(self)
     }
 
     /// Returns the Waker set on the connection context.
-    pub fn get_waker(&mut self) -> Option<&mut Waker> {
+    pub fn waker(&self) -> Option<&Waker> {
+        let ctx = self.context();
+        ctx.waker.as_ref()
+    }
+
+    fn context_mut(&mut self) -> &mut Context {
         unsafe {
-            let p = s2n_connection_get_ctx(self.connection.as_ptr());
-            match p.into_result() {
-                Ok(p) => {
-                    let a = &mut *(p.as_ptr() as *mut Waker);
-                    Some(a)
-                }
-                Err(_) => None,
-            }
+            let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
+                .into_result()
+                .unwrap();
+            &mut *(ctx.as_ptr() as *mut Context)
+        }
+    }
+
+    fn context(&self) -> &Context {
+        unsafe {
+            let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
+                .into_result()
+                .unwrap();
+            &*(ctx.as_ptr() as *mut Context)
         }
     }
 
@@ -351,6 +375,11 @@ impl Connection {
         };
         Ok(())
     }
+}
+
+#[derive(Default)]
+struct Context {
+    waker: Option<Waker>,
 }
 
 #[cfg(feature = "quic")]
@@ -405,6 +434,12 @@ impl Drop for Connection {
     fn drop(&mut self) {
         // ignore failures since there's not much we can do about it
         unsafe {
+            let prev_ctx = self.context_mut();
+            drop(Box::from_raw(prev_ctx));
+
+            let _ = s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut())
+                .into_result();
+
             let _ = self.drop_config();
             let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
         }

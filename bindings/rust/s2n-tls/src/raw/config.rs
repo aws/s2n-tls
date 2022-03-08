@@ -45,6 +45,26 @@ impl Config {
         self.0.as_ptr()
     }
 
+    fn context(&self) -> &Context {
+        let mut ctx = core::ptr::null_mut();
+        unsafe {
+            s2n_config_get_ctx(self.0.as_ptr(), &mut ctx)
+                .into_result()
+                .unwrap();
+            &*(ctx as *const Context)
+        }
+    }
+
+    fn context_mut(&mut self) -> &mut Context {
+        let mut ctx = core::ptr::null_mut();
+        unsafe {
+            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
+                .into_result()
+                .unwrap();
+            &mut *(ctx as *mut Context)
+        }
+    }
+
     #[cfg(test)]
     /// Get the refcount associated with the config
     pub fn test_get_refcount(&self) -> Result<usize, Error> {
@@ -65,17 +85,7 @@ impl Default for Config {
 
 impl Clone for Config {
     fn clone(&self) -> Self {
-        let mut context = core::ptr::null_mut();
-        // Safety
-        //
-        // This config _MUST_ have been initialized with a [`Builder`].
-        let context = unsafe {
-            s2n_config_get_ctx(self.0.as_ptr(), &mut context)
-                .into_result()
-                .unwrap();
-
-            &*(context as *const AtomicUsize)
-        };
+        let context = self.context();
 
         // Safety
         //
@@ -83,14 +93,14 @@ impl Clone for Config {
         // original reference prevents other threads from erroneously deleting
         // the object.
         // https://github.com/rust-lang/rust/blob/e012a191d768adeda1ee36a99ef8b92d51920154/library/alloc/src/sync.rs#L1329
-        let _count = context.fetch_add(1, Ordering::Relaxed);
+        let _count = context.refcount.fetch_add(1, Ordering::Relaxed);
         Self(self.0)
     }
 }
 
 impl Drop for Config {
     fn drop(&mut self) {
-        let mut context = core::ptr::null_mut();
+        let context = self.context_mut();
 
         // Detect if this is an Application built Config or one of the default s2n-tls configs.
         //
@@ -99,23 +109,12 @@ impl Drop for Config {
         // is likely a safe implementaiton since the static config is only used for testing
         // and unlikely to set the context. A different option is to set an explicit flag on
         // the config.
-        unsafe {
-            if s2n_config_get_ctx(self.0.as_ptr(), &mut context)
-                .into_result()
-                .is_ok()
-            {
-                let context = &*(context as *const AtomicUsize);
-                let count = context.fetch_sub(1, Ordering::Release);
-                debug_assert!(count > 0, "refcount should not drop below 1 instance");
+        let count = context.refcount.fetch_sub(1, Ordering::Release);
+        debug_assert!(count > 0, "refcount should not drop below 1 instance");
 
-                // only free the config if this is the last instance
-                if count != 1 {
-                    return;
-                }
-            } else {
-                // This is a default s2n-tls config so just return.
-                return;
-            }
+        // only free the config if this is the last instance
+        if count != 1 {
+            return;
         }
 
         // Safety
@@ -134,7 +133,7 @@ impl Drop for Config {
 
         unsafe {
             // This is the last instance so we can free the config.
-            let context = Box::from_raw(context as *mut AtomicUsize);
+            let context = Box::from_raw(context);
             drop(context);
 
             let _ = s2n_config_free(self.0.as_ptr()).into_result();
@@ -150,12 +149,11 @@ impl Builder {
         crate::raw::init::init();
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
-        // The AtomicUsize is used to manually track the reference count of the Config.
-        // This mechanism is used to track when the Config object should be freed.
-        let refcount: Box<AtomicUsize> = Box::new(AtomicUsize::new(1));
-        let refcount = Box::into_raw(refcount) as *mut c_void;
+        let context = Box::new(Context::default());
+        let context = Box::into_raw(context) as *mut c_void;
+
         unsafe {
-            s2n_config_set_ctx(config.as_ptr(), refcount)
+            s2n_config_set_ctx(config.as_ptr(), context)
                 .into_result()
                 .unwrap();
         }
@@ -281,15 +279,16 @@ impl Builder {
     }
 
     /// Set a custom callback function which is run after parsing the client hello.
-    pub fn set_client_hello_handler<T: ClientHelloHandler>(
+    pub fn set_client_hello_handler<T: 'static + ClientHelloHandler>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
-        unsafe extern "C" fn client_hello_cb<T: ClientHelloHandler>(
+        unsafe extern "C" fn client_hello_cb(
             connection_ptr: *mut s2n_connection,
             context: *mut core::ffi::c_void,
         ) -> libc::c_int {
-            let handler = &*(context as *const T);
+            let context = &mut *(context as *mut Context);
+            let handler = context.client_hello_handler.as_mut().unwrap();
 
             let connection_ptr =
                 NonNull::new(connection_ptr).expect("connection should not be null");
@@ -299,9 +298,9 @@ impl Builder {
 
             match handler.poll_client_hello(&mut connection) {
                 Poll::Ready(Ok(())) => {
-                    // FIXME: this is not always true and should be fixed in the final version of
-                    // the bindings. We set the extension since custom certificate loading is the
-                    // most common operation at the moment.
+                    // FIXME: this is not always true and should be addressed in the final version
+                    // of the bindings. We set the extension since custom certificate loading is
+                    // the most common operation at the moment.
                     //
                     // A server that receives a client hello containing the "server_name" extension
                     // MAY use the information contained in the extension to guide its selection of
@@ -323,8 +322,8 @@ impl Builder {
             }
         }
 
-        let context = Box::new(handler);
-        let context = Box::into_raw(context) as *mut core::ffi::c_void;
+        let handler = Box::new(handler);
+        self.0.context_mut().client_hello_handler = Some(handler);
 
         unsafe {
             s2n_config_set_client_hello_cb_mode(
@@ -332,8 +331,12 @@ impl Builder {
                 s2n_client_hello_cb_mode::NONBLOCKING,
             )
             .into_result()?;
-            s2n_config_set_client_hello_cb(self.as_mut_ptr(), Some(client_hello_cb::<T>), context)
-                .into_result()?;
+            s2n_config_set_client_hello_cb(
+                self.as_mut_ptr(),
+                Some(client_hello_cb),
+                self.0.context_mut() as *mut _ as *mut c_void,
+            )
+            .into_result()?;
         }
 
         Ok(self)
@@ -356,9 +359,30 @@ impl Builder {
     }
 }
 
+pub(crate) struct Context {
+    refcount: AtomicUsize,
+    client_hello_handler: Option<Box<dyn ClientHelloHandler>>,
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        // The AtomicUsize is used to manually track the reference count of the Config.
+        // This mechanism is used to track when the Config object should be freed.
+        let refcount = AtomicUsize::new(1);
+
+        Self {
+            refcount,
+            client_hello_handler: None,
+        }
+    }
+}
+
 /// This trait represents the client_hello callback which is run after parsing the client_hello.
 ///
 /// Use in conjunction with [`Builder::set_client_hello_handler()`].
 pub trait ClientHelloHandler: Send + Sync {
-    fn poll_client_hello(&self, connection: &mut Connection) -> core::task::Poll<Result<(), ()>>;
+    fn poll_client_hello(
+        &mut self,
+        connection: &mut Connection,
+    ) -> core::task::Poll<Result<(), ()>>;
 }
