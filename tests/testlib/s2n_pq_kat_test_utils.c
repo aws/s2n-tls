@@ -16,7 +16,8 @@
 #include <sys/param.h>
 
 #include "tls/s2n_kem.h"
-#include "tests/testlib/s2n_nist_kats.h"
+#include "testlib/s2n_nist_kats.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq.h"
@@ -102,7 +103,7 @@ S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_b
     return S2N_RESULT_OK;
 }
 
-int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
+static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
@@ -185,6 +186,26 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     free(ss_answer);
 
     return 0;
+}
+
+S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count)
+{
+    RESULT_ENSURE_GT(count, 0);
+    for (size_t i = 0; i < count; i++) {
+        const struct s2n_kem_kat_test_vector vector = test_vectors[i];
+        const struct s2n_kem *kem = vector.kem;
+
+        /* Test the C code */
+        RESULT_GUARD(vector.disable_asm());
+        RESULT_GUARD_POSIX(s2n_test_kem_with_kat(kem, vector.kat_file));
+
+        /* Test the assembly, if available */
+        RESULT_GUARD(vector.enable_asm());
+        if (vector.asm_is_enabled()) {
+            RESULT_GUARD_POSIX(s2n_test_kem_with_kat(kem, vector.kat_file));
+        }
+    }
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_pq_noop_asm() {
