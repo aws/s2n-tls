@@ -16,10 +16,9 @@ use std::{
 
 pub struct Config(NonNull<s2n_config>);
 
-// FIXME: is this always true or application dependent??
 /// # Safety
 ///
-/// s2n_config objects can be sent across threads
+/// Callers must ensure access to Config is thread safe
 unsafe impl Send for Config {}
 
 impl Config {
@@ -95,9 +94,11 @@ impl Drop for Config {
 
         // Detect if this is an Application built Config or one of the default s2n-tls configs.
         //
-        // NOTE: explicitly detect the default s2n-tls configs based on if the context is set.
-        // This will break if s2n-tls starts setting the context on the static
-        // config. A different option is to set an explicit flag on the config.
+        // NOTE: explicitly detect the default s2n-tls config based on if the context is set.
+        // This will break if s2n-tls starts setting the context on the static config. This
+        // is likely a safe implementaiton since the static config is only used for testing
+        // and unlikely to set the context. A different option is to set an explicit flag on
+        // the config.
         unsafe {
             if s2n_config_get_ctx(self.0.as_ptr(), &mut context)
                 .into_result()
@@ -298,13 +299,19 @@ impl Builder {
 
             match handler.poll_client_hello(&mut connection) {
                 Poll::Ready(Ok(())) => {
-                    // FIXME: If any of the connection properties were changed based on the server_name
-                    // extension the callback must either return a value greater than 0 or invoke
-                    // **s2n_connection_server_name_extension_used**, otherwise the callback returns 0
-                    // to continue the handshake.
+                    // FIXME: this is not always true and should be fixed in the final version of
+                    // the bindings. We set the extension since custom certificate loading is the
+                    // most common operation at the moment.
                     //
-                    // Is there a more ergonomic way to handle this rather than impose this
-                    // requirement the application.
+                    // A server that receives a client hello containing the "server_name" extension
+                    // MAY use the information contained in the extension to guide its selection of
+                    // an appropriate certificate to return to the client, and/or other aspects of
+                    // security policy.  In this event, the server SHALL include an extension of type
+                    // "server_name" in the (extended) server hello.
+                    s2n_connection_server_name_extension_used(connection_ptr.as_ptr())
+                        .into_result()
+                        .unwrap();
+
                     s2n_client_hello_cb_done(connection_ptr.as_ptr());
                     s2n_status_code::SUCCESS
                 }

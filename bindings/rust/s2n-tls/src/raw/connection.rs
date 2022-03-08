@@ -32,10 +32,9 @@ impl fmt::Debug for Connection {
     }
 }
 
-// FIXME: is this always true or application dependent??
 /// # Safety
 ///
-/// s2n_connection objects can be sent across threads
+/// Callers must ensure access to Connection is thread safe
 unsafe impl Send for Connection {}
 
 impl Connection {
@@ -302,10 +301,12 @@ impl Connection {
 
     /// Get the server name associated with the connection client hello.
     pub fn server_name(&self) -> Option<&[u8]> {
-        let server_name = unsafe { s2n_get_server_name(self.connection.as_ptr()) };
-        match server_name.into_result() {
-            Ok(server_name) => unsafe { Some(CStr::from_ptr(server_name).to_bytes()) },
-            Err(_) => None,
+        unsafe {
+            let server_name = s2n_get_server_name(self.connection.as_ptr());
+            match server_name.into_result() {
+                Ok(server_name) => Some(CStr::from_ptr(server_name).to_bytes()),
+                Err(_) => None,
+            }
         }
     }
 
