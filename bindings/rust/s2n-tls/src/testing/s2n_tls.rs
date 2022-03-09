@@ -293,11 +293,11 @@ mod tests {
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13).unwrap();
             config
-                .set_client_hello_handler(MockClientHelloHandler {})
+                .set_client_hello_handler(MockClientHelloHandler::new())
                 .unwrap();
             // multiple calls to set_client_hello_handler should succeed
             config
-                .set_client_hello_handler(MockClientHelloHandler {})
+                .set_client_hello_handler(MockClientHelloHandler::new())
                 .unwrap();
             config.build().unwrap()
         };

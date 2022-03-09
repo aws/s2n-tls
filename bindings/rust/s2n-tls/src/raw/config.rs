@@ -68,12 +68,8 @@ impl Config {
     #[cfg(test)]
     /// Get the refcount associated with the config
     pub fn test_get_refcount(&self) -> Result<usize, Error> {
-        let mut context = core::ptr::null_mut();
-        unsafe {
-            let _ = s2n_config_get_ctx(self.0.as_ptr(), &mut context).into_result()?;
-            let context = &*(context as *const AtomicUsize);
-            Ok(context.load(Ordering::SeqCst))
-        }
+        let context = self.context();
+        Ok(context.refcount.load(Ordering::SeqCst))
     }
 }
 
@@ -381,8 +377,5 @@ impl Default for Context {
 ///
 /// Use in conjunction with [`Builder::set_client_hello_handler()`].
 pub trait ClientHelloHandler: Send + Sync {
-    fn poll_client_hello(
-        &mut self,
-        connection: &mut Connection,
-    ) -> core::task::Poll<Result<(), ()>>;
+    fn poll_client_hello(&self, connection: &mut Connection) -> core::task::Poll<Result<(), ()>>;
 }

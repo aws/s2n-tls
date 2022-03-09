@@ -123,9 +123,6 @@ impl Connection {
 
     /// Associates a configuration object with a connection.
     pub fn set_config(&mut self, mut config: Config) -> Result<&mut Self, Error> {
-        debug_assert!(!self.connection.as_ptr().is_null());
-        debug_assert!(!config.as_mut_ptr().is_null());
-
         unsafe {
             // attempt to drop the currently set config
             self.drop_config()?;
@@ -321,7 +318,7 @@ impl Connection {
         }
     }
 
-    /// Sets a Waker on the connection context or clears it if Non is passed.
+    /// Sets a Waker on the connection context or clears it if None is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();
 

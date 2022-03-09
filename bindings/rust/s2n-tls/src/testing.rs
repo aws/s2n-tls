@@ -217,9 +217,16 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
 
 struct MockClientHelloHandler {}
 
+impl MockClientHelloHandler {
+    #[allow(dead_code)]
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl ClientHelloHandler for MockClientHelloHandler {
     fn poll_client_hello(
-        &mut self,
+        &self,
         connection: &mut crate::raw::connection::Connection,
     ) -> core::task::Poll<Result<(), ()>> {
         connection.waker().unwrap().wake_by_ref();
