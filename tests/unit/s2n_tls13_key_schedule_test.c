@@ -52,18 +52,6 @@ static int s2n_test_secret_cb(void* context, struct s2n_connection *conn,
     POSIX_GUARD(s2n_blob_init(&secrets->blobs[secret_type],
             secrets->bytes[secret_type], secret_size));
     POSIX_CHECKED_MEMCPY(secrets->bytes[secret_type], secret_bytes, secret_size);
-
-    /* s2n-quic requires that all handshake secrets be emitted before
-     * any application secrets.
-     *
-     * This requirement is not supported for 0RTT yet.
-     */
-    bool is_handshake_secret = (secret_type == S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET
-            || secret_type == S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET);
-    if (!WITH_EARLY_DATA(conn) && is_handshake_secret) {
-        POSIX_ENSURE_EQ(secrets->blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
-        POSIX_ENSURE_EQ(secrets->blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size, 0);
-    }
     return S2N_SUCCESS;
 }
 
