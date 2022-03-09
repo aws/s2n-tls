@@ -5,9 +5,12 @@ use crate::{
     raw::{config::*, security},
     testing::s2n_tls::Harness,
 };
+use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
-use core::task::Poll;
-use std::collections::VecDeque;
+use core::{
+    sync::atomic::{AtomicBool, Ordering},
+    task::Poll,
+};
 
 pub mod s2n_tls;
 
@@ -215,12 +218,16 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
     // TODO add assertions to make sure the handshake actually succeeded
 }
 
-struct MockClientHelloHandler {}
+struct MockClientHelloHandler {
+    pending: Arc<AtomicBool>,
+}
 
 impl MockClientHelloHandler {
     #[allow(dead_code)]
     pub fn new() -> Self {
-        Self {}
+        Self {
+            pending: Arc::new(AtomicBool::new(true)),
+        }
     }
 }
 
@@ -229,6 +236,11 @@ impl ClientHelloHandler for MockClientHelloHandler {
         &self,
         connection: &mut crate::raw::connection::Connection,
     ) -> core::task::Poll<Result<(), ()>> {
+        if self.pending.swap(false, Ordering::SeqCst) {
+            return Poll::Pending;
+        }
+
+        // wake the task
         connection.waker().unwrap().wake_by_ref();
         Poll::Ready(Ok(()))
     }
