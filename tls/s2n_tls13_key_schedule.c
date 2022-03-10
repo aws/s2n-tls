@@ -77,7 +77,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     struct s2n_blob secret = { 0 };
     uint8_t secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&secret, secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
-    RESULT_GUARD(s2n_tls13_derive_secret(conn, secret_type, mode, &secret));
+    RESULT_GUARD(s2n_tls13_secrets_get(conn, secret_type, mode, &secret));
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
@@ -313,6 +313,7 @@ S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn)
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
+    RESULT_GUARD(s2n_tls13_secrets_update(conn));
     RESULT_ENSURE_REF(key_schedules[conn->mode]);
     RESULT_GUARD(key_schedules[conn->mode](conn));
     return S2N_RESULT_OK;
