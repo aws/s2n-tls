@@ -94,22 +94,6 @@ S2N_BLOB_LABEL(s2n_tls13_label_application_traffic_secret_update, "traffic upd")
 
 static const struct s2n_blob zero_length_blob = { .data = NULL, .size = 0 };
 
-/* Message transcript hash based on selected HMAC algorithm */
-static int s2n_tls13_transcript_message_hash(struct s2n_tls13_keys *keys, const struct s2n_blob *message, struct s2n_blob *message_digest)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(message);
-    POSIX_ENSURE_REF(message_digest);
-
-    DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hash_state));
-    POSIX_GUARD(s2n_hash_init(&hash_state, keys->hash_algorithm));
-    POSIX_GUARD(s2n_hash_update(&hash_state, message->data, message->size));
-    POSIX_GUARD(s2n_hash_digest(&hash_state, message_digest->data, message_digest->size));
-
-    return 0;
-}
-
 /*
  * Initializes the tls13_keys struct
  */
@@ -136,158 +120,6 @@ int s2n_tls13_keys_free(struct s2n_tls13_keys *keys) {
     POSIX_GUARD(s2n_hmac_free(&keys->hmac));
 
     return 0;
-}
-
-/*
- * Derives binder_key from PSK.
- */
-int s2n_tls13_derive_binder_key(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(psk);
-
-    struct s2n_blob *early_secret = &keys->extract_secret;
-    struct s2n_blob *binder_key = &keys->derive_secret;
-
-    /* Extract the early secret */
-    POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob,
-            &psk->secret, early_secret));
-
-    /* Choose the correct label for the psk type */
-    const struct s2n_blob *label_blob;
-    if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
-        label_blob = &s2n_tls13_label_external_psk_binder_key;
-    } else {
-        label_blob = &s2n_tls13_label_resumption_psk_binder_key;
-    }
-
-    /* Derive the binder_key */
-    s2n_tls13_key_blob(message_digest, keys->size);
-    POSIX_GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, early_secret,
-        label_blob, &message_digest, binder_key));
-
-    return S2N_SUCCESS;
-}
-
-/*
- * Derives early secrets
- */
-int s2n_tls13_derive_early_secret(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
-{
-    POSIX_ENSURE_REF(keys);
-
-    /* Early Secret */
-    if (psk == NULL) {
-        /* in 1-RTT, PSK is 0-filled of key length */
-        s2n_tls13_key_blob(psk_ikm, keys->size);
-
-        POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
-    } else {
-        /* Sanity check that an early secret exists and its size is equal to the extract secret size */
-        POSIX_ENSURE_EQ(psk->early_secret.size, keys->extract_secret.size);
-        POSIX_CHECKED_MEMCPY(keys->extract_secret.data, psk->early_secret.data, psk->early_secret.size);
-    }
-
-    /* derive next secret */
-    s2n_tls13_key_blob(message_digest, keys->size);
-    POSIX_GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
-
-    return S2N_SUCCESS;
-}
-
-int s2n_tls13_derive_early_traffic_secret(struct s2n_tls13_keys *keys,
-        struct s2n_hash_state *client_hello_hash, struct s2n_blob *secret)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(client_hello_hash);
-    POSIX_ENSURE_REF(secret);
-
-    s2n_tls13_key_blob(message_digest, keys->size);
-
-    /* copy the hash */
-    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hkdf_hash_copy));
-    POSIX_GUARD(s2n_hash_copy(&hkdf_hash_copy, client_hello_hash));
-    POSIX_GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
-
-    /* produce traffic secret */
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-            &s2n_tls13_label_client_early_traffic_secret, &message_digest, secret));
-
-    return S2N_SUCCESS;
-}
-
-/* Extract handshake master secret */
-int s2n_tls13_extract_handshake_secret(struct s2n_tls13_keys *keys, const struct s2n_blob *ecdhe)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(ecdhe);
-
-    /* Extract master secret from derived secret */
-    POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, ecdhe, &keys->extract_secret));
-
-    /* derive next secret */
-    s2n_tls13_key_blob(message_digest, keys->size);
-    POSIX_GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
-
-    return S2N_SUCCESS;
-}
-
-int s2n_tls13_derive_handshake_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_blob *server_hello_digest,
-        struct s2n_blob *secret, s2n_mode mode)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(server_hello_digest);
-    POSIX_ENSURE_REF(secret);
-
-    const struct s2n_blob *label_blob = NULL;
-    if (mode == S2N_CLIENT) {
-        label_blob = &s2n_tls13_label_client_handshake_traffic_secret;
-    } else {
-        label_blob = &s2n_tls13_label_server_handshake_traffic_secret;
-    }
-
-    /* produce traffic secret */
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-            label_blob, server_hello_digest, secret));
-
-    return 0;
-}
-
-int s2n_tls13_extract_master_secret(struct s2n_tls13_keys *keys)
-{
-    s2n_tls13_key_blob(empty_key, keys->size);
-
-    /* Extract master secret from derived secret */
-    POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, &empty_key, &keys->extract_secret));
-
-    return S2N_SUCCESS;
-}
-
-int s2n_tls13_derive_application_secret(struct s2n_tls13_keys *keys, struct s2n_blob *server_finished_digest,
-        struct s2n_blob *secret_blob, s2n_mode mode)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(server_finished_digest);
-    POSIX_ENSURE_REF(secret_blob);
-
-    const struct s2n_blob *label_blob;
-    if (mode == S2N_CLIENT) {
-        label_blob = &s2n_tls13_label_client_application_traffic_secret;
-    } else {
-        label_blob = &s2n_tls13_label_server_application_traffic_secret;
-    }
-
-    /* Derive traffic secret from master secret */
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        label_blob, server_finished_digest, secret_blob));
-
-    return S2N_SUCCESS;
 }
 
 /*
@@ -325,18 +157,10 @@ int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *
  */
 int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
 {
-    /* Set up a blob to contain hash */
     s2n_tls13_key_blob(transcript_hash, keys->size);
-
-    /* Make a copy of the hash state */
-    DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hash_state_copy));
-    POSIX_GUARD(s2n_hash_copy(&hash_state_copy, hash_state));
-    POSIX_GUARD(s2n_hash_digest(&hash_state_copy, transcript_hash.data, transcript_hash.size));
-
+    POSIX_GUARD(s2n_hash_digest(hash_state, transcript_hash.data, transcript_hash.size));
     POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, finished_key, &transcript_hash, finished_verify));
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*
@@ -352,30 +176,6 @@ int s2n_tls13_update_application_traffic_secret(struct s2n_tls13_keys *keys, str
                                 &s2n_tls13_label_application_traffic_secret_update, &zero_length_blob, new_secret));
 
     return 0;
-}
-
-int s2n_tls13_derive_resumption_master_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes, struct s2n_blob *secret_blob)
-{
-    POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(hashes);
-    POSIX_ENSURE_REF(secret_blob);
-
-    /* Sanity check that input hash is of expected type */
-    POSIX_ENSURE(keys->hash_algorithm == hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
-
-    s2n_tls13_key_blob(message_digest, keys->size);
-
-    /* Copy the hashes into the message_digest */
-    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hkdf_hash_copy));
-    POSIX_GUARD(s2n_hash_copy(&hkdf_hash_copy, hashes));
-    POSIX_GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
-
-    /* Derive master session resumption from master secret */
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_resumption_master_secret, &message_digest, secret_blob));
-
-    return S2N_SUCCESS;
 }
 
 S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, struct s2n_blob *resumption_secret, 

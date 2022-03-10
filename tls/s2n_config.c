@@ -907,3 +907,20 @@ int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_asy
 
     POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }
+
+int s2n_config_set_ctx(struct s2n_config *config, void *ctx) {
+    POSIX_ENSURE_REF(config);
+
+    config->context = ctx;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_get_ctx(struct s2n_config *config, void **ctx) {
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(ctx);
+
+    *ctx = config->context;
+
+    return S2N_SUCCESS;
+}

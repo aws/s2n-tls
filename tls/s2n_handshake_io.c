@@ -31,6 +31,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
+#include "tls/s2n_tls13_key_schedule.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_post_handshake.h"
 
@@ -1007,7 +1008,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* Update the secrets, if necessary */
-    POSIX_GUARD(s2n_tls13_handle_secrets(conn));
+    POSIX_GUARD_RESULT(s2n_tls13_key_schedule_update(conn));
 
     /* Advance the state machine */
     POSIX_GUARD(s2n_advance_message(conn));
@@ -1138,7 +1139,7 @@ static S2N_RESULT s2n_finish_read(struct s2n_connection *conn)
 
     RESULT_GUARD_POSIX(s2n_handshake_conn_update_hashes(conn));
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
-    RESULT_GUARD_POSIX(s2n_tls13_handle_secrets(conn));
+    RESULT_GUARD(s2n_tls13_key_schedule_update(conn));
     RESULT_GUARD_POSIX(s2n_advance_message(conn));
     return S2N_RESULT_OK;
 }
@@ -1284,7 +1285,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          */
         if (message_type == TLS_HELLO_REQUEST) {
             POSIX_GUARD(s2n_client_hello_request_recv(conn));
-            return S2N_SUCCESS;
+            POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+            continue;
         }
 
         POSIX_ENSURE(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
@@ -1422,6 +1424,8 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         }
 
         if (ACTIVE_STATE(conn).writer == 'B') {
+            POSIX_GUARD_RESULT(s2n_tls13_secrets_finish(conn));
+
             /* Send any pending post-handshake messages */
             POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
 

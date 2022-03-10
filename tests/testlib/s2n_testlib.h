@@ -74,6 +74,10 @@ S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint
 S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite);
 
+S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, const struct s2n_blob *early_secret);
+S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
+S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
+
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
@@ -170,7 +174,14 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
 S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
 
-int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
+struct s2n_kem_kat_test_vector {
+    const struct s2n_kem *kem;
+    const char *kat_file;
+    bool (*asm_is_enabled)();
+    S2N_RESULT (*enable_asm)();
+    S2N_RESULT (*disable_asm)();
+};
+S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
         const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
         uint32_t client_key_message_length);

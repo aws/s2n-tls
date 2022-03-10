@@ -181,6 +181,12 @@ ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
 endif
 
+# Determine if features.h is availabe
+TRY_COMPILE_FEATURES := $(call try_compile,$(S2N_ROOT)/tests/features/features.c)
+ifeq ($(TRY_COMPILE_FEATURES), 0)
+	DEFAULT_CFLAGS += -DS2N_FEATURES_AVAILABLE
+endif
+
 # Determine if __attribute__((fallthrough)) is available
 TRY_COMPILE_FALL_THROUGH := $(call try_compile,$(S2N_ROOT)/tests/features/fallthrough.c)
 ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)

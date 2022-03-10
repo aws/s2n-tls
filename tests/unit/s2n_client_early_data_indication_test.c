@@ -228,6 +228,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_128_gcm_sha256));
 
             EXPECT_EQUAL(conn->handshake.handshake_type, 0);
 

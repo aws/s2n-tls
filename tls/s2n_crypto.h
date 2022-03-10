@@ -19,6 +19,7 @@
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_crypto_constants.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_tls13_secrets.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -46,15 +47,6 @@ struct s2n_kex_parameters {
 struct s2n_tls12_secrets {
     uint8_t rsa_premaster_secret[S2N_TLS_SECRET_LEN];
     uint8_t master_secret[S2N_TLS_SECRET_LEN];
-};
-
-struct s2n_tls13_secrets {
-    uint8_t extracted_secret[S2N_TLS13_SECRET_MAX_LEN];
-    uint8_t derived_secret[S2N_TLS13_SECRET_MAX_LEN];
-
-    uint8_t client_app_secret[S2N_TLS13_SECRET_MAX_LEN];
-    uint8_t server_app_secret[S2N_TLS13_SECRET_MAX_LEN];
-    uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
 };
 
 union s2n_secrets {
