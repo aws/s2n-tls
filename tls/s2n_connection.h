@@ -123,6 +123,13 @@ struct s2n_connection {
     /* Connection successfully set a ticket on the connection */
     unsigned set_session:1;
 
+    /*
+     * This option exists to allow for polling the client_hello callback.
+     *
+     * Note: This defaults to false to ensure backwards compatibility.
+     */
+    unsigned client_hello_callback_poll:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 

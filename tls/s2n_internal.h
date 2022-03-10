@@ -47,3 +47,12 @@ struct s2n_connection;
  */
 S2N_PRIVATE_API
 extern int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config);
+
+/*
+ * Enable polling the async client_hello callback to make progress.
+ *
+ * `s2n_negotiate` must be called multiple times to poll the callback function
+ * and make progress.
+ */
+S2N_PRIVATE_API
+extern int s2n_connection_client_hello_cb_enable_poll(struct s2n_connection *conn);

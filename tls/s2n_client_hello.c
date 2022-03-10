@@ -225,7 +225,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
     POSIX_ENSURE(cipher_suites_length > 0, S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
-   
+
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     POSIX_ENSURE_REF(client_hello->cipher_suites.data);
@@ -348,17 +348,19 @@ fail:
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
+    if (conn->client_hello_callback_poll == 0) {
+        POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
+    }
 
     if (conn->config->client_hello_cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING ||
-            !conn->client_hello.callback_async_done)
+            (!conn->client_hello.callback_async_done && !conn->client_hello.callback_invoked))
     {
         /* Parse client hello */
         POSIX_GUARD(s2n_parse_client_hello(conn));
     }
     /* If the CLIENT_HELLO has already been parsed, then we should not call
      * the client_hello_cb a second time. */
-    if (conn->client_hello.callback_invoked == 0) {
+    if (conn->client_hello.callback_invoked == 0 || conn->client_hello_callback_poll == 1) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.callback_invoked = 1;
 
