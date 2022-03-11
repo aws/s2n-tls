@@ -133,6 +133,9 @@ struct s2n_config {
     s2n_psk_mode psk_mode;
 
     s2n_async_pkey_validation_mode async_pkey_validation_mode;
+
+    /* The user defined context associated with config */
+    void *context;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);

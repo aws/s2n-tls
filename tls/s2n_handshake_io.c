@@ -1285,7 +1285,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          */
         if (message_type == TLS_HELLO_REQUEST) {
             POSIX_GUARD(s2n_client_hello_request_recv(conn));
-            return S2N_SUCCESS;
+            POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+            continue;
         }
 
         POSIX_ENSURE(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
@@ -1423,14 +1424,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         }
 
         if (ACTIVE_STATE(conn).writer == 'B') {
-            /*
-             * Prepare TLS1.3 resumption secret.
-             * A ticket can be requested any time after the handshake ends,
-             * so we need to calculate this before the handshake ends.
-             */
-            if (conn->actual_protocol_version >= S2N_TLS13) {
-                POSIX_GUARD_RESULT(s2n_derive_resumption_master_secret(conn));
-            }
+            POSIX_GUARD_RESULT(s2n_tls13_secrets_finish(conn));
 
             /* Send any pending post-handshake messages */
             POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
