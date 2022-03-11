@@ -27,29 +27,21 @@ fi
 
 source codebuild/bin/s2n_setup_env.sh
 
-# Set the version of GCC as Default if it's required
-if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
-    alias gcc=$(which gcc-$GCC_VERSION);
-fi
-
 BUILD_DIR=$1
 INSTALL_DIR=$2
-source codebuild/bin/jobs.sh
 
-mkdir "$BUILD_DIR/s2n"
+mkdir -p "$BUILD_DIR/s2n"
 # In case $BUILD_DIR is a subdirectory of current directory
 for file in *;do test "$file" != "$BUILD_DIR" && cp -r "$file" "$BUILD_DIR/s2n";done
 cd "$BUILD_DIR"
-git clone --recurse-submodules https://github.com/awslabs/aws-crt-cpp.git
+git clone --depth 1 --shallow-submodules --recurse-submodules https://github.com/awslabs/aws-crt-cpp.git
 # Replace S2N
 rm -r aws-crt-cpp/crt/s2n
 mv s2n aws-crt-cpp/crt/
-mkdir build
-cd build
 
-cmake ../aws-crt-cpp -GNinja -DBUILD_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
-ninja -j "${JOBS}" install
-ninja test
+cmake ./aws-crt-cpp -Bbuild -GNinja -DBUILD_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+ninja -C ./build install
+CTEST_PARALLEL_LEVEL=$(nproc) ninja -C ./build test
 
 popd
 
