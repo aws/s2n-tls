@@ -33,6 +33,16 @@ fn main() {
         .write_to_file(out_dir.join("src/quic.rs"))
         .unwrap();
 
+    gen_bindings("#include \"tls/s2n_internal.h\"", &out_dir.join("lib"))
+        .allowlist_function("s2n_.*")
+        .blocklist_type("s2n_config")
+        .blocklist_type("s2n_connection")
+        .raw_line("use crate::api::*;\n")
+        .generate()
+        .unwrap()
+        .write_to_file(out_dir.join("src/internal.rs"))
+        .unwrap();
+
     let functions = FunctionCallbacks::default();
 
     gen_bindings("#include <s2n.h>", &out_dir.join("lib"))

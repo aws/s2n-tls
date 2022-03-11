@@ -174,7 +174,14 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
 S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
 
-int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
+struct s2n_kem_kat_test_vector {
+    const struct s2n_kem *kem;
+    const char *kat_file;
+    bool (*asm_is_enabled)();
+    S2N_RESULT (*enable_asm)();
+    S2N_RESULT (*disable_asm)();
+};
+S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
         const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
         uint32_t client_key_message_length);
