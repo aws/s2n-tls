@@ -1,4 +1,5 @@
-
+**Note: For support with using SideTrail project outside of s2n-tls, please contact
+the main project repository: https://github.com/danielsn/smack**
 
 # Constant Time Verification Tests for s2n
 
@@ -8,7 +9,7 @@ For more details, see https://github.com/awslabs/s2n/issues/463
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  
+**Table of Contents**
 
 - [What are timing side channels](#what-are-timing-side-channels)
 - [s2n countermeasures against timing side channels](#s2n-countermeasures-against-timing-side-channels)
@@ -60,13 +61,13 @@ In this attack, the TLS server is tricked into treating a (secret) encrypted byt
 A naive TLS implementation will remove the specified amount of padding, then calculate a hash on the remaining bytes in the packet.
 If the value in the secret byte was large, a small number of bytes will be hashed; if it was small, a larger number of bytes will be hashed, creating a timing difference, which in theory can reveal the value in the secret byte.
 
-For a detailed discussion of the LUCKY13 attack and how s2n mitigates against it, see [this blog post](https://aws.amazon.com/blogs/security/s2n-and-lucky-13/). 
+For a detailed discussion of the LUCKY13 attack and how s2n mitigates against it, see [this blog post](https://aws.amazon.com/blogs/security/s2n-and-lucky-13/).
 
 ## s2n countermeasures against timing side channels
 
 s2n takes a belt and suspenders approach to preventing side-channel attacks.
 1. First of all, it uses code-balancing to ensure that the same number of hash compression rounds are processed, no matter the value in the secret byte.
-2. Second, it adds a delay of up to 10 seconds whenever any error is triggered, which increases by orders of magnitude the number of timing samples an attacker would need, even if they found a way around countermeasure 1. 
+2. Second, it adds a delay of up to 10 seconds whenever any error is triggered, which increases by orders of magnitude the number of timing samples an attacker would need, even if they found a way around countermeasure 1.
 
 ## Why use formal methods to prove the correctness of s2n's countermeasures?
 Side channels are notoriously difficult to defend against, since code with a side-channel has the same functional behaviour as code that is side-channel free.
@@ -88,16 +89,16 @@ The SMT solver, using clever heuristics, exhaustively searches the state of all 
 In addition to the standard `assert()/assume()/` annotations supported through SMACK, there are several annotations supported by SideTrail, which allow the user to pass information to the SideTrail proof:
 
 1. `__VERIFIER_ASSUME_LEAKAGE(arg)`: When the timing-modeling transformation encounters this call, it increments the leakage tracking variables by "arg"
-2. `S2N_PUBLIC_INPUT(arg)`: the argument given here is taken to be public. 
+2. `S2N_PUBLIC_INPUT(arg)`: the argument given here is taken to be public.
    All other variables are assumed private by default.
 3. `S2N_INVARIANT(arg)`: asserts that the given argument is an invariant of the loop, and as such holds on each execution of the loop, and at loop exit.
-4. `__VERIFIER_ASSERT_MAX_LEAKAGE(arg)`: asserts that the given function is time-balanced, with a leakage of less than "arg" time units. 
+4. `__VERIFIER_ASSERT_MAX_LEAKAGE(arg)`: asserts that the given function is time-balanced, with a leakage of less than "arg" time units.
 
 ### The gory details
 
 Mathematically, a program `P(secret, public)` has runtime `Time(P(secret,public))`.
 A program has a timing side-channel of delta if `|Time(P(secret_1,public)) - Time(P(secret_2,public))| = delta`.
-If we can represent `Time(P(secret,public))` as a mathematical formula, we can use a theorem prover to mathematically prove that the timing leakage of the program, for all choices of `secret_1, secret_2`, is less than `delta`. 
+If we can represent `Time(P(secret,public))` as a mathematical formula, we can use a theorem prover to mathematically prove that the timing leakage of the program, for all choices of `secret_1, secret_2`, is less than `delta`.
 
 SideTrail proceeds in several steps:
 
@@ -152,7 +153,7 @@ You will now be presented with a docker shell.
 Inside this shell, run:
 
 ```shell
-source /sidetrail-install-dir/smack.environment 
+source /sidetrail-install-dir/smack.environment
 ```
 
 This step is important.
@@ -165,7 +166,7 @@ cd <testname>
 ./clean.sh && ./run.sh
 ```
 
-You should see output that looks something like this 
+You should see output that looks something like this
 
 ```
 ...
@@ -174,22 +175,22 @@ warning: memory intrinsic length exceeds threshold (0); adding quantifiers.
 SMACK generated s2n_record_parse_wrapper@s2n_record_read_wrapper.c.compiled.bpl
 warning: module contains undefined functions: malloc, __CONTRACT_invariant, nondet
 
- ____                _            _   
-|  _ \ _ __ ___   __| |_   _  ___| |_ 
+ ____                _            _
+|  _ \ _ __ ___   __| |_   _  ___| |_
 | |_) | '__/ _ \ / _` | | | |/ __| __|
-|  __/| | | (_) | (_| | |_| | (__| |_ 
+|  __/| | | (_) | (_| | |_| | (__| |_
 |_|   |_|  \___/ \__,_|\__,_|\___|\__|
-                                      
+
 s2n_record_parse_wrapper@s2n_record_read_wrapper.c
 
 
 
-__     __        _  __       
-\ \   / /__ _ __(_)/ _|_   _ 
+__     __        _  __
+\ \   / /__ _ __(_)/ _|_   _
  \ \ / / _ \ '__| | |_| | | |
   \ V /  __/ |  | |  _| |_| |
    \_/ \___|_|  |_|_|  \__, |
-                       |___/ 
+                       |___/
 s2n_record_parse_wrapper@s2n_record_read_wrapper.c
 
 +  boogie /printModel 4 /doModSetAnalysis s2n_record_parse_wrapper@s2n_record_read_wrapper.c.product.bpl
@@ -202,7 +203,7 @@ user	0m20.983s
 sys	0m2.395s
 ```
 
-If you do not see the line, 
+If you do not see the line,
 
 ```
 Boogie program verifier finished with 1 verified, 0 errors
