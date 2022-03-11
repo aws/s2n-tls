@@ -66,11 +66,11 @@ sudo make install
 s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:
 
 ````shell
-find_package(s2n-tls)
+find_package(s2n)
 
 ....
 
-target_link_libraries(yourExecutableOrLibrary AWS::s2n-tls)
+target_link_libraries(yourExecutableOrLibrary AWS::s2n)
 ````
 
 And when invoking CMake for your project, do one of two things:
