@@ -41,12 +41,6 @@
 #define CLONE_TEST_YES 1
 #define CLONE_TEST_DETERMINE_AT_RUNTIME 2
 
-#define FGN_TEST_CASE_PRINT_MSG_INFO( info_msg, _test_case ) do {          \
-    fprintf(stdout, "\nFGN test case: %s\n", _test_case->test_case_label); \
-    fprintf(stdout, "%s\n", info_msg);                                     \
-    fflush(stdout);                                                        \
-    } while(0)
-
 struct fgn_test_case {
     const char *test_case_label;
     int (*test_case_cb)(struct fgn_test_case *test_case);
@@ -192,7 +186,7 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
     return EXIT_SUCCESS;
 }
 
-#define PROCESS_CHILD_STACK_SIZE 1024 * 1024 /* Suggested by clone() man page... */
+#define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
 static int s2n_unit_test_clone(uint64_t parent_process_fgn)
 {
 #if !defined(CLONE_NOT_SUPPORTED)
@@ -275,7 +269,7 @@ static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 {
     if (s2n_assert_madv_wipeonfork_is_supported() == false) {
-        FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
+        TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
         return S2N_SUCCESS;
     }
 
@@ -288,7 +282,7 @@ static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 {
     if (s2n_assert_map_inherit_zero_is_supported() == false) {
-        FGN_TEST_CASE_PRINT_MSG_INFO("Test case not supported. Skipping.", test_case);
+        TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
         return S2N_SUCCESS;
     }
 
