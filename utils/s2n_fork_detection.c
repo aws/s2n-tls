@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-/* This captures Darwin specialities. This is the only APPLE flavor we care
- * about.
- * Here we also capture varius required feature test macro's.
+/* This captures Darwin specialities. This is the only APPLE flavor we care about.
+ * Here we also capture varius required feature test macros.
  */
 #if defined(__APPLE__)
     typedef struct _opaque_pthread_once_t  __darwin_pthread_once_t;
     typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
-#else
-    #if !defined(_GNU_SOURCE)
-        #define _GNU_SOURCE
-    #endif
+#elif !defined(_GNU_SOURCE)
+    #define _GNU_SOURCE
 #endif
 
 #include <sys/mman.h>
@@ -149,7 +146,12 @@ static void s2n_pthread_atfork_on_fork(void)
     if (pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) != 0) {
         abort();
     }
+
+    if (fgn_state.zero_on_fork_addr == NULL) {
+        abort();
+    }
     *fgn_state.zero_on_fork_addr = 0;
+
     if (pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) != 0) {
         abort();
     }
@@ -167,6 +169,8 @@ static int s2n_inititalise_pthread_atfork(void)
 
 static int s2n_initialise_fork_detection_methods_try(void *addr, long page_size)
 {
+    POSIX_GUARD_PTR(addr);
+
     /* Some system don't define MADV_WIPEONFORK in sys/mman.h but the kernel
      * still supports the mechanism (AL2 being a prime example). Likely because
      * glibc on the system is old. We might be able to include kernel header
@@ -250,7 +254,10 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     RESULT_ENSURE(pthread_once(&fgn_state.fork_detection_once, s2n_initialise_fork_detection_methods) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
     if (ignore_fork_detection_for_testing == S2N_FORK_DETECT_IGNORE) {
-        /* Fork detection is meant to be disabled. Hence, return success. */
+        /* Fork detection is meant to be disabled. Hence, return success.
+         * This should only happen during testing.
+         */
+        RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         return S2N_RESULT_OK;
     }
 
@@ -269,7 +276,7 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     RESULT_ENSURE(pthread_rwlock_rdlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
     if (*fgn_state.zero_on_fork_addr != S2N_FORK_EVENT) {
-        /* No fork event detection. */
+        /* No fork event detected. */
         RESULT_ENSURE(pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) == 0, S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER);
         return S2N_RESULT_OK;
     }
@@ -283,7 +290,7 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     *return_fork_generation_number = fgn_state.current_fork_generation_number;
     if (*fgn_state.zero_on_fork_addr == S2N_FORK_EVENT) {
         /* Fork event has been detected; reset sentinel, increment cached fork
-         * generation nunber (which is now "current" in this child process), and
+         * generation number (which is now "current" in this child process), and
          * write incremented fork generation number to the output parameter.
          */
         *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
