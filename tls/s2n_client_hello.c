@@ -172,7 +172,6 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
     client_hello->callback_async_blocked = 0;
     client_hello->callback_async_done = 0;
     client_hello->parsed = 0;
-    client_hello->callback_enable_poll = 0;
 
     return 0;
 }
@@ -351,7 +350,7 @@ fail:
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    if (conn->client_hello.callback_enable_poll == 0) {
+    if (conn->config->callback_enable_poll == 0) {
         POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
     }
 
@@ -362,7 +361,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         conn->client_hello.parsed = 1;
     }
     /* Call the client_hello_cb once unless polling is enabled. */
-    if (conn->client_hello.callback_invoked == 0 || conn->client_hello.callback_enable_poll == 1) {
+    if (conn->client_hello.callback_invoked == 0 || conn->config->callback_enable_poll == 1) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.callback_invoked = 1;
 

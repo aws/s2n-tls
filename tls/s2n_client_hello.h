@@ -44,12 +44,6 @@ struct s2n_client_hello {
      * issues a hello retry.
      */
     unsigned int parsed:1;
-    /*
-     * This option exists to allow for polling the client_hello callback.
-     *
-     * Note: This defaults to false to ensure backwards compatibility.
-     */
-    unsigned callback_enable_poll:1;
 };
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);
