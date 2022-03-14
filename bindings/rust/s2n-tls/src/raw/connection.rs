@@ -43,9 +43,8 @@ impl Connection {
         let connection = unsafe { s2n_connection_new(mode).into_result() }.unwrap();
 
         unsafe {
-            let mut config = core::ptr::null_mut();
             debug_assert! {
-                s2n_connection_get_config(connection.as_ptr(), &mut config).into_result().is_err()
+                s2n_connection_get_config(connection.as_ptr(), &mut core::ptr::null_mut()).into_result().is_err()
             };
         }
         let context = Box::new(Context::default());
@@ -113,8 +112,9 @@ impl Connection {
             .into_result()
             .is_ok()
         {
-            let prev_config = NonNull::new(prev_config)
-                .expect("the call to s2n_connection_get_config was successful");
+            let prev_config = NonNull::new(prev_config).expect(
+                "config should exist since the call to s2n_connection_get_config was successful",
+            );
             drop(Config::from_raw(prev_config));
         }
 

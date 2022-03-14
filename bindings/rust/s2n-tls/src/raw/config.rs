@@ -128,7 +128,7 @@ impl Drop for Config {
         std::sync::atomic::fence(Ordering::Acquire);
 
         unsafe {
-            // This is the last instance so we can free the config.
+            // This is the last instance so free the context.
             let context = Box::from_raw(context);
             drop(context);
 
@@ -288,6 +288,7 @@ impl Builder {
 
             let connection_ptr =
                 NonNull::new(connection_ptr).expect("connection should not be null");
+
             // Since this is a callback, which receives a pointer to the connection, do
             // not call drop on the connection object.
             let mut connection = ManuallyDrop::new(Connection::from_raw(connection_ptr));
@@ -322,6 +323,8 @@ impl Builder {
         self.0.context_mut().client_hello_handler = Some(handler);
 
         unsafe {
+            // Enable client_hello_callback polling to better model Rust Future behavior
+            s2n_config_client_hello_cb_enable_poll(self.as_mut_ptr()).into_result()?;
             s2n_config_set_client_hello_cb_mode(
                 self.as_mut_ptr(),
                 s2n_client_hello_cb_mode::NONBLOCKING,

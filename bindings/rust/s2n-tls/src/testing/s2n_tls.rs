@@ -290,15 +290,13 @@ mod tests {
     #[test]
     fn client_hello_callback() {
         let (waker, wake_count) = new_count_waker();
+        let require_pending_count = 10;
+        let handle = MockClientHelloHandler::new(require_pending_count);
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13).unwrap();
-            config
-                .set_client_hello_handler(MockClientHelloHandler::new())
-                .unwrap();
+            config.set_client_hello_handler(handle.clone()).unwrap();
             // multiple calls to set_client_hello_handler should succeed
-            config
-                .set_client_hello_handler(MockClientHelloHandler::new())
-                .unwrap();
+            config.set_client_hello_handler(handle.clone()).unwrap();
             config.build().unwrap()
         };
 
@@ -328,6 +326,12 @@ mod tests {
         let pair = Pair::new(server, client, SAMPLES);
 
         poll_tls_pair(pair);
-        assert_eq!(wake_count, 1);
+        // confirm that the callback returned Pending `require_pending_count` times
+        assert_eq!(wake_count, require_pending_count);
+        // confirm that the final invoked count is +1 more than `require_pending_count`
+        assert_eq!(
+            handle.invoked.load(Ordering::SeqCst),
+            require_pending_count + 1
+        );
     }
 }

@@ -7,10 +7,8 @@ use crate::{
 };
 use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
-use core::{
-    sync::atomic::{AtomicBool, Ordering},
-    task::Poll,
-};
+use core::{sync::atomic::Ordering, task::Poll};
+use std::sync::atomic::AtomicUsize;
 
 pub mod s2n_tls;
 
@@ -218,15 +216,18 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
     // TODO add assertions to make sure the handshake actually succeeded
 }
 
+#[derive(Clone)]
 struct MockClientHelloHandler {
-    pending: Arc<AtomicBool>,
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
 }
 
 impl MockClientHelloHandler {
     #[allow(dead_code)]
-    pub fn new() -> Self {
+    pub fn new(require_pending_count: usize) -> Self {
         Self {
-            pending: Arc::new(AtomicBool::new(true)),
+            require_pending_count,
+            invoked: Arc::new(AtomicUsize::new(0)),
         }
     }
 }
@@ -236,12 +237,12 @@ impl ClientHelloHandler for MockClientHelloHandler {
         &self,
         connection: &mut crate::raw::connection::Connection,
     ) -> core::task::Poll<Result<(), ()>> {
-        if self.pending.swap(false, Ordering::SeqCst) {
+        if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
+            // confirm the callback can access the waker
+            connection.waker().unwrap().wake_by_ref();
             return Poll::Pending;
         }
 
-        // wake the task
-        connection.waker().unwrap().wake_by_ref();
         Poll::Ready(Ok(()))
     }
 }
