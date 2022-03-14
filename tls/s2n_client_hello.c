@@ -172,6 +172,7 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
     client_hello->callback_async_blocked = 0;
     client_hello->callback_async_done = 0;
     client_hello->parsed = 0;
+    client_hello->callback_enable_poll = 0;
 
     return 0;
 }
@@ -357,9 +358,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     if (conn->config->client_hello_cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING ||
                     !conn->client_hello.parsed)
     {
-        conn->client_hello.parsed = 1;
         /* Parse client hello */
         POSIX_GUARD(s2n_parse_client_hello(conn));
+        conn->client_hello.parsed = 1;
     }
     /* If the CLIENT_HELLO has already been parsed, then we should not call
      * the client_hello_cb a second time. */
