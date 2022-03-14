@@ -116,6 +116,7 @@ int s2n_client_hello_cb_done(struct s2n_connection *conn)
     POSIX_ENSURE(conn->config->client_hello_cb_mode ==
         S2N_CLIENT_HELLO_CB_NONBLOCKING, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(conn->client_hello.callback_invoked == 1, S2N_ERR_ASYNC_NOT_PERFORMED);
+    POSIX_ENSURE(conn->client_hello.parsed == 1, S2N_ERR_INVALID_STATE);
 
     conn->client_hello.callback_async_blocked = 0;
     conn->client_hello.callback_async_done = 1;
@@ -170,6 +171,7 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
      * incase we are preparing for CH retry */
     client_hello->callback_async_blocked = 0;
     client_hello->callback_async_done = 0;
+    client_hello->parsed = 0;
 
     return 0;
 }
@@ -348,19 +350,20 @@ fail:
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    if (conn->client_hello_callback_poll == 0) {
+    if (conn->client_hello.callback_enable_poll == 0) {
         POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
     }
 
     if (conn->config->client_hello_cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING ||
-            (!conn->client_hello.callback_async_done && !conn->client_hello.callback_invoked))
+                    !conn->client_hello.parsed)
     {
+        conn->client_hello.parsed = 1;
         /* Parse client hello */
         POSIX_GUARD(s2n_parse_client_hello(conn));
     }
     /* If the CLIENT_HELLO has already been parsed, then we should not call
      * the client_hello_cb a second time. */
-    if (conn->client_hello.callback_invoked == 0 || conn->client_hello_callback_poll == 1) {
+    if (conn->client_hello.callback_invoked == 0 || conn->client_hello.callback_enable_poll == 1) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.callback_invoked = 1;
 

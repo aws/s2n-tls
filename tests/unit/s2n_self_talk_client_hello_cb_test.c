@@ -501,7 +501,7 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
         EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(conn));
     }
 
-    /* negotitate and make assertions */
+    /* negotiate and make assertions */
     EXPECT_SUCCESS(s2n_negotiate_nonblocking_poll(conn, ch_ctx, false));
 
     EXPECT_SUCCESS(server_recv(conn));
