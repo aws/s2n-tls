@@ -52,18 +52,6 @@ static int s2n_test_secret_cb(void* context, struct s2n_connection *conn,
     POSIX_GUARD(s2n_blob_init(&secrets->blobs[secret_type],
             secrets->bytes[secret_type], secret_size));
     POSIX_CHECKED_MEMCPY(secrets->bytes[secret_type], secret_bytes, secret_size);
-
-    /* s2n-quic requires that all handshake secrets be emitted before
-     * any application secrets.
-     *
-     * This requirement is not supported for 0RTT yet.
-     */
-    bool is_handshake_secret = (secret_type == S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET
-            || secret_type == S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET);
-    if (!WITH_EARLY_DATA(conn) && is_handshake_secret) {
-        POSIX_ENSURE_EQ(secrets->blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
-        POSIX_ENSURE_EQ(secrets->blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size, 0);
-    }
     return S2N_SUCCESS;
 }
 
@@ -230,26 +218,17 @@ int main(int argc, char **argv)
                         case CLIENT_HELLO:
                             /* Expect not encrypted */
                             EXPECT_EQUAL(conn->client, &conn->initial);
-                            /* Expect all secrets not available yet */
-                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size, 0);
-                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case HELLO_RETRY_MSG:
                         case SERVER_HELLO:
                             /* Expect not encrypted  */
                             EXPECT_EQUAL(conn->server, &conn->initial);
-                            /* Expect all secrets not available yet */
-                            EXPECT_EQUAL(secrets.blobs[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET].size, 0);
-                            EXPECT_EQUAL(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case END_OF_EARLY_DATA:
                             /* Expect encrypted */
                             EXPECT_EQUAL(conn->client, &conn->secure);
                             /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_EARLY_TRAFFIC_SECRET].size > 0);
-                            /* Expect other secrets not available yet */
-                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size, 0);
-                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case ENCRYPTED_EXTENSIONS:
                         case SERVER_CERT:
@@ -260,8 +239,6 @@ int main(int argc, char **argv)
                             EXPECT_EQUAL(conn->server, &conn->secure);
                             /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET].size > 0);
-                            /* Expect other secrets not available yet */
-                            EXPECT_EQUAL(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case CLIENT_CERT:
                         case CLIENT_CERT_VERIFY:
@@ -270,8 +247,6 @@ int main(int argc, char **argv)
                             EXPECT_EQUAL(conn->client, &conn->secure);
                             /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size > 0);
-                            /* Expect other secrets not available yet */
-                            EXPECT_EQUAL(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
                             break;
                         case APPLICATION_DATA:
                             /* Expect encrypted */
@@ -298,19 +273,6 @@ int main(int argc, char **argv)
                     }
 
                     EXPECT_OK(s2n_tls13_key_schedule_update(conn));
-
-                    /*
-                     * For complete QUIC support, secrets need to be available as soon as possible.
-                     * For the server, that means that the application traffic secrets
-                     * must be available immediately after the server Finished message, even though
-                     * they're not technically required until APPLICATION_DATA.
-                     */
-                    if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED
-                            && conn->mode == S2N_SERVER) {
-                        EXPECT_EQUAL(conn->server, &conn->secure);
-                        EXPECT_TRUE(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size > 0);
-                    }
-
                     conn->handshake.message_number++;
                 }
 

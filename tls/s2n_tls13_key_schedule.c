@@ -77,7 +77,7 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     struct s2n_blob secret = { 0 };
     uint8_t secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&secret, secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
-    RESULT_GUARD(s2n_tls13_derive_secret(conn, secret_type, mode, &secret));
+    RESULT_GUARD(s2n_tls13_secrets_get(conn, secret_type, mode, &secret));
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
@@ -246,22 +246,21 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
      *# Can send                       | [Send Certificate + CertificateVerify]
      *# app data                       | Send Finished
      *# after   -->                    | K_send = application
+     */
+    if (message_type == SERVER_FINISHED) {
+        K_send(conn, S2N_APPLICATION_SECRET);
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
      *# here                  +--------+--------+
      *#              No 0-RTT |                 | 0-RTT
      *#                       |                 |
      *#   K_recv = handshake  |                 | K_recv = early data
      */
-    if (message_type == SERVER_FINISHED) {
-        /* Warning: s2n-quic currently requires that we emit secrets in pairs.
-         * Therefore, we must handle the handshake secret before we handle
-         * the application secret here.
-         */
         if (WITH_EARLY_DATA(conn)) {
             K_recv(conn, S2N_EARLY_SECRET);
         } else {
             K_recv(conn, S2N_HANDSHAKE_SECRET);
         }
-        K_send(conn, S2N_APPLICATION_SECRET);
     }
     /**
      *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
@@ -314,6 +313,7 @@ S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn)
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
+    RESULT_GUARD(s2n_tls13_secrets_update(conn));
     RESULT_ENSURE_REF(key_schedules[conn->mode]);
     RESULT_GUARD(key_schedules[conn->mode](conn));
     return S2N_RESULT_OK;
