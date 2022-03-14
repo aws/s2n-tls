@@ -481,7 +481,7 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
 int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     struct s2n_cert_chain_and_key *chain_and_key,
-    struct client_hello_context *ch_ctx, bool cb_poll)
+    struct client_hello_context *ch_ctx)
 {
     struct s2n_test_io_pair io_pair;
     struct s2n_config *config;
@@ -497,9 +497,9 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0 , 0));
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
-    if (cb_poll) {
-        EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(conn));
-    }
+
+    /* Enable callback polling mode */
+    EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(conn));
 
     /* negotiate and make assertions */
     EXPECT_SUCCESS(s2n_negotiate_nonblocking_poll(conn, ch_ctx, false));
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
        chain_and_key, &client_hello_ctx));
 
     EXPECT_SUCCESS(run_test_poll_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING,
-       chain_and_key, &client_hello_ctx, true));
+       chain_and_key, &client_hello_ctx));
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
