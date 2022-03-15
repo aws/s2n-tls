@@ -49,7 +49,6 @@ int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
 {
     bool server_done = false, client_done = false;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    bool rc = false;
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client_conn, &blocked), S2N_ERR_IO_BLOCKED);
 
     int expected_invocation = 0;
@@ -71,6 +70,7 @@ int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
 
     /* complete the callback on the next call */
     client_hello_ctx->mark_done = true;
+    bool rc = false;
     do {
         rc = (s2n_negotiate(client_conn, &blocked) >= S2N_SUCCESS);
         POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, server_done, &client_done));
@@ -120,33 +120,6 @@ int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
         EXPECT_SUCCESS(s2n_client_hello_cb_done(conn));
         return S2N_SUCCESS;
     }
-
-    return S2N_SUCCESS;
-}
-
-int s2n_negotiate_nonblocking_poll(struct s2n_connection *conn,
-    struct client_hello_context *ch_ctx)
-{
-    s2n_blocked_status blocked;
-    EXPECT_NOT_NULL(conn);
-
-    EXPECT_EQUAL(ch_ctx->invocations, 0);
-
-    /* negotiate handshake, we should pause after the nonblocking callback is invoked */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-    EXPECT_EQUAL(ch_ctx->invocations, 1);
-
-    /* unless explicitly unblocked we should stay paused */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-    EXPECT_EQUAL(ch_ctx->invocations, 2);
-
-    ch_ctx->mark_done = true;
-
-    /* Expect the callback to complete after 2nd iteration */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-    EXPECT_EQUAL(ch_ctx->invocations, 3);
 
     return S2N_SUCCESS;
 }
