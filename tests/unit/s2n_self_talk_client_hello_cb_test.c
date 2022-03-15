@@ -493,7 +493,6 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     EXPECT_NOT_NULL(conn);
     pid_t pid = 0;
 
-    EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Setup ClientHello callback */
