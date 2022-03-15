@@ -15,7 +15,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-static S2N_RESULT s2n_validate_negotiate_result(bool success, bool peer_is_done, bool *is_done)
+S2N_RESULT s2n_validate_negotiate_result(bool success, bool peer_is_done, bool *is_done)
 {
     /* If we succeeded, we're done. */
     if(success) {

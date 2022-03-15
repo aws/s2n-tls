@@ -37,7 +37,38 @@ const uint8_t COMPRESSION_METHOD_SIZE = 1;
 struct client_hello_context {
     int invocations;
     s2n_client_hello_cb_mode mode;
+    bool mark_done;
 };
+
+int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
+                struct s2n_connection *client_conn,
+                struct client_hello_context *client_hello_ctx)
+{
+    bool server_done = false, client_done = false;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    bool rc = false;
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client_conn, &blocked), S2N_ERR_IO_BLOCKED);
+
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+    EXPECT_EQUAL(client_hello_ctx->invocations, 1);
+
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+    EXPECT_EQUAL(client_hello_ctx->invocations, 2);
+
+    client_hello_ctx->mark_done = true;
+    do {
+        rc = (s2n_negotiate(client_conn, &blocked) >= S2N_SUCCESS);
+        POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, server_done, &client_done));
+
+        rc = (s2n_negotiate(server_conn, &blocked) >= S2N_SUCCESS);
+        POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, client_done, &server_done));
+    } while (!client_done || !server_done);
+    EXPECT_EQUAL(client_hello_ctx->invocations, 4);
+
+    return S2N_SUCCESS;
+}
 
 static int client_hello_detect_duplicate_calls(struct s2n_connection *conn, void *ctx)
 {
@@ -56,6 +87,50 @@ static int client_hello_detect_duplicate_calls(struct s2n_connection *conn, void
     return 0;
 }
 
+int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
+{
+    struct client_hello_context *client_hello_ctx;
+    if (ctx == NULL) {
+        return -1;
+    }
+    client_hello_ctx = ctx;
+    /* Increment counter to ensure that callback was invoked */
+    client_hello_ctx->invocations++;
+
+    if (client_hello_ctx->mark_done) {
+        EXPECT_SUCCESS(s2n_client_hello_cb_done(conn));
+        return S2N_SUCCESS;
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_negotiate_nonblocking_poll(struct s2n_connection *conn,
+    struct client_hello_context *ch_ctx)
+{
+    s2n_blocked_status blocked;
+    EXPECT_NOT_NULL(conn);
+
+    EXPECT_EQUAL(ch_ctx->invocations, 0);
+
+    /* negotiate handshake, we should pause after the nonblocking callback is invoked */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+    EXPECT_EQUAL(ch_ctx->invocations, 1);
+
+    /* unless explicitly unblocked we should stay paused */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+    EXPECT_EQUAL(ch_ctx->invocations, 2);
+
+    ch_ctx->mark_done = true;
+
+    /* Expect the callback to complete after 2nd iteration */
+    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+    EXPECT_EQUAL(ch_ctx->invocations, 3);
+
+    return S2N_SUCCESS;
+}
 
 int main(int argc, char **argv)
 {
@@ -450,12 +525,79 @@ int main(int argc, char **argv)
         EXPECT_TRUE(server_conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
         EXPECT_EQUAL(client_hello_ctx.invocations, 1);
 
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /* Hello Retry Request + polling client hello callback */
+    {
+        struct s2n_config *server_config;
+        struct s2n_config *client_config;
+
+        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn;
+
+        struct s2n_cert_chain_and_key *tls13_chain_and_key;
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Force HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+        /* setup the client hello callback */
+        struct client_hello_context client_hello_ctx = {.invocations = 0,
+            .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING, .mark_done = false };
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config,
+                s2n_client_hello_poll_cb, &client_hello_ctx));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(server_config,
+            S2N_CLIENT_HELLO_CB_NONBLOCKING));
+        /* Enable callback polling mode */
+        EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(server_conn));
+
+        /* ensure that handshake succeeds via HRR path using non_blocking CH */
+        EXPECT_SUCCESS(s2n_negotiate_poll_hello_retry(server_conn, client_conn, &client_hello_ctx));
+
+        /* check hello retry state */
+        EXPECT_TRUE(server_conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+
     }
 
     /* Test s2n_set_hello_retry_required correctly sets the handshake type to HELLO_RETRY_REQUEST,
@@ -471,7 +613,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test s2n_set_hello_retry_required raises a S2N_ERR_INVALID_HELLO_RETRY error 
+    /* Test s2n_set_hello_retry_required raises a S2N_ERR_INVALID_HELLO_RETRY error
      * when conn->actual_protocol_version is less than TLS1.3 */
     {
         struct s2n_connection *conn;
