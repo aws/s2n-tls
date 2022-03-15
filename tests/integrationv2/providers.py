@@ -347,7 +347,7 @@ class CriterionS2N(S2N):
             else:
                 if len(file) < len(shortest):
                     shortest = file
-        # Retrun the path, minus Cargo.toml
+        # Return the path, minus Cargo.toml
         return str("/".join(shortest.split("/")[:-1]))
 
     def _cargo_bench(self):
