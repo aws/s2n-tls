@@ -108,21 +108,23 @@ static struct FGN_STATE fgn_state = {
 /* Can currently never fail. See initialise_fork_detection_methods() for
  * motivation.
  */
-static inline void s2n_initialise_wipeonfork_best_effort(void *addr, long page_size)
+static inline S2N_RESULT s2n_initialise_wipeonfork_best_effort(void *addr, long page_size)
 {
 #if defined(USE_MADVISE)
-    /* Ignored on purpose. */
+    /* Return value ignored on purpose */
     madvise(addr, (size_t) page_size, MADV_WIPEONFORK);
 #endif
+
+    return S2N_RESULT_OK;
 }
 
-static inline int s2n_initialise_inherit_zero(void *addr, long page_size)
+static inline S2N_RESULT s2n_initialise_inherit_zero(void *addr, long page_size)
 {
 #if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
-    POSIX_ENSURE(minherit(addr, pagesize, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(minherit(addr, pagesize, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
 #endif
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static void s2n_pthread_atfork_on_fork(void)
@@ -155,21 +157,21 @@ static void s2n_pthread_atfork_on_fork(void)
     }
 }
 
-static int s2n_inititalise_pthread_atfork(void)
+static S2N_RESULT s2n_inititalise_pthread_atfork(void)
 {
     /* Register the fork handler pthread_atfork_on_fork that is excuted in the
      * child process after a fork.
      */
-    POSIX_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_initialise_fork_detection_methods_try(void *addr, long page_size)
+static S2N_RESULT s2n_initialise_fork_detection_methods_try(void *addr, long page_size)
 {
-    POSIX_GUARD_PTR(addr);
+    RESULT_GUARD_PTR(addr);
 
-    /* Some system don't define MADV_WIPEONFORK in sys/mman.h but the kernel
+    /* Some systems don't define MADV_WIPEONFORK in sys/mman.h but the kernel
      * still supports the mechanism (AL2 being a prime example). Likely because
      * glibc on the system is old. We might be able to include kernel header
      * files directly, that define MADV_WIPEONFORK, conditioning on specific
@@ -185,22 +187,22 @@ static int s2n_initialise_fork_detection_methods_try(void *addr, long page_size)
      * a safe default.
      */
     if (ignore_wipeonfork_or_inherit_zero_method_for_testing == false) {
-        s2n_initialise_wipeonfork_best_effort(addr, page_size);
+        RESULT_GUARD_RESULT(s2n_initialise_wipeonfork_best_effort(addr, page_size));
     }
 
     if (ignore_wipeonfork_or_inherit_zero_method_for_testing == false) {
-        POSIX_GUARD(s2n_initialise_inherit_zero(addr, page_size));
+        RESULT_GUARD_RESULT(s2n_initialise_inherit_zero(addr, page_size));
     }
 
     if (ignore_pthread_atfork_method_for_testing == false) {
-        POSIX_GUARD(s2n_inititalise_pthread_atfork());
+        RESULT_GUARD_RESULT(s2n_inititalise_pthread_atfork());
     }
 
     fgn_state.zero_on_fork_addr = addr;
     *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
     fgn_state.is_fork_detection_enabled = S2N_FORK_DETECT_ENABLED;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static void s2n_initialise_fork_detection_methods(void)
@@ -228,9 +230,9 @@ static void s2n_initialise_fork_detection_methods(void)
     }
 
     /* Now we know that we have some memory mapped. Try to initialise fork
-     * detection methods. Unmap the memory if we fail for some reason!
+     * detection methods. Unmap the memory if we fail for some reason.
      */
-    if (s2n_initialise_fork_detection_methods_try(addr, page_size) != S2N_SUCCESS) {
+    if (s2n_result_is_error(s2n_initialise_fork_detection_methods_try(addr, page_size)) == true) {
         /* No reason to verify return value of munmap() since we can't use that
          * information for anything anyway. */
         munmap(addr, (size_t) page_size);
@@ -300,6 +302,11 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     return S2N_RESULT_OK;
 }
 
+static void cleanup_cb_munmap(void *probe_addr)
+{
+    munmap(probe_addr, (size_t) sysconf(_SC_PAGESIZE));
+}
+
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork
  * detection mechanism.
  *
@@ -307,43 +314,36 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
  *  If not supported, returns false.
  *  If supported, returns true.
  */
-static bool s2n_probe_madv_wipeonfork_support(void) {
-
-    bool result = false;
+static S2N_RESULT s2n_probe_madv_wipeonfork_support(void) {
 
 #if defined(USE_MADVISE)
-    void *probe_addr = MAP_FAILED;
+    /* It is not an error to call munmap on a range that does not contain any
+     * mapped pages.
+     */
+    DEFER_CLEANUP(void *probe_addr = MAP_FAILED, cleanup_cb_munmap);
     long page_size = 0;
 
     page_size = sysconf(_SC_PAGESIZE);
-    if (page_size <= 0) {
-        return false;
-    }
+    RESULT_ENSURE_GT(page_size, 0);
 
     probe_addr = mmap(NULL, (size_t) page_size, PROT_READ | PROT_WRITE,
                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (probe_addr == MAP_FAILED) {
-        return false;
-    }
+    RESULT_ENSURE_NE(probe_addr, MAP_FAILED);
 
     /* Some versions of qemu (up to at least 5.0.0-rc4, see
      * linux-user/syscall.c) ignore invalid advice arguments. Hence, we first
      * verify that madvise() rejects advice arguments it doesn't know about.
      */
-    if (madvise(probe_addr, (size_t) page_size, -1) != 0 &&
-        madvise(probe_addr, (size_t) page_size, MADV_WIPEONFORK) == 0) {
-        result = true;
-    }
-
-    munmap(probe_addr, (size_t) page_size);
+    RESULT_ENSURE_NE(madvise(probe_addr, (size_t) page_size, -1), 0);
+    RESULT_ENSURE_EQ(madvise(probe_addr, (size_t) page_size, MADV_WIPEONFORK), 0);
 #endif
 
-    return result;
+    return S2N_RESULT_OK;
 }
 
 bool s2n_assert_madv_wipeonfork_is_supported(void)
 {
-    return s2n_probe_madv_wipeonfork_support();
+    return s2n_result_is_ok(s2n_probe_madv_wipeonfork_support());
 }
 
 bool s2n_assert_map_inherit_zero_is_supported(void)
