@@ -234,7 +234,7 @@ int s2n_negotiate_nonblocking_ch_cb(struct s2n_connection *conn,
 int s2n_negotiate_nonblocking_poll(struct s2n_connection *conn,
     struct client_hello_context *ch_ctx)
 {
-    s2n_blocked_status blocked;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     EXPECT_NOT_NULL(conn);
 
     EXPECT_EQUAL(ch_ctx->invoked, 0);

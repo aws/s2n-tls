@@ -351,7 +351,7 @@ fail:
 
 bool s2n_client_hello_invoke_callback(struct s2n_connection *conn) {
     /* Invoke only if the callback has not been called or if polling mode is enabled */
-    bool invoke = !conn->client_hello.callback_invoked || conn->config->callback_enable_poll;
+    bool invoke = !conn->client_hello.callback_invoked || conn->config->client_hello_cb_enable_poll;
     /*
      * The callback should not be called if this client_hello is in response to a hello retry.
      */
@@ -360,11 +360,11 @@ bool s2n_client_hello_invoke_callback(struct s2n_connection *conn) {
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    if (conn->config->callback_enable_poll == 0) {
+    if (conn->config->client_hello_cb_enable_poll == 0) {
         POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
     }
 
-    if (!conn->client_hello.parsed)
+    if (conn->client_hello.parsed == 0)
     {
         /* Parse client hello */
         POSIX_GUARD(s2n_parse_client_hello(conn));

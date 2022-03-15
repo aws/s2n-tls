@@ -60,7 +60,7 @@ struct s2n_config {
      *
      * Note: This defaults to false to ensure backwards compatibility.
      */
-    unsigned callback_enable_poll:1;
+    unsigned client_hello_cb_enable_poll:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is

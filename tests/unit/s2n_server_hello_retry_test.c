@@ -55,16 +55,13 @@ int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
 
     /* if polling is enabled then confirm that the callback is incremented each time */
     if (client_hello_ctx->enable_poll) {
-        /* invocation should increase each time s2n_negotiate is called */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-        expected_invocation++;
-        EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
-
-        /* invocation should increase each time s2n_negotiate is called */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-        expected_invocation++;
+        do {
+            /* invocation should increase each time s2n_negotiate is called */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+            expected_invocation++;
+            EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
+        } while (expected_invocation < 2);
     }
     EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
 
@@ -139,9 +136,6 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
-
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
@@ -153,7 +147,7 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        struct s2n_test_io_pair io_pair;
+        struct s2n_test_io_pair io_pair = { 0 };
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -165,7 +159,7 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
             .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING, .mark_done = false,
             .enable_poll = enable_poll };
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config,
-                s2n_client_hello_poll_cb, &client_hello_ctx));
+            s2n_client_hello_poll_cb, &client_hello_ctx));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(server_config,
             S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
@@ -178,7 +172,6 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
         EXPECT_SUCCESS(s2n_negotiate_poll_hello_retry(server_conn, client_conn, &client_hello_ctx));
 
         /* check hello retry state */
-        EXPECT_TRUE(server_conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
         EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
         EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
 
