@@ -195,9 +195,6 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn,
                         s2n_test_secret_cb, (void*)&secrets));
 
-                bool expect_early_data_secret = (conn->mode == S2N_SERVER && WITH_EARLY_DATA(conn))
-                        || (conn->mode == S2N_CLIENT && conn->early_data_state == S2N_EARLY_DATA_REQUESTED);
-
                 /* Perform the handshake */
                 while (s2n_conn_get_current_message_type(conn) != APPLICATION_DATA) {
                     /*
@@ -272,11 +269,12 @@ int main(int argc, char **argv)
                             break;
                     }
 
+                    EXPECT_OK(s2n_tls13_secrets_update(conn));
                     EXPECT_OK(s2n_tls13_key_schedule_update(conn));
                     conn->handshake.message_number++;
                 }
 
-                EXPECT_OK(s2n_connection_verify_secrets(conn, &secrets, expect_early_data_secret));
+                EXPECT_OK(s2n_connection_verify_secrets(conn, &secrets, test_cases[i].is_early_data_requested));
             }
 
             /* Restore derive and extract methods */

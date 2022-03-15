@@ -183,14 +183,19 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     struct s2n_tls13_secrets *server_secrets = &server_conn->secrets.tls13;
     POSIX_ENSURE_EQ(server_secret_info.size, client_secret_info.size);
     uint8_t size = server_secret_info.size;
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->early_secret, size));
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->handshake_secret, size));
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->early_secret, size));
-    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->handshake_secret, size));
+    POSIX_ENSURE_EQ(client_secrets->extract_secret_type, S2N_HANDSHAKE_SECRET);
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->extract_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->client_handshake_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->server_handshake_secret, size));
+    POSIX_ENSURE_EQ(server_secrets->extract_secret_type, S2N_HANDSHAKE_SECRET);
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->extract_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->client_handshake_secret, size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->server_handshake_secret, size));
 
     /* Verify client and server secrets are equal to each other */
-    POSIX_ENSURE_EQ(0, memcmp(server_secrets->early_secret, client_secrets->early_secret, size));
-    POSIX_ENSURE_EQ(0, memcmp(server_secrets->handshake_secret, client_secrets->handshake_secret, size));
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets->extract_secret, client_secrets->extract_secret, size));
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets->client_handshake_secret, client_secrets->client_handshake_secret, size));
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets->server_handshake_secret, client_secrets->server_handshake_secret, size));
 
     /* Clean up */
     POSIX_GUARD(s2n_stuffer_free(&client_to_server));

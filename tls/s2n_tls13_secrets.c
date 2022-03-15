@@ -100,6 +100,28 @@ S2N_RESULT s2n_tls13_empty_transcripts_init()
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_set_transcript_hash(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->handshake.hashes);
+
+    s2n_hash_algorithm hash_algorithm = S2N_HASH_NONE;
+    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure.cipher_suite->prf_alg, &hash_algorithm));
+
+    uint8_t digest_size = 0;
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
+
+    struct s2n_blob digest = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&digest, CONN_HASHES(conn)->transcript_hash_digest, digest_size));
+
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
+    RESULT_GUARD(s2n_handshake_copy_hash_state(conn, hash_algorithm, hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, digest.data, digest.size));
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *previous_secret_material, const struct s2n_blob *new_secret_material,
         struct s2n_blob *output)
@@ -141,10 +163,22 @@ static S2N_RESULT s2n_derive_secret(s2n_hmac_algorithm hmac_alg,
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_derive_secret_for_extract(struct s2n_connection *conn,
-        const struct s2n_blob *previous_secret, struct s2n_blob *output)
+static S2N_RESULT s2n_derive_secret_with_context(struct s2n_connection *conn,
+        s2n_extract_secret_type_t input_secret_type, const struct s2n_blob *label, message_type_t transcript_end_msg,
+        struct s2n_blob *output)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn), previous_secret,
+    RESULT_ENSURE(CONN_SECRETS(conn).extract_secret_type == input_secret_type, S2N_ERR_SECRET_SCHEDULE_STATE);
+    RESULT_ENSURE(s2n_conn_get_current_message_type(conn) == transcript_end_msg, S2N_ERR_SECRET_SCHEDULE_STATE);
+    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn), &CONN_SECRET(conn, extract_secret),
+            label, &CONN_HASH(conn, transcript_hash_digest), output));
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_derive_secret_without_context(struct s2n_connection *conn,
+        s2n_extract_secret_type_t input_secret_type, struct s2n_blob *output)
+{
+    RESULT_ENSURE(CONN_SECRETS(conn).extract_secret_type == input_secret_type, S2N_ERR_SECRET_SCHEDULE_STATE);
+    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn), &CONN_SECRET(conn, extract_secret),
             &s2n_tls13_label_derived_secret, &EMPTY_CONTEXT(CONN_HMAC_ALG(conn)), output));
     return S2N_RESULT_OK;
 }
@@ -242,7 +276,7 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
         RESULT_GUARD(s2n_extract_secret(hmac_alg,
                 &ZERO_VALUE(hmac_alg),
                 &ZERO_VALUE(hmac_alg),
-                &CONN_SECRET(conn, early_secret)));
+                &CONN_SECRET(conn, extract_secret)));
         return S2N_RESULT_OK;
     }
 
@@ -252,7 +286,7 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
      * Use the early secret stored on the PSK.
      */
     RESULT_ENSURE_EQ(hmac_alg, psk->hmac_alg);
-    RESULT_CHECKED_MEMCPY(CONN_SECRETS(conn).early_secret, psk->early_secret.data, psk->early_secret.size);
+    RESULT_CHECKED_MEMCPY(CONN_SECRETS(conn).extract_secret, psk->early_secret.data, psk->early_secret.size);
     return S2N_RESULT_OK;
 }
 
@@ -285,10 +319,10 @@ S2N_RESULT s2n_derive_binder_key(struct s2n_psk *psk, struct s2n_blob *output)
  */
 static S2N_RESULT s2n_derive_client_early_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn),
-            &CONN_SECRET(conn, early_secret),
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_EARLY_SECRET,
             &s2n_tls13_label_client_early_traffic_secret,
-            &CONN_HASH(conn, client_hello_digest),
+            CLIENT_HELLO,
             output));
     return S2N_RESULT_OK;
 }
@@ -307,7 +341,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
-    RESULT_GUARD(s2n_derive_secret_for_extract(conn, &CONN_SECRET(conn, early_secret), &derived_secret));
+    RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_EARLY_SECRET, &derived_secret));
 
     DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_blob_zeroize_free);
     RESULT_GUARD_POSIX(s2n_tls13_compute_shared_secret(conn, &shared_secret));
@@ -315,7 +349,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
     RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
             &derived_secret,
             &shared_secret,
-            &CONN_SECRET(conn, handshake_secret)));
+            &CONN_SECRET(conn, extract_secret)));
 
     return S2N_RESULT_OK;
 }
@@ -329,10 +363,10 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
  */
 static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn),
-            &CONN_SECRET(conn, handshake_secret),
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_HANDSHAKE_SECRET,
             &s2n_tls13_label_client_handshake_traffic_secret,
-            &CONN_HASH(conn, server_hello_digest),
+            SERVER_HELLO,
             output));
 
     /*
@@ -358,10 +392,10 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
  */
 static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn),
-            &CONN_SECRET(conn, handshake_secret),
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_HANDSHAKE_SECRET,
             &s2n_tls13_label_server_handshake_traffic_secret,
-            &CONN_HASH(conn, server_hello_digest),
+            SERVER_HELLO,
             output));
 
     /*
@@ -391,12 +425,12 @@ static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
-    RESULT_GUARD(s2n_derive_secret_for_extract(conn, &CONN_SECRET(conn, handshake_secret), &derived_secret));
+    RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_HANDSHAKE_SECRET, &derived_secret));
 
     RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
             &derived_secret,
             &ZERO_VALUE(CONN_HMAC_ALG(conn)),
-            &CONN_SECRET(conn, master_secret)));
+            &CONN_SECRET(conn, extract_secret)));
     return S2N_RESULT_OK;
 }
 
@@ -409,12 +443,11 @@ static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
  */
 static S2N_RESULT s2n_derive_client_application_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn),
-            &CONN_SECRET(conn, master_secret),
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_MASTER_SECRET,
             &s2n_tls13_label_client_application_traffic_secret,
-            &CONN_HASH(conn, server_finished_digest),
+            SERVER_FINISHED,
             output));
-    RESULT_CHECKED_MEMCPY(CONN_SECRETS(conn).client_app_secret, output->data, output->size);
     return S2N_RESULT_OK;
 }
 
@@ -427,12 +460,11 @@ static S2N_RESULT s2n_derive_client_application_traffic_secret(struct s2n_connec
  */
 static S2N_RESULT s2n_derive_server_application_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn),
-            &CONN_SECRET(conn, master_secret),
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_MASTER_SECRET,
             &s2n_tls13_label_server_application_traffic_secret,
-            &CONN_HASH(conn, server_finished_digest),
+            SERVER_FINISHED,
             output));
-    RESULT_CHECKED_MEMCPY(CONN_SECRETS(conn).server_app_secret, output->data, output->size);
     return S2N_RESULT_OK;
 }
 
@@ -445,10 +477,10 @@ static S2N_RESULT s2n_derive_server_application_traffic_secret(struct s2n_connec
  */
 S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn)
 {
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn),
-            &CONN_SECRET(conn, master_secret),
+    RESULT_GUARD(s2n_derive_secret_with_context(conn,
+            S2N_MASTER_SECRET,
             &s2n_tls13_label_resumption_master_secret,
-            &CONN_HASH(conn, client_finished_digest),
+            CLIENT_FINISHED,
             &CONN_SECRET(conn, resumption_master_secret)));
     return S2N_RESULT_OK;
 }
@@ -469,12 +501,13 @@ S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_sec
     RESULT_ENSURE_GTE(secret_type, 0);
     RESULT_ENSURE_LT(secret_type, s2n_array_len(extract_methods));
 
-    s2n_extract_secret_type_t next_secret_type = CONN_SECRETS(conn).secrets_state + 1;
+    s2n_extract_secret_type_t next_secret_type = CONN_SECRETS(conn).extract_secret_type + 1;
     for (s2n_extract_secret_type_t i = next_secret_type; i <= secret_type; i++) {
         RESULT_ENSURE_REF(extract_methods[i]);
         RESULT_GUARD(extract_methods[i](conn));
-        CONN_SECRETS(conn).secrets_state = i;
+        CONN_SECRETS(conn).extract_secret_type = i;
     }
+
     return S2N_RESULT_OK;
 }
 
@@ -517,12 +550,11 @@ S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn)
      * A compromised secret additionally compromises all secrets derived from it,
      * so these are the most sensitive secrets.
      */
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, early_secret)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, handshake_secret)));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, master_secret)));
-    conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, extract_secret)));
+    conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
 
     /* Wipe other secrets no longer needed */
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, client_early_secret)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, client_handshake_secret)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, server_handshake_secret)));
 
@@ -532,25 +564,37 @@ S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn)
 S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        return S2N_RESULT_OK;
+    }
     RESULT_ENSURE_REF(conn->secure.cipher_suite);
 
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
     switch(message_type) {
+        case CLIENT_HELLO:
+            if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED
+                    || conn->early_data_state == S2N_EARLY_DATA_ACCEPTED) {
+                RESULT_GUARD(s2n_set_transcript_hash(conn));
+                RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET,
+                        S2N_CLIENT, &CONN_SECRET(conn, client_early_secret)));
+            }
+            break;
         case SERVER_HELLO:
+            RESULT_GUARD(s2n_set_transcript_hash(conn));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET,
                     S2N_CLIENT, &CONN_SECRET(conn, client_handshake_secret)));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET,
                     S2N_SERVER, &CONN_SECRET(conn, server_handshake_secret)));
-            RESULT_ENSURE_EQ(CONN_SECRETS(conn).secrets_state, S2N_HANDSHAKE_SECRET);
             break;
         case SERVER_FINISHED:
+            RESULT_GUARD(s2n_set_transcript_hash(conn));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
                     S2N_CLIENT, &CONN_SECRET(conn, client_app_secret)));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
                     S2N_SERVER, &CONN_SECRET(conn, server_app_secret)));
-            RESULT_ENSURE_EQ(CONN_SECRETS(conn).secrets_state, S2N_MASTER_SECRET);
             break;
         case CLIENT_FINISHED:
+            RESULT_GUARD(s2n_set_transcript_hash(conn));
             RESULT_GUARD(s2n_derive_resumption_master_secret(conn));
             break;
         default:
@@ -566,18 +610,14 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     RESULT_ENSURE_REF(secret);
 
     uint8_t *secrets[][2] = {
+        [S2N_EARLY_SECRET]     = { NULL, CONN_SECRETS(conn).client_early_secret },
         [S2N_HANDSHAKE_SECRET] = { CONN_SECRETS(conn).server_handshake_secret, CONN_SECRETS(conn).client_handshake_secret },
         [S2N_MASTER_SECRET]    = { CONN_SECRETS(conn).server_app_secret, CONN_SECRETS(conn).client_app_secret },
     };
     RESULT_ENSURE_GT(secret_type, S2N_NONE_SECRET);
     RESULT_ENSURE_LT(secret_type, s2n_array_len(secrets));
-
-    if (secrets[secret_type][mode] == NULL) {
-        RESULT_GUARD(s2n_tls13_derive_secret(conn, secret_type, mode, secret));
-        return S2N_RESULT_OK;
-    }
-
-    RESULT_ENSURE_GTE(CONN_SECRETS(conn).secrets_state, secret_type);
+    RESULT_ENSURE_LTE(secret_type, CONN_SECRETS(conn).extract_secret_type);
+    RESULT_ENSURE_REF(secrets[secret_type][mode]);
 
     secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));
     RESULT_CHECKED_MEMCPY(secret->data, secrets[secret_type][mode], secret->size);

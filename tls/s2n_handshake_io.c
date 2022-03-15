@@ -1008,6 +1008,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* Update the secrets, if necessary */
+    POSIX_GUARD_RESULT(s2n_tls13_secrets_update(conn));
     POSIX_GUARD_RESULT(s2n_tls13_key_schedule_update(conn));
 
     /* Advance the state machine */
@@ -1139,6 +1140,7 @@ static S2N_RESULT s2n_finish_read(struct s2n_connection *conn)
 
     RESULT_GUARD_POSIX(s2n_handshake_conn_update_hashes(conn));
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
+    RESULT_GUARD(s2n_tls13_secrets_update(conn));
     RESULT_GUARD(s2n_tls13_key_schedule_update(conn));
     RESULT_GUARD_POSIX(s2n_advance_message(conn));
     return S2N_RESULT_OK;
