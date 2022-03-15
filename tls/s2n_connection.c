@@ -1554,16 +1554,3 @@ int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **c
 
     return S2N_SUCCESS;
 }
-
-/*
- * Set the client_hello callback behavior to polling.
- *
- * Polling means that the callback function can be called multiple times.
- */
-int s2n_connection_client_hello_cb_enable_poll(struct s2n_connection *conn) {
-    POSIX_ENSURE_REF(conn);
-
-    conn->config->callback_enable_poll = 1;
-
-    return S2N_SUCCESS;
-}

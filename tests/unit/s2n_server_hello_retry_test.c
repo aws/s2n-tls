@@ -29,6 +29,7 @@
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_result.h"
+#include "tls/s2n_internal.h"
 
 #define HELLO_RETRY_MSG_NO 1
 
@@ -197,7 +198,7 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
 
         if (enable_poll) {
             /* Enable callback polling mode */
-            EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(server_conn));
+            EXPECT_SUCCESS(s2n_config_client_hello_cb_enable_poll(server_config));
         }
 
         /* negotiate and make assertions */

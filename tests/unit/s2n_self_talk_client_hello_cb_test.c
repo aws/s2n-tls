@@ -497,11 +497,11 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_client_hello_poll_cb, ch_ctx));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
 
+    /* Enable callback polling mode */
+    EXPECT_SUCCESS(s2n_config_client_hello_cb_enable_poll(config));
+
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0 , 0));
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
-
-    /* Enable callback polling mode */
-    EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(conn));
 
     /* negotiate and make assertions */
     EXPECT_SUCCESS(s2n_negotiate_nonblocking_poll(conn, ch_ctx));

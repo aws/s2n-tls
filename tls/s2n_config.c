@@ -924,3 +924,16 @@ int s2n_config_get_ctx(struct s2n_config *config, void **ctx) {
 
     return S2N_SUCCESS;
 }
+
+/*
+ * Set the client_hello callback behavior to polling.
+ *
+ * Polling means that the callback function can be called multiple times.
+ */
+int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
+    POSIX_ENSURE_REF(config);
+
+    config->callback_enable_poll = 1;
+
+    return S2N_SUCCESS;
+}
