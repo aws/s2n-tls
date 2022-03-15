@@ -183,6 +183,7 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
     /* Verify in threads */
     EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
+    /* This translates to the exit code for this child process */
     return EXIT_SUCCESS;
 }
 
@@ -238,12 +239,12 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
 
     /* Some fork detection mechanisms can also detect forks through clone() */
     if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
-        EXPECT_EQUAL(s2n_assert_madv_wipeonfork_is_supported() || s2n_assert_map_inherit_zero_is_supported(), true);
+        EXPECT_EQUAL((s2n_is_madv_wipeonfork_supported() == true) || (s2n_is_map_inherit_zero_supported() == true), true);
         EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
     }
     else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
-        if (s2n_assert_madv_wipeonfork_is_supported() == true ||
-            s2n_assert_map_inherit_zero_is_supported() == true) {
+        if ((s2n_is_madv_wipeonfork_supported() == true) ||
+            (s2n_is_map_inherit_zero_supported() == true)) {
             EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
         }
     }
@@ -268,7 +269,7 @@ static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 
 static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 {
-    if (s2n_assert_madv_wipeonfork_is_supported() == false) {
+    if (s2n_is_madv_wipeonfork_supported() == false) {
         TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
         return S2N_SUCCESS;
     }
@@ -281,7 +282,7 @@ static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
 
 static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 {
-    if (s2n_assert_map_inherit_zero_is_supported() == false) {
+    if (s2n_is_map_inherit_zero_supported() == false) {
         TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
         return S2N_SUCCESS;
     }
@@ -298,16 +299,12 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
     {"Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, CLONE_TEST_YES},
     {"Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES}
 };
-/* s2n_array_len is run-time but standard static array length calculation is
- * captured by the simple errors script. However, the script is perfoming static
- * analysis on the pure source code, so, we can easily trick it :).
- */
-#define SIZE_OF_COPY(x) sizeof(x)
-S2N_STATIC_ASSERT(NUMBER_OF_FGN_TEST_CASES == (SIZE_OF_COPY(fgn_test_cases) / SIZE_OF_COPY(fgn_test_cases[0])));
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    EXPECT_TRUE(s2n_array_len(fgn_test_cases) == NUMBER_OF_FGN_TEST_CASES);
 
     /* Create NUMBER_OF_FGN_TEST_CASES number of child processes that run each
      * test case.

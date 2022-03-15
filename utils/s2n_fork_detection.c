@@ -341,12 +341,12 @@ static S2N_RESULT s2n_probe_madv_wipeonfork_support(void) {
     return S2N_RESULT_OK;
 }
 
-bool s2n_assert_madv_wipeonfork_is_supported(void)
+bool s2n_is_madv_wipeonfork_supported(void)
 {
     return s2n_result_is_ok(s2n_probe_madv_wipeonfork_support());
 }
 
-bool s2n_assert_map_inherit_zero_is_supported(void)
+bool s2n_is_map_inherit_zero_supported(void)
 {
 #if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
     return true
