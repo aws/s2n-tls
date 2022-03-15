@@ -49,14 +49,14 @@ jobs:
               widgets:
               - type: 'number'
                 title: 'Needing Comments'
-                issue_query: 'repo:aws/s2n-tls is:open is:issue comments:0'
+                issue_query: 'repo:aws/s2n-tls is:open is:issue comments:0 -label:s2n-core'
                 color: 'yellow'
 
             - title: 'Pull Requests'
               widgets:
               - type: 'number'
                 title: 'Needs Review'
-                issue_query: 'repo:aws/s2n-tls is:open is:pr review:none -label:status/stale'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:none -label:status/stale -label:s2n-core'
                 color: 'red'
               - type: 'number'
                 title: 'PRs with changes requested'
@@ -64,7 +64,7 @@ jobs:
                 color: 'red'
               - type: 'number'
                 title: 'PRs with zero interactions'
-                issue_query: 'repo:aws/s2n-tls is:open is:pr interactions:0 sort:created-asc -label:status/stale'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr interactions:0 sort:created-asc -label:status/stale -label:s2n-core'
                 color: 'blue'
               - type: 'table'
                 title: 'Oldest Pull Requests without Review'
