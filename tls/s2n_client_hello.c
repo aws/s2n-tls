@@ -364,8 +364,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
     }
 
-    if (conn->client_hello.parsed == 0)
-    {
+    if (conn->client_hello.parsed == 0) {
         /* Parse client hello */
         POSIX_GUARD(s2n_parse_client_hello(conn));
         conn->client_hello.parsed = 1;

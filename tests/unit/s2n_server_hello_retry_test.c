@@ -60,7 +60,7 @@ int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
             expected_invocation++;
             EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
-        } while (expected_invocation < 2);
+        } while (expected_invocation < 10);
     }
     EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
 
@@ -114,29 +114,25 @@ int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
 }
 
 S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
-    DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
-    EXPECT_NOT_NULL(client_config);
-    DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
-    EXPECT_NOT_NULL(server_config);
+    struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
+        S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+    EXPECT_NOT_NULL(tls13_chain_and_key);
+
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(config);
+
+    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
     DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
     DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
     EXPECT_NOT_NULL(server_conn);
     EXPECT_NOT_NULL(client_conn);
 
-    struct s2n_cert_chain_and_key *tls13_chain_and_key;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
-        S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
-    EXPECT_NOT_NULL(tls13_chain_and_key);
-
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
-
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
-
-    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     struct s2n_test_io_pair io_pair = { 0 };
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -149,14 +145,14 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
     struct client_hello_context client_hello_ctx = {.invocations = 0,
         .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING, .mark_done = false,
         .enable_poll = enable_poll };
-    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config,
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config,
         s2n_client_hello_poll_cb, &client_hello_ctx));
-    EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(server_config,
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config,
         S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
     if (enable_poll) {
         /* Enable callback polling mode */
-        EXPECT_SUCCESS(s2n_config_client_hello_cb_enable_poll(server_config));
+        EXPECT_SUCCESS(s2n_config_client_hello_cb_enable_poll(config));
     }
 
     /* negotiate and make assertions */

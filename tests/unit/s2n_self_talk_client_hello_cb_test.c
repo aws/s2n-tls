@@ -234,26 +234,27 @@ int s2n_negotiate_nonblocking_ch_cb(struct s2n_connection *conn,
 int s2n_negotiate_nonblocking_poll(struct s2n_connection *conn,
     struct client_hello_context *ch_ctx)
 {
-    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     EXPECT_NOT_NULL(conn);
+    EXPECT_NOT_NULL(ch_ctx);
+    int invoked = 0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
     EXPECT_EQUAL(ch_ctx->invoked, 0);
 
-    /* negotiate handshake, we should pause after the nonblocking callback is invoked */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-    EXPECT_EQUAL(ch_ctx->invoked, 1);
-
-    /* unless explicitly unblocked we should stay paused */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-    EXPECT_EQUAL(ch_ctx->invoked, 2);
+    do {
+        /* negotiate handshake, we should pause after the nonblocking callback is invoked */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+        invoked++;
+        EXPECT_EQUAL(ch_ctx->invoked, invoked);
+    } while(invoked < 10);
+    EXPECT_EQUAL(ch_ctx->invoked, invoked);
 
     ch_ctx->mark_done = true;
 
     /* Expect the callback to complete after 2nd iteration */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-    EXPECT_EQUAL(ch_ctx->invoked, 3);
+    EXPECT_EQUAL(ch_ctx->invoked, invoked + 1);
 
     return S2N_SUCCESS;
 }
@@ -485,10 +486,12 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     struct s2n_cert_chain_and_key *chain_and_key,
     struct client_hello_context *ch_ctx)
 {
-    struct s2n_test_io_pair io_pair;
-    struct s2n_config *config;
-    struct s2n_connection *conn;
-    pid_t pid;
+    struct s2n_test_io_pair io_pair = { 0 };
+    struct s2n_config *config = s2n_config_new();
+    EXPECT_NOT_NULL(config);
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+    EXPECT_NOT_NULL(conn);
+    pid_t pid = 0;
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
