@@ -66,11 +66,9 @@ S2N_STATIC_ASSERT(MADV_WIPEONFORK == 18);
 /* These variables are used to disable all fork detection mechanisms or at the
  * individual level during testing.
  */
-#define S2N_FORK_DETECT_IGNORE 0
-#define S2N_FORK_DETECT_DO_NOT_IGNORE 1
-static int ignore_wipeonfork_or_inherit_zero_method_for_testing = S2N_FORK_DETECT_DO_NOT_IGNORE;
-static int ignore_pthread_atfork_method_for_testing = S2N_FORK_DETECT_DO_NOT_IGNORE;
-static int ignore_fork_detection_for_testing = S2N_FORK_DETECT_DO_NOT_IGNORE;
+static bool ignore_wipeonfork_or_inherit_zero_method_for_testing = false;
+static bool ignore_pthread_atfork_method_for_testing = false;
+static bool ignore_fork_detection_for_testing = false;
 
 #define S2N_FORK_EVENT 0
 #define S2N_NO_FORK_EVENT 1
@@ -186,15 +184,15 @@ static int s2n_initialise_fork_detection_methods_try(void *addr, long page_size)
      * We also currently always apply prediction resistance. So, this should be
      * a safe default.
      */
-    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE) {
+    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == false) {
         s2n_initialise_wipeonfork_best_effort(addr, page_size);
     }
 
-    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE) {
+    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == false) {
         POSIX_GUARD(s2n_initialise_inherit_zero(addr, page_size));
     }
 
-    if (ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_DO_NOT_IGNORE) {
+    if (ignore_pthread_atfork_method_for_testing == false) {
         POSIX_GUARD(s2n_inititalise_pthread_atfork());
     }
 
@@ -211,10 +209,10 @@ static void s2n_initialise_fork_detection_methods(void)
     long page_size = 0;
 
     /* Only used to disable fork detection mechanisms during testing. */
-    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == S2N_FORK_DETECT_IGNORE &&
-        ignore_pthread_atfork_method_for_testing == S2N_FORK_DETECT_IGNORE) {
+    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == true &&
+        ignore_pthread_atfork_method_for_testing == true) {
 
-        ignore_fork_detection_for_testing = S2N_FORK_DETECT_IGNORE;
+        ignore_fork_detection_for_testing = true;
         return;
     }
 
@@ -253,7 +251,7 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
 {
     RESULT_ENSURE(pthread_once(&fgn_state.fork_detection_once, s2n_initialise_fork_detection_methods) == 0, S2N_ERR_FORK_DETECTION_INIT);
 
-    if (ignore_fork_detection_for_testing == S2N_FORK_DETECT_IGNORE) {
+    if (ignore_fork_detection_for_testing == true) {
         /* Fork detection is meant to be disabled. Hence, return success.
          * This should only happen during testing.
          */
@@ -361,7 +359,7 @@ bool s2n_assert_map_inherit_zero_is_supported(void)
 S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void) {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
-    ignore_wipeonfork_or_inherit_zero_method_for_testing = S2N_FORK_DETECT_IGNORE;
+    ignore_wipeonfork_or_inherit_zero_method_for_testing = true;
 
     return S2N_RESULT_OK;
 }
@@ -369,7 +367,7 @@ S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void) {
 S2N_RESULT s2n_ignore_pthread_atfork_for_testing(void) {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
-    ignore_pthread_atfork_method_for_testing = S2N_FORK_DETECT_IGNORE;
+    ignore_pthread_atfork_method_for_testing = true;
 
     return S2N_RESULT_OK;
 }
