@@ -33,6 +33,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_alerts.h"
+#include "tls/s2n_handshake_type.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_security_policies.h"
@@ -116,6 +117,7 @@ int s2n_client_hello_cb_done(struct s2n_connection *conn)
     POSIX_ENSURE(conn->config->client_hello_cb_mode ==
         S2N_CLIENT_HELLO_CB_NONBLOCKING, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(conn->client_hello.callback_invoked == 1, S2N_ERR_ASYNC_NOT_PERFORMED);
+    POSIX_ENSURE(conn->client_hello.parsed == 1, S2N_ERR_INVALID_STATE);
 
     conn->client_hello.callback_async_blocked = 0;
     conn->client_hello.callback_async_done = 1;
@@ -170,6 +172,7 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
      * incase we are preparing for CH retry */
     client_hello->callback_async_blocked = 0;
     client_hello->callback_async_done = 0;
+    client_hello->parsed = 0;
 
     return 0;
 }
@@ -225,7 +228,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
     POSIX_ENSURE(cipher_suites_length > 0, S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
-   
+
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     POSIX_ENSURE_REF(client_hello->cipher_suites.data);
@@ -346,19 +349,28 @@ fail:
     RESULT_BAIL(S2N_ERR_CANCELLED);
 }
 
+bool s2n_client_hello_invoke_callback(struct s2n_connection *conn) {
+    /* Invoke only if the callback has not been called or if polling mode is enabled */
+    bool invoke = !conn->client_hello.callback_invoked || conn->config->client_hello_cb_enable_poll;
+    /*
+     * The callback should not be called if this client_hello is in response to a hello retry.
+     */
+    return invoke && !IS_HELLO_RETRY_HANDSHAKE(conn);
+}
+
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
+    if (conn->config->client_hello_cb_enable_poll == 0) {
+        POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
+    }
 
-    if (conn->config->client_hello_cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING ||
-            !conn->client_hello.callback_async_done)
-    {
+    if (conn->client_hello.parsed == 0) {
         /* Parse client hello */
         POSIX_GUARD(s2n_parse_client_hello(conn));
+        conn->client_hello.parsed = 1;
     }
-    /* If the CLIENT_HELLO has already been parsed, then we should not call
-     * the client_hello_cb a second time. */
-    if (conn->client_hello.callback_invoked == 0) {
+    /* Call the client_hello_cb once unless polling is enabled. */
+    if (s2n_client_hello_invoke_callback(conn)) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.callback_invoked = 1;
 
@@ -375,7 +387,6 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     return 0;
 }
-
 
 S2N_RESULT s2n_cipher_suite_validate_available(struct s2n_connection *conn, struct s2n_cipher_suite *cipher)
 {
