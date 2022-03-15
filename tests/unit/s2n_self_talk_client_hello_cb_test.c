@@ -489,8 +489,7 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     struct s2n_test_io_pair io_pair = { 0 };
     struct s2n_config *config = s2n_config_new();
     EXPECT_NOT_NULL(config);
-    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    EXPECT_NOT_NULL(conn);
+    struct s2n_connection *conn;
     pid_t pid = 0;
 
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
