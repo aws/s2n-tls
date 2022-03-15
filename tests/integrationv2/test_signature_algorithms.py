@@ -83,8 +83,8 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, prot
     )
 
     if provider == GnuTLS:
-        # GnuTLS fails to validate the certificates. must run test in insecure mode.
-        client_options.insecure = True
+        # GnuTLS fails to the CA verification. It must be run with this check disabled.
+        client_options.extra_flags = ["--no-ca-verification"]
 
     server_options = copy.copy(client_options)
     server_options.extra_flags = None
