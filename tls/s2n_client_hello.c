@@ -120,6 +120,11 @@ int s2n_client_hello_cb_done(struct s2n_connection *conn)
 
     conn->client_hello.callback_async_blocked = 0;
     conn->client_hello.callback_async_done = 1;
+    /*
+     * Disable polling once done. This prevents the callback from being called
+     * again if a hello retry is requested.
+     */
+    conn->config->callback_enable_poll = 0;
 
     return S2N_SUCCESS;
 }
