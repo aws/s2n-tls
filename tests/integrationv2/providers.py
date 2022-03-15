@@ -642,15 +642,6 @@ class GnuTLS(Provider):
             Signatures.RSA_SHA256:  "SIGN-RSA-SHA256",
             Signatures.RSA_SHA384:  "SIGN-RSA-SHA384",
             Signatures.RSA_SHA512:  "SIGN-RSA-SHA512",
-
-            # GnuTLS only supports this signature in TLS 1.1
-            # Signatures.RSA_SHA224:  "SIGN-RSA-SHA224",
-
-            # signature algorithm is not enabled
-            # Signatures.RSA_PSS_RSAE_SHA256:     "SIGN-RSA-PSS-SHA256",
-
-            # GnuTLS is unable to find any supported cipher suites with this signature
-            # Signatures.ECDSA_SECP256r1_SHA256:  "SIGN-ECDSA-SHA256"
         }.get(sigalg)
 
     @classmethod
