@@ -39,6 +39,7 @@ struct client_hello_context {
      * this flag tests the previous behavior from blocking callbacks
      */
     int legacy_rc_for_server_name_used;
+    bool mark_done;
 };
 
 int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect_server_name_used)
@@ -184,7 +185,7 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
 
 }
 
-int s2n_client_hello_3_poll_cb(struct s2n_connection *conn, void *ctx)
+int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx;
     if (ctx == NULL) {
@@ -194,8 +195,7 @@ int s2n_client_hello_3_poll_cb(struct s2n_connection *conn, void *ctx)
     /* Increment counter to ensure that callback was invoked */
     client_hello_ctx->invoked++;
 
-    /* complete on the 3rd call */
-    if (client_hello_ctx->invoked == 3) {
+    if (client_hello_ctx->mark_done) {
         EXPECT_SUCCESS(s2n_client_hello_cb_done(conn));
         return S2N_SUCCESS;
     }
@@ -232,7 +232,7 @@ int s2n_negotiate_nonblocking_ch_cb(struct s2n_connection *conn,
 }
 
 int s2n_negotiate_nonblocking_poll(struct s2n_connection *conn,
-    struct client_hello_context *ch_ctx, bool server_name_used)
+    struct client_hello_context *ch_ctx)
 {
     s2n_blocked_status blocked;
     EXPECT_NOT_NULL(conn);
@@ -248,6 +248,8 @@ int s2n_negotiate_nonblocking_poll(struct s2n_connection *conn,
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
     EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
     EXPECT_EQUAL(ch_ctx->invoked, 2);
+
+    ch_ctx->mark_done = true;
 
     /* Expect the callback to complete after 2nd iteration */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
@@ -492,7 +494,7 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Setup ClientHello callback */
-    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_client_hello_3_poll_cb, ch_ctx));
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_client_hello_poll_cb, ch_ctx));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0 , 0));
@@ -502,7 +504,7 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     EXPECT_SUCCESS(s2n_connection_client_hello_cb_enable_poll(conn));
 
     /* negotiate and make assertions */
-    EXPECT_SUCCESS(s2n_negotiate_nonblocking_poll(conn, ch_ctx, false));
+    EXPECT_SUCCESS(s2n_negotiate_nonblocking_poll(conn, ch_ctx));
 
     EXPECT_SUCCESS(server_recv(conn));
 
