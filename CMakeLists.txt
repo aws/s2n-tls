@@ -277,7 +277,7 @@ try_compile(
 
 # Determine if madvise() is available
 try_compile(
-        SYSTEM_SUPPORTS_MADVISE
+        MADVISE_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/madvise.c"
         COMPILE_DEFINITIONS "-Werror"
@@ -285,7 +285,7 @@ try_compile(
 
 # Determine if minherit() is available
 try_compile(
-        SYSTEM_SUPPORTS_MINHERIT
+        MINHERIT_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/minherit.c"
         COMPILE_DEFINITIONS "-Werror"
@@ -452,12 +452,12 @@ if (__RESTRICT__SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
 endif()
 
-if (SYSTEM_SUPPORTS_MADVISE)
+if (MADVISE_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DUSE_MADVISE)
     message(STATUS "madvise() support detected")
 endif()
 
-if (SYSTEM_SUPPORTS_MINHERIT)
+if (MINHERIT_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DUSE_MINHERIT)
     message(STATUS "minherit() support detected")
 endif()

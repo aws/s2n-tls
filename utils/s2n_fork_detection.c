@@ -64,9 +64,6 @@ static bool ignore_fork_detection_for_testing = false;
 #define S2N_FORK_EVENT 0
 #define S2N_NO_FORK_EVENT 1
 
-#define S2N_FORK_DETECT_NOT_ENABLED 0
-#define S2N_FORK_DETECT_ENABLED 1
-
 struct FGN_STATE {
     /* The current cached fork generation number for this process */
     uint64_t current_fork_generation_number;
@@ -75,7 +72,7 @@ struct FGN_STATE {
      * fork detection is enabled or not. We could use zero_on_fork_addr, but
      * avoid overloading by using an explicit variable.
      */
-    int is_fork_detection_enabled;
+    bool is_fork_detection_enabled;
 
     /* Sentinel that signals a fork event has occurred */
     volatile char *zero_on_fork_addr;
@@ -89,7 +86,7 @@ struct FGN_STATE {
  */
 static struct FGN_STATE fgn_state = {
     .current_fork_generation_number = 0,
-    .is_fork_detection_enabled = S2N_FORK_DETECT_NOT_ENABLED,
+    .is_fork_detection_enabled = false,
     .zero_on_fork_addr = NULL,
     .fork_detection_once = PTHREAD_ONCE_INIT,
     .fork_detection_rw_lock = PTHREAD_RWLOCK_INITIALIZER,
@@ -135,15 +132,18 @@ static void s2n_pthread_atfork_on_fork(void)
      * gracefully recover if [un]locking fails.
      */
     if (pthread_rwlock_wrlock(&fgn_state.fork_detection_rw_lock) != 0) {
+        printf("pthread_rwlock_wrlock() failed. Aborting.\n");
         abort();
     }
 
     if (fgn_state.zero_on_fork_addr == NULL) {
+        printf("fgn_state.zero_on_fork_addr is NULL. Aborting.\n");
         abort();
     }
     *fgn_state.zero_on_fork_addr = 0;
 
     if (pthread_rwlock_unlock(&fgn_state.fork_detection_rw_lock) != 0) {
+        printf("pthread_rwlock_unlock() failed. Aborting.\n");
         abort();
     }
 }
@@ -191,7 +191,7 @@ static S2N_RESULT s2n_initialise_fork_detection_methods_try(void *addr, long pag
 
     fgn_state.zero_on_fork_addr = addr;
     *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
-    fgn_state.is_fork_detection_enabled = S2N_FORK_DETECT_ENABLED;
+    fgn_state.is_fork_detection_enabled = true;
 
     return S2N_RESULT_OK;
 }
@@ -234,7 +234,7 @@ static void s2n_initialise_fork_detection_methods(void)
         munmap(addr, (size_t) page_size);
         addr = NULL;
         fgn_state.zero_on_fork_addr = NULL;
-        fgn_state.is_fork_detection_enabled = S2N_FORK_DETECT_NOT_ENABLED;
+        fgn_state.is_fork_detection_enabled = false;
     }
 }
 
@@ -257,7 +257,7 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
         return S2N_RESULT_OK;
     }
 
-    RESULT_ENSURE(fgn_state.is_fork_detection_enabled == S2N_FORK_DETECT_ENABLED, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(fgn_state.is_fork_detection_enabled == true, S2N_ERR_FORK_DETECTION_INIT);
 
     /* In most cases, we would not need to increment the fork generation number.
      * So, it is cheaper, in the expected case, to take an optimistic read lock
@@ -305,10 +305,6 @@ static void s2n_cleanup_cb_munmap(void *probe_addr)
 
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork
  * detection mechanism.
- *
- * Return value:
- *  If not supported, returns false.
- *  If supported, returns true.
  */
 static S2N_RESULT s2n_probe_madv_wipeonfork_support(void) {
 
