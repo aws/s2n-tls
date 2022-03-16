@@ -24,7 +24,7 @@ unsafe impl Send for Config {}
 impl Config {
     /// Returns a Config object with pre-defined defaults.
     ///
-    /// Use the [`Builder`] if custom configure is desired.
+    /// Use the [`Builder`] if custom configuration is desired.
     pub fn new() -> Self {
         Self::default()
     }
@@ -45,30 +45,38 @@ impl Config {
         self.0.as_ptr()
     }
 
-    fn context(&self) -> &Context {
+    /// Retrieve a reference to the [`Context`] stored on the config.
+    ///
+    /// # Safety
+    ///
+    /// This function assumes that this Config was created using a [`Builder`]
+    /// and has a [`Context`] stored on its context.
+    unsafe fn context(&self) -> &Context {
         let mut ctx = core::ptr::null_mut();
-        unsafe {
-            s2n_config_get_ctx(self.0.as_ptr(), &mut ctx)
-                .into_result()
-                .unwrap();
-            &*(ctx as *const Context)
-        }
+        s2n_config_get_ctx(self.0.as_ptr(), &mut ctx)
+            .into_result()
+            .unwrap();
+        &*(ctx as *const Context)
     }
 
-    fn context_mut(&mut self) -> &mut Context {
+    /// Retrieve a mutable reference to the [`Context`] stored on the config.
+    ///
+    /// # Safety
+    ///
+    /// This function assumes that this Config was created using a [`Builder`]
+    /// and has a [`Context`] stored on its context.
+    unsafe fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
-        unsafe {
-            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
-                .into_result()
-                .unwrap();
-            &mut *(ctx as *mut Context)
-        }
+        s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
+            .into_result()
+            .unwrap();
+        &mut *(ctx as *mut Context)
     }
 
     #[cfg(test)]
     /// Get the refcount associated with the config
     pub fn test_get_refcount(&self) -> Result<usize, Error> {
-        let context = self.context();
+        let context = unsafe { self.context() };
         Ok(context.refcount.load(Ordering::SeqCst))
     }
 }
@@ -81,7 +89,7 @@ impl Default for Config {
 
 impl Clone for Config {
     fn clone(&self) -> Self {
-        let context = self.context();
+        let context = unsafe { self.context() };
 
         // Safety
         //
@@ -96,15 +104,7 @@ impl Clone for Config {
 
 impl Drop for Config {
     fn drop(&mut self) {
-        let context = self.context_mut();
-
-        // Detect if this is an Application built Config or one of the default s2n-tls configs.
-        //
-        // NOTE: explicitly detect the default s2n-tls config based on if the context is set.
-        // This will break if s2n-tls starts setting the context on the static config. This
-        // is likely a safe implementaiton since the static config is only used for testing
-        // and unlikely to set the context. A different option is to set an explicit flag on
-        // the config.
+        let context = unsafe { self.context_mut() };
         let count = context.refcount.fetch_sub(1, Ordering::Release);
         debug_assert!(count > 0, "refcount should not drop below 1 instance");
 
@@ -275,6 +275,8 @@ impl Builder {
     }
 
     /// Set a custom callback function which is run after parsing the client hello.
+    ///
+    /// The callback can be called more than once.
     pub fn set_client_hello_handler<T: 'static + ClientHelloHandler>(
         &mut self,
         handler: T,
@@ -320,10 +322,12 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        self.0.context_mut().client_hello_handler = Some(handler);
+        let context = unsafe { self.0.context_mut() };
+        context.client_hello_handler = Some(handler);
 
         unsafe {
-            // Enable client_hello_callback polling to better model Rust Future behavior
+            // Enable client_hello_callback polling to model the polling behavior of Futures in
+            // Rust
             s2n_config_client_hello_cb_enable_poll(self.as_mut_ptr()).into_result()?;
             s2n_config_set_client_hello_cb_mode(
                 self.as_mut_ptr(),

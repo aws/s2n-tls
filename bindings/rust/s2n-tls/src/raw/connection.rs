@@ -318,12 +318,13 @@ impl Connection {
         }
     }
 
-    /// Sets a Waker on the connection context or clears it if None is passed.
+    /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();
 
         if let Some(waker) = waker {
             if let Some(prev_waker) = ctx.waker.as_mut() {
+                // only replace the Waker if they dont reference the same task
                 if !prev_waker.will_wake(waker) {
                     *prev_waker = waker.clone();
                 }
@@ -342,6 +343,7 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
+    /// Retrieve a mutable reference to the [`Context`] stored on the config.
     fn context_mut(&mut self) -> &mut Context {
         unsafe {
             let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
@@ -351,6 +353,7 @@ impl Connection {
         }
     }
 
+    /// Retrieve a reference to the [`Context`] stored on the config.
     fn context(&self) -> &Context {
         unsafe {
             let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
@@ -431,13 +434,16 @@ impl Drop for Connection {
     fn drop(&mut self) {
         // ignore failures since there's not much we can do about it
         unsafe {
+            // clean up context
             let prev_ctx = self.context_mut();
             drop(Box::from_raw(prev_ctx));
-
             let _ = s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut())
                 .into_result();
 
+            // cleanup config
             let _ = self.drop_config();
+
+            // cleanup connection
             let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
         }
     }
