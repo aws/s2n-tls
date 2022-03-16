@@ -17,7 +17,7 @@ def get_expected_s2n_version(protocol, provider):
     tls12 is always chosen. This is true even when the requested
     protocol is less than tls12.
     """
-    if (provider == S2N or provider == CriterionS2N) and protocol != Protocols.TLS13:
+    if (issubclass(provider, S2N)) and protocol != Protocols.TLS13:
         version = '33'
     else:
         version = protocol.value

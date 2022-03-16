@@ -20,7 +20,7 @@ PROTOCOLS = [
 
 
 # List of providers that will be tested.
-PROVIDERS = [CriterionS2N, S2N, OpenSSL, JavaSSL]
+PROVIDERS = [S2N, OpenSSL, JavaSSL]
 
 
 # List of binary TLS13 settings

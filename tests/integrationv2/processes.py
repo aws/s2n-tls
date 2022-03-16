@@ -277,9 +277,6 @@ class ManagedProcess(threading.Thread):
         self.results_condition = threading.Condition()
         self.results = None
 
-        # Set current working dir
-        self.cwd = cwd
-
         # Condition variable indicating when this subprocess has been launched successfully
         self.ready_condition = threading.Condition()
         self.process_ready = False
@@ -308,7 +305,6 @@ class ManagedProcess(threading.Thread):
             try:
                 proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
-                self.proc = proc
             except Exception as ex:
                 self.results = Results(
                     None, None, None, ex, self.expect_stderr)

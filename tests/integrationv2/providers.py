@@ -45,12 +45,6 @@ class Provider(object):
         self._provider_ready_condition = threading.Condition()
         self._provider_ready = False
 
-        # Directory to run commands from
-        self.cwd = None
-
-        # Store the test name
-        self.test_name = os.environ.get('PYTEST_CURRENT_TEST').split('::')[-1].split('[')[0]
-
         if type(options) is not ProviderOptions:
             raise TypeError
 
@@ -80,9 +74,6 @@ class Provider(object):
         This should be the last message printed before the client/server can send data.
         """
         return None
-
-    def get_cwd(self):
-        return self.cwd
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
