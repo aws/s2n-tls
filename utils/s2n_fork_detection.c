@@ -176,20 +176,32 @@ static S2N_RESULT s2n_initialise_fork_detection_methods_try(void *addr, long pag
      * a safe default.
      */
     if (ignore_wipeonfork_or_inherit_zero_method_for_testing == false) {
-        RESULT_GUARD_RESULT(s2n_initialise_wipeonfork_best_effort(addr, page_size));
+        RESULT_GUARD(s2n_initialise_wipeonfork_best_effort(addr, page_size));
     }
 
     if (ignore_wipeonfork_or_inherit_zero_method_for_testing == false) {
-        RESULT_GUARD_RESULT(s2n_initialise_inherit_zero(addr, page_size));
+        RESULT_GUARD(s2n_initialise_inherit_zero(addr, page_size));
     }
 
     if (ignore_pthread_atfork_method_for_testing == false) {
-        RESULT_GUARD_RESULT(s2n_inititalise_pthread_atfork());
+        RESULT_GUARD(s2n_inititalise_pthread_atfork());
     }
 
     fgn_state.zero_on_fork_addr = addr;
     *fgn_state.zero_on_fork_addr = S2N_NO_FORK_EVENT;
     fgn_state.is_fork_detection_enabled = S2N_FORK_DETECT_ENABLED;
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_setup_mapping(void **addr, long *page_size) {
+
+    *page_size = sysconf(_SC_PAGESIZE);
+    RESULT_ENSURE_GT(*page_size, 0);
+
+    *addr = mmap(NULL, (size_t) *page_size, PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    RESULT_ENSURE_NE(*addr, MAP_FAILED);
 
     return S2N_RESULT_OK;
 }
@@ -207,14 +219,7 @@ static void s2n_initialise_fork_detection_methods(void)
         return;
     }
 
-    page_size = sysconf(_SC_PAGESIZE);
-    if (page_size <= 0) {
-        return;
-    }
-
-    addr = mmap(NULL, (size_t) page_size, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (addr == MAP_FAILED) {
+    if (s2n_result_is_error(s2n_setup_mapping(&addr, &page_size)) == true) {
         return;
     }
 
@@ -291,7 +296,7 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     return S2N_RESULT_OK;
 }
 
-static void cleanup_cb_munmap(void *probe_addr)
+static void s2n_cleanup_cb_munmap(void *probe_addr)
 {
     munmap(probe_addr, (size_t) sysconf(_SC_PAGESIZE));
 }
@@ -305,27 +310,28 @@ static void cleanup_cb_munmap(void *probe_addr)
  */
 static S2N_RESULT s2n_probe_madv_wipeonfork_support(void) {
 
-#if defined(USE_MADVISE)
+    bool result = false;
+
     /* It is not an error to call munmap on a range that does not contain any
      * mapped pages.
      */
-    DEFER_CLEANUP(void *probe_addr = MAP_FAILED, cleanup_cb_munmap);
+    DEFER_CLEANUP(void *probe_addr = MAP_FAILED, s2n_cleanup_cb_munmap);
     long page_size = 0;
 
-    page_size = sysconf(_SC_PAGESIZE);
-    RESULT_ENSURE_GT(page_size, 0);
+    RESULT_GUARD(s2n_setup_mapping(&probe_addr, &page_size));
 
-    probe_addr = mmap(NULL, (size_t) page_size, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    RESULT_ENSURE_NE(probe_addr, MAP_FAILED);
-
+#if defined(USE_MADVISE)
     /* Some versions of qemu (up to at least 5.0.0-rc4, see
      * linux-user/syscall.c) ignore invalid advice arguments. Hence, we first
      * verify that madvise() rejects advice arguments it doesn't know about.
      */
     RESULT_ENSURE_NE(madvise(probe_addr, (size_t) page_size, -1), 0);
     RESULT_ENSURE_EQ(madvise(probe_addr, (size_t) page_size, MADV_WIPEONFORK), 0);
+
+    result = true;
 #endif
+
+    RESULT_ENSURE_EQ(result, true);
 
     return S2N_RESULT_OK;
 }
