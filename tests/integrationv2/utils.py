@@ -1,6 +1,6 @@
 from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
-from global_flags import get_flag, S2N_FIPS_MODE
+from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
 
 
 def to_bytes(val):
@@ -50,6 +50,7 @@ def invalid_test_parameters(*args, **kwargs):
     """
     protocol = kwargs.get('protocol')
     provider = kwargs.get('provider')
+    other_provider = kwargs.get('other_provider')
     certificate = kwargs.get('certificate')
     client_certificate = kwargs.get('client_certificate')
     cipher = kwargs.get('cipher')
@@ -65,6 +66,12 @@ def invalid_test_parameters(*args, **kwargs):
 
     if provider is not None and not provider.supports_protocol(protocol):
         return True
+
+    if provider is not None and other_provider is not None:
+        # If s2n is built with OpenSSL 1.0.2 it can't connect to itself
+        if provider == S2N and other_provider == S2N:
+            if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+                return True
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
