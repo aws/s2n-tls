@@ -306,10 +306,6 @@ mod tests {
             server
                 .set_config(config.clone())
                 .expect("Failed to bind config to server connection");
-            server
-                .set_client_auth_type(s2n_tls_sys::s2n_cert_auth_type::NONE)
-                .expect("Unable to set server client auth type");
-
             server.set_waker(Some(&waker)).unwrap();
             Harness::new(server)
         };

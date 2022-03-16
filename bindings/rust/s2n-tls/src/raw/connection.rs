@@ -34,7 +34,7 @@ impl fmt::Debug for Connection {
 
 /// # Safety
 ///
-/// Callers must ensure access to Connection is thread safe
+/// Safety: s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
 impl Connection {
@@ -44,8 +44,10 @@ impl Connection {
 
         unsafe {
             debug_assert! {
-                s2n_connection_get_config(connection.as_ptr(), &mut core::ptr::null_mut()).into_result().is_err()
-            };
+                s2n_connection_get_config(connection.as_ptr(), &mut core::ptr::null_mut())
+                    .into_result()
+                    .is_err()
+            }
         }
         let context = Box::new(Context::default());
         let context = Box::into_raw(context) as *mut c_void;
@@ -102,7 +104,8 @@ impl Connection {
     ///
     /// # Safety
     ///
-    /// Manual memory management is error prone and users must not use after free.
+    /// The caller must ensure the config associated with the connection was created
+    /// with a [`config::Builder`].
     unsafe fn drop_config(&mut self) -> Result<(), Error> {
         let mut prev_config = core::ptr::null_mut();
 

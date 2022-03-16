@@ -217,13 +217,12 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
 }
 
 #[derive(Clone)]
-struct MockClientHelloHandler {
+pub struct MockClientHelloHandler {
     require_pending_count: usize,
     invoked: Arc<AtomicUsize>,
 }
 
 impl MockClientHelloHandler {
-    #[allow(dead_code)]
     pub fn new(require_pending_count: usize) -> Self {
         Self {
             require_pending_count,

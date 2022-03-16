@@ -18,7 +18,7 @@ pub struct Config(NonNull<s2n_config>);
 
 /// # Safety
 ///
-/// Callers must ensure access to Config is thread safe
+/// Safety: s2n_config objects can be sent across threads
 unsafe impl Send for Config {}
 
 impl Config {
