@@ -21,6 +21,7 @@
     typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
 #elif !defined(_GNU_SOURCE)
+    /* Keep in sync with feature probe tests/features/madvise.c */
     #define _GNU_SOURCE
 #endif
 
@@ -40,18 +41,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
-/* pthread should work on Darwin, but neither madvise or minherit provides the
- * required functionality in that kernel. Hence, restrict usage of madvise to
- * Linux and minherit to some BSD-flavored kernels. We do not consider Win.
- *
- * Android Trusty defines __linux__ for some reason, protect against that.
- */
-#if defined(__linux__) && !defined(__TRUSTY__)
-#define USE_MADVISE
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
-#define USE_MINHERIT
-#endif
 
 #if defined(USE_MINHERIT) && defined(USE_MADVISE)
 #error "Both USE_MINHERIT and USE_MADVISE are defined. This should not be possible."

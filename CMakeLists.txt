@@ -275,6 +275,22 @@ try_compile(
         COMPILE_DEFINITIONS "-Werror"
 )
 
+# Determine if madvise() is available
+try_compile(
+        SYSTEM_SUPPORTS_MADVISE
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/madvise.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+# Determine if minherit() is available
+try_compile(
+        SYSTEM_SUPPORTS_MINHERIT
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/minherit.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -434,6 +450,16 @@ endif()
 
 if (__RESTRICT__SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
+endif()
+
+if (SYSTEM_SUPPORTS_MADVISE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DUSE_MADVISE)
+    message(STATUS "madvise() support detected")
+endif()
+
+if (SYSTEM_SUPPORTS_MINHERIT)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DUSE_MINHERIT)
+    message(STATUS "minherit() support detected")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
