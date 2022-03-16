@@ -1,5 +1,6 @@
 from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
+from global_flags import get_flag, S2N_FIPS_MODE
 
 
 def to_bytes(val):
@@ -78,6 +79,10 @@ def invalid_test_parameters(*args, **kwargs):
 
         if provider is not None and not provider.supports_cipher(cipher, with_curve=curve):
             return True
+
+        if get_flag(S2N_FIPS_MODE):
+            if not cipher.fips:
+                return True
 
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test if the wrong certificate is used.

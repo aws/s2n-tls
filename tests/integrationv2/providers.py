@@ -2,7 +2,7 @@ import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
-from global_flags import get_flag, S2N_PROVIDER_VERSION
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
 class Provider(object):
@@ -187,6 +187,9 @@ class S2N(Provider):
             if self.options.cert:
                 cmd_line.extend(['--cert', self.options.cert])
 
+        if get_flag(S2N_FIPS_MODE):
+            cmd_line.append("--enter-fips-mode")
+
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
 
@@ -241,6 +244,9 @@ class S2N(Provider):
 
         if self.options.reconnects_before_exit is not None:
             cmd_line.append('--max-conns={}'.format(self.options.reconnects_before_exit))
+
+        if get_flag(S2N_FIPS_MODE):
+            cmd_line.append("--enter-fips-mode")
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
