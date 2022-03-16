@@ -709,6 +709,9 @@ class GnuTLS(Provider):
         if self.options.record_size:
             cmd_line.extend(["--recordsize", str(self.options.record_size)])
 
+        if self.options.extra_flags:
+            cmd_line.extend(self.options.extra_flags)
+
         return cmd_line
 
     def setup_server(self):
@@ -738,6 +741,9 @@ class GnuTLS(Provider):
 
         if self.options.use_client_auth:
             cmd_line.append("--require-client-cert")
+
+        if self.options.extra_flags:
+            cmd_line.extend(self.options.extra_flags)
 
         return cmd_line
 
