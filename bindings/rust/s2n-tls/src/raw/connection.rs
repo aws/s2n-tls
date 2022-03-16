@@ -346,7 +346,7 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
-    /// Retrieve a mutable reference to the [`Context`] stored on the config.
+    /// Retrieve a mutable reference to the [`Context`] stored on the connection.
     fn context_mut(&mut self) -> &mut Context {
         unsafe {
             let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
@@ -356,7 +356,7 @@ impl Connection {
         }
     }
 
-    /// Retrieve a reference to the [`Context`] stored on the config.
+    /// Retrieve a reference to the [`Context`] stored on the connection.
     fn context(&self) -> &Context {
         unsafe {
             let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
