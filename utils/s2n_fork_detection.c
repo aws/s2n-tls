@@ -47,8 +47,10 @@
 #endif
 
 #if defined(USE_MADVISE) && defined(MADV_WIPEONFORK)
-S2N_STATIC_ASSERT(MADV_WIPEONFORK == 18);
-#else
+#if (MADV_WIPEONFORK != 18)
+#error "MADV_WIPEONFORK is not 18"
+#endif
+#else /* defined(USE_MADVISE) && defined(MADV_WIPEONFORK) */
 #define MADV_WIPEONFORK 18
 #endif
 
