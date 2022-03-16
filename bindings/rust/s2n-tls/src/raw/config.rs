@@ -276,7 +276,9 @@ impl Builder {
 
     /// Set a custom callback function which is run after parsing the client hello.
     ///
-    /// The callback can be called more than once.
+    /// The callback can be called more than once. The application is response for calling
+    /// [`Connection::server_name_extension_used()`] if connection properties are modified
+    /// on the server name extension.
     pub fn set_client_hello_handler<T: 'static + ClientHelloHandler>(
         &mut self,
         handler: T,
@@ -297,19 +299,6 @@ impl Builder {
 
             match handler.poll_client_hello(&mut connection) {
                 Poll::Ready(Ok(())) => {
-                    // FIXME: this is not always true and should be addressed in the final version
-                    // of the bindings. We set the extension since custom certificate loading is
-                    // the most common operation at the moment.
-                    //
-                    // A server that receives a client hello containing the "server_name" extension
-                    // MAY use the information contained in the extension to guide its selection of
-                    // an appropriate certificate to return to the client, and/or other aspects of
-                    // security policy.  In this event, the server SHALL include an extension of type
-                    // "server_name" in the (extended) server hello.
-                    s2n_connection_server_name_extension_used(connection_ptr.as_ptr())
-                        .into_result()
-                        .unwrap();
-
                     s2n_client_hello_cb_done(connection_ptr.as_ptr());
                     s2n_status_code::SUCCESS
                 }

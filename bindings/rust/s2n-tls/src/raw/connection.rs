@@ -366,6 +366,17 @@ impl Connection {
         }
     }
 
+    /// Mark that the server_name extension was used to configure the connection.
+    pub fn server_name_extension_used(&mut self) {
+        // TODO: requiring the application to call this method is a pretty sharp edge.
+        // Figure out if its possible to automatically call this from the Rust bindings.
+        unsafe {
+            s2n_connection_server_name_extension_used(self.connection.as_ptr())
+                .into_result()
+                .unwrap();
+        }
+    }
+
     #[cfg(test)]
     /// Test if a config has been set on the connection.
     ///

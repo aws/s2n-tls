@@ -242,6 +242,9 @@ impl ClientHelloHandler for MockClientHelloHandler {
             return Poll::Pending;
         }
 
+        // Test that server_name_extension_used can be invoked
+        connection.server_name_extension_used();
+
         Poll::Ready(Ok(()))
     }
 }
