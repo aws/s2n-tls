@@ -6,8 +6,8 @@ edition = "2018"
 publish = false
 
 [dependencies]
-s2n-tls = { version = "=0.0.4", path = "../s2n-tls", features = ["testing"] }
-s2n-tls-sys = { version = "=0.0.4", path = "../s2n-tls-sys" }
+s2n-tls = { path = "../s2n-tls", features = ["testing"] }
+s2n-tls-sys = { path = "../s2n-tls-sys" }
 criterion = { version = "0.3", features = ["html_reports"] }
 
 [[bench]]
