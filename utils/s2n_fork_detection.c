@@ -42,15 +42,15 @@
 #include <unistd.h>
 
 
-#if defined(USE_MINHERIT) && defined(USE_MADVISE)
-#error "Both USE_MINHERIT and USE_MADVISE are defined. This should not be possible."
+#if defined(S2N_MINHERIT_SUPPORTED) && defined(S2N_MINHERIT_SUPPORTED)
+#error "Both S2N_MINHERIT_SUPPORTED and S2N_MINHERIT_SUPPORTED are defined. This should not be possible."
 #endif
 
-#if defined(USE_MADVISE) && defined(MADV_WIPEONFORK)
+#if defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK)
 #if (MADV_WIPEONFORK != 18)
 #error "MADV_WIPEONFORK is not 18"
 #endif
-#else /* defined(USE_MADVISE) && defined(MADV_WIPEONFORK) */
+#else /* defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK) */
 #define MADV_WIPEONFORK 18
 #endif
 
@@ -98,7 +98,7 @@ static struct FGN_STATE fgn_state = {
  */
 static inline S2N_RESULT s2n_initialise_wipeonfork_best_effort(void *addr, long page_size)
 {
-#if defined(USE_MADVISE)
+#if defined(S2N_MADVISE_SUPPORTED)
     /* Return value ignored on purpose */
     madvise(addr, (size_t) page_size, MADV_WIPEONFORK);
 #endif
@@ -108,7 +108,7 @@ static inline S2N_RESULT s2n_initialise_wipeonfork_best_effort(void *addr, long 
 
 static inline S2N_RESULT s2n_initialise_inherit_zero(void *addr, long page_size)
 {
-#if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
+#if defined(S2N_MINHERIT_SUPPORTED) && defined(MAP_INHERIT_ZERO)
     RESULT_ENSURE(minherit(addr, pagesize, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
 #endif
 
@@ -318,7 +318,7 @@ static S2N_RESULT s2n_probe_madv_wipeonfork_support(void) {
 
     RESULT_GUARD(s2n_setup_mapping(&probe_addr, &page_size));
 
-#if defined(USE_MADVISE)
+#if defined(S2N_MADVISE_SUPPORTED)
     /* Some versions of qemu (up to at least 5.0.0-rc4, see
      * linux-user/syscall.c) ignore invalid advice arguments. Hence, we first
      * verify that madvise() rejects advice arguments it doesn't know about.
@@ -341,7 +341,7 @@ bool s2n_is_madv_wipeonfork_supported(void)
 
 bool s2n_is_map_inherit_zero_supported(void)
 {
-#if defined(USE_MINHERIT) && defined(MAP_INHERIT_ZERO)
+#if defined(S2N_MINHERIT_SUPPORTED) && defined(MAP_INHERIT_ZERO)
     return true
 #else
     return false;

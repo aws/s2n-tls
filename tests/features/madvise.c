@@ -22,7 +22,6 @@
 #include <sys/mman.h>
 
 int main() {
-    void *addr = NULL;
-    madvise(addr, 0, 0);
+    madvise(NULL, 0, 0);
     return 0;
 }

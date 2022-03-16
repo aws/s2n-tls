@@ -291,6 +291,14 @@ try_compile(
         COMPILE_DEFINITIONS "-Werror"
 )
 
+# Determine if clone() is available
+try_compile(
+        CLONE_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/clone.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -453,13 +461,18 @@ if (__RESTRICT__SUPPORTED)
 endif()
 
 if (MADVISE_SUPPORTED)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DUSE_MADVISE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_MADVISE_SUPPORTED)
     message(STATUS "madvise() support detected")
 endif()
 
 if (MINHERIT_SUPPORTED)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DUSE_MINHERIT)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_MINHERIT_SUPPORTED)
     message(STATUS "minherit() support detected")
+endif()
+
+if (CLONE_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_CLONE_SUPPORTED)
+    message(STATUS "clone() support detected")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")

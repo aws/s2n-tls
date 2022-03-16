@@ -13,10 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#define _GNU_SOURCE
+
+#include <sched.h>
 #include <stddef.h>
-#include <sys/mman.h>
 
 int main() {
-    minherit(NULL, 0, 0);
+    clone(NULL, NULL, 0, NULL);
     return 0;
 }

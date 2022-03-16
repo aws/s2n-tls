@@ -24,11 +24,6 @@
 #include <stdio.h>
 #include <sys/wait.h>
 
-#if defined(__APPLE__)
-/* clone() is not a thing in Darwin */
-#define CLONE_NOT_SUPPORTED 1
-#endif
-
 #define NUMBER_OF_FGN_TEST_CASES 4
 #define MAX_NUMBER_OF_TEST_THREADS 2
 #define FORK_LEVEL_FOR_TESTS 2
@@ -190,7 +185,7 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
 #define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
 static int s2n_unit_test_clone(uint64_t parent_process_fgn)
 {
-#if !defined(CLONE_NOT_SUPPORTED)
+#if defined(S2N_CLONE_SUPPORTED)
     /* Verify stability */
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
