@@ -139,7 +139,9 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("client_cipher", CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("server_cipher", CIPHERS, ids=get_parameter_name)
-def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, server_cipher):
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, server_cipher, provider, other_provider):
     port = next(available_ports)
 
     client_options = ProviderOptions(
