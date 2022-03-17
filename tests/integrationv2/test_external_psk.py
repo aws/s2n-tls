@@ -111,9 +111,11 @@ Tests a single psk connection with no fallback option.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
-def test_s2n_server_psk_connection(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
+def test_s2n_server_psk_connection(managed_process, cipher, curve, protocol, provider, other_provider, psk_identity,
+                                   psk_secret):
     port = next(available_ports)
     random_bytes = data_bytes(10)
     psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
@@ -154,9 +156,11 @@ Note that OpenSSL does not support multiple PSKs.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
-def test_s2n_server_multiple_psks(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
+def test_s2n_server_multiple_psks(managed_process, cipher, curve, protocol, provider, other_provider, psk_identity,
+                                  psk_secret):
     port = next(available_ports)
     random_bytes = data_bytes(10)
     psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
@@ -209,10 +213,12 @@ as the input.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS_WITH_EMPTY_CERT, ids=get_parameter_name)
-def test_s2n_server_full_handshake(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret, certificate):
+def test_s2n_server_full_handshake(managed_process, cipher, curve, protocol, provider, other_provider, psk_identity,
+                                   psk_secret, certificate):
     port = next(available_ports)
     random_bytes = data_bytes(10)
     psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
@@ -253,9 +259,11 @@ Tests a single psk connection with no fallback option.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
-def test_s2n_client_psk_connection(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
+def test_s2n_client_psk_connection(managed_process, cipher, curve, protocol, provider, other_provider, psk_identity,
+                                   psk_secret):
     port = next(available_ports)
     random_bytes = data_bytes(10)
     psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
@@ -297,9 +305,11 @@ Note that OpenSSL does not support multiple PSKs.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
 @pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
-def test_s2n_client_multiple_psks(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
+def test_s2n_client_multiple_psks(managed_process, cipher, curve, protocol, provider, other_provider, psk_identity,
+                                  psk_secret):
     port = next(available_ports)
     random_bytes = data_bytes(10)
     psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
