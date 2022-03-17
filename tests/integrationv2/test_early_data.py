@@ -175,7 +175,7 @@ def test_s2n_server_with_early_data(managed_process, tmp_path, cipher, curve, ce
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(other_provider, server_options)
+    s2n_server = managed_process(S2N, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
@@ -229,7 +229,7 @@ def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, certifica
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(other_provider, client_options)
+    s2n_client = managed_process(S2N, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
@@ -280,7 +280,7 @@ def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, certif
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(other_provider, client_options)
+    s2n_client = managed_process(S2N, client_options)
 
     for results in server.get_results():
         results.assert_success()
@@ -337,7 +337,7 @@ def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(other_provider, server_options)
+    s2n_server = managed_process(S2N, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
@@ -397,7 +397,7 @@ def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(other_provider, client_options)
+    s2n_client = managed_process(S2N, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
@@ -451,7 +451,7 @@ def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(other_provider, server_options)
+    s2n_server = managed_process(S2N, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
@@ -506,7 +506,7 @@ def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, ciph
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(other_provider, server_options)
+    s2n_server = managed_process(S2N, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():

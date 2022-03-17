@@ -166,7 +166,7 @@ def test_s2n_old_client_new_ticket(managed_process, tmp_path, cipher, curve, cer
     server_options.cert = certificate.cert
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(other_provider, client_options)
+    s2n_client = managed_process(S2N, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
@@ -226,7 +226,7 @@ def test_s2n_new_client_old_ticket(managed_process, tmp_path, cipher, curve, cer
     server_options.cert = certificate.cert
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(other_provider, client_options)
+    s2n_client = managed_process(S2N, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
@@ -239,7 +239,7 @@ def test_s2n_new_client_old_ticket(managed_process, tmp_path, cipher, curve, cer
     client_options.use_mainline_version = False
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(other_provider, client_options)
+    s2n_client = managed_process(S2N, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
