@@ -125,6 +125,15 @@ def get_ticket_from_s2n_server(options, managed_process, provider, certificate):
     assert os.path.exists(options.ticket_file)
 
 
+def test_dummy():
+    """
+    Sometimes the early data test parameters in combination with the s2n libcrypto
+    results in no test cases existing. In this case, pass a dummy test to avoid
+    marking the entire codebuild run as failed.
+    """
+    assert True
+
+
 """
 Basic S2N server happy case.
 
@@ -137,8 +146,10 @@ then another resumption connection with early data.
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("early_data_size", [int(MAX_EARLY_DATA/2), int(MAX_EARLY_DATA-1), MAX_EARLY_DATA, 1])
-def test_s2n_server_with_early_data(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, early_data_size):
+def test_s2n_server_with_early_data(managed_process, tmp_path, cipher, curve, certificate, protocol, provider,
+                                    other_provider, early_data_size):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, early_data_size)
@@ -164,7 +175,7 @@ def test_s2n_server_with_early_data(managed_process, tmp_path, cipher, curve, pr
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(S2N, server_options)
+    s2n_server = managed_process(other_provider, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
@@ -189,8 +200,10 @@ That means we don't need to manually perform the initial full connection, and th
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("early_data_size", [int(MAX_EARLY_DATA/2), int(MAX_EARLY_DATA-1), MAX_EARLY_DATA, 1])
-def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, protocol, provider, certificate, early_data_size):
+def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, certificate, protocol, provider, other_provider,
+                                    early_data_size):
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, early_data_size)
 
@@ -216,7 +229,7 @@ def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, protocol,
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(S2N, client_options)
+    s2n_client = managed_process(other_provider, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
@@ -239,7 +252,9 @@ test_session_resumption but with validation that no early data is sent.
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
-def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, protocol, provider, certificate):
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, certificate, protocol, provider,
+                                       other_provider):
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, MAX_EARLY_DATA)
 
@@ -265,7 +280,7 @@ def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, protoc
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(S2N, client_options)
+    s2n_client = managed_process(other_provider, client_options)
 
     for results in server.get_results():
         results.assert_success()
@@ -292,8 +307,10 @@ reconnects automatically, without any mechanism to modify the connection in betw
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("early_data_size", [int(MAX_EARLY_DATA/2), int(MAX_EARLY_DATA-1), MAX_EARLY_DATA, 1])
-def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, early_data_size):
+def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, curve, certificate, protocol, provider,
+                                             other_provider, early_data_size):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, early_data_size)
@@ -320,7 +337,7 @@ def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(S2N, server_options)
+    s2n_server = managed_process(other_provider, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
@@ -347,8 +364,10 @@ does not send key shares for.
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("early_data_size", [int(MAX_EARLY_DATA/2), int(MAX_EARLY_DATA-1), MAX_EARLY_DATA, 1])
-def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, early_data_size):
+def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, cipher, curve, certificate, protocol,
+                                                     provider, other_provider, early_data_size):
     if provider == S2N:
         pytest.skip("S2N does not respect ProviderOptions.curve, so does not trigger a retry")
 
@@ -378,7 +397,7 @@ def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
-    s2n_client = managed_process(S2N, client_options)
+    s2n_client = managed_process(other_provider, client_options)
 
     for results in s2n_client.get_results():
         results.assert_success()
@@ -403,8 +422,10 @@ S2N doesn't support while still supporting at least one curve S2N does support.
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("early_data_size", [int(MAX_EARLY_DATA/2), int(MAX_EARLY_DATA-1), MAX_EARLY_DATA, 1])
-def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, early_data_size):
+def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, cipher, curve, certificate, protocol,
+                                                     provider, other_provider, early_data_size):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, early_data_size)
@@ -430,7 +451,7 @@ def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(S2N, server_options)
+    s2n_server = managed_process(other_provider, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
@@ -455,8 +476,10 @@ Test the S2N server fails if it receives too much early data.
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("excess_early_data", [1, 10, MAX_EARLY_DATA])
-def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, excess_early_data):
+def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, cipher, curve, certificate, protocol,
+                                                 provider, other_provider, excess_early_data):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, MAX_EARLY_DATA + excess_early_data)
@@ -483,7 +506,7 @@ def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, ciph
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
 
-    s2n_server = managed_process(S2N, server_options)
+    s2n_server = managed_process(other_provider, server_options)
     client = managed_process(provider, client_options)
 
     for results in client.get_results():
