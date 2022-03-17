@@ -135,6 +135,15 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
         assert to_bytes(expected_result['kem_group']) in s2n_results.stdout
 
 
+def test_dummy():
+    """
+    Sometimes the pq handshake test parameters in combination with the s2n libcrypto
+    results in no test cases existing. In this case, pass a dummy test to avoid
+    marking the entire codebuild run as failed.
+    """
+    assert True
+
+
 @pytest.mark.uncollect_if(func=invalid_pq_handshake_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("client_cipher", CIPHERS, ids=get_parameter_name)
