@@ -57,6 +57,8 @@ def invalid_test_parameters(*args, **kwargs):
     curve = kwargs.get('curve')
     signature = kwargs.get('signature')
 
+    providers = [provider_ for provider_ in [provider, other_provider] if provider_]
+
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
     if protocol and protocol is not Protocols.TLS13:
@@ -65,8 +67,9 @@ def invalid_test_parameters(*args, **kwargs):
         if certificate and certificate.algorithm == 'RSAPSS':
             return True
 
-    if provider is not None and not provider.supports_protocol(protocol):
-        return True
+    for provider_ in providers:
+        if not provider_.supports_protocol(protocol):
+            return True
 
     if provider is not None and other_provider is not None:
         if issubclass(provider, S2N) and issubclass(other_provider, S2N):
@@ -90,8 +93,9 @@ def invalid_test_parameters(*args, **kwargs):
             if protocol is Protocols.TLS13 and cipher.min_version < protocol:
                 return True
 
-        if provider is not None and not provider.supports_cipher(cipher, with_curve=curve):
-            return True
+        for provider_ in providers:
+            if not provider_.supports_cipher(cipher, with_curve=curve):
+                return True
 
         if get_flag(S2N_FIPS_MODE):
             if not cipher.fips:
@@ -100,8 +104,10 @@ def invalid_test_parameters(*args, **kwargs):
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test if the wrong certificate is used.
     if certificate is not None:
-        if protocol is not None and provider.supports_protocol(protocol, with_cert=certificate) is False:
-            return True
+        if protocol is not None:
+            for provider_ in providers:
+                if provider_.supports_protocol(protocol, with_cert=certificate) is False:
+                    return True
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 
@@ -118,7 +124,8 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
     if signature is not None:
-        if provider is not None and provider.supports_signature(signature) is False:
-            return True
+        for provider_ in providers:
+            if provider_.supports_signature(signature) is False:
+                return True
 
     return False
