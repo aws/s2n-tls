@@ -20,6 +20,16 @@ CURVE_NAMES = {
     "P-521": "secp521r1"
 }
 
+
+def test_dummy():
+    """
+    Sometimes the hello retry test parameters in combination with the s2n libcrypto
+    results in no test cases existing. In this case, pass a dummy test to avoid
+    marking the entire codebuild run as failed.
+    """
+    assert True
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
