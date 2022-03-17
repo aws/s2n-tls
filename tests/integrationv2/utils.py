@@ -55,6 +55,7 @@ def invalid_test_parameters(*args, **kwargs):
     client_certificate = kwargs.get('client_certificate')
     cipher = kwargs.get('cipher')
     curve = kwargs.get('curve')
+    signature = kwargs.get('signature')
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
@@ -114,6 +115,10 @@ def invalid_test_parameters(*args, **kwargs):
     # Prevent situations like using X25519 with TLS1.2
     if curve is not None:
         if protocol is not None and curve.min_protocol > protocol:
+            return True
+
+    if signature is not None:
+        if provider is not None and provider.supports_signature(signature) is False:
             return True
 
     return False

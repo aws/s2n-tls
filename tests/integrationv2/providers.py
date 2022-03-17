@@ -1,7 +1,7 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
+from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
@@ -69,6 +69,10 @@ class Provider(object):
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         raise NotImplementedError
+
+    @classmethod
+    def supports_signature(cls, signature):
+        return True
 
     def get_cmd_line(self):
         return self.cmd_line
@@ -140,6 +144,15 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
+        return True
+
+    @classmethod
+    def supports_signature(cls, signature):
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+            # s2n fails to negotiation with this signature with openssl-1.0.2 libcrypto
+            if signature == Signatures.RSA_PSS_RSAE_SHA256:
+                return False
+
         return True
 
     def setup_client(self):
