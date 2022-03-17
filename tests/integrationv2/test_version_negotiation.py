@@ -14,7 +14,8 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL], ids=get_parameter_name)
-def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate, protocol, provider, other_provider):
     port = next(available_ports)
 
     random_bytes = data_bytes(24)
@@ -63,7 +64,8 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL], ids=get_parameter_name)
-def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, certificate, protocol, provider, other_provider):
     port = next(available_ports)
 
     random_bytes = data_bytes(24)
