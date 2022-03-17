@@ -8,7 +8,18 @@ from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version, to_bytes
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+def invalid_s2nc_tls13_test_parameters(*args, **kwargs):
+    # Make sure the libcrypto S2N is built with is compatible with TLS 1.3.
+    return any([
+        invalid_test_parameters(args, kwargs),
+        invalid_test_parameters(**{
+            "provider": S2N,
+            "protocol": Protocols.TLS13
+        })
+    ])
+
+
+@pytest.mark.uncollect_if(func=invalid_s2nc_tls13_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
