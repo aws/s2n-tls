@@ -131,9 +131,9 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        # If s2n is built with OpenSSL 1.0.2 it can't connect to itself
-        if protocol is Protocols.TLS13 and 'openssl-1.0.2' in OpenSSL.get_version():
-            if with_cert is not None and with_cert.algorithm != 'EC':
+        if protocol == Protocols.TLS13:
+            # don't run TLS 1.3 tests with openssl-1.0.2 libcrypto
+            if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
                 return False
 
         return True
