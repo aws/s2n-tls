@@ -101,6 +101,15 @@ def validate_negotiated_psk_openssl(outcome, results):
         assert to_bytes("SSL_accept:error in error") in results.stderr
 
 
+def test_dummy():
+    """
+    Sometimes the external psk test parameters in combination with the s2n libcrypto
+    results in no test cases existing. In this case, pass a dummy test to avoid
+    marking the entire codebuild run as failed.
+    """
+    assert True
+
+
 """
 Basic S2N server happy case.
 
