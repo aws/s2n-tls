@@ -173,7 +173,9 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
-def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, certificate, protocol, provider,
+                                             other_provider):
     port = str(next(available_ports))
 
     # The reconnect option for s2nc allows the client to reconnect automatically
