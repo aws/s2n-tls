@@ -51,14 +51,14 @@ def test_s2n_server_key_update(managed_process, cipher, provider, protocol):
     server_options.data_to_send = [server_data]
 
     server = managed_process(
-        S2N, server_options, send_marker=[str(client_data)], timeout=5
+        S2N, server_options, send_marker=[str(client_data)], timeout=10
     )
     client = managed_process(
         provider,
         client_options,
         send_marker=send_marker_list,
         close_marker=str(server_data),
-        timeout=5,
+        timeout=10,
     )
 
     for results in client.get_results():
@@ -111,14 +111,14 @@ def test_s2n_client_key_update(managed_process, cipher, provider, protocol):
         server_options,
         send_marker=send_marker_list,
         close_marker=str(client_data),
-        timeout=5,
+        timeout=10,
     )
     client = managed_process(
         S2N,
         client_options,
         send_marker=[str(server_data)],
         close_marker=str(server_data),
-        timeout=5,
+        timeout=10,
     )
 
     for results in client.get_results():
