@@ -8,7 +8,19 @@ from providers import Provider, S2N, OpenSSL, JavaSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+def invalid_happy_path_test_parameters(*args, **kwargs):
+    # since the protocol is given to both provider and other_provider (s2n),
+    # make sure other_provider is able to support the protocol as well.
+    return any([
+        invalid_test_parameters(args, kwargs),
+        invalid_test_parameters(**{
+            "protocol": kwargs["protocol"],
+            "provider": kwargs["provider"]
+        })
+    ])
+
+
+@pytest.mark.uncollect_if(func=invalid_happy_path_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PROVIDERS)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -64,7 +76,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, other_provider
             assert to_bytes("Cipher negotiated: {}".format(cipher.name)) in results.stdout
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.uncollect_if(func=invalid_happy_path_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL])
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
