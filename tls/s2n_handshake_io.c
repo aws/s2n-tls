@@ -1424,7 +1424,8 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         }
 
         if (ACTIVE_STATE(conn).writer == 'B') {
-            POSIX_GUARD_RESULT(s2n_tls13_secrets_finish(conn));
+            /* Clean up handshake secrets */
+            POSIX_GUARD_RESULT(s2n_tls13_secrets_clean(conn));
 
             /* Send any pending post-handshake messages */
             POSIX_GUARD(s2n_post_handshake_send(conn, blocked));

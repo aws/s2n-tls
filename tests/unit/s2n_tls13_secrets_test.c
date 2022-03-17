@@ -52,6 +52,10 @@ int main(int argc, char **argv)
     const struct s2n_ecc_preferences *curves = &s2n_ecc_preferences_test_all;
     const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
+    struct s2n_blob test_secret = { 0 };
+    uint8_t test_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = "hello world";
+    EXPECT_SUCCESS(s2n_blob_init(&test_secret, test_secret_bytes, sizeof(test_secret_bytes)));
+
     struct s2n_tls13_secrets_test_case test_cases[1000] = { 0 };
     size_t test_cases_count = 0;
     for (s2n_extract_secret_type_t next_type = S2N_EARLY_SECRET; next_type <= S2N_MASTER_SECRET; next_type++) {
@@ -224,14 +228,10 @@ int main(int argc, char **argv)
         }
     }
 
-    /* s2n_tls13_secrets_finish */
+    /* s2n_tls13_secrets_clean */
     {
         /* Safety */
-        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_finish(NULL), S2N_ERR_NULL);
-
-        struct s2n_blob test_secret = { 0 };
-        uint8_t test_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = "hello world";
-        EXPECT_SUCCESS(s2n_blob_init(&test_secret, test_secret_bytes, sizeof(test_secret_bytes)));
+        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_clean(NULL), S2N_ERR_NULL);
 
         /* Wipes all secrets */
         {
@@ -247,36 +247,155 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_test_early_secret(conn, &test_secret));
             EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &test_secret));
             EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.client_handshake_secret, test_secret.data, test_secret.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.server_handshake_secret, test_secret.data, test_secret.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.client_app_secret, test_secret.data, test_secret.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.server_app_secret, test_secret.data, test_secret.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.resumption_master_secret, test_secret.data, test_secret.size);
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_app_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_app_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.resumption_master_secret, empty_secret, sizeof(empty_secret));
 
-            EXPECT_OK(s2n_tls13_secrets_finish(conn));
+            EXPECT_OK(s2n_tls13_secrets_clean(conn));
 
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.early_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.server_handshake_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_app_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_app_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.resumption_master_secret, empty_secret, sizeof(empty_secret));
+        }
+    }
+
+    /* Test s2n_tls13_secrets_get */
+    {
+        /* Safety */
+        {
+            struct s2n_blob result = { 0 };
+            struct s2n_connection conn = { 0 };
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(NULL, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_NONE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, -1, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, 100, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+
+            conn.secrets.tls13.secrets_state = S2N_NONE_SECRET;
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
         }
 
-        /* Stores TLS1.3 resumption secret */
+        /* Retrieves an existing secret */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.client_handshake_secret,
+                    test_secret.data, test_secret.size);
+            conn->secrets.tls13.secrets_state = S2N_HANDSHAKE_SECRET;
+
+            struct s2n_blob result = { 0 };
+            uint8_t result_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&result, result_bytes, sizeof(result_bytes)));
+            EXPECT_OK(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result));
+
+            EXPECT_TRUE(result.size > 0);
+            EXPECT_TRUE(result.size <= S2N_TLS13_SECRET_MAX_LEN);
+            EXPECT_BYTEARRAY_EQUAL(result.data, test_secret.data, result.size);
+        }
+
+        /* Derives a new secret */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            struct s2n_blob result = { 0 };
+            uint8_t result_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&result, result_bytes, sizeof(result_bytes)));
+            EXPECT_OK(s2n_tls13_secrets_get(conn, S2N_EARLY_SECRET, S2N_CLIENT, &result));
+
+            EXPECT_TRUE(result.size > 0);
+            EXPECT_TRUE(result.size <= S2N_TLS13_SECRET_MAX_LEN);
+            EXPECT_BYTEARRAY_NOT_EQUAL(result.data, empty_secret, result.size);
+        }
+    }
+
+    /* s2n_tls13_secrets_update */
+    {
+        /* Safety */
+        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_update(NULL), S2N_ERR_NULL);
+
+        /* Derives handshake secrets on SERVER_HELLO */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &test_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_handshake_secret,
+                    empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.server_handshake_secret,
+                    empty_secret, sizeof(empty_secret));
+
+            while(s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
+                conn->handshake.message_number++;
+            }
+            EXPECT_OK(s2n_tls13_secrets_update(conn));
+
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_handshake_secret,
+                    empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_handshake_secret,
+                    empty_secret, sizeof(empty_secret));
+        }
+
+        /* Derives application secrets on SERVER_FINISHED */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_app_secret,
+                    empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.server_app_secret,
+                    empty_secret, sizeof(empty_secret));
+
+            while(s2n_conn_get_current_message_type(conn) != SERVER_FINISHED) {
+                conn->handshake.message_number++;
+            }
+            EXPECT_OK(s2n_tls13_secrets_update(conn));
+
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_app_secret,
+                    empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_app_secret,
+                    empty_secret, sizeof(empty_secret));
+        }
+
+        /* Derives resumption secret on CLIENT_FINISHED */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,
                     empty_secret, sizeof(empty_secret));
 
-            /* Does NOT calculate secret if TLS1.2 */
-            conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_OK(s2n_tls13_secrets_finish(conn));
-            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,
-                    empty_secret, sizeof(empty_secret));
+            while(s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
+                conn->handshake.message_number++;
+            }
+            EXPECT_OK(s2n_tls13_secrets_update(conn));
 
-            /* Calculates secret if TLS1.3 */
-            conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_OK(s2n_tls13_secrets_finish(conn));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.resumption_master_secret,
                     empty_secret, sizeof(empty_secret));
         }
