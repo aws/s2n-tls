@@ -68,7 +68,7 @@ def invalid_test_parameters(*args, **kwargs):
         return True
 
     if provider is not None and other_provider is not None:
-        if provider == S2N and other_provider == S2N:
+        if issubclass(provider, S2N) and issubclass(other_provider, S2N):
             # if s2n is built with OpenSSL 1.0.2, it can't connect to itself
             if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
                 return True
