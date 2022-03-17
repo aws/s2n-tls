@@ -209,9 +209,11 @@ def run_sslyze_scan(host, port, scans):
     return scanner.get_results()
 
 
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("scan_command", SSLYZE_SCANS_TO_TEST, ids=get_parameter_name)
-def test_sslyze_scans(managed_process, protocol, scan_command):
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+def test_sslyze_scans(managed_process, protocol, scan_command, provider):
     port = next(available_ports)
 
     server_options = ProviderOptions(
@@ -253,9 +255,11 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
     server.kill()
 
 
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_sslyze_certificate_scans(managed_process, protocol, certificate):
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+def test_sslyze_certificate_scans(managed_process, protocol, certificate, provider):
     port = next(available_ports)
 
     server_options = ProviderOptions(
