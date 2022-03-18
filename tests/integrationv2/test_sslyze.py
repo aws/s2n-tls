@@ -8,7 +8,7 @@ from common import ProviderOptions, Protocols, Cipher, Ciphers, Certificates, Cu
 from fixtures import managed_process
 from providers import S2N
 from utils import get_parameter_name, invalid_test_parameters
-from global_flags import get_flag, S2N_PROVIDER_VERSION
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 HOST = "127.0.0.1"
 
@@ -215,8 +215,8 @@ def invalid_sslyze_scan_parameters(*args, **kwargs):
     scan_command = kwargs["scan_command"]
 
     # BUG_IN_SSLYZE error in session resumption and session renegotiation scans
-    # in openssl 1.0.2 fips
-    if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+    # in fips libcryptos
+    if "fips" in get_flag(S2N_PROVIDER_VERSION):
         return scan_command in [
             sslyze.ScanCommand.SESSION_RESUMPTION,
             sslyze.ScanCommand.SESSION_RENEGOTIATION
