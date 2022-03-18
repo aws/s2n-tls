@@ -211,7 +211,21 @@ def run_sslyze_scan(host, port, scans):
     return scanner.get_results()
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+def invalid_sslyze_scan_parameters(*args, **kwargs):
+    scan_command = kwargs["scan_command"]
+
+    # BUG_IN_SSLYZE error in session resumption and session renegotiation scans
+    # in openssl 1.0.2 fips
+    if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+        return scan_command in [
+            sslyze.ScanCommand.SESSION_RESUMPTION,
+            sslyze.ScanCommand.SESSION_RENEGOTIATION
+        ]
+
+    return invalid_test_parameters(*args, **kwargs)
+
+
+@pytest.mark.uncollect_if(func=invalid_sslyze_scan_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("scan_command", SSLYZE_SCANS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
