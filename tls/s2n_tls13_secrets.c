@@ -100,7 +100,7 @@ S2N_RESULT s2n_tls13_empty_transcripts_init()
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_set_transcript_hash(struct s2n_connection *conn)
+static S2N_RESULT s2n_calculate_transcript_digest(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->handshake.hashes);
@@ -574,27 +574,27 @@ S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
         case CLIENT_HELLO:
             if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED
                     || conn->early_data_state == S2N_EARLY_DATA_ACCEPTED) {
-                RESULT_GUARD(s2n_set_transcript_hash(conn));
+                RESULT_GUARD(s2n_calculate_transcript_digest(conn));
                 RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET,
                         S2N_CLIENT, &CONN_SECRET(conn, client_early_secret)));
             }
             break;
         case SERVER_HELLO:
-            RESULT_GUARD(s2n_set_transcript_hash(conn));
+            RESULT_GUARD(s2n_calculate_transcript_digest(conn));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET,
                     S2N_CLIENT, &CONN_SECRET(conn, client_handshake_secret)));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET,
                     S2N_SERVER, &CONN_SECRET(conn, server_handshake_secret)));
             break;
         case SERVER_FINISHED:
-            RESULT_GUARD(s2n_set_transcript_hash(conn));
+            RESULT_GUARD(s2n_calculate_transcript_digest(conn));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
                     S2N_CLIENT, &CONN_SECRET(conn, client_app_secret)));
             RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
                     S2N_SERVER, &CONN_SECRET(conn, server_app_secret)));
             break;
         case CLIENT_FINISHED:
-            RESULT_GUARD(s2n_set_transcript_hash(conn));
+            RESULT_GUARD(s2n_calculate_transcript_digest(conn));
             RESULT_GUARD(s2n_derive_resumption_master_secret(conn));
             break;
         default:
