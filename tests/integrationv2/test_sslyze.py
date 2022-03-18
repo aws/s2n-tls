@@ -213,14 +213,20 @@ def run_sslyze_scan(host, port, scans):
 
 def invalid_sslyze_scan_parameters(*args, **kwargs):
     scan_command = kwargs["scan_command"]
+    protocol = kwargs["protocol"]
 
-    # BUG_IN_SSLYZE error in session resumption and session renegotiation scans
-    # in fips libcryptos
-    if "fips" in get_flag(S2N_PROVIDER_VERSION):
-        return scan_command in [
-            sslyze.ScanCommand.SESSION_RESUMPTION,
+    # BUG_IN_SSLYZE error in TLS compression and session renegotiation scans
+    # in fips libcryptos when TLS version < 1.3
+    if "fips" in get_flag(S2N_PROVIDER_VERSION) and protocol != Protocols.TLS13:
+        if scan_command in [
+            sslyze.ScanCommand.TLS_COMPRESSION,
             sslyze.ScanCommand.SESSION_RENEGOTIATION
-        ]
+        ]:
+            return True
+    # BUG_IN_SSLYZE error for session resumption scan with openssl 1.0.2 fips
+    if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+        if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
+            return True
 
     return invalid_test_parameters(*args, **kwargs)
 
@@ -288,7 +294,8 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
             if protocol == Protocols.TLS12:
                 return True
         elif "awslc-fips" in get_flag(S2N_PROVIDER_VERSION):
-            # BUG_IN_SSLYZE error ECDSA scans in SSLv3 and RSA with TLS version < 1.2
+            # BUG_IN_SSLYZE / TLS version supported assertion failures for ECDSA scans
+            # in SSLv3 and RSA with TLS version < 1.2 with fips libcryptos
             if "ECDSA" in certificate.name and protocol == Protocols.SSLv3:
                 return True
             if "RSA" in certificate.name and protocol in [
