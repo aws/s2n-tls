@@ -1,11 +1,14 @@
 name: Build Dashboard
 
 on:
-  schedule:
-    - cron: 0 10,16 * * *
+  pull_request_target:
+    types:
+      - opened
+      - reopened
   issues:
-    types: [opened, reopened]
-
+    types:
+      - opened
+      - reopened
 jobs:
   build:
     runs-on: ubuntu-latest
