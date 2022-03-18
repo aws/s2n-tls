@@ -8,6 +8,7 @@ from common import ProviderOptions, Protocols, Cipher, Ciphers, Certificates, Cu
 from fixtures import managed_process
 from providers import S2N
 from utils import get_parameter_name, invalid_test_parameters
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 HOST = "127.0.0.1"
 
@@ -256,19 +257,32 @@ def test_sslyze_scans(managed_process, protocol, scan_command, provider):
     server.kill()
 
 
-def invalid_certificate_scans_parameters(*args, **kwargs):
-    certificate = kwargs["certificate"]
-
-    # sslyze curves scan errors when given ECDSA certs
-    if "ECDSA" in certificate.name:
-        return True
-
-    return invalid_test_parameters(*args, **kwargs)
-
-
 class CertificateScan(Enum):
     CIPHER_SUITE_SCAN = auto()
     ELLIPTIC_CURVE_SCAN = auto()
+
+
+def invalid_certificate_scans_parameters(*args, **kwargs):
+    certificate = kwargs["certificate"]
+    certificate_scan = kwargs["certificate_scan"]
+    protocol = kwargs["protocol"]
+
+    if certificate_scan == CertificateScan.CIPHER_SUITE_SCAN:
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+            # sslyze scan results in rejected ciphers that should have been accepted
+            # for TLS 1.2
+            if protocol == Protocols.TLS12:
+                return True
+    elif certificate_scan == CertificateScan.ELLIPTIC_CURVE_SCAN:
+        # sslyze curves scan errors when given ECDSA certs
+        if "ECDSA" in certificate.name:
+            return True
+
+        # sslyze curves scan fails to validate with openssl 1.0.2 fips
+        if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+            return True
+
+    return invalid_test_parameters(*args, **kwargs)
 
 
 @pytest.mark.uncollect_if(func=invalid_certificate_scans_parameters)
