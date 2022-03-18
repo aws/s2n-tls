@@ -287,6 +287,16 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
             # for TLS 1.2
             if protocol == Protocols.TLS12:
                 return True
+        elif "awslc-fips" in get_flag(S2N_PROVIDER_VERSION):
+            # BUG_IN_SSLYZE error ECDSA scans in SSLv3 and RSA with TLS version < 1.2
+            if "ECDSA" in certificate.name and protocol == Protocols.SSLv3:
+                return True
+            if "RSA" in certificate.name and protocol in [
+                Protocols.SSLv3,
+                Protocols.TLS10,
+                Protocols.TLS11
+            ]:
+                return True
     elif certificate_scan == CertificateScan.ELLIPTIC_CURVE_SCAN:
         # sslyze curves scan errors when given ECDSA certs
         if "ECDSA" in certificate.name:
