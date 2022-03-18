@@ -69,7 +69,7 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
         assert random_bytes[1:] in results.stdout
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.uncollect_if(func=invalid_s2nc_tls13_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
