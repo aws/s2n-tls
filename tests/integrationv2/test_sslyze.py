@@ -1,6 +1,7 @@
 import pytest
 import sslyze
 import abc
+from enum import Enum, auto
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Cipher, Ciphers, Certificates, Curves
@@ -255,11 +256,30 @@ def test_sslyze_scans(managed_process, protocol, scan_command, provider):
     server.kill()
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+def invalid_certificate_scans_parameters(*args, **kwargs):
+    certificate = kwargs["certificate"]
+
+    # sslyze curves scan errors when given ECDSA certs
+    if "ECDSA" in certificate.name:
+        return True
+
+    return invalid_test_parameters(*args, **kwargs)
+
+
+class CertificateScan(Enum):
+    CIPHER_SUITE_SCAN = auto()
+    ELLIPTIC_CURVE_SCAN = auto()
+
+
+@pytest.mark.uncollect_if(func=invalid_certificate_scans_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
-def test_sslyze_certificate_scans(managed_process, protocol, certificate, provider):
+@pytest.mark.parametrize("certificate_scan", [
+    CertificateScan.CIPHER_SUITE_SCAN,
+    CertificateScan.ELLIPTIC_CURVE_SCAN
+], ids=lambda certificate_scan: certificate_scan.name)
+def test_sslyze_certificate_scans(managed_process, protocol, certificate, provider, certificate_scan):
     port = next(available_ports)
 
     server_options = ProviderOptions(
@@ -274,13 +294,12 @@ def test_sslyze_certificate_scans(managed_process, protocol, certificate, provid
     )
     server = managed_process(S2N, server_options, timeout=30)
 
-    scans = [CIPHER_SUITE_SCANS.get(protocol.value)]
+    scan = {
+        CertificateScan.CIPHER_SUITE_SCAN: CIPHER_SUITE_SCANS.get(protocol.value),
+        CertificateScan.ELLIPTIC_CURVE_SCAN: sslyze.ScanCommand.ELLIPTIC_CURVES
+    }.get(certificate_scan)
 
-    # sslyze curves scan errors when given ECDSA certs
-    if "ECDSA" not in certificate.name:
-        scans.append(sslyze.ScanCommand.ELLIPTIC_CURVES)
-
-    scan_attempt_results = run_sslyze_scan(HOST, port, scans)
+    scan_attempt_results = run_sslyze_scan(HOST, port, [scan])
 
     for scan_attempt_result in scan_attempt_results:
         assert_scan_result_completed(scan_attempt_result)
