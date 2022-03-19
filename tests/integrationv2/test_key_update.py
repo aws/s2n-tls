@@ -20,8 +20,9 @@ def test_dummy():
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-def test_s2n_server_key_update(managed_process, cipher, provider, protocol):
+def test_s2n_server_key_update(managed_process, cipher, provider, other_provider, protocol):
     host = "localhost"
     port = next(available_ports)
 
@@ -74,8 +75,9 @@ def test_s2n_server_key_update(managed_process, cipher, provider, protocol):
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-def test_s2n_client_key_update(managed_process, cipher, provider, protocol):
+def test_s2n_client_key_update(managed_process, cipher, provider, other_provider, protocol):
     host = "localhost"
     port = next(available_ports)
 
