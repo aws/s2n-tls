@@ -2,10 +2,11 @@ import copy
 import pytest
 
 from configuration import available_ports, TLS13_CIPHERS
-from common import ProviderOptions, Protocols, data_bytes
+from common import ProviderOptions, Protocols, data_bytes, Ciphers
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
 def test_dummy():
@@ -23,6 +24,9 @@ def test_dummy():
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 def test_s2n_server_key_update(managed_process, cipher, provider, other_provider, protocol):
+    if "awslc" in get_flag(S2N_PROVIDER_VERSION) and cipher == Ciphers.AES128_GCM_SHA256:
+        pytest.skip("openssl client timeouts with AES128_GCM_SHA256 cipher and awslc libcrypto")
+
     host = "localhost"
     port = next(available_ports)
 
