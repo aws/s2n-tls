@@ -24,8 +24,10 @@ Tests that S2N tickets are backwards-compatible.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [ OpenSSL ], ids=get_parameter_name)
-def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, certificate, protocol, provider,
+                                   other_provider):
     ticket_file = str(tmp_path / TICKET_FILE)
     assert not os.path.exists(ticket_file)
 
@@ -81,8 +83,10 @@ Tests that S2N tickets are forwards-compatible.
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [ OpenSSL ], ids=get_parameter_name)
-def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, certificate, protocol, provider,
+                                   other_provider):
     ticket_file = str(tmp_path / TICKET_FILE)
     assert not os.path.exists(ticket_file)
 
