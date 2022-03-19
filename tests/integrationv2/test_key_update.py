@@ -24,6 +24,9 @@ def test_dummy():
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 def test_s2n_server_key_update(managed_process, cipher, provider, other_provider, protocol):
+    if "awslc" in get_flag(S2N_PROVIDER_VERSION):
+        pytest.skip("Test is currently flaky for awslc libcrypto")
+
     host = "localhost"
     port = next(available_ports)
 
