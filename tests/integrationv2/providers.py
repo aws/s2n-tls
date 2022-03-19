@@ -337,19 +337,7 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        is_openssl_111 = "openssl-1.1.1" in OpenSSL.get_version()
-        if is_openssl_111 and cipher.openssl1_1_1 is False:
-            return False
-
-        if not is_openssl_111:
-            # OpenSSL 1.0.2 does not have ChaChaPoly
-            if 'CHACHA20' in cipher.name:
-                return False
-
-        if cipher.fips is False and "fips" in OpenSSL.get_version():
-            return False
-
-        if "openssl-1.0.2" in OpenSSL.get_version() and with_curve is not None:
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION) and with_curve is not None:
             invalid_ciphers = [
                 Ciphers.ECDHE_RSA_AES128_SHA,
                 Ciphers.ECDHE_RSA_AES256_SHA,
