@@ -39,11 +39,13 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol, certificate, client_certificate):
+def test_client_auth_with_s2n_server(managed_process, provider, other_provider, protocol, cipher, certificate,
+                                     client_certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -86,11 +88,13 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, cipher, provider, protocol, certificate, client_certificate):
+def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, provider, other_provider, protocol,
+                                                             cipher, certificate, client_certificate):
     port = next(available_ports)
 
     client_options = ProviderOptions(
@@ -138,10 +142,11 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, provider, certificate):
+def test_client_auth_with_s2n_client_no_cert(managed_process, provider, other_provider, protocol, cipher, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -183,11 +188,13 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("client_certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, protocol, provider, certificate, client_certificate):
+def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_provider, protocol, cipher, certificate,
+                                               client_certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
