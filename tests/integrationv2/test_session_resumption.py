@@ -16,8 +16,10 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
-def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol, provider, certificate, use_ticket):
+def test_session_resumption_s2n_server(managed_process, cipher, curve, certificate, protocol, provider, other_provider,
+                                       use_ticket):
     port = next(available_ports)
 
     client_options = ProviderOptions(
@@ -60,8 +62,10 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol,
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
-def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, certificate, use_ticket):
+def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, other_provider, certificate,
+                                       use_ticket):
     port = next(available_ports)
 
     client_options = ProviderOptions(
