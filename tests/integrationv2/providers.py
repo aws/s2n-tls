@@ -135,16 +135,19 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        if protocol == Protocols.TLS13:
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
             # don't run TLS 1.3 tests with openssl-1.0.2 libcrypto
-            if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+            if protocol == Protocols.TLS13:
                 return False
 
         return True
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        return True
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+            # openssl 1.0.2 doesn't support chacha20
+            if "CHACHA20" in cipher.name:
+                return False
 
     @classmethod
     def supports_signature(cls, signature):
