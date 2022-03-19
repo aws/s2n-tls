@@ -232,7 +232,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, cer
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
-def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, ciphers, curve, certificate, protocol, provider,
+def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, curve, certificate, protocol, provider,
                                             other_provider):
     port = str(next(available_ports))
 
