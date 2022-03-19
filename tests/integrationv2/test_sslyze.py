@@ -293,7 +293,7 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
             # for TLS 1.2
             if protocol == Protocols.TLS12:
                 return True
-        elif "awslc-fips" in get_flag(S2N_PROVIDER_VERSION):
+        if "fips" in get_flag(S2N_PROVIDER_VERSION):
             # BUG_IN_SSLYZE / TLS version supported assertion failures for ECDSA scans
             # in SSLv3 and RSA with TLS version < 1.2 with fips libcryptos
             if "ECDSA" in certificate.name and protocol == Protocols.SSLv3:
