@@ -8,6 +8,15 @@ from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version, to_bytes
 
 
+def test_dummy():
+    """
+    Sometimes the version negotiation test parameters in combination with the s2n
+    libcrypto results in no test cases existing. In this case, pass a dummy test to
+    avoid marking the entire codebuild run as failed.
+    """
+    assert True
+
+
 def invalid_version_negotiation_test_parameters(*args, **kwargs):
     # Since s2nd/s2nc will always be using TLS 1.3, make sure the libcrypto is compatible
     if invalid_test_parameters(**{
