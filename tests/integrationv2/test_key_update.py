@@ -24,9 +24,6 @@ def test_dummy():
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 def test_s2n_server_key_update(managed_process, cipher, provider, other_provider, protocol):
-    if "awslc" in get_flag(S2N_PROVIDER_VERSION) and cipher == Ciphers.AES128_GCM_SHA256:
-        pytest.skip("openssl client timeouts with AES128_GCM_SHA256 cipher and awslc libcrypto")
-
     host = "localhost"
     port = next(available_ports)
 
@@ -56,14 +53,14 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     server_options.data_to_send = [server_data]
 
     server = managed_process(
-        S2N, server_options, send_marker=[str(client_data)], timeout=10
+        S2N, server_options, send_marker=[str(client_data)], timeout=30
     )
     client = managed_process(
         provider,
         client_options,
         send_marker=send_marker_list,
         close_marker=str(server_data),
-        timeout=10,
+        timeout=30,
     )
 
     for results in client.get_results():
@@ -117,14 +114,14 @@ def test_s2n_client_key_update(managed_process, cipher, provider, other_provider
         server_options,
         send_marker=send_marker_list,
         close_marker=str(client_data),
-        timeout=10,
+        timeout=30,
     )
     client = managed_process(
         S2N,
         client_options,
         send_marker=[str(server_data)],
         close_marker=str(server_data),
-        timeout=10,
+        timeout=30,
     )
 
     for results in client.get_results():
