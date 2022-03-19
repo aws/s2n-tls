@@ -330,12 +330,6 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        if protocol is Protocols.TLS13:
-            if 'openssl-1.1.1' in OpenSSL.get_version():
-                return True
-            else:
-                return False
-
         return True
 
     @classmethod
