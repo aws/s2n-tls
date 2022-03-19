@@ -149,6 +149,8 @@ class S2N(Provider):
             if "CHACHA20" in cipher.name:
                 return False
 
+        return True
+
     @classmethod
     def supports_signature(cls, signature):
         if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
