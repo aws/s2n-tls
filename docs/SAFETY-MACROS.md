@@ -337,10 +337,14 @@ Ensures `result == _OSSL_SUCCESS`, otherwise the function will `POSIX_BAIL` with
 
 ### POSIX_GUARD_RESULT(result)
 
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+
 Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_FAILURE`
 
 
 ### POSIX_GUARD_PTR(result)
+
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
 
 Ensures `(result) != NULL`, otherwise the function will return `S2N_FAILURE`
 
@@ -528,10 +532,14 @@ Ensures `result == _OSSL_SUCCESS`, otherwise the function will `PTR_BAIL` with `
 
 ### PTR_GUARD_RESULT(result)
 
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+
 Ensures `s2n_result_is_ok(result)`, otherwise the function will return `NULL`
 
 
 ### PTR_GUARD_POSIX(result)
+
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
 
 Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
 
