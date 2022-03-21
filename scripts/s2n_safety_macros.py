@@ -707,6 +707,9 @@ for context in CONTEXTS:
             if other == PTR:
                 doc += '\n\nDoes not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for {prefix}ENSURE_REF.'
 
+            if other == context:
+                continue;
+
             impl = '__S2N_ENSURE({is_ok}, return {error})'
             args = {
                 'prefix': context['prefix'],
@@ -722,7 +725,16 @@ for context in CONTEXTS:
             docs += push_doc(args)
             header += push_macro(args)
 
+def cleanup(contents):
+    # Remove any unnecessary generated "X_GUARD_X"s, like "RESULT_GUARD_RESULT"
+    for context in CONTEXTS:
+        x_guard = "{name}_GUARD".format_map(context)
+        x_guard_x = "{name}_GUARD_{name}".format_map(context)
+        contents = contents.replace(x_guard_x, x_guard)
+    return contents
+
 def write(f, contents):
+    contents = cleanup(contents)
     header_file = open(f, "w")
     header_file.write(contents)
     header_file.close()

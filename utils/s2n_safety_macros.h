@@ -128,10 +128,10 @@
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  *
  * `RESULT_PRECONDITION` should be used at the beginning of a function to make assertions about
- * the provided arguments. By default, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`
+ * the provided arguments. By default, it is functionally equivalent to `RESULT_GUARD(result)`
  * but can be altered by a testing environment to provide additional guarantees.
  */
-#define RESULT_PRECONDITION(result)                            RESULT_GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))
+#define RESULT_PRECONDITION(result)                            RESULT_GUARD(__S2N_ENSURE_PRECONDITION((result)))
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
@@ -140,11 +140,11 @@
  *       In release mode, the check is removed.
  *
  * `RESULT_POSTCONDITION` should be used at the end of a function to make assertions about
- * the resulting state. In debug mode, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`.
+ * the resulting state. In debug mode, it is functionally equivalent to `RESULT_GUARD(result)`.
  * In production builds, it becomes a no-op. This can also be altered by a testing environment
  * to provide additional guarantees.
  */
-#define RESULT_POSTCONDITION(result)                           RESULT_GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))
+#define RESULT_POSTCONDITION(result)                           RESULT_GUARD(__S2N_ENSURE_POSTCONDITION((result)))
 
 /**
  * Performs a safer memcpy.
@@ -184,11 +184,6 @@
  * Ensures `result == _OSSL_SUCCESS`, otherwise the function will `RESULT_BAIL` with `error`
  */
 #define RESULT_GUARD_OSSL(result, error)                       __S2N_ENSURE((result) == _OSSL_SUCCESS, RESULT_BAIL(error))
-
-/**
- * Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_RESULT_ERROR`
- */
-#define RESULT_GUARD_RESULT(result)                            __S2N_ENSURE(s2n_result_is_ok(result), return S2N_RESULT_ERROR)
 
 /**
  * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_RESULT_ERROR`
@@ -398,11 +393,6 @@
 #define POSIX_GUARD_RESULT(result)                            __S2N_ENSURE(s2n_result_is_ok(result), return S2N_FAILURE)
 
 /**
- * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_FAILURE`
- */
-#define POSIX_GUARD_POSIX(result)                             __S2N_ENSURE((result) >= S2N_SUCCESS, return S2N_FAILURE)
-
-/**
  * Ensures `(result) != NULL`, otherwise the function will return `S2N_FAILURE`
  *
  * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for POSIX_ENSURE_REF.
@@ -567,7 +557,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_GUARD_PTR)
+#define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_GUARD)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -608,11 +598,4 @@
  * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
  */
 #define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) >= S2N_SUCCESS, return NULL)
-
-/**
- * Ensures `(result) != NULL`, otherwise the function will return `NULL`
- *
- * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for PTR_ENSURE_REF.
- */
-#define PTR_GUARD_PTR(result)                                 __S2N_ENSURE((result) != NULL, return NULL)
 
