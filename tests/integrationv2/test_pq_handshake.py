@@ -135,10 +135,10 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
         assert to_bytes(expected_result['kem_group']) in s2n_results.stdout
 
 
-def test_dummy():
+def test_nothing():
     """
     Sometimes the pq handshake test parameters in combination with the s2n libcrypto
-    results in no test cases existing. In this case, pass a dummy test to avoid
+    results in no test cases existing. In this case, pass a nothing test to avoid
     marking the entire codebuild run as failed.
     """
     assert True

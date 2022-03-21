@@ -9,10 +9,10 @@ from utils import invalid_test_parameters, get_parameter_name
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
-def test_dummy():
+def test_nothing():
     """
     Sometimes the key update test parameters in combination with the s2n libcrypto
-    results in no test cases existing. In this case, pass a dummy test to avoid
+    results in no test cases existing. In this case, pass a nothing test to avoid
     marking the entire codebuild run as failed.
     """
     assert True

@@ -125,10 +125,10 @@ def get_ticket_from_s2n_server(options, managed_process, provider, certificate):
     assert os.path.exists(options.ticket_file)
 
 
-def test_dummy():
+def test_nothing():
     """
     Sometimes the early data test parameters in combination with the s2n libcrypto
-    results in no test cases existing. In this case, pass a dummy test to avoid
+    results in no test cases existing. In this case, pass a nothing test to avoid
     marking the entire codebuild run as failed.
     """
     assert True
