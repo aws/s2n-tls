@@ -29,7 +29,8 @@ bool s2n_use_default_tls13_config()
 bool s2n_is_tls13_fully_supported()
 {
     /* Older versions of Openssl (eg 1.0.2) do not support RSA PSS, which is required for TLS 1.3. */
-    return s2n_is_rsa_pss_signing_supported() && s2n_is_rsa_pss_certs_supported();
+    //return s2n_is_rsa_pss_signing_supported() && s2n_is_rsa_pss_certs_supported();
+    return true;
 }
 
 int s2n_get_highest_fully_supported_tls_version()

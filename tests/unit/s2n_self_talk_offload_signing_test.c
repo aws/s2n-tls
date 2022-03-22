@@ -131,6 +131,7 @@ static S2N_RESULT s2n_do_test_handshake(struct s2n_config *config, struct s2n_ce
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    END_TEST();
 
     uint32_t pem_len = 0;
     uint8_t pem[S2N_TEST_CERT_MEM] = { 0 };
