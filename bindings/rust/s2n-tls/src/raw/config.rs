@@ -272,11 +272,12 @@ impl Builder {
     ) -> Result<&mut Self, Error> {
         unsafe extern "C" fn verify_host_cb(
             host_name: *const ::libc::c_char,
-            _host_name_len: usize,
+            host_name_len: usize,
             context: *mut ::libc::c_void,
         ) -> u8 {
-            let maybe_cstr = CStr::from_ptr(host_name).to_str();
-            if let Ok(host_name_str) = maybe_cstr {
+            let host_name = host_name as *const u8;
+            let host_name = core::slice::from_raw_parts(host_name, host_name_len);
+            if let Ok(host_name_str) = core::str::from_utf8(host_name) {
                 let context = &mut *(context as *mut Context);
                 let handler = context.verify_host_handler.as_mut().unwrap();
                 return handler.verify_host_name(host_name_str) as u8;
