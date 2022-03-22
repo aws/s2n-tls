@@ -153,8 +153,8 @@ class S2N(Provider):
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         # disable chacha20 tests in unsupported libcryptos
-        if all([
-            libcrypto not in get_flag(S2N_PROVIDER_VERSION)
+        if any([
+            libcrypto in get_flag(S2N_PROVIDER_VERSION)
             for libcrypto in [
                 "openssl-1.0.2",
                 "libressl"
@@ -166,10 +166,16 @@ class S2N(Provider):
 
     @classmethod
     def supports_signature(cls, signature):
-        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
-            # s2n fails to negotiation with this signature with openssl-1.0.2 libcrypto
-            if signature == Signatures.RSA_PSS_RSAE_SHA256:
-                return False
+        # disable RSA_PSS_RSAE_SHA256 in unsupported libcryptos
+        if any([
+            libcrypto in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in [
+                "openssl-1.0.2",
+                "libressl",
+                "boringssl"
+            ]
+        ]) and signature == Signatures.RSA_PSS_RSAE_SHA256:
+            return False
 
         return True
 
