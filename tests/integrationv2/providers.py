@@ -5,6 +5,12 @@ from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Si
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
+TLS_13_LIBCRYPTOS = {
+    "awslc",
+    "openssl-1.1.1"
+}
+
+
 class Provider(object):
     """
     A provider defines a specific provider of TLS. This could be
@@ -135,10 +141,12 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
-            # don't run TLS 1.3 tests with openssl-1.0.2 libcrypto
-            if protocol == Protocols.TLS13:
-                return False
+        # disable TLS 1.3 tests for all libcryptos that don't support 1.3
+        if all([
+            libcrypto not in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in TLS_13_LIBCRYPTOS
+        ]) and protocol == Protocols.TLS13:
+            return False
 
         return True
 
