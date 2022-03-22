@@ -424,9 +424,7 @@ pub trait ClientHelloHandler: Send + Sync {
 pub trait VerifyClientCertificateHandler: Send + Sync {
     /// Verify the host name by returning `true` if the certificate host name is valid, and false
     /// otherwise.
-    fn verify_host_name(&self, _host_name: &str) -> bool {
-        false
-    }
+    fn verify_host_name(&self, host_name: &str) -> bool;
 }
 
 /// A `VerifyClientCertificateHandler` that rejects every certificate.
