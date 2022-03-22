@@ -706,6 +706,8 @@ for context in CONTEXTS:
             doc = 'Ensures `{is_ok}`, otherwise the function will return `{error}`'
             if other == PTR:
                 doc += '\n\nDoes not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for {prefix}ENSURE_REF.'
+            if context['ret'] != DEFAULT['ret']:
+                doc = (deprecation_message + "\n\n" + doc)
 
             if other == context:
                 continue;

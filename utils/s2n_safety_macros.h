@@ -388,11 +388,15 @@
 #define POSIX_GUARD_OSSL(result, error)                       __S2N_ENSURE((result) == _OSSL_SUCCESS, POSIX_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_FAILURE`
  */
 #define POSIX_GUARD_RESULT(result)                            __S2N_ENSURE(s2n_result_is_ok(result), return S2N_FAILURE)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `(result) != NULL`, otherwise the function will return `S2N_FAILURE`
  *
  * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for POSIX_ENSURE_REF.
@@ -590,11 +594,15 @@
 #define PTR_GUARD_OSSL(result, error)                         __S2N_ENSURE((result) == _OSSL_SUCCESS, PTR_BAIL(error))
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `s2n_result_is_ok(result)`, otherwise the function will return `NULL`
  */
 #define PTR_GUARD_RESULT(result)                              __S2N_ENSURE(s2n_result_is_ok(result), return NULL)
 
 /**
+ * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+ *
  * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
  */
 #define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) >= S2N_SUCCESS, return NULL)
