@@ -6,6 +6,7 @@ from common import Ciphers, ProviderOptions, Protocols, data_bytes, KemGroups, C
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 CIPHERS = [
     None,  # `None` will default to the appropriate `test_all` cipher preference in the S2N client provider
@@ -151,6 +152,20 @@ def test_nothing():
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, server_cipher, provider, other_provider):
+    # incorrect cipher is negotiated when both ciphers are PQ_TLS_1_0_2020_12 with boringssl or libressl libcryptos
+    if all([
+        client_cipher == Ciphers.PQ_TLS_1_0_2020_12,
+        server_cipher == Ciphers.PQ_TLS_1_0_2020_12,
+        any([
+            libcrypto in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in [
+                "boringssl",
+                "libressl"
+            ]
+        ])
+    ]):
+        pytest.skip()
+
     port = next(available_ports)
 
     client_options = ProviderOptions(
