@@ -53,7 +53,6 @@ fi
 
 if [[ "$OS_NAME" == "linux" && ( ("$TESTS" == "integration") || ("$TESTS" == "integrationv2") ) ]]; then
     make -j $JOBS
-    $CB_BIN_DIR/install_s2n_head.sh "$(mktemp -d)"
 fi
 
 # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
@@ -74,7 +73,7 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_P
 if [[ "$TESTS" == "ALL" || "$TESTS" == "interning" ]]; then ./codebuild/bin/test_libcrypto_interning.sh; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; S2N_NO_SSLYZE=1 make integration ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then make clean; make integrationv2 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then $CB_BIN_DIR/install_s2n_head.sh "$(mktemp -d)"; make clean; make integrationv2 ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "benchmark" ]]; then (make clean && make benchmark) ; fi
 if [[ "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/verify_HMAC.log ; fi
