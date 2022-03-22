@@ -152,10 +152,15 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
-            # openssl 1.0.2 doesn't support chacha20
-            if "CHACHA20" in cipher.name:
-                return False
+        # disable chacha20 tests in unsupported libcryptos
+        if all([
+            libcrypto not in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in [
+                "openssl-1.0.2",
+                "libressl"
+            ]
+        ]) and "CHACHA20" in cipher.name:
+            return False
 
         return True
 
