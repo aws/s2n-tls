@@ -251,7 +251,8 @@ impl Builder {
     }
 
     /// Sets whether or not a client certificate should be required to complete the TLS connection.
-    /// See: https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#client-auth-related-calls
+    ///
+    /// See the [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#client-auth-related-calls) for more details.
     pub fn set_client_auth_type(
         &mut self,
         auth_type: s2n_cert_auth_type::Type,
