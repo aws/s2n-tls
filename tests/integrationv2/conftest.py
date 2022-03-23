@@ -19,9 +19,9 @@ def pytest_configure(config):
 
     no_pq = config.getoption('no-pq', 0)
     fips_mode = config.getoption('fips-mode', 0)
-    if no_pq is 1:
+    if no_pq == 1:
         set_flag(S2N_NO_PQ, True)
-    if fips_mode is 1:
+    if fips_mode == 1:
         set_flag(S2N_FIPS_MODE, True)
 
     set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
