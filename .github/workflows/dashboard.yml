@@ -5,10 +5,12 @@ on:
     types:
       - opened
       - reopened
+      - closed
   issues:
     types:
       - opened
       - reopened
+      - closed
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,24 +45,37 @@ jobs:
                 - title: '8-90 days'
                   issue_query: 'repo:aws/s2n-tls is:open is:issue created:{{ date("-90 days") }}..{{ date("-7 days") }}'
                   color: 'yellow'
-                - title: '>1 years'
-                  issue_query: 'repo:aws/s2n-tls is:open is:issue created:<{{ date("-365 days") }}'
+                - title: '>1 year labeled type/api'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:type/api created:<{{ date("-365 days") }}'
+                  color: 'red'
+                - title: '>1 year labeled type/test'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:type/test created:<{{ date("-365 days") }}'
+                  color: 'red'
+                - title: '>1 year labeled type/build'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:type/build created:<{{ date("-365 days") }}'
+                  color: 'red'
+                - title: '>1 year labeled CBMC'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:cbmc created:<{{ date("-365 days") }}'
                   color: 'red'
 
             - title: 'Issues'
               description: 'Issues with no comments'
               widgets:
               - type: 'number'
-                title: 'Issues with zero comments opened by contributors'
+                title: 'Issues with zero comments (external)'
                 issue_query: 'repo:aws/s2n-tls is:open is:issue comments:0 -label:s2n-core'
                 color: 'yellow'
               - type: 'number'
-                title: 'Contributor issues with updates in the last 14 days'
+                title: 'Issues with updates in the last 14 days (external)'
                 issue_query: 'repo:aws/s2n-tls is:issue is:open updated:>{{ date("-14 days") }} -label:s2n-core'
                 color: 'yellow'
 
             - title: 'Pull Requests'
               widgets:
+              - type: 'number'
+                title: 'Ready to merge'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:approved'
+                color: 'green'
               - type: 'number'
                 title: 'No review (external) last 14 days'
                 issue_query: 'repo:aws/s2n-tls is:open is:pr review:none -label:status/stale -label:s2n-core created:>{{ date("-14 days") }}'
