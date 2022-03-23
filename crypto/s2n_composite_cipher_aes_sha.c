@@ -150,7 +150,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      */
     int ctrl_ret = EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_TLS1_AAD, S2N_TLS12_AAD_LEN, ctrl_buf);
 
-    S2N_ERROR_IF(ctrl_ret < 0, S2N_ERR_INITIAL_HMAC);
+    S2N_ERROR_IF(ctrl_ret <= 0, S2N_ERR_INITIAL_HMAC);
 
     *extra = ctrl_ret;
     return 0;
