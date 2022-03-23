@@ -1,0 +1,18 @@
+[package]
+name = "s2n-tls-tokio"
+description = "An implementation of TLS streams for Tokio built on top of s2n-tls"
+version = "0.0.1"
+authors = ["AWS s2n"]
+edition = "2018"
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
+
+[features]
+default = []
+
+[dependencies]
+errno = { version = "0.2" }
+futures = { version = "0.3" }
+libc = { version = "0.2" }
+s2n-tls = { version = "=0.0.4", path = "../s2n-tls" }
+tokio = { version = "1", features = ["full"] }
