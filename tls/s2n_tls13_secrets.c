@@ -504,19 +504,12 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_tls13_secrets_finish(struct s2n_connection *conn)
+S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     if (conn->actual_protocol_version < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
-
-    /*
-     * Prepare TLS1.3 resumption secret.
-     * A ticket can be requested any time after the handshake ends,
-     * so we need to calculate this before the handshake ends.
-     */
-    RESULT_GUARD(s2n_derive_resumption_master_secret(conn));
 
     /*
      * Wipe base secrets.
@@ -529,5 +522,65 @@ S2N_RESULT s2n_tls13_secrets_finish(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, master_secret)));
     conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
 
+    /* Wipe other secrets no longer needed */
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, client_handshake_secret)));
+    RESULT_GUARD_POSIX(s2n_blob_zero(&CONN_SECRET(conn, server_handshake_secret)));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+
+    message_type_t message_type = s2n_conn_get_current_message_type(conn);
+    switch(message_type) {
+        case SERVER_HELLO:
+            RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET,
+                    S2N_CLIENT, &CONN_SECRET(conn, client_handshake_secret)));
+            RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET,
+                    S2N_SERVER, &CONN_SECRET(conn, server_handshake_secret)));
+            RESULT_ENSURE_EQ(CONN_SECRETS(conn).secrets_state, S2N_HANDSHAKE_SECRET);
+            break;
+        case SERVER_FINISHED:
+            RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
+                    S2N_CLIENT, &CONN_SECRET(conn, client_app_secret)));
+            RESULT_GUARD(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET,
+                    S2N_SERVER, &CONN_SECRET(conn, server_app_secret)));
+            RESULT_ENSURE_EQ(CONN_SECRETS(conn).secrets_state, S2N_MASTER_SECRET);
+            break;
+        case CLIENT_FINISHED:
+            RESULT_GUARD(s2n_derive_resumption_master_secret(conn));
+            break;
+        default:
+            break;
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
+        s2n_mode mode, struct s2n_blob *secret)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(secret);
+
+    uint8_t *secrets[][2] = {
+        [S2N_HANDSHAKE_SECRET] = { CONN_SECRETS(conn).server_handshake_secret, CONN_SECRETS(conn).client_handshake_secret },
+        [S2N_MASTER_SECRET]    = { CONN_SECRETS(conn).server_app_secret, CONN_SECRETS(conn).client_app_secret },
+    };
+    RESULT_ENSURE_GT(secret_type, S2N_NONE_SECRET);
+    RESULT_ENSURE_LT(secret_type, s2n_array_len(secrets));
+
+    if (secrets[secret_type][mode] == NULL) {
+        RESULT_GUARD(s2n_tls13_derive_secret(conn, secret_type, mode, secret));
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_ENSURE_GTE(CONN_SECRETS(conn).secrets_state, secret_type);
+
+    secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));
+    RESULT_CHECKED_MEMCPY(secret->data, secrets[secret_type][mode], secret->size);
+    RESULT_ENSURE_GT(secret->size, 0);
     return S2N_RESULT_OK;
 }

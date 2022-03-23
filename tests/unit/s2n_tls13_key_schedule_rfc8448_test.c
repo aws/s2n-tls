@@ -205,10 +205,15 @@ int main(int argc, char **argv)
                         server_hello_hash.data, server_hello_hash.size);
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
+
+                conn->handshake.message_number = one_rtt_message_nums[SERVER_HELLO];
+                EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+                EXPECT_OK(s2n_tls13_secrets_update(conn));
+
                 conn->handshake.message_number = one_rtt_message_nums[SERVER_FINISHED];
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
-
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
+
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
@@ -289,10 +294,15 @@ int main(int argc, char **argv)
                         server_finished_hash.data, server_finished_hash.size);
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
+
+                conn->handshake.message_number = one_rtt_message_nums[SERVER_FINISHED];
+                EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
+                EXPECT_OK(s2n_tls13_secrets_update(conn));
+
                 conn->handshake.message_number = one_rtt_message_nums[trigger_message];
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), trigger_message);
-
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
+
                 EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
@@ -335,10 +345,15 @@ int main(int argc, char **argv)
                         server_finished_hash.data, server_finished_hash.size);
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
+
+                conn->handshake.message_number = one_rtt_message_nums[SERVER_FINISHED];
+                EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
+                EXPECT_OK(s2n_tls13_secrets_update(conn));
+
                 conn->handshake.message_number = one_rtt_message_nums[CLIENT_FINISHED];
                 EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
-
                 EXPECT_OK(s2n_tls13_key_schedule_update(conn));
+
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }

@@ -88,7 +88,7 @@ Ensures `x` is a mutable reference, otherwise the function will `RESULT_BAIL` wi
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
 
 `RESULT_PRECONDITION` should be used at the beginning of a function to make assertions about
-the provided arguments. By default, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`
+the provided arguments. By default, it is functionally equivalent to `RESULT_GUARD(result)`
 but can be altered by a testing environment to provide additional guarantees.
 
 
@@ -100,7 +100,7 @@ NOTE: The condition will _only_ be checked when the code is compiled in debug mo
       In release mode, the check is removed.
 
 `RESULT_POSTCONDITION` should be used at the end of a function to make assertions about
-the resulting state. In debug mode, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`.
+the resulting state. In debug mode, it is functionally equivalent to `RESULT_GUARD(result)`.
 In production builds, it becomes a no-op. This can also be altered by a testing environment
 to provide additional guarantees.
 
@@ -142,11 +142,6 @@ Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_RESU
 ### RESULT_GUARD_OSSL(result, error)
 
 Ensures `result == _OSSL_SUCCESS`, otherwise the function will `RESULT_BAIL` with `error`
-
-
-### RESULT_GUARD_RESULT(result)
-
-Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_RESULT_ERROR`
 
 
 ### RESULT_GUARD_POSIX(result)
@@ -342,15 +337,14 @@ Ensures `result == _OSSL_SUCCESS`, otherwise the function will `POSIX_BAIL` with
 
 ### POSIX_GUARD_RESULT(result)
 
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+
 Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_FAILURE`
 
 
-### POSIX_GUARD_POSIX(result)
-
-Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_FAILURE`
-
-
 ### POSIX_GUARD_PTR(result)
+
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
 
 Ensures `(result) != NULL`, otherwise the function will return `S2N_FAILURE`
 
@@ -538,17 +532,14 @@ Ensures `result == _OSSL_SUCCESS`, otherwise the function will `PTR_BAIL` with `
 
 ### PTR_GUARD_RESULT(result)
 
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+
 Ensures `s2n_result_is_ok(result)`, otherwise the function will return `NULL`
 
 
 ### PTR_GUARD_POSIX(result)
 
+DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
+
 Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
-
-
-### PTR_GUARD_PTR(result)
-
-Ensures `(result) != NULL`, otherwise the function will return `NULL`
-
-Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for PTR_ENSURE_REF.
 

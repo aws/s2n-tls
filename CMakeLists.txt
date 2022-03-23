@@ -275,6 +275,30 @@ try_compile(
         COMPILE_DEFINITIONS "-Werror"
 )
 
+# Determine if madvise() is available
+try_compile(
+        MADVISE_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/madvise.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+# Determine if minherit() is available
+try_compile(
+        MINHERIT_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/minherit.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+# Determine if clone() is available
+try_compile(
+        CLONE_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/clone.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -434,6 +458,21 @@ endif()
 
 if (__RESTRICT__SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
+endif()
+
+if (MADVISE_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_MADVISE_SUPPORTED)
+    message(STATUS "madvise() support detected")
+endif()
+
+if (MINHERIT_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_MINHERIT_SUPPORTED)
+    message(STATUS "minherit() support detected")
+endif()
+
+if (CLONE_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_CLONE_SUPPORTED)
+    message(STATUS "clone() support detected")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
