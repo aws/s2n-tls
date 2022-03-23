@@ -134,6 +134,14 @@ impl CertKeyPair {
     }
 }
 
+#[derive(Default)]
+pub struct UnsecureAcceptAllClientCertificatesHandler {}
+impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        true
+    }
+}
+
 pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
     let builder = config_builder(cipher_prefs)?;
     Ok(builder.build().expect("Unable to build server config"))
@@ -152,32 +160,14 @@ pub fn config_builder(
         .load_pem(keypair.cert(), keypair.key())
         .expect("Unable to load cert/pem");
     unsafe {
-        let ctx: *mut core::ffi::c_void = std::ptr::null_mut();
         builder
-            .set_verify_host_callback(Some(verify_host_cb), ctx)
+            .set_verify_host_handler(UnsecureAcceptAllClientCertificatesHandler::default())
             .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()
             .expect("Unable to disable x509 verification");
     };
     Ok(builder)
-}
-
-// host verify callback for x509
-// see: https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#s2n_verify_host_fn
-unsafe extern "C" fn verify_host_cb(
-    hostname: *const i8,
-    hostname_len: usize,
-    _context: *mut core::ffi::c_void,
-) -> u8 {
-    let host_str = ::std::str::from_utf8(::std::slice::from_raw_parts(
-        hostname as *const u8,
-        hostname_len,
-    ));
-    match host_str {
-        Err(_) => 0,
-        Ok(_host) => 1,
-    }
 }
 
 pub fn s2n_tls_pair(config: crate::raw::config::Config) {
