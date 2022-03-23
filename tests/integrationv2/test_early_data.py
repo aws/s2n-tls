@@ -301,6 +301,7 @@ When the client attempts to use the ticket to send early data, the server reject
 We can't perform an S2N client version of this test because the S2N client performs its hardcoded
 reconnects automatically, without any mechanism to modify the connection in between.
 """
+@pytest.mark.flaky(reruns=5)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
