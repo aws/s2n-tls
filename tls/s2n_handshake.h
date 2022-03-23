@@ -127,6 +127,9 @@ struct s2n_handshake_parameters {
     struct s2n_cert_chain_and_key *wc_sni_matches[S2N_CERT_TYPE_COUNT];
     uint8_t exact_sni_match_exists;
     uint8_t wc_sni_match_exists;
+
+    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
+    uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
 };
 
 struct s2n_handshake {
@@ -176,8 +179,8 @@ message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
 uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
 int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
-int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
-int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg);
+S2N_RESULT s2n_handshake_copy_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
+S2N_RESULT s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg);
 int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
 int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type);

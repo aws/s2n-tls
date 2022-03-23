@@ -198,6 +198,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::testing::*;
+    use futures_test::task::new_count_waker;
 
     #[test]
     fn handshake_default() {
@@ -209,5 +210,124 @@ mod tests {
     fn handshake_default_tls13() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         s2n_tls_pair(config)
+    }
+
+    #[test]
+    fn static_config_and_clone_interaction() {
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+        {
+            let mut server = crate::raw::connection::Connection::new_server();
+            // default config is not returned on the connection
+            assert!(server.test_config_exists().is_err());
+            assert_eq!(config.test_get_refcount().unwrap(), 1);
+            server.set_config(config.clone()).unwrap();
+            assert_eq!(config.test_get_refcount().unwrap(), 2);
+            assert!(server.test_config_exists().is_ok());
+
+            let mut client = crate::raw::connection::Connection::new_client();
+            // default config is not returned on the connection
+            assert!(client.test_config_exists().is_err());
+            assert_eq!(config.test_get_refcount().unwrap(), 2);
+            client.set_config(config.clone()).unwrap();
+            assert_eq!(config.test_get_refcount().unwrap(), 3);
+            assert!(client.test_config_exists().is_ok());
+
+            let mut third = crate::raw::connection::Connection::new_server();
+            // default config is not returned on the connection
+            assert!(third.test_config_exists().is_err());
+            assert_eq!(config.test_get_refcount().unwrap(), 3);
+            third.set_config(config.clone()).unwrap();
+            assert_eq!(config.test_get_refcount().unwrap(), 4);
+            assert!(third.test_config_exists().is_ok());
+
+            // drop all the clones
+        }
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+    }
+
+    #[test]
+    fn set_config_multiple_times() {
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+
+        let mut server = crate::raw::connection::Connection::new_server();
+        // default config is not returned on the connection
+        assert!(server.test_config_exists().is_err());
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+
+        // call set_config once
+        server.set_config(config.clone()).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 2);
+        assert!(server.test_config_exists().is_ok());
+
+        // calling set_config multiple times works since we drop the previous config
+        server.set_config(config.clone()).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 2);
+        assert!(server.test_config_exists().is_ok());
+    }
+
+    #[test]
+    fn connnection_waker() {
+        let config = build_config(&security::DEFAULT_TLS13).unwrap();
+        assert_eq!(config.test_get_refcount().unwrap(), 1);
+
+        let mut server = crate::raw::connection::Connection::new_server();
+        server.set_config(config).unwrap();
+
+        assert!(server.waker().is_none());
+
+        let (waker, wake_count) = new_count_waker();
+        server.set_waker(Some(&waker)).unwrap();
+        assert!(server.waker().is_some());
+
+        server.set_waker(None).unwrap();
+        assert!(server.waker().is_none());
+
+        assert_eq!(wake_count, 0);
+    }
+
+    #[test]
+    fn client_hello_callback() {
+        let (waker, wake_count) = new_count_waker();
+        let require_pending_count = 10;
+        let handle = MockClientHelloHandler::new(require_pending_count);
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13).unwrap();
+            config.set_client_hello_handler(handle.clone()).unwrap();
+            // multiple calls to set_client_hello_handler should succeed
+            config.set_client_hello_handler(handle.clone()).unwrap();
+            config.build().unwrap()
+        };
+
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::raw::connection::Connection::new_server();
+            server
+                .set_config(config.clone())
+                .expect("Failed to bind config to server connection");
+            server.set_waker(Some(&waker)).unwrap();
+            Harness::new(server)
+        };
+
+        let client = {
+            // create a client connection
+            let mut client = crate::raw::connection::Connection::new_client();
+            client
+                .set_config(config)
+                .expect("Unable to set client config");
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+
+        poll_tls_pair(pair);
+        // confirm that the callback returned Pending `require_pending_count` times
+        assert_eq!(wake_count, require_pending_count);
+        // confirm that the final invoked count is +1 more than `require_pending_count`
+        assert_eq!(
+            handle.invoked.load(Ordering::SeqCst),
+            require_pending_count + 1
+        );
     }
 }

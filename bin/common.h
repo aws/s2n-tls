@@ -91,6 +91,35 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size);
 int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size);
 
+/**
+ * Writes array data to the the file specified
+ *
+ * @param path Path to the file where this data will be written
+ * @param data The data to be outputted
+ * @param length Length of the `data` array
+ */
+int write_array_to_file(const char *path, uint8_t *data, size_t length);
+
+/**
+ * Gets size of file
+ *
+ * @param path Path to the file
+ * @param length A pointer which will be set to the size of the file
+ */
+int get_file_size(const char* path, size_t *length);
+
+/**
+ * Reads in data from file into a C array
+ *
+ *  * # Safety
+ *
+ * `data` must have at least `max_length` of memory available
+ *
+ * @param path Path to the file
+ * @param data A pointer which will be set to the data in the file
+ * @param max_length The maximum amount of data that can be written to the `data` pointer
+ */
+int load_file_to_array(const char *path, uint8_t *data, size_t max_length);
 char *load_file_to_cstring(const char *path);
 int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len);
 int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH], size_t psk_list_len);

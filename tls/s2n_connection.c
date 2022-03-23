@@ -332,6 +332,14 @@ static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *
     return 0;
 }
 
+S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD_POSIX(s2n_connection_free(*conn));
+    *conn = NULL;
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_free(struct s2n_connection *conn)
 {
     POSIX_GUARD(s2n_connection_wipe_keys(conn));
@@ -442,7 +450,6 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
 int s2n_connection_server_name_extension_used(struct s2n_connection *conn)
 {
-
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(!(conn->handshake.client_hello_received), S2N_ERR_INVALID_STATE);
@@ -453,8 +460,10 @@ int s2n_connection_server_name_extension_used(struct s2n_connection *conn)
 
 int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
 {
+    POSIX_ENSURE_REF(conn);
+
     conn->context = ctx;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 void *s2n_connection_get_ctx(struct s2n_connection *conn)
@@ -1526,6 +1535,22 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
     POSIX_ENSURE_REF(converted_scheme);
 
     POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->handshake_params.client_cert_sig_scheme, converted_scheme));
+
+    return S2N_SUCCESS;
+}
+
+/*
+ * Gets the config set on the connection.
+ */
+int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config) {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(config);
+
+    if (s2n_fetch_default_config() == conn->config) {
+        POSIX_BAIL(S2N_ERR_NULL);
+    }
+
+    *config = conn->config;
 
     return S2N_SUCCESS;
 }

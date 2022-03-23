@@ -352,14 +352,11 @@ int main(int argc, char **argv)
         uint8_t hash_digest_length = server_keys.size;
 
         /* Obtain the transcript hash recreated within the HelloRetryRequest message */
-        struct s2n_hash_state server_hash, server_hash_state;
-        uint8_t server_digest_out[S2N_MAX_DIGEST_LEN];
-        POSIX_GUARD(s2n_handshake_get_hash_state(server_conn, server_keys.hash_algorithm, &server_hash_state));
-
+        DEFER_CLEANUP(struct s2n_hash_state server_hash = { 0 }, s2n_hash_free);
+        uint8_t server_digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
         POSIX_GUARD(s2n_hash_new(&server_hash));
-        POSIX_GUARD(s2n_hash_copy(&server_hash, &server_hash_state));
+        POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(server_conn, server_keys.hash_algorithm, &server_hash));
         POSIX_GUARD(s2n_hash_digest(&server_hash, server_digest_out, hash_digest_length));
-        POSIX_GUARD(s2n_hash_free(&server_hash));
 
         struct s2n_blob server_blob;
         EXPECT_SUCCESS(s2n_blob_init(&server_blob, server_digest_out, hash_digest_length));
@@ -376,14 +373,11 @@ int main(int argc, char **argv)
         hash_digest_length = client_keys.size;
 
         /* Obtain the transcript hash recreated within ClientHello2 message */
-        struct s2n_hash_state client_hash, client_hash_state;
+        DEFER_CLEANUP(struct s2n_hash_state client_hash = { 0 }, s2n_hash_free);
         uint8_t client_digest_out[S2N_MAX_DIGEST_LEN];
-        POSIX_GUARD(s2n_handshake_get_hash_state(client_conn, client_keys.hash_algorithm, &client_hash_state));
-
         POSIX_GUARD(s2n_hash_new(&client_hash));
-        POSIX_GUARD(s2n_hash_copy(&client_hash, &client_hash_state));
+        POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(client_conn, client_keys.hash_algorithm, &client_hash));
         POSIX_GUARD(s2n_hash_digest(&client_hash, client_digest_out, hash_digest_length));
-        POSIX_GUARD(s2n_hash_free(&client_hash));
 
         struct s2n_blob client_blob;
         EXPECT_SUCCESS(s2n_blob_init(&client_blob, client_digest_out, hash_digest_length));
@@ -588,14 +582,14 @@ int main(int argc, char **argv)
     }
 
     /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
-     * when conn->secrets.server_random is not set to the correct hello retry random value
+     * when conn->handshake_params.server_random is not set to the correct hello retry random value
      * specified in the RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         /* From RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
         const uint8_t not_hello_retry_request_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-        EXPECT_MEMCPY_SUCCESS(conn->secrets.server_random, not_hello_retry_request_random,
+        EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, not_hello_retry_request_random,
                               S2N_TLS_RANDOM_DATA_LEN);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);

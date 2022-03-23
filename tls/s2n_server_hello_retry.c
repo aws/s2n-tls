@@ -53,7 +53,7 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_CHECKED_MEMCPY(conn->secrets.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+    POSIX_CHECKED_MEMCPY(conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
 
     POSIX_GUARD(s2n_server_hello_write_message(conn));
 

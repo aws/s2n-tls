@@ -24,6 +24,7 @@ import os
 from os import environ
 import sys
 import subprocess
+from s2n_test_constants import S2N_LIBCRYPTO_CHOICES
 
 pq_handshake_test_vectors = [
     # The first set of vectors specify client and server cipher preference versions that are compatible for a successful PQ handshake
@@ -57,6 +58,13 @@ pq_handshake_test_vectors = [
     {"client_ciphers": "KMS-TLS-1-0-2018-10", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 ]
 
+
+def is_pq_enabled(libcrypto):
+    if os.getenv("S2N_NO_PQ"): return False
+    if libcrypto == "openssl-1.0.2-fips": return False
+    return True
+
+
 def validate_version(expected_version, line):
     return ACTUAL_VERSION_STR.format(expected_version or S2N_TLS12) in line
 
@@ -81,8 +89,8 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     expected_cipher_output = "Cipher negotiated: " + expected_cipher
     expected_kem_output = "KEM: " + expected_kem
 
-    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir)
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir)
+    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir, universal_newlines=True)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=current_dir, universal_newlines=True)
 
     client_kem_found = False
     client_cipher_found = False
@@ -92,7 +100,9 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     server_version_correct = False
 
     for i in range(0, NUM_EXPECTED_LINES_OUTPUT):
-        client_line = str(s2nc.stdout.readline().decode("utf-8"))
+        client_outs, errs = s2nc.communicate(timeout=5)
+        client_line = str(client_outs)
+
         if expected_kem_output in client_line:
             client_kem_found = True
         if expected_cipher_output in client_line:
@@ -100,7 +110,8 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
         if validate_version(S2N_TLS12, client_line):
             client_version_correct = True
 
-        server_line = str(s2nd.stdout.readline().decode("utf-8"))
+        server_outs, errs = s2nc.communicate(timeout=5)
+        server_line = str(server_outs)
         if expected_kem_output in server_line:
             server_kem_found = True
         if expected_cipher_output in server_line:
@@ -108,7 +119,6 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
         if validate_version(S2N_TLS12, server_line):
             server_version_correct = True
 
-    s2nc.kill()
     s2nc.wait()
 
     s2nd.kill()
@@ -126,12 +136,15 @@ def main():
     parser = argparse.ArgumentParser(description='Runs PQ handshake integration tests using s2nd and s2nc.')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=S2N_LIBCRYPTO_CHOICES,
+            help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
+                    libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
     host = str(args.host)
     port = str(args.port)
 
-    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
-        print("\nFIPS mode detected. Skipping s2n_pq_handshake_test because PQ KEMs are not supported in FIPS mode...\n")
+    if not is_pq_enabled(args.libcrypto):
+        print("\nSkipping s2n_pq_handshake_test because PQ KEMs are not supported...\n")
         return 0
     else:
         print("\nRunning s2n_pq_handshake_test using s2nd and s2nc with host: %s and port: %s...\n" % (host, port))

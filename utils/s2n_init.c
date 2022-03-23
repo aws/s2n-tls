@@ -20,6 +20,7 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/extensions/s2n_client_key_share.h"
+#include "tls/s2n_tls13_secrets.h"
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
@@ -59,6 +60,7 @@ int s2n_init(void)
     POSIX_GUARD(s2n_config_defaults_init());
     POSIX_GUARD(s2n_extension_type_init());
     POSIX_GUARD_RESULT(s2n_pq_init());
+    POSIX_GUARD_RESULT(s2n_tls13_empty_transcripts_init());
 
     if (atexit_cleanup) {
         POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
@@ -77,10 +79,13 @@ static bool s2n_cleanup_atexit_impl(void)
 {
     /* all of these should run, regardless of result, but the
      * values to need to be consumed to prevent warnings */
+
+    /* the configs need to be wiped before resetting the memory callbacks */
+    s2n_wipe_static_configs();
+
     bool a = s2n_result_is_ok(s2n_rand_cleanup_thread());
     bool b = s2n_result_is_ok(s2n_rand_cleanup());
     bool c = s2n_mem_cleanup() == 0;
-    s2n_wipe_static_configs();
 
     return a && b && c;
 }

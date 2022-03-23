@@ -43,7 +43,7 @@ static int assert_kem_group_params_freed(struct s2n_connection *conn);
 
 struct hybrid_test_vector {
     const struct s2n_kem_group *kem_group;
-    const struct s2n_cipher_suite *cipher_suite;
+    struct s2n_cipher_suite *cipher_suite;
     const char *transcript;
     const char *client_ecc_key;
     const char *server_ecc_key;
@@ -546,23 +546,26 @@ int main(int argc, char **argv) {
             EXPECT_SUCCESS(assert_kem_group_params_freed(client_conn));
             EXPECT_SUCCESS(assert_kem_group_params_freed(server_conn));
 
+            /* Reset conns. Calculating the shared secret frees necessary params. */
+            EXPECT_SUCCESS(set_up_conns(client_conn, server_conn, test_vector->client_ecc_key,
+                    test_vector->server_ecc_key, kem_group, test_vector->pq_secret));
+
             /* Compute the transcript hash, then use the hybrid shared secret to derive
              * the client & server traffic secrets */
             DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
             EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, test_vector->cipher_suite->prf_alg));
-            EXPECT_SUCCESS(s2n_tls13_derive_early_secret(&secrets, NULL));
+            client_conn->secure.cipher_suite = test_vector->cipher_suite;
 
             DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
             EXPECT_SUCCESS(s2n_hash_new(&hash_state));
             EXPECT_SUCCESS(s2n_hash_init(&hash_state, secrets.hash_algorithm));
             EXPECT_SUCCESS(s2n_hash_update(&hash_state, test_vector->transcript, strlen(test_vector->transcript)));
+            EXPECT_SUCCESS(s2n_hash_digest(&hash_state, client_conn->handshake.hashes->server_hello_digest, secrets.size));
 
             s2n_tls13_key_blob(client_traffic_secret, secrets.size);
             s2n_tls13_key_blob(server_traffic_secret, secrets.size);
-
-            EXPECT_SUCCESS(s2n_tls13_extract_handshake_secret(&secrets, &client_calculated_shared_secret));
-            EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state, &client_traffic_secret, S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_tls13_derive_handshake_traffic_secret(&secrets, &hash_state, &server_traffic_secret, S2N_SERVER));
+            EXPECT_OK(s2n_tls13_derive_secret(client_conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &client_traffic_secret));
+            EXPECT_OK(s2n_tls13_derive_secret(client_conn, S2N_HANDSHAKE_SECRET, S2N_SERVER, &server_traffic_secret));
 
             /* Assert correctness of traffic secrets */
             EXPECT_EQUAL(test_vector->expected_client_traffic_secret->size, client_traffic_secret.size);

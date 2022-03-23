@@ -177,7 +177,7 @@ int print_connection_info(struct s2n_connection *conn)
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
     if (status && length > 0) {
-        fprintf(stderr, "OCSP response received, length %u\n", length);
+        printf("OCSP response received, length %u\n", length);
     }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));

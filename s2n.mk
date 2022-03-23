@@ -181,6 +181,12 @@ ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
 endif
 
+# Determine if features.h is availabe
+TRY_COMPILE_FEATURES := $(call try_compile,$(S2N_ROOT)/tests/features/features.c)
+ifeq ($(TRY_COMPILE_FEATURES), 0)
+	DEFAULT_CFLAGS += -DS2N_FEATURES_AVAILABLE
+endif
+
 # Determine if __attribute__((fallthrough)) is available
 TRY_COMPILE_FALL_THROUGH := $(call try_compile,$(S2N_ROOT)/tests/features/fallthrough.c)
 ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
@@ -197,6 +203,30 @@ endif
 TRY_EVP_MD5_SHA1_HASH := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md5_sha1.c)
 ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
+endif
+
+# Determine if EVP_MD_CTX_set_pkey_ctx is available
+TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
+ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+endif
+
+# Determine if madvise() is available
+TRY_COMPILE_MADVISE := $(call try_compile,$(S2N_ROOT)/tests/features/madvise.c)
+ifeq ($(TRY_COMPILE_MADVISE), 0)
+	DEFAULT_CFLAGS += -DS2N_MADVISE_SUPPORTED
+endif
+
+# Determine if minherit() is available
+TRY_COMPILE_MINHERIT:= $(call try_compile,$(S2N_ROOT)/tests/features/minherit.c)
+ifeq ($(TRY_COMPILE_MINHERIT), 0)
+	DEFAULT_CFLAGS += -DS2N_MINHERIT_SUPPORTED
+endif
+
+# Determine if clone() is available
+TRY_COMPILE_CLONE := $(call try_compile,$(S2N_ROOT)/tests/features/clone.c)
+ifeq ($(TRY_COMPILE_CLONE), 0)
+	DEFAULT_CFLAGS += -DS2N_CLONE_SUPPORTED
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

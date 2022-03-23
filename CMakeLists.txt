@@ -12,6 +12,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
@@ -160,28 +162,49 @@ else()
         # First, check if the compiler supports the specific instruction set
         # extensions. For example, gcc-4 doesn't fully support AVX-512, while
         # gcc-7 doesn't support VPCLMUL extension.
-        try_compile(BIKE_R3_AVX2_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            COMPILE_DEFINITIONS "-mavx2")
+        set(BIKE_R3_AVX2_FLAGS "-mavx2")
+        try_compile(
+                BIKE_R3_AVX2_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_avx2.c"
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_AVX2_FLAGS} -DS2N_BIKE_R3_AVX2"
+        )
 
         set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
-        try_compile(BIKE_R3_AVX512_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
+        try_compile(
+                BIKE_R3_AVX512_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_avx512.c"
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_AVX512_FLAGS} -DS2N_BIKE_R3_AVX512"
+        )
 
         set(BIKE_R3_PCLMUL_FLAGS "-mpclmul -msse2")
-        try_compile(BIKE_R3_PCLMUL_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            COMPILE_DEFINITIONS ${BIKE_R3_PCLMUL_FLAGS})
+        try_compile(
+                BIKE_R3_PCLMUL_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_base_pclmul.c"
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_PCLMUL_FLAGS} -DS2N_BIKE_R3_PCLMUL"
+        )
 
         set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
-        try_compile(BIKE_R3_VPCLMUL_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            COMPILE_DEFINITIONS ${BIKE_R3_VPCLMUL_FLAGS})
+        try_compile(
+                BIKE_R3_VPCLMUL_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_base_vpclmul.c"
+                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
+                COMPILE_DEFINITIONS "${BIKE_R3_VPCLMUL_FLAGS} -DS2N_BIKE_R3_VPCLMUL"
+        )
 
         if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
             set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
@@ -229,6 +252,13 @@ try_compile(
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/cpuid.c"
 )
 
+# Determine if features.h is available
+try_compile(
+        S2N_FEATURES_AVAILABLE
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/features.c"
+)
+
 # Determine if __attribute__((fallthrough)) is available
 try_compile(
         FALL_THROUGH_SUPPORTED
@@ -242,6 +272,30 @@ try_compile(
         __RESTRICT__SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/__restrict__.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+# Determine if madvise() is available
+try_compile(
+        MADVISE_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/madvise.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+# Determine if minherit() is available
+try_compile(
+        MINHERIT_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/minherit.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+# Determine if clone() is available
+try_compile(
+        CLONE_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/clone.c"
         COMPILE_DEFINITIONS "-Werror"
 )
 
@@ -326,31 +380,36 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
     # If any of the BIKE_R3 x86_64 optimizations is supported (this was checked
     # earlier in the file), we add the required compile flags to files that
     # contain the optimized code.
+
+    message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
+
     if(BIKE_R3_AVX2_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_AVX2")
         FILE(GLOB BIKE_R3_AVX2_SRCS "pq-crypto/bike_r3/*_avx2.c")
         set_source_files_properties(${BIKE_R3_AVX2_SRCS} PROPERTIES COMPILE_FLAGS -mavx2)
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX2)
     endif()
 
     if(BIKE_R3_AVX512_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_AVX512")
         FILE(GLOB BIKE_R3_AVX512_SRCS "pq-crypto/bike_r3/*_avx512.c")
         set_source_files_properties(${BIKE_R3_AVX512_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_AVX512_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX512)
     endif()
 
     if(BIKE_R3_PCLMUL_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_PCLMUL")
         FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
         set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_PCLMUL_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_PCLMUL)
     endif()
 
     if(BIKE_R3_VPCLMUL_SUPPORTED)
+        message(STATUS "\t Enabling BIKE_R3_VPCLMUL")
         FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
         set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_VPCLMUL_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_VPCLMUL)
     endif()
-
-    message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
@@ -372,6 +431,10 @@ endif()
 
 if(S2N_CPUID_AVAILABLE)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_CPUID_AVAILABLE)
+endif()
+
+if(S2N_FEATURES_AVAILABLE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_FEATURES_AVAILABLE)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
@@ -397,16 +460,31 @@ if (__RESTRICT__SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+if (MADVISE_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_MADVISE_SUPPORTED)
+    message(STATUS "madvise() support detected")
+endif()
 
-if (SEARCH_LIBCRYPTO)
-    find_package(LibCrypto REQUIRED)
+if (MINHERIT_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_MINHERIT_SUPPORTED)
+    message(STATUS "minherit() support detected")
+endif()
+
+if (CLONE_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_CLONE_SUPPORTED)
+    message(STATUS "clone() support detected")
+endif()
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
+#work around target differences
+if (TARGET crypto)
+    message(STATUS "S2N found target: crypto")
+    set(LINK_LIB "crypto")
 else()
-    if (TARGET crypto)
-        message(STATUS "S2N found target: crypto")
-    else()
-        message(FATAL_ERROR "Target crypto is not defined, failed to find libcrypto")
-    endif()
+    find_package(crypto REQUIRED)
+    message("Using libcrypto from the cmake path.")
+    set(LINK_LIB "AWS::crypto")
 endif()
 
 # Determine if EVP_md5_sha1 is available in libcrypto
@@ -414,16 +492,27 @@ try_compile(
         LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md5_sha1.c"
-        LINK_LIBRARIES crypto ${OS_LIBS}
-        CMAKE_FLAGS
-            "-DINCLUDE_DIRECTORIES=$<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
 )
 if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
 endif()
 
+# Determine if EVP_MD_CTX_set_pkey_ctx is available in libcrypto
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_md_ctx_set_pkey_ctx.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+        CMAKE_FLAGS ${ADDITIONAL_FLAGS}
+)
+
+if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
-    if (NOT LibCrypto_STATIC_LIBRARY)
+    if (NOT crypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
@@ -431,7 +520,7 @@ if (S2N_INTERN_LIBCRYPTO)
         OUTPUT libcrypto.symbols
         COMMAND
           # copy the static version of libcrypto
-          cp ${LibCrypto_STATIC_LIBRARY} libcrypto.a &&
+          cp ${crypto_STATIC_LIBRARY} libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
           bash -c "nm libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
@@ -478,15 +567,14 @@ if (S2N_INTERN_LIBCRYPTO)
         )
     endif()
 else()
-    target_link_libraries(${PROJECT_NAME} PUBLIC crypto)
+    # LINK_LIB is set above after checking targets. It handles the find_package craziness.
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIB})
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
-
-target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
 if (BUILD_TESTING)
     enable_testing()
@@ -498,7 +586,6 @@ if (BUILD_TESTING)
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
-    target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
     if (S2N_INTERN_LIBCRYPTO)
         # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
@@ -549,13 +636,13 @@ if (BUILD_TESTING)
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
-    target_include_directories(s2nc PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
     target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
-    target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
@@ -585,8 +672,6 @@ if (BUILD_TESTING)
 
     endif()
 endif()
-
-
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
@@ -624,6 +709,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/"
         COMPONENT Development)
 
-install(FILES "cmake/modules/FindLibCrypto.cmake"
+install(FILES "cmake/modules/Findcrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)

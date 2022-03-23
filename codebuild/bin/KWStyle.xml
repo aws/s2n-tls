@@ -4,13 +4,13 @@
 
 
 <Description>
-    <LineLength>177</LineLength>
+    <LineLength>256</LineLength>
     <!--
          When KWStyle parses the line "const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 = {", it thinks "=" is
-         a function name. Add "=" character to allowed function name regex to work around parser bug in KWStyle.
+         a function name. Add "=" and "+" characters to allowed function name regex to work around parser bug in KWStyle.
     -->
     <Functions>
-        <regex>[A-Za-z=_]</regex>
-        <length>235</length>
+        <regex>[A-Za-z=_+]</regex>
+        <length>512</length>
     </Functions>
 </Description>

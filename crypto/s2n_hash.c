@@ -31,6 +31,16 @@ static bool s2n_use_custom_md5_sha1()
 #endif
 }
 
+static bool s2n_use_evp_impl()
+{
+    return s2n_is_in_fips_mode();
+}
+
+bool s2n_hash_evp_fully_supported()
+{
+    return s2n_use_evp_impl() && !s2n_use_custom_md5_sha1();
+}
+
 const EVP_MD* s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg)
 {
     switch (alg) {
@@ -475,7 +485,7 @@ static const struct s2n_hash s2n_evp_hash = {
 static int s2n_hash_set_impl(struct s2n_hash_state *state)
 {
     state->hash_impl = &s2n_low_level_hash;
-    if (s2n_is_in_fips_mode()) {
+    if (s2n_use_evp_impl()) {
         state->hash_impl = &s2n_evp_hash;
     }
     return S2N_SUCCESS;

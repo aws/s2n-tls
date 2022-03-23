@@ -21,6 +21,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_rsa.h"
@@ -223,6 +224,7 @@ int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
     pkey->match = &s2n_rsa_pss_keys_match;
     pkey->free = &s2n_rsa_pss_key_free;
 
+    POSIX_GUARD_RESULT(s2n_evp_signing_set_pkey_overrides(pkey));
     return 0;
 }
 

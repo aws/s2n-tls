@@ -160,6 +160,14 @@ batch:
         variables:
           INTEGV2_TEST: test_external_psk
 
+    - identifier: s2nIntegrationV2CrossCompatibility
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_cross_compatibility
+
     # Individual Integration tests
     - identifier: s2nIntegrationBoringSSLGcc9
       buildspec: codebuild/spec/buildspec_ubuntu.yml

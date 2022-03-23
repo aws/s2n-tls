@@ -63,7 +63,7 @@ static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
 static __thread struct s2n_drbg per_thread_private_drbg = {0};
 static __thread struct s2n_drbg per_thread_public_drbg = {0};
 
-static void *zeroed_when_forked_page;
+static void *zeroed_when_forked_page = NULL;
 static int zero = 0;
 
 static __thread void *zero_if_forked_ptr = &zero;
@@ -292,6 +292,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 
+#define S2N_RAND_ENGINE_ID "s2n_rand"
+
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
     struct s2n_blob out = {.data = buf,.size = num };
@@ -375,7 +377,7 @@ S2N_RESULT s2n_rand_init(void)
     ENGINE *e = ENGINE_new();
 
     RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_id(e, "s2n_rand"), S2N_ERR_OPEN_RANDOM);
+    RESULT_GUARD_OSSL(ENGINE_set_id(e, S2N_RAND_ENGINE_ID), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_name(e, "s2n entropy generator"), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_init_function(e, s2n_openssl_compat_init), S2N_ERR_OPEN_RANDOM);
@@ -384,7 +386,7 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_GUARD_OSSL(ENGINE_free(e) , S2N_ERR_OPEN_RANDOM);
 
     /* Use that engine for rand() */
-    e = ENGINE_by_id("s2n_rand");
+    e = ENGINE_by_id(S2N_RAND_ENGINE_ID);
     RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_init(e), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_default(e, ENGINE_METHOD_RAND), S2N_ERR_OPEN_RANDOM);
@@ -410,8 +412,9 @@ S2N_RESULT s2n_rand_cleanup(void)
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Cleanup our rand ENGINE in libcrypto */
-    ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
+    ENGINE *rand_engine = ENGINE_by_id(S2N_RAND_ENGINE_ID);
     if (rand_engine) {
+        ENGINE_remove(rand_engine);
         ENGINE_finish(rand_engine);
         ENGINE_free(rand_engine);
         ENGINE_cleanup();
@@ -419,6 +422,12 @@ S2N_RESULT s2n_rand_cleanup(void)
         RAND_set_rand_method(NULL);
     }
 #endif
+
+    if (zeroed_when_forked_page != NULL) {
+        free(zeroed_when_forked_page);
+        zeroed_when_forked_page = NULL;
+        zero_if_forked_ptr = &zero;
+    }
 
     s2n_rand_init_cb = s2n_rand_init_impl;
     s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;

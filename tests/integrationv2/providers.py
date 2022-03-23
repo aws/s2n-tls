@@ -146,7 +146,12 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc', '--non-blocking']
+        cmd_line = []
+        if self.options.use_mainline_version is True:
+            cmd_line.append('s2nc_head')
+        else:
+            cmd_line.append('s2nc')
+        cmd_line.append('--non-blocking')
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
@@ -199,7 +204,12 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nd', '-X', '--self-service-blinding', '--non-blocking']
+        cmd_line = []
+        if self.options.use_mainline_version is True:
+            cmd_line.append('s2nd_head')
+        else:
+            cmd_line.append('s2nd')
+        cmd_line.extend(['-X', '--self-service-blinding', '--non-blocking'])
 
         if self.options.key is not None:
             cmd_line.extend(['--key', self.options.key])

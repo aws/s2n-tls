@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /**
  * openssl with OPENSSL_VERSION_NUMBER < 0x10100003L made data type details unavailable
  * libressl use openssl with data type details available, but mandatorily set
@@ -47,3 +49,6 @@
 #else
 #define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0
 #endif
+
+bool s2n_libcrypto_is_awslc();
+bool s2n_libcrypto_is_boringssl();

@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 
         struct s2n_blob blob = { 0 };
         struct s2n_stuffer stuffer = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+        EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
@@ -689,7 +689,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
 
-            EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.master_secret, S2N_TLS_SECRET_LEN);
+            EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob blob = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
@@ -721,7 +721,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
 
-            EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.master_secret, S2N_TLS_SECRET_LEN);
+            EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -734,7 +734,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob blob = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
@@ -1228,7 +1228,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob secret = { 0 };
             struct s2n_stuffer secret_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secrets.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
@@ -1237,13 +1237,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Wiping the master secret to prove that the decryption function actually writes the master secret */
-            memset(conn->secrets.master_secret, 0, test_master_secret.size);
+            memset(conn->secrets.tls12.master_secret, 0, test_master_secret.size);
 
             EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Check decryption was successful by comparing master key */
-            EXPECT_BYTEARRAY_EQUAL(conn->secrets.master_secret, test_master_secret.data, test_master_secret.size);
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls12.master_secret, test_master_secret.data, test_master_secret.size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));

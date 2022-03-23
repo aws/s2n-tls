@@ -63,8 +63,10 @@ jobs:
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
 
+      - name: Install
+        run: sudo apt update && sudo apt install -y kwstyle
+
       - name: Check
         run: |
           ./codebuild/bin/run_kwstyle.sh
           ./codebuild/bin/cpp_style_comment_linter.sh
-

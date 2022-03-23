@@ -58,8 +58,8 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
     POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(client_session_key, &key));
 
     /* Initialized secrets */
-    POSIX_CHECKED_MEMCPY(conn->secrets.server_app_secret, application_secret.data, application_secret.size);
-    POSIX_CHECKED_MEMCPY(conn->secrets.client_app_secret, application_secret.data, application_secret.size);
+    POSIX_CHECKED_MEMCPY(conn->secrets.tls13.server_app_secret, application_secret.data, application_secret.size);
+    POSIX_CHECKED_MEMCPY(conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
  
     /* Copy iv bytes from input data */
     POSIX_CHECKED_MEMCPY(server_implicit_iv, iv.data, iv.size);
@@ -109,14 +109,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_send(server_conn, message, sizeof(message), &blocked));
         
         /* Verify key update happened */
-        EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secrets.server_app_secret, client_conn->secrets.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
+        EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secrets.tls13.server_app_secret, client_conn->secrets.tls13.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
         EXPECT_BYTEARRAY_EQUAL(server_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         /* Receive keyupdate message */
         uint8_t data[100];
         EXPECT_SUCCESS(s2n_recv(client_conn, data, sizeof(message), &blocked));
         EXPECT_BYTEARRAY_EQUAL(data, message, sizeof(message));
-        EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.server_app_secret, server_conn->secrets.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
+        EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.server_app_secret, server_conn->secrets.tls13.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
         EXPECT_BYTEARRAY_EQUAL(client_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

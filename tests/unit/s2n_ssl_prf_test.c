@@ -69,28 +69,28 @@ int main(int argc, char **argv)
     for (int i = 0; i < 48; i++) {
         uint8_t c = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
-        conn->secrets.rsa_premaster_secret[i] = c;
+        conn->secrets.tls12.rsa_premaster_secret[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-        conn->secrets.client_random[i] = c;
+        conn->handshake_params.client_random[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
-        conn->secrets.server_random[i] = c;
+        conn->handshake_params.server_random[i] = c;
     }
 
     /* Set the protocol version to sslv3 */
     conn->actual_protocol_version = S2N_SSLv3;
-    pms.data = conn->secrets.rsa_premaster_secret;
-    pms.size = sizeof(conn->secrets.rsa_premaster_secret);
+    pms.data = conn->secrets.tls12.rsa_premaster_secret;
+    pms.size = sizeof(conn->secrets.tls12.rsa_premaster_secret);
     EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
 
     /* Convert the master secret to hex */
     for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secrets.master_secret[i]));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secrets.tls12.master_secret[i]));
     }
 
     EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);

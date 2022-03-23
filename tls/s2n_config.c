@@ -249,8 +249,8 @@ int s2n_config_defaults_init(void)
 
 void s2n_wipe_static_configs(void)
 {
-    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_fips_config);
+    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_tls13_config);
 }
 
@@ -332,6 +332,14 @@ int s2n_config_free_dhparams(struct s2n_config *config)
 
     POSIX_GUARD(s2n_free_object((uint8_t **)&config->dhparams, sizeof(struct s2n_dh_params)));
     return 0;
+}
+
+S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_GUARD_POSIX(s2n_config_free(*config));
+    *config = NULL;
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_free(struct s2n_config *config)
@@ -898,4 +906,34 @@ int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_asy
     }
 
     POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+}
+
+int s2n_config_set_ctx(struct s2n_config *config, void *ctx) {
+    POSIX_ENSURE_REF(config);
+
+    config->context = ctx;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_get_ctx(struct s2n_config *config, void **ctx) {
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(ctx);
+
+    *ctx = config->context;
+
+    return S2N_SUCCESS;
+}
+
+/*
+ * Set the client_hello callback behavior to polling.
+ *
+ * Polling means that the callback function can be called multiple times.
+ */
+int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
+    POSIX_ENSURE_REF(config);
+
+    config->client_hello_cb_enable_poll = 1;
+
+    return S2N_SUCCESS;
 }

@@ -263,6 +263,19 @@ class Ciphers(object):
     PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_0_2020_12 = Cipher("PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
 
+    @staticmethod
+    def from_iana(iana_name):
+        ciphers = [
+            cipher for attr in vars(Ciphers)
+            if not callable(cipher := getattr(Ciphers, attr))
+               and not attr.startswith("_")
+               and cipher.iana_standard_name
+        ]
+        return {
+            cipher.iana_standard_name: cipher
+            for cipher in ciphers
+        }.get(iana_name)
+
 
 class Curve(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3):
@@ -403,6 +416,7 @@ class ProviderOptions(object):
             verify_hostname=None,
             server_name=None,
             protocol=None,
+            use_mainline_version=None,
             env_overrides=dict()):
 
         # Client or server
@@ -460,6 +474,9 @@ class ProviderOptions(object):
 
         # Extra flags to pass to the provider
         self.extra_flags = extra_flags
+
+        # Boolean whether the provider is an older version of s2n
+        self.use_mainline_version = use_mainline_version
 
         # Extra environment parameters
         self.env_overrides = env_overrides

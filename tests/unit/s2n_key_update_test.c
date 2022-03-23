@@ -73,7 +73,13 @@ int main(int argc, char **argv)
     }
     /* s2n_key_update_recv */
     {
-        /* Key update message not allowed when running with QUIC */
+        /* Key update message not allowed when running with QUIC
+         *
+         *= https://tools.ietf.org/rfc/rfc9001.txt#6
+         *= type=test
+         *# Endpoints MUST treat the receipt of a TLS KeyUpdate message as a connection error
+         *# of type 0x010a, equivalent to a fatal TLS alert of unexpected_message
+         **/
         {
             const size_t test_data_len = 10;
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
@@ -88,7 +94,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, quic_config));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
+            EXPECT_FAILURE_WITH_ALERT(s2n_key_update_recv(conn, &input),
+                    S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
             /* Verify method was a no-op and the message was not read */
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), test_data_len);
@@ -140,7 +147,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            POSIX_CHECKED_MEMCPY(server_conn->secrets.client_app_secret, application_secret.data, application_secret.size);
+            POSIX_CHECKED_MEMCPY(server_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
 
             server_conn->secure.client_sequence_number[0] = 1; 
             /* Write the key update request to the correct stuffer */
@@ -162,7 +169,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            POSIX_CHECKED_MEMCPY(client_conn->secrets.server_app_secret, application_secret.data, application_secret.size);
+            POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.server_app_secret, application_secret.data, application_secret.size);
 
             client_conn->secure.server_sequence_number[0] = 1; 
             /* Write the key update request to the correct stuffer */
@@ -184,7 +191,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            POSIX_CHECKED_MEMCPY(client_conn->secrets.client_app_secret, application_secret.data, application_secret.size);
+            POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
             uint8_t zeroed_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
             /* Setup io */
@@ -211,7 +218,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            POSIX_CHECKED_MEMCPY(client_conn->secrets.client_app_secret, application_secret.data, application_secret.size);
+            POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
             uint8_t zeroed_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
             /* Setup io */
@@ -241,7 +248,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            POSIX_CHECKED_MEMCPY(client_conn->secrets.client_app_secret, application_secret.data, application_secret.size);
+            POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
             uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
             /* Setup io */

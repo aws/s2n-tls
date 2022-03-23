@@ -13,33 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#define _GNU_SOURCE             /* For syscall on Linux */
-#undef _POSIX_C_SOURCE          /* For syscall() on Mac OS X */
-
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "utils/s2n_annotations.h"
 #include "utils/s2n_safety.h"
-
-/**
- * Get the process id
- *
- * Returns:
- *  The process ID of the current process
- */
-pid_t s2n_actual_getpid()
-{
-#if defined(__GNUC__) && defined(SYS_getpid)
-    /* http://yarchive.net/comp/linux/getpid_caching.html */
-    return (pid_t) syscall(SYS_getpid);
-#else
-    return getpid();
-#endif
-}
 
 /**
  * Given arrays "a" and "b" of length "len", determine whether they

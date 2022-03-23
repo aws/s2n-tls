@@ -99,7 +99,7 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
     /* Set up resumption secret */
     struct s2n_blob secret = { 0 };
     struct s2n_stuffer secret_stuffer = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&secret, conn->resumption_master_secret, S2N_TLS_SECRET_LEN));
+    EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secrets.tls13.resumption_master_secret, S2N_TLS_SECRET_LEN));
     EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_resumption_secret.data, test_resumption_secret.size));
 
