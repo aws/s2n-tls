@@ -118,5 +118,5 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     # the client exited cleanly.
     for server_results in server.get_results():
         server_results.assert_success()
-        # Avoid debugging information that sometimes gets inserted after the first character
+        # Avoid debugging information that sometimes gets inserted after the first character.
         assert any([random_bytes[1:] in stream for stream in server_results.output_streams()])

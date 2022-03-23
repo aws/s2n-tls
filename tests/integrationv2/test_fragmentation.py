@@ -66,7 +66,7 @@ def invalid_test_parameters_frag_len(*args, **kwargs):
     provider = kwargs.get("provider")
     frag_len = kwargs.get("frag_len")
 
-    # check to make sure frag_len is compatible with gnutls
+    # Check to make sure frag_len is compatible with gnutls.
     if provider == GnuTLS:
         if frag_len > 4096:
             return True

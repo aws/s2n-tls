@@ -65,7 +65,7 @@ def test_s2n_client_ocsp_response(managed_process, cipher, provider, curve, prot
 
     for server_results in server.get_results():
         server_results.assert_success()
-        # Avoid debugging information that sometimes gets inserted after the first character
+        # Avoid debugging information that sometimes gets inserted after the first character.
         assert random_bytes[1:] in server_results.stdout or random_bytes[1:] in server_results.stderr
 
 
@@ -107,7 +107,7 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, prot
 
     kill_marker = None
     if provider == GnuTLS:
-        # the gnutls client hangs for a while after sending. speed up the tests by killing
+        # The GnuTLS client hangs for a while after sending. Speed up the tests by killing
         # it immediately after sending the message.
         kill_marker = b"Sent: "
 
@@ -126,5 +126,5 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, prot
 
     for server_results in server.get_results():
         server_results.assert_success()
-        # Avoid debugging information that sometimes gets inserted after the first character
+        # Avoid debugging information that sometimes gets inserted after the first character.
         assert any([random_bytes[1:] in stream for stream in server_results.output_streams()])
