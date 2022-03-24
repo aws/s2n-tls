@@ -32,7 +32,7 @@ define run_tox
 	S2N_INTEG_TEST=1 \
 	PATH="$(S2N_ROOT)/bin":"$(S2N_ROOT)/test-deps/openssl-1.1.1/bin":$(PATH) \
 	PYTHONNOUSERSITE=1 \
-	TOX_TEST_NAME=$(1) \
+	TOX_TEST_NAME=$(1).py \
 	python3.9 -m tox \
 	)
 endef
@@ -49,4 +49,4 @@ endif
 all: $(TOX_TEST_NAME)
 
 $(TOX_TEST_NAME):
-	$(call run_tox,$@.py)
+	$(call run_tox,$@)
