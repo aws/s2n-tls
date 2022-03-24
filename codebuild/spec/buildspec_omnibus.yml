@@ -370,6 +370,15 @@ batch:
           TESTS: interning
           BUILD_S2N: 'true'
 
+    - identifier: s2nUnitCRT
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          GCC_VERSION: '6'
+          TESTS: crt
+
     # Fuzz tests
     - identifier: s2nFuzzerOpenSSL111Coverage
       buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
