@@ -150,7 +150,7 @@ void fpdiv2_503(const digit_t* a, digit_t* c);
 void fpcorrection503(digit_t* a);
 
 // 503-bit Montgomery reduction, c = a mod p
-void rdc_mont(const digit_t* a, digit_t* c);
+void rdc_mont(const dfelm_t ma, felm_t mc);
 
 // Field multiplication using Montgomery arithmetic, c = a*b*R^-1 mod p503, where R=2^768
 void fpmul503_mont(const felm_t a, const felm_t b, felm_t c);
