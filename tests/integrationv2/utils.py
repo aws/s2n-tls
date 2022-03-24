@@ -73,10 +73,6 @@ def invalid_test_parameters(*args, **kwargs):
 
     if provider is not None and other_provider is not None:
         if issubclass(provider, S2N) and issubclass(other_provider, S2N):
-            # if s2n is built with OpenSSL 1.0.2, it can't connect to itself
-            if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
-                return True
-
             # if s2n is built with awslc and TLS version is < 1.3, it can't connect to itself
             if protocol is not None:
                 if "awslc" in get_flag(S2N_PROVIDER_VERSION) and protocol != Protocols.TLS13:
