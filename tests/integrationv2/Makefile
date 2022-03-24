@@ -37,45 +37,16 @@ define run_tox
 	)
 endef
 
-ifdef TOX_TEST_NAME
-default: test_single
-else
-default: all
+
+TESTS=$(wildcard test_*.py)
+TEST_NAMES=$(TESTS:.py=)
+
+ifndef TOX_TEST_NAME
+	TOX_TEST_NAME := ${TEST_NAMES}
 endif
 
-test_key_update:
-	$(call run_tox,$@.py)
-test_client_authentication:
-	$(call run_tox,$@.py)
-test_dynamic_record_sizes:
-	$(call run_tox,$@.py)
-test_early_data:
-	$(call run_tox,$@.py)
-test_external_psk:
-	$(call run_tox,$@.py)
-test_happy_path:
-	$(call run_tox,$@.py)
-test_session_resumption:
-	$(call run_tox,$@.py)
-test_sni_match:
-	$(call run_tox,$@.py)
-test_well_known_endpoints:
-	$(call run_tox,$@.py)
-test_fragmentation:
-	$(call run_tox,$@.py)
-test_hello_retry_requests:
-	$(call run_tox,$@.py)
-test_pq_handshake:
-	$(call run_tox,$@.py)
-test_signature_algorithms:
-	$(call run_tox,$@.py)
-test_version_negotiation:
-	$(call run_tox,$@.py)
-test_cross_compatibility:
-	$(call run_tox,$@.py)
-test_single:
-	$(call run_tox,$(TOX_TEST_NAME))
+.PHONY : all
+all: $(TOX_TEST_NAME)
 
-.PHONY : test_early_data test_external_psk test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation test_cross_compatibility
-all: test_early_data test_external_psk test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation test_cross_compatibility
-
+$(TOX_TEST_NAME):
+	$(call run_tox,$@.py)
