@@ -160,7 +160,8 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
             libcrypto in get_flag(S2N_PROVIDER_VERSION)
             for libcrypto in [
                 "boringssl",
-                "libressl"
+                "libressl",
+                "openssl-1.0.2"
             ]
         ])
     ]):
