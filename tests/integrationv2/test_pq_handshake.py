@@ -147,11 +147,13 @@ def test_nothing():
 
 @pytest.mark.uncollect_if(func=invalid_pq_handshake_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", [Certificates.RSA_4096_SHA512], ids=get_parameter_name)
 @pytest.mark.parametrize("client_cipher", CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("server_cipher", CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
-def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, server_cipher, provider, other_provider):
+def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, certificate, client_cipher, server_cipher, provider,
+                                   other_provider):
     # incorrect cipher is negotiated when both ciphers are PQ_TLS_1_0_2020_12 with boringssl or libressl libcryptos
     if all([
         client_cipher == Ciphers.PQ_TLS_1_0_2020_12,
@@ -181,8 +183,8 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
         port=port,
         protocol=protocol,
         cipher=server_cipher,
-        cert=Certificates.RSA_4096_SHA512.cert,
-        key=Certificates.RSA_4096_SHA512.key)
+        cert=certificate.cert,
+        key=certificate.key)
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
