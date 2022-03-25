@@ -174,6 +174,32 @@ for i in $path_overrides; do testdeps_path "$i" ;done
 if [ -f "/etc/lsb-release" ]; then
   cat /etc/lsb-release
 fi
+
+# Translate our custom variables into full paths to the compiler.
+set_cc(){
+  if [ -z ${GCC_VERSION:-} -o ${GCC_VERSION} = "NONE" ]; then
+    echo "No GCC_VERSION set"
+    if [ ${LATEST_CLANG:-} = "true" ]; then
+      echo "LATEST_CLANG is ${LATEST_CLANG}"
+      if [ -d ${LATEST_CLANG_INSTALL_DIR:-} ]; then
+        export CC=${LATEST_CLANG_INSTALL_DIR}/bin/clang
+        export CXX=${LATEST_CLANG_INSTALL_DIR}/bin/clang++
+        echo "CC set to ${CC}"
+        echo "CXX set to ${CXX}"
+      else
+        echo "Could not find a clang installation $LATEST_CLANG_INSTALL_DIR"
+      fi
+    fi
+  else
+    echo "GCC_VERSION is ${GCC_VERSION}"
+    export CC=$(which gcc-${GCC_VERSION})
+    export CXX=$(which g++-${GCC_VERSION})
+    echo "CC set to ${CC}"
+    echo "CXX set to ${CXX}"
+  fi
+}
+set_cc
+
 echo "UID=$UID"
 echo "OS_NAME=$OS_NAME"
 echo "S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
