@@ -55,6 +55,12 @@ struct s2n_config {
      * but async signing must be enabled. Use this flag to enforce that restriction.
      */
     unsigned no_signing_key:1;
+    /*
+     * This option exists to allow for polling the client_hello callback.
+     *
+     * Note: This defaults to false to ensure backwards compatibility.
+     */
+    unsigned client_hello_cb_enable_poll:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
