@@ -23,7 +23,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-bool ignore_prediction_resistance_for_testing = false;
+static bool ignore_prediction_resistance_for_testing = false;
 
 #define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
 #define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
