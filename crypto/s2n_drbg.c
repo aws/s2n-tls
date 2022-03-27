@@ -158,7 +158,7 @@ S2N_RESULT s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personal
     drbg->ctx = EVP_CIPHER_CTX_new();
     RESULT_GUARD_PTR(drbg->ctx);
 
-    s2n_evp_ctx_init(drbg->ctx);
+    s2n_evp_ctx_init_result(drbg->ctx);
 
     switch(mode) {
         case S2N_AES_128_CTR_NO_DF_PR:
