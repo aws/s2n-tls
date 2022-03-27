@@ -23,6 +23,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
+bool ignore_prediction_resistance_for_testing = false;
+
 #define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
 #define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
 
@@ -140,6 +142,11 @@ static S2N_RESULT s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 static S2N_RESULT s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
+    if (s2n_unlikely(ignore_prediction_resistance_for_testing == true)) {
+        POSIX_ENSURE(s2n_in_unit_test() == true, S2N_ERR_NOT_IN_UNIT_TEST);
+        return 0;
+    }
+
     RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     RESULT_GUARD(s2n_get_mix_entropy(&blob));
@@ -237,5 +244,13 @@ S2N_RESULT s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used)
     RESULT_ENSURE_REF(bytes_used);
 
     *bytes_used = drbg->bytes_used;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ignore_prediction_resistance_for_testing(bool ignore_bool) {
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+    ignore_prediction_resistance_for_testing = ignore_bool;
+
     return S2N_RESULT_OK;
 }
