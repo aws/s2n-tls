@@ -39,40 +39,79 @@ int test_count;
 
 #define EXPECT_SUCCESS_WITHOUT_COUNT( function_call )  EXPECT_NOT_EQUAL_WITHOUT_COUNT( (function_call) ,  -1 )
 
-/**
- * This is a very basic, but functional unit testing framework. All testing should
- * happen in main() and start with a BEGIN_TEST() and end with an END_TEST();
- */
-#define BEGIN_TEST()                                           \
-  do {                                                         \
-    test_count = 0;                                            \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));  \
-    S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
-    fprintf(stdout, "Running %-50s ... ", __FILE__);           \
-  } while(0)
+#define END_TEST_PRINT()                                                            \
+    if (isatty(fileno(stdout))) {                                                   \
+        if (test_count) {                                                           \
+            fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count );   \
+        }                                                                           \
+        else {                                                                      \
+            fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n" );         \
+        }                                                                           \
+    }                                                                               \
+    else {                                                                          \
+        if (test_count) {                                                           \
+            fprintf(stdout, "PASSED %10d tests\n", test_count );                    \
+        }                                                                           \
+        else {                                                                      \
+            fprintf(stdout, "SKIPPED       ALL tests\n" );                          \
+        }                                                                           \
+    }                                                                               \
+    return 0;
 
-#define END_TEST()   do { \
-                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));      \
-                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());       \
-                        if (isatty(fileno(stdout))) { \
-                            if (test_count) { \
-                                fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
-                            }\
-                            else {\
-                                fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n" ); \
-                            }\
-                       } \
-                       else { \
-                            if (test_count) { \
-                                fprintf(stdout, "PASSED %10d tests\n", test_count ); \
-                            }\
-                            else {\
-                                fprintf(stdout, "SKIPPED       ALL tests\n" ); \
-                            }\
-                       } \
-                       return 0;\
-                    } while(0)
+/* This is a very basic, but functional unit testing framework. All testing
+ * should happen in main() and start with a BEGIN_TEST() and end with an
+ * END_TEST();
+ */
+#define BEGIN_TEST()                                                \
+    do {                                                            \
+        test_count = 0;                                             \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
+        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
+        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
+    } while(0)
+
+#define END_TEST()                                                  \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
+        END_TEST_PRINT()                                            \
+    } while(0)
+
+/* Macro's similar to BEGIN_TEST() and END_TEST() but for tests that forks at
+ * the start of the test. {BEGIN,END}_FORK_TEST is used in the parent process,
+ * while {BEGIN,END}_FORK_TEST_IN_CHILD should be used at the start,
+ * respectively, end of the child process test code. BEGIN_FORK_TEST_IN_CHILD
+ * might be called after child-specific setup code. For example,
+ * s2n_fork_generation_number_test will disable a varying subset of available
+ * fork detection methods in childs spawned, before calling
+ * BEGIN_FORK_TEST_IN_CHILD.
+ */
+#define BEGIN_FORK_TEST()                                           \
+    do {                                                            \
+        test_count = 0;                                             \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
+        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
+        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
+    } while(0)
+
+#define BEGIN_FORK_TEST_IN_CHILD()                                  \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
+    } while(0)
+
+#define END_FORK_TEST()                                             \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
+        END_TEST_PRINT()                                            \
+    } while(0)
+
+#define END_FORK_TEST_IN_CHILD()                                \
+  do {                                                          \
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
+  } while(0)
 
 #define FAIL()      FAIL_MSG("")
 
