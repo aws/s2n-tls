@@ -114,6 +114,8 @@ static int fork_test(void)
     blob.data = data;
     EXPECT_OK(s2n_get_public_random_data(&blob));
     EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
+
+    return S2N_SUCCESS;
 }
 
 int main(int argc, char **argv)
@@ -156,11 +158,11 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
 
     /* Fork with prediction resistance */
-    fork_test();
+    EXPECT_SUCCESS(fork_test());
 
     /* Fork without prediction resistance */
     EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(true));
-    fork_test();
+    EXPECT_SUCCESS(fork_test());
     EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(false));
 
     /* Try to fetch a volume of randomly generated data, every size between 1 and 5120
