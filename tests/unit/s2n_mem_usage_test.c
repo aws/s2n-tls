@@ -47,7 +47,7 @@
 #ifdef __FreeBSD__
 #define MEM_PER_CONNECTION 57
 #else
-#define MEM_PER_CONNECTION 48
+#define MEM_PER_CONNECTION 49
 #endif
 
 /* This is the maximum memory per connection including 4KB of slack */
