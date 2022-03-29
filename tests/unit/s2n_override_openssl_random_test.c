@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_entropy_init_cleanup, s2n_entropy_init_cleanup, s2n_entropy_generator, s2n_entropy_generator));
 
     s2n_stack_blob(personalization_string, 32, 32);
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
+    EXPECT_OK(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
     EXPECT_OK(s2n_set_private_drbg_for_test(drbg));
     /* Verify we switched to a new DRBG */
     EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));

@@ -69,8 +69,8 @@ static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, stru
     RESULT_ENSURE(blob->size <= S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
     /* We do NOT mix in additional entropy */
-    RESULT_GUARD_POSIX(s2n_drbg_bits(drbg, blob));
-    RESULT_GUARD_POSIX(s2n_drbg_update(drbg, &zeros));
+    RESULT_GUARD(s2n_drbg_bits(drbg, blob));
+    RESULT_GUARD(s2n_drbg_update(drbg, &zeros));
 
     return S2N_RESULT_OK;
 }
@@ -145,7 +145,7 @@ static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file
          * we use the custom function s2n_drbg_generate_for_pq_kat_tests() defined above to turn off the
          * prediction resistance. */
         POSIX_GUARD(ReadHex(kat_file, kat_entropy_blob.data, SEED_LENGTH, "seed = "));
-        POSIX_GUARD(s2n_drbg_instantiate(&drbg_for_pq_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
+        POSIX_GUARD_RESULT(s2n_drbg_instantiate(&drbg_for_pq_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
 
         /* Generate the public/private key pair */
         POSIX_GUARD(kem->generate_keypair(pk, sk));
@@ -172,7 +172,7 @@ static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file
         POSIX_ENSURE_EQ(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length ), 0);
 
         /* Wipe the DRBG; it will reseed for each KAT test vector. */
-        POSIX_GUARD(s2n_drbg_wipe(&drbg_for_pq_kats));
+        POSIX_GUARD_RESULT(s2n_drbg_wipe(&drbg_for_pq_kats));
     }
     fclose(kat_file);
     free(ct);
