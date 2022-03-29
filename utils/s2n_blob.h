@@ -54,7 +54,7 @@ extern int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint
     struct s2n_blob name = {0};                             \
     POSIX_GUARD(s2n_blob_init(&name, name ## _buf, name ## _requested_size))
 
-#define s2n_stack_blob_result(name, requested_size, maximum)    \
+#define S2N_RESULT_STACK_BLOB(name, requested_size, maximum)    \
     size_t name ## _requested_size = (requested_size);          \
     uint8_t name ## _buf[(maximum)] = {0};                      \
     RESULT_ENSURE_LTE(name ## _requested_size, (maximum));      \
