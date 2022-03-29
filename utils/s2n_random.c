@@ -144,8 +144,8 @@ static inline S2N_RESULT s2n_defend_if_forked(void)
         /* Clean up the old drbg first */
         RESULT_GUARD(s2n_rand_cleanup_thread());
         /* Instantiate the new ones */
-        RESULT_GUARD_POSIX(s2n_drbg_instantiate(&per_thread_public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
-        RESULT_GUARD_POSIX(s2n_drbg_instantiate(&per_thread_private_drbg, &private, S2N_AES_128_CTR_NO_DF_PR));
+        RESULT_GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
+        RESULT_GUARD(s2n_drbg_instantiate(&per_thread_private_drbg, &private, S2N_AES_128_CTR_NO_DF_PR));
         zero_if_forked_ptr = zeroed_when_forked_page;
         zero_if_forked = 1;
     }
@@ -165,7 +165,7 @@ S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 
         RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
 
-        RESULT_GUARD_POSIX(s2n_drbg_generate(&per_thread_public_drbg, &slice));
+        RESULT_GUARD(s2n_drbg_generate(&per_thread_public_drbg, &slice));
 
         remaining -= slice.size;
         offset += slice.size;
@@ -186,7 +186,7 @@ S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 
         RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
 
-        RESULT_GUARD_POSIX(s2n_drbg_generate(&per_thread_private_drbg, &slice));
+        RESULT_GUARD(s2n_drbg_generate(&per_thread_private_drbg, &slice));
 
         remaining -= slice.size;
         offset += slice.size;
@@ -197,13 +197,13 @@ S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 
 S2N_RESULT s2n_get_public_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD_POSIX(s2n_drbg_bytes_used(&per_thread_public_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&per_thread_public_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD_POSIX(s2n_drbg_bytes_used(&per_thread_private_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&per_thread_private_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
@@ -439,8 +439,8 @@ S2N_RESULT s2n_rand_cleanup(void)
 
 S2N_RESULT s2n_rand_cleanup_thread(void)
 {
-    RESULT_GUARD_POSIX(s2n_drbg_wipe(&per_thread_private_drbg));
-    RESULT_GUARD_POSIX(s2n_drbg_wipe(&per_thread_public_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
 
     return S2N_RESULT_OK;
 }
@@ -452,7 +452,7 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
 S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    RESULT_GUARD_POSIX(s2n_drbg_wipe(&per_thread_private_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
 
     per_thread_private_drbg = drbg;
     return S2N_RESULT_OK;
