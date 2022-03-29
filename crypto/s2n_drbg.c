@@ -90,7 +90,7 @@ static S2N_RESULT s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provid
     RESULT_ENSURE_REF(drbg->ctx);
     RESULT_ENSURE_REF(provided_data);
 
-    S2N_RESULT_STACK_BLOB(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
+    RESULT_STACK_BLOB(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
     RESULT_ENSURE_EQ(provided_data->size, s2n_drbg_seed_size(drbg));
 
@@ -128,7 +128,7 @@ static S2N_RESULT s2n_drbg_mix_in_entropy(struct s2n_drbg *drbg, struct s2n_blob
 
 static S2N_RESULT s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
-    S2N_RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+    RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     RESULT_GUARD(s2n_get_seed_entropy(&blob));
     RESULT_GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
@@ -140,7 +140,7 @@ static S2N_RESULT s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 static S2N_RESULT s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
-    S2N_RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+    RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     RESULT_GUARD(s2n_get_mix_entropy(&blob));
     RESULT_GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
@@ -158,7 +158,7 @@ S2N_RESULT s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personal
     drbg->ctx = EVP_CIPHER_CTX_new();
     RESULT_GUARD_PTR(drbg->ctx);
 
-    S2N_RESULT_EVP_CTX_INIT(drbg->ctx);
+    RESULT_EVP_CTX_INIT(drbg->ctx);
 
     switch(mode) {
         case S2N_AES_128_CTR_NO_DF_PR:
@@ -181,7 +181,7 @@ S2N_RESULT s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personal
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
-    S2N_RESULT_STACK_BLOB(ps, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+    RESULT_STACK_BLOB(ps, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
     RESULT_GUARD_POSIX(s2n_blob_zero(&ps));
 
     RESULT_CHECKED_MEMCPY(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
@@ -197,7 +197,7 @@ S2N_RESULT s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
     RESULT_ENSURE_REF(drbg);
     RESULT_ENSURE_REF(drbg->ctx);
 
-    S2N_RESULT_STACK_BLOB(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+    RESULT_STACK_BLOB(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     RESULT_ENSURE(blob->size <= S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
