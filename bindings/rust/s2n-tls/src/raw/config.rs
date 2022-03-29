@@ -9,7 +9,7 @@ use crate::raw::{
 use core::{convert::TryInto, ptr::NonNull, task::Poll};
 use s2n_tls_sys::*;
 use std::{
-    ffi::{c_void, CStr, CString},
+    ffi::{c_void, CString},
     mem::ManuallyDrop,
     sync::atomic::{AtomicUsize, Ordering},
 };

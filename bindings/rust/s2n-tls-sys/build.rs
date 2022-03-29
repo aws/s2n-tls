@@ -4,6 +4,56 @@
 use std::path::{Path, PathBuf};
 
 fn main() {
+    let external = External::default();
+    if external.is_enabled() {
+        external.link();
+    } else {
+        build_vendored();
+    }
+}
+
+fn env<N: AsRef<str>>(name: N) -> String {
+    option_env(name).expect("missing env var")
+}
+
+fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
+    let name = name.as_ref();
+    eprintln!("cargo:rerun-if-env-changed={}", name);
+    std::env::var(name).ok()
+}
+
+struct FeatureDetector<'a> {
+    out_dir: &'a std::path::Path,
+}
+
+impl<'a> FeatureDetector<'a> {
+    pub fn new(out_dir: &'a Path) -> Self {
+        Self { out_dir }
+    }
+
+    pub fn supports(&self, name: &str) -> bool {
+        let out = self.out_dir.join("features").join(name);
+        let out = out.to_str().unwrap();
+
+        cc::Build::new()
+            .file(
+                std::path::Path::new("lib/tests/features")
+                    .join(name)
+                    .with_extension("c"),
+            )
+            // don't print anything
+            .cargo_metadata(false)
+            // make sure it doesn't warn
+            .warnings(true)
+            .debug(false)
+            // set the archiver to the `true` program, since we don't actually link anything
+            .archiver("true")
+            .try_compile(out)
+            .is_ok()
+    }
+}
+
+fn build_vendored() {
     let mut build = cc::Build::new();
 
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
@@ -85,43 +135,47 @@ fn main() {
     println!("cargo:include={}", include_dir.display());
 }
 
-fn env<N: AsRef<str>>(name: N) -> String {
-    option_env(name).expect("missing env var")
+struct External {
+    lib_dir: Option<PathBuf>,
+    include_dir: Option<PathBuf>,
 }
 
-fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
-    let name = name.as_ref();
-    eprintln!("cargo:rerun-if-env-changed={}", name);
-    std::env::var(name).ok()
+impl Default for External {
+    fn default() -> Self {
+        let dir = option_env("S2N_TLS_DIR").map(PathBuf::from);
+
+        let lib_dir = option_env("S2N_TLS_LIB_DIR")
+            .map(PathBuf::from)
+            .or_else(|| dir.as_ref().map(|d| d.join("lib")));
+
+        let include_dir = option_env("S2N_TLS_INCLUDE_DIR")
+            .map(PathBuf::from)
+            .or_else(|| dir.as_ref().map(|d| d.join("include")));
+
+        Self {
+            lib_dir,
+            include_dir,
+        }
+    }
 }
 
-struct FeatureDetector<'a> {
-    out_dir: &'a std::path::Path,
-}
-
-impl<'a> FeatureDetector<'a> {
-    pub fn new(out_dir: &'a Path) -> Self {
-        Self { out_dir }
+impl External {
+    fn is_enabled(&self) -> bool {
+        self.lib_dir.is_some()
     }
 
-    pub fn supports(&self, name: &str) -> bool {
-        let out = self.out_dir.join("features").join(name);
-        let out = out.to_str().unwrap();
+    fn link(&self) {
+        println!(
+            "cargo:rustc-link-search={}",
+            self.lib_dir.as_ref().unwrap().display()
+        );
+        println!("cargo:rustc-link-lib=s2n");
 
-        cc::Build::new()
-            .file(
-                std::path::Path::new("lib/tests/features")
-                    .join(name)
-                    .with_extension("c"),
-            )
-            // don't print anything
-            .cargo_metadata(false)
-            // make sure it doesn't warn
-            .warnings(true)
-            .debug(false)
-            // set the archiver to the `true` program, since we don't actually link anything
-            .archiver("true")
-            .try_compile(out)
-            .is_ok()
+        // tell rust we're linking with libcrypto
+        println!("cargo:rustc-link-lib=crypto");
+
+        if let Some(include_dir) = self.include_dir.as_ref() {
+            println!("cargo:include={}", include_dir.display());
+        }
     }
 }

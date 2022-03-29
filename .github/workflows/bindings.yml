@@ -26,4 +26,18 @@ jobs:
       - name: Generate
         run: ./bindings/rust/generate.sh
 
+      - name: Test external build
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
+          cmake --build build
+
+          export S2N_TLS_LIB_DIR=`pwd`/build/lib
+          export S2N_TLS_INCLUDE_DIR=`pwd`/api
+          export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
+
+          cd bindings/rust
+          ./generate.sh
+          ldd target/debug/integration | grep libs2n.so
+
       # TODO if tagging a release, publish to crates.io
