@@ -62,6 +62,7 @@ let tm = crucible_term;
 
 let bytes_type n = llvm_array n i8;
 let alloc_bytes n = crucible_alloc (bytes_type n);
+let ignore_prediction_resistance_for_testing_guard = llvm_alloc_global "ignore_prediction_resistance_for_testing"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Convenient Cryptol definitions
