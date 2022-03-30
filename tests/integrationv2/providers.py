@@ -147,7 +147,7 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        # disable TLS 1.3 tests for all libcryptos that don't support 1.3
+        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
         if all([
             libcrypto not in get_flag(S2N_PROVIDER_VERSION)
             for libcrypto in TLS_13_LIBCRYPTOS
@@ -158,7 +158,7 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        # disable chacha20 tests in unsupported libcryptos
+        # Disable chacha20 tests in unsupported libcryptos
         if any([
             libcrypto in get_flag(S2N_PROVIDER_VERSION)
             for libcrypto in [
@@ -172,7 +172,7 @@ class S2N(Provider):
 
     @classmethod
     def supports_signature(cls, signature):
-        # disable RSA_PSS_RSAE_SHA256 in unsupported libcryptos
+        # Disable RSA_PSS_RSAE_SHA256 in unsupported libcryptos
         if any([
             libcrypto in get_flag(S2N_PROVIDER_VERSION)
             for libcrypto in [

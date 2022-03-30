@@ -33,7 +33,7 @@ SSLYZE_SCANS_TO_TEST = {
 
 CERTS_TO_TEST = [
     cert for cert in ALL_TEST_CERTS if cert.name not in {
-        "RSA_PSS_2048_SHA256"  # sslyze errors when given an RSA PSS cert
+        "RSA_PSS_2048_SHA256"  # SSLyze errors when given an RSA PSS cert
     }
 ]
 
@@ -69,7 +69,7 @@ class CipherSuitesVerifier(ScanVerifier):
         ]
 
         for cipher in rejected_ciphers:
-            # if a cipher is rejected, it should be an invalid test parameter in combination with the
+            # If a cipher is rejected, it should be an invalid test parameter in combination with the
             # protocol/provider/cert, otherwise it should have been accepted
             assert invalid_test_parameters(
                 protocol=self.protocol,
@@ -94,7 +94,7 @@ class EllipticCurveVerifier(ScanVerifier):
         ]
 
         for curve in rejected_curves:
-            # if a curve is rejected, it should be an invalid test parameter in combination with the
+            # If a curve is rejected, it should be an invalid test parameter in combination with the
             # protocol/provider/cert, otherwise it should have been accepted
             assert invalid_test_parameters(
                 protocol=self.protocol,
@@ -115,7 +115,7 @@ class RobotVerifier(ScanVerifier):
 class SessionResumptionVerifier(ScanVerifier):
     def assert_scan_success(self):
         if self.protocol == Protocols.TLS13:
-            pass  # sslyze does not support session resumption scans for tls 1.3
+            pass  # SSLyze does not support session resumption scans for tls 1.3
         else:
             assert self.scan_result.tls_ticket_resumption_result == sslyze.TlsResumptionSupportEnum.FULLY_SUPPORTED
 
@@ -246,7 +246,7 @@ def test_sslyze_scans(managed_process, protocol, scan_command, provider):
         extra_flags=["--parallelize"]
     )
 
-    # test 1.3 exclusively
+    # Test 1.3 exclusively
     if protocol == Protocols.TLS13:
         server_options.cipher = Cipher("test_all_tls13", Protocols.TLS13, False, False, s2n=True)
 
@@ -259,7 +259,7 @@ def test_sslyze_scans(managed_process, protocol, scan_command, provider):
         server_options.use_session_ticket = True
         server_options.extra_flags.extend([
             "--max-early-data", "65535",
-            "--https-server"  # early data scan sends http requests
+            "--https-server"  # Early data scan sends http requests
         ])
 
     server = managed_process(S2N, server_options, timeout=30)
@@ -289,7 +289,7 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
 
     if certificate_scan == CertificateScan.CIPHER_SUITE_SCAN:
         if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
-            # sslyze scan results in rejected ciphers that should have been accepted
+            # SSLyze scan results in rejected ciphers that should have been accepted
             # for TLS 1.2
             if protocol == Protocols.TLS12:
                 return True
@@ -305,11 +305,11 @@ def invalid_certificate_scans_parameters(*args, **kwargs):
             ]:
                 return True
     elif certificate_scan == CertificateScan.ELLIPTIC_CURVE_SCAN:
-        # sslyze curves scan errors when given ECDSA certs
+        # SSLyze curves scan errors when given ECDSA certs
         if "ECDSA" in certificate.name:
             return True
 
-        # sslyze curves scan fails to validate with openssl 1.0.2 fips
+        # SSLyze curves scan fails to validate with openssl 1.0.2 fips
         if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
             return True
 
