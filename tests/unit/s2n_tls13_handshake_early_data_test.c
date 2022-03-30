@@ -285,10 +285,12 @@ int main()
             /* Rewrite hashes with known ClientHello */
             EXPECT_SUCCESS(s2n_conn_update_handshake_hashes(client_conn, &client_hello_msg));
 
+            EXPECT_OK(s2n_tls13_secrets_update(client_conn));
             EXPECT_OK(s2n_tls13_key_schedule_update(client_conn));
 
             /* Check early secret secret set correctly */
-            EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.early_secret, early_secret.data, early_secret.size);
+            EXPECT_EQUAL(client_conn->secrets.tls13.extract_secret_type, S2N_EARLY_SECRET);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.extract_secret, early_secret.data, early_secret.size);
 
             /* Check IV calculated correctly */
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_implicit_iv, iv.data, iv.size);

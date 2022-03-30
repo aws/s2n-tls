@@ -35,6 +35,9 @@
 /* Included so we can test functions that are otherwise unavailable */
 #include "tls/s2n_tls13_handshake.c"
 
+S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
+        s2n_mode mode, struct s2n_blob *secret);
+
 static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc);
 static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
                         const char *client_priv_ecc, const char *server_priv_ecc, const struct s2n_kem_group *kem_group,
@@ -560,7 +563,12 @@ int main(int argc, char **argv) {
             EXPECT_SUCCESS(s2n_hash_new(&hash_state));
             EXPECT_SUCCESS(s2n_hash_init(&hash_state, secrets.hash_algorithm));
             EXPECT_SUCCESS(s2n_hash_update(&hash_state, test_vector->transcript, strlen(test_vector->transcript)));
-            EXPECT_SUCCESS(s2n_hash_digest(&hash_state, client_conn->handshake.hashes->server_hello_digest, secrets.size));
+            EXPECT_SUCCESS(s2n_hash_digest(&hash_state, client_conn->handshake.hashes->transcript_hash_digest, secrets.size));
+
+            client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+            while(s2n_conn_get_current_message_type(client_conn) != SERVER_HELLO) {
+                client_conn->handshake.message_number++;
+            }
 
             s2n_tls13_key_blob(client_traffic_secret, secrets.size);
             s2n_tls13_key_blob(server_traffic_secret, secrets.size);

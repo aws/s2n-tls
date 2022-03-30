@@ -313,7 +313,6 @@ S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn)
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
-    RESULT_GUARD(s2n_tls13_secrets_update(conn));
     RESULT_ENSURE_REF(key_schedules[conn->mode]);
     RESULT_GUARD(key_schedules[conn->mode](conn));
     return S2N_RESULT_OK;
@@ -324,6 +323,6 @@ S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn);
     conn->client = &conn->initial;
     conn->server = &conn->initial;
-    conn->secrets.tls13.secrets_state = S2N_NONE_SECRET;
+    conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
     return S2N_RESULT_OK;
 }
