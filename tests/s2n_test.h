@@ -60,7 +60,7 @@ int test_count;
 
 /* This is a very basic, but functional unit testing framework. All testing
  * should happen in main() and start with a BEGIN_TEST() and end with an
- * END_TEST();
+ * END_TEST().
  */
 #define BEGIN_TEST()                                                \
     do {                                                            \
