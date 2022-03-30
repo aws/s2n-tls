@@ -6,6 +6,7 @@ from fixtures import managed_process
 from constants import TEST_OCSP_DIRECTORY
 from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
 OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
@@ -13,11 +14,12 @@ OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS])
+@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
-def test_s2n_client_ocsp_response(managed_process, cipher, provider, curve, protocol, certificate):
+def test_s2n_client_ocsp_response(managed_process, cipher, provider, other_provider, curve, protocol, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(128)
@@ -71,11 +73,12 @@ def test_s2n_client_ocsp_response(managed_process, cipher, provider, curve, prot
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [GnuTLS, OpenSSL])
+@pytest.mark.parametrize("provider", [GnuTLS, OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N])
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", OCSP_CERTS, ids=get_parameter_name)
-def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, protocol, certificate):
+def test_s2n_server_ocsp_response(managed_process, cipher, provider, other_provider, curve, protocol, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(128)
