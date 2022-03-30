@@ -154,7 +154,8 @@ def test_nothing():
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, certificate, client_cipher, server_cipher, provider,
                                    other_provider):
-    # Incorrect cipher is negotiated when both ciphers are PQ_TLS_1_0_2020_12 with boringssl or libressl libcryptos
+    # Incorrect cipher is negotiated when both ciphers are PQ_TLS_1_0_2020_12 with
+    # openssl 1.0.2, boringssl, and libressl libcryptos
     if all([
         client_cipher == Ciphers.PQ_TLS_1_0_2020_12,
         server_cipher == Ciphers.PQ_TLS_1_0_2020_12,
