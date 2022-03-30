@@ -107,11 +107,11 @@ int test_count;
         END_TEST_PRINT()                                            \
     } while(0)
 
-#define END_FORK_TEST_IN_CHILD()                                \
-  do {                                                          \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
-  } while(0)
+#define END_FORK_TEST_IN_CHILD()                                    \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
+    } while(0)
 
 #define FAIL()      FAIL_MSG("")
 
