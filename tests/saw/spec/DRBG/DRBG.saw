@@ -322,9 +322,12 @@ let instantiate_spec n = do {
 };
 
 let generate_spec = do {
+    (crucible_alloc_global "ignore_prediction_resistance_for_testing");
+    (crucible_points_to (crucible_global "ignore_prediction_resistance_for_testing") (crucible_term {{ 0 : [8] }}) );
     (sp, keyp, s) <- drbg_state "drbg";
     (psp, datap) <- alloc_blob seedsize;
     crucible_execute_func [sp, psp];
+    (crucible_points_to (crucible_global "ignore_prediction_resistance_for_testing") (crucible_term {{ 0 : [8] }}) );
     let {{ res = drbg_generate_seedlen s fake_entropy True }};
     crucible_points_to datap (tm {{ split res.0 : [seedsize][8] }});
     ensure_drbg_state sp keyp {{ res.1 }};
