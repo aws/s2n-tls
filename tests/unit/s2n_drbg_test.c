@@ -379,8 +379,8 @@ int main(int argc, char **argv)
     uint64_t aes128_drbg_mixes_start = aes128_drbg.mixes;
     uint64_t aes256_pr_drbg_mixes_start = aes256_pr_drbg.mixes;
     for (int i = 0; i < 10; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     }
     EXPECT_EQUAL(aes128_drbg.mixes, aes128_drbg_mixes_start);
     EXPECT_EQUAL(aes256_pr_drbg.mixes, aes256_pr_drbg_mixes_start);
@@ -388,8 +388,8 @@ int main(int argc, char **argv)
     /* Check that we can enable prediction resistance again */
     EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(false));
     for (int i = 0; i < 10; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     }
     EXPECT_EQUAL(aes128_drbg.mixes, aes128_drbg_mixes_start + 10);
     EXPECT_EQUAL(aes256_pr_drbg.mixes, aes256_pr_drbg_mixes_start + 10);

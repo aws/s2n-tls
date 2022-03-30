@@ -143,8 +143,8 @@ static S2N_RESULT s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 static S2N_RESULT s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
     if (s2n_unlikely(ignore_prediction_resistance_for_testing == true)) {
-        POSIX_ENSURE(s2n_in_unit_test() == true, S2N_ERR_NOT_IN_UNIT_TEST);
-        return 0;
+        RESULT_ENSURE(s2n_in_unit_test() == true, S2N_ERR_NOT_IN_UNIT_TEST);
+        return S2N_RESULT_OK;
     }
 
     RESULT_STACK_BLOB(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
