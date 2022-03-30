@@ -32,6 +32,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${TEST_DEPS_DIR:=$BASE_S2N_DIR/test-deps}"
 : "${PYTHON_INSTALL_DIR:=$TEST_DEPS_DIR/python}"
 : "${GNUTLS_INSTALL_DIR:=$TEST_DEPS_DIR/gnutls}"
+: "${GNUTLS37_INSTALL_DIR:=$TEST_DEPS_DIR/gnutls37}"
 : "${PRLIMIT_INSTALL_DIR:=$TEST_DEPS_DIR/prlimit}"
 : "${SAW_INSTALL_DIR:=$TEST_DEPS_DIR/saw}"
 : "${Z3_INSTALL_DIR:=$TEST_DEPS_DIR/z3}"
@@ -87,6 +88,7 @@ export TESTS
 export BASE_S2N_DIR
 export PYTHON_INSTALL_DIR
 export GNUTLS_INSTALL_DIR
+export GNUTLS37_INSTALL_DIR
 export PRLIMIT_INSTALL_DIR
 export SAW_INSTALL_DIR
 export Z3_INSTALL_DIR

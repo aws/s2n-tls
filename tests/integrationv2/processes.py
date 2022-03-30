@@ -59,7 +59,8 @@ class _processCommunicator(object):
 
         return (stdout, stderr)
 
-    def communicate(self, input_data=None, send_marker_list=None, close_marker=None, timeout=None):
+    def communicate(self, input_data=None, send_marker_list=None, close_marker=None, kill_marker=None,
+                    send_with_newline=False, timeout=None):
         """
         Communicates with the managed process. If send_marker_list is set, input_data will not be sent
         until the marker is seen.
@@ -72,13 +73,21 @@ class _processCommunicator(object):
         stderr = None
 
         try:
-            stdout, stderr = self._communicate(input_data, send_marker_list, close_marker, timeout)
+            stdout, stderr = self._communicate(
+                input_data,
+                send_marker_list,
+                close_marker,
+                kill_marker,
+                send_with_newline,
+                timeout
+            )
         finally:
             self._communication_started = True
 
         return (stdout, stderr)
 
-    def _communicate(self, input_data=None, send_marker_list=None, close_marker=None, timeout=None):
+    def _communicate(self, input_data=None, send_marker_list=None, close_marker=None, kill_marker=None,
+                     send_with_newline=False, timeout=None):
         """
         This method will read and write data to a subprocess in a non-blocking manner.
         The code is heavily based on Popen.communicate. There are a couple differences:
@@ -176,6 +185,8 @@ class _processCommunicator(object):
                             if self.proc.stdin and input_data:
                                 selector.register(self.proc.stdin, selectors.EVENT_WRITE)
                                 message = input_data.pop(0)
+                                if send_with_newline:
+                                    message += b'\n'
                                 # Data destined for stdin is stored in a memoryview
                                 input_view = memoryview(message)
                                 input_data_len = len(message)
@@ -186,6 +197,11 @@ class _processCommunicator(object):
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
                             return None, None
+
+                        if kill_marker is not None and kill_marker in data:
+                            selector.unregister(self.proc.stdout)
+                            selector.unregister(self.proc.stderr)
+                            self.proc.kill()
 
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
@@ -236,8 +252,9 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
-    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None, close_marker=None,
-                 timeout=5, data_source=None, env_overrides=dict(), expect_stderr=False):
+    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None,
+                 close_marker=None, timeout=5, data_source=None, env_overrides=dict(), expect_stderr=False,
+                 kill_marker=None, send_with_newline=False):
         threading.Thread.__init__(self)
 
         proc_env = os.environ.copy()
@@ -269,6 +286,8 @@ class ManagedProcess(threading.Thread):
         self.data_source = data_source
         self.send_marker_list = send_marker_list
         self.expect_stderr = expect_stderr
+        self.kill_marker = kill_marker
+        self.send_with_newline = send_with_newline
 
         if data_source is not None:
             if type(data_source) is not list:
@@ -298,8 +317,22 @@ class ManagedProcess(threading.Thread):
 
             proc_results = None
             try:
-                proc_results = communicator.communicate(input_data=self.data_source, send_marker_list=self.send_marker_list, close_marker=self.close_marker, timeout=self.timeout)
-                self.results = Results(proc_results[0], proc_results[1], proc.returncode, None, self.expect_stderr)
+                proc_results = communicator.communicate(
+                    input_data=self.data_source,
+                    send_marker_list=self.send_marker_list,
+                    close_marker=self.close_marker,
+                    kill_marker=self.kill_marker,
+                    send_with_newline=self.send_with_newline,
+                    timeout=self.timeout,
+                )
+                self.results = Results(
+                    proc_results[0],
+                    proc_results[1],
+                    proc.returncode,
+                    None,
+                    expect_stderr=self.expect_stderr,
+                    expect_nonzero_exit=self.kill_marker is not None
+                )
             except subprocess.TimeoutExpired as ex:
                 proc.kill()
                 wrapped_ex = TimeoutException(ex)

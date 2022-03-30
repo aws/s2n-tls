@@ -144,6 +144,9 @@ class Certificates(object):
     RSA_2048_SHA256_WILDCARD = Cert("RSA_2048_SHA256_WILDCARD", "rsa_2048_sha256_wildcard")
     RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "localhost_rsa_pss_2048_sha256")
 
+    OCSP = Cert("OCSP_RSA", "ocsp/server")
+    OCSP_ECDSA = Cert("OCSP_ECDSA_256", "ocsp/server_ecdsa")
+
 
 class Protocol(object):
     def __init__(self, name, value):
@@ -379,25 +382,31 @@ class Results(object):
     # Any exception thrown while running the process
     exception = None
 
-    def __init__(self, stdout, stderr, exit_code, exception, expect_stderr=False):
+    def __init__(self, stdout, stderr, exit_code, exception, expect_stderr=False, expect_nonzero_exit=False):
         self.stdout = stdout
         self.stderr = stderr
         self.exit_code = exit_code
         self.exception = exception
         self.expect_stderr = expect_stderr
+        self.expect_nonzero_exit = expect_nonzero_exit
 
     def __str__(self):
         return "Stdout: {}\nStderr: {}\nExit code: {}\nException: {}".format(self.stdout, self.stderr, self.exit_code, self.exception)
 
     def assert_success(self):
         assert self.exception is None, self.exception
-        assert self.exit_code == 0, f"exit code: {self.exit_code}"
+        if not self.expect_nonzero_exit:
+            assert self.exit_code == 0, f"exit code: {self.exit_code}"
         if not self.expect_stderr:
             assert not self.stderr, self.stderr
 
+    def output_streams(self):
+        return {self.stdout, self.stderr}
+
 
 class ProviderOptions(object):
-    def __init__(self,
+    def __init__(
+            self,
             mode=None,
             host=None,
             port=None,
@@ -417,7 +426,12 @@ class ProviderOptions(object):
             server_name=None,
             protocol=None,
             use_mainline_version=None,
-            env_overrides=dict()):
+            env_overrides=dict(),
+            enable_client_ocsp=False,
+            ocsp_response=None,
+            signature_algorithm=None,
+            record_size=None
+    ):
 
         # Client or server
         self.mode = mode
@@ -480,3 +494,13 @@ class ProviderOptions(object):
 
         # Extra environment parameters
         self.env_overrides = env_overrides
+
+        # Enable OCSP on the client
+        self.enable_client_ocsp = enable_client_ocsp
+
+        # Path to OCSP response on the server
+        self.ocsp_response = ocsp_response
+
+        self.signature_algorithm = signature_algorithm
+
+        self.record_size = record_size

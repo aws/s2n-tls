@@ -4,8 +4,9 @@ import pytest
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
-from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version, to_bytes
+from providers import Provider, S2N, OpenSSL, GnuTLS
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version, \
+    to_bytes, get_expected_gnutls_version
 
 
 def test_nothing():
@@ -33,7 +34,7 @@ def invalid_version_negotiation_test_parameters(*args, **kwargs):
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N, OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate, protocol, provider, other_provider):
     port = next(available_ports)
@@ -46,7 +47,8 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
-        protocol=Protocols.TLS13)
+        protocol=Protocols.TLS13
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -55,7 +57,11 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
     server_options.cert = certificate.cert
     server_options.protocol = protocol
 
-    server = managed_process(provider, server_options, timeout=5)
+    kill_marker = None
+    if provider == GnuTLS:
+        kill_marker = random_bytes
+
+    server = managed_process(provider, server_options, timeout=5, kill_marker=kill_marker)
     client = managed_process(S2N, client_options, timeout=5)
 
     client_version = get_expected_s2n_version(Protocols.TLS13, provider)
@@ -75,7 +81,7 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
             assert to_bytes("Client protocol version: {}".format(actual_version)) in results.stdout
             assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
 
-        assert random_bytes[1:] in results.stdout
+        assert any([random_bytes[1:] in stream for stream in results.output_streams()])
 
 
 @pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
@@ -83,7 +89,7 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N, OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, certificate, protocol, provider, other_provider):
     port = next(available_ports)
@@ -96,7 +102,8 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
-        protocol=protocol)
+        protocol=protocol
+    )
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -124,6 +131,9 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
             # that our S2N server intended to negotiate.
             openssl_version = get_expected_openssl_version(protocol)
             assert to_bytes("Protocol  : {}".format(openssl_version)) in results.stdout
+        elif provider is GnuTLS:
+            gnutls_version = get_expected_gnutls_version(protocol)
+            assert to_bytes(f"Version: {gnutls_version}") in results.stdout
 
     for results in server.get_results():
         results.assert_success()

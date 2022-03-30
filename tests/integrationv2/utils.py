@@ -24,16 +24,21 @@ def get_expected_s2n_version(protocol, provider):
 
 
 def get_expected_openssl_version(protocol):
-    if protocol == Protocols.TLS13:
-        version = 'TLSv1.3'
-    elif protocol == Protocols.TLS12:
-        version = 'TLSv1.2'
-    elif protocol == Protocols.TLS11:
-        version = 'TLSv1.1'
-    elif protocol == Protocols.TLS10:
-        version = 'TLSv1'
+    return {
+        Protocols.TLS10.value: "TLSv1",
+        Protocols.TLS11.value: "TLSv1.1",
+        Protocols.TLS12.value: "TLSv1.2",
+        Protocols.TLS13.value: "TLSv1.3"
+    }.get(protocol.value)
 
-    return version
+
+def get_expected_gnutls_version(protocol):
+    return {
+        Protocols.TLS10.value: "TLS1.0",
+        Protocols.TLS11.value: "TLS1.1",
+        Protocols.TLS12.value: "TLS1.2",
+        Protocols.TLS13.value: "TLS1.3"
+    }.get(protocol.value)
 
 
 def get_parameter_name(item):
