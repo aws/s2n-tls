@@ -17,7 +17,7 @@ fn main() {
     gen_bindings(
         "#include <s2n.h>",
         &out_dir.join("lib"),
-        functions.parse(None),
+        functions.with_feature(None),
     )
     .allowlist_type("s2n_.*")
     .allowlist_function("s2n_.*")
@@ -30,7 +30,7 @@ fn main() {
     gen_bindings(
         "#include \"tls/s2n_quic_support.h\"",
         &out_dir.join("lib"),
-        functions.parse(Some("quic")),
+        functions.with_feature(Some("quic")),
     )
     .allowlist_function("s2n_.*quic.*")
     .allowlist_function("s2n_.*secret_callback.*")
@@ -46,7 +46,7 @@ fn main() {
     gen_bindings(
         "#include \"tls/s2n_internal.h\"",
         &out_dir.join("lib"),
-        functions.parse(Some("internal")),
+        functions.with_feature(Some("internal")),
     )
     // any new internal functions need to be added here
     .allowlist_function("s2n_.*")
@@ -134,7 +134,7 @@ struct FunctionCallbacks {
 }
 
 impl FunctionCallbacks {
-    fn parse(&self, feature: Option<&'static str>) -> Self {
+    fn with_feature(&self, feature: Option<&'static str>) -> Self {
         *self.feature.lock().unwrap() = feature;
         self.clone()
     }
