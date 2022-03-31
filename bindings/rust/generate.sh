@@ -32,6 +32,7 @@ cd s2n-tls-sys \
   && cargo test \
   && cargo test --release \
   && cargo test --features quic \
+  && cargo test --features internal \
   && cd ..
 
 cd integration \
