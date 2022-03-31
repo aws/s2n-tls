@@ -31,7 +31,7 @@
 
 S2N_API int s2n_config_enable_quic(struct s2n_config *config);
 S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
-bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
+S2N_API bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
 
 /*
  * Set the data to be sent in the quic_transport_parameters extension.

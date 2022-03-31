@@ -31,7 +31,6 @@
  * used for testing purposes. All Internal APIs are subject to change without notice.
  */
 
-
 struct s2n_config;
 struct s2n_connection;
 
