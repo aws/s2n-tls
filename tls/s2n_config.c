@@ -29,6 +29,7 @@
 #include "crypto/s2n_hkdf.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_random.h"
 
 #if defined(CLOCK_MONOTONIC_RAW)
 #define S2N_CLOCK_HW CLOCK_MONOTONIC_RAW
@@ -836,6 +837,24 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     }
 
     POSIX_GUARD(s2n_config_store_ticket_key(config, session_ticket_key));
+
+    return 0;
+}
+
+int s2n_config_generate_and_add_ticket_crypto_key(struct s2n_config *config, uint64_t intro_time_in_seconds_from_epoch)
+{
+    s2n_stack_blob(key_name, S2N_TICKET_KEY_NAME_LEN, S2N_TICKET_KEY_NAME_LEN);
+    s2n_stack_blob(key, S2N_AES256_KEY_LEN, S2N_AES256_KEY_LEN);
+
+    POSIX_GUARD_RESULT(s2n_get_public_random_data(&key_name));
+    POSIX_GUARD_RESULT(s2n_get_private_random_data(&key));
+
+    POSIX_GUARD(s2n_config_add_ticket_crypto_key(config,
+            key_name.data,
+            key_name.size,
+            key.data,
+            key.size,
+            intro_time_in_seconds_from_epoch));
 
     return 0;
 }
