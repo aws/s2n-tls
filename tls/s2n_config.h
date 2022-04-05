@@ -18,11 +18,11 @@
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
+#include "tls/s2n_psk.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
-#include "tls/s2n_psk.h"
 
 #define S2N_MAX_TICKET_KEYS 48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */

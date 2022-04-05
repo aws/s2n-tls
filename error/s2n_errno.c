@@ -267,7 +267,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PKEY_CTX_INIT, "Unable to initialize the libcrypto pkey context") \
     ERR_ENTRY(S2N_ERR_FORK_DETECTION_INIT, "Fork detection initialization failed") \
     ERR_ENTRY(S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER, "Retrieving fork generation number failed") \
-
+    ERR_ENTRY(S2N_ERR_SECRET_SCHEDULE_STATE, "Correct inputs to secret calculation not available") \
 /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
