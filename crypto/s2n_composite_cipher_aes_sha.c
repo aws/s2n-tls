@@ -36,6 +36,9 @@
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1)
 #define S2N_AES_SHA1_COMPOSITE_AVAILABLE
 #endif
+#if defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17)
+#undef S2N_AES_SHA1_COMPOSITE_AVAILABLE
+#endif
 /* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2
  * See https://www.openssl.org/news/cl102.txt
  * These composite ciphers exhibit erratic behavior in LibreSSL releases.
@@ -43,7 +46,9 @@
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2)
 #define S2N_AES_SHA256_COMPOSITE_AVAILABLE
 #endif
-
+#if defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17)
+#undef S2N_AES_SHA256_COMPOSITE_AVAILABLE
+#endif
 #endif
 
 /* Silly accessors, but we avoid using version macro guards in multiple places */
@@ -125,11 +130,11 @@ static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
                                                      uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
-    /* BoringSSL and AWS-LC do not support these composite ciphers with the existing EVP API, and they took out the
-     * constants used below. This method should never be called with BoringSSL or AWS-LC because the isAvaliable checked
-     * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL and AWS-LC.
+    /* BoringSSL and AWS-LC(AWSLC_API_VERSION <= 17) do not support these composite ciphers with the existing EVP API, and they took out the
+     * constants used below. This method should never be called with BoringSSL or AWS-LC(AWSLC_API_VERSION <= 17) because the isAvaliable checked
+     * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL and AWS-LC(AWSLC_API_VERSION <= 17).
      */
-#if defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_IS_BORINGSSL) || (defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17))
   POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 #else
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
