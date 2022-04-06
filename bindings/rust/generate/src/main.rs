@@ -126,11 +126,13 @@ fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
     Ok(())
 }
 
+type SharedBTreeSet<T> = Arc<Mutex<BTreeSet<T>>>;
+
 #[derive(Clone, Debug, Default)]
 struct FunctionCallbacks {
     feature: Arc<Mutex<Option<&'static str>>>,
-    types: Arc<Mutex<BTreeSet<String>>>,
-    functions: Arc<Mutex<BTreeSet<(Option<&'static str>, String)>>>,
+    types: SharedBTreeSet<String>,
+    functions: SharedBTreeSet<(Option<&'static str>, String)>,
 }
 
 impl FunctionCallbacks {

@@ -1,0 +1,106 @@
+---
+name: Rust Bindings
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  # Pin the nightly toolchain to prevent breakage.
+  # This should be occasionally updated.
+  RUST_NIGHTLY_TOOLCHAIN: nightly-2022-04-05
+  MANIFEST_PATH: bindings/rust/Cargo.toml
+
+jobs:
+  generate:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        id: toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ./bindings/rust/generate.sh
+
+      - name: Test external build
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
+          cmake --build build
+
+          export S2N_TLS_LIB_DIR=`pwd`/build/lib
+          export S2N_TLS_INCLUDE_DIR=`pwd`/api
+          export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
+
+          cd bindings/rust
+          ./generate.sh
+          ldd target/debug/integration | grep libs2n.so
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - uses: actions-rs/toolchain@v1.0.7
+        id: toolchain
+        with:
+          toolchain: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
+          profile: minimal
+          override: true
+          components: rustfmt
+
+      - uses: camshaft/rust-cache@v1
+
+      # We don't need to format the generated files,
+      # but if they don't exist other code breaks.
+      - name: Generate
+        run: ./bindings/rust/generate.sh
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: fmt
+          args: --manifest-path ${{ env.MANIFEST_PATH}} --all -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - uses: actions-rs/toolchain@v1.0.7
+        id: toolchain
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          components: clippy
+
+      - uses: camshaft/rust-cache@v1
+
+      # We don't need to format the generated files,
+      # but if they don't exist other code breaks.
+      - name: Generate
+        run: ./bindings/rust/generate.sh
+
+      # TODO translate json reports to in-action warnings
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: clippy
+          args: --manifest-path ${{ env.MANIFEST_PATH}} --all-targets -- -D warnings

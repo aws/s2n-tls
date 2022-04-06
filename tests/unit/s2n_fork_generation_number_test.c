@@ -45,8 +45,14 @@ struct fgn_test_case {
 static void s2n_verify_child_exit_status(pid_t proc_pid)
 {
     int status = 0;
+#if defined(S2N_CLONE_SUPPORTED)
     EXPECT_EQUAL(waitpid(proc_pid, &status, __WALL), proc_pid);
-
+#else
+    /* __WALL is not relevant when clone() is not supported
+     * https://man7.org/linux/man-pages/man2/wait.2.html#NOTES
+     */
+    EXPECT_EQUAL(waitpid(proc_pid, &status, 0), proc_pid);
+#endif
     /* Check that child exited with EXIT_SUCCESS. If not, this indicates
      * that an error was encountered in the unit tests executed in that
      * child process.

@@ -1,17 +1,20 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[rustfmt::skip]
 mod api;
 
 pub use api::*;
 
 #[cfg(feature = "quic")]
+#[rustfmt::skip]
 mod quic;
 
 #[cfg(feature = "quic")]
 pub use quic::*;
 
 #[cfg(feature = "internal")]
+#[rustfmt::skip]
 mod internal;
 
 #[cfg(feature = "internal")]
@@ -37,4 +40,5 @@ pub mod s2n_tls_version {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests;
