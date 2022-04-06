@@ -19,12 +19,14 @@ RESUMPTION_PROTOCOLS = [Protocols.TLS12, Protocols.TLS13]
 An old S2N server can resume a session with a new S2N server's session ticket. 
 Tests that S2N tickets are backwards-compatible.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [ OpenSSL ], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
     ticket_file = str(tmp_path / TICKET_FILE)
     assert not os.path.exists(ticket_file)
@@ -48,8 +50,10 @@ def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, pro
     server_options.cert = certificate.cert
     server_options.data_to_send = CLOSE_MARKER_BYTES
 
-    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
-    client = managed_process(provider, client_options, close_marker=str(CLOSE_MARKER_BYTES))
+    s2n_server = managed_process(
+        S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options,
+                             close_marker=str(CLOSE_MARKER_BYTES))
 
     for results in client.get_results():
         results.assert_success()
@@ -61,8 +65,10 @@ def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, pro
     client_options.extra_flags = ['-sess_in', ticket_file]
     server_options.use_mainline_version = True
 
-    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
-    client = managed_process(provider, client_options, close_marker=str(CLOSE_MARKER_BYTES))
+    s2n_server = managed_process(
+        S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options,
+                             close_marker=str(CLOSE_MARKER_BYTES))
 
     for results in client.get_results():
         results.assert_success()
@@ -76,12 +82,14 @@ def test_s2n_old_server_new_ticket(managed_process, tmp_path, cipher, curve, pro
 A new S2N server can resume a session with an old S2N server's session ticket. 
 Tests that S2N tickets are forwards-compatible.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [ OpenSSL ], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
     ticket_file = str(tmp_path / TICKET_FILE)
     assert not os.path.exists(ticket_file)
@@ -106,8 +114,10 @@ def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, pro
     server_options.cert = certificate.cert
     server_options.data_to_send = CLOSE_MARKER_BYTES
 
-    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
-    client = managed_process(provider, client_options, close_marker=str(CLOSE_MARKER_BYTES))
+    s2n_server = managed_process(
+        S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options,
+                             close_marker=str(CLOSE_MARKER_BYTES))
 
     for results in client.get_results():
         results.assert_success()
@@ -119,8 +129,10 @@ def test_s2n_new_server_old_ticket(managed_process, tmp_path, cipher, curve, pro
     client_options.extra_flags = ['-sess_in', ticket_file]
     server_options.use_mainline_version = False
 
-    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
-    client = managed_process(provider, client_options, close_marker=str(CLOSE_MARKER_BYTES))
+    s2n_server = managed_process(
+        S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options,
+                             close_marker=str(CLOSE_MARKER_BYTES))
 
     for results in client.get_results():
         results.assert_success()
@@ -135,12 +147,14 @@ An old S2N client can resume a session with an new S2N client's session ticket.
 Tests that S2N tickets are backwards-compatible. In our client tests we use an S2N
 server because the Openssl server uses a different ticket key for each session.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [ S2N ], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 def test_s2n_old_client_new_ticket(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
     ticket_file = str(tmp_path / TICKET_FILE)
     assert not os.path.exists(ticket_file)
@@ -192,12 +206,14 @@ def test_s2n_old_client_new_ticket(managed_process, tmp_path, cipher, curve, pro
 A new S2N client can resume a session with an old S2N client's session ticket. 
 Tests that S2N tickets are forwards-compatible.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", RESUMPTION_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [ S2N ], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 def test_s2n_new_client_old_ticket(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
     ticket_file = str(tmp_path / TICKET_FILE)
     assert not os.path.exists(ticket_file)

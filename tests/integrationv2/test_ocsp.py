@@ -112,7 +112,8 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, prot
         kill_marker = b"Sent: "
 
     server = managed_process(S2N, server_options, timeout=2000)
-    client = managed_process(provider, client_options, timeout=2000, kill_marker=kill_marker)
+    client = managed_process(provider, client_options,
+                             timeout=2000, kill_marker=kill_marker)
 
     for client_results in client.get_results():
         client_results.assert_success()
@@ -127,4 +128,5 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, curve, prot
     for server_results in server.get_results():
         server_results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character.
-        assert any([random_bytes[1:] in stream for stream in server_results.output_streams()])
+        assert any(
+            [random_bytes[1:] in stream for stream in server_results.output_streams()])

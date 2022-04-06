@@ -73,7 +73,8 @@ def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, p
 
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
 
     for results in server.get_results():
         results.assert_success()

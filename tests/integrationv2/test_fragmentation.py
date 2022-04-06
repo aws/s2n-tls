@@ -27,7 +27,8 @@ CERTIFICATES_TO_TEST = [
 @pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
 def test_s2n_server_low_latency(managed_process, cipher, provider, protocol, certificate):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
-        pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+        pytest.skip(
+            '{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
 
@@ -58,7 +59,8 @@ def test_s2n_server_low_latency(managed_process, cipher, provider, protocol, cer
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
         assert random_bytes in results.stdout
 
 
@@ -82,7 +84,8 @@ def invalid_test_parameters_frag_len(*args, **kwargs):
 @pytest.mark.parametrize("frag_len", [512, 2048, 8192, 12345, 16384], ids=get_parameter_name)
 def test_s2n_server_fragmented_data(managed_process, cipher, provider, protocol, frag_len, certificate):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
-        pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+        pytest.skip(
+            '{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
 
@@ -115,7 +118,8 @@ def test_s2n_server_fragmented_data(managed_process, cipher, provider, protocol,
 
     for server_results in server.get_results():
         server_results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in server_results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in server_results.stdout
 
         if provider == GnuTLS:
             # GnuTLS ignores data sent through stdin past frag_len up to the application data

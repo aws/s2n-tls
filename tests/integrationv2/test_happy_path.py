@@ -57,11 +57,13 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # the stdout reliably.
     for server_results in server.get_results():
         server_results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in server_results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in server_results.stdout
         assert random_bytes in server_results.stdout
 
         if provider is not S2N:
-            assert to_bytes("Cipher negotiated: {}".format(cipher.name)) in server_results.stdout
+            assert to_bytes("Cipher negotiated: {}".format(
+                cipher.name)) in server_results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -102,7 +104,8 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(provider, server_options, timeout=5, kill_marker=kill_marker)
+    server = managed_process(provider, server_options,
+                             timeout=5, kill_marker=kill_marker)
     client = managed_process(S2N, client_options, timeout=5)
 
     expected_version = get_expected_s2n_version(protocol, provider)
@@ -111,7 +114,8 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     # the stdout reliably.
     for client_results in client.get_results():
         client_results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in client_results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in client_results.stdout
 
     # The server will be one of all supported providers. We
     # just want to make sure there was no exception and that
@@ -119,4 +123,5 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     for server_results in server.get_results():
         server_results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character.
-        assert any([random_bytes[1:] in stream for stream in server_results.output_streams()])
+        assert any(
+            [random_bytes[1:] in stream for stream in server_results.output_streams()])
