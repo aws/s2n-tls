@@ -25,13 +25,13 @@
  * the behavior of S2N in potentially dangerous ways and should only be used by implementations
  * of the QUIC protocol.
  *
- * Additionally, the QUIC RFC is not yet finalized, so all QUIC APIs are considered experimental
- * and are subject to change without notice. They should only be used for testing purposes.
+ * Additionally, all QUIC APIs are considered experimental and are subject to change without
+ * notice. They should only be used for testing purposes.
  */
 
 S2N_API int s2n_config_enable_quic(struct s2n_config *config);
 S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
-bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
+S2N_API bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
 
 /*
  * Set the data to be sent in the quic_transport_parameters extension.

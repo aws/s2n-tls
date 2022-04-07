@@ -5,9 +5,10 @@ use crate::{
     raw::{config::*, security},
     testing::s2n_tls::Harness,
 };
+use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
-use core::task::Poll;
-use std::collections::VecDeque;
+use core::{sync::atomic::Ordering, task::Poll};
+use std::sync::atomic::AtomicUsize;
 
 pub mod s2n_tls;
 
@@ -133,7 +134,22 @@ impl CertKeyPair {
     }
 }
 
+#[derive(Default)]
+pub struct UnsecureAcceptAllClientCertificatesHandler {}
+impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        true
+    }
+}
+
 pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
+    let builder = config_builder(cipher_prefs)?;
+    Ok(builder.build().expect("Unable to build server config"))
+}
+
+pub fn config_builder(
+    cipher_prefs: &security::Policy,
+) -> Result<crate::raw::config::Builder, Error> {
     let mut builder = Builder::new();
     let mut keypair = CertKeyPair::default();
     // Build a config
@@ -144,32 +160,14 @@ pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::confi
         .load_pem(keypair.cert(), keypair.key())
         .expect("Unable to load cert/pem");
     unsafe {
-        let ctx: *mut core::ffi::c_void = std::ptr::null_mut();
         builder
-            .set_verify_host_callback(Some(verify_host_cb), ctx)
+            .set_verify_host_handler(UnsecureAcceptAllClientCertificatesHandler::default())
             .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()
             .expect("Unable to disable x509 verification");
     };
-    Ok(builder.build().expect("Unable to build server config"))
-}
-
-// host verify callback for x509
-// see: https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#s2n_verify_host_fn
-unsafe extern "C" fn verify_host_cb(
-    hostname: *const i8,
-    hostname_len: usize,
-    _context: *mut core::ffi::c_void,
-) -> u8 {
-    let host_str = ::std::str::from_utf8(::std::slice::from_raw_parts(
-        hostname as *const u8,
-        hostname_len,
-    ));
-    match host_str {
-        Err(_) => 0,
-        Ok(_host) => 1,
-    }
+    Ok(builder)
 }
 
 pub fn s2n_tls_pair(config: crate::raw::config::Config) {
@@ -190,7 +188,11 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
         .expect("Unabel to set client config");
     let client = Harness::new(client);
 
-    let mut pair = Pair::new(server, client, SAMPLES);
+    let pair = Pair::new(server, client, SAMPLES);
+    poll_tls_pair(pair);
+}
+
+pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
     loop {
         match pair.poll() {
             Poll::Ready(result) => {
@@ -202,4 +204,37 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
     }
 
     // TODO add assertions to make sure the handshake actually succeeded
+}
+
+#[derive(Clone)]
+pub struct MockClientHelloHandler {
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
+}
+
+impl MockClientHelloHandler {
+    pub fn new(require_pending_count: usize) -> Self {
+        Self {
+            require_pending_count,
+            invoked: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
+impl ClientHelloHandler for MockClientHelloHandler {
+    fn poll_client_hello(
+        &self,
+        connection: &mut crate::raw::connection::Connection,
+    ) -> core::task::Poll<Result<(), ()>> {
+        if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
+            // confirm the callback can access the waker
+            connection.waker().unwrap().wake_by_ref();
+            return Poll::Pending;
+        }
+
+        // Test that server_name_extension_used can be invoked
+        connection.server_name_extension_used();
+
+        Poll::Ready(Ok(()))
+    }
 }

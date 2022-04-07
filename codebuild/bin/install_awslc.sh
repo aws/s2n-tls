@@ -31,6 +31,12 @@ source codebuild/bin/jobs.sh
 
 cd "$BUILD_DIR"
 git clone https://github.com/awslabs/aws-lc.git
+if [ "$IS_FIPS" -eq "1" ]; then
+  cd aws-lc
+  git checkout -b fips-2021-10-20 origin/fips-2021-10-20
+  cd ..
+fi
+
 mkdir build
 cd build
 

@@ -19,6 +19,7 @@
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_internal.h"
 #include "tls/s2n_tls.h"
 
 #include "crypto/s2n_hash.h"
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const uint16_t max_connection_size = 9000;
+        const uint16_t max_connection_size = 9050;
         const uint16_t min_connection_size = max_connection_size * 0.75;
 
         size_t connection_size = sizeof(struct s2n_connection);
@@ -272,9 +273,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
         EXPECT_EQUAL(S2N_TLS_HASH_NONE, output);
 
-        s2n_tls_hash_algorithm expected_output[] = { S2N_TLS_HASH_NONE, S2N_TLS_HASH_MD5, 
-                                                     S2N_TLS_HASH_SHA1, S2N_TLS_HASH_SHA224, 
-                                                     S2N_TLS_HASH_SHA256, S2N_TLS_HASH_SHA384, 
+        s2n_tls_hash_algorithm expected_output[] = { S2N_TLS_HASH_NONE, S2N_TLS_HASH_MD5,
+                                                     S2N_TLS_HASH_SHA1, S2N_TLS_HASH_SHA224,
+                                                     S2N_TLS_HASH_SHA256, S2N_TLS_HASH_SHA384,
                                                      S2N_TLS_HASH_SHA512, S2N_TLS_HASH_MD5_SHA1,
                                                      S2N_TLS_HASH_NONE };
 
@@ -554,7 +555,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* s2n_connection_set_read_fd and s2n_connection_set_write_fd can be called 
+    /* s2n_connection_set_read_fd and s2n_connection_set_write_fd can be called
      * after s2n_connection_set_fd */
     {
         static const int OLDFD = 1;
@@ -629,6 +630,23 @@ int main(int argc, char **argv)
         EXPECT_NULL(conn->recv_io_context);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_connection_get_config */
+    {
+        struct s2n_config *returned_config = NULL;
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_config(conn, &returned_config), S2N_ERR_NULL);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_SUCCESS(s2n_connection_get_config(conn, &returned_config));
+        EXPECT_EQUAL(returned_config, config);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));

@@ -1,0 +1,324 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
+    width: 1000px;
+    margin: 0 auto 0 auto;
+    background-color: #eeeeee;
+}
+
+a {
+    text-decoration: none;
+    color: #0366d6;
+}
+
+:root {
+    --color-red-background: #ee0000;
+    --color-red-foreground: #ffffff;
+    --color-red-border: #cc0000;
+
+    --color-yellow-background: #eeee00;
+    --color-yellow-foreground: #000000;
+    --color-yellow-border: #cccc00;
+
+    --color-green-background: #00bb00;
+    --color-green-foreground: #ffffff;
+    --color-green-border: #999900;
+
+    --color-blue-background: #0000ee;
+    --color-blue-foreground: #ffffff;
+    --color-blue-border: #0000cc;
+
+    --color-black-background: #000000;
+    --color-black-foreground: #ffffff;
+    --color-black-border: #333333;
+}
+
+/* Header / footer */
+
+div#analytics h1 {
+    width: 900px;
+    margin: 50px 50px 30px 50px;
+}
+div#main_description {
+    width: 900px;
+    margin: -20px 50px 30px 50px;
+}
+div#footer {
+    margin: 15px 50px 30px 50px;
+    font-size: 13px;
+}
+
+/* Sections */
+
+div.sections {
+    background-color: #ffffff;
+    width: 900px;
+    min-height: 250px;
+    padding: 15px 50px 50px 50px;
+    border: solid 1px #dddddd;
+}
+
+div.section {
+    margin-top: 30px;
+    width: 900px;
+    position: relative;
+    display: inline-block;
+}
+div.section:after {
+    content: '';
+    clear: both;
+    display: inline-block;
+}
+div.section_metadata {
+    width: 275px;
+    margin-right: 25px;
+    float: left;
+}
+div.section_metadata h2 {
+    padding: 0;
+    margin: 0;
+}
+div.section_metadata .description {
+    margin-top: 15px;
+}
+
+div.section_widgets {
+    float: left;
+    width: 600px;
+}
+
+div.section_widgets > *:first-child {
+    margin-top: 0;
+}
+div.section_widgets > * {
+    margin-top: 25px;
+}
+
+/* Number widgets */
+
+div.number_widgets {
+    position: relative;
+    display: inline-block;
+}
+div.number_widgets:after {
+    content: '';
+    clear: both;
+    display: inline-block;
+}
+
+div.number_widget {
+    width: 143px;
+    height: 143px;
+    margin: 0 5px 5px 0;
+    float: left;
+    position: relative;
+    background-color: #ffffff;
+    border: solid 1px #dddddd;
+    color: #000000;
+}
+div.number_widget.red {
+    background-color: var(--color-red-background);
+    border: solid 1px var(--color-red-border);
+    color: var(--color-red-foreground);
+}
+div.number_widget.yellow {
+    background-color: var(--color-yellow-background);
+    border: solid 1px var(--color-yellow-border);
+    color: var(--color-yellow-foreground);
+}
+div.number_widget.green {
+    background-color: var(--color-green-background);
+    border: solid 1px var(--color-green-border);
+    color: var(--color-green-foreground);
+}
+div.number_widget.blue {
+    background-color: var(--color-blue-background);
+    border: solid 1px var(--color-blue-border);
+    color: var(--color-blue-foreground);
+}
+div.number_widget.black {
+    background-color: var(--color-black-background);
+    border: solid 1px var(--color-black-border);
+    color: var(--color-black-foreground);
+}
+div.number_widget .title {
+    display: block;
+    position: absolute;
+    top: 8px;
+    left: 0;
+    margin: 0 10px 0 10px;
+    font-size: 14px;
+}
+div.number_widget .value {
+    display: block;
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    margin: 0 10px 0 10px;
+    font-size: 80px;
+    vertical-align: bottom;
+    line-height: 1;
+}
+
+/* String widgets */
+
+div.string_widget {
+    width: 558px;
+    padding: 15px 20px;
+    background-color: #ffffff;
+    border: solid 1px #dddddd;
+    color: #000000;
+}
+div.string_widget.red {
+    background-color: var(--color-red-background);
+    border: solid 1px var(--color-red-border);
+    color: var(--color-red-foreground);
+}
+div.string_widget.yellow {
+    background-color: var(--color-yellow-background);
+    border: solid 1px var(--color-yellow-border);
+    color: var(--color-yellow-foreground);
+}
+div.string_widget.green {
+    background-color: var(--color-green-background);
+    border: solid 1px var(--color-green-border);
+    color: var(--color-green-foreground);
+}
+div.string_widget.blue {
+    background-color: var(--color-blue-background);
+    border: solid 1px var(--color-blue-border);
+    color: var(--color-blue-foreground);
+}
+div.string_widget.black {
+    background-color: var(--color-black-background);
+    border: solid 1px var(--color-black-border);
+    color: var(--color-black-foreground);
+}
+
+div.string_widget h3 {
+    margin: 0 0 15px 0;
+}
+
+/* Graph widgets */
+
+div.graph_widget h3.graph_title {
+    margin: 0 0 20px 0;
+}
+
+div.graph_widget h3.graph_title a {
+    color: #222222;
+}
+
+div.graph {
+    display: table;
+}
+div.graph_item {
+    display: table-row;
+}
+span.graph_item_title {
+    display: table-cell;
+    vertical-align: right;
+    padding: 5px 10px 5px 0;
+    white-space: nowrap;
+}
+span.graph_item_value {
+    display: table-cell;
+    width: 100%;
+    padding-right: 7px;
+    border-left: solid 1px #dddddd;
+}
+span.graph_item_value span.value {
+    display: block;
+    height: 15px;
+    text-align: right;
+    padding-right: 5px;
+    font-size: 11px;
+    background-color: #000000;
+    color: #ffffff;
+}
+span.graph_item_value span.empty_value {
+    padding-right: 0;
+}
+div.graph_item.red span.graph_item_value span.value {
+    background-color: var(--color-red-background);
+    border: solid 1px var(--color-red-border);
+    color: var(--color-red-foreground);
+}
+div.graph_item.yellow span.graph_item_value span.value {
+    background-color: var(--color-yellow-background);
+    border: solid 1px var(--color-yellow-border);
+    color: var(--color-yellow-foreground);
+}
+div.graph_item.green span.graph_item_value span.value {
+    background-color: var(--color-green-background);
+    border: solid 1px var(--color-green-border);
+    color: var(--color-green-foreground);
+}
+div.graph_item.blue span.graph_item_value span.value {
+    background-color: var(--color-blue-background);
+    border: solid 1px var(--color-blue-border);
+    color: var(--color-blue-foreground);
+}
+div.graph_item.black span.graph_item_value span.value {
+    background-color: var(--color-black-background);
+    border: solid 1px var(--color-black-border);
+    color: var(--color-black-foreground);
+}
+div.graph_item:last-of-type span.graph_item_value {
+    border-bottom: solid 1px #dddddd;
+}
+
+/* Table widgets */
+
+div.table_widget h3.table_title {
+    margin: 0 0 20px 0;
+}
+
+div.table_widget h3.table_title a {
+    color: #222222;
+}
+
+div.table_widget table {
+    border-collapse: collapse;
+    width: 600px;
+}
+div.table_widget table th, div.table_widget table td {
+    border: solid 1px #888888;
+    padding: 4px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+div.table_widget table th {
+    background-color: #cccccc;
+}
+div.table_widget table tr:nth-child(odd) td {
+    background-color: #e8e8e8;
+}
+div.table_widget table th a, div.table_widget table td a {
+    display: block;
+}
+div.table_widget table tr th.red, div.table_widget table tr td.red,
+div.table_widget table tr th.red a, div.table_widget table tr td.red a {
+    background-color: var(--color-red-background);
+    color: var(--color-red-foreground);
+}
+div.table_widget table tr th.yellow, div.table_widget table tr td.yellow,
+div.table_widget table tr th.yellow a, div.table_widget table tr td.yellow a {
+    background-color: var(--color-yellow-background);
+    color: var(--color-yellow-foreground);
+}
+div.table_widget table tr th.green, div.table_widget table tr td.green,
+div.table_widget table tr th.green a, div.table_widget table tr td.green a {
+    background-color: var(--color-green-background);
+    color: var(--color-green-foreground);
+}
+div.table_widget table tr th.blue, div.table_widget table tr td.blue,
+div.table_widget table tr th.blue a, div.table_widget table tr td.blue a {
+    background-color: var(--color-blue-background);
+    color: var(--color-blue-foreground);
+}
+div.table_widget table tr th.black, div.table_widget table tr td.black,
+div.table_widget table tr th.black a, div.table_widget table tr td.black a {
+    background-color: var(--color-black-background);
+    color: var(--color-black-foreground);
+}
+

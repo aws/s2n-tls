@@ -21,7 +21,8 @@ def managed_process():
     """
     processes = []
 
-    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None, expect_stderr=None):
+    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None,
+            expect_stderr=None, kill_marker=None, send_with_newline=None):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
         # The process will default to send markers in the providers.py file
@@ -30,22 +31,29 @@ def managed_process():
             provider.ready_to_send_input_marker = send_marker
         if expect_stderr is None:
             expect_stderr = provider.expect_stderr
-        p = ManagedProcess(cmd_line,
-                provider.set_provider_ready,
-                wait_for_marker=provider.ready_to_test_marker,
-                send_marker_list=provider.ready_to_send_input_marker,
-                close_marker=close_marker,
-                data_source=options.data_to_send,
-                timeout=timeout,
-                env_overrides=options.env_overrides,
-                expect_stderr=expect_stderr)
+        if send_with_newline is None:
+            send_with_newline = provider.send_with_newline
+        p = ManagedProcess(
+            cmd_line,
+            provider.set_provider_ready,
+            wait_for_marker=provider.ready_to_test_marker,
+            send_marker_list=provider.ready_to_send_input_marker,
+            close_marker=close_marker,
+            data_source=options.data_to_send,
+            timeout=timeout,
+            env_overrides=options.env_overrides,
+            expect_stderr=expect_stderr,
+            kill_marker=kill_marker,
+            send_with_newline=send_with_newline
+        )
 
         processes.append(p)
         with p.ready_condition:
             p.start()
             with provider._provider_ready_condition:
                 # Don't continue processing until the provider has indicated it is ready.
-                provider._provider_ready_condition.wait_for(provider.is_provider_ready, timeout)
+                provider._provider_ready_condition.wait_for(
+                    provider.is_provider_ready, timeout)
         return p
 
     try:
@@ -66,7 +74,8 @@ def _swap_mtu(device, new_mtu):
     Return the original MTU so it can be reset later.
     """
     cmd = ["ip", "link", "show", device]
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     mtu = 65536
     for line in p.stdout.readlines():
         s = line.decode("utf-8")

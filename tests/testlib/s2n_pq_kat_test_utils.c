@@ -16,7 +16,8 @@
 #include <sys/param.h>
 
 #include "tls/s2n_kem.h"
-#include "tests/testlib/s2n_nist_kats.h"
+#include "testlib/s2n_nist_kats.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq.h"
@@ -68,8 +69,8 @@ static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, stru
     RESULT_ENSURE(blob->size <= S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
     /* We do NOT mix in additional entropy */
-    RESULT_GUARD_POSIX(s2n_drbg_bits(drbg, blob));
-    RESULT_GUARD_POSIX(s2n_drbg_update(drbg, &zeros));
+    RESULT_GUARD(s2n_drbg_bits(drbg, blob));
+    RESULT_GUARD(s2n_drbg_update(drbg, &zeros));
 
     return S2N_RESULT_OK;
 }
@@ -102,7 +103,7 @@ S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_b
     return S2N_RESULT_OK;
 }
 
-int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
+static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
@@ -144,7 +145,7 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
          * we use the custom function s2n_drbg_generate_for_pq_kat_tests() defined above to turn off the
          * prediction resistance. */
         POSIX_GUARD(ReadHex(kat_file, kat_entropy_blob.data, SEED_LENGTH, "seed = "));
-        POSIX_GUARD(s2n_drbg_instantiate(&drbg_for_pq_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
+        POSIX_GUARD_RESULT(s2n_drbg_instantiate(&drbg_for_pq_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
 
         /* Generate the public/private key pair */
         POSIX_GUARD(kem->generate_keypair(pk, sk));
@@ -171,7 +172,7 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
         POSIX_ENSURE_EQ(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length ), 0);
 
         /* Wipe the DRBG; it will reseed for each KAT test vector. */
-        POSIX_GUARD(s2n_drbg_wipe(&drbg_for_pq_kats));
+        POSIX_GUARD_RESULT(s2n_drbg_wipe(&drbg_for_pq_kats));
     }
     fclose(kat_file);
     free(ct);
@@ -185,6 +186,26 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     free(ss_answer);
 
     return 0;
+}
+
+S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count)
+{
+    RESULT_ENSURE_GT(count, 0);
+    for (size_t i = 0; i < count; i++) {
+        const struct s2n_kem_kat_test_vector vector = test_vectors[i];
+        const struct s2n_kem *kem = vector.kem;
+
+        /* Test the C code */
+        RESULT_GUARD(vector.disable_asm());
+        RESULT_GUARD_POSIX(s2n_test_kem_with_kat(kem, vector.kat_file));
+
+        /* Test the assembly, if available */
+        RESULT_GUARD(vector.enable_asm());
+        if (vector.asm_is_enabled()) {
+            RESULT_GUARD_POSIX(s2n_test_kem_with_kat(kem, vector.kat_file));
+        }
+    }
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_pq_noop_asm() {
