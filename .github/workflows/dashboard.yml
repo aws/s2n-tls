@@ -13,6 +13,8 @@ on:
       - closed
 jobs:
   build:
+    # This should only run in one place.
+    if: contains(github.repository, 'aws/s2n-tls')
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
