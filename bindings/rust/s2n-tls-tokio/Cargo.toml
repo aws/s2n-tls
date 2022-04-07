@@ -12,7 +12,6 @@ default = []
 
 [dependencies]
 errno = { version = "0.2" }
-futures = { version = "0.3" }
 libc = { version = "0.2" }
 s2n-tls = { version = "=0.0.4", path = "../s2n-tls" }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread"] }

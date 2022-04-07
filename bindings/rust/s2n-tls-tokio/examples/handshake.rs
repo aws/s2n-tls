@@ -1,7 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use futures::join;
 use s2n_tls::raw::{config::Config, security::DEFAULT_TLS13};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
 use tokio::net::{TcpListener, TcpStream};
@@ -48,5 +47,5 @@ async fn run_server(stream: TcpStream) {
 async fn main() {
     let (client_stream, server_stream) = get_streams(&"127.0.0.1:4433").await;
 
-    join!(run_client(client_stream), run_server(server_stream));
+    tokio::join!(run_client(client_stream), run_server(server_stream));
 }
