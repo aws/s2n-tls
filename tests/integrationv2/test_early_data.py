@@ -16,22 +16,27 @@ from test_hello_retry_requests import S2N_HRR_MARKER
 TICKET_FILE = 'ticket'
 EARLY_DATA_FILE = 'early_data'
 
-MAX_EARLY_DATA = 500 # Arbitrary largish number
-DATA_TO_SEND = data_bytes(500) # Arbitrary large number
+MAX_EARLY_DATA = 500  # Arbitrary largish number
+DATA_TO_SEND = data_bytes(500)  # Arbitrary large number
 
-NUM_RESUMES = 5 # Hardcoded for s2nc --reconnect
-NUM_CONNECTIONS = NUM_RESUMES + 1 # resumes + initial
+NUM_RESUMES = 5  # Hardcoded for s2nc --reconnect
+NUM_CONNECTIONS = NUM_RESUMES + 1  # resumes + initial
 
 S2N_DEFAULT_CURVE = Curves.X25519
-S2N_UNSUPPORTED_CURVE = 'X448' # We have no plans to support this curve any time soon
-S2N_HRR_CURVES = list(curve for curve in ALL_TEST_CURVES if curve != S2N_DEFAULT_CURVE)
+# We have no plans to support this curve any time soon
+S2N_UNSUPPORTED_CURVE = 'X448'
+S2N_HRR_CURVES = list(
+    curve for curve in ALL_TEST_CURVES if curve != S2N_DEFAULT_CURVE)
 
 S2N_EARLY_DATA_MARKER = to_bytes("WITH_EARLY_DATA")
 S2N_EARLY_DATA_RECV_MARKER = "Early Data received: "
 S2N_EARLY_DATA_STATUS_MARKER = "Early Data status: {status}"
-S2N_EARLY_DATA_ACCEPTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="ACCEPTED")
-S2N_EARLY_DATA_REJECTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="REJECTED")
-S2N_EARLY_DATA_NOT_REQUESTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="NOT REQUESTED")
+S2N_EARLY_DATA_ACCEPTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(
+    status="ACCEPTED")
+S2N_EARLY_DATA_REJECTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(
+    status="REJECTED")
+S2N_EARLY_DATA_NOT_REQUESTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(
+    status="NOT REQUESTED")
 
 
 class S2N(S2NBase):
@@ -79,8 +84,8 @@ class OpenSSL(OpenSSLBase):
 # The `-sess_in`/`-sess_out` options can be used instead, but don't have an s2nc equivalent.
 # As we add more providers, we may need both a `-reconnect`-like and a `-sess_in/out`-like S2N server test,
 # but for now we can just use `-sess_in/out` and cover the S2N->S2N case in the S2N client tests.
-CLIENT_PROVIDERS = [ OpenSSL ]
-SERVER_PROVIDERS = [ OpenSSL, S2N ]
+CLIENT_PROVIDERS = [OpenSSL]
+SERVER_PROVIDERS = [OpenSSL, S2N]
 
 
 def get_early_data_bytes(file_path, early_data_size):
@@ -113,8 +118,10 @@ def get_ticket_from_s2n_server(options, managed_process, provider, certificate):
 
     assert not os.path.exists(options.ticket_file)
 
-    s2n_server = managed_process(S2N, server_options, send_marker=S2N.get_send_marker())
-    client = managed_process(provider, client_options, close_marker=str(close_marker_bytes))
+    s2n_server = managed_process(
+        S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options,
+                             close_marker=str(close_marker_bytes))
 
     for results in s2n_server.get_results():
         results.assert_success()
@@ -131,6 +138,8 @@ Basic S2N server happy case.
 We make one full connection to get a session ticket with early data enabled,
 then another resumption connection with early data.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -173,7 +182,8 @@ def test_s2n_server_with_early_data(managed_process, tmp_path, cipher, curve, pr
     for results in s2n_server.get_results():
         results.assert_success()
         assert S2N_EARLY_DATA_MARKER in results.stdout
-        assert (to_bytes(S2N_EARLY_DATA_RECV_MARKER) + early_data) in results.stdout
+        assert (to_bytes(S2N_EARLY_DATA_RECV_MARKER) +
+                early_data) in results.stdout
         assert to_bytes(S2N_EARLY_DATA_ACCEPTED_MARKER) in results.stdout
         assert DATA_TO_SEND in results.stdout
 
@@ -184,6 +194,8 @@ Basic S2N client happy case.
 The S2N client tests session resumption by repeatedly reconnecting.
 That means we don't need to manually perform the initial full connection, and there is no external ticket file.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
@@ -211,8 +223,8 @@ def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, protocol,
 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
-    server_options.key = certificate.key # Required for the initial connection
-    server_options.cert = certificate.cert # Required for the initial connection
+    server_options.key = certificate.key  # Required for the initial connection
+    server_options.cert = certificate.cert  # Required for the initial connection
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
@@ -221,7 +233,8 @@ def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, protocol,
     for results in s2n_client.get_results():
         results.assert_success()
         assert S2N_EARLY_DATA_MARKER in results.stdout
-        assert results.stdout.count(to_bytes(S2N_EARLY_DATA_ACCEPTED_MARKER)) == NUM_RESUMES
+        assert results.stdout.count(
+            to_bytes(S2N_EARLY_DATA_ACCEPTED_MARKER)) == NUM_RESUMES
 
     for results in server.get_results():
         results.assert_success()
@@ -234,6 +247,8 @@ Verify that the S2N client doesn't request early data when a server doesn't supp
 We repeatedly reconnect with max_early_data set to 0. This is basically a test from
 test_session_resumption but with validation that no early data is sent.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
@@ -260,8 +275,8 @@ def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, protoc
 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
-    server_options.key = certificate.key # Required for the initial connection
-    server_options.cert = certificate.cert # Required for the initial connection
+    server_options.key = certificate.key  # Required for the initial connection
+    server_options.cert = certificate.cert  # Required for the initial connection
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
@@ -274,7 +289,8 @@ def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, protoc
     for results in s2n_client.get_results():
         results.assert_success()
         assert S2N_EARLY_DATA_MARKER not in results.stdout
-        assert results.stdout.count(to_bytes(S2N_EARLY_DATA_NOT_REQUESTED_MARKER)) == NUM_CONNECTIONS
+        assert results.stdout.count(
+            to_bytes(S2N_EARLY_DATA_NOT_REQUESTED_MARKER)) == NUM_CONNECTIONS
 
 
 """
@@ -286,6 +302,8 @@ When the client attempts to use the ticket to send early data, the server reject
 We can't perform an S2N client version of this test because the S2N client performs its hardcoded
 reconnects automatically, without any mechanism to modify the connection in between.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -341,6 +359,8 @@ Test the S2N client attempting to send early data, but the server triggering a h
 We trigger the HRR by configuring the server to only accept curves that the S2N client
 does not send key shares for.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", S2N_HRR_CURVES, ids=get_parameter_name)
@@ -350,7 +370,8 @@ does not send key shares for.
 @pytest.mark.parametrize("early_data_size", [int(MAX_EARLY_DATA/2), int(MAX_EARLY_DATA-1), MAX_EARLY_DATA, 1])
 def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, early_data_size):
     if provider == S2N:
-        pytest.skip("S2N does not respect ProviderOptions.curve, so does not trigger a retry")
+        pytest.skip(
+            "S2N does not respect ProviderOptions.curve, so does not trigger a retry")
 
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
     early_data = get_early_data_bytes(early_data_file, early_data_size)
@@ -373,8 +394,8 @@ def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
-    server_options.key = certificate.key # Required for the initial connection
-    server_options.cert = certificate.cert # Required for the initial connection
+    server_options.key = certificate.key  # Required for the initial connection
+    server_options.cert = certificate.cert  # Required for the initial connection
     server_options.reconnects_before_exit = NUM_CONNECTIONS
 
     server = managed_process(provider, server_options)
@@ -384,7 +405,8 @@ def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
         results.assert_success()
         assert S2N_EARLY_DATA_MARKER not in results.stdout
         assert S2N_HRR_MARKER in results.stdout
-        assert results.stdout.count(to_bytes(S2N_EARLY_DATA_REJECTED_MARKER)) == NUM_RESUMES
+        assert results.stdout.count(
+            to_bytes(S2N_EARLY_DATA_REJECTED_MARKER)) == NUM_RESUMES
 
     for results in server.get_results():
         results.assert_success()
@@ -397,6 +419,8 @@ Test the S2N server rejecting early data because of a hello retry request.
 In order to trigger a successful retry, we need to force the peer to offer us a key share that
 S2N doesn't support while still supporting at least one curve S2N does support.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -449,6 +473,8 @@ def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
 """
 Test the S2N server fails if it receives too much early data.
 """
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -459,7 +485,8 @@ Test the S2N server fails if it receives too much early data.
 def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, excess_early_data):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
-    early_data = get_early_data_bytes(early_data_file, MAX_EARLY_DATA + excess_early_data)
+    early_data = get_early_data_bytes(
+        early_data_file, MAX_EARLY_DATA + excess_early_data)
 
     options = ProviderOptions(
         port=next(available_ports),
@@ -502,6 +529,6 @@ def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, ciph
         # Full early data should not be reported
         assert early_data not in results.stdout
         # Partial early data should be reported
-        assert (to_bytes(S2N_EARLY_DATA_RECV_MARKER) + early_data[:MAX_EARLY_DATA]) in results.stdout
+        assert (to_bytes(S2N_EARLY_DATA_RECV_MARKER) +
+                early_data[:MAX_EARLY_DATA]) in results.stdout
         assert to_bytes("Bad message encountered") in results.stderr
-
