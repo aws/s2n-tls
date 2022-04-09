@@ -142,8 +142,8 @@ static S2N_RESULT s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 static S2N_RESULT s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
-    if (s2n_unlikely(ignore_prediction_resistance_for_testing == true)) {
-        RESULT_ENSURE(s2n_in_unit_test() == true, S2N_ERR_NOT_IN_UNIT_TEST);
+    if (s2n_unlikely(ignore_prediction_resistance_for_testing)) {
+        RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         return S2N_RESULT_OK;
     }
 

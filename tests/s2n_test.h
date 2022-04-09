@@ -55,8 +55,7 @@ int test_count;
         else {                                                                      \
             fprintf(stdout, "SKIPPED       ALL tests\n" );                          \
         }                                                                           \
-    }                                                                               \
-    return 0;
+    }
 
 /* This is a very basic, but functional unit testing framework. All testing
  * should happen in main() and start with a BEGIN_TEST() and end with an
@@ -76,18 +75,14 @@ int test_count;
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
         END_TEST_PRINT()                                            \
+        return 0;                                                   \
     } while(0)
 
-/* Macro's similar to BEGIN_TEST() and END_TEST() but for tests that forks at
- * the start of the test. {BEGIN,END}_FORK_TEST is used in the parent process,
- * while {BEGIN,END}_FORK_TEST_IN_CHILD should be used at the start,
- * respectively, end of the child process test code. BEGIN_FORK_TEST_IN_CHILD
- * might be called after child-specific setup code. For example,
- * s2n_fork_generation_number_test will disable a varying subset of available
- * fork detection methods in childs spawned, before calling
- * BEGIN_FORK_TEST_IN_CHILD.
+/* Macros similar to BEGIN_TEST() and END_TEST() but for tests where s2n should
+ * not initialise at the start of the test. Useful for tests that e.g spawn a
+ * number of independent childs at the start of a unit test.
  */
-#define BEGIN_FORK_TEST()                                           \
+#define BEGIN_TEST_NO_INIT()                                        \
     do {                                                            \
         test_count = 0;                                             \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
@@ -95,22 +90,11 @@ int test_count;
         fprintf(stdout, "Running %-50s ... ", __FILE__);            \
     } while(0)
 
-#define BEGIN_FORK_TEST_IN_CHILD()                                  \
-    do {                                                            \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
-    } while(0)
-
-#define END_FORK_TEST()                                             \
+#define END_TEST_NO_INIT()                                          \
     do {                                                            \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
         END_TEST_PRINT()                                            \
-    } while(0)
-
-#define END_FORK_TEST_IN_CHILD()                                    \
-    do {                                                            \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
+        return 0;                                                   \
     } while(0)
 
 #define FAIL()      FAIL_MSG("")

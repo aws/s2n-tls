@@ -255,11 +255,11 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
 
 static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
 {
-    BEGIN_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_init());
 
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
-    END_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -268,11 +268,11 @@ static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 {
     POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
 
-    BEGIN_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_init());
 
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
-    END_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -285,11 +285,11 @@ static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
     }
     POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
 
-    BEGIN_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_init());
 
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
-    END_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -302,11 +302,11 @@ static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
     }
     POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
 
-    BEGIN_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_init());
 
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
-    END_FORK_TEST_IN_CHILD();
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -320,7 +320,15 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
 
 int main(int argc, char **argv)
 {
-    BEGIN_FORK_TEST();
+    BEGIN_TEST_NO_INIT();
+
+    /* BEGIN_TEST_NO_INIT prints unit test information to stdout. But this often
+     * gets buffered by the kernel and will then be flushed in each child
+     * spawned below. The result is a number of repeated messages being send to
+     * stdout and, in turn, in the logs. Flushing now to prevent leaking the
+     * stdout print into childs.
+     */
+    fflush(stdout);
 
     EXPECT_TRUE(s2n_array_len(fgn_test_cases) == NUMBER_OF_FGN_TEST_CASES);
 
@@ -354,5 +362,5 @@ int main(int argc, char **argv)
         }
     }
 
-    END_FORK_TEST();
+    END_TEST_NO_INIT();
 }
