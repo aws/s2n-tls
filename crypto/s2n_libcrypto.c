@@ -22,24 +22,16 @@
 
 #include <string.h>
 
-/* Empty header file in AWS-LC source tree, that can sanity check whether the
- * correct header files are included. OPENSSL_IS_AWSLC provides this check as
- * well, but adding defense-in-depth with no added cost.
- */
-#if defined(OPENSSL_IS_AWSLC)
-#include "openssl/is_awslc.h"
-#endif
-
 #define EXPECTED_AWSLC_VERSION_NAME "AWS-LC"
 #define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
 
-/* Per https://wiki.openssl.org/index.php/Manual:OPENSSL_VERSION_NUMBER(3)
- * OPENSSL_VERSION_NUMBER in hex is: MNNFFRBB major minor fix final beta/patch.
- * bitwise: MMMMNNNNNNNNFFFFFFFFRRRRBBBBBBBB
- * For our purposes we're only concerned about major/minor/fix. Patch versions
- * don't usually introduce features.
+/* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
+ * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
+ * Bitwise: MMMMNNNNNNNNFFFFFFFFPPPPPPPPSSSS
+ * To not be overly restrictive, we onyl care about major and minor versions.
+ * From OpenSSL 3.0 the "fix" part is also deprecated and is always a flat 0x00.
  */
-#define VERSION_NUMBER_MASK 0xFFF00000UL
+#define VERSION_NUMBER_MASK 0xFFF00000L
 
 /* Returns the version name of the libcrypto containing the definition that the
  * symbol OpenSSL_version binded to at link-time. This can be used as
@@ -79,7 +71,7 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
 }
 
 /* s2n_libcrypto_is_*() encodes the libcrypto version used at build-time.
- * Currently only supports AWS-LC and BoringSSL. When a libcrypto-dependent
+ * Currently only captures AWS-LC and BoringSSL. When a libcrypto-dependent
  * branch is required, we prefer these functions where possible to reduce
  # #ifs and avoid potential bugs where the header containing the #define is not
  * included.
