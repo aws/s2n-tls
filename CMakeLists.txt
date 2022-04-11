@@ -623,6 +623,9 @@ if (BUILD_TESTING)
                 COMMAND
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
+            # if we're building tests, we export the prefixed symbols so tests can link to them
+            set_target_properties(${test_case_name} PROPERTIES LINK_FLAGS
+                "-Wl,--whole-archive s2n_libcrypto.a -Wl,--no-whole-archive")
         endif()
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
