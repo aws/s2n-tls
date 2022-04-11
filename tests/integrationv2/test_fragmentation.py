@@ -28,7 +28,8 @@ CERTIFICATES_TO_TEST = [
 @pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
 def test_s2n_server_low_latency(managed_process, cipher, provider, other_provider, protocol, certificate):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
-        pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+        pytest.skip(
+            '{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
 
@@ -59,7 +60,8 @@ def test_s2n_server_low_latency(managed_process, cipher, provider, other_provide
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
         assert random_bytes in results.stdout
 
 
@@ -85,7 +87,8 @@ def invalid_test_parameters_frag_len(*args, **kwargs):
 def test_s2n_server_framented_data(managed_process, cipher, provider, other_provider, protocol, certificate,
                                    frag_len):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
-        pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+        pytest.skip(
+            '{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
 
@@ -118,7 +121,8 @@ def test_s2n_server_framented_data(managed_process, cipher, provider, other_prov
 
     for server_results in server.get_results():
         server_results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in server_results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in server_results.stdout
 
         if provider == GnuTLS:
             # GnuTLS ignores data sent through stdin past frag_len up to the application data

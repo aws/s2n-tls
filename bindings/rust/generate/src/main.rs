@@ -1,7 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bindgen::CodegenConfig;
 use std::{
     collections::BTreeSet,
     io,
@@ -13,44 +12,51 @@ fn main() {
     let out_dir = std::env::args().nth(1).expect("missing sys dir");
     let out_dir = Path::new(&out_dir);
 
-    gen_bindings("#include <s2n.h>", &out_dir.join("lib"))
-        .allowlist_type("s2n_.*")
-        .allowlist_function("s2n_.*")
-        .allowlist_var("s2n_.*")
-        .generate()
-        .unwrap()
-        .write_to_file(out_dir.join("src/api.rs"))
-        .unwrap();
-
-    gen_bindings("#include \"tls/s2n_quic_support.h\"", &out_dir.join("lib"))
-        .allowlist_function("s2n_.*quic.*")
-        .allowlist_function("s2n_.*secret_callback.*")
-        .blocklist_type("s2n_config")
-        .blocklist_type("s2n_connection")
-        .raw_line("use crate::api::*;\n")
-        .generate()
-        .unwrap()
-        .write_to_file(out_dir.join("src/quic.rs"))
-        .unwrap();
-
-    gen_bindings("#include \"tls/s2n_internal.h\"", &out_dir.join("lib"))
-        .allowlist_function("s2n_.*")
-        .blocklist_type("s2n_config")
-        .blocklist_type("s2n_connection")
-        .raw_line("use crate::api::*;\n")
-        .generate()
-        .unwrap()
-        .write_to_file(out_dir.join("src/internal.rs"))
-        .unwrap();
-
     let functions = FunctionCallbacks::default();
 
-    gen_bindings("#include <s2n.h>", &out_dir.join("lib"))
-        .allowlist_function("s2n_.*")
-        .with_codegen_config(CodegenConfig::FUNCTIONS)
-        .parse_callbacks(Box::new(functions.clone()))
-        .generate()
-        .unwrap();
+    gen_bindings(
+        "#include <s2n.h>",
+        &out_dir.join("lib"),
+        functions.with_feature(None),
+    )
+    .allowlist_type("s2n_.*")
+    .allowlist_function("s2n_.*")
+    .allowlist_var("s2n_.*")
+    .generate()
+    .unwrap()
+    .write_to_file(out_dir.join("src/api.rs"))
+    .unwrap();
+
+    gen_bindings(
+        "#include \"tls/s2n_quic_support.h\"",
+        &out_dir.join("lib"),
+        functions.with_feature(Some("quic")),
+    )
+    .allowlist_function("s2n_.*quic.*")
+    .allowlist_function("s2n_.*secret_callback.*")
+    .allowlist_function("s2n_error_get_alert")
+    .blocklist_type("s2n_config")
+    .blocklist_type("s2n_connection")
+    .raw_line("use crate::api::*;\n")
+    .generate()
+    .unwrap()
+    .write_to_file(out_dir.join("src/quic.rs"))
+    .unwrap();
+
+    gen_bindings(
+        "#include \"tls/s2n_internal.h\"",
+        &out_dir.join("lib"),
+        functions.with_feature(Some("internal")),
+    )
+    // any new internal functions need to be added here
+    .allowlist_function("s2n_.*")
+    .blocklist_type("s2n_config")
+    .blocklist_type("s2n_connection")
+    .raw_line("use crate::api::*;\n")
+    .generate()
+    .unwrap()
+    .write_to_file(out_dir.join("src/internal.rs"))
+    .unwrap();
 
     functions.tests(&out_dir.join("src/tests.rs")).unwrap();
 
@@ -68,7 +74,7 @@ const PRELUDE: &str = r#"
 use libc::{iovec, FILE};
 "#;
 
-fn gen_bindings(entry: &str, s2n_dir: &Path) -> bindgen::Builder {
+fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
     let builder = bindgen::Builder::default()
         .use_core()
         .layout_tests(true)
@@ -91,7 +97,7 @@ fn gen_bindings(entry: &str, s2n_dir: &Path) -> bindgen::Builder {
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
         .ctypes_prefix("::libc")
-        .parse_callbacks(Box::new(S2nCallbacks::default()))
+        .parse_callbacks(Box::new(functions))
         .clang_arg(format!("-I{}/api", s2n_dir.display()))
         .clang_arg(format!("-I{}", s2n_dir.display()));
     builder
@@ -120,51 +126,21 @@ fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Default)]
-struct S2nCallbacks;
-
-impl bindgen::callbacks::ParseCallbacks for S2nCallbacks {
-    fn enum_variant_name(
-        &self,
-        _enum_name: Option<&str>,
-        variant_name: &str,
-        _variant_value: bindgen::callbacks::EnumVariantValue,
-    ) -> Option<String> {
-        if !variant_name.starts_with("S2N_") {
-            return None;
-        }
-
-        let variant_name = variant_name
-            .trim_start_matches("S2N_ERR_T_")
-            .trim_start_matches("S2N_EXTENSION_")
-            // keep the LEN_ so it's a valid identifier
-            .trim_start_matches("S2N_TLS_MAX_FRAG_")
-            .trim_start_matches("S2N_ALERT_")
-            .trim_start_matches("S2N_CT_SUPPORT_")
-            .trim_start_matches("S2N_STATUS_REQUEST_")
-            .trim_start_matches("S2N_CERT_AUTH_")
-            .trim_start_matches("S2N_CLIENT_HELLO_CB_")
-            .trim_start_matches("S2N_TLS_SIGNATURE_")
-            .trim_start_matches("S2N_TLS_HASH_")
-            .trim_start_matches("S2N_PSK_HMAC_")
-            .trim_start_matches("S2N_PSK_MODE_")
-            .trim_start_matches("S2N_ASYNC_PKEY_VALIDATION_")
-            .trim_start_matches("S2N_ASYNC_")
-            .trim_start_matches("S2N_EARLY_DATA_STATUS_")
-            // match everything else
-            .trim_start_matches("S2N_");
-
-        Some(variant_name.to_owned())
-    }
-}
+type SharedBTreeSet<T> = Arc<Mutex<BTreeSet<T>>>;
 
 #[derive(Clone, Debug, Default)]
 struct FunctionCallbacks {
-    types: Arc<Mutex<BTreeSet<String>>>,
-    functions: Arc<Mutex<BTreeSet<String>>>,
+    feature: Arc<Mutex<Option<&'static str>>>,
+    types: SharedBTreeSet<String>,
+    functions: SharedBTreeSet<(Option<&'static str>, String)>,
 }
 
 impl FunctionCallbacks {
+    fn with_feature(&self, feature: Option<&'static str>) -> Self {
+        *self.feature.lock().unwrap() = feature;
+        self.clone()
+    }
+
     fn tests(&self, out: &Path) -> io::Result<()> {
         use io::Write;
         let functions = self.functions.lock().unwrap();
@@ -180,6 +156,7 @@ impl FunctionCallbacks {
                 "s2n_cache_retrieve_callback",
                 "s2n_cache_store_callback",
                 "s2n_cert",
+                "s2n_cert_public_key",
                 "s2n_cert_chain_and_key",
                 "s2n_cert_private_key",
                 "s2n_cert_tiebreak_callback",
@@ -206,6 +183,7 @@ impl FunctionCallbacks {
                 "s2n_rand_mix_callback",
                 "s2n_rand_seed_callback",
                 "s2n_recv_fn",
+                "s2n_secret_cb",
                 "s2n_send_fn",
                 "s2n_session_ticket",
                 "s2n_session_ticket_fn",
@@ -221,8 +199,24 @@ impl FunctionCallbacks {
         let mut o = io::BufWriter::new(&mut tests);
 
         writeln!(o, "{}", COPYRIGHT)?;
-        for function in functions.difference(&types) {
+        for (feature, function) in functions.iter() {
+            // don't generate tests for types
+            if types.contains(function) {
+                continue;
+            }
+
+            // don't generate a test if it's enabled without a feature
+            if feature.is_some() && functions.contains(&(None, function.to_string())) {
+                continue;
+            }
+
             writeln!(o, "#[test]")?;
+
+            // if the function is behind a feature, gate it with `cfg`
+            if let Some(feature) = feature {
+                writeln!(o, "#[cfg(feature = {:?})]", feature)?;
+            };
+
             writeln!(o, "fn {} () {{", function)?;
             writeln!(o, "    let ptr = crate::{} as *const ();", function)?;
             writeln!(o, "    assert!(!ptr.is_null());")?;
@@ -238,19 +232,48 @@ impl bindgen::callbacks::ParseCallbacks for FunctionCallbacks {
     fn enum_variant_name(
         &self,
         name: Option<&str>,
-        _original_variant_name: &str,
+        variant_name: &str,
         _variant_value: bindgen::callbacks::EnumVariantValue,
     ) -> Option<String> {
         let name = name.unwrap_or("");
         if name.starts_with("s2n_") {
             self.types.lock().unwrap().insert(name.to_owned());
         }
-        None
+
+        if !variant_name.starts_with("S2N_") {
+            return None;
+        }
+
+        let variant_name = variant_name
+            .trim_start_matches("S2N_ERR_T_")
+            .trim_start_matches("S2N_EXTENSION_")
+            // keep the LEN_ so it's a valid identifier
+            .trim_start_matches("S2N_TLS_MAX_FRAG_")
+            .trim_start_matches("S2N_ALERT_")
+            .trim_start_matches("S2N_CT_SUPPORT_")
+            .trim_start_matches("S2N_STATUS_REQUEST_")
+            .trim_start_matches("S2N_CERT_AUTH_")
+            .trim_start_matches("S2N_CLIENT_HELLO_CB_")
+            .trim_start_matches("S2N_TLS_SIGNATURE_")
+            .trim_start_matches("S2N_TLS_HASH_")
+            .trim_start_matches("S2N_PSK_HMAC_")
+            .trim_start_matches("S2N_PSK_MODE_")
+            .trim_start_matches("S2N_ASYNC_PKEY_VALIDATION_")
+            .trim_start_matches("S2N_ASYNC_")
+            .trim_start_matches("S2N_EARLY_DATA_STATUS_")
+            // match everything else
+            .trim_start_matches("S2N_");
+
+        Some(variant_name.to_owned())
     }
 
     fn item_name(&self, name: &str) -> Option<String> {
         if name.starts_with("s2n_") {
-            self.functions.lock().unwrap().insert(name.to_owned());
+            let feature = *self.feature.lock().unwrap();
+            self.functions
+                .lock()
+                .unwrap()
+                .insert((feature, name.to_owned()));
         }
         None
     }

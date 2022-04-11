@@ -52,7 +52,8 @@ def managed_process():
             p.start()
             with provider._provider_ready_condition:
                 # Don't continue processing until the provider has indicated it is ready.
-                provider._provider_ready_condition.wait_for(provider.is_provider_ready, timeout)
+                provider._provider_ready_condition.wait_for(
+                    provider.is_provider_ready, timeout)
         return p
 
     try:
@@ -73,7 +74,8 @@ def _swap_mtu(device, new_mtu):
     Return the original MTU so it can be reset later.
     """
     cmd = ["ip", "link", "show", device]
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     mtu = 65536
     for line in p.stdout.readlines():
         s = line.decode("utf-8")

@@ -42,10 +42,6 @@
 #include <unistd.h>
 
 
-#if defined(S2N_MINHERIT_SUPPORTED) && defined(S2N_MADVISE_SUPPORTED)
-#error "Both S2N_MINHERIT_SUPPORTED and S2N_MADVISE_SUPPORTED are defined. This should not be possible."
-#endif
-
 #if defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK)
 #if (MADV_WIPEONFORK != 18)
 #error "MADV_WIPEONFORK is not 18"

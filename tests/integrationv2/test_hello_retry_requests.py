@@ -40,7 +40,7 @@ def test_nothing():
 def test_hrr_with_s2n_as_client(managed_process, cipher, provider, other_provider, curve, protocol, certificate):
     if curve == S2N_DEFAULT_CURVE:
         pytest.skip("No retry if server curve matches client curve")
-        
+
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -68,7 +68,8 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, other_provide
     # The client should connect and return without error
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert to_bytes("Curve: {}".format(
+            CURVE_NAMES[curve.name])) in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
@@ -78,7 +79,8 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, other_provide
         results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
-        assert to_bytes("Shared Elliptic groups: {}".format(server_options.curve)) in results.stdout
+        assert to_bytes("Shared Elliptic groups: {}".format(
+            server_options.curve)) in results.stdout
         assert random_bytes in results.stdout
 
 
@@ -100,7 +102,7 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, other_provide
         data_to_send=random_bytes,
         insecure=True,
         curve=curve,
-        extra_flags = ['-msg', '-curves', 'X448:'+str(curve)],
+        extra_flags=['-msg', '-curves', 'X448:'+str(curve)],
         protocol=protocol)
 
     server_options = copy.copy(client_options)
@@ -119,7 +121,8 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, other_provide
     for results in server.get_results():
         results.assert_success()
         assert random_bytes in results.stdout
-        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert to_bytes("Curve: {}".format(
+            CURVE_NAMES[curve.name])) in results.stdout
         assert random_bytes in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
@@ -140,8 +143,11 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, other_provide
     assert server_hello_count == 2
     assert finished_count == 2
 
-# Default Keyshare for TLS v1.3 is x25519 
-TEST_CURVES = ALL_TEST_CURVES[1:] 
+
+# Default Keyshare for TLS v1.3 is x25519
+TEST_CURVES = ALL_TEST_CURVES[1:]
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -177,7 +183,8 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, other_prov
     # The client should connect and return without error
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert to_bytes("Curve: {}".format(
+            CURVE_NAMES[curve.name])) in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
@@ -187,6 +194,6 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, other_prov
         results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
-        assert to_bytes("Shared Elliptic groups: {}".format(server_options.curve)) in results.stdout
+        assert to_bytes("Shared Elliptic groups: {}".format(
+            server_options.curve)) in results.stdout
         assert random_bytes in results.stdout
-

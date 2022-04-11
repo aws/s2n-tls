@@ -33,6 +33,7 @@ class _processCommunicator(object):
     framework. We rely on sleeps and waits, and still hit hard to debug deadlocks from
     time to time.
     """
+
     def __init__(self, proc):
         self.proc = proc
         self.wait_for_marker = None
@@ -156,7 +157,7 @@ class _processCommunicator(object):
                 for key, events in ready:
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
-                        chunk = input_view[input_data_offset :
+                        chunk = input_view[input_data_offset:
                                            input_data_offset + _PIPE_BUF]
                         try:
                             input_data_offset += os.write(key.fd, chunk)
@@ -183,7 +184,8 @@ class _processCommunicator(object):
                         # just mark input_send as true so we can close out STDIN.
                         if send_marker is not None and send_marker in str(data):
                             if self.proc.stdin and input_data:
-                                selector.register(self.proc.stdin, selectors.EVENT_WRITE)
+                                selector.register(
+                                    self.proc.stdin, selectors.EVENT_WRITE)
                                 message = input_data.pop(0)
                                 if send_with_newline:
                                     message += b'\n'
@@ -239,9 +241,9 @@ class _processCommunicator(object):
             return
         if skip_check_and_raise or _time() > endtime:
             raise subprocess.TimeoutExpired(
-                    self.proc.args, orig_timeout,
-                    output=b''.join(stdout_seq) if stdout_seq else None,
-                    stderr=b''.join(stderr_seq) if stderr_seq else None)
+                self.proc.args, orig_timeout,
+                output=b''.join(stdout_seq) if stdout_seq else None,
+                stderr=b''.join(stderr_seq) if stderr_seq else None)
 
 
 class ManagedProcess(threading.Thread):
@@ -252,6 +254,7 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
+
     def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None,
                  close_marker=None, timeout=5, data_source=None, env_overrides=dict(), expect_stderr=False,
                  kill_marker=None, send_with_newline=False):
@@ -300,10 +303,12 @@ class ManagedProcess(threading.Thread):
     def run(self):
         with self.results_condition:
             try:
-                proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+                proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
                 self.proc = proc
             except Exception as ex:
-                self.results = Results(None, None, None, ex, self.expect_stderr)
+                self.results = Results(
+                    None, None, None, ex, self.expect_stderr)
                 raise ex
 
             communicator = _processCommunicator(proc)
@@ -339,17 +344,21 @@ class ManagedProcess(threading.Thread):
 
                 # Read any remaining output
                 proc_results = communicator.communicate()
-                self.results = Results(proc_results[0], proc_results[1], proc.returncode, wrapped_ex, self.expect_stderr)
+                self.results = Results(
+                    proc_results[0], proc_results[1], proc.returncode, wrapped_ex, self.expect_stderr)
             except Exception as ex:
-                self.results = Results(proc_results[0], proc_results[1], proc.returncode, ex, self.expect_stderr)
+                self.results = Results(
+                    proc_results[0], proc_results[1], proc.returncode, ex, self.expect_stderr)
                 raise ex
             finally:
                 # This data is dumped to stdout so we capture this
                 # information no matter where a test fails.
                 print("Command line: {}".format(" ".join(self.cmd_line)))
                 print("Exit code: {}".format(proc.returncode))
-                print("Stdout: {}".format(proc_results[0].decode("utf-8", "backslashreplace")))
-                print("Stderr: {}".format(proc_results[1].decode("utf-8", "backslashreplace")))
+                print("Stdout: {}".format(
+                    proc_results[0].decode("utf-8", "backslashreplace")))
+                print("Stderr: {}".format(
+                    proc_results[1].decode("utf-8", "backslashreplace")))
 
     def kill(self):
         self.proc.kill()
@@ -378,7 +387,8 @@ class ManagedProcess(threading.Thread):
         Return the results, or raise the timeout exception.
         """
         with self.results_condition:
-            result = self.results_condition.wait_for(self._results_ready, timeout=self.timeout)
+            result = self.results_condition.wait_for(
+                self._results_ready, timeout=self.timeout)
 
             if result is False:
                 raise Exception("Timeout")

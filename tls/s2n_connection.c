@@ -35,6 +35,7 @@
 #include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_internal.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"

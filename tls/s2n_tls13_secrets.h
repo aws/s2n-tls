@@ -31,25 +31,19 @@ typedef enum {
 } s2n_extract_secret_type_t;
 
 struct s2n_tls13_secrets {
-    uint8_t early_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t extract_secret[S2N_TLS13_SECRET_MAX_LEN];
+    s2n_extract_secret_type_t extract_secret_type;
 
-    uint8_t handshake_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t client_early_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t client_handshake_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t server_handshake_secret[S2N_TLS13_SECRET_MAX_LEN];
 
-    uint8_t master_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t client_app_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t server_app_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
-
-    s2n_extract_secret_type_t secrets_state;
 };
 
 S2N_RESULT s2n_tls13_empty_transcripts_init();
-
-S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type);
-S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
-        s2n_mode mode, struct s2n_blob *secret);
 
 S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn);
 S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,

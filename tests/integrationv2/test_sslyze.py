@@ -179,8 +179,10 @@ def validate_scan_result(scan_attempt, protocol, certificate=None):
 def get_scan_attempts(scan_results):
     # scan_results (sslyze.AllScanCommandsAttempts) is an object containing parameters mapped to scan attempts. convert
     # this to a list containing just scan attempts, and then filter out tests that were not scheduled.
-    scan_attribute_names = [attr_name for attr_name in dir(scan_results) if not attr_name.startswith("__")]
-    scan_attempts = [getattr(scan_results, attr_name) for attr_name in scan_attribute_names]
+    scan_attribute_names = [attr_name for attr_name in dir(
+        scan_results) if not attr_name.startswith("__")]
+    scan_attempts = [getattr(scan_results, attr_name)
+                     for attr_name in scan_attribute_names]
     scan_attempts = [
         scan_attempt for scan_attempt in scan_attempts
         if scan_attempt.status != sslyze.ScanCommandAttemptStatusEnum.NOT_SCHEDULED
@@ -248,7 +250,8 @@ def test_sslyze_scans(managed_process, protocol, scan_command, provider):
 
     # Test 1.3 exclusively
     if protocol == Protocols.TLS13:
-        server_options.cipher = Cipher("test_all_tls13", Protocols.TLS13, False, False, s2n=True)
+        server_options.cipher = Cipher(
+            "test_all_tls13", Protocols.TLS13, False, False, s2n=True)
 
     if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
         server_options.reconnect = True,

@@ -14,6 +14,7 @@ S2N_PROVIDER_VERSION = 's2n_provider_version'
 
 _flags = {}
 
+
 def get_flag(name, default=None):
     """Return the value of a flag"""
     return _flags.get(name, default)

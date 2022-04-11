@@ -24,24 +24,6 @@
 /* Length of the synthetic message header */
 #define MESSAGE_HASH_HEADER_LENGTH  4
 
-static S2N_RESULT s2n_tls13_calculate_digest(struct s2n_connection *conn, uint8_t *digest) {
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(digest);
-
-    s2n_hash_algorithm hash_algorithm = S2N_HASH_NONE;
-    RESULT_ENSURE_REF(conn->secure.cipher_suite);
-    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure.cipher_suite->prf_alg, &hash_algorithm));
-
-    uint8_t digest_size = 0;
-    RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
-
-    RESULT_ENSURE_REF(conn->handshake.hashes);
-    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
-    RESULT_GUARD(s2n_handshake_copy_hash_state(conn, hash_algorithm, hash_state));
-    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, digest, digest_size));
-    return S2N_RESULT_OK;
-}
-
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
     POSIX_ENSURE_REF(conn);
@@ -89,32 +71,6 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
         POSIX_GUARD(s2n_hash_update(&hashes->sha512, data->data, data->size));
-    }
-
-    /*
-     * TLS1.3 secret derivation requires specific transcript hash digests as inputs.
-     * Save the relevant hash state digests for later use.
-     */
-    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
-        switch(s2n_conn_get_current_message_type(conn)) {
-            case CLIENT_HELLO:
-                POSIX_ENSURE_REF(conn->secure.cipher_suite);
-                if (conn->secure.cipher_suite->prf_alg != S2N_HMAC_NONE) {
-                    POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->client_hello_digest));
-                }
-                break;
-            case SERVER_HELLO:
-                POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->server_hello_digest));
-                break;
-            case SERVER_FINISHED:
-                POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->server_finished_digest));
-                break;
-            case CLIENT_FINISHED:
-                POSIX_GUARD_RESULT(s2n_tls13_calculate_digest(conn, hashes->client_finished_digest));
-                break;
-            default:
-                break;
-        }
     }
 
     return S2N_SUCCESS;
