@@ -13,14 +13,81 @@
  * permissions and limitations under the License.
  */
 
+#include <openssl/crypto.h>
+
 #include "crypto/s2n_crypto.h"
 #include "crypto/s2n_openssl.h"
+#include "crypto/s2n_libcrypto.h"
+#include "utils/s2n_safety_macros.h"
 
-/*
- * Verifying libcrypto type via method should be preferred
- * where possible, since it reduces #ifs and avoids potential
- * bugs where the header containing the #define is not included.
+#include <string.h>
+
+/* Empty header file in AWS-LC source tree, that can sanity check whether the
+ * correct header files are included. OPENSSL_IS_AWSLC provides this check as
+ * well, but adding defense-in-depth with no added cost.
  */
+#if defined(OPENSSL_IS_AWSLC)
+#include "openssl/is_awslc.h"
+#endif
+
+#define EXPECTED_AWSLC_VERSION_NAME "AWS-LC"
+#define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
+
+/* Per https://wiki.openssl.org/index.php/Manual:OPENSSL_VERSION_NUMBER(3)
+ * OPENSSL_VERSION_NUMBER in hex is: MNNFFRBB major minor fix final beta/patch.
+ * bitwise: MMMMNNNNNNNNFFFFFFFFRRRRBBBBBBBB
+ * For our purposes we're only concerned about major/minor/fix. Patch versions
+ * don't usually introduce features.
+ */
+#define VERSION_NUMBER_MASK 0xFFF00000UL
+
+/* Returns the version name of the libcrypto containing the definition that the
+ * symbol OpenSSL_version binded to at link-time. This can be used as
+ * verification at run-time that s2n linked against the expected libcrypto.
+ */
+const char * s2n_libcrypto_get_version_name(void)
+{
+    return OpenSSL_version(OPENSSL_VERSION);
+}
+
+static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expected_version_name)
+{
+    RESULT_ENSURE_REF(expected_version_name);
+    RESULT_ENSURE_REF(s2n_libcrypto_get_version_name());
+    RESULT_ENSURE_EQ(strlen(expected_version_name), strlen(s2n_libcrypto_get_version_name()));
+    RESULT_ENSURE(memcmp(expected_version_name, s2n_libcrypto_get_version_name(), strlen(expected_version_name)) == 0, S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
+
+    return S2N_RESULT_OK;
+}
+
+/* Compare compile-time version number with the version number of the libcrypto
+ * containing the definition that the symbol OpenSSL_version_num binded to at
+ * link-time.
+ *
+ * This is an imperfect check for AWS-LC and BoringSSL, since their version
+ * number is basically never incremented. However, for these we have a strong
+ * check through s2n_libcrypto_validate_expected_version_name(), so it is not
+ * of great importance.
+ */
+static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
+{
+    unsigned long compile_time_version_number = s2n_get_openssl_version() & VERSION_NUMBER_MASK;
+    unsigned long run_time_version_number = OpenSSL_version_num() & VERSION_NUMBER_MASK;
+    RESULT_ENSURE(compile_time_version_number == run_time_version_number, S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH);
+
+    return S2N_RESULT_OK;
+}
+
+/* s2n_libcrypto_is_*() encodes the libcrypto version used at build-time.
+ * Currently only supports AWS-LC and BoringSSL. When a libcrypto-dependent
+ * branch is required, we prefer these functions where possible to reduce
+ # #ifs and avoid potential bugs where the header containing the #define is not
+ * included.
+ */
+
+#if defined(OPENSSL_IS_AWSLC) && defined(OPENSSL_IS_BORINGSSL)
+#error "Both OPENSSL_IS_AWSLC and OPENSSL_IS_BORINGSSL are defined at the same time!"
+#endif
 
 bool s2n_libcrypto_is_awslc()
 {
@@ -40,3 +107,67 @@ bool s2n_libcrypto_is_boringssl()
 #endif
 }
 
+/* Returns true if the libcrypto linked to is in fips mode. Otherwise, returns
+ * false.
+ *
+ * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only
+ * returns the current state. Applications using s2n must call FIPS_mode_set(1)
+ * prior to s2n_init, except if using the fips module from AWS-LC.
+ */
+bool s2n_libcrypto_is_fips(void)
+{
+#if defined(AWSLC_FIPS) && defined(OPENSSL_FIPS)
+#error "Both AWSLC_FIPS and OPENSSL_FIPS are defined at the same time!"
+#endif
+
+#if defined(AWSLC_FIPS)
+    if (s2n_libcrypto_is_awslc() && (FIPS_mode() == 1)) {
+        return true;
+    }
+#endif
+
+#if defined(OPENSSL_FIPS)
+    if (FIPS_mode() == 1) {
+        return true;
+    }
+#endif
+
+    return false;
+}
+
+/* Performs various checks to validate that the libcrypto used at compile-time
+ * is the same libcrypto being used at run-time.
+ */
+S2N_RESULT s2n_libcrypto_validate_runtime(void)
+{
+    /* Sanity check that we don't think we built against AWS-LC and BoringSSL at
+     * the same time.
+     */
+    RESULT_ENSURE_EQ(s2n_libcrypto_is_boringssl() && s2n_libcrypto_is_awslc(), false);
+
+    /* If we know the expected version name, we can validate it. */
+    if (s2n_libcrypto_is_awslc()) {
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(EXPECTED_AWSLC_VERSION_NAME));
+    }
+    else if (s2n_libcrypto_is_boringssl()) {
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(EXPECTED_BORINGSSL_VERSION_NAME));
+    }
+
+    RESULT_GUARD(s2n_libcrypto_validate_expected_version_number());
+
+    return S2N_RESULT_OK;
+}
+
+bool s2n_libcrypto_is_interned(void)
+{
+#if defined(S2N_LIBCRYPTO_INTERNED)
+    return true;
+#else
+    return false;
+#endif
+}
+
+unsigned long s2n_get_openssl_version(void)
+{
+    return OPENSSL_VERSION_NUMBER;
+}

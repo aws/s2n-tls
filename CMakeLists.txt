@@ -546,6 +546,8 @@ if (S2N_INTERN_LIBCRYPTO)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
 
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_INTERNED)
+
     # Don't call link_target_libraries here, just make sure the libcrypto include dir is in the path
     include_directories("${crypto_INCLUDE_DIR}")
 
