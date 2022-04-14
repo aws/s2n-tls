@@ -13,15 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/crypto.h>
-
 #include "crypto/s2n_crypto.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_libcrypto.h"
+#include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
 
+#include <openssl/crypto.h>
 #include <string.h>
 
+/* Note: OpenSSL 1.0.2 -> 1.1.0 implemented a new API to get the version number
+ * and version name. We have to handle that by using old functions
+ * (named "SSLea*"). Newer version of OpenSSL luckily define these symbols to
+ * the new API. When dropping OpenSSL 1.0.2 support, we can move to the new API.
+ */
+
+/* Version name for OpenSSL depends on the version string, but for AWS-LC and
+ * BoringSSL, this can be statically asserted.
+ */
 #define EXPECTED_AWSLC_VERSION_NAME "AWS-LC"
 #define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
 
@@ -39,7 +48,7 @@
  */
 static const char * s2n_libcrypto_get_version_name(void)
 {
-    return OpenSSL_version(OPENSSL_VERSION);
+    return SSLeay_version(SSLEAY_VERSION);
 }
 
 static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expected_version_name)
@@ -47,7 +56,7 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expec
     RESULT_ENSURE_REF(expected_version_name);
     RESULT_ENSURE_REF(s2n_libcrypto_get_version_name());
     RESULT_ENSURE_EQ(strlen(expected_version_name), strlen(s2n_libcrypto_get_version_name()));
-    RESULT_ENSURE(memcmp(expected_version_name, s2n_libcrypto_get_version_name(), strlen(expected_version_name)) == 0, S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
+    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_version_name, (const uint8_t *)  s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_version_name)), S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
 
     return S2N_RESULT_OK;
 }
@@ -64,7 +73,7 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expec
 static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
 {
     unsigned long compile_time_version_number = s2n_get_openssl_version() & VERSION_NUMBER_MASK;
-    unsigned long run_time_version_number = OpenSSL_version_num() & VERSION_NUMBER_MASK;
+    unsigned long run_time_version_number = SSLeay() & VERSION_NUMBER_MASK;
     RESULT_ENSURE(compile_time_version_number == run_time_version_number, S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH);
 
     return S2N_RESULT_OK;
