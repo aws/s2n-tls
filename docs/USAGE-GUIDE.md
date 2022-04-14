@@ -66,11 +66,11 @@ sudo make install
 s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:
 
 ````shell
-find_package(s2n-tls)
+find_package(s2n)
 
 ....
 
-target_link_libraries(yourExecutableOrLibrary AWS::s2n-tls)
+target_link_libraries(yourExecutableOrLibrary AWS::s2n)
 ````
 
 And when invoking CMake for your project, do one of two things:
@@ -533,6 +533,23 @@ int s2n_config_free(struct s2n_config *config);
 ```
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
+
+### s2n\_config\_set\_ctx
+
+```c
+int s2n_config_set_ctx(struct s2n_config *config, void *ctx);
+```
+
+**s2n_config_set_ctx** sets user defined context on the **s2n_config** object.
+
+### s2n\_config\_get\_ctx
+
+```c
+int s2n_config_get_ctx(struct s2n_config *config, void **ctx);
+```
+
+**s2n_config_get_ctx** gets user defined context from the **s2n_config** object.
+
 
 ### s2n\_config\_set\_cipher\_preferences
 
@@ -1761,7 +1778,7 @@ See [Asynchronous private key operations](#Asynchronous-private-key-operations)
 See [Offloading private key operations](#Offloading-private-key-operations)
 
 To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
-are performed. The callback is set via **s2n_config_set_async_pkey_callback** and is triggered 
+are performed. The callback is set via **s2n_config_set_async_pkey_callback** and is triggered
 every time **s2n_negotiate** performs an action involving the private key. The callback is passed
 **op**, an opaque object representing the private key operation. To avoid memory leaks, **op** must
 always eventually be freed by calling **s2n_async_pkey_op_free**.

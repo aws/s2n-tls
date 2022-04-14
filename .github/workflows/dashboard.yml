@@ -1,0 +1,110 @@
+name: Build Dashboard
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - closed
+  issues:
+    types:
+      - opened
+      - reopened
+      - closed
+jobs:
+  build:
+    # This should only run in one place.
+    if: contains(github.repository, 'aws/s2n-tls')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Check out GitHub Pages branch
+        uses: actions/checkout@v2
+        with:
+          ref: 'gh-pages'
+
+      - name: 'Generate Dashboard'
+        uses: ethomson/issue-dashboard@v1
+        with:
+          config: |
+            title: s2n-tls Dashboard
+            description: |
+              Issues and PRs for s2n-tls
+            output:
+              format: html
+              filename: dashboard/index.html
+            sections:
+            - title: 'Issues Age stats'
+              description: 'Open issues by age.'
+              widgets:
+              - type: 'graph'
+                title: 'Age'
+                elements:
+                - title: '<7 days'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue created:>{{ date("-7 days") }}'
+                  color: 'green'
+                - title: '8-90 days'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue created:{{ date("-90 days") }}..{{ date("-7 days") }}'
+                  color: 'yellow'
+                - title: '>1 year labeled type/api'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:type/api created:<{{ date("-365 days") }}'
+                  color: 'red'
+                - title: '>1 year labeled type/test'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:type/test created:<{{ date("-365 days") }}'
+                  color: 'red'
+                - title: '>1 year labeled type/build'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:type/build created:<{{ date("-365 days") }}'
+                  color: 'red'
+                - title: '>1 year labeled CBMC'
+                  issue_query: 'repo:aws/s2n-tls is:open is:issue label:cbmc created:<{{ date("-365 days") }}'
+                  color: 'red'
+
+            - title: 'Issues'
+              description: 'Issues with no comments'
+              widgets:
+              - type: 'number'
+                title: 'Issues with zero comments (external)'
+                issue_query: 'repo:aws/s2n-tls is:open is:issue comments:0 -label:s2n-core'
+                color: 'yellow'
+              - type: 'number'
+                title: 'Issues with updates in the last 14 days (external)'
+                issue_query: 'repo:aws/s2n-tls is:issue is:open updated:>{{ date("-14 days") }} -label:s2n-core'
+                color: 'yellow'
+
+            - title: 'Pull Requests'
+              widgets:
+              - type: 'number'
+                title: 'Ready to merge'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:approved'
+                color: 'green'
+              - type: 'number'
+                title: 'No review (external) last 14 days'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:none -label:status/stale -label:s2n-core created:>{{ date("-14 days") }}'
+                color: 'red'
+              - type: 'number'
+                title: 'PRs with changes requested (external)'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:changes_requested sort:created-asc -label:status/stale -label:s2n-core'
+                color: 'blue'
+              - type: 'number'
+                title: 'PRs with zero interactions (external)'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr interactions:0 sort:created-asc -label:status/stale -label:s2n-core'
+                color: 'blue'
+              - type: 'table'
+                title: '15 Oldest Pull Requests without review'
+                fields:
+                - title: 'PR'
+                  property: 'number'
+                - title: 'Description'
+                  property: 'title'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:none sort:created-asc'
+                limit: 15
+          token: ${{ github.token }}
+
+      - name: Publish Documentation
+        run: |
+          git add .
+          git config user.name 'GitHub Actions'
+          git config user.email 'nobody@github.com'
+          git commit -m 'Dashboard update' --allow-empty
+          git push origin gh-pages

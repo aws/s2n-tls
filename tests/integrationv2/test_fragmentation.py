@@ -4,23 +4,31 @@ import pytest
 from configuration import available_ports, PROTOCOLS
 from common import ProviderOptions, Ciphers, Certificates, data_bytes
 from fixtures import managed_process
-from providers import Provider, S2N, OpenSSL
+from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
-def multi_cipher_name(c):
-    return ':'.join([x.name for x in c])
+CIPHERS_TO_TEST = [
+    Ciphers.AES256_SHA,
+    Ciphers.ECDHE_ECDSA_AES256_SHA,
+    Ciphers.AES256_GCM_SHA384
+]
+
+CERTIFICATES_TO_TEST = [
+    Certificates.RSA_4096_SHA384,
+    Certificates.ECDSA_384
+]
 
 
-multi_cipher = [Ciphers.AES256_SHA, Ciphers.ECDHE_ECDSA_AES256_SHA]
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("multi_cipher", [multi_cipher], ids=multi_cipher_name)
-@pytest.mark.parametrize("provider", [OpenSSL])
+@pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", [Certificates.RSA_4096_SHA384, Certificates.ECDSA_384], ids=get_parameter_name)
-def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protocol, certificate):
+@pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
+def test_s2n_server_low_latency(managed_process, cipher, provider, protocol, certificate):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
-        pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+        pytest.skip(
+            '{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
 
@@ -28,7 +36,7 @@ def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protoco
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
-        cipher=multi_cipher,
+        cipher=cipher,
         data_to_send=random_bytes,
         insecure=True,
         protocol=protocol)
@@ -51,19 +59,33 @@ def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protoco
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
         assert random_bytes in results.stdout
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("multi_cipher", [multi_cipher], ids=multi_cipher_name)
-@pytest.mark.parametrize("provider", [OpenSSL])
+def invalid_test_parameters_frag_len(*args, **kwargs):
+    provider = kwargs.get("provider")
+    frag_len = kwargs.get("frag_len")
+
+    # Check to make sure frag_len is compatible with gnutls.
+    if provider == GnuTLS:
+        if frag_len > 4096:
+            return True
+
+    return invalid_test_parameters(*args, **kwargs)
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters_frag_len)
+@pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", [Certificates.RSA_4096_SHA384, Certificates.ECDSA_384], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("frag_len", [512, 2048, 8192, 12345, 16384], ids=get_parameter_name)
-def test_s2n_server_framented_data(managed_process, multi_cipher, provider, protocol, frag_len, certificate):
+def test_s2n_server_fragmented_data(managed_process, cipher, provider, protocol, frag_len, certificate):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
-        pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+        pytest.skip(
+            '{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
 
@@ -71,11 +93,12 @@ def test_s2n_server_framented_data(managed_process, multi_cipher, provider, prot
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
-        cipher=multi_cipher,
+        cipher=cipher,
         data_to_send=random_bytes,
         insecure=True,
-        extra_flags=['-max_send_frag', str(frag_len)],
-        protocol=protocol)
+        record_size=frag_len,
+        protocol=protocol
+    )
 
     server_options = copy.copy(client_options)
     server_options.extra_flags = None
@@ -88,12 +111,19 @@ def test_s2n_server_framented_data(managed_process, multi_cipher, provider, prot
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
-    for results in client.get_results():
-        results.assert_success()
+    for client_results in client.get_results():
+        client_results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
-    for results in server.get_results():
-        results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
-        assert random_bytes in results.stdout
+    for server_results in server.get_results():
+        server_results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in server_results.stdout
+
+        if provider == GnuTLS:
+            # GnuTLS ignores data sent through stdin past frag_len up to the application data
+            # packet length of 4096. so, just check to make sure data up to frag_len was received.
+            assert random_bytes[:frag_len] in server_results.stdout
+        else:
+            assert random_bytes in server_results.stdout

@@ -4,7 +4,7 @@ import pytest
 import time
 
 from configuration import (available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES,
-    ALL_TEST_CERTS, PROTOCOLS)
+                           ALL_TEST_CERTS, PROTOCOLS)
 from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
@@ -21,6 +21,7 @@ CERTS_TO_TEST = [
     Certificates.RSA_PSS_2048_SHA256,
 ]
 
+
 def assert_openssl_handshake_complete(results, is_complete=True):
     if is_complete:
         assert b'read finished' in results.stderr
@@ -32,9 +33,11 @@ def assert_openssl_handshake_complete(results, is_complete=True):
 def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True):
     expected_version = get_expected_s2n_version(protocol, provider)
     if is_complete:
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
     else:
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) not in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) not in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -76,7 +79,6 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
         assert b'write certificate verify' in results.stderr
         assert_openssl_handshake_complete(results)
 
-
     # S2N should successfully connect
     for results in server.get_results():
         results.assert_success()
@@ -112,7 +114,7 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
     server_options.cert = certificate.cert
 
     # Tell the server to expect the wrong certificate
-    server_options.trust_store=Certificates.RSA_2048_SHA256_WILDCARD.cert
+    server_options.trust_store = Certificates.RSA_2048_SHA256_WILDCARD.cert
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(OpenSSL, client_options, timeout=5)
@@ -174,9 +176,9 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, 
 
     for results in client.get_results():
         assert results.exception is None
-         # TLS1.3 OpenSSL fails after the handshake, but pre-TLS1.3 fails during
+        # TLS1.3 OpenSSL fails after the handshake, but pre-TLS1.3 fails during
         if protocol is not Protocols.TLS13:
-            assert (results.exit_code != 0) 
+            assert (results.exit_code != 0)
             assert b"Failed to negotiate: 'TLS alert received'" in results.stderr
             assert_s2n_handshake_complete(results, protocol, provider, False)
 

@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-sys"
 description = "A C99 implementation of the TLS/SSL protocols"
-version = "0.0.2"
+version = "0.0.5"
 authors = ["AWS s2n"]
 edition = "2018"
 links = "s2n-tls"
@@ -21,6 +21,7 @@ include = [
 default = []
 pq = []
 quic = []
+internal = []
 
 [dependencies]
 libc = "0.2"

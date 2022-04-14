@@ -167,6 +167,13 @@ ifndef COV_TOOL
 	endif
 endif
 
+# Used for testing.
+prefix ?= /usr/local
+exec_prefix ?= $(prefix)
+bindir ?= $(exec_prefix)/bin
+libdir ?= $(exec_prefix)/lib64
+includedir ?= $(exec_prefix)/include
+
 try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
 
 # Determine if execinfo.h is available
@@ -209,6 +216,24 @@ endif
 TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
 ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+endif
+
+# Determine if madvise() is available
+TRY_COMPILE_MADVISE := $(call try_compile,$(S2N_ROOT)/tests/features/madvise.c)
+ifeq ($(TRY_COMPILE_MADVISE), 0)
+	DEFAULT_CFLAGS += -DS2N_MADVISE_SUPPORTED
+endif
+
+# Determine if minherit() is available
+TRY_COMPILE_MINHERIT:= $(call try_compile,$(S2N_ROOT)/tests/features/minherit.c)
+ifeq ($(TRY_COMPILE_MINHERIT), 0)
+	DEFAULT_CFLAGS += -DS2N_MINHERIT_SUPPORTED
+endif
+
+# Determine if clone() is available
+TRY_COMPILE_CLONE := $(call try_compile,$(S2N_ROOT)/tests/features/clone.c)
+ifeq ($(TRY_COMPILE_CLONE), 0)
+	DEFAULT_CFLAGS += -DS2N_CLONE_SUPPORTED
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

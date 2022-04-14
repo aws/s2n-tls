@@ -70,3 +70,14 @@ jobs:
         run: |
           ./codebuild/bin/run_kwstyle.sh
           ./codebuild/bin/cpp_style_comment_linter.sh
+  pepeight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: autopep8
+        uses: peter-evans/autopep8@v1
+        with:
+          args: --recursive --in-place --exit-code ./tests/integrationv2
+      - name: Fail if autopep8 made changes
+        if: steps.autopep8.outputs.exit-code == 2
+        run: exit 1

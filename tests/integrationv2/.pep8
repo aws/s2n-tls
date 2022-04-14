@@ -1,0 +1,4 @@
+[pep8]
+max_line_length = 80
+in-place = true
+recursive = true

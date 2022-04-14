@@ -145,23 +145,16 @@ the macro will set s2n_errno correctly, as well as some useful debug strings, an
 *Note*: In general, C preprocessor Macros with embedded control flow are a bad idea, but `GUARD`, `ENSURE`, and `BAIL` are so thoroughly used throughout s2n-tls that it should be a clear and idiomatic pattern, almost forming a small domain specific language.
 
 ### Cleanup on Error
-As discussed below, s2n-tls rarely allocates resources, and so has nothing to clean up on error.  For cases where functions do allocate resources which must be cleaned up, s2n-tls offers two macros:
+As discussed below, s2n-tls rarely allocates resources, and so has nothing to clean up on error.  For cases where functions do allocate resources which must be cleaned up, s2n-tls offers a macro:
 
 ```c
-/**
- * Ensures `x` is not an error, otherwise goto `label`
- */
-#define GUARD_GOTO( x , label ) ...
-
 /**
  * Runs _thecleanup function on _thealloc once _thealloc went out of scope
  */
 #define DEFER_CLEANUP(_thealloc, _thecleanup) ...
 ```
 
-`GUARD_GOTO( x , label )` does traditional "goto" style cleanup: if the function `x` returns an error, control is transferred to label `label`.  It is the responsibility of the code at `label` to cleanup any resources, and then return `S2N_RESULT_ERROR`.
-
-`DEFER_CLEANUP(_thealloc, _thecleanup)` is a more failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
+`DEFER_CLEANUP(_thealloc, _thecleanup)` is a failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
 
 ### Control flow and the state machine
 

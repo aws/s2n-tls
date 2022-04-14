@@ -33,6 +33,9 @@ const int server_hello_message_num = 1;
 const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
 S2N_RESULT s2n_extract_early_secret(struct s2n_psk *psk);
+S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type);
+S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
+        s2n_mode mode, struct s2n_blob *secret);
 
 int main(int argc, char **argv)
 {
@@ -74,8 +77,9 @@ int main(int argc, char **argv)
                 conn->secure.cipher_suite = cipher_suite;
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.early_secret,
+                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         early_secret.data, early_secret.size);
+                EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_EARLY_SECRET);
             }
         }
 
@@ -159,8 +163,9 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_HANDSHAKE_SECRET));
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.handshake_secret,
+                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         handshake_secret.data, handshake_secret.size);
+                EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_HANDSHAKE_SECRET);
             }
 
             /* Client */
@@ -180,8 +185,9 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_HANDSHAKE_SECRET));
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.handshake_secret,
+                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         handshake_secret.data, handshake_secret.size);
+                EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_HANDSHAKE_SECRET);
             }
         }
 #endif
@@ -246,8 +252,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
-                EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_hello_digest,
-                        hash.data, hash.size);
+                EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_HELLO, &hash));
 
                 EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT,
                         &derived_secret));
@@ -315,8 +320,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
-                EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_hello_digest,
-                        hash.data, hash.size);
+                EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_HELLO, &hash));
 
                 EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_HANDSHAKE_SECRET, S2N_SERVER,
                         &derived_secret));
@@ -360,8 +364,9 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_MASTER_SECRET));
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.master_secret,
+                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         master_secret.data, master_secret.size);
+                EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_MASTER_SECRET);
             }
         }
 
@@ -398,15 +403,12 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
-                EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_finished_digest,
-                        hash.data, hash.size);
+                EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_FINISHED, &hash));
 
                 EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET, S2N_CLIENT,
                         &derived_secret));
                 EXPECT_EQUAL(derived_secret.size, secret.size);
                 EXPECT_BYTEARRAY_EQUAL(derived_secret.data, secret.data, secret.size);
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_app_secret,
-                        secret.data, secret.size);
             }
         }
 
@@ -445,16 +447,13 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
-                EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->server_finished_digest,
-                        hash.data, hash.size);
+                EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_FINISHED, &hash));
 
                 EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET, S2N_SERVER,
                         &derived_secret));
 
                 EXPECT_EQUAL(derived_secret.size, secret.size);
                 EXPECT_BYTEARRAY_EQUAL(derived_secret.data, secret.data, secret.size);
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.server_app_secret,
-                        secret.data, secret.size);
             }
         }
 
@@ -493,8 +492,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
-                EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->client_finished_digest,
-                        hash.data, hash.size);
+                EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, CLIENT_FINISHED, &hash));
 
                 EXPECT_OK(s2n_derive_resumption_master_secret(conn));
                 EXPECT_EQUAL(derived_secret.size, secret.size);
@@ -546,8 +544,9 @@ int main(int argc, char **argv)
                 /* Early secret retrieved and saved for connection */
                 conn->psk_params.chosen_psk = psk;
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
-                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.early_secret,
+                EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         early_secret.data, early_secret.size);
+                EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_EARLY_SECRET);
             }
         }
 
@@ -611,8 +610,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure.cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_early_secret(conn, &early_secret));
-                EXPECT_MEMCPY_SUCCESS(conn->handshake.hashes->client_hello_digest,
-                        hash.data, hash.size);
+                EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, CLIENT_HELLO, &hash));
 
                 EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET, S2N_CLIENT,
                         &derived_secret));

@@ -18,11 +18,11 @@
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
+#include "tls/s2n_psk.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
-#include "tls/s2n_psk.h"
 
 #define S2N_MAX_TICKET_KEYS 48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
@@ -55,6 +55,12 @@ struct s2n_config {
      * but async signing must be enabled. Use this flag to enforce that restriction.
      */
     unsigned no_signing_key:1;
+    /*
+     * This option exists to allow for polling the client_hello callback.
+     *
+     * Note: This defaults to false to ensure backwards compatibility.
+     */
+    unsigned client_hello_cb_enable_poll:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
@@ -133,6 +139,9 @@ struct s2n_config {
     s2n_psk_mode psk_mode;
 
     s2n_async_pkey_validation_mode async_pkey_validation_mode;
+
+    /* The user defined context associated with config */
+    void *context;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
