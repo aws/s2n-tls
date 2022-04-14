@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-case "$S2N_BUILD_PRESET" in
+case "${S2N_BUILD_PRESET-default}" in
     "awslc_gcc4-8")
         : "${S2N_LIBCRYPTO:=awslc}"
         : "${GCC_VERSION:=4.8}"
