@@ -18,4 +18,3 @@
 #include "utils/s2n_result.h"
 
 S2N_RESULT s2n_libcrypto_validate_runtime(void);
-bool s2n_libcrypto_is_fips(void);

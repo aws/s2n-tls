@@ -16,7 +16,6 @@
 #include <openssl/crypto.h>
 
 #include "crypto/s2n_fips.h"
-#include "crypto/s2n_libcrypto.h"
 
 static int s2n_fips_mode = 0;
 

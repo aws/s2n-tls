@@ -28,16 +28,16 @@
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
  * Bitwise: MMMMNNNNNNNNFFFFFFFFPPPPPPPPSSSS
- * To not be overly restrictive, we onyl care about major and minor versions.
+ * To not be overly restrictive, we only care about the major version.
  * From OpenSSL 3.0 the "fix" part is also deprecated and is always a flat 0x00.
  */
-#define VERSION_NUMBER_MASK 0xFFF00000L
+#define VERSION_NUMBER_MASK 0xF0000000L
 
 /* Returns the version name of the libcrypto containing the definition that the
  * symbol OpenSSL_version binded to at link-time. This can be used as
  * verification at run-time that s2n linked against the expected libcrypto.
  */
-const char * s2n_libcrypto_get_version_name(void)
+static const char * s2n_libcrypto_get_version_name(void)
 {
     return OpenSSL_version(OPENSSL_VERSION);
 }
@@ -97,34 +97,6 @@ bool s2n_libcrypto_is_boringssl()
 #else
     return false;
 #endif
-}
-
-/* Returns true if the libcrypto linked to is in fips mode. Otherwise, returns
- * false.
- *
- * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only
- * returns the current state. Applications using s2n must call FIPS_mode_set(1)
- * prior to s2n_init, except if using the fips module from AWS-LC.
- */
-bool s2n_libcrypto_is_fips(void)
-{
-#if defined(AWSLC_FIPS) && defined(OPENSSL_FIPS)
-#error "Both AWSLC_FIPS and OPENSSL_FIPS are defined at the same time!"
-#endif
-
-#if defined(AWSLC_FIPS)
-    if (s2n_libcrypto_is_awslc() && (FIPS_mode() == 1)) {
-        return true;
-    }
-#endif
-
-#if defined(OPENSSL_FIPS)
-    if (FIPS_mode() == 1) {
-        return true;
-    }
-#endif
-
-    return false;
 }
 
 /* Performs various checks to validate that the libcrypto used at compile-time
