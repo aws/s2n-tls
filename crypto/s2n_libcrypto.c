@@ -33,13 +33,12 @@
  * BoringSSL, this can be statically asserted.
  *
  * https://github.com/awslabs/aws-lc/commit/8f184f5d69604cc4645bafec47c2d6d9929cb50f
- * has not been pushed to the fips branch of AWS-LC.
+ * has not been pushed to the fips branch of AWS-LC. In addition, we can't
+ * distinguish AWS-LC fips and non-fips at pre-processing time since AWS-LC
+ * doesn't distribute fips-specific header files.
  */
-#if defined(AWSLC_FIPS)
-#define EXPECTED_AWSLC_VERSION_NAME "BoringSSL"
-#else
-#define EXPECTED_AWSLC_VERSION_NAME "AWS-LC"
-#endif
+#define EXPECTED_AWSLC_VERSION_NAME_FIPS "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_NAME_NON_FIPS "AWS-LC"
 #define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
@@ -138,7 +137,13 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
 
     /* If we know the expected version name, we can validate it. */
     if (s2n_libcrypto_is_awslc()) {
-        RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(EXPECTED_AWSLC_VERSION_NAME));
+        const char *expected_awslc_version_name = NULL;
+        if (FIPS_mode() == 1){
+            expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_FIPS;
+        } else {
+            expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_NON_FIPS;
+        }
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(expected_awslc_version_name));
     }
     else if (s2n_libcrypto_is_boringssl()) {
         RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(EXPECTED_BORINGSSL_VERSION_NAME));
