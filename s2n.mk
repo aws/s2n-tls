@@ -49,7 +49,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
                  -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
                  -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
-                 -D_FORTIFY_SOURCE=2 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS -Wno-strict-prototypes
+                 -D_FORTIFY_SOURCE=2 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
@@ -156,6 +156,13 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     CPPFLAGS := $(filter-out -fvisibility=hidden,$(CPPFLAGS))
     CPPFLAGS := $(filter-out -DS2N_EXPORTS,$(CPPFLAGS))
 
+endif
+
+# Disable strict-prototypes check in clang
+ifneq '' '$(findstring clang,$(CC))'
+	CFLAGS += -Wno-strict-prototypes
+	DEFAULT_CFLAGS += -Wno-strict-prototypes
+	CPPFLAGS += -Wno-strict-prototypes
 endif
 
 # If COV_TOOL isn't set, pick a default COV_TOOL depending on if the LLVM Marker File was created.
