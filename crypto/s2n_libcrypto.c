@@ -20,6 +20,7 @@
 #include "utils/s2n_safety_macros.h"
 
 #include <openssl/crypto.h>
+#include <openssl/opensslv.h>
 #include <string.h>
 
 /* Note: OpenSSL 1.0.2 -> 1.1.0 implemented a new API to get the version number
@@ -30,8 +31,15 @@
 
 /* Version name for OpenSSL depends on the version string, but for AWS-LC and
  * BoringSSL, this can be statically asserted.
+ *
+ * https://github.com/awslabs/aws-lc/commit/8f184f5d69604cc4645bafec47c2d6d9929cb50f
+ * has not been pushed to the fips branch of AWS-LC.
  */
+#if defined(AWSLC_FIPS)
+#define EXPECTED_AWSLC_VERSION_NAME "BoringSSL"
+#else
 #define EXPECTED_AWSLC_VERSION_NAME "AWS-LC"
+#endif
 #define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
@@ -72,8 +80,18 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expec
  */
 static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
 {
-    unsigned long compile_time_version_number = s2n_get_openssl_version() & VERSION_NUMBER_MASK;
+/* We mutate the version number in s2n_openssl.h when detecting Libressl. This
+ * value is cached by s2n_get_openssl_version(). Hence, for libressl, the
+ * run-time version number will always be different from what
+ * s2n_get_openssl_version() returns. We cater for this here by just getting
+ * what ever we cached instead of asking Libressl libcrypto.
+ */
+#if defined(LIBRESSL_VERSION_NUMBER)
+    unsigned long run_time_version_number = s2n_get_openssl_version() & VERSION_NUMBER_MASK;
+#else
     unsigned long run_time_version_number = SSLeay() & VERSION_NUMBER_MASK;
+#endif
+    unsigned long compile_time_version_number = s2n_get_openssl_version() & VERSION_NUMBER_MASK;
     RESULT_ENSURE(compile_time_version_number == run_time_version_number, S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH);
 
     return S2N_RESULT_OK;
