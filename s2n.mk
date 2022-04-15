@@ -49,7 +49,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
                  -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
                  -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
-                 -D_FORTIFY_SOURCE=2 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS
+                 -D_FORTIFY_SOURCE=2 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS -Wno-strict-prototypes
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
