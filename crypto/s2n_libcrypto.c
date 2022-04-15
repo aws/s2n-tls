@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_crypto.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_libcrypto.h"
 #include "utils/s2n_safety.h"
@@ -138,7 +139,7 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
     /* If we know the expected version name, we can validate it. */
     if (s2n_libcrypto_is_awslc()) {
         const char *expected_awslc_version_name = NULL;
-        if (FIPS_mode() == 1){
+        if (s2n_libcrypto_is_fips() == 1){
             expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_FIPS;
         } else {
             expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_NON_FIPS;
