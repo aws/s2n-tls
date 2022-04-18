@@ -158,6 +158,13 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 
 endif
 
+# Disable strict-prototypes check in clang
+ifneq '' '$(findstring clang,$(CC))'
+	CFLAGS += -Wno-strict-prototypes
+	DEFAULT_CFLAGS += -Wno-strict-prototypes
+	CPPFLAGS += -Wno-strict-prototypes
+endif
+
 # If COV_TOOL isn't set, pick a default COV_TOOL depending on if the LLVM Marker File was created.
 ifndef COV_TOOL
 	ifneq ("$(wildcard $(LLVM_GCOV_MARKER_FILE))","")
