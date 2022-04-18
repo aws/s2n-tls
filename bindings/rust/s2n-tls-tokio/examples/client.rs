@@ -25,7 +25,7 @@ async fn run_client(trust_pem: &[u8], addr: &String) -> Result<(), Error> {
     let stream = TcpStream::connect(addr).await.expect("Failed to connect");
     client.connect("localhost", stream).await?;
     // TODO: echo
-    
+
     Ok(())
 }
 

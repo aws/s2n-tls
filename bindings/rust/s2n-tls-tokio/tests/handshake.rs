@@ -14,7 +14,7 @@ pub static KEY_PEM: &[u8] = include_bytes!(concat!(
     "/examples/certs/key.pem"
 ));
 
-async fn run_client(stream: TcpStream) -> Result<(), Error>{
+async fn run_client(stream: TcpStream) -> Result<(), Error> {
     let mut config = Config::builder();
     config.set_security_policy(&DEFAULT_TLS13)?;
     config.trust_pem(CERT_PEM)?;

@@ -26,12 +26,20 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &String) -> Result<()
     config.load_pem(&cert_pem, &key_pem)?;
     let server = TlsAcceptor::new(config.build()?);
 
-    let listener = TcpListener::bind(&addr).await.expect("Failed to bind listener");
-    let addr = listener.local_addr().map(|x| x.to_string()).unwrap_or("UNKNOWN".to_owned());
+    let listener = TcpListener::bind(&addr)
+        .await
+        .expect("Failed to bind listener");
+    let addr = listener
+        .local_addr()
+        .map(|x| x.to_string())
+        .unwrap_or("UNKNOWN".to_owned());
     println!("Listening on {}", addr);
-    
+
     loop {
-        let (stream, peer_addr) = listener.accept().await.expect("Failed to accept connection");
+        let (stream, peer_addr) = listener
+            .accept()
+            .await
+            .expect("Failed to accept connection");
         println!("Connection from {:?}", peer_addr);
         server.accept(stream).await?;
         // TODO: echo

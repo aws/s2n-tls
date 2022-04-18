@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use errno::{set_errno, Errno};
-use s2n_tls::raw::{config::Config, connection::Connection, error::Error, ffi::s2n_mode, ffi::s2n_status_code};
+use s2n_tls::raw::{
+    config::Config,
+    connection::Connection,
+    error::Error,
+    ffi::{s2n_mode, s2n_status_code},
+};
 use std::{
     future::Future,
     os::raw::{c_int, c_void},
@@ -108,9 +113,7 @@ where
                 set_errno(Errno(libc::EWOULDBLOCK));
                 s2n_status_code::FAILURE
             }
-            _ => {
-                s2n_status_code::FAILURE
-            }
+            _ => s2n_status_code::FAILURE,
         }
     }
 
