@@ -547,6 +547,7 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
