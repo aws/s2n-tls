@@ -11,6 +11,7 @@ license = "Apache-2.0"
 default = []
 
 [dependencies]
+clap = { version = "3.1", features = ["derive"] }
 errno = { version = "0.2" }
 libc = { version = "0.2" }
 s2n-tls = { version = "=0.0.4", path = "../s2n-tls" }
