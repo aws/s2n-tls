@@ -149,10 +149,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Give client a chance to close pipe at the receiving end */
-        sleep(1);
+        sleep(4);
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
-        size_t w = s2n_send(conn, buffer, 1, &blocked);
+        ssize_t w = s2n_send(conn, buffer, 1, &blocked);
         EXPECT_EQUAL(w, -1);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
         EXPECT_EQUAL(errno, EPIPE);
