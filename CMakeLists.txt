@@ -341,7 +341,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
+        -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -Wa,--noexecstack
 )
 
@@ -476,6 +476,11 @@ if (CLONE_SUPPORTED)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
+if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
+    # add cast-qual back in for non AWS-LC
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
+endif()
 
 #work around target differences
 if (TARGET crypto)
