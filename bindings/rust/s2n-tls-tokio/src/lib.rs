@@ -61,7 +61,7 @@ where
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.tls.with_io(|context| {
+        self.tls.with_io(|mut context| {
             context.conn.set_waker(Some(cx.waker()))?;
             context.conn.negotiate().map(|r| r.map(|_| ()))
         })
@@ -88,12 +88,12 @@ where
 
     fn with_io<F>(&mut self, action: F) -> Poll<Result<(), Error>>
     where
-        F: FnOnce(&mut Self) -> Poll<Result<(), Error>>,
+        F: FnOnce(Pin<&mut Self>) -> Poll<Result<(), Error>>,
     {
         // Setting contexts on a connection is considered unsafe
         // because the raw pointers provide no lifetime or memory guarantees.
-        // We protect against this by setting the contexts only for
-        // the duration of the action, then clearing them.
+        // We protect against this by pinning the stream during the action
+        // and clearing the context afterwards.
         unsafe {
             let context = self as *mut Self as *mut c_void;
 
@@ -102,7 +102,7 @@ where
             self.conn.set_receive_context(context)?;
             self.conn.set_send_context(context)?;
 
-            let result = action(self);
+            let result = action(Pin::new(self));
 
             self.conn.set_receive_callback(None)?;
             self.conn.set_send_callback(None)?;
