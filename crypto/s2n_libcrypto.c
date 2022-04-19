@@ -150,7 +150,8 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
         /* For backwards compatability, also check the AWS-LC API version see
          * https://github.com/awslabs/aws-lc/pull/467. When we are confident we
          * don't meet anymore "old" AWS-LC libcrypto's, this API check can be
-         * removed. */
+         * removed.
+         */
         if (s2n_libcrypto_is_fips() == 1 || s2n_libcrypto_awslc_api_version() < 17) {
             expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_FIPS_OR_OLD;
         } else {

@@ -12,3 +12,8 @@ ConfigurationNotChecked:utils/s2n_socket.c
 // Reason: s2n_config_set_monotonic_clock() takes a reference to mock_time so that whenever it's modified locally, the timer sees the update when it dereferences the pointer.
 redundantAssignment:tests/unit/s2n_timer_test.c
 
+// cppcheck Message: (style:knownConditionTrueFalse) Condition 's2n_libcrypto_is_fips()==1' is always false
+// cppcheck Message: (style:knownConditionTrueFalse) Condition 's2n_libcrypto_awslc_api_version()<17' is always true
+// Reason: s2n_libcrypto_is_fips() and s2n_libcrypto_awslc_api_version() are implemented using macro's and for certain libcrypto's the preprocessor will produce a trivial function returning e.g. 1 always.
+knownConditionTrueFalse:crypto/s2n_fips.c
+knownConditionTrueFalse:crypto/s2n_libcrypto.c
