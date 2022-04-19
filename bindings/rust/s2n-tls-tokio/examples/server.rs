@@ -7,6 +7,7 @@ use s2n_tls_tokio::TlsAcceptor;
 use std::fs;
 use tokio::net::TcpListener;
 
+/// NOTE: this certificate and key are to be used for demonstration purposes only!
 const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/cert.pem");
 const DEFAULT_KEY: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/key.pem");
 

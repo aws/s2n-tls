@@ -61,9 +61,10 @@ where
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.tls.set_io()?;
-        self.tls.conn.set_waker(Some(cx.waker()))?;
-        self.tls.conn.negotiate().map(|r| r.map(|_| ()))
+        self.tls.with_io(|context| {
+            context.conn.set_waker(Some(cx.waker()))?;
+            context.conn.negotiate().map(|r| r.map(|_| ()))
+        })
     }
 }
 
@@ -85,7 +86,10 @@ where
         Ok(tls)
     }
 
-    fn set_io(&mut self) -> Result<(), Error> {
+    fn with_io<F>(&mut self, action: F) -> Poll<Result<(), Error>>
+    where
+        F: FnOnce(&mut Self) -> Poll<Result<(), Error>>,
+    {
         unsafe {
             let context = self as *mut Self as *mut c_void;
 
@@ -93,8 +97,15 @@ where
             self.conn.set_send_callback(Some(Self::send_io_cb))?;
             self.conn.set_receive_context(context)?;
             self.conn.set_send_context(context)?;
+
+            let result = action(self);
+
+            self.conn.set_receive_callback(None)?;
+            self.conn.set_send_callback(None)?;
+            self.conn.set_receive_context(std::ptr::null_mut())?;
+            self.conn.set_send_context(std::ptr::null_mut())?;
+            result
         }
-        Ok(())
     }
 
     fn poll_io<F>(ctx: *mut c_void, action: F) -> c_int

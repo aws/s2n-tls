@@ -7,6 +7,7 @@ use s2n_tls_tokio::TlsConnector;
 use std::fs;
 use tokio::net::TcpStream;
 
+/// NOTE: this certificate is to be used for demonstration purposes only!
 const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/cert.pem");
 
 #[derive(Parser, Debug)]
