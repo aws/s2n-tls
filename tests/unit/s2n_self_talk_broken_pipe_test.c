@@ -59,7 +59,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
         exit(1);
     }
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__APPLE__)
     /* On FreeBSD shutdown from one end of the socket pair does not give EPIPE. Must use close. */
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 #else
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Give client a chance to close pipe at the receiving end */
-        sleep(4);
+        sleep(1);
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
         ssize_t w = s2n_send(conn, buffer, 1, &blocked);
