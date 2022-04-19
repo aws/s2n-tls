@@ -234,6 +234,10 @@ int main(int argc, char **argv)
     ssize_t handshake_diff = (vm_data_after_handshakes - vm_data_initial);
     ssize_t allocation_diff = (vm_data_after_allocation - vm_data_initial);
 
+    // This test is only implemented for Linux and FreeBSD.
+    // Keep this macro check in sync with the implementation of get_vm_data_size.
+    // Unimplemented platforms will always fail this test.
+#if defined(__linux__) || defined (__FreeBSD__)
     if (allocation_diff > maxAllowedMemDiff
             || handshake_diff > maxAllowedMemDiff
             || handshake_diff < minAllowedMemDiff) {
@@ -241,6 +245,7 @@ int main(int argc, char **argv)
                 (int) ACTUAL_MEM_PER_CONNECTION(connectionsToUse, handshake_diff));
         FAIL_MSG("Unexpected memory usage. If expected, update MEM_PER_CONNECTION.");
     }
+#endif
 
     END_TEST();
 }
