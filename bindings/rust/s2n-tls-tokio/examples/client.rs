@@ -17,7 +17,7 @@ struct Args {
     addr: String,
 }
 
-async fn run_client(trust_pem: &[u8], addr: &String) -> Result<(), Error> {
+async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Error> {
     let mut config = Config::builder();
     config.set_security_policy(&DEFAULT_TLS13)?;
     config.trust_pem(trust_pem)?;

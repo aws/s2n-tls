@@ -21,10 +21,10 @@ struct Args {
     addr: String,
 }
 
-async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &String) -> Result<(), Error> {
+async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), Error> {
     let mut config = Config::builder();
     config.set_security_policy(&DEFAULT_TLS13)?;
-    config.load_pem(&cert_pem, &key_pem)?;
+    config.load_pem(cert_pem, key_pem)?;
     let server = TlsAcceptor::new(config.build()?);
 
     let listener = TcpListener::bind(&addr)
@@ -33,7 +33,7 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &String) -> Result<()
     let addr = listener
         .local_addr()
         .map(|x| x.to_string())
-        .unwrap_or("UNKNOWN".to_owned());
+        .unwrap_or_else(|_| "UNKNOWN".to_owned());
     println!("Listening on {}", addr);
 
     loop {
