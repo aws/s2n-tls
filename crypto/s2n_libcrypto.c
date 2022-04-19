@@ -38,7 +38,7 @@
  * distinguish AWS-LC fips and non-fips at pre-processing time since AWS-LC
  * doesn't distribute fips-specific header files.
  */
-#define EXPECTED_AWSLC_VERSION_NAME_FIPS "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_NAME_FIPS_OR_OLD "BoringSSL"
 #define EXPECTED_AWSLC_VERSION_NAME_NON_FIPS "AWS-LC"
 #define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
 
@@ -117,6 +117,14 @@ bool s2n_libcrypto_is_awslc()
 #endif
 }
 
+static uint64_t s2n_libcrypto_awslc_api_version(void) {
+#if defined(OPENSSL_IS_AWSLC)
+    return AWSLC_API_VERSION;
+#else
+    return 0;
+#endif
+}
+
 bool s2n_libcrypto_is_boringssl()
 {
 #if defined(OPENSSL_IS_BORINGSSL)
@@ -139,8 +147,12 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
     /* If we know the expected version name, we can validate it. */
     if (s2n_libcrypto_is_awslc()) {
         const char *expected_awslc_version_name = NULL;
-        if (s2n_libcrypto_is_fips() == 1){
-            expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_FIPS;
+        /* For backwards compatability, also check the AWS-LC API version see
+         * https://github.com/awslabs/aws-lc/pull/467. When we are confident we
+         * don't meet anymore "old" AWS-LC libcrypto's, this API check can be
+         * removed. */
+        if (s2n_libcrypto_is_fips() == 1 || s2n_libcrypto_awslc_api_version() < 17) {
+            expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_FIPS_OR_OLD;
         } else {
             expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_NON_FIPS;
         }
