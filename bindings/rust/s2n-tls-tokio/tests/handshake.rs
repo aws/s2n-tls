@@ -5,6 +5,7 @@ use s2n_tls::raw::{config::Config, error::Error, security::DEFAULT_TLS13};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
 use tokio::net::{TcpListener, TcpStream};
 
+/// NOTE: this certificate and key are used for testing purposes only!
 pub static CERT_PEM: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/examples/certs/cert.pem"

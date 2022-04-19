@@ -90,6 +90,10 @@ where
     where
         F: FnOnce(&mut Self) -> Poll<Result<(), Error>>,
     {
+        // Setting contexts on a connection is considered unsafe
+        // because the raw pointers provide no lifetime or memory guarantees.
+        // We protect against this by setting the contexts only for
+        // the duration of the action, then clearing them.
         unsafe {
             let context = self as *mut Self as *mut c_void;
 

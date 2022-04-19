@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use clap::Parser;
-use s2n_tls::raw::{config::Config, error::Error, security::DEFAULT_TLS13};
+use s2n_tls::raw::{config::Config, security::DEFAULT_TLS13};
 use s2n_tls_tokio::TlsConnector;
-use std::fs;
+use std::{error::Error, fs};
 use tokio::net::TcpStream;
 
 /// NOTE: this certificate is to be used for demonstration purposes only!
@@ -17,23 +17,29 @@ struct Args {
     addr: String,
 }
 
-async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Error> {
+async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Box<dyn Error>> {
+    // Set up the configuration for new connections.
+    // Minimally you will need a trust store.
     let mut config = Config::builder();
     config.set_security_policy(&DEFAULT_TLS13)?;
     config.trust_pem(trust_pem)?;
+
+    // Create the TlsConnector based on the configuration.
     let client = TlsConnector::new(config.build()?);
 
-    let stream = TcpStream::connect(addr).await.expect("Failed to connect");
+    // Connect to the server.
+    let stream = TcpStream::connect(addr).await?;
     client.connect("localhost", stream).await?;
+
     // TODO: echo
 
     Ok(())
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let trust_pem = fs::read(args.trust).expect("Failed to load cert");
+    let trust_pem = fs::read(args.trust)?;
     run_client(&trust_pem, &args.addr).await?;
     Ok(())
 }
