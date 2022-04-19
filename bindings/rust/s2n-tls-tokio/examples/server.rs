@@ -41,7 +41,7 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), B
     println!("Listening on {}", addr);
 
     loop {
-        // Wait for a client to connection.
+        // Wait for a client to connect.
         let (stream, peer_addr) = listener.accept().await?;
         println!("Connection from {:?}", peer_addr);
         server.accept(stream).await?;
