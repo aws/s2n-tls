@@ -234,9 +234,10 @@ int main(int argc, char **argv)
     ssize_t handshake_diff = (vm_data_after_handshakes - vm_data_initial);
     ssize_t allocation_diff = (vm_data_after_allocation - vm_data_initial);
 
-    /* This test is not implemented for MacOS.
-     * Keep this macro check in sync with the implementation of get_vm_data_size.
-     * Unimplemented platforms will always fail this test. */
+    /*
+     * get_vm_data_size is required for this test to succeed.
+     * Any platform that doesn't implement get_vm_data_size should be excluded here.
+     */
 #ifndef __APPLE__
     if (allocation_diff > maxAllowedMemDiff
             || handshake_diff > maxAllowedMemDiff
