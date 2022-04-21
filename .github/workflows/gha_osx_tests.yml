@@ -1,0 +1,22 @@
+---
+name: macOS build and test S2n
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  OSX:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Dependencies
+        uses: actions/checkout@v2
+
+      - name: Prebuild
+        run: |
+          .github/install_osx_dependencies.sh
+
+      - name: Build
+        run: |
+          .github/s2n_osx.sh
