@@ -13,12 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include "s2n.h"
 #include "s2n_test.h"
 
+#include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_server_supported_versions.h"
 
+#include "tls/extensions/s2n_cookie.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
@@ -31,6 +34,7 @@
 #include "tls/s2n_server_hello.c"
 
 #include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
 
 #define HELLO_RETRY_MSG_NO 1
 #define SERVER_HELLO_MSG_NO 5
@@ -448,6 +452,60 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
+    /* Test scenario: client connection is wiped + HRR + server sends cookie data as part of HRR
+     *
+     * Tests that calls to `s2n_connection_wipe` are safe and do not cause the connection to end up in
+     * a bad state. s2n_connection_wipe is called when a customer wants to reuse a connection; which is
+     * more performant compared to creating a new connection. */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        /* ensure call to s2n_connection_wipe are safe */
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+                s2n_config_ptr_free);
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
+                s2n_config_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+
+        char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
+        char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
+
+         /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        /* include cookie data as part of HRR */
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(&server_conn->cookie_stuffer, 500));
+        EXPECT_TRUE(s2n_server_cookie_extension.should_send(server_conn));
+
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
     /* Self-Talk test: the client initiates a handshake with an X25519 share.
      * The server, however does not support x25519 and prefers P-256.
      * The server then sends a HelloRetryRequest that requires the
@@ -605,7 +663,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        
+
         /* A Hello Retry Request has been processed */
         EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
         client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -631,4 +689,4 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     END_TEST();
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+}
