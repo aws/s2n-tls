@@ -19,7 +19,7 @@ jobs:
         prepare: pkg install -y ninja cmake
         run: |
           freebsd-version
-          .github/s2n_freebsd.sh
+          ./.github/s2n_freebsd.sh
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@master
