@@ -1,4 +1,5 @@
 #!/bin/bash
+#!/bin/bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,26 +13,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+set -eu
+source codebuild/bin/s2n_setup_env.sh
 
-set -e
+BREWINSTLLPATH=$(brew --prefix openssl@1.1)
+OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
 
-usage() {
-    echo "install_libressl.sh build_dir install_dir"
-    exit 1
-}
+echo "Using OpenSSL at $OPENSSL_1_1_1_INSTALL_DIR"
+# Build with debug symbols and a specific OpenSSL version
+cmake . -Bbuild -GNinja \
+-DCMAKE_BUILD_TYPE=Debug \
+-DCMAKE_PREFIX_PATH=${OPENSSL_1_1_1_INSTALL_DIR} ..
 
-if [ "$#" -ne "2" ]; then
-    usage
-fi
-
-BUILD_DIR=$1
-INSTALL_DIR=$2
-source codebuild/bin/jobs.sh
-
-cd "$BUILD_DIR"
-# Originally from https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.3.tar.gz
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2022-03-13_libressl-3.4.3.tar.gz > libressl-3.4.3.tar.gz
-tar -xzvf libressl-3.4.3.tar.gz
-cd libressl-3.4.3
-./configure --prefix="$INSTALL_DIR"
-make -j $JOBS CFLAGS=-fPIC install
+cmake --build ./build -j $(nproc)
+time CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test

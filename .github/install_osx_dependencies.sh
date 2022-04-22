@@ -13,25 +13,17 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -eu
 
-usage() {
-    echo "install_libressl.sh build_dir install_dir"
-    exit 1
+function brew_install_if_not_installed () {
+    brew list $1 &>/dev/null || brew install $1
 }
 
-if [ "$#" -ne "2" ]; then
-    usage
-fi
+brew update
 
-BUILD_DIR=$1
-INSTALL_DIR=$2
-source codebuild/bin/jobs.sh
-
-cd "$BUILD_DIR"
-# Originally from https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.3.tar.gz
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2022-03-13_libressl-3.4.3.tar.gz > libressl-3.4.3.tar.gz
-tar -xzvf libressl-3.4.3.tar.gz
-cd libressl-3.4.3
-./configure --prefix="$INSTALL_DIR"
-make -j $JOBS CFLAGS=-fPIC install
+brew_install_if_not_installed gnu-indent
+brew_install_if_not_installed coreutils
+brew_install_if_not_installed cppcheck
+brew_install_if_not_installed pkg-config  # for gnutls compilation
+brew_install_if_not_installed ninja
+brew_install_if_not_installed openssl@1.1 # for libcrypto
