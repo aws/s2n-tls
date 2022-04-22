@@ -18,25 +18,8 @@ jobs:
       with:
         prepare: pkg install -y ninja cmake
         run: |
-          setenv CTEST_PARALLEL_LEVEL `sysctl hw.ncpu | awk '{print $2}'`
-          env
           freebsd-version
-          cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
-          if [ $? != 0 ]
-          then
-              exit(1)
-          fi
-          cmake --build ./build -j $CTEST_PARALLEL_LEVEL
-          if [ $? != 0 ]
-          then
-              exit(1)
-          fi
-          ninja -C build test
-          if [ $? != 0 ]
-          then
-              exit(1)
-          fi
-          cmake --build ./build --target clean #Saves on copy back rsync time
+          .github/s2n_freebsd.sh
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@master
