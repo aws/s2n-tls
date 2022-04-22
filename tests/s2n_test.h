@@ -65,14 +65,13 @@ int test_count;
  * BEGIN_TEST() prints unit test information to stdout. But this often gets
  * buffered by the kernel and will then be flushed in each child spawned. The
  * result is a number of repeated messages being send to stdout and, in turn,
- * appear in the logs. Instead of printing the start test message now, each test
- * using BEGIN_TEST_NO_INIT must print before calling END_TEST_NO_INIT(). This
- * makes error outputs look a bit less standard, but avoids very ugly looking
- * and confusing log outputs where messages are randomly out of order.
+ * appear in the logs. At the moment, we think this is better than risking not
+ * having any printing at all.
  */
 #define BEGIN_TEST_NO_INIT()                                        \
     do {                                                            \
         test_count = 0;                                             \
+        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
         S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
     } while(0)
@@ -92,7 +91,6 @@ int test_count;
     do {                                                            \
         BEGIN_TEST_NO_INIT();                                       \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
-        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
     } while(0)
 
 #define END_TEST()                                                  \

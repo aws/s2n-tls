@@ -354,6 +354,5 @@ int main(int argc, char **argv)
         }
     }
 
-    fprintf(stdout, "Running %-50s ... ", __FILE__);
     END_TEST_NO_INIT();
 }
