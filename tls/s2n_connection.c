@@ -557,6 +557,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->cookie_stuffer));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
 
