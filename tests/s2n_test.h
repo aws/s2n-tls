@@ -57,37 +57,24 @@ int test_count;
         }                                                                           \
     }
 
-/* This is a very basic, but functional unit testing framework. All testing
- * should happen in main() and start with a BEGIN_TEST() and end with an
- * END_TEST().
- */
-#define BEGIN_TEST()                                                \
-    do {                                                            \
-        test_count = 0;                                             \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
-        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
-        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
-    } while(0)
-
-#define END_TEST()                                                  \
-    do {                                                            \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
-        END_TEST_PRINT()                                            \
-        return 0;                                                   \
-    } while(0)
-
 /* Macros similar to BEGIN_TEST() and END_TEST() but for tests where s2n should
  * not initialise at the start of the test. Useful for tests that e.g spawn a
- * number of independent childs at the start of a unit test.
+ * number of independent childs at the start of a unit test and where you want
+ * each child to have its own independently initialised s2n.
+ *
+ * BEGIN_TEST() prints unit test information to stdout. But this often gets
+ * buffered by the kernel and will then be flushed in each child spawned. The
+ * result is a number of repeated messages being send to stdout and, in turn,
+ * appear in the logs. Instead of printing the start test message now, each test
+ * using BEGIN_TEST_NO_INIT must print before calling END_TEST_NO_INIT(). This
+ * makes error outputs look a bit less standard, but avoids very ugly looking
+ * and confusing log outputs where messages are randomly out of order.
  */
 #define BEGIN_TEST_NO_INIT()                                        \
     do {                                                            \
         test_count = 0;                                             \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
         S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
-        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
     } while(0)
 
 #define END_TEST_NO_INIT()                                          \
@@ -95,6 +82,23 @@ int test_count;
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
         END_TEST_PRINT()                                            \
         return 0;                                                   \
+    } while(0)
+
+/* This is a very basic, but functional unit testing framework. All testing
+ * should happen in main() and start with a BEGIN_TEST() and end with an
+ * END_TEST().
+ */
+#define BEGIN_TEST()                                                \
+    do {                                                            \
+        BEGIN_TEST_NO_INIT();                                       \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
+        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
+    } while(0)
+
+#define END_TEST()                                                  \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
+        END_TEST_NO_INIT();                                         \
     } while(0)
 
 #define FAIL()      FAIL_MSG("")

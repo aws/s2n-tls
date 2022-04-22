@@ -322,14 +322,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST_NO_INIT();
 
-    /* BEGIN_TEST_NO_INIT prints unit test information to stdout. But this often
-     * gets buffered by the kernel and will then be flushed in each child
-     * spawned below. The result is a number of repeated messages being send to
-     * stdout and, in turn, in the logs. Flushing now to prevent leaking the
-     * stdout print into childs.
-     */
-    fflush(stdout);
-
     EXPECT_TRUE(s2n_array_len(fgn_test_cases) == NUMBER_OF_FGN_TEST_CASES);
 
     /* Create NUMBER_OF_FGN_TEST_CASES number of child processes that run each
@@ -362,5 +354,6 @@ int main(int argc, char **argv)
         }
     }
 
+    fprintf(stdout, "Running %-50s ... ", __FILE__);
     END_TEST_NO_INIT();
 }
