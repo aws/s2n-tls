@@ -2,7 +2,13 @@ import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
-from global_flags import get_flag, S2N_PROVIDER_VERSION
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
+
+
+TLS_13_LIBCRYPTOS = {
+    "awslc",
+    "openssl-1.1.1"
+}
 
 
 class Provider(object):
@@ -143,15 +149,42 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        # If s2n is built with OpenSSL 1.0.2 it can't connect to itself
-        if protocol is Protocols.TLS13 and 'openssl-1.0.2' in OpenSSL.get_version():
-            if with_cert is not None and with_cert.algorithm != 'EC':
-                return False
+        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
+        if all([
+            libcrypto not in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in TLS_13_LIBCRYPTOS
+        ]) and protocol == Protocols.TLS13:
+            return False
 
         return True
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
+        # Disable chacha20 tests in unsupported libcryptos
+        if any([
+            libcrypto in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in [
+                "openssl-1.0.2",
+                "libressl"
+            ]
+        ]) and "CHACHA20" in cipher.name:
+            return False
+
+        return True
+
+    @classmethod
+    def supports_signature(cls, signature):
+        # Disable RSA_PSS_RSAE_SHA256 in unsupported libcryptos
+        if any([
+            libcrypto in get_flag(S2N_PROVIDER_VERSION)
+            for libcrypto in [
+                "openssl-1.0.2",
+                "libressl",
+                "boringssl"
+            ]
+        ]) and signature == Signatures.RSA_PSS_RSAE_SHA256:
+            return False
+
         return True
 
     def setup_client(self):
@@ -198,6 +231,9 @@ class S2N(Provider):
                 cmd_line.extend(['--key', self.options.key])
             if self.options.cert:
                 cmd_line.extend(['--cert', self.options.cert])
+
+        if get_flag(S2N_FIPS_MODE):
+            cmd_line.append("--enter-fips-mode")
 
         if self.options.enable_client_ocsp:
             cmd_line.extend(["--status"])
@@ -257,6 +293,9 @@ class S2N(Provider):
         if self.options.reconnects_before_exit is not None:
             cmd_line.append(
                 '--max-conns={}'.format(self.options.reconnects_before_exit))
+
+        if get_flag(S2N_FIPS_MODE):
+            cmd_line.append("--enter-fips-mode")
 
         if self.options.ocsp_response is not None:
             cmd_line.extend(["--ocsp", self.options.ocsp_response])
@@ -329,29 +368,11 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        if protocol is Protocols.TLS13:
-            if 'openssl-1.1.1' in OpenSSL.get_version():
-                return True
-            else:
-                return False
-
         return True
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        is_openssl_111 = "openssl-1.1.1" in OpenSSL.get_version()
-        if is_openssl_111 and cipher.openssl1_1_1 is False:
-            return False
-
-        if not is_openssl_111:
-            # OpenSSL 1.0.2 does not have ChaChaPoly
-            if 'CHACHA20' in cipher.name:
-                return False
-
-        if cipher.fips is False and "fips" in OpenSSL.get_version():
-            return False
-
-        if "openssl-1.0.2" in OpenSSL.get_version() and with_curve is not None:
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION) and with_curve is not None:
             invalid_ciphers = [
                 Ciphers.ECDHE_RSA_AES128_SHA,
                 Ciphers.ECDHE_RSA_AES256_SHA,

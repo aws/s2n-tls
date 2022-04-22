@@ -28,19 +28,8 @@ phases:
         if [ -d "third-party-src" ]; then
           cd third-party-src;
         fi
+      - codebuild-breakpoint
       - $CB_BIN_DIR/install_ubuntu_dependencies.sh
-      - echo "We need a test PPA for gcc-9."
-      - add-apt-repository ppa:ubuntu-toolchain-r/test -y
-      - apt-get update -o Acquire::CompressionTypes::Order::=gz
-      - apt-get update -y
-      - |
-        if expr "${GCC_VERSION}" : "9" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-9 gcc gcc-9;
-        fi
-      - |
-        if expr "${GCC_VERSION}" : "6" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
-        fi
       # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
       - |
         if expr "${LATEST_CLANG}" != "true" >/dev/null; then
@@ -55,12 +44,8 @@ phases:
         fi
       - $CB_BIN_DIR/install_default_dependencies.sh
       - $CB_BIN_DIR/s2n_setup_env.sh
-      - printenv
-      - make
-      # Install the parent s2n commit in a temporary directory
-      - $CB_BIN_DIR/install_s2n_head.sh "$(mktemp -d)"
   build:
     commands:
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
-      - TOX_TEST_NAME=$INTEGV2_TEST.py make integrationv2
+      - TOX_TEST_NAME=$INTEGV2_TEST TESTS=integrationv2 $CB_BIN_DIR/s2n_codebuild.sh

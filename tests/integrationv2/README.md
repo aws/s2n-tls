@@ -28,7 +28,12 @@ Python environment. Then all the integration tests will be collected and execute
 If you only want to run a single test, you can set the `TOX_TEST_NAME` environment variable:
 
 ```
-ubuntu@host:s2n_root/ $ TOX_TEST_NAME=test_happy_path.py::test_s2n_server_happy_path make -C tests/integrationv2 test_single
+ubuntu@host:s2n_root/ $ TOX_TEST_NAME=test_happy_path make -C tests/integrationv2
+```
+
+Multiple specific tests can also be run as follows:
+```
+ubuntu@host:s2n_root/ $ TOX_TEST_NAME="test_happy_path test_sslyze" make -C tests/integrationv2
 ```
 
 # Writing tests
