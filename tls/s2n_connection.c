@@ -83,8 +83,8 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
 
 /* Allocates and initializes memory for a new connection.
  *
- * Ensure that all initialization happens in `s2n_connection_wipe` since customers can
- * reuse a connection. */
+ * Since customers can reuse a connection, ensure that values on the connection are
+ * initialized in `s2n_connection_wipe` where possible. */
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob = {0};
@@ -505,8 +505,9 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
 
 /* An idempotent operation which initializes values on the connection.
  *
- * An existing connection should be reset only after all I/O is completed and `s2n_shutdown`
- * has been called.
+ * Called in order to reuse a connection structure for a new connection. Should wipe
+ * any persistent memory, free any temporary memory, and set all fields back to their
+ * defaults.
  */
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
@@ -538,7 +539,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     }
     POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(conn->handshake.hashes));
     struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
-
     if (!conn->prf_space) {
         POSIX_GUARD_RESULT(s2n_prf_new(conn));
     }

@@ -452,11 +452,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* Test scenario: client connection is wiped + HRR + server sends cookie data as part of HRR
-     *
-     * Tests that calls to `s2n_connection_wipe` are safe and do not cause the connection to end up in
-     * a bad state. s2n_connection_wipe is called when a customer wants to reuse a connection; which is
-     * more performant compared to creating a new connection. */
+    /*
+     * Self-talk test: HRR with cookie extension
+     * We also wipe the connection to ensure that the cookie stuffer is handled correctly when connections are reused.
+     */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -470,19 +469,15 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
                 s2n_config_ptr_free);
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key = s2n_cert_chain_and_key_new(),
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
-
-        char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
-        char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
 
          /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -501,6 +496,14 @@ int main(int argc, char **argv)
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that HRR handshake */
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(client_conn));
+
+        /* Verify client received cookie data */
+        EXPECT_TRUE(client_conn->cookie_stuffer.write_cursor > 0);
+        EXPECT_TRUE(s2n_stuffer_data_available(&client_conn->cookie_stuffer) > 0);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));

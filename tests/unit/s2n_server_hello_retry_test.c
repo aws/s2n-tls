@@ -448,6 +448,9 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
+        /* ensure call to s2n_connection_wipe are safe */
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
                 s2n_config_ptr_free);
@@ -456,25 +459,13 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
 
-        /* ensure call to s2n_connection_wipe are safe */
-        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
-        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
                 S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
-
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        struct client_hello_context client_hello_ctx = {.invocations = 0, .mode = S2N_CLIENT_HELLO_CB_BLOCKING };
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, client_hello_detect_duplicate_calls, &client_hello_ctx));
-
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* include cookie data as part of HRR */
         EXPECT_SUCCESS(s2n_stuffer_skip_write(&server_conn->cookie_stuffer, 500));
@@ -483,15 +474,13 @@ int main(int argc, char **argv)
         /* Force HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
-        /* Send the first CH message */
+        /* Send the CH message */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                                         s2n_stuffer_data_available(&client_conn->handshake.io)));
 
-        /* Receive the CH and send an HRR, which will execute the HRR code paths */
-        EXPECT_EQUAL(client_hello_ctx.invocations, 0);
+        /* Receive CH verify HRR path */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-        EXPECT_EQUAL(client_hello_ctx.invocations, 1);
 
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
@@ -503,7 +492,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
                                         s2n_stuffer_data_available(&server_conn->handshake.io)));
         client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+
+        /* Receive HRR */
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(client_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_message(client_conn));
     }
 
     /* Send and receive Hello Retry Request messages */
