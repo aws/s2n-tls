@@ -469,24 +469,22 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *tls13_chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
 
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        struct s2n_test_io_pair io_pair;
+
         /* Call the test in a loop to ensure that s2n_connection_wipe is implemented correctly */
         for (int i = 0; i < 10; i++) {
-            /* ensure call to s2n_connection_wipe are safe */
-            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
-            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-
              /* Create nonblocking pipes */
-            struct s2n_test_io_pair io_pair;
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
-                    S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
-            EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
-
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* include cookie data as part of HRR */
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&server_conn->cookie_stuffer, 500));
@@ -494,8 +492,6 @@ int main(int argc, char **argv)
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
-
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Negotiate handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -510,7 +506,15 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+
+            /* ensure call to s2n_connection_wipe are safe */
+            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         }
+
+        /* free cookie stuffer */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->cookie_stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->cookie_stuffer));
     }
 
     /* Self-Talk test: the client initiates a handshake with an X25519 share.
