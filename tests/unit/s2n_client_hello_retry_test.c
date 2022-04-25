@@ -482,6 +482,10 @@ int main(int argc, char **argv)
 
         /* Call the test in a loop to ensure that s2n_connection_wipe is implemented correctly */
         for (int i = 0; i < 10; i++) {
+            /* ensure call to s2n_connection_wipe are safe */
+            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
              /* Create nonblocking pipes */
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -507,14 +511,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
 
-            /* ensure call to s2n_connection_wipe are safe */
-            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
-            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            /* free cookie stuffer */
+            EXPECT_SUCCESS(s2n_stuffer_free(&client_conn->cookie_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_free(&server_conn->cookie_stuffer));
         }
-
-        /* free cookie stuffer */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->cookie_stuffer));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->cookie_stuffer));
     }
 
     /* Self-Talk test: the client initiates a handshake with an X25519 share.
