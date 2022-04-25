@@ -510,10 +510,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-
-            /* free cookie stuffer */
-            EXPECT_SUCCESS(s2n_stuffer_free(&client_conn->cookie_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_free(&server_conn->cookie_stuffer));
         }
     }
 
