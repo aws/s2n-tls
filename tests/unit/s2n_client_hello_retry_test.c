@@ -505,7 +505,6 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_is_hello_retry_handshake(client_conn));
 
             /* Verify client received cookie data */
-            EXPECT_TRUE(client_conn->cookie_stuffer.write_cursor > 0);
             EXPECT_TRUE(s2n_stuffer_data_available(&client_conn->cookie_stuffer) > 0);
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
