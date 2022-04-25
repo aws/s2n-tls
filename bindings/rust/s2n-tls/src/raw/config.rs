@@ -21,6 +21,12 @@ pub struct Config(NonNull<s2n_config>);
 /// Safety: s2n_config objects can be sent across threads
 unsafe impl Send for Config {}
 
+/// # Safety
+///
+/// Safety: All C methods that mutate the s2n_config are wrapped
+/// in Rust methods that require a mutable reference.
+unsafe impl Sync for Config {}
+
 impl Config {
     /// Returns a Config object with pre-defined defaults.
     ///
