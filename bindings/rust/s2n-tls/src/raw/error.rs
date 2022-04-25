@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use core::{fmt, ptr::NonNull};
+use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use libc::c_char;
 use s2n_tls_sys::*;
 use std::ffi::CStr;
@@ -60,6 +60,16 @@ impl Fallible for s2n_status_code::Type {
     }
 }
 
+impl Fallible for isize {
+    type Output = usize;
+
+    fn into_result(self) -> Result<Self::Output, Error> {
+        // Negative values can't be converted to a real size
+        // and instead indicate an error.
+        self.try_into().map_err(|_| Error::capture())
+    }
+}
+
 impl<T> Fallible for *mut T {
     type Output = NonNull<T>;
 
@@ -80,6 +90,24 @@ impl<T> Fallible for *const T {
             Ok(self)
         } else {
             Err(Error::capture())
+        }
+    }
+}
+
+pub trait Pollable {
+    type Output;
+
+    fn into_poll(self) -> Poll<Result<Self::Output, Error>>;
+}
+
+impl<T: Fallible> Pollable for T {
+    type Output = T::Output;
+
+    fn into_poll(self) -> Poll<Result<Self::Output, Error>> {
+        match self.into_result() {
+            Ok(r) => Ok(r).into(),
+            Err(err) if err.is_retryable() => Poll::Pending,
+            Err(err) => Err(err).into(),
         }
     }
 }

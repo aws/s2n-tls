@@ -10,6 +10,7 @@ use s2n_tls::raw::{
 use std::{
     fmt,
     future::Future,
+    io,
     os::raw::{c_int, c_void},
     pin::Pin,
     task::{Context, Poll},
@@ -60,16 +61,17 @@ where
 {
     type Output = Result<(), Error>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.tls.with_io(|mut context| {
-            context.conn.set_waker(Some(cx.waker()))?;
-            context.conn.negotiate().map(|r| r.map(|_| ()))
+    fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.tls.with_io(|context| {
+            let conn = context.get_mut().get_mut();
+            conn.set_waker(Some(ctx.waker()))?;
+            conn.negotiate().map(|r| r.map(|_| ()))
         })
     }
 }
 
 pub struct TlsStream<S> {
-    pub conn: Connection,
+    conn: Connection,
     stream: S,
 }
 
@@ -86,9 +88,9 @@ where
         Ok(tls)
     }
 
-    fn with_io<F>(&mut self, action: F) -> Poll<Result<(), Error>>
+    fn with_io<F, R>(&mut self, action: F) -> Poll<Result<R, Error>>
     where
-        F: FnOnce(Pin<&mut Self>) -> Poll<Result<(), Error>>,
+        F: FnOnce(Pin<&mut Self>) -> Poll<Result<R, Error>>,
     {
         // Setting contexts on a connection is considered unsafe
         // because the raw pointers provide no lifetime or memory guarantees.
@@ -146,6 +148,70 @@ where
             let src = std::slice::from_raw_parts(buf, len as usize);
             stream.poll_write(async_context, src)
         })
+    }
+
+    pub fn get_ref(&self) -> &Connection {
+        &self.conn
+    }
+
+    pub fn get_mut(&mut self) -> &mut Connection {
+        &mut self.conn
+    }
+}
+
+impl<S> AsyncRead for TlsStream<S>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    fn poll_read(
+        self: Pin<&mut Self>,
+        ctx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        self.get_mut()
+            .with_io(|mut context| {
+                context.conn.set_waker(Some(ctx.waker()))?;
+                context.conn.recv(buf.initialize_unfilled()).map_ok(|size| {
+                    buf.advance(size);
+                })
+            })
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+    }
+}
+
+impl<S> AsyncWrite for TlsStream<S>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    fn poll_write(
+        self: Pin<&mut Self>,
+        ctx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
+        self.get_mut()
+            .with_io(|mut context| {
+                context.conn.set_waker(Some(ctx.waker()))?;
+                context.conn.send(buf)
+            })
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.get_mut()
+            .with_io(|mut context| {
+                context.conn.set_waker(Some(ctx.waker()))?;
+                context.conn.flush().map(|r| r.map(|_| ()))
+            })
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.get_mut()
+            .with_io(|mut context| {
+                context.conn.set_waker(Some(ctx.waker()))?;
+                context.conn.shutdown().map(|r| r.map(|_| ()))
+            })
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
     }
 }
 
