@@ -5,7 +5,7 @@ use clap::Parser;
 use s2n_tls::raw::{config::Config, security::DEFAULT_TLS13};
 use s2n_tls_tokio::TlsAcceptor;
 use std::{error::Error, fs};
-use tokio::net::TcpListener;
+use tokio::{io::AsyncWriteExt, net::TcpListener};
 
 /// NOTE: this certificate and key are to be used for demonstration purposes only!
 const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/cert.pem");
@@ -44,10 +44,23 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), B
         // Wait for a client to connect.
         let (stream, peer_addr) = listener.accept().await?;
         println!("Connection from {:?}", peer_addr);
-        let tls = server.accept(stream).await?;
-        println!("{:#?}", tls);
 
-        // TODO: echo
+        // Spawn a new task to handle the connection.
+        // We probably want to spawn the task BEFORE calling TcpAcceptor::accept,
+        // because the TLS handshake can be slow.
+        let server = server.clone();
+        tokio::spawn(async move {
+            let mut tls = server.accept(stream).await?;
+            println!("{:#?}", tls);
+
+            // Copy data from the client to stdout
+            let mut stdout = tokio::io::stdout();
+            tokio::io::copy(&mut tls, &mut stdout).await?;
+            tls.shutdown().await?;
+            println!("Connection from {:?} closed", peer_addr);
+
+            Ok::<(), Box<dyn Error + Send + Sync>>(())
+        });
     }
 }
 

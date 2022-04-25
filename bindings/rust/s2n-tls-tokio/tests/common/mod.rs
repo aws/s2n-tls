@@ -46,9 +46,9 @@ pub fn server_config() -> Result<Builder, Error> {
 }
 
 pub async fn run_negotiate(
-    client: TlsConnector,
+    client: &TlsConnector,
     client_stream: TcpStream,
-    server: TlsAcceptor,
+    server: &TlsAcceptor,
     server_stream: TcpStream,
 ) -> Result<(TlsStream<TcpStream>, TlsStream<TcpStream>), Error> {
     tokio::try_join!(

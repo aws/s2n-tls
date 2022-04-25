@@ -14,7 +14,7 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (client_result, server_result) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     for tls in [client_result, server_result] {
         // Security policy ensures TLS1.3.

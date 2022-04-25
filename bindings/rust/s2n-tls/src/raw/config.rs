@@ -21,6 +21,11 @@ pub struct Config(NonNull<s2n_config>);
 /// Safety: s2n_config objects can be sent across threads
 unsafe impl Send for Config {}
 
+/// # Safety
+///
+/// Safety: s2n_config objects are thread safe
+unsafe impl Sync for Config {}
+
 impl Config {
     /// Returns a Config object with pre-defined defaults.
     ///
