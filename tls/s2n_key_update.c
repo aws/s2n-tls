@@ -110,7 +110,7 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
     uint64_t output = 0;
     POSIX_GUARD(s2n_sequence_number_to_uint64(sequence_number, &output));
 
-    if (output + 1 > conn->secure.cipher_suite->record_alg->encryption_limit) {
+    if (output >= conn->secure.cipher_suite->record_alg->encryption_limit) {
         conn->key_update_pending = true;
     }
 
