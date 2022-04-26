@@ -6,6 +6,7 @@ use libc::c_char;
 use s2n_tls_sys::*;
 use std::ffi::CStr;
 
+#[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub enum ErrorType {
     UnknownErrorType,

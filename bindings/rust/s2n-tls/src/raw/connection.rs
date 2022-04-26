@@ -9,7 +9,7 @@ use crate::raw::{
     security,
 };
 use core::{
-    convert::TryInto,
+    convert::{TryFrom, TryInto},
     fmt,
     ptr::NonNull,
     task::{Poll, Waker},
@@ -58,9 +58,9 @@ impl From<Mode> for s2n_mode::Type {
     }
 }
 
+#[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub enum Version {
-    Unknown,
     SSLV2,
     SSLV3,
     TLS10,
@@ -69,17 +69,20 @@ pub enum Version {
     TLS13,
 }
 
-impl From<s2n_tls_version::Type> for Version {
-    fn from(input: s2n_tls_version::Type) -> Self {
-        match input {
+impl TryFrom<s2n_tls_version::Type> for Version {
+    type Error = Error;
+
+    fn try_from(input: s2n_tls_version::Type) -> Result<Self, Self::Error> {
+        let version = match input {
             s2n_tls_version::SSLV2 => Self::SSLV2,
             s2n_tls_version::SSLV3 => Self::SSLV3,
             s2n_tls_version::TLS10 => Self::TLS10,
             s2n_tls_version::TLS11 => Self::TLS11,
             s2n_tls_version::TLS12 => Self::TLS12,
             s2n_tls_version::TLS13 => Self::TLS13,
-            _ => Self::Unknown,
-        }
+            _ => return Err(Error::InvalidInput),
+        };
+        Ok(version)
     }
 }
 
@@ -463,10 +466,10 @@ impl Connection {
     }
 
     pub fn actual_protocol_version(&self) -> Result<Version, Error> {
-        let version: i32 = unsafe {
+        let version = unsafe {
             s2n_connection_get_actual_protocol_version(self.connection.as_ptr()).into_result()?
         };
-        Ok(version.into())
+        version.try_into()
     }
 
     pub fn handshake_type(&self) -> Result<&str, Error> {
