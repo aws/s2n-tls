@@ -298,9 +298,9 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     return S2N_RESULT_OK;
 }
 
-static void s2n_cleanup_cb_munmap(void *probe_addr)
+static void s2n_cleanup_cb_munmap(void **probe_addr)
 {
-    //munmap(probe_addr, (size_t) sysconf(_SC_PAGESIZE));
+    munmap(*probe_addr, (size_t) sysconf(_SC_PAGESIZE));
 }
 
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork

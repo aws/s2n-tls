@@ -1,12 +1,14 @@
 import pytest
 import sslyze
 import abc
+from enum import Enum, auto
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Cipher, Ciphers, Certificates, Curves
 from fixtures import managed_process
 from providers import S2N
 from utils import get_parameter_name, invalid_test_parameters
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 HOST = "127.0.0.1"
 
@@ -31,7 +33,7 @@ SSLYZE_SCANS_TO_TEST = {
 
 CERTS_TO_TEST = [
     cert for cert in ALL_TEST_CERTS if cert.name not in {
-        "RSA_PSS_2048_SHA256"  # sslyze errors when given an RSA PSS cert
+        "RSA_PSS_2048_SHA256"  # SSLyze errors when given an RSA PSS cert
     }
 ]
 
@@ -67,7 +69,7 @@ class CipherSuitesVerifier(ScanVerifier):
         ]
 
         for cipher in rejected_ciphers:
-            # if a cipher is rejected, it should be an invalid test parameter in combination with the
+            # If a cipher is rejected, it should be an invalid test parameter in combination with the
             # protocol/provider/cert, otherwise it should have been accepted
             assert invalid_test_parameters(
                 protocol=self.protocol,
@@ -92,7 +94,7 @@ class EllipticCurveVerifier(ScanVerifier):
         ]
 
         for curve in rejected_curves:
-            # if a curve is rejected, it should be an invalid test parameter in combination with the
+            # If a curve is rejected, it should be an invalid test parameter in combination with the
             # protocol/provider/cert, otherwise it should have been accepted
             assert invalid_test_parameters(
                 protocol=self.protocol,
@@ -113,7 +115,7 @@ class RobotVerifier(ScanVerifier):
 class SessionResumptionVerifier(ScanVerifier):
     def assert_scan_success(self):
         if self.protocol == Protocols.TLS13:
-            pass  # sslyze does not support session resumption scans for tls 1.3
+            pass  # SSLyze does not support session resumption scans for tls 1.3
         else:
             assert self.scan_result.tls_ticket_resumption_result == sslyze.TlsResumptionSupportEnum.FULLY_SUPPORTED
 
@@ -211,9 +213,31 @@ def run_sslyze_scan(host, port, scans):
     return scanner.get_results()
 
 
+def invalid_sslyze_scan_parameters(*args, **kwargs):
+    scan_command = kwargs["scan_command"]
+    protocol = kwargs["protocol"]
+
+    # BUG_IN_SSLYZE error in TLS compression and session renegotiation scans
+    # in fips libcryptos when TLS version < 1.3
+    if "fips" in get_flag(S2N_PROVIDER_VERSION) and protocol != Protocols.TLS13:
+        if scan_command in [
+            sslyze.ScanCommand.TLS_COMPRESSION,
+            sslyze.ScanCommand.SESSION_RENEGOTIATION
+        ]:
+            return True
+    # BUG_IN_SSLYZE error for session resumption scan with openssl 1.0.2 fips
+    if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+        if scan_command == sslyze.ScanCommand.SESSION_RESUMPTION:
+            return True
+
+    return invalid_test_parameters(*args, **kwargs)
+
+
+@pytest.mark.uncollect_if(func=invalid_sslyze_scan_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("scan_command", SSLYZE_SCANS_TO_TEST, ids=get_parameter_name)
-def test_sslyze_scans(managed_process, protocol, scan_command):
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+def test_sslyze_scans(managed_process, protocol, scan_command, provider):
     port = next(available_ports)
 
     server_options = ProviderOptions(
@@ -224,7 +248,7 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
         extra_flags=["--parallelize"]
     )
 
-    # test 1.3 exclusively
+    # Test 1.3 exclusively
     if protocol == Protocols.TLS13:
         server_options.cipher = Cipher(
             "test_all_tls13", Protocols.TLS13, False, False, s2n=True)
@@ -238,7 +262,7 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
         server_options.use_session_ticket = True
         server_options.extra_flags.extend([
             "--max-early-data", "65535",
-            "--https-server"  # early data scan sends http requests
+            "--https-server"  # Early data scan sends http requests
         ])
 
     server = managed_process(S2N, server_options, timeout=30)
@@ -256,9 +280,54 @@ def test_sslyze_scans(managed_process, protocol, scan_command):
     server.kill()
 
 
+class CertificateScan(Enum):
+    CIPHER_SUITE_SCAN = auto()
+    ELLIPTIC_CURVE_SCAN = auto()
+
+
+def invalid_certificate_scans_parameters(*args, **kwargs):
+    certificate = kwargs["certificate"]
+    certificate_scan = kwargs["certificate_scan"]
+    protocol = kwargs["protocol"]
+
+    if certificate_scan == CertificateScan.CIPHER_SUITE_SCAN:
+        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+            # SSLyze scan results in rejected ciphers that should have been accepted
+            # for TLS 1.2
+            if protocol == Protocols.TLS12:
+                return True
+        if "fips" in get_flag(S2N_PROVIDER_VERSION):
+            # BUG_IN_SSLYZE / TLS version supported assertion failures for ECDSA scans
+            # in SSLv3 and RSA with TLS version < 1.2 with fips libcryptos
+            if "ECDSA" in certificate.name and protocol == Protocols.SSLv3:
+                return True
+            if "RSA" in certificate.name and protocol in [
+                Protocols.SSLv3,
+                Protocols.TLS10,
+                Protocols.TLS11
+            ]:
+                return True
+    elif certificate_scan == CertificateScan.ELLIPTIC_CURVE_SCAN:
+        # SSLyze curves scan errors when given ECDSA certs
+        if "ECDSA" in certificate.name:
+            return True
+
+        # SSLyze curves scan fails to validate with openssl 1.0.2 fips
+        if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION):
+            return True
+
+    return invalid_test_parameters(*args, **kwargs)
+
+
+@pytest.mark.uncollect_if(func=invalid_certificate_scans_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTS_TO_TEST, ids=get_parameter_name)
-def test_sslyze_certificate_scans(managed_process, protocol, certificate):
+@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate_scan", [
+    CertificateScan.CIPHER_SUITE_SCAN,
+    CertificateScan.ELLIPTIC_CURVE_SCAN
+], ids=lambda certificate_scan: certificate_scan.name)
+def test_sslyze_certificate_scans(managed_process, protocol, certificate, provider, certificate_scan):
     port = next(available_ports)
 
     server_options = ProviderOptions(
@@ -273,13 +342,12 @@ def test_sslyze_certificate_scans(managed_process, protocol, certificate):
     )
     server = managed_process(S2N, server_options, timeout=30)
 
-    scans = [CIPHER_SUITE_SCANS.get(protocol.value)]
+    scan = {
+        CertificateScan.CIPHER_SUITE_SCAN: CIPHER_SUITE_SCANS.get(protocol.value),
+        CertificateScan.ELLIPTIC_CURVE_SCAN: sslyze.ScanCommand.ELLIPTIC_CURVES
+    }.get(certificate_scan)
 
-    # sslyze curves scan errors when given ECDSA certs
-    if "ECDSA" not in certificate.name:
-        scans.append(sslyze.ScanCommand.ELLIPTIC_CURVES)
-
-    scan_attempt_results = run_sslyze_scan(HOST, port, scans)
+    scan_attempt_results = run_sslyze_scan(HOST, port, [scan])
 
     for scan_attempt_result in scan_attempt_results:
         assert_scan_result_completed(scan_attempt_result)

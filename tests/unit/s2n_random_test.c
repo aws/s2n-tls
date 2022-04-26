@@ -54,59 +54,28 @@ void process_safety_tester(int write_fd)
     _exit(0);
 }
 
-static int init(void) {
-    return S2N_SUCCESS;
-}
-
-static int cleanup(void) {
-    return S2N_SUCCESS;
-}
-
-static int entropy(void *ptr, uint32_t size) {
-    return S2N_SUCCESS;
-}
-
-int main(int argc, char **argv)
+static int init(void)
 {
-    uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-    uint8_t bit_set_run[8];
-    int p[2], status;
+    return S2N_SUCCESS;
+}
+
+static int cleanup(void)
+{
+    return S2N_SUCCESS;
+}
+
+static int entropy(void *ptr, uint32_t size)
+{
+    return S2N_SUCCESS;
+}
+
+static int fork_test(void)
+{
     pid_t pid;
-    uint8_t data[5120];
+    int p[2], status;
+    uint8_t data[100];
     uint8_t child_data[100];
-    struct s2n_blob blob = {.data = data };
-
-    pthread_t threads[2];
-
-    BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
-    /* Verify that randomness callbacks can't be set to NULL */
-    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(init, NULL, entropy, entropy));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, NULL, entropy));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, entropy, NULL));
-
-    /* Get one byte of data, to make sure the pool is (almost) full */
-    blob.size = 1;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-
-    /* Create two threads and have them each grab 100 bytes */
-    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)0));
-    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *)1));
-
-    /* Wait for those threads to finish */
-    EXPECT_SUCCESS(pthread_join(threads[0], NULL));
-    EXPECT_SUCCESS(pthread_join(threads[1], NULL));
-
-    /* Confirm that their data differs from each other */
-    EXPECT_NOT_EQUAL(memcmp(thread_data[0], thread_data[1], 100), 0);
-
-    /* Confirm that their data differs from the parent thread */
-    blob.size = 100;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-    EXPECT_NOT_EQUAL(memcmp(thread_data[0], data, 100), 0);
-    EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
+    struct s2n_blob blob = {.data = data, .size = 100};
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(p));
@@ -145,6 +114,56 @@ int main(int argc, char **argv)
     blob.data = data;
     EXPECT_OK(s2n_get_public_random_data(&blob));
     EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
+
+    return S2N_SUCCESS;
+}
+
+int main(int argc, char **argv)
+{
+    uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+    uint8_t bit_set_run[8];
+    uint8_t data[5120];
+    struct s2n_blob blob = {.data = data };
+
+    pthread_t threads[2];
+
+    BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    /* Verify that randomness callbacks can't be set to NULL */
+    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, NULL, entropy, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, NULL, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, entropy, NULL));
+
+    /* Get one byte of data, to make sure the pool is (almost) full */
+    blob.size = 1;
+    EXPECT_OK(s2n_get_public_random_data(&blob));
+
+    /* Create two threads and have them each grab 100 bytes */
+    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)0));
+    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *)1));
+
+    /* Wait for those threads to finish */
+    EXPECT_SUCCESS(pthread_join(threads[0], NULL));
+    EXPECT_SUCCESS(pthread_join(threads[1], NULL));
+
+    /* Confirm that their data differs from each other */
+    EXPECT_NOT_EQUAL(memcmp(thread_data[0], thread_data[1], 100), 0);
+
+    /* Confirm that their data differs from the parent thread */
+    blob.size = 100;
+    EXPECT_OK(s2n_get_public_random_data(&blob));
+    EXPECT_NOT_EQUAL(memcmp(thread_data[0], data, 100), 0);
+    EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
+
+    /* Fork with prediction resistance */
+    EXPECT_SUCCESS(fork_test());
+
+    /* Fork without prediction resistance */
+    EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_SUCCESS(fork_test());
+    EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(false));
 
     /* Try to fetch a volume of randomly generated data, every size between 1 and 5120
      * bytes.

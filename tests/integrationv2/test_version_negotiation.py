@@ -9,13 +9,34 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
     to_bytes, get_expected_gnutls_version
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+def test_nothing():
+    """
+    Sometimes the version negotiation test parameters in combination with the s2n
+    libcrypto results in no test cases existing. In this case, pass a nothing test to
+    avoid marking the entire codebuild run as failed.
+    """
+    assert True
+
+
+def invalid_version_negotiation_test_parameters(*args, **kwargs):
+    # Since s2nd/s2nc will always be using TLS 1.3, make sure the libcrypto is compatible
+    if invalid_test_parameters(**{
+        "provider": S2N,
+        "protocol": Protocols.TLS13
+    }):
+        return True
+
+    return invalid_test_parameters(*args, **kwargs)
+
+
+@pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
-def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate, protocol, provider, other_provider):
     port = next(available_ports)
 
     random_bytes = data_bytes(24)
@@ -65,17 +86,20 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
             assert to_bytes("Actual protocol version: {}".format(
                 actual_version)) in results.stdout
 
-        assert any(
-            [random_bytes in stream for stream in results.output_streams()])
+        assert any([
+            random_bytes[1:] in stream 
+            for stream in results.output_streams()
+        ])
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS11, Protocols.TLS10], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
-def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, provider, certificate):
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, certificate, protocol, provider, other_provider):
     port = next(available_ports)
 
     random_bytes = data_bytes(24)
@@ -124,8 +148,12 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes("Server protocol version: {}".format(
-            server_version)) in results.stdout
-        assert to_bytes("Actual protocol version: {}".format(
-            actual_version)) in results.stdout
-        assert random_bytes in results.stdout
+        assert (
+            to_bytes("Server protocol version: {}".format(server_version)) 
+            in results.stdout
+        )
+        assert (
+            to_bytes("Actual protocol version: {}".format(actual_version)) 
+            in results.stdout
+        )
+        assert random_bytes[1:] in results.stdout
