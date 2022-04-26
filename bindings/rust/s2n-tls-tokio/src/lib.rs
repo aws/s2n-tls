@@ -4,11 +4,11 @@
 use errno::{set_errno, Errno};
 use s2n_tls::raw::{
     config::Config,
-    connection::Connection,
+    connection::{CallbackResult, Connection, Mode},
     error::Error,
-    ffi::{s2n_mode, s2n_status_code},
 };
 use std::{
+    fmt,
     future::Future,
     os::raw::{c_int, c_void},
     pin::Pin,
@@ -29,7 +29,7 @@ impl TlsAcceptor {
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        TlsStream::open(self.config.clone(), s2n_mode::SERVER, stream).await
+        TlsStream::open(self.config.clone(), Mode::Server, stream).await
     }
 }
 
@@ -46,7 +46,7 @@ impl TlsConnector {
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        TlsStream::open(self.config.clone(), s2n_mode::CLIENT, stream).await
+        TlsStream::open(self.config.clone(), Mode::Client, stream).await
     }
 }
 
@@ -69,7 +69,7 @@ where
 }
 
 pub struct TlsStream<S> {
-    conn: Connection,
+    pub conn: Connection,
     stream: S,
 }
 
@@ -77,7 +77,7 @@ impl<S> TlsStream<S>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    async fn open(config: Config, mode: s2n_mode::Type, stream: S) -> Result<Self, Error> {
+    async fn open(config: Config, mode: Mode, stream: S) -> Result<Self, Error> {
         let mut conn = Connection::new(mode);
         conn.set_config(config)?;
 
@@ -126,9 +126,9 @@ where
             Poll::Ready(Ok(len)) => len as c_int,
             Poll::Pending => {
                 set_errno(Errno(libc::EWOULDBLOCK));
-                s2n_status_code::FAILURE
+                CallbackResult::Failure.into()
             }
-            _ => s2n_status_code::FAILURE,
+            _ => CallbackResult::Failure.into(),
         }
     }
 
@@ -146,5 +146,13 @@ where
             let src = std::slice::from_raw_parts(buf, len as usize);
             stream.poll_write(async_context, src)
         })
+    }
+}
+
+impl<S> fmt::Debug for TlsStream<S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("TlsStream")
+            .field("connection", &self.conn)
+            .finish()
     }
 }
