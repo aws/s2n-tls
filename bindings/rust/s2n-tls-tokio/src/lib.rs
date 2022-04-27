@@ -110,6 +110,7 @@ where
             self.conn.set_send_callback(None)?;
             self.conn.set_receive_context(std::ptr::null_mut())?;
             self.conn.set_send_context(std::ptr::null_mut())?;
+            self.conn.set_waker(None)?;
             result
         }
     }
@@ -197,12 +198,18 @@ where
     }
 
     fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        self.get_mut()
+        let tls = self.get_mut();
+        let tls_flush = tls
             .with_io(|mut context| {
                 context.conn.set_waker(Some(ctx.waker()))?;
                 context.conn.flush().map(|r| r.map(|_| ()))
             })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
+        if tls_flush.is_ready() {
+            Pin::new(&mut tls.stream).poll_flush(ctx)
+        } else {
+            tls_flush
+        }
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {

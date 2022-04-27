@@ -18,10 +18,10 @@ async fn send_and_recv_basic() -> Result<(), Box<dyn std::error::Error>> {
     let (mut client, mut server) =
         common::run_negotiate(connector, client_stream, acceptor, server_stream).await?;
 
-    assert_eq!(client.write(TEST_DATA).await?, TEST_DATA.len());
+    client.write_all(TEST_DATA).await?;
 
     let mut received = [0; TEST_DATA.len()];
-    assert_eq!(server.read(&mut received).await?, TEST_DATA.len());
+    assert_eq!(server.read_exact(&mut received).await?, TEST_DATA.len());
     assert_eq!(TEST_DATA, received);
 
     Ok(())
@@ -42,11 +42,11 @@ async fn send_and_recv_multiple_records() -> Result<(), Box<dyn std::error::Erro
         common::run_negotiate(connector, client_stream, acceptor, server_stream).await?;
 
     let mut received = [0; LARGE_TEST_DATA.len()];
-    let (write_size, read_size) = tokio::try_join!(
-        client.write(LARGE_TEST_DATA),
+    let (_, read_size) = tokio::try_join!(
+        client.write_all(LARGE_TEST_DATA),
         server.read_exact(&mut received)
     )?;
-    assert_eq!(write_size, read_size);
+    assert_eq!(LARGE_TEST_DATA.len(), read_size);
     assert_eq!(LARGE_TEST_DATA, received);
 
     Ok(())
