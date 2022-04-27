@@ -13,6 +13,13 @@
  * permissions and limitations under the License.
  */
 
+/* Keep in sync with utils/s2n_fork_detection.c */
+#if defined(__FreeBSD__)
+    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+     * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
+    #undef _POSIX_C_SOURCE
+#endif
+
 #include <stddef.h>
 #include <sys/mman.h>
 
