@@ -29,7 +29,8 @@ async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Box<dyn Error>> 
 
     // Connect to the server.
     let stream = TcpStream::connect(addr).await?;
-    client.connect("localhost", stream).await?;
+    let tls = client.connect("localhost", stream).await?;
+    println!("{:#?}", tls);
 
     // TODO: echo
 

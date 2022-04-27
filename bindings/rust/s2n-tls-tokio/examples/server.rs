@@ -44,7 +44,8 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), B
         // Wait for a client to connect.
         let (stream, peer_addr) = listener.accept().await?;
         println!("Connection from {:?}", peer_addr);
-        server.accept(stream).await?;
+        let tls = server.accept(stream).await?;
+        println!("{:#?}", tls);
 
         // TODO: echo
     }
