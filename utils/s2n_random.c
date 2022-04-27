@@ -40,6 +40,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
@@ -60,14 +61,19 @@
 
 static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
 
-static __thread struct s2n_drbg per_thread_private_drbg = {0};
-static __thread struct s2n_drbg per_thread_public_drbg = {0};
+struct s2n_rand_state {
+    uint64_t cached_fgn;
+    struct s2n_drbg public_drbg;
+    struct s2n_drbg private_drbg;
+    bool drbgs_initialised;
+};
 
-static void *zeroed_when_forked_page = NULL;
-static int zero = 0;
-
-static __thread void *zero_if_forked_ptr = &zero;
-#define zero_if_forked (* (int *) zero_if_forked_ptr)
+static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
+    .cached_fgn = 0,
+    .public_drbg = {0},
+    .private_drbg = {0},
+    .drbgs_initialised = false
+};
 
 static int s2n_rand_init_impl(void);
 static int s2n_rand_cleanup_impl(void);
@@ -128,26 +134,62 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
-void s2n_on_fork(void)
-{
-    zero_if_forked = 0;
-}
-
-static inline S2N_RESULT s2n_defend_if_forked(void)
+static inline S2N_RESULT s2n_initialise_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = {.data = s2n_public_drbg,.size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = {.data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
+    struct s2n_blob private = {.data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
 
-    if (zero_if_forked == 0) {
-        /* Clean up the old drbg first */
+    RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
+    RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_128_CTR_NO_DF_PR));
+
+    s2n_per_thread_rand_state.drbgs_initialised = true;
+
+    return S2N_RESULT_OK;
+}
+
+static inline S2N_RESULT s2n_maybe_initialise_drbgs(void)
+{
+    if (s2n_per_thread_rand_state.drbgs_initialised == false) {
+        RESULT_GUARD(s2n_initialise_drbgs());
+    }
+
+    return S2N_RESULT_OK;
+}
+
+static inline S2N_RESULT s2n_init_rand_state(void)
+{
+    if (s2n_per_thread_rand_state.drbgs_initialised == false) {
+        /* First initialise public and private drbg */
+        RESULT_GUARD(s2n_initialise_drbgs());
+
+        /* Then cache the fork generation number */
+        uint64_t returned_fgn = 0;
+        RESULT_GUARD(s2n_get_fork_generation_number(&returned_fgn));
+        s2n_per_thread_rand_state.cached_fgn = returned_fgn;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* s2n_defend_against_ube() implements defenses against ube's (uniqueness
+ * breaking events). Currently, only implements fork detection.
+ */
+static inline S2N_RESULT s2n_defend_against_ube(void)
+{
+    uint64_t returned_fgn = 0;
+    RESULT_GUARD(s2n_get_fork_generation_number(&returned_fgn));
+
+    if (returned_fgn != s2n_per_thread_rand_state.cached_fgn) {
+
+        /* This assumes that s2n_rand_cleanup_thread() doesn't mutate any other
+         * state than the drbg states.
+         */
         RESULT_GUARD(s2n_rand_cleanup_thread());
-        /* Instantiate the new ones */
-        RESULT_GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
-        RESULT_GUARD(s2n_drbg_instantiate(&per_thread_private_drbg, &private, S2N_AES_128_CTR_NO_DF_PR));
-        zero_if_forked_ptr = zeroed_when_forked_page;
-        zero_if_forked = 1;
+        RESULT_GUARD(s2n_initialise_drbgs());
+
+        s2n_per_thread_rand_state.cached_fgn = returned_fgn;
     }
 
     return S2N_RESULT_OK;
@@ -155,7 +197,8 @@ static inline S2N_RESULT s2n_defend_if_forked(void)
 
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_defend_if_forked());
+    RESULT_GUARD(s2n_maybe_initialise_drbgs());
+    RESULT_GUARD(s2n_defend_against_ube());
 
     uint32_t offset = 0;
     uint32_t remaining = blob->size;
@@ -164,8 +207,7 @@ S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
         struct s2n_blob slice = { 0 };
 
         RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
-
-        RESULT_GUARD(s2n_drbg_generate(&per_thread_public_drbg, &slice));
+        RESULT_GUARD(s2n_drbg_generate(&s2n_per_thread_rand_state.public_drbg, &slice));
 
         remaining -= slice.size;
         offset += slice.size;
@@ -176,7 +218,8 @@ S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_defend_if_forked());
+    RESULT_GUARD(s2n_maybe_initialise_drbgs());
+    RESULT_GUARD(s2n_defend_against_ube());
 
     uint32_t offset = 0;
     uint32_t remaining = blob->size;
@@ -185,8 +228,7 @@ S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
         struct s2n_blob slice = { 0 };
 
         RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
-
-        RESULT_GUARD(s2n_drbg_generate(&per_thread_private_drbg, &slice));
+        RESULT_GUARD(s2n_drbg_generate(&s2n_per_thread_rand_state.private_drbg, &slice));
 
         remaining -= slice.size;
         offset += slice.size;
@@ -197,13 +239,13 @@ S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 
 S2N_RESULT s2n_get_public_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD(s2n_drbg_bytes_used(&per_thread_public_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&s2n_per_thread_rand_state.public_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD(s2n_drbg_bytes_used(&per_thread_private_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&s2n_per_thread_rand_state.private_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
@@ -344,33 +386,9 @@ static int s2n_rand_init_impl(void)
 
 S2N_RESULT s2n_rand_init(void)
 {
-    uint32_t pagesize;
-
     RESULT_GUARD_POSIX(s2n_rand_init_cb());
 
-    pagesize = s2n_mem_get_page_size();
-
-    /* We need a single-aligned page for our protected memory region */
-    RESULT_ENSURE(posix_memalign(&zeroed_when_forked_page, pagesize, pagesize) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-    RESULT_ENSURE(zeroed_when_forked_page != NULL, S2N_ERR_OPEN_RANDOM);
-
-    /* Initialized to zero to ensure that we seed our DRBGs */
-    zero_if_forked = 0;
-
-    /* INHERIT_ZERO and WIPEONFORK reset a page to all-zeroes when a fork occurs */
-#if defined(MAP_INHERIT_ZERO)
-    RESULT_ENSURE(minherit(zeroed_when_forked_page, pagesize, MAP_INHERIT_ZERO) != S2N_FAILURE, S2N_ERR_OPEN_RANDOM);
-#endif
-
-#if defined(MADV_WIPEONFORK)
-    RESULT_ENSURE(madvise(zeroed_when_forked_page, pagesize, MADV_WIPEONFORK) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-#endif
-
-    /* For defence in depth */
-    RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_on_fork) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-
-    /* Seed everything */
-    RESULT_GUARD(s2n_defend_if_forked());
+    RESULT_GUARD(s2n_init_rand_state());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Create an engine */
@@ -423,12 +441,6 @@ S2N_RESULT s2n_rand_cleanup(void)
     }
 #endif
 
-    if (zeroed_when_forked_page != NULL) {
-        free(zeroed_when_forked_page);
-        zeroed_when_forked_page = NULL;
-        zero_if_forked_ptr = &zero;
-    }
-
     s2n_rand_init_cb = s2n_rand_init_impl;
     s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
     s2n_rand_seed_cb = s2n_rand_urandom_impl;
@@ -439,22 +451,27 @@ S2N_RESULT s2n_rand_cleanup(void)
 
 S2N_RESULT s2n_rand_cleanup_thread(void)
 {
-    RESULT_GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
-    RESULT_GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
+    /* Currently, it is only safe for this function to mutate the drbg states.
+     * See s2n_defend_against_ube().
+     */
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.public_drbg));
+
+    s2n_per_thread_rand_state.drbgs_initialised = false;
 
     return S2N_RESULT_OK;
 }
 
 /*
- * This must only be used for unit tests. Any real use is dangerous and will be overwritten in s2n_defend_if_forked if
+ * This must only be used for unit tests. Any real use is dangerous and will be overwritten in s2n_defend_against_ube if
  * it is forked. This was added to support known answer tests that use OpenSSL and s2n_get_private_random_data directly.
  */
 S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    RESULT_GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
+    RESULT_ENSURE_OK(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg), S2N_ERR_NOT_IN_UNIT_TEST);
+    s2n_per_thread_rand_state.private_drbg = drbg;
 
-    per_thread_private_drbg = drbg;
     return S2N_RESULT_OK;
 }
 

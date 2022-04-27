@@ -19,334 +19,604 @@
 #include <pthread.h>
 #include "api/s2n.h"
 
+#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_random.h"
 
-extern bool s2n_cpu_supports_rdrand();
+#define MAX_NUMBER_OF_TEST_THREADS 2
 
-static uint8_t thread_data[2][100];
+#define CLONE_TEST_NO 0
+#define CLONE_TEST_YES 1
+#define CLONE_TEST_DETERMINE_AT_RUNTIME 2
 
-void *thread_safety_tester(void *slot)
+#define RANDOM_GENERATE_DATA_SIZE 100
+#define MAX_RANDOM_GENERATE_DATA_SIZE 5120
+
+#define SLOT_NUM_0 0x00
+#define SLOT_NUM_1 0x01
+#define GET_PUBLIC_RANDOM_DATA 0x00
+#define GET_PRIVATE_RANDOM_DATA 0x10
+#define SLOT_MASK 0x0F
+#define FUNC_MASK 0xF0
+
+#define NUMBER_OF_BOUNDS 10
+#define NUMBER_OF_RANGE_FUNCTION_CALLS 200
+#define MAX_REPEATED_OUTPUT 4
+
+struct random_test_case {
+    const char *test_case_label;
+    int (*test_case_cb)(struct random_test_case *test_case);
+    int test_case_must_pass_clone_test;
+};
+
+static uint8_t thread_data[MAX_NUMBER_OF_TEST_THREADS][RANDOM_GENERATE_DATA_SIZE];
+
+
+static void s2n_verify_child_exit_status(pid_t proc_pid)
 {
-    intptr_t slotnum = (intptr_t) slot;
-    struct s2n_blob blob = {.data = thread_data[slotnum], .size = 100 };
+    int status = 0;
+#if defined(S2N_CLONE_SUPPORTED)
+    EXPECT_EQUAL(waitpid(proc_pid, &status, __WALL), proc_pid);
+#else
+    /* __WALL is not relevant when clone() is not supported
+     * https://man7.org/linux/man-pages/man2/wait.2.html#NOTES
+     */
+    EXPECT_EQUAL(waitpid(proc_pid, &status, 0), proc_pid);
+#endif
+    /* Check that child exited with EXIT_SUCCESS. If not, this indicates
+     * that an error was encountered in the unit tests executed in that
+     * child process.
+     */
+    EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
+    EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
+}
 
-    EXPECT_OK(s2n_get_public_random_data(&blob));
+static int s2n_init_cb(void)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_cleanup_cb(void)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_entropy_cb(void *ptr, uint32_t size)
+{
+    return S2N_SUCCESS;
+}
+
+/* Try to fetch a volume of randomly generated data, every size between 1
+ * and 5120 bytes.
+ */
+static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
+{
+    uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+    uint8_t bit_set_run[8];
+    uint8_t data[MAX_RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob = { .data = data }; 
+    int trailing_zeros[8] = {0};
+
+    for (int size = 0; size < MAX_RANDOM_GENERATE_DATA_SIZE; size++) {
+        blob.size = size;
+        EXPECT_OK(s2n_get_random_data_cb(&blob));
+
+        if (size >= 64) {
+            /* Set the run counts to 0 */
+            memset(bit_set_run, 0, 8);
+
+            /* Apply 8 monobit tests to the data. Basically, we're
+             * looking for successive runs where a given bit is set.
+             * If a run exists with any particular bit 64 times in
+             * a row, then the data doesn't look randomly generated.
+             */
+            for (int j = 0; j < size; j++) {
+                for (int k = 0; k < 8; k++) {
+                    if (data[j] & bits[k]) {
+                        bit_set_run[k]++;
+
+                        if (j >= 64) {
+                            RESULT_ENSURE_LT(bit_set_run[k], 64);
+                        }
+                    } else {
+                        bit_set_run[k] = 0;
+                    }
+                }
+            }
+        }
+
+        /* A common mistake in array filling leaves the last bytes zero
+         * depending on the length.
+         */
+        int remainder = size % 8;
+        int non_zero_found = 0;
+        for (int t = size - remainder; t < size; t++) {
+            non_zero_found |= data[t];
+        }
+        if (!non_zero_found) {
+            trailing_zeros[remainder]++;
+        }
+    }
+    for (int t = 1; t < 8; t++) {
+        RESULT_ENSURE_LT(trailing_zeros[t], 5120 / 16);
+    }
+
+    return S2N_RESULT_OK;
+}
+
+static void swap(size_t i, size_t j,
+    uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS]) {
+    uint64_t temp = range_results[j];
+    range_results[j] = range_results[i];
+    range_results[i] = temp;
+}
+
+static void sort_array(uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS]) {
+    for (size_t i = 1; i < NUMBER_OF_RANGE_FUNCTION_CALLS; i++) {
+        for (size_t j = i; j > 0; j--) {
+            if (range_results[j - 1] > range_results[j]) {
+                swap(j - 1, j, range_results);
+            }
+            else {
+                // invariant: subarray [0, i-1] is sorted
+                continue;
+            }
+        }
+    }
+}
+
+static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bound, uint64_t *output))
+{
+    uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS] = {0};
+    uint64_t current_bound;
+    uint64_t current_output;
+    /* The type of the `bound` parameter in s2n_public_random() is signed */
+    int64_t random_bound;
+    struct s2n_blob bound_blob = { .data = (void *) &random_bound, .size = sizeof(random_bound) };
+
+    /* 0 is not allowed */
+    current_bound = 0;
+    EXPECT_NOT_OK(s2n_get_range_cb(current_bound, &current_output));
+
+    /* For bound of 1, only 0 should be possible */
+    current_bound = 1;
+    EXPECT_OK(s2n_get_range_cb(current_bound, &current_output));
+    EXPECT_EQUAL(current_output, 0);
+
+    /* For bound of 2, 0 and 1 are the only possibilities */
+    current_bound = 1;
+    EXPECT_OK(s2n_get_range_cb(current_bound, &current_output));
+    EXPECT_TRUE((current_output == 0) || (current_output == 1));
+
+    /* Test NUMBER_OF_BOUNDS bounds. For each resulting range, draw
+     * NUMBER_OF_RANGE_FUNCTION_CALLS numbers and verify the output.
+     * Set a lower bound of 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS.
+     */
+    int64_t lower_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
+    for (size_t i = 0; i < NUMBER_OF_BOUNDS; i++) {
+
+BOUND_TOO_SMALL:
+        EXPECT_OK(s2n_get_private_random_data(&bound_blob));
+        if (random_bound < lower_bound) {
+            goto BOUND_TOO_SMALL;
+        }
+
+        for (size_t j = 0; j < NUMBER_OF_RANGE_FUNCTION_CALLS; j++) {
+            EXPECT_OK(s2n_public_random(random_bound, &range_results[j]));
+            EXPECT_TRUE(range_results[j] < random_bound);
+        }
+
+        /* The probability of "at least MAX_REPEATED_OUTPUT repeated values"
+         * follows a binomial distribution. Hence, we can get an upper bound via
+         * Markov's inequality:
+         * P("at least MAX_REPEATED_OUTPUT repeated values")
+         *      <= E("at least MAX_REPEATED_OUTPUT repeated values") / MAX_REPEATED_OUTPUT.
+         *       = (NUMBER_OF_RANGE_FUNCTION_CALLS * 1/(2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS)) / MAX_REPEATED_OUTPUT
+         *       = 1/(2^30 * MAX_REPEATED_OUTPUT)
+         *
+         * With current values
+         *   NUMBER_OF_BOUNDS = 10
+         *   MAX_REPEATED_OUTPUT = 4
+         * this ends upt to about a ~1/2^30 probability of failing this test
+         * with a false positive.
+         */
+        uint64_t current_value = range_results[0];
+        size_t repeat_count = 1;
+        /* O(n^2) below, but NUMBER_OF_RANGE_FUNCTION_CALLS is still fairly
+         * small, so no big biggie
+         */
+        sort_array(range_results);
+        for (size_t j = 0; j < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; j++) {
+
+            if (current_value == range_results[j + 1]) {
+                repeat_count = repeat_count + 1;
+            } else {
+                current_value = range_results[j + 1];
+                repeat_count = 1;
+            }
+
+            EXPECT_TRUE(repeat_count < MAX_REPEATED_OUTPUT);
+        }
+
+        /* Reset for next iteration */
+        memset(range_results, 0, sizeof(range_results));
+    }
+
+    return S2N_RESULT_OK;
+}
+
+void * s2n_thread_test_cb(void *slot)
+{
+    uintptr_t slot_num = ((uintptr_t) slot) & SLOT_MASK;
+    uintptr_t random_func = ((uintptr_t) slot) & FUNC_MASK;
+
+    struct s2n_blob thread_blob = { .data = thread_data[slot_num], .size = RANDOM_GENERATE_DATA_SIZE };
+
+    if (random_func == GET_PUBLIC_RANDOM_DATA) {
+        EXPECT_OK(s2n_get_public_random_data(&thread_blob));
+    }
+    else if (random_func == GET_PRIVATE_RANDOM_DATA) {
+        EXPECT_OK(s2n_get_private_random_data(&thread_blob));
+    }
+    else {
+        EXPECT_SUCCESS(S2N_FAILURE);
+    }
 
     EXPECT_OK(s2n_rand_cleanup_thread());
 
     return NULL;
 }
 
-void process_safety_tester(int write_fd)
-{
-    uint8_t pad[100];
 
-    struct s2n_blob blob = {.data = pad, .size = 100 };
-    EXPECT_OK(s2n_get_public_random_data(&blob));
+static S2N_RESULT s2n_thread_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob), uintptr_t thread_random_func)
+{
+    uint8_t data[MAX_RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob = { .data = data };
+    pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
+
+    /* Create two threads and have them each grab RANDOM_GENERATE_DATA_SIZE
+     * bytes. The third parameter to pthread_create is packed. It containes two
+     * pieces of information: where to store the random data generated in the
+     * thread and which random function must be used to generate it.
+     */
+    EXPECT_EQUAL(pthread_create(&threads[0], NULL, s2n_thread_test_cb, (void *) (((uintptr_t) SLOT_NUM_0) | thread_random_func)), 0);
+    EXPECT_EQUAL(pthread_create(&threads[1], NULL, s2n_thread_test_cb, (void *) (((uintptr_t) SLOT_NUM_1) | thread_random_func)), 0);
+
+    /* Wait for those threads to finish */
+    EXPECT_EQUAL(pthread_join(threads[0], NULL), 0);
+    EXPECT_EQUAL(pthread_join(threads[1], NULL), 0);
+
+    /* Confirm that their data differs from each other */
+    EXPECT_BYTEARRAY_NOT_EQUAL(thread_data[0], thread_data[1], RANDOM_GENERATE_DATA_SIZE);
+
+    /* Confirm that their data differs from the parent thread */
+    blob.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_random_data_cb(&blob));
+    EXPECT_BYTEARRAY_NOT_EQUAL(thread_data[0], data, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_BYTEARRAY_NOT_EQUAL(thread_data[1], data, RANDOM_GENERATE_DATA_SIZE);
+
+    return S2N_RESULT_OK;
+}
+
+static void s2n_fork_test_generate_randomness(int write_fd, S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
+{
+    uint8_t data[RANDOM_GENERATE_DATA_SIZE];
+
+    struct s2n_blob blob = {.data = data, .size = RANDOM_GENERATE_DATA_SIZE };
+    EXPECT_OK(s2n_get_random_data_cb(&blob));
 
     /* Write the data we got to our pipe */
-    if (write(write_fd, pad, 100) != 100) {
-        _exit(100);
+    if (write(write_fd, data, RANDOM_GENERATE_DATA_SIZE) != RANDOM_GENERATE_DATA_SIZE) {
+        _exit(EXIT_FAILURE);
     }
 
     /* Close the pipe and exit */
     close(write_fd);
-    _exit(0);
+    _exit(EXIT_SUCCESS);
 }
 
-static int init(void)
+static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
 {
-    return S2N_SUCCESS;
-}
-
-static int cleanup(void)
-{
-    return S2N_SUCCESS;
-}
-
-static int entropy(void *ptr, uint32_t size)
-{
-    return S2N_SUCCESS;
-}
-
-static int fork_test(void)
-{
-    pid_t pid;
-    int p[2], status;
-    uint8_t data[100];
-    uint8_t child_data[100];
-    struct s2n_blob blob = {.data = data, .size = 100};
-
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(p));
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(p[0]));
-        process_safety_tester(p[1]);
-    }
+    uint8_t child_data[RANDOM_GENERATE_DATA_SIZE];
+    uint8_t parent_data[RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob parent_blob = { .data = parent_data, .size = RANDOM_GENERATE_DATA_SIZE };
 
     /* This is the parent process, close the write end of the pipe */
-    EXPECT_SUCCESS(close(p[1]));
+    EXPECT_SUCCESS(close(pipes[1]));
 
     /* Read the child's data from the pipe */
-    EXPECT_EQUAL(read(p[0], child_data, 100), 100);
+    EXPECT_EQUAL(read(pipes[0], child_data, RANDOM_GENERATE_DATA_SIZE), RANDOM_GENERATE_DATA_SIZE);
 
-    /* Get 100 bytes here in the parent process */
-    blob.size = 100;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
+    /* Get RANDOM_GENERATE_DATA_SIZE bytes in the parent process */
+    EXPECT_OK(s2n_get_random_data_cb(&parent_blob));
 
     /* Confirm they differ */
-    EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
+    EXPECT_BYTEARRAY_NOT_EQUAL(child_data, parent_data, RANDOM_GENERATE_DATA_SIZE);
 
     /* Clean up */
-    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(close(p[0]));
+    EXPECT_SUCCESS(close(pipes[0]));
+
+    s2n_verify_child_exit_status(proc_id);
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob), uintptr_t thread_random_func)
+{
+    pid_t proc_id;
+    int pipes[2];
+    uint8_t data[RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob = { .data = data };
+
+    /* A simple fork test */
+    EXPECT_SUCCESS(pipe(pipes));
+    proc_id = fork();
+    if (proc_id == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(pipes[0]));
+        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
+    }
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
+
+    /* Create a fork, but immediately create threads in the child process. See
+     * https://github.com/aws/s2n-tls/issues/3107 why this might be an issue.
+     */
+    EXPECT_SUCCESS(pipe(pipes));
+    proc_id = fork();
+    if (proc_id == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(pipes[0]));
+        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, thread_random_func));
+        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
+    }
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
+
+    /* Create threads after gereating data in the child proces. */
+    EXPECT_SUCCESS(pipe(pipes));
+    proc_id = fork();
+    if (proc_id == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(pipes[0]));
+        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
+        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, thread_random_func));
+    }
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
+
+    /* Create threads in the parent process before generating data */
+    EXPECT_SUCCESS(pipe(pipes));
+    proc_id = fork();
+    if (proc_id == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(pipes[0]));
+        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
+    }
+    EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, thread_random_func));
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
+
+    /* Basic tests in the fork */
+    EXPECT_SUCCESS(pipe(pipes));
+    proc_id = fork();
+    if (proc_id == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(pipes[0]));
+        EXPECT_OK(s2n_basic_pattern_tests(s2n_get_random_data_cb));
+        s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
+    }
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_basic_generate_tests(void)
+{
+    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
+    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob1 = { .data = data1 };
+    struct s2n_blob blob2 = { .data = data2 };
 
     /* Get two sets of data in the same process/thread, and confirm that they
      * differ
      */
-    blob.data = child_data;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-    blob.data = data;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-    EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
+    blob1.size = RANDOM_GENERATE_DATA_SIZE;
+    blob2.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_public_random_data(&blob1));
+    EXPECT_OK(s2n_get_public_random_data(&blob2));
+    EXPECT_NOT_EQUAL(memcmp(blob1.data, blob2.data, RANDOM_GENERATE_DATA_SIZE), 0);
+    EXPECT_OK(s2n_get_private_random_data(&blob1));
+    EXPECT_NOT_EQUAL(memcmp(blob1.data, blob2.data, RANDOM_GENERATE_DATA_SIZE), 0);
+    EXPECT_OK(s2n_get_private_random_data(&blob2));
+    EXPECT_NOT_EQUAL(memcmp(blob1.data, blob2.data, RANDOM_GENERATE_DATA_SIZE), 0);
+
+    return S2N_RESULT_OK;
+}
+
+static int s2n_common_tests(struct random_test_case *test_case)
+{
+    uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
+    uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
+    struct s2n_blob blob1 = { .data = data1 };
+    struct s2n_blob blob2 = { .data = data2 };
+    int64_t bound;
+    uint64_t output;
+
+    /* Get one byte of data, to make sure the pool is (almost) full */
+    blob1.size = 1;
+    blob2.size = 1;
+    EXPECT_OK(s2n_get_public_random_data(&blob1));
+    EXPECT_OK(s2n_get_private_random_data(&blob1));
+
+    /* Verify we generate unique data over threads */
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, GET_PRIVATE_RANDOM_DATA));
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, GET_PUBLIC_RANDOM_DATA));
+
+    /* Verify we generate unique data over forks */
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
+    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PRIVATE_RANDOM_DATA));
+    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PUBLIC_RANDOM_DATA));
+
+    /* Basic tests generating randomness */
+    EXPECT_OK(s2n_basic_generate_tests());
+
+    /* Verify that there are no trivially observable patterns in the output */
+    EXPECT_OK(s2n_basic_pattern_tests(s2n_get_public_random_data));
+    EXPECT_OK(s2n_basic_pattern_tests(s2n_get_private_random_data));
+
+    /* Special range function tests */
+    EXPECT_OK(s2n_tests_get_range(s2n_public_random));
+
+    /* Try to cleanup the thread and gather random data again for each of the
+     * public functions. We did not call s2n_rand_cleanup(), so this should
+     * still work properly.
+     */
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    blob1.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_public_random_data(&blob1));
+    EXPECT_OK(s2n_basic_generate_tests());
+
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    blob1.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_private_random_data(&blob1));
+    EXPECT_OK(s2n_basic_generate_tests());
+
+    bound = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_public_random(bound, &output));
+    EXPECT_TRUE(output < bound);
 
     return S2N_SUCCESS;
 }
 
-int main(int argc, char **argv)
+static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
 {
-    uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-    uint8_t bit_set_run[8];
-    uint8_t data[5120];
-    struct s2n_blob blob = {.data = data };
-
-    pthread_t threads[2];
-
-    BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+    EXPECT_SUCCESS(s2n_init());
 
     /* Verify that randomness callbacks can't be set to NULL */
-    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(init, NULL, entropy, entropy));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, NULL, entropy));
-    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, entropy, NULL));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, s2n_cleanup_cb, s2n_entropy_cb, s2n_entropy_cb));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(s2n_init_cb, NULL, s2n_entropy_cb, s2n_entropy_cb));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(s2n_init_cb, s2n_cleanup_cb, NULL, s2n_entropy_cb));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(s2n_init_cb, s2n_cleanup_cb, s2n_entropy_cb, NULL));
 
-    /* Get one byte of data, to make sure the pool is (almost) full */
-    blob.size = 1;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
 
-    /* Create two threads and have them each grab 100 bytes */
-    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)0));
-    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *)1));
+    EXPECT_SUCCESS(s2n_cleanup());
 
-    /* Wait for those threads to finish */
-    EXPECT_SUCCESS(pthread_join(threads[0], NULL));
-    EXPECT_SUCCESS(pthread_join(threads[1], NULL));
+    return S2N_SUCCESS;
+}
 
-    /* Confirm that their data differs from each other */
-    EXPECT_NOT_EQUAL(memcmp(thread_data[0], thread_data[1], 100), 0);
+static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case)
+{
+    EXPECT_SUCCESS(s2n_init());
 
-    /* Confirm that their data differs from the parent thread */
-    blob.size = 100;
-    EXPECT_OK(s2n_get_public_random_data(&blob));
-    EXPECT_NOT_EQUAL(memcmp(thread_data[0], data, 100), 0);
-    EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
 
-    /* Fork with prediction resistance */
-    EXPECT_SUCCESS(fork_test());
+    EXPECT_SUCCESS(s2n_cleanup());
 
-    /* Fork without prediction resistance */
-    EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(true));
-    EXPECT_SUCCESS(fork_test());
-    EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(false));
+    return S2N_SUCCESS;
+}
 
-    /* Try to fetch a volume of randomly generated data, every size between 1 and 5120
-     * bytes.
+static int s2n_random_test_case_without_pr_pthread_atfork_cb(struct random_test_case *test_case)
+{
+    POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_random_test_case_without_pr_madv_wipeonfork_cb(struct random_test_case *test_case)
+{
+    if (s2n_is_madv_wipeonfork_supported() == false) {
+        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_random_test_case_without_pr_map_inherit_zero_cb(struct random_test_case *test_case)
+{
+    if (s2n_is_map_inherit_zero_supported() == false) {
+        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return S2N_SUCCESS;
+}
+
+#define NUMBER_OF_RANDOM_TEST_CASES 5
+struct random_test_case random_test_cases[NUMBER_OF_RANDOM_TEST_CASES] = {
+    {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME},
+    {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME},
+    {"Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO},
+    {"Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES},
+    {"Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES}
+};
+
+int main(int argc, char **argv)
+{
+    BEGIN_TEST_NO_INIT();
+
+    EXPECT_TRUE(s2n_array_len(random_test_cases) == NUMBER_OF_RANDOM_TEST_CASES);
+
+    /* Create NUMBER_OF_RANDOM_TEST_CASES number of child processes that run
+     * each test case.
+     *
+     * Fork detection is lazily initialised on first invocation of
+     * s2n_get_fork_generation_number(). Hence, it is important that childs are
+     * created before calling into the fork detection code.
      */
-    int trailing_zeros[8];
+    pid_t proc_pids[NUMBER_OF_RANDOM_TEST_CASES] = {0};
 
-    memset(trailing_zeros, 0, sizeof(trailing_zeros));
-    for (int i = 0; i < 5120; i++) {
-        blob.size = i;
-        EXPECT_OK(s2n_get_public_random_data(&blob));
+    for (size_t i = 0; i < NUMBER_OF_RANDOM_TEST_CASES; i++) {
 
-        if (i >= 64) {
-            /* Set the run counts to 0 */
-            memset(bit_set_run, 0, 8);
+        proc_pids[i] = fork();
+        EXPECT_TRUE(proc_pids[i] >= 0);
 
-            /* Apply 8 monobit tests to the data. Basically, we're
-             * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in
-             * a row, then the data doesn't look randomly generated.
+        if (proc_pids[i] == 0) {
+            /* In child */
+            EXPECT_EQUAL(random_test_cases[i].test_case_cb(&random_test_cases[i]), S2N_SUCCESS);
+
+            /* Exit code EXIT_SUCCESS means that tests in this process finished
+             * successfully. Any errors would have exited the process with an
+             * exit code != EXIT_SUCCESS. We verify this in the parent process.
+             * Also prevents child from creating more childs.
              */
-            for (int j = 0; j < i; j++) {
-                for (int k = 0; k < 8; k++) {
-                    if (data[j] & bits[k]) {
-                        bit_set_run[k]++;
-
-                        if (j >= 64) {
-                            EXPECT_TRUE(bit_set_run[k] < 64);
-                        }
-                    } else {
-                        bit_set_run[k] = 0;
-                    }
-                }
-            }
+            exit(EXIT_SUCCESS);
         }
-        /* A common mistake in array filling leaves the last bytes zero
-         * depending on the length.
-         */
-        int remainder = i % 8;
-        int non_zero_found = 0;
-        for (int t = i - remainder; t < i; t++) {
-            non_zero_found |= data[t];
-        }
-        if (!non_zero_found) {
-            trailing_zeros[remainder]++;
-        }
-    }
-    for (int t = 1; t < 8; t++) {
-        EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
-    }
-
-    memset(trailing_zeros, 0, sizeof(trailing_zeros));
-    for (int i = 0; i < 5120; i++) {
-        blob.size = i;
-        EXPECT_OK(s2n_get_private_random_data(&blob));
-
-        if (i >= 64) {
-            /* Set the run counts to 0 */
-            memset(bit_set_run, 0, 8);
-
-            /* Apply 8 monobit tests to the data. Basically, we're
-             * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in
-             * a row, then the data doesn't look randomly generated.
-             */
-            for (int j = 0; j < i; j++) {
-                for (int k = 0; k < 8; k++) {
-                    if (data[j] & bits[k]) {
-                        bit_set_run[k]++;
-
-                        if (j >= 64) {
-                            EXPECT_TRUE(bit_set_run[k] < 64);
-                        }
-                    } else {
-                        bit_set_run[k] = 0;
-                    }
-                }
-            }
-        }
-        /* A common mistake in array filling leaves the last bytes zero
-         * depending on the length.
-         */
-        int remainder = i % 8;
-        int non_zero_found = 0;
-        for (int t = i - remainder; t < i; t++) {
-            non_zero_found |= data[t];
-        }
-        if (!non_zero_found) {
-            trailing_zeros[remainder]++;
-        }
-    }
-    for (int t = 1; t < 8; t++) {
-        EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
-    }
-
-    memset(trailing_zeros, 0, sizeof(trailing_zeros));
-    for (int i = 0; i < 5120; i++) {
-        blob.size = i;
-        EXPECT_OK(s2n_get_public_random_data(&blob));
-
-        if (i >= 64) {
-            /* Set the run counts to 0 */
-            memset(bit_set_run, 0, 8);
-
-            /* Apply 8 monobit tests to the data. Basically, we're
-             * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in
-             * a row, then the data doesn't look randomly generated.
-             */
-            for (int j = 0; j < i; j++) {
-                for (int k = 0; k < 8; k++) {
-                    if (data[j] & bits[k]) {
-                        bit_set_run[k]++;
-
-                        if (j >= 64) {
-                            EXPECT_TRUE(bit_set_run[k] < 64);
-                        }
-                    } else {
-                        bit_set_run[k] = 0;
-                    }
-                }
-            }
-        }
-        /* A common mistake in array filling leaves the last bytes zero
-         * depending on the length.
-         */
-        int remainder = i % 8;
-        int non_zero_found = 0;
-        for (int t = i - remainder; t < i; t++) {
-            non_zero_found |= data[t];
-        }
-        if (!non_zero_found) {
-            trailing_zeros[remainder]++;
-        }
-    }
-    for (int t = 1; t < 8; t++) {
-        EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
-    }
-
-    if (s2n_cpu_supports_rdrand()) {
-        memset(trailing_zeros, 0, sizeof(trailing_zeros));
-        for (int i = 0; i < 5120; i++) {
-            blob.size = i;
-            EXPECT_OK(s2n_get_public_random_data(&blob));
-
-            if (i >= 64) {
-                /* Set the run counts to 0 */
-                memset(bit_set_run, 0, 8);
-
-                /* Apply 8 monobit tests to the data. Basically, we're
-                 * looking for successive runs where a given bit is set.
-                 * If a run exists with any particular bit 64 times in
-                 * a row, then the data doesn't look randomly generated.
-                 */
-                for (int j = 0; j < i; j++) {
-                    for (int k = 0; k < 8; k++) {
-                        if (data[j] & bits[k]) {
-                            bit_set_run[k]++;
-
-                            if (j >= 64) {
-                                EXPECT_TRUE(bit_set_run[k] < 64);
-                            }
-                        } else {
-                            bit_set_run[k] = 0;
-                        }
-                    }
-                }
-            }
-            /* A common mistake in array filling leaves the last bytes zero
-             * depending on the length
-             */
-            int remainder = i % 8;
-            int non_zero_found = 0;
-            for (int t = i - remainder; t < i; t++) {
-              non_zero_found |= data[t];
-            }
-            if (!non_zero_found) {
-              trailing_zeros[remainder]++;
-            }
-        }
-        for (int t = 1; t < 8; t++) {
-          EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
+        else {
+            s2n_verify_child_exit_status(proc_pids[i]);
         }
     }
 
-    END_TEST();
+    END_TEST_NO_INIT();
 }
