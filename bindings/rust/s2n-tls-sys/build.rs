@@ -161,20 +161,33 @@ fn build_cmake() {
     let dst = config.build();
 
     // tell rust we're linking with libcrypto
-    println!("cargo:rustc-link-lib=crypto");
+    let root = PathBuf::from(env("DEP_OPENSSL_ROOT"));
+    if root.join("libcrypto.so").exists() {
+        println!("cargo:rustc-link-lib=crypto");
+    } else {
+        println!("cargo:rustc-link-lib=static=crypto");
+    }
 
-    // link the built artifact
-    println!("cargo:rustc-link-lib=s2n");
-
-    fn search(path: PathBuf) {
+    fn search(path: PathBuf) -> Option<PathBuf> {
         if path.exists() {
-            println!("cargo:rustc-link-search=native={}", path.display());
+            println!("cargo:rustc-link-search={}", path.display());
+            Some(path)
+        } else {
+            None
         }
     }
 
-    search(dst.join("lib64"));
-    search(dst.join("lib"));
-    search(dst.join("build").join("lib"));
+    let lib = search(dst.join("lib64"))
+        .or_else(|| search(dst.join("lib")))
+        .or_else(|| search(dst.join("build").join("lib")))
+        .expect("could not build libs2n");
+
+    // link the built artifact
+    if lib.join("libs2n.so").exists() {
+        println!("cargo:rustc-link-lib=s2n");
+    } else {
+        println!("cargo:rustc-link-lib=static=s2n");
+    }
 
     println!("cargo:include={}", dst.join("include").display());
 }

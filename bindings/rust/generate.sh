@@ -36,9 +36,9 @@ cd generate && cargo run -- ../s2n-tls-sys && cd ..
 cd s2n-tls-sys \
   && cargo test \
   && cargo test --features pq \
-  && cargo test --release \
   && cargo test --features quic \
   && cargo test --features internal \
+  && cargo test --release \
   && cd ..
 
 cd integration \
