@@ -361,7 +361,7 @@ batch:
           TESTS: unit
           S2N_NO_PQ: 1
 
-    - identifier: s2nLibcryptoInterning
+    - identifier: s2nLibcryptoInterningOpenSSL
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
@@ -369,6 +369,16 @@ batch:
         variables:
           TESTS: interning
           BUILD_S2N: 'true'
+
+    - identifier: s2nLibcryptoInterningAwslc
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: interning
+          BUILD_S2N: 'true'
+          S2N_LIBCRYPTO: awslc
 
     - identifier: s2nUnitCRT
       buildspec: codebuild/spec/buildspec_ubuntu.yml
