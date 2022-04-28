@@ -239,11 +239,20 @@ endif()
 include(CheckCSourceCompiles)
 
 # Determine if execinfo.h is available
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+try_compile(
+        S2N_HAVE_EXECINFO
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
+        LINK_LIBRARIES execinfo
+)
+else()
 try_compile(
         S2N_HAVE_EXECINFO
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
 )
+endif()
 
 # Determine if cpuid.h is available
 try_compile(
@@ -302,7 +311,7 @@ try_compile(
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-    set(OS_LIBS thr)
+    set(OS_LIBS thr execinfo)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
     set(OS_LIBS Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
