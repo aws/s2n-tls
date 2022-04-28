@@ -213,12 +213,18 @@ where
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        self.get_mut()
+        let tls = self.get_mut();
+        let tls_shutdown = tls
             .with_io(|mut context| {
                 context.conn.set_waker(Some(ctx.waker()))?;
                 context.conn.shutdown().map(|r| r.map(|_| ()))
             })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
+        if tls_shutdown.is_ready() {
+            Pin::new(&mut tls.stream).poll_shutdown(ctx)
+        } else {
+            tls_shutdown
+        }
     }
 }
 
