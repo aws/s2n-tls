@@ -5,7 +5,7 @@
 
 use crate::raw::{
     config::Config,
-    error::{Error, Fallible},
+    error::{Error, Fallible, Pollable},
     security,
 };
 use core::{
@@ -362,10 +362,52 @@ impl Connection {
     pub fn negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
-        match unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_result() } {
-            Ok(_) => Ok(self).into(),
-            Err(err) if err.is_retryable() => Poll::Pending,
-            Err(err) => Err(err).into(),
+        unsafe {
+            s2n_negotiate(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
+    }
+
+    /// Encrypts and sends data on a connection where
+    /// [negotiate](`Self::negotiate`) has succeeded.
+    ///
+    /// Returns the number of bytes written, and may indicate a partial write.
+    pub fn send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
+        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    /// Reads and decrypts data from a connection where
+    /// [negotiate](`Self::negotiate`) has succeeded.
+    ///
+    /// Returns the number of bytes read, and may indicate a partial read.
+    /// 0 bytes returned indicates EOF due to connection closure.
+    pub fn recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    /// Attempts to flush any data previously buffered by a call to [send](`Self::negotiate`).
+    pub fn flush(&mut self) -> Poll<Result<&mut Self, Error>> {
+        self.send(&[0; 0]).map_ok(|_| self)
+    }
+
+    /// Attempts a graceful shutdown of the TLS connection.
+    ///
+    /// The shutdown is not complete until the necessary shutdown messages
+    /// have been successfully sent and received. If the peer does not respond
+    /// correctly, the graceful shutdown may fail.
+    pub fn shutdown(&mut self) -> Poll<Result<&mut Self, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_shutdown(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
         }
     }
 
