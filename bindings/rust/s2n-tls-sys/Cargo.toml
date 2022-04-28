@@ -19,7 +19,7 @@ include = [
 
 [features]
 default = []
-pq = []
+pq = ["cmake"] # the pq build logic is complicated so just use cmake instead
 quic = []
 internal = []
 
@@ -31,3 +31,4 @@ openssl-sys = { version = "0.9" }
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
+cmake = { version = "0.1", optional = true }

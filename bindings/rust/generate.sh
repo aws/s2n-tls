@@ -24,12 +24,18 @@ cp -r \
   ../../tests/features \
   s2n-tls-sys/lib/tests/
 
+cp -r \
+  ../../CMakeLists.txt \
+  ../../cmake \
+  s2n-tls-sys/lib/
+
 # generate the bindings modules from the copied sources
 cd generate && cargo run -- ../s2n-tls-sys && cd ..
 
 # make sure everything builds and passes sanity checks
 cd s2n-tls-sys \
   && cargo test \
+  && cargo test --features pq \
   && cargo test --release \
   && cargo test --features quic \
   && cargo test --features internal \

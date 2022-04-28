@@ -16,8 +16,12 @@ jobs:
   generate:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest]
+    env:
+      S2N_LIBCRYPTO: openssl-1.1.1
+      TESTS: unit
     steps:
       - uses: actions/checkout@v2
 
@@ -29,12 +33,28 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
+      - name: Install ubuntu depdendencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo S2N_LIBCRYPTO=$S2N_LIBCRYPTO ./codebuild/bin/install_ubuntu_dependencies.sh
+          ./codebuild/bin/install_default_dependencies.sh
+
+      - name: Install macOS depdendencies
+        if: ${{ matrix.os == 'macOS-latest' }}
+        run: |
+          ./.github/install_osx_dependencies.sh
+          ./codebuild/bin/install_default_dependencies.sh
+
       - name: Generate
-        run: ./bindings/rust/generate.sh
+        run: |
+          export OPENSSL_DIR="$(pwd)/test-deps/$S2N_LIBCRYPTO"
+          ./bindings/rust/generate.sh
 
       - name: Test external build
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
+          export OPENSSL_DIR="test-deps/$S2N_LIBCRYPTO"
+
           cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
           cmake --build build
 
@@ -48,6 +68,9 @@ jobs:
 
   rustfmt:
     runs-on: ubuntu-latest
+    env:
+      S2N_LIBCRYPTO: openssl-1.1.1
+      TESTS: unit
     steps:
       - uses: actions/checkout@v2
         with:
@@ -63,10 +86,17 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
+      - name: Install ubuntu depdendencies
+        run: |
+          sudo S2N_LIBCRYPTO=$S2N_LIBCRYPTO ./codebuild/bin/install_ubuntu_dependencies.sh
+          ./codebuild/bin/install_default_dependencies.sh
+
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./bindings/rust/generate.sh
+        run: |
+          export OPENSSL_DIR="$(pwd)/test-deps/$S2N_LIBCRYPTO"
+          ./bindings/rust/generate.sh
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1.0.3
@@ -76,8 +106,9 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
+    env:
+      S2N_LIBCRYPTO: openssl-1.1.1
+      TESTS: unit
     steps:
       - uses: actions/checkout@v2
         with:
@@ -93,10 +124,17 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
+      - name: Install ubuntu depdendencies
+        run: |
+          sudo S2N_LIBCRYPTO=$S2N_LIBCRYPTO ./codebuild/bin/install_ubuntu_dependencies.sh
+          ./codebuild/bin/install_default_dependencies.sh
+
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./bindings/rust/generate.sh
+        run: |
+          export OPENSSL_DIR="$(pwd)/test-deps/$S2N_LIBCRYPTO"
+          ./bindings/rust/generate.sh
 
       # TODO translate json reports to in-action warnings
       - name: Run cargo clippy

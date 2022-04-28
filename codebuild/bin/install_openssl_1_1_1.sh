@@ -39,7 +39,7 @@ cd openssl-OpenSSL_${RELEASE}
 
 if [ "$OS_NAME" == "linux" ]; then
     CONFIGURE="./config -d"
-elif [ "$OS_NAME" == "osx" ]; then
+elif [[ "$OS_NAME" == "osx" || "$OS_NAME" == "darwin" ]]; then
     CONFIGURE="./Configure darwin64-x86_64-cc"
 else
     echo "Invalid platform! $OS_NAME"
