@@ -216,7 +216,7 @@ BOUND_TOO_SMALL:
          * With current values
          *   NUMBER_OF_BOUNDS = 10
          *   MAX_REPEATED_OUTPUT = 4
-         * this ends upt to about a ~1/2^30 probability of failing this test
+         * this ends up with about a ~1/2^30 probability of failing this test
          * with a false positive.
          */
         uint64_t current_value = range_results[0];
@@ -344,8 +344,6 @@ static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_
 {
     pid_t proc_id;
     int pipes[2];
-    uint8_t data[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob = { .data = data };
 
     /* A simple fork test */
     EXPECT_SUCCESS(pipe(pipes));
@@ -420,11 +418,11 @@ static S2N_RESULT s2n_basic_generate_tests(void)
     blob2.size = RANDOM_GENERATE_DATA_SIZE;
     EXPECT_OK(s2n_get_public_random_data(&blob1));
     EXPECT_OK(s2n_get_public_random_data(&blob2));
-    EXPECT_NOT_EQUAL(memcmp(blob1.data, blob2.data, RANDOM_GENERATE_DATA_SIZE), 0);
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
     EXPECT_OK(s2n_get_private_random_data(&blob1));
-    EXPECT_NOT_EQUAL(memcmp(blob1.data, blob2.data, RANDOM_GENERATE_DATA_SIZE), 0);
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
     EXPECT_OK(s2n_get_private_random_data(&blob2));
-    EXPECT_NOT_EQUAL(memcmp(blob1.data, blob2.data, RANDOM_GENERATE_DATA_SIZE), 0);
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
 
     return S2N_RESULT_OK;
 }
@@ -442,7 +440,7 @@ static int s2n_common_tests(struct random_test_case *test_case)
     blob1.size = 1;
     blob2.size = 1;
     EXPECT_OK(s2n_get_public_random_data(&blob1));
-    EXPECT_OK(s2n_get_private_random_data(&blob1));
+    EXPECT_OK(s2n_get_private_random_data(&blob2));
 
     /* Verify we generate unique data over threads */
     EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
@@ -466,9 +464,9 @@ static int s2n_common_tests(struct random_test_case *test_case)
     /* Special range function tests */
     EXPECT_OK(s2n_tests_get_range(s2n_public_random));
 
-    /* Try to cleanup the thread and gather random data again for each of the
-     * public functions. We did not call s2n_rand_cleanup(), so this should
-     * still work properly.
+    /* Try to cleanup in the current thread and gather random data again for
+     * each of the public functions. We did not call s2n_rand_cleanup(), so this
+     * should still work properly.
      */
     EXPECT_OK(s2n_rand_cleanup_thread());
     blob1.size = RANDOM_GENERATE_DATA_SIZE;
@@ -476,14 +474,17 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_basic_generate_tests());
 
     EXPECT_OK(s2n_rand_cleanup_thread());
-    blob1.size = RANDOM_GENERATE_DATA_SIZE;
-    EXPECT_OK(s2n_get_private_random_data(&blob1));
+    blob2.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_private_random_data(&blob2));
     EXPECT_OK(s2n_basic_generate_tests());
 
     bound = RANDOM_GENERATE_DATA_SIZE;
     EXPECT_OK(s2n_rand_cleanup_thread());
     EXPECT_OK(s2n_public_random(bound, &output));
     EXPECT_TRUE(output < bound);
+
+    /* Just a sanity check */
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
 
     return S2N_SUCCESS;
 }
