@@ -13,14 +13,23 @@
  * permissions and limitations under the License.
  */
 
+#ifdef __FreeBSD__
+    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+     * Without the below line, <sys/wait.h> cannot be imported (it requires __BSD_VISIBLE) */
+    #undef _POSIX_C_SOURCE
+#else
+    /* For clone() */
+    #define _GNU_SOURCE
+#endif
+
 #include "s2n_test.h"
-
-#include <sys/wait.h>
-#include <pthread.h>
 #include "api/s2n.h"
-
 #include "utils/s2n_fork_detection.h"
 #include "utils/s2n_random.h"
+
+#include <pthread.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
 
