@@ -157,7 +157,7 @@ static void sort_array(uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS]) {
                 swap(j - 1, j, range_results);
             }
             else {
-                // invariant: subarray [0, i-1] is sorted
+                /* invariant: subarray [0, i-1] is sorted */
                 continue;
             }
         }
@@ -404,6 +404,72 @@ static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_
     return S2N_RESULT_OK;
 }
 
+static int s2n_clone_tests_child_process_public(void *pipes)
+{
+    int *pipes_fd = (int *) pipes;
+
+    /* This is the child process, close the read end of the pipe */
+    EXPECT_SUCCESS(close((int) pipes_fd[0]));
+    s2n_fork_test_generate_randomness((int) pipes_fd[1], s2n_get_public_random_data);
+
+    /* s2n_fork_test_generate_randomness() will exit. But we need a return
+     * statement because we are in a non-void return type function. */
+    return EXIT_SUCCESS;
+}
+
+static int s2n_clone_tests_child_process_private(void *pipes)
+{
+    int *pipes_fd = (int *) pipes;
+
+    /* This is the child process, close the read end of the pipe */
+    EXPECT_SUCCESS(close((int) pipes_fd[0]));
+    s2n_fork_test_generate_randomness((int) pipes_fd[1], s2n_get_private_random_data);
+
+    /* s2n_fork_test_generate_randomness() will exit. But we need a return
+     * statement because we are in a non-void return type function. */
+    return EXIT_SUCCESS;
+}
+
+#define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
+static S2N_RESULT s2n_clone_tests(uint16_t random_func)
+{
+#if defined(S2N_CLONE_SUPPORTED)
+
+    int proc_id;
+    int pipes[2];
+
+    EXPECT_SUCCESS(pipe(pipes));
+
+    /* Use stack memory for this... We don't exit unit_test_clone() before this
+     * memory has served its purpose.
+     * Why? Using dynamically allocated memory causes Valgrind to squat on the
+     * allocated memory when the child process exists.
+     */
+    char process_child_stack[PROCESS_CHILD_STACK_SIZE];
+    EXPECT_NOT_NULL(process_child_stack);
+
+    /* We want to test both the public and private randomness functions. This
+     * is the easiest way to pass both the pipe file descriptors and enable
+     * testing both functions.
+     */
+    if (random_func == GET_PUBLIC_RANDOM_DATA) {
+        proc_id = clone(s2n_clone_tests_child_process_public, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) pipes);
+        EXPECT_NOT_EQUAL(proc_id, -1);
+        EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_public_random_data));
+    }
+    else if (random_func == GET_PRIVATE_RANDOM_DATA) {
+        proc_id = clone(s2n_clone_tests_child_process_private, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) pipes);
+        EXPECT_NOT_EQUAL(proc_id, -1);
+        EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_private_random_data));
+    }
+    else {
+        EXPECT_SUCCESS(S2N_FAILURE);
+    }
+#endif
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_basic_generate_tests(void)
 {
     uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
@@ -449,10 +515,24 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, GET_PUBLIC_RANDOM_DATA));
 
     /* Verify we generate unique data over forks */
-    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
     EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
     EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PRIVATE_RANDOM_DATA));
     EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PUBLIC_RANDOM_DATA));
+
+    /* Some fork detection mechanisms can also detect forks through clone() */
+    if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
+        EXPECT_EQUAL((s2n_is_madv_wipeonfork_supported() == true) || (s2n_is_map_inherit_zero_supported() == true), true);
+        EXPECT_OK(s2n_clone_tests(GET_PUBLIC_RANDOM_DATA));
+        EXPECT_OK(s2n_clone_tests(GET_PRIVATE_RANDOM_DATA));
+    }
+    else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
+        if ((s2n_is_madv_wipeonfork_supported() == true) ||
+            (s2n_is_map_inherit_zero_supported() == true)) {
+            EXPECT_OK(s2n_clone_tests(GET_PRIVATE_RANDOM_DATA));
+            EXPECT_OK(s2n_clone_tests(GET_PUBLIC_RANDOM_DATA));
+        }
+    }
 
     /* Basic tests generating randomness */
     EXPECT_OK(s2n_basic_generate_tests());
@@ -485,6 +565,14 @@ static int s2n_common_tests(struct random_test_case *test_case)
 
     /* Just a sanity check */
     EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+
+    /* Verify that fork detection also works if we fork before initialising
+     * the drbgs
+     */
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
 
     return S2N_SUCCESS;
 }
