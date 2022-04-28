@@ -23,8 +23,10 @@
 #include <getopt.h>
 #include <errno.h>
 
+#ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#endif
 
 #include "api/s2n.h"
 #include "common.h"
@@ -490,6 +492,7 @@ int main(int argc, char *const *argv)
     }
 
     if (fips_mode) {
+#ifndef S2N_INTERN_LIBCRYPTO
 #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
@@ -499,8 +502,9 @@ int main(int argc, char *const *argv)
         }
         printf("s2nd entered FIPS mode\n");
 #else
-        fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
+        fprintf(stderr, "Error entering FIPS mode. s2nd was not built against a FIPS-capable libcrypto.\n");
         exit(1);
+#endif
 #endif
     }
 

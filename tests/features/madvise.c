@@ -14,7 +14,11 @@
  */
 
 /* Keep in sync with utils/s2n_fork_detection.c */
-#if !defined(__APPLE__) && !defined(_GNU_SOURCE)
+#if defined(__FreeBSD__)
+    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+     * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
+    #undef _POSIX_C_SOURCE
+#elif !defined(__APPLE__) && !defined(_GNU_SOURCE)
     #define _GNU_SOURCE
 #endif
 
