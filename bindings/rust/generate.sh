@@ -2,6 +2,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+set -e
+
 # cd into the script directory so it can be executed from anywhere
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -39,6 +41,8 @@ cd s2n-tls-sys \
   && cargo test --features quic \
   && cargo test --features internal \
   && cargo test --release \
+  && cargo publish --dry-run --allow-dirty \
+  && cargo publish --dry-run --allow-dirty --all-features \
   && cd ..
 
 cd integration \
