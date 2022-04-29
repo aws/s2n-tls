@@ -95,7 +95,7 @@ static int s2n_entropy_cb(void *ptr, uint32_t size)
 }
 
 /* Try to fetch a volume of randomly generated data, every size between 1
- * and 5120 bytes.
+ * and 5120 bytes
  */
 static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
 {
@@ -134,7 +134,7 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
         }
 
         /* A common mistake in array filling leaves the last bytes zero
-         * depending on the length.
+         * depending on the length
          */
         int remainder = size % 8;
         int non_zero_found = 0;
@@ -278,7 +278,7 @@ void * s2n_thread_test_cb(void *slot)
 
 static S2N_RESULT s2n_thread_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob), uintptr_t thread_random_func)
 {
-    uint8_t data[MAX_RANDOM_GENERATE_DATA_SIZE];
+    uint8_t data[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob blob = { .data = data };
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
@@ -344,6 +344,7 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     /* Clean up */
     EXPECT_SUCCESS(close(pipes[0]));
 
+    /* Also remember to verify that the child exited okay */
     s2n_verify_child_exit_status(proc_id);
 
     return S2N_RESULT_OK;
@@ -531,13 +532,12 @@ static int s2n_common_tests(struct random_test_case *test_case)
 
     /* Some fork detection mechanisms can also detect forks through clone() */
     if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
-        EXPECT_EQUAL((s2n_is_madv_wipeonfork_supported() == true) || (s2n_is_map_inherit_zero_supported() == true), true);
+        EXPECT_EQUAL(s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported(), true);
         EXPECT_OK(s2n_clone_tests(GET_PUBLIC_RANDOM_DATA));
         EXPECT_OK(s2n_clone_tests(GET_PRIVATE_RANDOM_DATA));
     }
     else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
-        if ((s2n_is_madv_wipeonfork_supported() == true) ||
-            (s2n_is_map_inherit_zero_supported() == true)) {
+        if (s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported()) {
             EXPECT_OK(s2n_clone_tests(GET_PRIVATE_RANDOM_DATA));
             EXPECT_OK(s2n_clone_tests(GET_PUBLIC_RANDOM_DATA));
         }
@@ -582,6 +582,12 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
     EXPECT_OK(s2n_rand_cleanup_thread());
     EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
+
+    /* Verify that threading before initialising doesn't cause any issues */
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
 
     return S2N_SUCCESS;
 }
@@ -693,14 +699,14 @@ int main(int argc, char **argv)
      * s2n_get_fork_generation_number(). Hence, it is important that childs are
      * created before calling into the fork detection code.
      */
-    pid_t proc_pids[NUMBER_OF_RANDOM_TEST_CASES] = {0};
+    pid_t proc_ids[NUMBER_OF_RANDOM_TEST_CASES] = {0};
 
     for (size_t i = 0; i < NUMBER_OF_RANDOM_TEST_CASES; i++) {
 
-        proc_pids[i] = fork();
-        EXPECT_TRUE(proc_pids[i] >= 0);
+        proc_ids[i] = fork();
+        EXPECT_TRUE(proc_ids[i] >= 0);
 
-        if (proc_pids[i] == 0) {
+        if (proc_ids[i] == 0) {
             /* In child */
             EXPECT_EQUAL(random_test_cases[i].test_case_cb(&random_test_cases[i]), S2N_SUCCESS);
 
@@ -712,7 +718,7 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         }
         else {
-            s2n_verify_child_exit_status(proc_pids[i]);
+            s2n_verify_child_exit_status(proc_ids[i]);
         }
     }
 
