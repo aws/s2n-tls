@@ -184,7 +184,7 @@ static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bou
 
     /* 0 is not allowed */
     current_bound = 0;
-    EXPECT_NOT_OK(s2n_get_range_cb(current_bound, &current_output));
+    EXPECT_ERROR(s2n_get_range_cb(current_bound, &current_output));
 
     /* For bound of 1, only 0 should be possible */
     current_bound = 1;

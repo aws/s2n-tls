@@ -57,14 +57,14 @@
 static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
 
 struct s2n_rand_state {
-    uint64_t cached_fgn;
+    uint64_t cached_fork_generation_number;
     struct s2n_drbg public_drbg;
     struct s2n_drbg private_drbg;
     bool drbgs_initialised;
 };
 
 static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
-    .cached_fgn = 0,
+    .cached_fork_generation_number = 0,
     .public_drbg = {0},
     .private_drbg = {0},
     .drbgs_initialised = false
@@ -152,9 +152,9 @@ static S2N_RESULT s2n_maybe_initialise_drbgs(void)
         /* Then cache the fork generation number. We just initialised the drbg
          * states with new entropy and forking is not an external event.
          */
-        uint64_t returned_fgn = 0;
-        RESULT_GUARD(s2n_get_fork_generation_number(&returned_fgn));
-        s2n_per_thread_rand_state.cached_fgn = returned_fgn;
+        uint64_t returned_fork_generation_number = 0;
+        RESULT_GUARD(s2n_get_fork_generation_number(&returned_fork_generation_number));
+        s2n_per_thread_rand_state.cached_fork_generation_number = returned_fork_generation_number;
     }
 
     return S2N_RESULT_OK;
@@ -165,10 +165,10 @@ static S2N_RESULT s2n_maybe_initialise_drbgs(void)
  */
 static S2N_RESULT s2n_defend_against_ube(void)
 {
-    uint64_t returned_fgn = 0;
-    RESULT_GUARD(s2n_get_fork_generation_number(&returned_fgn));
+    uint64_t returned_fork_generation_number = 0;
+    RESULT_GUARD(s2n_get_fork_generation_number(&returned_fork_generation_number));
 
-    if (returned_fgn != s2n_per_thread_rand_state.cached_fgn) {
+    if (returned_fork_generation_number != s2n_per_thread_rand_state.cached_fork_generation_number) {
 
         /* This assumes that s2n_rand_cleanup_thread() doesn't mutate any other
          * state than the drbg states and it resets the drbg initialisation
