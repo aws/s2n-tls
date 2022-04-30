@@ -80,7 +80,7 @@ static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
 static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
 static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
 
-static bool s2n_cpu_supports_rdrand() {
+bool s2n_cpu_supports_rdrand() {
 #if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
     if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
@@ -474,7 +474,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 #if defined(__i386__)
             /* Execute the rdrand instruction, store the result in a general
              * purpose register (it's assigned to output.i386_fields.u_low).
-             * Check the carry bit, which will be set on success. Then clober
+             * Check the carry bit, which will be set on success. Then clobber
              * the register and reset the carry bit. Due to needing to support
              * an ancient assembler we use the opcode syntax. the %b1 is to
              * force compilers to use c1 instead of ecx. Here's a description of how the opcode is encoded:
