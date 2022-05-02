@@ -37,7 +37,7 @@ well_known_endpoints = [
     {"endpoint": "mozilla-intermediate.badssl.com"},
     {"endpoint": "mozilla-modern.badssl.com"},
     {"endpoint": "rsa2048.badssl.com"},
-    {"endpoint": "rsa4096.badssl.com"},
+#    {"endpoint": "rsa4096.badssl.com"},
     {"endpoint": "sha256.badssl.com"},
 #    {"endpoint": "sha384.badssl.com"},
 #    {"endpoint": "sha512.badssl.com"},

@@ -20,7 +20,7 @@ ENDPOINTS = [
     "mozilla-intermediate.badssl.com",
     "mozilla-modern.badssl.com",
     "rsa2048.badssl.com",
-    "rsa4096.badssl.com",
+#    "rsa4096.badssl.com",
     "sha256.badssl.com",
     # "sha384.badssl.com",
     # "sha512.badssl.com",
