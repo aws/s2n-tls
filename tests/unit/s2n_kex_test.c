@@ -27,7 +27,7 @@ int main(int argc, char **argv)
         struct s2n_connection conn = { 0 };
         struct s2n_blob blob = { 0 };
         struct s2n_kex_raw_server_data test_raw_server_data = { 0 };
-        struct s2n_cipher_suite test_cipher = s2n_rsa_with_rc4_128_md5;
+        struct s2n_cipher_suite test_cipher = s2n_ecdhe_rsa_with_aes_256_cbc_sha;
         struct s2n_cipher_suite test_cipher_with_null_kex = test_cipher;
         test_cipher_with_null_kex.key_exchange_alg = NULL;
 

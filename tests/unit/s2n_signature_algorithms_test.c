@@ -31,7 +31,7 @@
 #define LENGTH 3
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
 
-#define RSA_CIPHER_SUITE &s2n_rsa_with_rc4_128_md5
+#define RSA_CIPHER_SUITE &s2n_ecdhe_rsa_with_aes_128_cbc_sha
 #define ECDSA_CIPHER_SUITE &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
 #define TLS13_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
 

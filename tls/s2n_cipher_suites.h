@@ -33,7 +33,12 @@
 #define S2N_MAX_POSSIBLE_RECORD_ALGS    2
 
 /* Kept up-to-date by s2n_cipher_suite_test */
+#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
 #define S2N_CIPHER_SUITE_COUNT          39
+#else
+/* If RC4 is not supported the three cipher suites using it are trimmed out. */
+#define S2N_CIPHER_SUITE_COUNT          36
+#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01

@@ -21,6 +21,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
+
 static uint8_t s2n_stream_cipher_rc4_available()
 {
     return (EVP_rc4() ? 1 : 0);
@@ -92,3 +94,4 @@ struct s2n_cipher s2n_rc4 = {
     .set_encryption_key = s2n_stream_cipher_rc4_set_encryption_key,
     .destroy_key = s2n_stream_cipher_rc4_destroy_key,
 };
+#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */

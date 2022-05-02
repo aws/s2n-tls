@@ -33,6 +33,7 @@
 
 int main(int argc, char **argv)
 {
+#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
@@ -117,4 +118,5 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();
+#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 }
