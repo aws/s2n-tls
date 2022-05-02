@@ -31,7 +31,7 @@ impl TlsAcceptor {
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        TlsStream::open(&self.config, Mode::Server, stream).await
+        TlsStream::open(self.config.clone(), Mode::Server, stream).await
     }
 }
 
@@ -49,7 +49,7 @@ impl TlsConnector {
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        TlsStream::open(&self.config, Mode::Client, stream).await
+        TlsStream::open(self.config.clone(), Mode::Client, stream).await
     }
 }
 
@@ -80,9 +80,9 @@ impl<S> TlsStream<S>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    async fn open(config: &Config, mode: Mode, stream: S) -> Result<Self, Error> {
+    async fn open(config: Config, mode: Mode, stream: S) -> Result<Self, Error> {
         let mut conn = Connection::new(mode);
-        conn.set_config(config.clone())?;
+        conn.set_config(config)?;
 
         let mut tls = TlsStream { conn, stream };
         TlsHandshake { tls: &mut tls }.await?;

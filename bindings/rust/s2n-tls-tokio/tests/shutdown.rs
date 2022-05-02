@@ -21,11 +21,8 @@ async fn read_until_shutdown(stream: &mut TlsStream<TcpStream>) -> Result<(), st
 async fn write_until_shutdown<S: AsyncWrite + Unpin>(stream: &mut S) -> Result<(), std::io::Error> {
     let sent = [0; 1];
     loop {
-        let r = stream.write(&sent).await;
-        if r.is_ok() {
-            continue;
-        } else {
-            let tls_err = error::Error::try_from(r.unwrap_err()).unwrap();
+        if let Err(err) = stream.write(&sent).await {
+            let tls_err = error::Error::try_from(err).unwrap();
             assert_eq!(tls_err.kind(), Some(error::ErrorType::ConnectionClosed));
             break;
         }
