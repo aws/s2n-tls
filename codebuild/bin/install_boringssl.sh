@@ -40,10 +40,10 @@ mkdir boringssl
 cd boringssl
 git init
 git remote add origin https://github.com/google/boringssl.git
-git fetch origin --depth=1 3743aafdacff2f7b083615a043a37101f740fa53
+git fetch origin --depth=1 8bbefbfeee609b17622deedd100163c12f5c95dc # 3/21/22
 git reset --hard FETCH_HEAD
 
-git checkout 3743aafdacff2f7b083615a043a37101f740fa53
+git checkout 8bbefbfeee609b17622deedd100163c12f5c95dc
 mkdir ../build
 cd ../build
 

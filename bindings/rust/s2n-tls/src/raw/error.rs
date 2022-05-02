@@ -1,11 +1,42 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use core::{fmt, ptr::NonNull};
+use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
 use libc::c_char;
 use s2n_tls_sys::*;
-use std::ffi::CStr;
+use std::{convert::TryFrom, ffi::CStr};
 
+#[non_exhaustive]
+#[derive(Debug, PartialEq)]
+pub enum ErrorType {
+    UnknownErrorType,
+    NoError,
+    IOError,
+    ConnectionClosed,
+    Blocked,
+    Alert,
+    ProtocolError,
+    InternalError,
+    UsageError,
+}
+
+impl From<libc::c_int> for ErrorType {
+    fn from(input: libc::c_int) -> Self {
+        match input as s2n_error_type::Type {
+            s2n_error_type::OK => ErrorType::NoError,
+            s2n_error_type::IO => ErrorType::IOError,
+            s2n_error_type::CLOSED => ErrorType::ConnectionClosed,
+            s2n_error_type::BLOCKED => ErrorType::Blocked,
+            s2n_error_type::ALERT => ErrorType::Alert,
+            s2n_error_type::PROTO => ErrorType::ProtocolError,
+            s2n_error_type::INTERNAL => ErrorType::InternalError,
+            s2n_error_type::USAGE => ErrorType::UsageError,
+            _ => ErrorType::UnknownErrorType,
+        }
+    }
+}
+
+#[derive(PartialEq)]
 pub enum Error {
     InvalidInput,
     Code(s2n_status_code::Type),
@@ -29,6 +60,16 @@ impl Fallible for s2n_status_code::Type {
     }
 }
 
+impl Fallible for isize {
+    type Output = usize;
+
+    fn into_result(self) -> Result<Self::Output, Error> {
+        // Negative values can't be converted to a real size
+        // and instead indicate an error.
+        self.try_into().map_err(|_| Error::capture())
+    }
+}
+
 impl<T> Fallible for *mut T {
     type Output = NonNull<T>;
 
@@ -49,6 +90,24 @@ impl<T> Fallible for *const T {
             Ok(self)
         } else {
             Err(Error::capture())
+        }
+    }
+}
+
+pub trait Pollable {
+    type Output;
+
+    fn into_poll(self) -> Poll<Result<Self::Output, Error>>;
+}
+
+impl<T: Fallible> Pollable for T {
+    type Output = T::Output;
+
+    fn into_poll(self) -> Poll<Result<Self::Output, Error>> {
+        match self.into_result() {
+            Ok(r) => Ok(r).into(),
+            Err(err) if err.is_retryable() => Poll::Pending,
+            Err(err) => Err(err).into(),
         }
     }
 }
@@ -85,7 +144,7 @@ impl Error {
 
     pub fn message(&self) -> &'static str {
         match self {
-            Self::InvalidInput => "A parameter was incorrect.",
+            Self::InvalidInput => "A parameter was incorrect",
             Self::Code(code) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror(*code, core::ptr::null()))
@@ -93,21 +152,35 @@ impl Error {
         }
     }
 
-    pub fn debug(&self) -> &'static str {
+    pub fn debug(&self) -> Option<&'static str> {
         match self {
-            Self::InvalidInput => "A parameter was incorrect.",
+            Self::InvalidInput => None,
             Self::Code(code) => unsafe {
-                // Safety: we assume the string has a valid encoding coming from s2n
-                cstr_to_str(s2n_strerror_debug(*code, core::ptr::null()))
+                let debug_info = s2n_strerror_debug(*code, core::ptr::null());
+
+                // The debug string should be set to a constant static string
+                // when an error occurs, but because it starts out as NULL
+                // we should defend against mistakes.
+                if debug_info.is_null() {
+                    None
+                } else {
+                    // If the string is not null, then we can assume that
+                    // it is constant and static.
+                    Some(cstr_to_str(debug_info))
+                }
             },
         }
     }
 
-    pub fn kind(&self) -> s2n_error_type::Type {
+    pub fn kind(&self) -> Option<ErrorType> {
         match self {
-            Self::InvalidInput => s2n_error_type::USAGE,
-            Self::Code(code) => unsafe { s2n_error_get_type(*code) as _ },
+            Self::InvalidInput => None,
+            Self::Code(code) => unsafe { Some(ErrorType::from(s2n_error_get_type(*code))) },
         }
+    }
+
+    pub fn is_retryable(&self) -> bool {
+        matches!(self.kind(), Some(ErrorType::Blocked))
     }
 
     pub fn alert(&self) -> Option<u8> {
@@ -137,20 +210,33 @@ unsafe fn cstr_to_str(v: *const c_char) -> &'static str {
     core::str::from_utf8_unchecked(bytes)
 }
 
+impl TryFrom<std::io::Error> for Error {
+    type Error = Error;
+    fn try_from(value: std::io::Error) -> Result<Self, Self::Error> {
+        let io_inner = value.into_inner().ok_or(Error::InvalidInput)?;
+        io_inner
+            .downcast::<Self>()
+            .map(|error| *error)
+            .map_err(|_| Error::InvalidInput)
+    }
+}
+
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let alternate = f.alternate();
-
         let mut s = f.debug_struct("Error");
         if let Self::Code(code) = self {
             s.field("code", code);
         }
-        s.field("name", &self.name())
-            .field("message", &self.message())
-            .field("kind", &self.kind());
 
-        if alternate {
-            s.field("debug", &self.debug());
+        s.field("name", &self.name());
+        s.field("message", &self.message());
+
+        if let Some(kind) = self.kind() {
+            s.field("kind", &kind);
+        }
+
+        if let Some(debug) = self.debug() {
+            s.field("debug", &debug);
         }
 
         s.finish()

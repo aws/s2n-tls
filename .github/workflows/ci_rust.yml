@@ -16,6 +16,7 @@ jobs:
   generate:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
@@ -76,8 +77,6 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v2
         with:

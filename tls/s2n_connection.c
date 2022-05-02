@@ -81,6 +81,10 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
+/* Allocates and initializes memory for a new connection.
+ *
+ * Since customers can reuse a connection, ensure that values on the connection are
+ * initialized in `s2n_connection_wipe` where possible. */
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob = {0};
@@ -94,24 +98,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
+    /* `mode` is initialized here since its passed in as a parameter. */
     conn->mode = mode;
-    conn->blinding = S2N_BUILT_IN_BLINDING;
-    conn->close_notify_queued = 0;
-    conn->client_session_resumed = 0;
-    conn->session_id_len = 0;
-    conn->verify_host_fn = NULL;
-    conn->data_for_verify_host = NULL;
-    conn->verify_host_fn_overridden = 0;
-    conn->data_for_verify_host = NULL;
-    conn->send = NULL;
-    conn->recv = NULL;
-    conn->send_io_context = NULL;
-    conn->recv_io_context = NULL;
-    conn->corked_io = 0;
-    conn->context = NULL;
-    conn->security_policy_override = NULL;
-    conn->ticket_lifetime_hint = 0;
-    conn->session_ticket_status = S2N_NO_TICKET;
 
     /* Allocate the fixed-size stuffers */
     blob = (struct s2n_blob) {0};
@@ -153,13 +141,15 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->in, 0));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
-    PTR_GUARD_POSIX(s2n_connection_wipe(conn));
     PTR_GUARD_RESULT(s2n_timer_start(conn->config, &conn->write_timer));
 
-    /* Initialize the cookie stuffer with zero length. If a cookie extension
-     * is received, the stuffer will be resized according to the cookie length */
-    PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
-
+    /* NOTE: s2n_connection_wipe MUST be called last in this function.
+     *
+     * s2n_connection_wipe is used for initializing values but also used by customers to
+     * reset/reuse the connection. Calling it last ensures that s2n_connection_wipe is
+     * implemented correctly and safe.
+     */
+    PTR_GUARD_POSIX(s2n_connection_wipe(conn));
     return conn;
 }
 
@@ -513,6 +503,12 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     return 0;
 }
 
+/* An idempotent operation which initializes values on the connection.
+ *
+ * Called in order to reuse a connection structure for a new connection. Should wipe
+ * any persistent memory, free any temporary memory, and set all fields back to their
+ * defaults.
+ */
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
     /* First make a copy of everything we'd like to save, which isn't very much. */
@@ -538,13 +534,11 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Some required structures might have been freed to conserve memory between handshakes.
      * Restore them.
      */
-
     if (!conn->handshake.hashes) {
         POSIX_GUARD_RESULT(s2n_handshake_hashes_new(&conn->handshake.hashes));
     }
     POSIX_GUARD_RESULT(s2n_handshake_hashes_wipe(conn->handshake.hashes));
     struct s2n_handshake_hashes *handshake_hashes = conn->handshake.hashes;
-
     if (!conn->prf_space) {
         POSIX_GUARD_RESULT(s2n_prf_new(conn));
     }
@@ -576,6 +570,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->peer_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->server_early_data_context));
     POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
+    /* TODO: Simplify cookie_stuffer implementation.
+     * https://github.com/aws/s2n-tls/issues/3287 */
+    POSIX_GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
 
     /* Allocate memory for handling handshakes */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
@@ -658,6 +655,13 @@ int s2n_connection_wipe(struct s2n_connection *conn)
         conn->client_protocol_version = s2n_highest_protocol_version;
         conn->actual_protocol_version = s2n_highest_protocol_version;
     }
+
+    /* Initialize remaining values */
+    conn->blinding = S2N_BUILT_IN_BLINDING;
+    conn->session_ticket_status = S2N_NO_TICKET;
+    /* Initialize the cookie stuffer with zero length. If a cookie extension
+     * is received, the stuffer will be resized according to the cookie length */
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
 
     return 0;
 }

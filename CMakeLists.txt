@@ -239,11 +239,20 @@ endif()
 include(CheckCSourceCompiles)
 
 # Determine if execinfo.h is available
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+try_compile(
+        S2N_HAVE_EXECINFO
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
+        LINK_LIBRARIES execinfo
+)
+else()
 try_compile(
         S2N_HAVE_EXECINFO
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
 )
+endif()
 
 # Determine if cpuid.h is available
 try_compile(
@@ -302,7 +311,7 @@ try_compile(
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-    set(OS_LIBS thr)
+    set(OS_LIBS thr execinfo)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
     set(OS_LIBS Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -345,7 +354,7 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES SOVERSION 0unstable)
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
+        -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -Wa,--noexecstack
 )
 
@@ -481,6 +490,11 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
+if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
+    # add cast-qual back in for non AWS-LC
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
+endif()
+
 #work around target differences
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
@@ -546,6 +560,7 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly
