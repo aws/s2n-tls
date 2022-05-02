@@ -111,6 +111,12 @@ impl fmt::Debug for Connection {
 /// Safety: s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
+/// # Safety
+///
+/// Safety: All C methods that mutate the s2n_connection are wrapped
+/// in Rust methods that require a mutable reference.
+unsafe impl Sync for Connection {}
+
 impl Connection {
     pub fn new(mode: Mode) -> Self {
         crate::raw::init::init();
