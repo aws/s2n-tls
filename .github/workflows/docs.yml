@@ -1,0 +1,24 @@
+---
+name: s2n-tls Documentation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate-doxygen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Create Documentation
+        run: |
+            .github/s2n_doxygen.sh
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v3
+        with:
+            name: s2n-tls-doxygen
+            path: |
+              docs/doxygen/output
+

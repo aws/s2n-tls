@@ -13,6 +13,13 @@
  * permissions and limitations under the License.
  */
 
+/**
+ * @file s2n.h
+ * @brief s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to
+ * be simple, small, fast, and with security as a priority. <br> It is released and 
+ * licensed under the Apache License 2.0.
+ */
+
 #pragma once
 
 #if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
@@ -31,21 +38,63 @@ extern "C" {
 #include <stdio.h>
 #include <sys/uio.h>
 
-/* Function return code  */
+/**
+ * @brief Function return code
+ */
 #define S2N_SUCCESS 0
+/**
+ * @brief Function return code
+ */
 #define S2N_FAILURE -1
 
-/* Callback return code */
+/**
+ * @brief Callback return code 
+ */
 #define S2N_CALLBACK_BLOCKED -2
 
+/**
+ * @brief s2n minimum supported TLS record major version 
+ */
 #define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
+
+/**
+ * @brief s2n maximum supported TLS record major version
+ */
 #define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3
+    
+/**
+ * @brief s2n SSL 2.0 Version Constant
+ */
 #define S2N_SSLv2 20
+
+/**
+ * @brief s2n SSL 3.0 Version Constant
+ */
 #define S2N_SSLv3 30
+
+/**
+ * @brief s2n TLS 1.0 Version Constant
+ */
 #define S2N_TLS10 31
+
+/**
+ * @brief s2n TLS 1.1 Version Constant
+ */
 #define S2N_TLS11 32
+
+/**
+ * @brief s2n TLS 1.2 Version Constant
+ */
 #define S2N_TLS12 33
+    
+/**
+ * @brief s2n TLS 1.3 Version Constant
+ */
 #define S2N_TLS13 34
+
+/**
+ * @brief s2n Unknown TLS Version
+ */
 #define S2N_UNKNOWN_PROTOCOL_VERSION 0
 
 S2N_API
