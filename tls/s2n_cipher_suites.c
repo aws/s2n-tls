@@ -41,7 +41,6 @@ const struct s2n_record_algorithm s2n_record_alg_null = {
     .encryption_limit = UINT64_MAX,
 };
 
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
 const struct s2n_record_algorithm s2n_record_alg_rc4_md5 = {
     .cipher = &s2n_rc4,
     .hmac_alg = S2N_HMAC_MD5,
@@ -69,7 +68,6 @@ const struct s2n_record_algorithm s2n_record_alg_rc4_sslv3_sha = {
     .flags = 0,
     .encryption_limit = UINT64_MAX,
 };
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 const struct s2n_record_algorithm s2n_record_alg_3des_sha = {
     .cipher = &s2n_3des,
@@ -221,7 +219,6 @@ struct s2n_cipher_suite s2n_null_cipher_suite = {
     .record_alg = &s2n_record_alg_null,
 };
 
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
 struct s2n_cipher_suite s2n_rsa_with_rc4_128_md5 = /* 0x00,0x04 */ {
     .available = 0,
     .name = "RC4-MD5",
@@ -249,7 +246,6 @@ struct s2n_cipher_suite s2n_rsa_with_rc4_128_sha = /* 0x00,0x05 */ {
     .prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_SSLv3,
 };
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha = /* 0x00,0x0A */ {
     .available = 0,
@@ -475,7 +471,6 @@ struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_256_cbc_sha = /* 0xC0,0x0A */ {
     .minimum_required_tls_version = S2N_SSLv3,
 };
 
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha = /* 0xC0,0x11 */ {
     .available = 0,
     .name = "ECDHE-RSA-RC4-SHA",
@@ -489,7 +484,6 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha = /* 0xC0,0x11 */ {
     .prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_SSLv3,
 };
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha = /* 0xC0,0x12 */ {
     .available = 0,
@@ -778,10 +772,8 @@ struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
  * properly initialized.
  */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
     &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
     &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
@@ -803,9 +795,7 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
 
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,           /* 0xC0,0x12 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,            /* 0xC0,0x13 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,            /* 0xC0,0x14 */
@@ -834,10 +824,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
 /* All TLS12 Cipher Suites */
 
 static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
     &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
     &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
@@ -855,9 +843,7 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
 
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,           /* 0xC0,0x12 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,            /* 0xC0,0x13 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,            /* 0xC0,0x14 */
@@ -935,10 +921,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
 /* All cipher suites that uses RSA key exchange. Exposed for unit or integration tests. */
 static struct s2n_cipher_suite *s2n_all_rsa_kex_cipher_suites[] = {
     &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
     &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
     &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
@@ -965,10 +949,8 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,       /* 0xC0,0x2B */
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,       /* 0xC0,0x2C */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
     &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
     &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
@@ -983,9 +965,7 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
     &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,           /* 0xC0,0x12 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,            /* 0xC0,0x13 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,            /* 0xC0,0x14 */

@@ -90,10 +90,8 @@ struct s2n_cipher_suite *cipher_suites_20140601[] = {
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_sha,
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20140601 = {
@@ -810,9 +808,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream = {
@@ -836,9 +832,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3[] = {
     &s2n_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3 = {
@@ -973,9 +967,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3_legacy[] = {
     &s2n_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3_legacy = {
@@ -1114,9 +1106,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_tls10[] = {
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls10 = {
@@ -1143,9 +1133,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_tls11[] = {
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls11 = {
@@ -1172,9 +1160,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_tls12[] = {
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls12 = {
@@ -1241,9 +1227,7 @@ struct s2n_cipher_suite *cipher_suites_aws_crt_sdk_ssl_v3[] = {
     &s2n_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_3des_ede_cbc_sha,
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     &s2n_rsa_with_rc4_128_md5
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 };
 
 const struct s2n_cipher_preferences cipher_preferences_aws_crt_sdk_ssl_v3 = {

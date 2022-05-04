@@ -33,7 +33,6 @@
 
 int main(int argc, char **argv)
 {
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
@@ -42,6 +41,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     if (s2n_is_in_fips_mode()) {
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
+#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
     END_TEST();
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 }

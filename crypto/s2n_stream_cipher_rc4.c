@@ -21,13 +21,15 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
-
 static uint8_t s2n_stream_cipher_rc4_available()
 {
-    return (EVP_rc4() ? 1 : 0);
+#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
+    return 1;
+#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
+    return 0;
 }
 
+#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     POSIX_ENSURE_GTE(out->size, in->size);
@@ -81,6 +83,39 @@ static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 
     return 0;
 }
+#else
+
+static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
+{
+    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+}
+
+static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
+{
+    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+}
+
+static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+}
+
+static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+{
+    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+}
+
+static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
+{
+    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+}
+
+static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
+{
+    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+}
+
+#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 struct s2n_cipher s2n_rc4 = {
     .type = S2N_STREAM,
@@ -94,4 +129,3 @@ struct s2n_cipher s2n_rc4 = {
     .set_encryption_key = s2n_stream_cipher_rc4_set_encryption_key,
     .destroy_key = s2n_stream_cipher_rc4_destroy_key,
 };
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
