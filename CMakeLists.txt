@@ -497,8 +497,12 @@ if (TARGET crypto)
     set(LINK_LIB "crypto")
 else()
     find_package(crypto REQUIRED)
-    message("Using libcrypto from the cmake path.")
+    message(STATUS "Using libcrypto from the cmake path")
     set(LINK_LIB "AWS::crypto")
+endif()
+
+if (S2N_INTERN_LIBCRYPTO)
+    message(STATUS "Enabling libcrypto interning")
 endif()
 
 # Determine if EVP_md5_sha1 is available in libcrypto
