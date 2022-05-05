@@ -2,6 +2,9 @@
 name: s2n-tls Documentation
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -21,4 +24,12 @@ jobs:
             name: s2n-tls-doxygen
             path: |
               docs/doxygen/output
+      - name: Deploy Documentation to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          destination_dir: ./doxygen
+          publish_dir: ./docs/doxygen/output/html
+
 
