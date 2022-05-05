@@ -798,7 +798,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     cbmc_populate_s2n_ticket_fields(&(s2n_connection->tls13_ticket_fields));
     cbmc_populate_s2n_stuffer(&(s2n_connection->client_ticket_to_decrypt));
     cbmc_populate_s2n_blob(&(s2n_connection->application_protocols_overridden));
-    cbmc_populate_s2n_stuffer(&(s2n_connection->cookie_stuffer));
+    cbmc_populate_s2n_blob(&(s2n_connection->cookie));
     cbmc_populate_s2n_blob(&(s2n_connection->server_early_data_context));
 }
 

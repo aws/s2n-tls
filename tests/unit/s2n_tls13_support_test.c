@@ -141,7 +141,7 @@ int main(int argc, char **argv)
         s2n_extension_type_list *tls13_server_hello_extensions = NULL;
         EXPECT_SUCCESS(s2n_extension_type_list_get(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, &tls13_server_hello_extensions));
         EXPECT_NOT_NULL(tls13_server_hello_extensions);
-        EXPECT_EQUAL(tls13_server_hello_extensions->count, 4);
+        EXPECT_TRUE(tls13_server_hello_extensions->count > 0);
 
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
