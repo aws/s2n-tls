@@ -24,7 +24,7 @@
 static uint8_t s2n_stream_cipher_rc4_available()
 {
 #ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
-    return 1;
+    return (EVP_rc4() ? 1 : 0);
 #endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
     return 0;
 }
