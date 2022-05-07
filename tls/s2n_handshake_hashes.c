@@ -73,7 +73,6 @@ static S2N_RESULT s2n_handshake_hashes_init_hashes(struct s2n_handshake_hashes *
      */
     if (s2n_is_in_fips_mode()) {
         RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hashes->md5));
-        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hashes->hash_workspace));
 
         /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
          * SHA-1 for both fips and non-fips mode. This is required to perform the
