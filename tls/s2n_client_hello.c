@@ -416,26 +416,22 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     }
 
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer client_random = {0};
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
-
-    struct s2n_blob b = {0};
-    POSIX_GUARD(s2n_blob_init(&b, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    /* Create the client random data */
-    POSIX_GUARD(s2n_stuffer_init(&client_random, &b));
-
-    struct s2n_blob r = {0};
-    POSIX_GUARD(s2n_blob_init(&r, s2n_stuffer_raw_write(&client_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_ENSURE_REF(r.data);
-    POSIX_GUARD_RESULT(s2n_get_public_random_data(&r));
 
     uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
     client_protocol_version[0] = reported_protocol_version / 10;
     client_protocol_version[1] = reported_protocol_version % 10;
     conn->client_hello_version = reported_protocol_version;
-
     POSIX_GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
+
+    struct s2n_blob client_random = {0};
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    if (!s2n_is_hello_retry_handshake(conn)) {
+        /* Only generate the random data for our first client hello.
+         * If we retry, we'll reuse the value. */
+        POSIX_GUARD_RESULT(s2n_get_public_random_data(&client_random));
+    }
+    POSIX_GUARD(s2n_stuffer_write(out, &client_random));
 
     POSIX_GUARD_RESULT(s2n_generate_client_session_id(conn));
     POSIX_GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
