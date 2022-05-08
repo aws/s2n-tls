@@ -738,7 +738,7 @@ void cbmc_populate_s2n_handshake(struct s2n_handshake *s2n_handshake)
 void cbmc_populate_s2n_client_hello(struct s2n_client_hello *s2n_client_hello)
 {
     CBMC_ENSURE_REF(s2n_client_hello);
-    cbmc_populate_s2n_stuffer(&(s2n_client_hello->raw_message));
+    cbmc_populate_s2n_blob(&(s2n_client_hello->raw_message));
     cbmc_populate_s2n_blob(&(s2n_client_hello->cipher_suites));
 }
 
