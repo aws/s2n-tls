@@ -228,13 +228,11 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
      * Now enforce that the extensions also exactly match,
      * except for the exceptions described in the RFC.
      */
-    s2n_parsed_extension *old_extension = NULL, *new_extension = NULL;
-    uint32_t old_size = 0, new_size = 0;
     for (size_t i = 0; i < s2n_array_len(s2n_supported_extensions); i++) {
-        old_extension = &old_ch->extensions.parsed_extensions[i];
-        old_size = old_extension->extension.size;
-        new_extension = &new_ch->extensions.parsed_extensions[i];
-        new_size = new_extension->extension.size;
+        s2n_parsed_extension *old_extension = &old_ch->extensions.parsed_extensions[i];
+        uint32_t old_size = old_extension->extension.size;
+        s2n_parsed_extension *new_extension = &new_ch->extensions.parsed_extensions[i];
+        uint32_t new_size = new_extension->extension.size;
 
         /* The extension type is only set if the extension is present.
          * Look for a non-zero-length extension.
