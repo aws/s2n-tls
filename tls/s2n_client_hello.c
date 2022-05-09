@@ -188,6 +188,11 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
         struct s2n_client_hello *old_ch, struct s2n_client_hello *new_ch,
         uint8_t *previous_client_random)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(old_ch);
+    RESULT_ENSURE_REF(new_ch);
+    RESULT_ENSURE_REF(previous_client_random);
+
     if (!s2n_is_hello_retry_handshake(conn)) {
         return S2N_RESULT_OK;
     }
@@ -207,6 +212,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
     ssize_t old_extensions_len = old_ch->extensions.raw.size + sizeof(uint16_t);
     RESULT_ENSURE_GT(old_msg_len, old_extensions_len);
     size_t verify_len = old_msg_len - old_extensions_len;
+    RESULT_ENSURE_LTE(verify_len, new_ch->raw_message.size);
     RESULT_ENSURE(s2n_constant_time_equals(
         old_ch->raw_message.data,
         new_ch->raw_message.data,
@@ -219,9 +225,9 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
      * Compare the old value to the current value.
      */
     RESULT_ENSURE(s2n_constant_time_equals(
-            previous_client_random,
-            conn->handshake_params.client_random,
-            S2N_TLS_RANDOM_DATA_LEN
+        previous_client_random,
+        conn->handshake_params.client_random,
+        S2N_TLS_RANDOM_DATA_LEN
     ), S2N_ERR_BAD_MESSAGE);
 
     /*
