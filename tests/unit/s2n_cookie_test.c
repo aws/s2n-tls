@@ -304,10 +304,13 @@ int main()
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        for (size_t i = 0; i < 100; i++) {
+        /* We need an arbitrary combination of conditions,
+         * but consistent across test runs.
+         */
+        srand(0);
 
-            uint64_t r = 0;
-            EXPECT_OK(s2n_public_random(100, &r));
+        for (size_t i = 0; i < 250; i++) {
+            int r = rand();
             bool hrr = (r % 2) == 0;
             bool cookie = (r % 3) == 0;
             size_t cookie_i = i % TEST_COOKIE_COUNT;
