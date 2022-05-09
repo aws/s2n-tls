@@ -88,32 +88,32 @@ static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
-    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
-    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
 {
-    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 {
-    POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 #endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
