@@ -424,7 +424,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     conn->client_hello_version = reported_protocol_version;
     POSIX_GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    struct s2n_blob client_random = {0};
+    struct s2n_blob client_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
     if (!s2n_is_hello_retry_handshake(conn)) {
         /* Only generate the random data for our first client hello.
