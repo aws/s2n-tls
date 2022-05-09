@@ -496,7 +496,7 @@ int main(int argc, char **argv)
          *# any pre-shared keys associated with a hash other than that of the
          *# selected cipher suite.
          */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                     s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
