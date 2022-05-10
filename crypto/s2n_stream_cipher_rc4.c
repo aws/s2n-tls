@@ -16,6 +16,7 @@
 #include <openssl/rc4.h>
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_safety.h"
@@ -24,7 +25,11 @@
 static uint8_t s2n_stream_cipher_rc4_available()
 {
 #ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
-    return (EVP_rc4() ? 1 : 0);
+    if (s2n_is_in_fips_mode()) {
+        return 0;
+    } else {
+        return (EVP_rc4() ? 1 : 0);
+    }
 #else
     return 0;
 #endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */

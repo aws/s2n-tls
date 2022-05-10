@@ -486,7 +486,10 @@ int main(int argc, char **argv)
          * configured.
          */
         {
-            const struct s2n_cipher_suite *expected_wire_choice = &s2n_rsa_with_3des_ede_cbc_sha;
+            const struct s2n_cipher_suite *expected_wire_choice = &s2n_rsa_with_rc4_128_md5;
+            if (!expected_wire_choice->available) {
+                expected_wire_choice = &s2n_rsa_with_3des_ede_cbc_sha;
+            }
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
