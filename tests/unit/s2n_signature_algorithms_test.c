@@ -367,7 +367,6 @@ int main(int argc, char **argv)
              */
             {
                 conn->actual_protocol_version = S2N_TLS10;
-                struct s2n_signature_scheme s2n_default_rsa = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
 
                 /* For the server signature, the auth method must match the cipher suite. */
                 {
@@ -375,7 +374,7 @@ int main(int argc, char **argv)
                     {
                         conn->secure.cipher_suite = RSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_default_rsa.iana_value);
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
                     }
 
                     /* Choose ECDSA for a ECDSA cipher suite. */
@@ -397,7 +396,7 @@ int main(int argc, char **argv)
                     {
                         conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_default_rsa.iana_value);
+                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
                     }
                 }
 
