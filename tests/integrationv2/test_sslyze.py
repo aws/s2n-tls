@@ -67,16 +67,21 @@ class CipherSuitesVerifier(ScanVerifier):
             cipher for rejected_cipher in self.scan_result.rejected_cipher_suites
             if (cipher := Ciphers.from_iana(rejected_cipher.cipher_suite.name))
         ]
+        print(f'{rejected_ciphers=}')
 
         for cipher in rejected_ciphers:
             # If a cipher is rejected, it should be an invalid test parameter in combination with the
             # protocol/provider/cert, otherwise it should have been accepted
-            assert invalid_test_parameters(
+            validate_test_param = invalid_test_parameters(
                 protocol=self.protocol,
                 provider=S2N,
                 certificate=self.certificate,
                 cipher=cipher
             )
+
+            print(f'{cipher=} {validate_test_param=}')
+
+            assert validate_test_param
 
 
 class EllipticCurveVerifier(ScanVerifier):
