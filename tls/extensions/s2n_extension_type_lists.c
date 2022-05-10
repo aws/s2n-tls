@@ -110,7 +110,6 @@ static const s2n_extension_type *const hello_retry_request_extensions[] = {
 static const s2n_extension_type *const tls13_server_hello_extensions[] = {
         &s2n_server_supported_versions_extension,
         &s2n_server_key_share_extension,
-        &s2n_server_cookie_extension,
         &s2n_server_psk_extension, /* MUST appear after keyshare extension */
 };
 

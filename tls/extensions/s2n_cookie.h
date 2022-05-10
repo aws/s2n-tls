@@ -17,13 +17,9 @@
 #pragma once
 
 #include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
 
 extern const s2n_extension_type s2n_client_cookie_extension;
 extern const s2n_extension_type s2n_server_cookie_extension;
 
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_extensions_cookie_size(struct s2n_connection *conn);
-int s2n_extensions_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_extensions_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+
