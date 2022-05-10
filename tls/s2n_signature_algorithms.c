@@ -181,18 +181,15 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
         auth_method = conn->secure.cipher_suite->auth_method;
     }
 
-    /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
-     * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
-     * cipher suite, this will be overridden to SHA1.
+    /* Default our signature digest algorithms.
+     * For >=TLS 1.2 this default may be overridden by the signature_algorithms extension.
      */
-    *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
-
     if (auth_method == S2N_AUTHENTICATION_ECDSA) {
         *sig_scheme_out = s2n_ecdsa_sha1;
     } else if (conn->actual_protocol_version >= S2N_TLS12) {
         *sig_scheme_out = s2n_rsa_pkcs1_sha1;
-    } else if (s2n_is_in_fips_mode() && signer == S2N_SERVER) {
-        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
+    } else {
+        *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
     }
 
     return S2N_SUCCESS;

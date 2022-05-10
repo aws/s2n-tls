@@ -352,7 +352,7 @@ struct s2n_connection {
     struct s2n_blob application_protocols_overridden;
 
     /* Cookie extension data */
-    struct s2n_stuffer cookie_stuffer;
+    struct s2n_blob cookie;
 
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing callbacks.

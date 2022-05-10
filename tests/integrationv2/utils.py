@@ -76,18 +76,6 @@ def invalid_test_parameters(*args, **kwargs):
         if not provider_.supports_protocol(protocol):
             return True
 
-    if provider is not None and other_provider is not None:
-        if issubclass(provider, S2N) and issubclass(other_provider, S2N):
-            # If s2n is built with openssl-1.0.2-fips, and the cert is not ECDSA, it can't connect to itself
-            if certificate is not None:
-                if "openssl-1.0.2-fips" in get_flag(S2N_PROVIDER_VERSION) and "ECDSA" not in certificate.name:
-                    return True
-
-            # If s2n is built with awslc and TLS version is < 1.3, it can't connect to itself
-            if protocol is not None:
-                if "awslc-fips" in get_flag(S2N_PROVIDER_VERSION) and protocol != Protocols.TLS13:
-                    return True
-
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
         if protocol is not None:
