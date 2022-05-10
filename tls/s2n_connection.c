@@ -140,7 +140,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->out, 0));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->in, 0));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
-    PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
     PTR_GUARD_RESULT(s2n_timer_start(conn->config, &conn->write_timer));
 
     /* NOTE: s2n_connection_wipe MUST be called last in this function.
@@ -487,11 +486,11 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
 
     /* Wipe the buffers we are going to free */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+    POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
 
     /* Truncate buffers to save memory, we are done with the handshake */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
-    POSIX_GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+    POSIX_GUARD(s2n_free(&conn->client_hello.raw_message));
 
     /* We can free extension data we no longer need */
     POSIX_GUARD(s2n_free(&conn->client_ticket));
@@ -519,7 +518,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_stuffer writer_alert_out = {0};
     struct s2n_stuffer client_ticket_to_decrypt = {0};
     struct s2n_stuffer handshake_io = {0};
-    struct s2n_stuffer client_hello_raw_message = {0};
     struct s2n_stuffer header_in = {0};
     struct s2n_stuffer in = {0};
     struct s2n_stuffer out = {0};
@@ -553,7 +551,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->client_ticket_to_decrypt));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+    POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
@@ -576,7 +574,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
 
     /* Truncate the message buffers to save memory, we will dynamically resize it as needed */
-    POSIX_GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+    POSIX_GUARD(s2n_free(&conn->client_hello.raw_message));
     POSIX_GUARD(s2n_stuffer_resize(&conn->in, 0));
     POSIX_GUARD(s2n_stuffer_resize(&conn->out, 0));
 
@@ -598,7 +596,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&writer_alert_out, &conn->writer_alert_out, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&client_ticket_to_decrypt, &conn->client_ticket_to_decrypt, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&handshake_io, &conn->handshake.io, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&client_hello_raw_message, &conn->client_hello.raw_message, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&in, &conn->in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&out, &conn->out, sizeof(struct s2n_stuffer));
@@ -618,7 +615,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&conn->writer_alert_out, &writer_alert_out, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->client_ticket_to_decrypt, &client_ticket_to_decrypt, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->handshake.io, &handshake_io, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&conn->client_hello.raw_message, &client_hello_raw_message, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->header_in, &header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->in, &in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->out, &out, sizeof(struct s2n_stuffer));

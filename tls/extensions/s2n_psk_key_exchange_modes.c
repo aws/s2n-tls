@@ -37,8 +37,8 @@ const s2n_extension_type s2n_psk_key_exchange_modes_extension = {
 
 static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn)
 {
-    /* Only send a psk_key_exchange_modes extension if a psk extension is also being sent */
-    return s2n_client_psk_should_send(conn);
+    /* Only send a psk_key_exchange_modes extension if psks available */
+    return conn->psk_params.psk_list.len > 0;
 }
 
 static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s2n_stuffer *out)

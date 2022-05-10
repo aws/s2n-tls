@@ -87,7 +87,7 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
 ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch) {
     POSIX_ENSURE_REF(ch);
 
-    return ch->raw_message.blob.size;
+    return ch->raw_message.size;
 }
 
 ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
@@ -95,12 +95,8 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(out);
 
-    uint32_t len = min_size(&ch->raw_message.blob, max_length);
-
-    struct s2n_stuffer *raw_message = &ch->raw_message;
-    POSIX_GUARD(s2n_stuffer_reread(raw_message));
-    POSIX_GUARD(s2n_stuffer_read_bytes(raw_message, out, len));
-
+    uint32_t len = min_size(&ch->raw_message, max_length);
+    POSIX_CHECKED_MEMCPY(out, ch->raw_message.data, len);
     return len;
 }
 
@@ -161,18 +157,12 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
 {
     POSIX_ENSURE_REF(client_hello);
 
-    POSIX_GUARD(s2n_stuffer_free(&client_hello->raw_message));
+    POSIX_GUARD(s2n_free(&client_hello->raw_message));
 
     /* These point to data in the raw_message stuffer,
        so we don't need to free them */
     client_hello->cipher_suites.data = NULL;
     client_hello->extensions.raw.data = NULL;
-
-    /* clean the CH nonblocking callback flags
-     * incase we are preparing for CH retry */
-    client_hello->callback_async_blocked = 0;
-    client_hello->callback_async_done = 0;
-    client_hello->parsed = 0;
 
     return 0;
 }
@@ -187,15 +177,147 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
 
     struct s2n_client_hello *ch = &conn->client_hello;
 
-    POSIX_GUARD(s2n_stuffer_resize(&ch->raw_message, size));
-    POSIX_GUARD(s2n_stuffer_copy(source, &ch->raw_message, size));
+    POSIX_GUARD(s2n_realloc(&ch->raw_message, size));
+    POSIX_GUARD(s2n_stuffer_read(source, &ch->raw_message));
 
     return 0;
+}
+
+
+static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
+        struct s2n_client_hello *old_ch, struct s2n_client_hello *new_ch,
+        uint8_t *previous_client_random)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(old_ch);
+    RESULT_ENSURE_REF(new_ch);
+    RESULT_ENSURE_REF(previous_client_random);
+
+    if (!s2n_is_hello_retry_handshake(conn)) {
+        return S2N_RESULT_OK;
+    }
+
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+     *# The client will also send a
+     *# ClientHello when the server has responded to its ClientHello with a
+     *# HelloRetryRequest.  In that case, the client MUST send the same
+     *# ClientHello without modification, except as follows:
+     *
+     * All of the exceptions that follow are extensions.
+     * Ignoring the extensions, the client hellos should match /exactly/.
+     */
+    ssize_t old_msg_len = old_ch->raw_message.size;
+    /* Also consider the 2-byte size of the extension list */
+    ssize_t old_extensions_len = old_ch->extensions.raw.size + sizeof(uint16_t);
+    RESULT_ENSURE_GT(old_msg_len, old_extensions_len);
+    size_t verify_len = old_msg_len - old_extensions_len;
+    RESULT_ENSURE_LTE(verify_len, new_ch->raw_message.size);
+    RESULT_ENSURE(s2n_constant_time_equals(
+        old_ch->raw_message.data,
+        new_ch->raw_message.data,
+        verify_len
+    ), S2N_ERR_BAD_MESSAGE);
+
+    /*
+     * We need to verify the client random separately
+     * because we erase it from the client hello during parsing.
+     * Compare the old value to the current value.
+     */
+    RESULT_ENSURE(s2n_constant_time_equals(
+        previous_client_random,
+        conn->handshake_params.client_random,
+        S2N_TLS_RANDOM_DATA_LEN
+    ), S2N_ERR_BAD_MESSAGE);
+
+    /*
+     * Now enforce that the extensions also exactly match,
+     * except for the exceptions described in the RFC.
+     */
+    for (size_t i = 0; i < s2n_array_len(s2n_supported_extensions); i++) {
+        s2n_parsed_extension *old_extension = &old_ch->extensions.parsed_extensions[i];
+        uint32_t old_size = old_extension->extension.size;
+        s2n_parsed_extension *new_extension = &new_ch->extensions.parsed_extensions[i];
+        uint32_t new_size = new_extension->extension.size;
+
+        /* The extension type is only set if the extension is present.
+         * Look for a non-zero-length extension.
+         */
+        uint16_t extension_type = 0;
+        if (old_size != 0) {
+            extension_type = old_extension->extension_type;
+        } else if (new_size != 0) {
+            extension_type = new_extension->extension_type;
+        } else {
+            continue;
+        }
+
+        switch(extension_type) {
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *#    -  If a "key_share" extension was supplied in the HelloRetryRequest,
+             *#       replacing the list of shares with a list containing a single
+             *#       KeyShareEntry from the indicated group.
+             */
+            case TLS_EXTENSION_KEY_SHARE:
+                /* Handled when parsing the key share extension */
+                break;
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *#    -  Removing the "early_data" extension (Section 4.2.10) if one was
+             *#       present.  Early data is not permitted after a HelloRetryRequest.
+             */
+            case TLS_EXTENSION_EARLY_DATA:
+                RESULT_ENSURE(new_size == 0, S2N_ERR_BAD_MESSAGE);
+                break;
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *#    -  Including a "cookie" extension if one was provided in the
+             *#       HelloRetryRequest.
+             */
+            case TLS_EXTENSION_COOKIE:
+                /* Handled when parsing the cookie extension */
+                break;
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *#    -  Updating the "pre_shared_key" extension if present by recomputing
+             *#       the "obfuscated_ticket_age" and binder values and (optionally)
+             *#       removing any PSKs which are incompatible with the server's
+             *#       indicated cipher suite.
+             */
+            case TLS_EXTENSION_PRE_SHARED_KEY:
+                /* Handled when parsing the psk extension */
+                break;
+            /*
+             * No more exceptions.
+             * All other extensions must match.
+             */
+            default:
+                RESULT_ENSURE(old_size == new_size, S2N_ERR_BAD_MESSAGE);
+                RESULT_ENSURE(s2n_constant_time_equals(
+                    new_extension->extension.data,
+                    old_extension->extension.data,
+                    old_size
+                ), S2N_ERR_BAD_MESSAGE);
+        }
+    }
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+
+    /* If a retry, move the old version of the client hello
+     * somewhere safe so we can compare it to the new client hello later.
+     */
+    DEFER_CLEANUP(struct s2n_client_hello previous_hello_retry = conn->client_hello,
+            s2n_client_hello_free);
+    if (s2n_is_hello_retry_handshake(conn)) {
+        POSIX_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
+    }
+
     POSIX_GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
     if (conn->client_hello_version == S2N_SSLv2) {
@@ -205,11 +327,17 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* Going forward, we parse the collected client hello */
     struct s2n_client_hello *client_hello = &conn->client_hello;
-    struct s2n_stuffer *in = &client_hello->raw_message;
+    struct s2n_stuffer in_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));
+    POSIX_GUARD(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
+    struct s2n_stuffer *in = &in_stuffer;
 
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     POSIX_GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+
+    uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+    POSIX_CHECKED_MEMCPY(previous_client_random, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN);
     POSIX_GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
@@ -256,6 +384,8 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));
 
+    POSIX_GUARD_RESULT(s2n_client_hello_verify_for_retry(conn,
+            &previous_hello_retry, client_hello, previous_client_random));
     return S2N_SUCCESS;
 }
 
@@ -492,7 +622,10 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_client_hello *client_hello = &conn->client_hello;
-    struct s2n_stuffer *in = &client_hello->raw_message;
+    struct s2n_stuffer in_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));
+    POSIX_GUARD(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
+    struct s2n_stuffer *in = &in_stuffer;
 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));

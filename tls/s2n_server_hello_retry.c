@@ -33,22 +33,6 @@ uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN] = {
     0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
 };
 
-static int s2n_conn_reset_retry_values(struct s2n_connection *conn)
-{
-    POSIX_ENSURE_REF(conn);
-
-    /* Reset handshake values */
-    conn->handshake.client_hello_received = 0;
-
-    /* Reset client hello state */
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
-    POSIX_GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
-    POSIX_GUARD(s2n_client_hello_free(&conn->client_hello));
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
-
-    return 0;
-}
-
 int s2n_server_hello_retry_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -62,7 +46,11 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
 
     /* Update transcript */
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
-    POSIX_GUARD(s2n_conn_reset_retry_values(conn));
+
+    /* Reset handshake values */
+    conn->handshake.client_hello_received = 0;
+    conn->client_hello.parsed = 0;
+    POSIX_CHECKED_MEMSET((uint8_t*) conn->extension_requests_received, 0, sizeof(s2n_extension_bitfield));
 
     return 0;
 }
@@ -116,6 +104,9 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 
     /* Update transcript hash */
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+
+    /* Reset handshake values */
+    POSIX_CHECKED_MEMSET((uint8_t*) conn->extension_requests_sent, 0, sizeof(s2n_extension_bitfield));
 
     return S2N_SUCCESS;
 }

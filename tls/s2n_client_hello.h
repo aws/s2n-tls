@@ -27,7 +27,7 @@
  * point to data in the raw_message stuffer
  */
 struct s2n_client_hello {
-    struct s2n_stuffer raw_message;
+    struct s2n_blob raw_message;
 
     s2n_parsed_extensions_list extensions;
     struct s2n_blob cipher_suites;
