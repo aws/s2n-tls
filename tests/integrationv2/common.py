@@ -277,8 +277,6 @@ class Ciphers(object):
                                   True, False, iana_standard_name="TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA")
     ECDHE_RSA_AES256_SHA = Cipher("ECDHE-RSA-AES256-SHA", Protocols.SSLv3,
                                   True, False, iana_standard_name="TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA")
-    ECDHE_RSA_RC4_SHA = Cipher("ECDHE-RSA-RC4-SHA", Protocols.SSLv3,
-                               False, False, iana_standard_name="TLS_ECDHE_RSA_WITH_RC4_128_SHA")
     ECDHE_RSA_AES128_SHA256 = Cipher("ECDHE-RSA-AES128-SHA256", Protocols.TLS12,
                                      True, True, iana_standard_name="TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
     ECDHE_RSA_AES256_SHA384 = Cipher("ECDHE-RSA-AES256-SHA384", Protocols.TLS12,
