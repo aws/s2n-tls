@@ -17,4 +17,14 @@ set -e
 export DOXYGEN_VERSION="doxygen-1.9.3"
 curl -L "https://www.doxygen.nl/files/$DOXYGEN_VERSION.linux.bin.tar.gz" -o "$DOXYGEN_VERSION.tar.gz"
 tar -xvf "$DOXYGEN_VERSION.tar.gz"
-$DOXYGEN_VERSION/bin/doxygen docs/doxygen/Doxyfile
+
+# We want to examine stderr for warnings
+# Ignore doxygen warnings from using the README.md as the mainpage
+WARNING_COUNT=$($DOXYGEN_VERSION/bin/doxygen docs/doxygen/Doxyfile 2>&1 | grep -i "warning" | grep -vi "readme" | wc -l)
+
+if [ $WARNING_COUNT -ne 0 ]; then
+    exit 1
+else
+    exit 0
+fi
+
