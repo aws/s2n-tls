@@ -88,7 +88,6 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
             return true;
         }
     }
-    conn->psk_params.binder_list_size = 0;
     return false;
 }
 
