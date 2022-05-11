@@ -126,7 +126,7 @@ extern __thread int s2n_errno;
  * This function can be used instead of trying to resolve `s2n_errno` directly
  * in runtimes where thread-local variables may not be easily accessible.
  *
- * @return The address of the thread-local `s2n_errno` variable
+ * @returns The address of the thread-local `s2n_errno` variable
  */
 S2N_API
 extern int *s2n_errno_location(void);
@@ -257,7 +257,7 @@ extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 /**
  * Callback function type used to get the system time.
  *
- * Takes two arguments. A pointer to a artbitrary data for callers to stuff data in
+ * Takes two arguments. A pointer to a arbitrary data for callers to stuff data in
  * the callback and a pointer to a 64 bit int. The 64 bit pointer should be set to the
  * number of nanoseconds since the Unix epoch.
  *
@@ -293,7 +293,7 @@ typedef int (*s2n_cache_retrieve_callback) (struct s2n_connection *conn, void *,
  *
  * The callback function takes seven arguments:
  * a pointer to the s2n_connection object, 
- * a pointer to abitrary data for use within the callback, 
+ * a pointer to arbitrary data for use within the callback, 
  * a 64-bit unsigned integer specifying the number of seconds the session data may be stored for, 
  * a pointer to a key which can be used to retrieve the cached entry,
  * a 64 bit unsigned integer specifying the size of this key, 
@@ -308,7 +308,7 @@ typedef int (*s2n_cache_store_callback) (struct s2n_connection *conn, void *, ui
 *
 *  The callback function takes four arguments:
 *  a pointer to s2n_connection object,
-*  a pointer to abitrary data for use within the callback, 
+*  a pointer to arbitrary data for use within the callback, 
 *  a pointer to a key which can be used to delete the cached entry, 
 *  and a 64 bit unsigned integer specifying the size of this key.
 */ 
@@ -805,7 +805,7 @@ extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const ch
  *
  * @param config The configuration object being updated
  *
- * @return 0 on success and -1 on error
+ * @returns 0 on success and -1 on error
  */
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
@@ -2419,7 +2419,7 @@ struct s2n_psk;
  * 
  * Use `s2n_psk_free` to free the memory allocated to the s2n external PSK object created by this API. 
  *
- * @return struct s2n_psk* Returns a pointer to the newly created external PSK object.
+ * @returns struct s2n_psk* Returns a pointer to the newly created external PSK object.
  */
 S2N_API
 struct s2n_psk* s2n_external_psk_new(void);
@@ -2568,7 +2568,7 @@ struct s2n_offered_psk;
  * 
  * Use `s2n_offered_psk_free` to free the memory allocated to the s2n offered PSK object created by this API. 
  *
- * @return struct s2n_offered_psk* Returns a pointer to the newly created offered PSK object.
+ * @returns struct s2n_offered_psk* Returns a pointer to the newly created offered PSK object.
  */
 S2N_API 
 struct s2n_offered_psk* s2n_offered_psk_new(void);
@@ -2603,7 +2603,7 @@ struct s2n_offered_psk_list;
  * After the completion of `s2n_psk_selection_callback` this pointer is invalid.
  *
  * @param psk_list A pointer to the offered PSK list being read.
- * @return bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
+ * @returns bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
  */
 S2N_API 
 bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
@@ -2757,7 +2757,7 @@ extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
  * @param conn A pointer to the connection being read
  * @param first A pointer to a single byte, which will be updated with the first byte in the registered IANA value.
  * @param second A pointer to a single byte, which will be updated with the second byte in the registered IANA value.
- * @return A POSIX error signal. If an error was returned, the values contained in `first` and `second` should be considered invalid.
+ * @returns A POSIX error signal. If an error was returned, the values contained in `first` and `second` should be considered invalid.
  */
 S2N_API
 extern int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *first, uint8_t *second);
@@ -3031,7 +3031,7 @@ extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *confi
  *
  * @param config A pointer to the config
  * @param max_early_data_size The maximum early data that the server will accept
- * @return A POSIX error signal. If successful, the maximum early data size was updated.
+ * @returns A POSIX error signal. If successful, the maximum early data size was updated.
  */
 S2N_API int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size);
 
@@ -3043,7 +3043,7 @@ S2N_API int s2n_config_set_server_max_early_data_size(struct s2n_config *config,
  *
  * @param conn A pointer to the connection
  * @param max_early_data_size The maximum early data the server will accept
- * @return A POSIX error signal. If successful, the maximum early data size was updated.
+ * @returns A POSIX error signal. If successful, the maximum early data size was updated.
  */
 S2N_API int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size);
 
@@ -3060,7 +3060,7 @@ S2N_API int s2n_connection_set_server_max_early_data_size(struct s2n_connection 
  * @param conn A pointer to the connection
  * @param context A pointer to the user context data. This data will be copied.
  * @param context_size The size of the data to read from the `context` pointer.
- * @return A POSIX error signal. If successful, the context was updated.
+ * @returns A POSIX error signal. If successful, the context was updated.
  */
 S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context, uint16_t context_size);
 
@@ -3077,7 +3077,7 @@ S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *
  * @param max_early_data_size The maximum early data that can be sent or received using this key.
  * @param cipher_suite_first_byte The first byte in the registered IANA value of the associated cipher suite.
  * @param cipher_suite_second_byte The second byte in the registered IANA value of the associated cipher suite.
- * @return A POSIX error signal. If successful, `psk` was updated.
+ * @returns A POSIX error signal. If successful, `psk` was updated.
  */
 S2N_API int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
@@ -3091,7 +3091,7 @@ S2N_API int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early
  * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
  * @param application_protocol A pointer to the associated application protocol data. This data will be copied.
  * @param size The size of the data to read from the `application_protocol` pointer.
- * @return A POSIX error signal. If successful, the application protocol was set.
+ * @returns A POSIX error signal. If successful, the application protocol was set.
  */
 S2N_API int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
 
@@ -3104,7 +3104,7 @@ S2N_API int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t 
  * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
  * @param context A pointer to the associated user context data. This data will be copied.
  * @param size The size of the data to read from the `context` pointer.
- * @return A POSIX error signal. If successful, the context was set.
+ * @returns A POSIX error signal. If successful, the context was set.
  */
 S2N_API int s2n_psk_set_early_data_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
 
@@ -3131,7 +3131,7 @@ typedef enum {
  *
  * @param conn A pointer to the connection
  * @param status A pointer which will be set to the current early data status
- * @return A POSIX error signal.
+ * @returns A POSIX error signal.
  */
 S2N_API int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_data_status_t *status);
 
@@ -3144,7 +3144,7 @@ S2N_API int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2
  *
  * @param conn A pointer to the connection
  * @param allowed_early_data_size A pointer which will be set to the remaining early data currently allowed by `conn`
- * @return A POSIX error signal.
+ * @returns A POSIX error signal.
  */
 S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
 
@@ -3157,7 +3157,7 @@ S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *
  *
  * @param conn A pointer to the connection
  * @param max_early_data_size A pointer which will be set to the maximum early data allowed by `conn`
- * @return A POSIX error signal.
+ * @returns A POSIX error signal.
  */
 S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
 
@@ -3173,7 +3173,7 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
  * @param data_len The size of the early data to send
  * @param data_sent A pointer which will be set to the size of the early data sent
  * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
- * @return A POSIX error signal. The error should be handled as in `s2n_negotiate`.
+ * @returns A POSIX error signal. The error should be handled as in `s2n_negotiate`.
  */
 S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
         ssize_t *data_sent, s2n_blocked_status *blocked);
@@ -3190,7 +3190,7 @@ S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data
  * @param max_data_len The size of the early data buffer
  * @param data_received A pointer which will be set to the size of the early data received
  * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
- * @return A POSIX error signal. The error should be handled as in `s2n_negotiate`.
+ * @returns A POSIX error signal. The error should be handled as in `s2n_negotiate`.
  */
 S2N_API int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
         ssize_t *data_received, s2n_blocked_status *blocked);
@@ -3212,7 +3212,7 @@ struct s2n_offered_early_data;
  * @param conn A pointer to the connection
  * @param early_data A pointer which can be used to access information about the proposed early data
  *                   and then accept or reject it.
- * @return A POSIX error signal. If unsuccessful, the connection will be closed with an error.
+ * @returns A POSIX error signal. If unsuccessful, the connection will be closed with an error.
  */
 typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered_early_data *early_data);
 
@@ -3221,7 +3221,7 @@ typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered
  *
  * @param config A pointer to the connection config
  * @param cb A pointer to the implementation of the callback.
- * @return A POSIX error signal. If successful, the callback was set.
+ * @returns A POSIX error signal. If successful, the callback was set.
  */
 S2N_API int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_data_cb cb);
 
@@ -3230,7 +3230,7 @@ S2N_API int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_da
  *
  * @param early_data A pointer to the early data information
  * @param context_len The length of the user context
- * @return A POSIX error signal.
+ * @returns A POSIX error signal.
  */
 S2N_API int s2n_offered_early_data_get_context_length(struct s2n_offered_early_data *early_data, uint16_t *context_len);
 
@@ -3240,7 +3240,7 @@ S2N_API int s2n_offered_early_data_get_context_length(struct s2n_offered_early_d
  * @param early_data A pointer to the early data information
  * @param context A byte buffer to copy the user context into
  * @param max_len The size of `context`. Must be >= to the result of `s2n_offered_early_data_get_context_length`.
- * @return A POSIX error signal.
+ * @returns A POSIX error signal.
  */
 S2N_API int s2n_offered_early_data_get_context(struct s2n_offered_early_data *early_data, uint8_t *context, uint16_t max_len);
 
@@ -3248,7 +3248,7 @@ S2N_API int s2n_offered_early_data_get_context(struct s2n_offered_early_data *ea
  * Reject early data offered by the client.
  *
  * @param early_data A pointer to the early data information
- * @return A POSIX error signal. If success, the client's early data will be rejected.
+ * @returns A POSIX error signal. If success, the client's early data will be rejected.
  */
 S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_data);
 
@@ -3256,7 +3256,7 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  * Accept early data offered by the client.
  *
  * @param early_data A pointer to the early data information
- * @return A POSIX error signal. If success, the client's early data will be accepted.
+ * @returns A POSIX error signal. If success, the client's early data will be accepted.
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
 
