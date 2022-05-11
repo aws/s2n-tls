@@ -12,11 +12,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-set -e
+set -eu
 
 export DOXYGEN_VERSION="doxygen-1.9.3"
 curl -L "https://www.doxygen.nl/files/$DOXYGEN_VERSION.linux.bin.tar.gz" -o "$DOXYGEN_VERSION.tar.gz"
 tar -xvf "$DOXYGEN_VERSION.tar.gz"
+
+# Pull in git tags
+git fetch origin --tags
+
+# Add a version to the Doxygen documentation
+# For example: v1.3.13-3b413f18
+DOC_VERSION="$(git tag | sort | tail -n 1)-$(git rev-parse --short=8 HEAD)"
+
+sed -i "s/PROJECT_NUMBER_PLACEHOLDER/$DOC_VERSION/" docs/doxygen/Doxyfile
 
 # We want to examine stderr for warnings
 # Ignore doxygen warnings from using the README.md as the mainpage
