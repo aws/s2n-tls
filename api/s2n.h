@@ -2178,7 +2178,6 @@ S2N_API
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 /**
- *
  * Check is the connection is OCSP stapled.
  *
  * @param conn A pointer to the s2n_connection object
@@ -2219,7 +2218,6 @@ typedef enum {
 } s2n_tls_hash_algorithm;
 
 /**
- *
  * Get the connection's selected signature algorithm.
  *
  * @param conn A pointer to the s2n_connection object
@@ -2231,7 +2229,6 @@ S2N_API
 extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
 
 /**
- *
  * Get the connection's selected digest algorithm.
  *
  * @param conn A pointer to the s2n_connection object
@@ -2243,7 +2240,6 @@ S2N_API
 extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 
 /**
- *
  * Get the client certificate's signature algorithm.
  *
  * @param conn A pointer to the s2n_connection object
@@ -2255,7 +2251,6 @@ S2N_API
 extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
 
 /**
- *
  * Get the client certificate's digest algorithm.
  *
  * @param conn A pointer to the s2n_connection object
@@ -2267,7 +2262,6 @@ S2N_API
 extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 
 /**
- *
  * Get the certificate used during the TLS handshake
  *
  * - If `conn` is a server connection, the certificate selected will depend on the
@@ -2401,7 +2395,8 @@ extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *ex
 S2N_API 
 extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
 
-/** Pre-shared key (PSK) Hash Algorithm - RFC 8446 Section-2.2
+/** 
+ * Pre-shared key (PSK) Hash Algorithm - RFC 8446 Section-2.2
  */
 typedef enum {
     S2N_PSK_HMAC_SHA256,

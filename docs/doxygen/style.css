@@ -14,7 +14,8 @@
  */
 
 /* Set the margins to place a small amount of whitespace on the left and right
- * side of the page. */
+ * side of the page.
+ */
 div.contents {
 	margin-left:4em;
 	margin-right:4em;
@@ -42,5 +43,4 @@ h2:not(.memtitle):not(.groupheader) {
 	margin-top: 16px;
 	padding: 0px;
 }
-
 
