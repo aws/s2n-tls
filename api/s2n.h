@@ -2082,8 +2082,6 @@ extern int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, ui
 /**
  * De-serializes the session state and updates the connection accordingly.
  *
- * @note This is for < TLS 1.2 session resumption.
- *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `length`
  * @param length The size of the `session` buffer
@@ -2098,7 +2096,7 @@ extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t
  *
  * The output of this function depends on whether session ids or session tickets are being used for resumption.
  *
- * @note This is for < TLS 1.2 session resumption.
+ * @note This is for < TLS 1.3 session resumption.
  *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `max_length`
@@ -2112,8 +2110,6 @@ extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *sess
 /**
  * Get the lifetime hint for a session.
  *
- * @note This is for < TLS 1.2 session resumption.
- *
  * @param conn A pointer to the s2n_connection object
  *
  * @returns The session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption.
@@ -2123,8 +2119,6 @@ extern int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection
 
 /**
  * Use this to query the serialized session state size before copying it into a buffer.
- *
- * @note This is for < TLS 1.2 session resumption.
  *
  * @param conn A pointer to the s2n_connection object
  *
@@ -2137,8 +2131,6 @@ extern int s2n_connection_get_session_length(struct s2n_connection *conn);
  * Gets the latest session id's length from the connection.
  *
  * Use this to query the session id size before copying it into a buffer.
- *
- * @note This is for < TLS 1.2 session resumption.
  *
  * @param conn A pointer to the s2n_connection object
  *
@@ -2154,8 +2146,6 @@ extern int s2n_connection_get_session_id_length(struct s2n_connection *conn);
 *
 * See s2n_client_hello_get_session_id() to get the session id as it was sent by the client in the ClientHello message.
  *
- * @note This is for < TLS 1.2 session resumption.
- *
  * @param conn A pointer to the s2n_connection object
  * @param session_id A pointer to a buffer of size `max_length`
  * @param max_length The size of the `session_id` buffer
@@ -2167,8 +2157,6 @@ extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *s
 
 /**
  * Check if the connection was resumed from an earlier handshake.
- *
- * @note This is for < TLS 1.2 session resumption.
  *
  * @param conn A pointer to the s2n_connection object
  *
