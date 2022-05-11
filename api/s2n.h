@@ -113,7 +113,7 @@ extern "C" {
  * When an s2n-tls function returns a failure, s2n_errno will be set to a value
  * corresponding to the error. This error value can be translated into a string
  * explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
- * A string containing human readable error name, can be generated with `s2n_strerror_name`.
+ * A string containing human readable error name; can be generated with `s2n_strerror_name`.
  * A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
  * This string is useful to include when reporting issues to the s2n-tls development team.
  *
@@ -149,7 +149,7 @@ typedef enum {
 } s2n_error_type;
 
 /**
- * Get's the category of error from an error.
+ * Gets the category of error from an error.
  * 
  * s2n-tls organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities.
  * Applications using non-blocking I/O should check error type to determine if the I/O operation failed because 
@@ -162,7 +162,7 @@ S2N_API
 extern int s2n_error_get_type(int error);
 
 /**
- * An opaque configuration object, used by servers for holding cryptographic certificates, keys and preferences.
+ * An opaque configuration object, used by clients and servers for holding cryptographic certificates, keys and preferences.
  */
 struct s2n_config;
 
@@ -257,7 +257,7 @@ extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 /**
  * Callback function type used to get the system time.
  *
- * Takes two arguments. A pointer to a arbitrary data for callers to stuff data in
+ * Takes two arguments. A pointer to arbitrary data for use within the callback and a pointer to a 64 bit int.
  * the callback and a pointer to a 64 bit int. The 64 bit pointer should be set to the
  * number of nanoseconds since the Unix epoch.
  *
@@ -1169,7 +1169,7 @@ extern int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx);
 /**
  * Gets user defined context from a `s2n_connection` object.
  *
- * @param conn The connection object that the desired context
+ * @param conn The connection object that contains the desired context
  */
 S2N_API
 extern void *s2n_connection_get_ctx(struct s2n_connection *conn);
