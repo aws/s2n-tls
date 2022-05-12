@@ -358,6 +358,13 @@ if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
+if(CMAKE_COMPILER_IS_GNUCC)
+    if (CMAKE_C_COMPILER_VERSION VERSION_GREATER 10)
+        message(STATUS "Turning on static analyer")
+        target_compile_options(${PROJECT_NAME} PRIVATE -fanalyzer)
+    endif()
+endif()
+
 if(BUILD_TESTING AND BUILD_SHARED_LIBS)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
