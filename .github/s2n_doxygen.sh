@@ -23,7 +23,7 @@ git fetch origin --tags
 
 # Add a version to the Doxygen documentation
 # For example: v1.3.13-3b413f18
-DOC_VERSION="$(git tag | sort | tail -n 1)-$(git rev-parse --short=8 HEAD)"
+DOC_VERSION="$(git tag --sort v:refname | tail -n 1)-$(git rev-parse --short=8 HEAD)"
 
 sed -i "s/PROJECT_NUMBER_PLACEHOLDER/$DOC_VERSION/" docs/doxygen/Doxyfile
 
