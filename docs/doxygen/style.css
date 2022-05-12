@@ -1,0 +1,46 @@
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+/* Set the margins to place a small amount of whitespace on the left and right
+ * side of the page.
+ */
+div.contents {
+	margin-left:4em;
+	margin-right:4em;
+}
+
+/* Justify text in paragraphs. */
+p {
+	text-align: justify;
+}
+
+/* Style of section headings. */
+h1 {
+	border-bottom: 1px solid #879ECB;
+	color: #354C7B;
+	font-size: 160%;
+	font-weight: normal;
+	padding-bottom: 4px;
+	padding-top: 8px;
+}
+
+/* Style of subsection headings. */
+h2:not(.memtitle):not(.groupheader) {
+	font-size: 125%;
+	margin-bottom: 0px;
+	margin-top: 16px;
+	padding: 0px;
+}
+
