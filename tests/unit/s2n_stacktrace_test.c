@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 #ifdef S2N_HAVE_EXECINFO
     EXPECT_SUCCESS(s2n_stack_traces_enabled_set(true));
-    struct s2n_stacktrace trace;
+    struct s2n_stacktrace trace = { 0 };
     /* If nothing has errored yet, we have no stacktrace */
     EXPECT_SUCCESS(s2n_get_stacktrace(&trace));
     EXPECT_NULL(trace.trace);
