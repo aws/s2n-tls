@@ -6,6 +6,7 @@ pub mod error;
 
 pub mod config;
 pub mod connection;
+pub mod enums;
 pub mod init;
 pub mod security;
 
