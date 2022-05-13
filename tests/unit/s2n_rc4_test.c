@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
+#endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
     END_TEST();
 }

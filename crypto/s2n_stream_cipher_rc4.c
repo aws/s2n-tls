@@ -24,7 +24,7 @@
 
 static uint8_t s2n_stream_cipher_rc4_available()
 {
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
     if (s2n_is_in_fips_mode()) {
         return 0;
     } else {
@@ -32,10 +32,10 @@ static uint8_t s2n_stream_cipher_rc4_available()
     }
 #else
     return 0;
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
+#endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
 }
 
-#ifdef LIBCRYPTO_SUPPORTS_EVP_RC4
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     POSIX_ENSURE_GTE(out->size, in->size);
@@ -121,7 +121,7 @@ static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-#endif /* LIBCRYPTO_SUPPORTS_EVP_RC4 */
+#endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 struct s2n_cipher s2n_rc4 = {
     .type = S2N_STREAM,
