@@ -102,7 +102,9 @@ impl Connection {
     /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
     /// S2N_SELF_SERVICE_BLINDING).
     pub fn set_blinding(&mut self, blinding: Blinding) -> Result<&mut Self, Error> {
-        unsafe { s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result() }?;
+        unsafe {
+            s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result()
+        }?;
         Ok(self)
     }
 
