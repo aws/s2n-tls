@@ -516,6 +516,18 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
 endif()
 
+# Determine if RC4 is available in libcrypto
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_RC4
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_rc4.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+)
+
+if (LIBCRYPTO_SUPPORTS_EVP_RC4)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4)
+endif()
+
 # Determine if EVP_MD_CTX_set_pkey_ctx is available in libcrypto
 try_compile(
         LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
