@@ -4,7 +4,8 @@
 use errno::{set_errno, Errno};
 use s2n_tls::raw::{
     config::Config,
-    connection::{CallbackResult, Connection, Mode},
+    connection::Connection,
+    enums::{CallbackResult, Mode},
     error::Error,
 };
 use std::{
