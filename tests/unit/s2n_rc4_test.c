@@ -35,7 +35,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
@@ -56,6 +55,8 @@ int main(int argc, char **argv)
     /* Peer and we are in sync */
     conn->server = &conn->secure;
     conn->client = &conn->secure;
+
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
 
     /* test the RC4 cipher with a SHA1 hash */
     conn->secure.cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
@@ -117,6 +118,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
+#else
+    conn->secure.cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
+    EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key), S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key), S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
 #endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
     END_TEST();
