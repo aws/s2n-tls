@@ -254,7 +254,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, RSA_PSS_RSAE_SIG_SCHEME));
 
             /* non-ephemeral key */
-            conn->secure.cipher_suite = &s2n_rsa_with_rc4_128_md5; /* kex = (rsa) */
+            conn->secure.cipher_suite = &s2n_rsa_with_aes_128_cbc_sha; /* kex = (rsa) */
             EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, RSA_PKCS1_SIG_SCHEME));
             EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(conn, RSA_PSS_PSS_SIG_SCHEME));
             EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, RSA_PSS_RSAE_SIG_SCHEME));
