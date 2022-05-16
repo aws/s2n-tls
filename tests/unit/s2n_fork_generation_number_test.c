@@ -13,8 +13,14 @@
  * permissions and limitations under the License.
  */
 
-/* For clone() */
-#define _GNU_SOURCE
+#ifdef __FreeBSD__
+    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+     * Without the below line, <sys/wait.h> cannot be imported (it requires __BSD_VISIBLE) */
+    #undef _POSIX_C_SOURCE
+#else
+    /* For clone() */
+    #define _GNU_SOURCE
+#endif
 
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
@@ -255,7 +261,11 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
 
 static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
 {
+    EXPECT_SUCCESS(s2n_init());
+
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
+
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -263,7 +273,12 @@ static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
 static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 {
     POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
+
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -274,9 +289,13 @@ static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
         TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
         return S2N_SUCCESS;
     }
-
     POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
+
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -287,9 +306,13 @@ static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
         TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
         return S2N_SUCCESS;
     }
-
     POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
+
+    EXPECT_SUCCESS(s2n_cleanup());
 
     return S2N_SUCCESS;
 }
@@ -303,7 +326,7 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
 
 int main(int argc, char **argv)
 {
-    BEGIN_TEST();
+    BEGIN_TEST_NO_INIT();
 
     EXPECT_TRUE(s2n_array_len(fgn_test_cases) == NUMBER_OF_FGN_TEST_CASES);
 
@@ -337,5 +360,5 @@ int main(int argc, char **argv)
         }
     }
 
-    END_TEST();
+    END_TEST_NO_INIT();
 }

@@ -5,7 +5,7 @@ use clap::Parser;
 use s2n_tls::raw::{config::Config, security::DEFAULT_TLS13};
 use s2n_tls_tokio::TlsConnector;
 use std::{error::Error, fs};
-use tokio::net::TcpStream;
+use tokio::{io::AsyncWriteExt, net::TcpStream};
 
 /// NOTE: this certificate is to be used for demonstration purposes only!
 const DEFAULT_CERT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/certs/cert.pem");
@@ -29,9 +29,23 @@ async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Box<dyn Error>> 
 
     // Connect to the server.
     let stream = TcpStream::connect(addr).await?;
-    client.connect("localhost", stream).await?;
+    let tls = client.connect("localhost", stream).await?;
+    println!("{:#?}", tls);
 
-    // TODO: echo
+    // Split the stream.
+    // This allows us to call read and write from different tasks.
+    let (mut reader, mut writer) = tokio::io::split(tls);
+
+    // Copy data from the server to stdout
+    tokio::spawn(async move {
+        let mut stdout = tokio::io::stdout();
+        tokio::io::copy(&mut reader, &mut stdout).await
+    });
+
+    // Send data from stdin to the server
+    let mut stdin = tokio::io::stdin();
+    tokio::io::copy(&mut stdin, &mut writer).await?;
+    writer.shutdown().await?;
 
     Ok(())
 }

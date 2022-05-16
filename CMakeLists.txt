@@ -239,11 +239,20 @@ endif()
 include(CheckCSourceCompiles)
 
 # Determine if execinfo.h is available
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+try_compile(
+        S2N_HAVE_EXECINFO
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
+        LINK_LIBRARIES execinfo
+)
+else()
 try_compile(
         S2N_HAVE_EXECINFO
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
 )
+endif()
 
 # Determine if cpuid.h is available
 try_compile(
@@ -302,7 +311,7 @@ try_compile(
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-    set(OS_LIBS thr)
+    set(OS_LIBS thr execinfo)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
     set(OS_LIBS Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -488,8 +497,12 @@ if (TARGET crypto)
     set(LINK_LIB "crypto")
 else()
     find_package(crypto REQUIRED)
-    message("Using libcrypto from the cmake path.")
+    message(STATUS "Using libcrypto from the cmake path")
     set(LINK_LIB "AWS::crypto")
+endif()
+
+if (S2N_INTERN_LIBCRYPTO)
+    message(STATUS "Enabling libcrypto interning")
 endif()
 
 # Determine if EVP_md5_sha1 is available in libcrypto
@@ -547,6 +560,7 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly

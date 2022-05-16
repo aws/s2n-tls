@@ -20,6 +20,10 @@
     typedef struct _opaque_pthread_once_t  __darwin_pthread_once_t;
     typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
+#elif defined(__FreeBSD__)
+    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+     * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
+    #undef _POSIX_C_SOURCE
 #elif !defined(_GNU_SOURCE)
     /* Keep in sync with feature probe tests/features/madvise.c */
     #define _GNU_SOURCE
@@ -294,9 +298,9 @@ S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_numbe
     return S2N_RESULT_OK;
 }
 
-static void s2n_cleanup_cb_munmap(void *probe_addr)
+static void s2n_cleanup_cb_munmap(void **probe_addr)
 {
-    munmap(probe_addr, (size_t) sysconf(_SC_PAGESIZE));
+    munmap(*probe_addr, (size_t) sysconf(_SC_PAGESIZE));
 }
 
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork

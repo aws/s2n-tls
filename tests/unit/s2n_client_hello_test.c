@@ -704,8 +704,8 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
-        uint8_t *collected_client_hello = client_hello->raw_message.blob.data;
-        uint16_t collected_client_hello_len = client_hello->raw_message.blob.size;
+        uint8_t *collected_client_hello = client_hello->raw_message.data;
+        uint16_t collected_client_hello_len = client_hello->raw_message.size;
 
         /* Verify collected client hello message length */
         EXPECT_EQUAL(collected_client_hello_len, sslv2_client_hello_len);
@@ -744,8 +744,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
 
         /* Verify free_handshake resized the s2n_client_hello.raw_message stuffer back to 0 */
-        EXPECT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+        EXPECT_NULL(client_hello->raw_message.data);
+        EXPECT_EQUAL(client_hello->raw_message.size, 0);
 
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
@@ -757,8 +757,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
         /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
-        EXPECT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+        EXPECT_NULL(client_hello->raw_message.data);
+        EXPECT_EQUAL(client_hello->raw_message.size, 0);
 
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);
@@ -890,8 +890,8 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
-        uint8_t *collected_client_hello = client_hello->raw_message.blob.data;
-        uint16_t collected_client_hello_len = client_hello->raw_message.blob.size;
+        uint8_t *collected_client_hello = client_hello->raw_message.data;
+        uint16_t collected_client_hello_len = client_hello->raw_message.size;
 
         /* Verify collected client hello message length */
         EXPECT_EQUAL(collected_client_hello_len, sent_client_hello_len);
@@ -1044,8 +1044,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
 
         /* Verify free_handshake resized the s2n_client_hello.raw_message stuffer back to 0 */
-        EXPECT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+        EXPECT_NULL(client_hello->raw_message.data);
+        EXPECT_EQUAL(client_hello->raw_message.size, 0);
 
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
@@ -1057,8 +1057,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
         /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
-        EXPECT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+        EXPECT_NULL(client_hello->raw_message.data);
+        EXPECT_EQUAL(client_hello->raw_message.size, 0);
 
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);
@@ -1092,7 +1092,7 @@ int main(int argc, char **argv)
 
         /* Verify the collected client hello on the reused connection matches the expected client hello */
         client_hello = s2n_connection_get_client_hello(server_conn);
-        collected_client_hello = client_hello->raw_message.blob.data;
+        collected_client_hello = client_hello->raw_message.data;
         EXPECT_BYTEARRAY_EQUAL(collected_client_hello, expected_client_hello, sent_client_hello_len);
 
         /* Not a real tls client but make sure we block on its close_notify */

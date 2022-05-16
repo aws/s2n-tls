@@ -295,11 +295,14 @@ let seed_spec n = do {
 };
 
 let mix_spec n = do {
+    (crucible_alloc_global "ignore_prediction_resistance_for_testing");
+    (crucible_points_to (crucible_global "ignore_prediction_resistance_for_testing") (crucible_term {{ 0 : [8] }}) );
     (state_ptr, key_ptr, state) <- drbg_state "drbg";
     (personalization_string_ptr, data_ptr) <- alloc_blob_readonly n;
     data <- crucible_fresh_var "data" (bytes_type n);
     crucible_points_to data_ptr (tm data);
     crucible_execute_func [state_ptr, personalization_string_ptr];
+    (crucible_points_to (crucible_global "ignore_prediction_resistance_for_testing") (crucible_term {{ 0 : [8] }}) );
     ensure_drbg_state state_ptr key_ptr {{ drbg_mix state fake_entropy (join data) }};
     crucible_return (tm {{ 0 : [32] }});
 };
@@ -319,9 +322,12 @@ let instantiate_spec n = do {
 };
 
 let generate_spec = do {
+    (crucible_alloc_global "ignore_prediction_resistance_for_testing");
+    (crucible_points_to (crucible_global "ignore_prediction_resistance_for_testing") (crucible_term {{ 0 : [8] }}) );
     (sp, keyp, s) <- drbg_state "drbg";
     (psp, datap) <- alloc_blob seedsize;
     crucible_execute_func [sp, psp];
+    (crucible_points_to (crucible_global "ignore_prediction_resistance_for_testing") (crucible_term {{ 0 : [8] }}) );
     let {{ res = drbg_generate_seedlen s fake_entropy True }};
     crucible_points_to datap (tm {{ split res.0 : [seedsize][8] }});
     ensure_drbg_state sp keyp {{ res.1 }};

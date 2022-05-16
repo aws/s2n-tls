@@ -13,17 +13,34 @@
  * permissions and limitations under the License.
  */
 
-/* Keep in sync with utils/s2n_fork_detection.c */
-#if defined(__FreeBSD__)
-    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
-     * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
-    #undef _POSIX_C_SOURCE
-#endif
-
-#include <stddef.h>
-#include <sys/mman.h>
-
-int main() {
-    minherit(NULL, 0, 0);
-    return 0;
+/* Set the margins to place a small amount of whitespace on the left and right
+ * side of the page.
+ */
+div.contents {
+	margin-left:4em;
+	margin-right:4em;
 }
+
+/* Justify text in paragraphs. */
+p {
+	text-align: justify;
+}
+
+/* Style of section headings. */
+h1 {
+	border-bottom: 1px solid #879ECB;
+	color: #354C7B;
+	font-size: 160%;
+	font-weight: normal;
+	padding-bottom: 4px;
+	padding-top: 8px;
+}
+
+/* Style of subsection headings. */
+h2:not(.memtitle):not(.groupheader) {
+	font-size: 125%;
+	margin-bottom: 0px;
+	margin-top: 16px;
+	padding: 0px;
+}
+
