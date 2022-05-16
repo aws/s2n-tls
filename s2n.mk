@@ -225,7 +225,6 @@ ifeq ($(TRY_EVP_RC4), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4
 endif
 
-
 # Determine if EVP_MD_CTX_set_pkey_ctx is available
 TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
 ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
