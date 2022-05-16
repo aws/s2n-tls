@@ -98,3 +98,19 @@ impl From<ClientAuthType> for s2n_cert_auth_type::Type {
         }
     }
 }
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq)]
+pub enum AlertBehavior {
+    FailOnWarnings,
+    IgnoreWarnings,
+}
+
+impl From<AlertBehavior> for s2n_alert_behavior::Type {
+    fn from(input: AlertBehavior) -> s2n_alert_behavior::Type {
+        match input {
+            AlertBehavior::FailOnWarnings => s2n_alert_behavior::FAIL_ON_WARNINGS,
+            AlertBehavior::IgnoreWarnings => s2n_alert_behavior::IGNORE_WARNINGS,
+        }
+    }
+}

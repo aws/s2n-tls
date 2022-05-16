@@ -3,6 +3,7 @@
 
 use crate::raw::{
     connection::Connection,
+    enums::*,
     error::{Error, Fallible},
     security,
 };
@@ -163,11 +164,8 @@ impl Builder {
         Self(Config(config))
     }
 
-    pub fn set_alert_behavior(
-        &mut self,
-        value: s2n_alert_behavior::Type,
-    ) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_alert_behavior(self.as_mut_ptr(), value).into_result() }?;
+    pub fn set_alert_behavior(&mut self, value: AlertBehavior) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_alert_behavior(self.as_mut_ptr(), value.into()).into_result() }?;
         Ok(self)
     }
 
@@ -182,8 +180,8 @@ impl Builder {
     /// sets the application protocol preferences on an s2n_config object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first,
-    /// and of length protocol_count. When acting as an S2N_CLIENT the protocol list is
-    /// included in the Client Hello message as the ALPN extension. As an S2N_SERVER, the
+    /// and of length protocol_count. When acting as a client the protocol list is
+    /// included in the Client Hello message as the ALPN extension. As a server, the
     /// list is used to negotiate a mutual application protocol with the client. After
     /// the negotiation for the connection has completed, the agreed upon protocol can
     /// be retrieved with s2n_get_application_protocol
@@ -259,11 +257,10 @@ impl Builder {
     /// Sets whether or not a client certificate should be required to complete the TLS connection.
     ///
     /// See the [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#client-auth-related-calls) for more details.
-    pub fn set_client_auth_type(
-        &mut self,
-        auth_type: s2n_cert_auth_type::Type,
-    ) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type).into_result() }?;
+    pub fn set_client_auth_type(&mut self, auth_type: ClientAuthType) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type.into()).into_result()
+        }?;
         Ok(self)
     }
 

@@ -99,8 +99,8 @@ impl Connection {
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
-    /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
-    /// S2N_SELF_SERVICE_BLINDING).
+    /// to Blinding::BuiltIn) or self-service blinding (set blinding to
+    /// Blinding::SelfService).
     pub fn set_blinding(&mut self, blinding: Blinding) -> Result<&mut Self, Error> {
         unsafe {
             s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result()
@@ -110,9 +110,9 @@ impl Connection {
 
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.
     ///
-    /// If this is set to S2N_CERT_AUTH_OPTIONAL the server will request a client certificate
+    /// If this is set to ClientAuthType::Optional the server will request a client certificate
     /// but allow the client to not provide one. Rejecting a client certificate when using
-    /// S2N_CERT_AUTH_OPTIONAL will terminate the handshake.
+    /// ClientAuthType::Optional will terminate the handshake.
     pub fn set_client_auth_type(
         &mut self,
         client_auth_type: ClientAuthType,
@@ -205,8 +205,8 @@ impl Connection {
     /// sets the application protocol preferences on an s2n_connection object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first, and of
-    /// length protocol_count. When acting as an S2N_CLIENT the protocol list is included in the
-    /// Client Hello message as the ALPN extension. As an S2N_SERVER, the list is used to negotiate
+    /// length protocol_count. When acting as a client the protocol list is included in the
+    /// Client Hello message as the ALPN extension. As a server, the list is used to negotiate
     /// a mutual application protocol with the client. After the negotiation for the connection has
     /// completed, the agreed upon protocol can be retrieved with s2n_get_application_protocol
     pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
