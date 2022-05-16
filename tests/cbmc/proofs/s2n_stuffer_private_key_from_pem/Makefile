@@ -17,6 +17,7 @@ DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
 CHECKFLAGS +=
 
+USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver cadical
 PROOF_UID = s2n_stuffer_private_key_from_pem
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
