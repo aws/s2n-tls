@@ -58,8 +58,7 @@ int main(int argc, char **argv)
 
     /* test the RC4 cipher with a SHA1 hash */
     conn->secure.cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
-    if (conn->secure.cipher_suite->record_alg->cipher->is_available())
-    {
+    if (conn->secure.cipher_suite->record_alg->cipher->is_available()) {
         EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
         EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
         EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key_iv));
@@ -118,9 +117,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
         EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-    else
-    {
+    } else {
         EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key), S2N_ERR_UNIMPLEMENTED);
         EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key), S2N_ERR_UNIMPLEMENTED);
         EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
