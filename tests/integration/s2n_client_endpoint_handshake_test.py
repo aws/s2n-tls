@@ -43,7 +43,7 @@ well_known_endpoints = [
 #    {"endpoint": "sha512.badssl.com"},
 #    {"endpoint": "tls-v1-0.badssl.com"},
 #    {"endpoint": "tls-v1-1.badssl.com"},
-    {"endpoint": "tls-v1-2.badssl.com"},
+#    {"endpoint": "tls-v1-2.badssl.com"},
     {"endpoint": "www.cloudflare.com"},
     {"endpoint": "www.ebay.com"},
     {"endpoint": "www.f5.com"},

@@ -26,7 +26,7 @@ ENDPOINTS = [
 #    "sha512.badssl.com",
 #    "tls-v1-0.badssl.com",
 #    "tls-v1-1.badssl.com",
-    "tls-v1-2.badssl.com",
+#    "tls-v1-2.badssl.com",
     "www.cloudflare.com",
     "www.ebay.com",
     "www.f5.com",
