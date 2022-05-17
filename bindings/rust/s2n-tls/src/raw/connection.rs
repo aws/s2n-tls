@@ -5,11 +5,12 @@
 
 use crate::raw::{
     config::Config,
+    enums::*,
     error::{Error, Fallible, Pollable},
     security,
 };
 use core::{
-    convert::{TryFrom, TryInto},
+    convert::TryInto,
     fmt,
     ptr::NonNull,
     task::{Poll, Waker},
@@ -18,72 +19,12 @@ use libc::c_void;
 use s2n_tls_sys::*;
 use std::{ffi::CStr, mem};
 
-use s2n_tls_sys::s2n_mode;
-
 macro_rules! static_const_str {
     ($c_chars:expr) => {
         unsafe { CStr::from_ptr($c_chars) }
             .to_str()
             .map_err(|_| Error::InvalidInput)
     };
-}
-
-#[derive(Debug, PartialEq)]
-pub enum CallbackResult {
-    Success,
-    Failure,
-}
-
-impl From<CallbackResult> for s2n_status_code::Type {
-    fn from(input: CallbackResult) -> s2n_status_code::Type {
-        match input {
-            CallbackResult::Success => s2n_status_code::SUCCESS,
-            CallbackResult::Failure => s2n_status_code::FAILURE,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Mode {
-    Server,
-    Client,
-}
-
-impl From<Mode> for s2n_mode::Type {
-    fn from(input: Mode) -> s2n_mode::Type {
-        match input {
-            Mode::Server => s2n_mode::SERVER,
-            Mode::Client => s2n_mode::CLIENT,
-        }
-    }
-}
-
-#[non_exhaustive]
-#[derive(Debug, PartialEq)]
-pub enum Version {
-    SSLV2,
-    SSLV3,
-    TLS10,
-    TLS11,
-    TLS12,
-    TLS13,
-}
-
-impl TryFrom<s2n_tls_version::Type> for Version {
-    type Error = Error;
-
-    fn try_from(input: s2n_tls_version::Type) -> Result<Self, Self::Error> {
-        let version = match input {
-            s2n_tls_version::SSLV2 => Self::SSLV2,
-            s2n_tls_version::SSLV3 => Self::SSLV3,
-            s2n_tls_version::TLS10 => Self::TLS10,
-            s2n_tls_version::TLS11 => Self::TLS11,
-            s2n_tls_version::TLS12 => Self::TLS12,
-            s2n_tls_version::TLS13 => Self::TLS13,
-            _ => return Err(Error::InvalidInput),
-        };
-        Ok(version)
-    }
 }
 
 pub struct Connection {
@@ -158,24 +99,26 @@ impl Connection {
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
-    /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
-    /// S2N_SELF_SERVICE_BLINDING).
-    pub fn set_blinding(&mut self, blinding: s2n_blinding::Type) -> Result<&mut Self, Error> {
-        unsafe { s2n_connection_set_blinding(self.connection.as_ptr(), blinding).into_result() }?;
+    /// to Blinding::BuiltIn) or self-service blinding (set blinding to
+    /// Blinding::SelfService).
+    pub fn set_blinding(&mut self, blinding: Blinding) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result()
+        }?;
         Ok(self)
     }
 
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.
     ///
-    /// If this is set to S2N_CERT_AUTH_OPTIONAL the server will request a client certificate
+    /// If this is set to ClientAuthType::Optional the server will request a client certificate
     /// but allow the client to not provide one. Rejecting a client certificate when using
-    /// S2N_CERT_AUTH_OPTIONAL will terminate the handshake.
+    /// ClientAuthType::Optional will terminate the handshake.
     pub fn set_client_auth_type(
         &mut self,
-        client_auth_type: s2n_cert_auth_type::Type,
+        client_auth_type: ClientAuthType,
     ) -> Result<&mut Self, Error> {
         unsafe {
-            s2n_connection_set_client_auth_type(self.connection.as_ptr(), client_auth_type)
+            s2n_connection_set_client_auth_type(self.connection.as_ptr(), client_auth_type.into())
                 .into_result()
         }?;
         Ok(self)
@@ -262,8 +205,8 @@ impl Connection {
     /// sets the application protocol preferences on an s2n_connection object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first, and of
-    /// length protocol_count. When acting as an S2N_CLIENT the protocol list is included in the
-    /// Client Hello message as the ALPN extension. As an S2N_SERVER, the list is used to negotiate
+    /// length protocol_count. When acting as a client the protocol list is included in the
+    /// Client Hello message as the ALPN extension. As a server, the list is used to negotiate
     /// a mutual application protocol with the client. After the negotiation for the connection has
     /// completed, the agreed upon protocol can be retrieved with s2n_get_application_protocol
     pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
