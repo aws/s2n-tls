@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    raw::{config::*, security},
+    raw::{
+        callbacks::{ClientHelloCallback, VerifyHostNameCallback},
+        config::*,
+        error, security,
+    },
     testing::s2n_tls::Harness,
 };
 use alloc::{collections::VecDeque, sync::Arc};
@@ -136,7 +140,7 @@ impl CertKeyPair {
 
 #[derive(Default)]
 pub struct UnsecureAcceptAllClientCertificatesHandler {}
-impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
+impl VerifyHostNameCallback for UnsecureAcceptAllClientCertificatesHandler {
     fn verify_host_name(&self, _host_name: &str) -> bool {
         true
     }
@@ -218,11 +222,11 @@ impl MockClientHelloHandler {
     }
 }
 
-impl ClientHelloHandler for MockClientHelloHandler {
+impl ClientHelloCallback for MockClientHelloHandler {
     fn poll_client_hello(
         &self,
         connection: &mut crate::raw::connection::Connection,
-    ) -> core::task::Poll<Result<(), ()>> {
+    ) -> core::task::Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
             // confirm the callback can access the waker
             connection.waker().unwrap().wake_by_ref();
