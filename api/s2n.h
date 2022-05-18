@@ -1720,6 +1720,11 @@ typedef enum {
 S2N_API
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
+typedef enum {
+    S2N_UNBUFFERED_SEND,
+    S2N_BUFFERED_SEND,
+} s2n_send_mode;
+
 /**
  * Writes and encrypts `size` of `buf` data to the associated connection. s2n_send() will return the number of bytes 
  * written, and may indicate a partial write. 

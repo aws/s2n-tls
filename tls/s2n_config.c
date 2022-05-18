@@ -938,3 +938,11 @@ int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
 
     return S2N_SUCCESS;
 }
+
+S2N_RESULT s2n_config_set_send_mode(struct s2n_config *config, s2n_send_mode mode) {
+    RESULT_ENSURE_REF(config);
+
+    config->send_mode = mode;
+
+    return S2N_RESULT_OK;
+}

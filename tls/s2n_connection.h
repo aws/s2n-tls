@@ -368,6 +368,8 @@ struct s2n_connection {
     uint32_t server_max_early_data_size;
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
+
+    s2n_send_mode send_mode;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

@@ -433,6 +433,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
          */
         POSIX_GUARD(s2n_connection_enable_quic(conn));
     }
+    conn->send_mode = config->send_mode;
 
     conn->config = config;
     return S2N_SUCCESS;

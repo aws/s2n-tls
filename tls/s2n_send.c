@@ -146,6 +146,11 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         conn->last_write_elapsed = elapsed;
     }
 
+    DEFER_CLEANUP(struct s2n_stuffer buffered_send_records = { 0 }, s2n_stuffer_free);
+    if (conn->send_mode == S2N_BUFFERED_SEND) {
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&buffered_send_records, total_size));
+    }
+
     /* Now write the data we were asked to send this round */
     while (total_size - conn->current_user_data_consumed) {
         ssize_t to_write = MIN(total_size - conn->current_user_data_consumed, max_payload_size);
@@ -179,12 +184,42 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         conn->current_user_data_consumed += to_write;
         conn->active_application_bytes_consumed += to_write;
 
-        /* Send it */
+        switch (conn->send_mode) {
+            case S2N_BUFFERED_SEND:
+                POSIX_GUARD(s2n_stuffer_copy(&conn->out, &buffered_send_records, s2n_stuffer_data_available(&conn->out)));
+                POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
+                break;
+            case S2N_UNBUFFERED_SEND: /* Falls through. S2N_UNBUFFERED_SEND sends are the default behavior. */
+            default:
+                /* Send TLS record. This will send each TLS record over the socket as it is allocated. */
+                if (s2n_flush(conn, blocked) < 0) {
+                    if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
+                        /* We successfully sent >0 user bytes on the wire, but not the full requested payload
+                         * because we became blocked on I/O. Acknowledge the data sent. */
+                        conn->current_user_data_consumed -= user_data_sent;
+                        return user_data_sent;
+                    } else {
+                        S2N_ERROR_PRESERVE_ERRNO();
+                    }
+                }
+
+                /* Acknowledge consumed and flushed user data as sent */
+                user_data_sent = conn->current_user_data_consumed;
+                break;
+        }
+    }
+
+    /* Flush multiple buffered records if using buffered send. */
+    if (conn->send_mode == S2N_BUFFERED_SEND) {
+        /* The out stuffer should be wiped but we will wipe it again just in case to avoid corrupting the
+         * TLS records we want to fill it with */
+        s2n_stuffer_wipe(&conn->out);
+        s2n_stuffer_write(&conn->out, &buffered_send_records.blob);
+        
         if (s2n_flush(conn, blocked) < 0) {
             if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
                 /* We successfully sent >0 user bytes on the wire, but not the full requested payload
                  * because we became blocked on I/O. Acknowledge the data sent. */
-
                 conn->current_user_data_consumed -= user_data_sent;
                 return user_data_sent;
             } else {
