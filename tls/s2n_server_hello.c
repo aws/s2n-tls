@@ -107,9 +107,23 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* If the client receives a second HelloRetryRequest in the same connection, it MUST send an error. */
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *# Upon receiving a message with type server_hello, implementations MUST
+     *# first examine the Random value and, if it matches this value, process
+     *# it as described in Section 4.1.4).
+     */
     if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
+         *# If a client receives a second
+         *# HelloRetryRequest in the same connection (i.e., where the ClientHello
+         *# was itself in response to a HelloRetryRequest), it MUST abort the
+         *# handshake with an "unexpected_message" alert.
+         */
         POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
         POSIX_GUARD(s2n_set_hello_retry_required(conn));
     }
 
