@@ -7,6 +7,8 @@ set -e
 # cd into the script directory so it can be executed from anywhere
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# delete the existing copy in case we have extra files
+rm -rf s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib/tests
 

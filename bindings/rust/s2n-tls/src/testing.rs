@@ -176,9 +176,6 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
     server
         .set_config(config.clone())
         .expect("Failed to bind config to server connection");
-    server
-        .set_client_auth_type(s2n_tls_sys::s2n_cert_auth_type::NONE)
-        .expect("Unable to set server client auth type");
     let server = Harness::new(server);
 
     // create a client connection
