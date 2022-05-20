@@ -33,9 +33,7 @@ usage(){
     echo -e "\tgh_login <Secret Name> : retrieves a GitHub PAT from secrest manager and logs into GitHub.\n"
 }
 
-if [[ "${BASH_SOURCE[0]}" != "${0}"  ]]; then
-    echo "Sourced utils.sh"
-else
+if [[ "${BASH_SOURCE[0]}" == "${0}"  ]]; then
     case "${1:-}" in
         "gh_login")
             gh_login "${2:-}";;

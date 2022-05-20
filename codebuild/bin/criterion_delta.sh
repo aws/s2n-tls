@@ -18,5 +18,5 @@ source ./codebuild/bin/utils.sh
 make install
 source $HOME/.cargo/env
 make -C bindings/rust
-S2N_USECRITERION=1 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
-S2N_USECRITERION=3 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
+S2N_USE_CRITERION=1 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
+S2N_USE_CRITERION=3 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2

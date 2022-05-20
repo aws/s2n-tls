@@ -16,7 +16,7 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
-          S2N_USECRITERION: 2
+          S2N_USE_CRITERION: 2
           S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
@@ -29,7 +29,7 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
-          S2N_USECRITERION: 1
+          S2N_USE_CRITERION: 1
           S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
