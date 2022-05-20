@@ -6,7 +6,7 @@ use s2n_tls::raw::{
     enums::{ClientAuthType, Mode, Version},
     error::Error,
 };
-use s2n_tls_tokio::{config::ConnConfig, TlsAcceptor, TlsConnector};
+use s2n_tls_tokio::{builder::ConnConfigBuilder, TlsAcceptor, TlsConnector};
 
 mod common;
 
@@ -80,12 +80,12 @@ async fn config_with_conn_config() -> Result<(), Box<dyn std::error::Error>> {
     let (server_stream, client_stream) = common::get_streams().await?;
 
     let client_config = common::client_config()?.build()?;
-    let client_config = ConnConfig::new(client_config, |conn| {
+    let client_config = ConnConfigBuilder::new(client_config, |conn| {
         conn.set_client_auth_type(ClientAuthType::Optional)
     });
 
     let server_config = common::server_config()?.build()?;
-    let server_config = ConnConfig::new(server_config, |conn| {
+    let server_config = ConnConfigBuilder::new(server_config, |conn| {
         conn.set_client_auth_type(ClientAuthType::Optional)
     });
 

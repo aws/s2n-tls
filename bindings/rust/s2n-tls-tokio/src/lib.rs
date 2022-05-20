@@ -17,15 +17,15 @@ use std::{
 };
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
-pub mod config;
-pub use config::*;
+pub mod builder;
+pub use builder::*;
 
 #[derive(Clone)]
-pub struct TlsAcceptor<T: Config> {
+pub struct TlsAcceptor<T: Builder> {
     config: T,
 }
 
-impl<T: Config> TlsAcceptor<T> {
+impl<T: Builder> TlsAcceptor<T> {
     pub fn new(config: T) -> Self {
         TlsAcceptor { config }
     }
@@ -39,11 +39,11 @@ impl<T: Config> TlsAcceptor<T> {
 }
 
 #[derive(Clone)]
-pub struct TlsConnector<T: Config> {
+pub struct TlsConnector<T: Builder> {
     config: T,
 }
 
-impl<T: Config> TlsConnector<T> {
+impl<T: Builder> TlsConnector<T> {
     pub fn new(config: T) -> Self {
         TlsConnector { config }
     }
@@ -53,7 +53,7 @@ impl<T: Config> TlsConnector<T> {
         S: AsyncRead + AsyncWrite + Unpin,
     {
         let config = |mode| {
-            let mut conn = self.config.create(mode)?;
+            let mut conn = self.config.build(mode)?;
             conn.set_server_name(domain)?;
             Ok(conn)
         };
@@ -94,8 +94,8 @@ impl<S> TlsStream<S>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    async fn open<T: Config>(config: &T, mode: Mode, stream: S) -> Result<Self, Error> {
-        let conn = config.create(mode)?;
+    async fn open<T: Builder>(config: &T, mode: Mode, stream: S) -> Result<Self, Error> {
+        let conn = config.build(mode)?;
         let mut tls = TlsStream { conn, stream };
         TlsHandshake { tls: &mut tls }.await?;
         Ok(tls)

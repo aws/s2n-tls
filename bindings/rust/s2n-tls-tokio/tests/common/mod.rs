@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use s2n_tls::raw::{config, error::Error, security::DEFAULT_TLS13};
-use s2n_tls_tokio::{Config, TlsAcceptor, TlsConnector, TlsStream};
+use s2n_tls_tokio::{Builder, TlsAcceptor, TlsConnector, TlsStream};
 use tokio::net::{TcpListener, TcpStream};
 
 /// NOTE: this certificate and key are used for testing purposes only!
@@ -38,7 +38,7 @@ pub fn server_config() -> Result<config::Builder, Error> {
     Ok(builder)
 }
 
-pub async fn run_negotiate<A: Config, B: Config>(
+pub async fn run_negotiate<A: Builder, B: Builder>(
     client: TlsConnector<A>,
     client_stream: TcpStream,
     server: TlsAcceptor<B>,
