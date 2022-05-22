@@ -34,20 +34,20 @@ static int s2n_fips_mode = 0;
  * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only returns the current state. Applications
  * using s2n must call FIPS_mode_set(1) prior to s2n_init.
  * */
-int s2n_libcrypto_is_fips(void) {
+bool s2n_libcrypto_is_fips(void) {
 #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
-    if (FIPS_mode()) {
-        return 1;
+    if (FIPS_mode() != 1) {
+        return false;
     }
 #endif
-    return 0;
+    return true;
 }
 
 int s2n_fips_init(void)
 {
     s2n_fips_mode = 0;
 
-    if (s2n_libcrypto_is_fips() == 1) {
+    if (s2n_libcrypto_is_fips()) {
         s2n_fips_mode = 1;
     }
 
