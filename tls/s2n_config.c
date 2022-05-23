@@ -938,3 +938,12 @@ int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t buffer_byte_size) {
+    POSIX_ENSURE_REF(config);
+    S2N_ERROR_IF(buffer_byte_size < S2N_TLS_MAXIMUM_RECORD_LENGTH, S2N_ERR_INVALID_ARGUMENT);
+
+    config->send_buffer_size = buffer_byte_size;
+
+    return S2N_SUCCESS;
+}

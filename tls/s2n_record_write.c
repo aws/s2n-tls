@@ -143,7 +143,7 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
-int s2n_record_write_protocol_version(struct s2n_connection *conn)
+int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_stuffer *record_stuffer)
 {
     uint8_t record_protocol_version = conn->actual_protocol_version;
     if (conn->server_protocol_version == s2n_unknown_protocol_version
@@ -164,7 +164,7 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn)
     protocol_version[0] = record_protocol_version / 10;
     protocol_version[1] = record_protocol_version % 10;
 
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(record_stuffer, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     return 0;
 }
@@ -219,6 +219,13 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     uint16_t block_size = 0;
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
+    if (conn->send_mode == S2N_UNBUFFERED_SEND) {
+        /* If the user has not specified a send buffer size then the TLS records
+         * are flushed immediately. This implies a logic error if the stuffer was
+         * not reset in this mode. */
+        POSIX_ENSURE(!s2n_stuffer_data_available(&conn->out), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+    }
+
     /* In TLS 1.3, handle CCS message as unprotected records */
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
@@ -249,8 +256,6 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
-
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->out), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
 
     uint8_t mac_digest_size;
     POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
@@ -293,23 +298,30 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
+        if (conn->send_mode == S2N_BUFFERED_SEND) {
+            POSIX_GUARD(s2n_stuffer_resize(&conn->out, conn->send_buffer_size));
+        }
     }
 
+    struct s2n_stuffer record_stuffer = {0};
+    POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &conn->out.blob));
+    POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, conn->out.write_cursor));
+
     /* Now that we know the length, start writing the record */
-    POSIX_GUARD(s2n_stuffer_write_uint8(&conn->out, is_tls13_record ?
+    POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, is_tls13_record ?
         /* tls 1.3 opaque type */ TLS_APPLICATION_DATA :
         /* actual content_type */ content_type ));
-    POSIX_GUARD(s2n_record_write_protocol_version(conn));
+    POSIX_GUARD(s2n_record_write_protocol_version(conn, &record_stuffer));
 
     /* First write a header that has the payload length, this is for the MAC */
-    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->out, data_bytes_to_take));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&record_stuffer, data_bytes_to_take));
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
-        POSIX_GUARD(s2n_hmac_update(mac, conn->out.blob.data, S2N_TLS_RECORD_HEADER_LENGTH));
+        POSIX_GUARD(s2n_hmac_update(mac, record_stuffer.blob.data, S2N_TLS_RECORD_HEADER_LENGTH));
     } else {
         /* SSLv3 doesn't include the protocol version in the MAC */
-        POSIX_GUARD(s2n_hmac_update(mac, conn->out.blob.data, 1));
-        POSIX_GUARD(s2n_hmac_update(mac, conn->out.blob.data + 3, 2));
+        POSIX_GUARD(s2n_hmac_update(mac, record_stuffer.blob.data, 1));
+        POSIX_GUARD(s2n_hmac_update(mac, record_stuffer.blob.data + 3, 2));
     }
 
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
@@ -339,8 +351,8 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* ensure actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH <= max record length */
     const uint16_t max_record_length = is_tls13_record ? S2N_TLS13_MAXIMUM_RECORD_LENGTH : S2N_TLS_MAXIMUM_RECORD_LENGTH;
     S2N_ERROR_IF(actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH > max_record_length, S2N_ERR_RECORD_LENGTH_TOO_LARGE);
-    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
-    POSIX_GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
+    POSIX_GUARD(s2n_stuffer_wipe_n(&record_stuffer, 2));
+    POSIX_GUARD(s2n_stuffer_write_uint16(&record_stuffer, actual_fragment_length));
 
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
@@ -350,7 +362,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
         if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
             /* Partially explicit nonce. See RFC 5288 Section 3 */
-            POSIX_GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+            POSIX_GUARD(s2n_stuffer_write_bytes(&record_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             POSIX_GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->record_alg->cipher->io.aead.fixed_iv_size));
             POSIX_GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE || is_tls13_record) {
@@ -396,12 +408,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
                 uint8_t zero_block[S2N_TLS_MAX_IV_LEN] = { 0 };
                 POSIX_GUARD(s2n_blob_init(&explicit_iv_placeholder, zero_block, block_size));
                 POSIX_GUARD_RESULT(s2n_get_public_random_data(&explicit_iv_placeholder));
-                POSIX_GUARD(s2n_stuffer_write(&conn->out, &explicit_iv_placeholder));
+                POSIX_GUARD(s2n_stuffer_write(&record_stuffer, &explicit_iv_placeholder));
             } else {
                 /* We can write the explicit IV directly to the record for non composite CBC because
                  * s2n starts AES *after* the explicit IV.
                  */
-                POSIX_GUARD(s2n_stuffer_write(&conn->out, &iv));
+                POSIX_GUARD(s2n_stuffer_write(&record_stuffer, &iv));
             }
         }
     }
@@ -411,12 +423,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* Write the plaintext data */
-    POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, in_count, offs, data_bytes_to_take));
-    void *orig_write_ptr = conn->out.blob.data + conn->out.write_cursor - data_bytes_to_take;
+    POSIX_GUARD(s2n_stuffer_writev_bytes(&record_stuffer, in, in_count, offs, data_bytes_to_take));
+    void *orig_write_ptr = record_stuffer.blob.data + record_stuffer.write_cursor - data_bytes_to_take;
     POSIX_GUARD(s2n_hmac_update(mac, orig_write_ptr, data_bytes_to_take));
 
     /* Write the digest */
-    uint8_t *digest = s2n_stuffer_raw_write(&conn->out, mac_digest_size);
+    uint8_t *digest = s2n_stuffer_raw_write(&record_stuffer, mac_digest_size);
     POSIX_ENSURE_REF(digest);
 
     POSIX_GUARD(s2n_hmac_digest(mac, digest, mac_digest_size));
@@ -424,7 +436,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* Write content type for TLS 1.3 record (RFC 8446 Section 5.2) */
     if (is_tls13_record) {
-        POSIX_GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, content_type));
     }
 
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -432,20 +444,21 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
          * include an extra padding length byte, also with the value 'p'.
          */
         for (int i = 0; i <= padding; i++) {
-            POSIX_GUARD(s2n_stuffer_write_uint8(&conn->out, padding));
+            POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, padding));
         }
     }
 
     /* Rewind to rewrite/encrypt the packet */
-    POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
-
+    POSIX_GUARD(s2n_stuffer_rewrite(&record_stuffer));
+    POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, conn->out.write_cursor));
+    
     /* Skip the header */
-    POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
+    POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, S2N_TLS_RECORD_HEADER_LENGTH));
 
     uint16_t encrypted_length = data_bytes_to_take + mac_digest_size;
     switch (cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:
-        POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
+        POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
         encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
         if (is_tls13_record) {
             /* one extra byte for content type */
@@ -455,7 +468,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     case S2N_CBC:
         if (conn->actual_protocol_version > S2N_TLS10) {
             /* Leave the IV alone and unencrypted */
-            POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, iv.size));
+            POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, iv.size));
         }
         /* Encrypt the padding and the padding length byte too */
         encrypted_length += padding + 1;
@@ -471,11 +484,14 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     }
 
     /* Check that stuffer have enough space to write encrypted record, because raw_write cannot expand tainted stuffer */
-    S2N_ERROR_IF(s2n_stuffer_space_remaining(&conn->out) < encrypted_length, S2N_ERR_RECORD_STUFFER_SIZE);
+    S2N_ERROR_IF(s2n_stuffer_space_remaining(&record_stuffer) < encrypted_length, S2N_ERR_RECORD_STUFFER_SIZE);
 
     /* Do the encryption */
-    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&conn->out, encrypted_length) };
+    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&record_stuffer, encrypted_length) };
     POSIX_GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
+
+    POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
+    POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, record_stuffer.write_cursor));
 
     if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
         conn->client = current_client_crypto;

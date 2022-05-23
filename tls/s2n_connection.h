@@ -50,6 +50,11 @@
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
 typedef enum {
+    S2N_UNBUFFERED_SEND,
+    S2N_BUFFERED_SEND
+} s2n_send_mode;
+
+typedef enum {
     S2N_NO_TICKET = 0,
     S2N_DECRYPT_TICKET,
     S2N_NEW_TICKET
@@ -368,6 +373,11 @@ struct s2n_connection {
     uint32_t server_max_early_data_size;
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
+
+    /* Used to determine the stuffer size for the `out` stuffer. */
+    uint32_t send_buffer_size;
+    /* Tracks the current send mode. */
+    s2n_send_mode send_mode;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

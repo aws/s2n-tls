@@ -125,6 +125,9 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
         return S2N_RESULT_OK;
     }
 
+    /* Flush any pending messages. */
+    RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
+
     /* No-op if all tickets already sent.
      * Clean up the stuffer used for the ticket to conserve memory. */
     if (conn->tickets_to_send == conn->tickets_sent) {

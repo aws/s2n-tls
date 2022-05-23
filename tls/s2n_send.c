@@ -32,6 +32,30 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
+{
+    /* If the connection is unbuffered then flush on every record written.
+     * The rest of this function assumes conn->send_mode == S2N_BUFFERED_SEND */
+    if (conn->send_mode == S2N_UNBUFFERED_SEND) {
+        return true;
+    }
+
+    uint32_t available_space = s2n_stuffer_space_remaining(&conn->out);
+
+    /* If the stuffer can't store the max possible max fragment size 
+     * without growing it's time to flush. */
+    if (available_space < max_write_size) {
+        return true;
+    }
+
+    /* The whole user buffer has been consumed, it is time to flush. */
+    if (conn->current_user_data_consumed == total_message_size) {
+        return true;
+    }
+
+    return false;
+}
+
 int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     int w;
@@ -106,6 +130,9 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
     uint16_t max_payload_size = 0;
     POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_payload_size));
 
+    uint16_t max_write_size = 0;
+    POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_payload_size, &max_write_size));
+    
     /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work
      * around this by splitting messages into one byte records, and then
      * the remainder can follow as usual.
@@ -169,31 +196,35 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
             }
         }
     
-        POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
-
         POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
-    
+
         /* Write and encrypt the record */
-        POSIX_GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count, 
-            conn->current_user_data_consumed + offs, to_write));
-        conn->current_user_data_consumed += to_write;
-        conn->active_application_bytes_consumed += to_write;
+        int written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count, 
+            conn->current_user_data_consumed + offs, to_write);
 
-        /* Send it */
-        if (s2n_flush(conn, blocked) < 0) {
-            if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
-                /* We successfully sent >0 user bytes on the wire, but not the full requested payload
-                 * because we became blocked on I/O. Acknowledge the data sent. */
+        /* Sanity check. s2n_record_writev returns how many bytes it was able to process. This should always be 
+         * a positive integer so if it less than 0 something went wrong. */
+        POSIX_GUARD(written_to_record);
 
-                conn->current_user_data_consumed -= user_data_sent;
-                return user_data_sent;
-            } else {
-                S2N_ERROR_PRESERVE_ERRNO();
+        conn->current_user_data_consumed += written_to_record;
+        conn->active_application_bytes_consumed += written_to_record;
+        
+        if (s2n_should_flush(conn, total_size, max_write_size)) {
+            if(s2n_flush(conn, blocked) < 0) {
+                if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
+                    /* We successfully sent >0 user bytes on the wire, but not the full requested payload
+                     * because we became blocked on I/O. Acknowledge the data sent. */
+
+                    conn->current_user_data_consumed -= user_data_sent;
+                    return user_data_sent;
+                } else {
+                    S2N_ERROR_PRESERVE_ERRNO();
+                }
             }
-        }
 
-        /* Acknowledge consumed and flushed user data as sent */
-        user_data_sent = conn->current_user_data_consumed;
+            /* Acknowledge consumed and flushed user data as sent */
+            user_data_sent = conn->current_user_data_consumed;
+        }
     }
 
     /* If everything has been written, then there's no user data pending */
