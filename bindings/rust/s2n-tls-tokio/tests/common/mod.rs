@@ -1,12 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::raw::{
-    config::{Builder, Config},
-    error::Error,
-    security::DEFAULT_TLS13,
-};
-use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
+use s2n_tls::raw::{config, error::Error, security::DEFAULT_TLS13};
+use s2n_tls_tokio::{Builder, TlsAcceptor, TlsConnector, TlsStream};
 use tokio::net::{TcpListener, TcpStream};
 
 /// NOTE: this certificate and key are used for testing purposes only!
@@ -28,27 +24,24 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     Ok((server_stream, client_stream))
 }
 
-pub fn client_config() -> Result<Builder, Error> {
-    let mut builder = Config::builder();
+pub fn client_config() -> Result<config::Builder, Error> {
+    let mut builder = config::Config::builder();
     builder.set_security_policy(&DEFAULT_TLS13)?;
     builder.trust_pem(CERT_PEM)?;
-    unsafe {
-        builder.disable_x509_verification()?;
-    }
     Ok(builder)
 }
 
-pub fn server_config() -> Result<Builder, Error> {
-    let mut builder = Config::builder();
+pub fn server_config() -> Result<config::Builder, Error> {
+    let mut builder = config::Config::builder();
     builder.set_security_policy(&DEFAULT_TLS13)?;
     builder.load_pem(CERT_PEM, KEY_PEM)?;
     Ok(builder)
 }
 
-pub async fn run_negotiate(
-    client: TlsConnector,
+pub async fn run_negotiate<A: Builder, B: Builder>(
+    client: TlsConnector<A>,
     client_stream: TcpStream,
-    server: TlsAcceptor,
+    server: TlsAcceptor<B>,
     server_stream: TcpStream,
 ) -> Result<(TlsStream<TcpStream>, TlsStream<TcpStream>), Error> {
     tokio::try_join!(
