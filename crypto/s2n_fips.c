@@ -36,11 +36,11 @@ static int s2n_fips_mode = 0;
  * */
 bool s2n_libcrypto_is_fips(void) {
 #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
-    if (FIPS_mode() != 1) {
-        return false;
+    if (FIPS_mode() == 1) {
+        return true;
     }
 #endif
-    return true;
+    return false;
 }
 
 int s2n_fips_init(void)
