@@ -361,6 +361,15 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_basic_pattern_tests(s2n_get_public_random_data));
     EXPECT_OK(s2n_basic_pattern_tests(s2n_get_private_random_data));
 
+    /* Just a sanity check and avoids cppcheck "unassignedVariable" errors.
+     * In future PRs this part will be expanded.
+     */
+    blob1.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_public_random_data(&blob1));
+    blob2.size = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_get_private_random_data(&blob2));
+    EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+
     return S2N_SUCCESS;
 }
 
