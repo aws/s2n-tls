@@ -335,7 +335,6 @@ static int s2n_common_tests(struct random_test_case *test_case)
     uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob blob1 = { .data = data1 };
     struct s2n_blob blob2 = { .data = data2 };
-    uint64_t output;
 
     /* Get one byte of data, to make sure the pool is (almost) full */
     blob1.size = 1;
