@@ -513,9 +513,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* If a client receives a second HelloRetryRequest in the same connection
-     * (i.e., where the ClientHello was itself in response to a HelloRetryRequest),
-     * it MUST raise an error and abort the handshake. */
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# If a client receives a second
+     *# HelloRetryRequest in the same connection (i.e., where the ClientHello
+     *# was itself in response to a HelloRetryRequest), it MUST abort the
+     *# handshake with an "unexpected_message" alert.
+     */
     {
         struct s2n_config *server_config;
         struct s2n_config *client_config;
@@ -586,9 +591,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
-    /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
-     * when conn->handshake_params.server_random is not set to the correct hello retry random value
-     * specified in the RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *= type=test
+     *# Upon receiving a message with type server_hello, implementations MUST
+     *# first examine the Random value and, if it matches this value, process
+     *# it as described in Section 4.1.4).
+     */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
