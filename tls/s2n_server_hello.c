@@ -146,7 +146,20 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_server_extensions_recv(conn, in));
 
     if (conn->server_protocol_version >= S2N_TLS13) {
+
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.3
+         *# A client which
+         *# receives a legacy_session_id_echo field that does not match what
+         *# it sent in the ClientHello MUST abort the handshake with an
+         *# "illegal_parameter" alert.
+         *
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
+         *# Upon receipt of a HelloRetryRequest, the client MUST check the
+         * - legacy_session_id_echo
+         */
         POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
+
         conn->actual_protocol_version = conn->server_protocol_version;
         POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
