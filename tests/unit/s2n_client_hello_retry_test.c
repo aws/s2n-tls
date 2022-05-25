@@ -978,6 +978,15 @@ int main(int argc, char **argv)
      *= type=test
      *# A client which receives a cipher suite that was not offered MUST
      *# abort the handshake.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# Upon receipt of a HelloRetryRequest, the client MUST check the
+     *# legacy_version, legacy_session_id_echo, cipher_suite, and
+     *# legacy_compression_method as specified in Section 4.1.3 and then
+     *# process the extensions, starting with determining the version using
+     *# "supported_versions".
+     * - Check cipher_suite
      */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
