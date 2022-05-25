@@ -34,7 +34,8 @@ int s2n_expect_concurrent_error_send_fn(void *io_context, const uint8_t *buf, ui
 
 static int s2n_track_sent_bytes_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_connection *conn = (struct s2n_connection*) io_context;
+    (void) io_context;
+
     s2n_custom_send_fn_called = true;
 
     sent_bytes = len;
@@ -44,7 +45,7 @@ static int s2n_track_sent_bytes_fn(void *io_context, const uint8_t *buf, uint32_
 
 static int s2n_track_sent_bytes_partial_send_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_connection *conn = (struct s2n_connection*) io_context;
+    (void) io_context;
 
     /* Break loop on second call. */
     if (s2n_custom_send_fn_called) {
