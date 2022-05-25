@@ -1095,6 +1095,52 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
                     S2N_ERR_INVALID_HELLO_RETRY);
         }
+
+        /* the client MUST check the legacy_session_id_echo */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                          s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                          s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+            /* ClientHello 1 */
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+            /* Server receives ClientHello 1 */
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+
+            /* Set a session id that's different from the client hello */
+            memset(client_conn->session_id, 0, S2N_TLS_SESSION_ID_MAX_LEN);
+
+            /* Server sends HelloRetryRequest */
+            EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+            client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+
+            /* Client receives HelloRetryRequest */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
+                                      S2N_ERR_BAD_MESSAGE);
+        }
     }
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
