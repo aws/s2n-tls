@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.13-3271f950</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.14-85dc8503</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -5305,7 +5305,10 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A function that provides a human readable string of the cipher suite that was chosen for a connection. </p><dl class="params"><dt>Parameters</dt><dd>
+<p >A function that provides a human readable string of the cipher suite that was chosen for a connection.</p>
+<dl class="section warning"><dt>Warning</dt><dd>The string "TLS_NULL_WITH_NULL_NULL" is returned before the TLS handshake has been performed. This does not mean that the ciphersuite "TLS_NULL_WITH_NULL_NULL" will be used by the connection, it is merely being used as a placeholder.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This function is only accurate after the TLS handshake.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
   </table>
