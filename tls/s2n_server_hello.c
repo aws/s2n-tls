@@ -107,6 +107,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
+    uint8_t legacy_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
+
     /*
      *= https://tools.ietf.org/rfc/rfc8446#4.1.3
      *# Upon receiving a message with type server_hello, implementations MUST
@@ -123,6 +125,18 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *# handshake with an "unexpected_message" alert.
          */
         POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+        /*
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *# Upon receipt of a HelloRetryRequest, the client MUST check the
+         *# legacy_version, legacy_session_id_echo, cipher_suite, and
+         *# legacy_compression_method as specified in Section 4.1.3 and then
+         *# process the extensions, starting with determining the version using
+         *# "supported_versions".
+         *
+         * Check legacy_version
+         */
+        POSIX_ENSURE(legacy_version == S2N_TLS12, S2N_ERR_INVALID_HELLO_RETRY);
 
         POSIX_GUARD(s2n_set_hello_retry_required(conn));
     }
@@ -163,7 +177,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         conn->actual_protocol_version = conn->server_protocol_version;
         POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
-        conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
+        conn->server_protocol_version = legacy_version;
 
         POSIX_ENSURE(!s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
         POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
