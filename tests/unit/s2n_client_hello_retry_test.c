@@ -1056,7 +1056,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
 
-        /* the client MUST check the legacy_version */
+        /* The client MUST check the legacy_version */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                           s2n_connection_ptr_free);
@@ -1105,7 +1105,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_HELLO_RETRY);
         }
 
-        /* the client MUST check the legacy_session_id_echo */
+        /* The client MUST check the legacy_session_id_echo */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                           s2n_connection_ptr_free);
@@ -1137,6 +1137,84 @@ int main(int argc, char **argv)
 
             /* Set a session id that's different from the client hello */
             memset(client_conn->session_id, 0, S2N_TLS_SESSION_ID_MAX_LEN);
+
+            /* Server sends HelloRetryRequest */
+            EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+            client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+
+            /* Client receives HelloRetryRequest */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
+                                      S2N_ERR_BAD_MESSAGE);
+        }
+
+        /* The client MUST check the legacy_compression_method */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                          s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                          s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+            /* ClientHello 1 */
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+            /* Server receives ClientHello 1 */
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+
+            /* Custom s2n_server_hello_retry_send */
+            {
+                struct s2n_connection *conn = server_conn;
+
+                POSIX_CHECKED_MEMCPY(conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+
+                /* Custom s2n_server_hello_write_message */
+                {
+                    const uint16_t legacy_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+                    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+                    protocol_version[0] = (uint8_t)(legacy_protocol_version / 10);
+                    protocol_version[1] = (uint8_t)(legacy_protocol_version % 10);
+
+                    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+                    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
+                    POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, conn->session_id_len));
+                    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->session_id, conn->session_id_len));
+                    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+
+                    /* Set legacy_compression_method to something other than 0 */
+                    POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, 1));
+                }
+
+                /* Write the extensions */
+                POSIX_GUARD(s2n_server_extensions_send(conn, &conn->handshake.io));
+
+                /* Update transcript */
+                POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+
+                /* Reset handshake values */
+                conn->handshake.client_hello_received = 0;
+                conn->client_hello.parsed = 0;
+                POSIX_CHECKED_MEMSET((uint8_t*) conn->extension_requests_received, 0, sizeof(s2n_extension_bitfield));
+            }
 
             /* Server sends HelloRetryRequest */
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));

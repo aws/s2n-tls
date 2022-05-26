@@ -148,6 +148,21 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_ENSURE_REF(cipher_suite_wire);
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &compression_method));
+
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *# legacy_compression_method:  A single byte which MUST have the
+     *# value 0.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# Upon receipt of a HelloRetryRequest, the client MUST check the
+     *# legacy_version, legacy_session_id_echo, cipher_suite, and
+     *# legacy_compression_method as specified in Section 4.1.3 and then
+     *# process the extensions, starting with determining the version using
+     *# "supported_versions".
+     * - Check legacy_compression_method
+     */
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     bool session_ids_match = session_id_len != 0 && session_id_len == conn->session_id_len
