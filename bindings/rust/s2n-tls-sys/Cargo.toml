@@ -35,6 +35,8 @@ openssl-sys = { version = "0.9" }
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
 cmake = { version = "0.1", optional = true }
+
+[dev-dependencies]
 # Pin to this version until s2n-tls supports OpenSSL 3.0
 # Build the vendored version to make it easy to test in dev
 #
