@@ -172,19 +172,20 @@ impl Connection {
         Ok(self)
     }
 
-    pub(crate) fn config(&self) -> Result<Option<Config>, Error> {
+    pub(crate) fn config(&self) -> Option<Config> {
         let mut raw = core::ptr::null_mut();
         let config = unsafe {
             s2n_connection_get_config(self.connection.as_ptr(), &mut raw)
                 .into_result()
-                .map_or_else(|_err| None, |_ok| Some(raw))
-                .and_then(|raw| NonNull::new(raw).map(|raw| Config::from_raw(raw)))
+                .ok()
+                .and_then(|_ok| NonNull::new(raw))
+                .map(|raw| Config::from_raw(raw))
         };
         // Because the config pointer is still set on the connection, this is a copy,
         // not the original config. This is fine -- Configs are immutable.
         let clone = config.clone();
         let _ = config.map(ManuallyDrop::new);
-        Ok(clone)
+        clone
     }
 
     pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
@@ -325,7 +326,10 @@ impl Connection {
     }
 
     pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
-        self.context_mut().pending_callback = callback;
+        debug_assert!(self.context_mut().pending_callback.is_none());
+        if let Some(callback) = callback {
+            let _ = self.context_mut().pending_callback.insert(callback);
+        }
     }
 
     /// Performs the TLS handshake to completion
@@ -333,7 +337,7 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
         // If we blocked on a callback, poll the callback again.
-        if let Some(callback) = self.context_mut().pending_callback.take() {
+        if let Some(mut callback) = self.context_mut().pending_callback.take() {
             match callback.poll(self) {
                 Poll::Ready(r) => r?,
                 Poll::Pending => {

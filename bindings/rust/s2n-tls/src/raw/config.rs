@@ -271,7 +271,7 @@ impl Builder {
     ///
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
-    pub fn set_verify_host_handler<T: 'static + VerifyHostNameCallback>(
+    pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -284,7 +284,7 @@ impl Builder {
             let host_name = core::slice::from_raw_parts(host_name, host_name_len);
             if let Ok(host_name_str) = core::str::from_utf8(host_name) {
                 let context = &mut *(context as *mut Context);
-                let handler = context.verify_host_handler.as_mut().unwrap();
+                let handler = context.verify_host_callback.as_mut().unwrap();
                 return handler.verify_host_name(host_name_str) as u8;
             }
             0 // If the host name can't be parsed, fail closed.
@@ -292,7 +292,7 @@ impl Builder {
 
         let handler = Box::new(handler);
         let context = self.0.context_mut();
-        context.verify_host_handler = Some(handler);
+        context.verify_host_callback = Some(handler);
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
@@ -322,11 +322,7 @@ impl Builder {
     }
 
     /// Set a custom callback function which is run after parsing the client hello.
-    ///
-    /// The callback can be called more than once. The application is response for calling
-    /// [`Connection::server_name_extension_used()`] if connection properties are modified
-    /// on the server name extension.
-    pub fn set_client_hello_handler<T: 'static + ClientHelloCallback>(
+    pub fn set_client_hello_callback<T: 'static + ClientHelloCallback>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -336,13 +332,13 @@ impl Builder {
         ) -> libc::c_int {
             with_connection(connection_ptr, |conn| {
                 let callback = AsyncClientHelloCallback {};
-                callback.trigger(conn).into()
+                trigger_async_callback(callback, conn).into()
             })
         }
 
         let handler = Box::new(handler);
         let context = self.0.context_mut();
-        context.client_hello_handler = Some(handler);
+        context.client_hello_callback = Some(handler);
 
         unsafe {
             s2n_config_set_client_hello_cb_mode(
@@ -380,8 +376,8 @@ impl Builder {
 
 pub(crate) struct Context {
     refcount: AtomicUsize,
-    pub(crate) client_hello_handler: Option<Box<dyn ClientHelloCallback>>,
-    pub(crate) verify_host_handler: Option<Box<dyn VerifyHostNameCallback>>,
+    pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
+    pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
 }
 
 impl Default for Context {
@@ -392,8 +388,8 @@ impl Default for Context {
 
         Self {
             refcount,
-            client_hello_handler: None,
-            verify_host_handler: None,
+            client_hello_callback: None,
+            verify_host_callback: None,
         }
     }
 }

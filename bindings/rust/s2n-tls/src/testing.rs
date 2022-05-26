@@ -165,7 +165,7 @@ pub fn config_builder(
         .expect("Unable to load cert/pem");
     unsafe {
         builder
-            .set_verify_host_handler(UnsecureAcceptAllClientCertificatesHandler::default())
+            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler::default())
             .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()

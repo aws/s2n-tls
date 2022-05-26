@@ -220,28 +220,28 @@ mod tests {
             // Create new connection.
             let mut server = crate::raw::connection::Connection::new_server();
             // Can't retrieve default config.
-            assert!(server.config()?.is_none());
+            assert!(server.config().is_none());
             // Custom config reference count doesn't change.
             assert_eq!(config.test_get_refcount()?, 1);
 
             // Set custom config on connection.
             server.set_config(config.clone())?;
             // Can retrieve custom config.
-            assert!(server.config()?.is_some());
+            assert!(server.config().is_some());
             // Custom config now referenced once more.
             assert_eq!(config.test_get_refcount()?, 2);
 
             // Create new connection.
             let mut client = crate::raw::connection::Connection::new_client();
             // Can't retrieve default config.
-            assert!(client.config()?.is_none());
+            assert!(client.config().is_none());
             // Custom config reference count doesn't change.
             assert_eq!(config.test_get_refcount()?, 2);
 
             // Set custom config on connection.
             client.set_config(config.clone())?;
             // Can retrieve custom config.
-            assert!(client.config()?.is_some());
+            assert!(client.config().is_some());
             // Custom config now referenced once more.
             assert_eq!(config.test_get_refcount()?, 3);
 
@@ -262,12 +262,12 @@ mod tests {
         // call set_config once
         server.set_config(config.clone())?;
         assert_eq!(config.test_get_refcount()?, 2);
-        assert!(server.config()?.is_some());
+        assert!(server.config().is_some());
 
         // calling set_config multiple times works since we drop the previous config
         server.set_config(config.clone())?;
         assert_eq!(config.test_get_refcount()?, 2);
-        assert!(server.config()?.is_some());
+        assert!(server.config().is_some());
         Ok(())
     }
 
@@ -298,9 +298,9 @@ mod tests {
         let handle = MockClientHelloHandler::new(require_pending_count);
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
-            config.set_client_hello_handler(handle.clone())?;
-            // multiple calls to set_client_hello_handler should succeed
-            config.set_client_hello_handler(handle.clone())?;
+            config.set_client_hello_callback(handle.clone())?;
+            // multiple calls to set_client_hello_callback should succeed
+            config.set_client_hello_callback(handle.clone())?;
             config.build()?
         };
 
@@ -358,7 +358,7 @@ mod tests {
 
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
-            config.set_client_hello_handler(callback.clone())?;
+            config.set_client_hello_callback(callback.clone())?;
             config.build()?
         };
 
