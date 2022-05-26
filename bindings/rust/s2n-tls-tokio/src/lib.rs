@@ -3,7 +3,6 @@
 
 use errno::{set_errno, Errno};
 use s2n_tls::raw::{
-    config::Config,
     connection::Connection,
     enums::{CallbackResult, Mode},
     error::Error,
@@ -18,13 +17,16 @@ use std::{
 };
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
+pub mod builder;
+pub use builder::*;
+
 #[derive(Clone)]
-pub struct TlsAcceptor {
-    config: Config,
+pub struct TlsAcceptor<T: Builder> {
+    config: T,
 }
 
-impl TlsAcceptor {
-    pub fn new(config: Config) -> Self {
+impl<T: Builder> TlsAcceptor<T> {
+    pub fn new(config: T) -> Self {
         TlsAcceptor { config }
     }
 
@@ -32,29 +34,37 @@ impl TlsAcceptor {
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        TlsStream::open(self.config.clone(), Mode::Server, stream).await
+        TlsStream::open(&self.config, Mode::Server, stream).await
     }
 }
 
 #[derive(Clone)]
-pub struct TlsConnector {
-    config: Config,
+pub struct TlsConnector<T: Builder> {
+    config: T,
 }
 
-impl TlsConnector {
-    pub fn new(config: Config) -> Self {
+impl<T: Builder> TlsConnector<T> {
+    pub fn new(config: T) -> Self {
         TlsConnector { config }
     }
 
-    pub async fn connect<S>(&self, _domain: &str, stream: S) -> Result<TlsStream<S>, Error>
+    pub async fn connect<S>(&self, domain: &str, stream: S) -> Result<TlsStream<S>, Error>
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        TlsStream::open(self.config.clone(), Mode::Client, stream).await
+        let config = |mode| {
+            let mut conn = self.config.build(mode)?;
+            conn.set_server_name(domain)?;
+            Ok(conn)
+        };
+        TlsStream::open(&config, Mode::Client, stream).await
     }
 }
 
-struct TlsHandshake<'a, S> {
+struct TlsHandshake<'a, S>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
     tls: &'a mut TlsStream<S>,
 }
 
@@ -72,7 +82,10 @@ where
     }
 }
 
-pub struct TlsStream<S> {
+pub struct TlsStream<S>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
     conn: Connection,
     stream: S,
 }
@@ -81,10 +94,8 @@ impl<S> TlsStream<S>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    async fn open(config: Config, mode: Mode, stream: S) -> Result<Self, Error> {
-        let mut conn = Connection::new(mode);
-        conn.set_config(config)?;
-
+    async fn open<T: Builder>(config: &T, mode: Mode, stream: S) -> Result<Self, Error> {
+        let conn = config.build(mode)?;
         let mut tls = TlsStream { conn, stream };
         TlsHandshake { tls: &mut tls }.await?;
         Ok(tls)
@@ -225,7 +236,10 @@ where
     }
 }
 
-impl<S> fmt::Debug for TlsStream<S> {
+impl<S> fmt::Debug for TlsStream<S>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("TlsStream")
             .field("connection", &self.conn)
