@@ -58,7 +58,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
     s2n_parsed_extensions_list parsed_extension_list = { 0 };
     POSIX_GUARD(s2n_extension_list_parse(in, &parsed_extension_list));
 
-    /*
+    /**
      * Process supported_versions first so that we know which extensions list to use.
      * - If the supported_versions extension exists, then it will set server_protocol_version.
      * - If the supported_versions extension does not exist, then the server_protocol_version will remain
@@ -76,7 +76,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
      *# Otherwise, the client MUST process all extensions in the
      *# HelloRetryRequest and send a second updated ClientHello.
      * - Process all extensions
-     */
+     **/
     POSIX_GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
     if (s2n_is_hello_retry_message(conn)) {

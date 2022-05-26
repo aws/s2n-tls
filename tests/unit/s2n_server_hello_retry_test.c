@@ -286,11 +286,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test
      *# The server's extensions MUST contain "supported_versions".
-     */
+     **/
     {
         struct s2n_config *conf;
         struct s2n_connection *conn;

@@ -866,7 +866,7 @@ int main(int argc, char **argv)
                     S2N_ERR_BAD_MESSAGE);
         }
 
-        /*
+        /**
          * Test: If the initial ClientHello includes all extensions, so does the second ClientHello.
          *
          * This includes TLS1.2 extensions, since the ClientHello is sent before
@@ -890,7 +890,7 @@ int main(int argc, char **argv)
          *= type=test
          *# Otherwise, the client MUST process all extensions in the
          *# HelloRetryRequest and send a second updated ClientHello.
-         */
+         **/
         for (size_t tls13_tickets = 0; tls13_tickets < 2; tls13_tickets++) {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
                     s2n_config_ptr_free);
@@ -987,7 +987,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test
      *# A client which receives a cipher suite that was not offered MUST
@@ -1001,7 +1001,7 @@ int main(int argc, char **argv)
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
      * - Check cipher_suite
-     */
+     **/
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                       s2n_cert_chain_and_key_ptr_free);
@@ -1049,7 +1049,7 @@ int main(int argc, char **argv)
                 S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
@@ -1057,7 +1057,7 @@ int main(int argc, char **argv)
      *# legacy_compression_method as specified in Section 4.1.3 and then
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
-     */
+     **/
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                       s2n_cert_chain_and_key_ptr_free);

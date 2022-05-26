@@ -1133,7 +1133,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
         }
     }
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.3
      *# A client which receives a
      *# cipher suite that was not offered MUST abort the handshake with an
@@ -1151,7 +1151,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
      * - Check cipher_suite
-     */
+     **/
     POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
@@ -1166,13 +1166,13 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
-    /*
-    *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-    *# Upon receiving
-    *# the ServerHello, clients MUST check that the cipher suite supplied in
-    *# the ServerHello is the same as that in the HelloRetryRequest and
-    *# otherwise abort the handshake with an "illegal_parameter" alert.
-    */
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Upon receiving
+     *# the ServerHello, clients MUST check that the cipher suite supplied in
+     *# the ServerHello is the same as that in the HelloRetryRequest and
+     *# otherwise abort the handshake with an "illegal_parameter" alert.
+     **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
         POSIX_ENSURE(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;

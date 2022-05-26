@@ -109,24 +109,24 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
     uint8_t legacy_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.3
      *# Upon receiving a message with type server_hello, implementations MUST
      *# first examine the Random value and, if it matches this value, process
      *# it as described in Section 4.1.4).
-     */
+     **/
     if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
 
-        /*
+        /**
          *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
          *# If a client receives a second
          *# HelloRetryRequest in the same connection (i.e., where the ClientHello
          *# was itself in response to a HelloRetryRequest), it MUST abort the
          *# handshake with an "unexpected_message" alert.
-         */
+         **/
         POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
-        /*
+        /**
          *= https://tools.ietf.org/rfc/rfc8446#4.1.4
          *# Upon receipt of a HelloRetryRequest, the client MUST check the
          *# legacy_version, legacy_session_id_echo, cipher_suite, and
@@ -134,7 +134,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *# process the extensions, starting with determining the version using
          *# "supported_versions".
          * - Check legacy_version
-         */
+         **/
         POSIX_ENSURE(legacy_version == S2N_TLS12, S2N_ERR_INVALID_HELLO_RETRY);
 
         POSIX_GUARD(s2n_set_hello_retry_required(conn));
@@ -149,7 +149,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &compression_method));
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.3
      *# legacy_compression_method:  A single byte which MUST have the
      *# value 0.
@@ -162,7 +162,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
      * - Check legacy_compression_method
-     */
+     **/
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     bool session_ids_match = session_id_len != 0 && session_id_len == conn->session_id_len
@@ -175,7 +175,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
     if (conn->server_protocol_version >= S2N_TLS13) {
 
-        /*
+        /**
          *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.3
          *# A client which
          *# receives a legacy_session_id_echo field that does not match what
@@ -189,7 +189,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *# process the extensions, starting with determining the version using
          *# "supported_versions".
          * - Check legacy_session_id_echo
-         */
+         **/
         POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
 
         conn->actual_protocol_version = conn->server_protocol_version;
