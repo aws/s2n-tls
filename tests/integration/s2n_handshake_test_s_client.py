@@ -376,11 +376,19 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     # Write the data to openssl towards s2n server
     msg = (data_to_validate + "\n" + end_of_msg_marker + "\n\n").encode("utf-8")
     s_client.stdin.write(msg)
-    s_client.stdin.flush()
+    
+    try:
+        s_client.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
      # Write the data to s2n towards openssl client
     s2nd.stdin.write(msg)
-    s2nd.stdin.flush()
+    
+    try:
+        s2nd.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     # Wait for the Data transfer to complete between OpenSSL and s2n
     try:
