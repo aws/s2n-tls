@@ -20,13 +20,19 @@ source codebuild/bin/jobs.sh
 
 # build 2 different version of libcrypto to make it easy to break the application if
 # interning doesn't work as expected
-OPENSSL_1_1="$(pwd)/build/openssl_1_1"
+WHICH_LIBCRYPTO=$(echo "${S2N_LIBCRYPTO:-"openssl-1.1.1"}")
+TARGET_LIBCRYPTO="${WHICH_LIBCRYPTO//[-.]/_}"
+TARGET_LIBCRYPTO_PATH="$(pwd)/build/${TARGET_LIBCRYPTO}"
 OPENSSL_1_0="$(pwd)/build/openssl_1_0"
 if [ ! -f $OPENSSL_1_0/lib/libcrypto.a ]; then
   ./codebuild/bin/install_openssl_1_0_2.sh $OPENSSL_1_0/src $OPENSSL_1_0 linux
 fi
-if [ ! -f $OPENSSL_1_1/lib/libcrypto.a ]; then
-  ./codebuild/bin/install_openssl_1_1_1.sh $OPENSSL_1_1/src $OPENSSL_1_1 linux
+if [ ! -f $TARGET_LIBCRYPTO_PATH/lib/libcrypto.a ]; then
+  if [ "$TARGET_LIBCRYPTO" == "awslc" ]; then
+    ./codebuild/bin/install_${TARGET_LIBCRYPTO}.sh $TARGET_LIBCRYPTO_PATH/src $TARGET_LIBCRYPTO_PATH 0
+  else
+    ./codebuild/bin/install_${TARGET_LIBCRYPTO}.sh $TARGET_LIBCRYPTO_PATH/src $TARGET_LIBCRYPTO_PATH linux
+  fi
 fi
 
 function fail() {
@@ -35,18 +41,18 @@ function fail() {
 }
 
 # build a default version to test what happens without interning
-cmake . -Bbuild/shared-default -DCMAKE_PREFIX_PATH="$OPENSSL_1_1" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
+cmake . -Bbuild/shared-default -DCMAKE_PREFIX_PATH="$TARGET_LIBCRYPTO_PATH" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
 cmake --build ./build/shared-default -- -j $JOBS
 ldd ./build/shared-default/lib/libs2n.so | grep -q libcrypto || fail "shared-default: libcrypto was not linked"
 
 # ensure libcrypto interning works with shared libs and no testing
-cmake . -Bbuild/shared -DCMAKE_PREFIX_PATH="$OPENSSL_1_1" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off -DS2N_INTERN_LIBCRYPTO=on
+cmake . -Bbuild/shared -DCMAKE_PREFIX_PATH="$TARGET_LIBCRYPTO_PATH" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off -DS2N_INTERN_LIBCRYPTO=on
 cmake --build ./build/shared -- -j $JOBS
 # s2n should not publicly depend on libcrypto
 ldd ./build/shared/lib/libs2n.so | grep -q libcrypto && fail "shared: libcrypto was not interned"
 
 # ensure libcrypto interning works with shared libs and testing
-cmake . -Bbuild/shared-testing -DCMAKE_PREFIX_PATH="$OPENSSL_1_1" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on -DS2N_INTERN_LIBCRYPTO=on
+cmake . -Bbuild/shared-testing -DCMAKE_PREFIX_PATH="$TARGET_LIBCRYPTO_PATH" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on -DS2N_INTERN_LIBCRYPTO=on
 cmake --build ./build/shared-testing -- -j $JOBS
 # s2n should not publicly depend on libcrypto
 ldd ./build/shared-testing/lib/libs2n.so | grep -q libcrypto && fail "shared-testing: libcrypto was not interned"
@@ -57,7 +63,7 @@ LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so make -C build/shared-testing test ARGS=
 
 # ensure libcrypto interning works with static libs
 # NOTE: static builds don't vary based on testing being enabled
-cmake . -Bbuild/static -DCMAKE_PREFIX_PATH="$OPENSSL_1_1" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=off -DBUILD_TESTING=on -DS2N_INTERN_LIBCRYPTO=on
+cmake . -Bbuild/static -DCMAKE_PREFIX_PATH="$TARGET_LIBCRYPTO_PATH" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=off -DBUILD_TESTING=on -DS2N_INTERN_LIBCRYPTO=on
 cmake --build ./build/static -- -j $JOBS
 make -C build/static test ARGS="-j $JOBS"
 
@@ -74,7 +80,7 @@ int main() {
 EOF
 
 # ensure the small app will compile with both versions of openssl without any linking issues
-for target in $OPENSSL_1_0 $OPENSSL_1_1
+for target in $OPENSSL_1_0 $TARGET_LIBCRYPTO_PATH
 do
   echo "testing static linking with $target"
   mkdir -p $target/bin

@@ -435,11 +435,11 @@ class Results(object):
         return "Stdout: {}\nStderr: {}\nExit code: {}\nException: {}".format(self.stdout, self.stderr, self.exit_code, self.exception)
 
     def assert_success(self):
-        assert self.exception is None
+        assert self.exception is None, self.exception
         if not self.expect_nonzero_exit:
-            assert self.exit_code == 0
+            assert self.exit_code == 0, f"exit code: {self.exit_code}"
         if not self.expect_stderr:
-            assert not self.stderr
+            assert not self.stderr, self.stderr
 
     def output_streams(self):
         return {self.stdout, self.stderr}

@@ -1,0 +1,31 @@
+---
+name: s2n-tls Documentation
+on: [push, pull_request]
+
+jobs:
+  generate-doxygen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Create Documentation
+        run: |
+            .github/s2n_doxygen.sh
+      - name: Upload documentation to action
+        # Upload the doxygen artifacts on pull requests to help reviewers easily
+        # view changes.
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v3
+        with:
+            name: s2n-tls-doxygen
+            path: |
+              docs/doxygen/output
+      - name: Deploy documentation to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          destination_dir: ./doxygen
+          publish_dir: ./docs/doxygen/output/html
+
+

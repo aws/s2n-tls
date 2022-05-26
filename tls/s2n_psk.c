@@ -549,6 +549,12 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
             s2n_stuffer_data_available(client_hello)));
 
     RESULT_GUARD(s2n_psk_write_binder_list(conn, &partial_client_hello, client_hello));
+
+    /* Reset binder list size.
+     * This is important because the psk extension can be removed during a retry.
+     */
+    conn->psk_params.binder_list_size = 0;
+
     return S2N_RESULT_OK;
 }
 

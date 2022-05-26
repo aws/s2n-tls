@@ -239,11 +239,20 @@ endif()
 include(CheckCSourceCompiles)
 
 # Determine if execinfo.h is available
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+try_compile(
+        S2N_HAVE_EXECINFO
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
+        LINK_LIBRARIES execinfo
+)
+else()
 try_compile(
         S2N_HAVE_EXECINFO
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
 )
+endif()
 
 # Determine if cpuid.h is available
 try_compile(
@@ -302,7 +311,7 @@ try_compile(
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-    set(OS_LIBS thr)
+    set(OS_LIBS thr execinfo)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
     set(OS_LIBS Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -341,7 +350,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
+        -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -Wa,--noexecstack
 )
 
@@ -477,14 +486,23 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
+if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
+    # add cast-qual back in for non AWS-LC
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
+endif()
+
 #work around target differences
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
     set(LINK_LIB "crypto")
 else()
     find_package(crypto REQUIRED)
-    message("Using libcrypto from the cmake path.")
+    message(STATUS "Using libcrypto from the cmake path")
     set(LINK_LIB "AWS::crypto")
+endif()
+
+if (S2N_INTERN_LIBCRYPTO)
+    message(STATUS "Enabling libcrypto interning")
 endif()
 
 # Determine if EVP_md5_sha1 is available in libcrypto
@@ -496,6 +514,18 @@ try_compile(
 )
 if (LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH)
+endif()
+
+# Determine if RC4 is available in libcrypto
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_RC4
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_rc4.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+)
+
+if (LIBCRYPTO_SUPPORTS_EVP_RC4)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4)
 endif()
 
 # Determine if EVP_MD_CTX_set_pkey_ctx is available in libcrypto
@@ -542,6 +572,7 @@ if (S2N_INTERN_LIBCRYPTO)
       DEPENDS libcrypto.symbols
     )
     add_dependencies(${PROJECT_NAME} s2n_libcrypto)
+    add_definitions(-DS2N_INTERN_LIBCRYPTO)
 
     if ((BUILD_SHARED_LIBS AND BUILD_TESTING) OR NOT BUILD_SHARED_LIBS)
         # if libcrypto needs to be interned, rewrite libcrypto references so use of internal functions will link correctly

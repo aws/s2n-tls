@@ -5,7 +5,8 @@
 
 use crate::raw::{
     config::Config,
-    error::{Error, Fallible},
+    enums::*,
+    error::{Error, Fallible, Pollable},
     security,
 };
 use core::{
@@ -18,7 +19,13 @@ use libc::c_void;
 use s2n_tls_sys::*;
 use std::{ffi::CStr, mem};
 
-pub use s2n_tls_sys::s2n_mode;
+macro_rules! static_const_str {
+    ($c_chars:expr) => {
+        unsafe { CStr::from_ptr($c_chars) }
+            .to_str()
+            .map_err(|_| Error::InvalidInput)
+    };
+}
 
 pub struct Connection {
     connection: NonNull<s2n_connection>,
@@ -26,9 +33,17 @@ pub struct Connection {
 
 impl fmt::Debug for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Connection")
-            // TODO add paths
-            .finish()
+        let mut debug = f.debug_struct("Connection");
+        if let Ok(handshake) = self.handshake_type() {
+            debug.field("handshake_type", &handshake);
+        }
+        if let Ok(cipher) = self.cipher_suite() {
+            debug.field("cipher_suite", &cipher);
+        }
+        if let Ok(version) = self.actual_protocol_version() {
+            debug.field("actual_protocol_version", &version);
+        }
+        debug.finish_non_exhaustive()
     }
 }
 
@@ -37,10 +52,17 @@ impl fmt::Debug for Connection {
 /// Safety: s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
+/// # Safety
+///
+/// Safety: All C methods that mutate the s2n_connection are wrapped
+/// in Rust methods that require a mutable reference.
+unsafe impl Sync for Connection {}
+
 impl Connection {
-    pub fn new(mode: s2n_mode::Type) -> Self {
+    pub fn new(mode: Mode) -> Self {
         crate::raw::init::init();
-        let connection = unsafe { s2n_connection_new(mode).into_result() }.unwrap();
+
+        let connection = unsafe { s2n_connection_new(mode.into()).into_result() }.unwrap();
 
         unsafe {
             debug_assert! {
@@ -62,11 +84,11 @@ impl Connection {
     }
 
     pub fn new_client() -> Self {
-        Self::new(s2n_mode::CLIENT)
+        Self::new(Mode::Client)
     }
 
     pub fn new_server() -> Self {
-        Self::new(s2n_mode::SERVER)
+        Self::new(Mode::Server)
     }
 
     /// # Safety
@@ -77,24 +99,26 @@ impl Connection {
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
-    /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
-    /// S2N_SELF_SERVICE_BLINDING).
-    pub fn set_blinding(&mut self, blinding: s2n_blinding::Type) -> Result<&mut Self, Error> {
-        unsafe { s2n_connection_set_blinding(self.connection.as_ptr(), blinding).into_result() }?;
+    /// to Blinding::BuiltIn) or self-service blinding (set blinding to
+    /// Blinding::SelfService).
+    pub fn set_blinding(&mut self, blinding: Blinding) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result()
+        }?;
         Ok(self)
     }
 
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.
     ///
-    /// If this is set to S2N_CERT_AUTH_OPTIONAL the server will request a client certificate
+    /// If this is set to ClientAuthType::Optional the server will request a client certificate
     /// but allow the client to not provide one. Rejecting a client certificate when using
-    /// S2N_CERT_AUTH_OPTIONAL will terminate the handshake.
+    /// ClientAuthType::Optional will terminate the handshake.
     pub fn set_client_auth_type(
         &mut self,
-        client_auth_type: s2n_cert_auth_type::Type,
+        client_auth_type: ClientAuthType,
     ) -> Result<&mut Self, Error> {
         unsafe {
-            s2n_connection_set_client_auth_type(self.connection.as_ptr(), client_auth_type)
+            s2n_connection_set_client_auth_type(self.connection.as_ptr(), client_auth_type.into())
                 .into_result()
         }?;
         Ok(self)
@@ -181,8 +205,8 @@ impl Connection {
     /// sets the application protocol preferences on an s2n_connection object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first, and of
-    /// length protocol_count. When acting as an S2N_CLIENT the protocol list is included in the
-    /// Client Hello message as the ALPN extension. As an S2N_SERVER, the list is used to negotiate
+    /// length protocol_count. When acting as a client the protocol list is included in the
+    /// Client Hello message as the ALPN extension. As a server, the list is used to negotiate
     /// a mutual application protocol with the client. After the negotiation for the connection has
     /// completed, the agreed upon protocol can be retrieved with s2n_get_application_protocol
     pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
@@ -287,10 +311,52 @@ impl Connection {
     pub fn negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
-        match unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_result() } {
-            Ok(_) => Ok(self).into(),
-            Err(err) if err.kind() == s2n_error_type::BLOCKED => Poll::Pending,
-            Err(err) => Err(err).into(),
+        unsafe {
+            s2n_negotiate(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
+    }
+
+    /// Encrypts and sends data on a connection where
+    /// [negotiate](`Self::negotiate`) has succeeded.
+    ///
+    /// Returns the number of bytes written, and may indicate a partial write.
+    pub fn send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
+        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    /// Reads and decrypts data from a connection where
+    /// [negotiate](`Self::negotiate`) has succeeded.
+    ///
+    /// Returns the number of bytes read, and may indicate a partial read.
+    /// 0 bytes returned indicates EOF due to connection closure.
+    pub fn recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    /// Attempts to flush any data previously buffered by a call to [send](`Self::negotiate`).
+    pub fn flush(&mut self) -> Poll<Result<&mut Self, Error>> {
+        self.send(&[0; 0]).map_ok(|_| self)
+    }
+
+    /// Attempts a graceful shutdown of the TLS connection.
+    ///
+    /// The shutdown is not complete until the necessary shutdown messages
+    /// have been successfully sent and received. If the peer does not respond
+    /// correctly, the graceful shutdown may fail.
+    pub fn shutdown(&mut self) -> Poll<Result<&mut Self, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_shutdown(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
         }
     }
 
@@ -388,6 +454,29 @@ impl Connection {
             s2n_connection_get_config(self.connection.as_ptr(), &mut config).into_result()?
         };
         Ok(())
+    }
+
+    pub fn actual_protocol_version(&self) -> Result<Version, Error> {
+        let version = unsafe {
+            s2n_connection_get_actual_protocol_version(self.connection.as_ptr()).into_result()?
+        };
+        version.try_into()
+    }
+
+    pub fn handshake_type(&self) -> Result<&str, Error> {
+        let handshake = unsafe {
+            s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
+        };
+        // The strings returned by s2n_connection_get_handshake_type_name
+        // are static and immutable after they are first calculated
+        static_const_str!(handshake)
+    }
+
+    pub fn cipher_suite(&self) -> Result<&str, Error> {
+        let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
+        // The strings returned by s2n_connection_get_cipher
+        // are static and immutable since they are const fields on static const structs
+        static_const_str!(cipher)
     }
 }
 

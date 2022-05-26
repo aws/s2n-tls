@@ -26,14 +26,12 @@ fi
 
 BUILD_DIR=$1
 source codebuild/bin/jobs.sh
-source codebuild/bin/s2n_setup_env.sh
 cd "$BUILD_DIR"
 
 # Clone the most recent s2n commit
 git clone --depth=1 https://github.com/aws/s2n-tls s2n_head
-
-cmake s2n_head -Bbuild -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT"
-cmake --build build
+cmake ./s2n_head -Bbuild -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
+cmake --build ./build -- -j $JOBS
 
 # Copy new executables to bin directory
 cp -f "$BUILD_DIR"/build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc_head

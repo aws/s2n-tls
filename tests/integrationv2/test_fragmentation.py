@@ -22,10 +22,11 @@ CERTIFICATES_TO_TEST = [
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
+@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
-def test_s2n_server_low_latency(managed_process, cipher, provider, protocol, certificate):
+def test_s2n_server_low_latency(managed_process, cipher, provider, other_provider, protocol, certificate):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
         pytest.skip(
             '{} does not allow setting max fragmentation for packets'.format(provider))
@@ -78,11 +79,13 @@ def invalid_test_parameters_frag_len(*args, **kwargs):
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters_frag_len)
 @pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
+@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("frag_len", [512, 2048, 8192, 12345, 16384], ids=get_parameter_name)
-def test_s2n_server_fragmented_data(managed_process, cipher, provider, protocol, frag_len, certificate):
+def test_s2n_server_framented_data(managed_process, cipher, provider, other_provider, protocol, certificate,
+                                   frag_len):
     if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
         pytest.skip(
             '{} does not allow setting max fragmentation for packets'.format(provider))

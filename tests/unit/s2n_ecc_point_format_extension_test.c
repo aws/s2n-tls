@@ -40,7 +40,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_server_ec_point_format_extension.should_send(conn));
 
         /* Do not send for connection without ec kex */
-        conn->secure.cipher_suite = &s2n_rsa_with_rc4_128_md5;
+        conn->secure.cipher_suite = &s2n_rsa_with_aes_128_cbc_sha;
         EXPECT_FALSE(s2n_server_ec_point_format_extension.should_send(conn));
         conn->secure.cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256;
         EXPECT_FALSE(s2n_server_ec_point_format_extension.should_send(conn));

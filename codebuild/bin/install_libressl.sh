@@ -29,10 +29,9 @@ INSTALL_DIR=$2
 source codebuild/bin/jobs.sh
 
 cd "$BUILD_DIR"
-# Originally from: https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-2.6.4.tar.gz
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-12-29_libressl-2.6.4.tar.gz > libressl-2.6.4.tar.gz
-tar -xzvf libressl-2.6.4.tar.gz
-cd libressl-2.6.4
+# Originally from https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-3.4.3.tar.gz
+curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2022-03-13_libressl-3.4.3.tar.gz > libressl-3.4.3.tar.gz
+tar -xzvf libressl-3.4.3.tar.gz
+cd libressl-3.4.3
 ./configure --prefix="$INSTALL_DIR"
 make -j $JOBS CFLAGS=-fPIC install
-
