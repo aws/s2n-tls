@@ -866,7 +866,16 @@ int main(int argc, char **argv)
                     S2N_ERR_BAD_MESSAGE);
         }
 
-        /* Test: If the initial ClientHello includes all extensions, so does the second ClientHello.
+        /*
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *# Upon receipt of a HelloRetryRequest, the client MUST check the
+         *# legacy_version, legacy_session_id_echo, cipher_suite, and
+         *# legacy_compression_method as specified in Section 4.1.3 and then
+         *# process the extensions, starting with determining the version using
+         *# "supported_versions".
+         * - Process extensions, starting with supported_versions
+         *
+         * Test: If the initial ClientHello includes all extensions, so does the second ClientHello.
          *
          * This includes TLS1.2 extensions, since the ClientHello is sent before
          * the client knows what version the server will negotiate.

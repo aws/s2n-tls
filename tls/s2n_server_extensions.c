@@ -58,10 +58,20 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
     s2n_parsed_extensions_list parsed_extension_list = { 0 };
     POSIX_GUARD(s2n_extension_list_parse(in, &parsed_extension_list));
 
-    /* Process supported_versions first so that we know which extensions list to use.
+    /*
+     * Process supported_versions first so that we know which extensions list to use.
      * - If the supported_versions extension exists, then it will set server_protocol_version.
      * - If the supported_versions extension does not exist, then the server_protocol_version will remain
-     *   unknown and we will use the default list of allowed extension types. */
+     *   unknown and we will use the default list of allowed extension types.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Upon receipt of a HelloRetryRequest, the client MUST check the
+     *# legacy_version, legacy_session_id_echo, cipher_suite, and
+     *# legacy_compression_method as specified in Section 4.1.3 and then
+     *# process the extensions, starting with determining the version using
+     *# "supported_versions".
+     * - Process extensions, starting with supported_versions
+     */
     POSIX_GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
     if (s2n_is_hello_retry_message(conn)) {
