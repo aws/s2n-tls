@@ -88,6 +88,7 @@ where
 ///
 /// Note that "s2n_client_hello_cb" is only called once.
 /// After the initial call, the retries are handled by the Rust bindings.
+/// s2n_negotiate is not called again until the callback completes.
 ///
 pub(crate) fn trigger_async_callback<T: 'static + AsyncCallback>(
     mut callback: T,

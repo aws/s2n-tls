@@ -325,6 +325,14 @@ impl Connection {
         Ok(self)
     }
 
+    /// Sets the currently executing async callback.
+    ///
+    /// Multiple callbacks can be configured for a connection and config, but
+    /// [`negotiate`] can only execute and block on one callback at a time.
+    /// The handshake is sequential, not concurrent, and stops execution when
+    /// it encounters an async callback. It does not continue execution (and
+    /// therefore can't call any other callbacks) until the blocking async callback
+    /// reports completion and is no longer the "pending" callback.
     pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
         debug_assert!(self.context_mut().pending_callback.is_none());
         if let Some(callback) = callback {
