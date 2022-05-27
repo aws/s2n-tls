@@ -37,12 +37,6 @@
 #define RANDOM_GENERATE_DATA_SIZE 100
 #define MAX_RANDOM_GENERATE_DATA_SIZE 5120
 
-#define SLOT_NUM_0 0x00
-#define SLOT_NUM_1 0x01
-#define GET_PUBLIC_RANDOM_DATA 0x00
-#define GET_PRIVATE_RANDOM_DATA 0x10
-#define SLOT_MASK 0x0F
-#define FUNC_MASK 0xF0
 
 struct random_test_case {
     const char *test_case_label;
@@ -51,8 +45,10 @@ struct random_test_case {
     int expected_return_status;
 };
 
-static uint8_t thread_data[MAX_NUMBER_OF_TEST_THREADS][RANDOM_GENERATE_DATA_SIZE];
-
+struct random_thread_communication {
+    S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob);
+    uint8_t thread_data[RANDOM_GENERATE_DATA_SIZE];
+};
 
 static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
 {
@@ -88,8 +84,8 @@ static int s2n_entropy_cb(void *ptr, uint32_t size)
     return S2N_SUCCESS;
 }
 
-/* Try to fetch a volume of randomly generated data, every size between 1
- * and 5120 bytes
+/* Generates random data, every size between 1 and 5120 bytes, and performs
+ * basic pattern tests on the ouput
  */
 static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
 {
@@ -146,55 +142,53 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
     return S2N_RESULT_OK;
 }
 
-void * s2n_thread_test_cb(void *slot)
+void * s2n_thread_test_cb(void *thread_comms)
 {
-    uintptr_t slot_num = ((uintptr_t) slot) & SLOT_MASK;
-    uintptr_t random_func = ((uintptr_t) slot) & FUNC_MASK;
+    struct random_thread_communication *thread_comms_ptr = (struct random_thread_communication *) thread_comms;
 
-    struct s2n_blob thread_blob = { .data = thread_data[slot_num], .size = RANDOM_GENERATE_DATA_SIZE };
+    struct s2n_blob thread_blob = { .data = thread_comms_ptr->thread_data, .size = RANDOM_GENERATE_DATA_SIZE };
 
-    if (random_func == GET_PUBLIC_RANDOM_DATA) {
-        EXPECT_OK(s2n_get_public_random_data(&thread_blob));
-    }
-    else if (random_func == GET_PRIVATE_RANDOM_DATA) {
-        EXPECT_OK(s2n_get_private_random_data(&thread_blob));
-    }
-    else {
-        EXPECT_SUCCESS(S2N_FAILURE);
-    }
+    EXPECT_OK(thread_comms_ptr->s2n_get_random_data_cb_thread(&thread_blob));
 
     EXPECT_OK(s2n_rand_cleanup_thread());
 
     return NULL;
 }
 
-
-static S2N_RESULT s2n_thread_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob), uintptr_t thread_random_func)
+/* Creates two threads and generates random data from those two threads, and the
+ * parent threads. Verifies that all data blobs are different.
+ */
+static S2N_RESULT s2n_thread_test(
+    S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+    S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
     uint8_t data[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob blob = { .data = data };
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
+    struct random_thread_communication thread_communication_0 =
+        { .s2n_get_random_data_cb_thread = s2n_get_random_data_cb_thread };
+    struct random_thread_communication thread_communication_1 =
+        { .s2n_get_random_data_cb_thread = s2n_get_random_data_cb_thread };
+
     /* Create two threads and have them each grab RANDOM_GENERATE_DATA_SIZE
-     * bytes. The third parameter to pthread_create is packed. It containes two
-     * pieces of information: where to store the random data generated in the
-     * thread and which random function must be used to generate it.
+     * bytes.
      */
-    EXPECT_EQUAL(pthread_create(&threads[0], NULL, s2n_thread_test_cb, (void *) (((uintptr_t) SLOT_NUM_0) | thread_random_func)), 0);
-    EXPECT_EQUAL(pthread_create(&threads[1], NULL, s2n_thread_test_cb, (void *) (((uintptr_t) SLOT_NUM_1) | thread_random_func)), 0);
+    EXPECT_EQUAL(pthread_create(&threads[0], NULL, s2n_thread_test_cb, &thread_communication_0), 0);
+    EXPECT_EQUAL(pthread_create(&threads[1], NULL, s2n_thread_test_cb, &thread_communication_1), 0);
 
     /* Wait for those threads to finish */
     EXPECT_EQUAL(pthread_join(threads[0], NULL), 0);
     EXPECT_EQUAL(pthread_join(threads[1], NULL), 0);
 
-    /* Confirm that their data differs from each other */
-    EXPECT_BYTEARRAY_NOT_EQUAL(thread_data[0], thread_data[1], RANDOM_GENERATE_DATA_SIZE);
+    /* Confirm that their random data differs from each other */
+    EXPECT_BYTEARRAY_NOT_EQUAL(thread_communication_0.thread_data, thread_communication_1.thread_data, RANDOM_GENERATE_DATA_SIZE);
 
-    /* Confirm that their data differs from the parent thread */
+    /* Confirm that their random data differs from the parent thread */
     blob.size = RANDOM_GENERATE_DATA_SIZE;
     EXPECT_OK(s2n_get_random_data_cb(&blob));
-    EXPECT_BYTEARRAY_NOT_EQUAL(thread_data[0], data, RANDOM_GENERATE_DATA_SIZE);
-    EXPECT_BYTEARRAY_NOT_EQUAL(thread_data[1], data, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_BYTEARRAY_NOT_EQUAL(thread_communication_0.thread_data, data, RANDOM_GENERATE_DATA_SIZE);
+    EXPECT_BYTEARRAY_NOT_EQUAL(thread_communication_1.thread_data, data, RANDOM_GENERATE_DATA_SIZE);
 
     return S2N_RESULT_OK;
 }
@@ -228,13 +222,12 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     /* Read the child's data from the pipe */
     EXPECT_EQUAL(read(pipes[0], child_data, RANDOM_GENERATE_DATA_SIZE), RANDOM_GENERATE_DATA_SIZE);
 
-    /* Get RANDOM_GENERATE_DATA_SIZE bytes in the parent process */
+    /* Get RANDOM_GENERATE_DATA_SIZE bytes in this parent process */
     EXPECT_OK(s2n_get_random_data_cb(&parent_blob));
 
-    /* Confirm they differ */
+    /* Confirm that their data differs from each other */
     EXPECT_BYTEARRAY_NOT_EQUAL(child_data, parent_data, RANDOM_GENERATE_DATA_SIZE);
 
-    /* Clean up */
     EXPECT_SUCCESS(close(pipes[0]));
 
     /* Also remember to verify that the child exited okay */
@@ -243,12 +236,22 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob), uintptr_t thread_random_func)
+/* This function lists a number of stanza's performing various random data
+ * generation tests. Each stanza goes through a different combination of forking
+ * a process and threading. Each stanza must end with
+ * s2n_fork_test_verify_result() to verify the result and the exit code of the
+ * child process
+ */
+static S2N_RESULT s2n_fork_test(
+    S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+    S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
     pid_t proc_id;
     int pipes[2];
 
-    /* A simple fork test */
+    /* A simple fork test. Generates random data in the parent and child, and
+     * verifies the two data blobs are different.
+     */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
     if (proc_id == 0) {
@@ -258,7 +261,7 @@ static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_
     }
     EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
 
-    /* Create a fork, but immediately create threads in the child process. See
+    /* Creates a fork, but immediately creates threads in the child process. See
      * https://github.com/aws/s2n-tls/issues/3107 why this might be an issue.
      */
     EXPECT_SUCCESS(pipe(pipes));
@@ -266,23 +269,24 @@ static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_
     if (proc_id == 0) {
         /* This is the child process, close the read end of the pipe */
         EXPECT_SUCCESS(close(pipes[0]));
-        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, thread_random_func));
+        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, s2n_get_random_data_cb_thread));
         s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
     }
     EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
 
-    /* Create threads after gereating data in the child proces. */
+    /* Creates threads and generates random data but only after gereating
+     * random data in the child process */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
     if (proc_id == 0) {
         /* This is the child process, close the read end of the pipe */
         EXPECT_SUCCESS(close(pipes[0]));
         s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
-        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, thread_random_func));
+        EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, s2n_get_random_data_cb_thread));
     }
     EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
 
-    /* Create threads in the parent process before generating data */
+    /* Creates threads in the parent process before generating random data */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
     if (proc_id == 0) {
@@ -290,10 +294,10 @@ static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_
         EXPECT_SUCCESS(close(pipes[0]));
         s2n_fork_test_generate_randomness(pipes[1], s2n_get_random_data_cb);
     }
-    EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, thread_random_func));
+    EXPECT_OK(s2n_thread_test(s2n_get_random_data_cb, s2n_get_random_data_cb_thread));
     EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
 
-    /* Basic tests in the fork */
+    /* Basic tests in the child process */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
     if (proc_id == 0) {
@@ -307,6 +311,9 @@ static S2N_RESULT s2n_fork_test(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_
     return S2N_RESULT_OK;
 }
 
+/* Very basic test generating random data a few times and checking that the
+ * output is different
+ */
 static S2N_RESULT s2n_basic_generate_tests(void)
 {
     uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
@@ -330,6 +337,7 @@ static S2N_RESULT s2n_basic_generate_tests(void)
     return S2N_RESULT_OK;
 }
 
+/* A collection of tests executed for each test dimension */
 static int s2n_common_tests(struct random_test_case *test_case)
 {
     uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
@@ -344,16 +352,16 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_get_private_random_data(&blob2));
 
     /* Verify we generate unique data over threads */
-    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
-    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
-    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, GET_PRIVATE_RANDOM_DATA));
-    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, GET_PUBLIC_RANDOM_DATA));
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_public_random_data));
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_public_random_data));
 
     /* Verify we generate unique data over forks */
-    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PRIVATE_RANDOM_DATA));
-    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PUBLIC_RANDOM_DATA));
-    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, GET_PRIVATE_RANDOM_DATA));
-    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, GET_PUBLIC_RANDOM_DATA));
+    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_public_random_data));
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_public_random_data));
 
     /* Basic tests generating randomness */
     EXPECT_OK(s2n_basic_generate_tests());
@@ -404,7 +412,7 @@ static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case
     return EXIT_SUCCESS;
 }
 
-static int s2n_random_test_case_failure_path_cb(struct random_test_case *test_case)
+static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
 
@@ -428,7 +436,7 @@ struct random_test_case random_test_cases[NUMBER_OF_RANDOM_TEST_CASES] = {
     /* FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need to use
      * 1 below and in s2n_random_test_case_failure_path_cb().
      */
-    {"Failure path.", s2n_random_test_case_failure_path_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},};
+    {"Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},};
 
 int main(int argc, char **argv)
 {
@@ -469,7 +477,7 @@ int main(int argc, char **argv)
     /* We are very paranoid when it comes to randomness. So, run the basic test
      * set without using the fork infrastructure above.
      */
-    EXPECT_EQUAL(s2n_random_test_case_default_cb(&random_test_cases[0]), EXIT_SUCCESS);
+    EXPECT_EQUAL(random_test_cases[0].test_case_cb(&random_test_cases[0]), EXIT_SUCCESS);
 
     END_TEST_NO_INIT();
 }
