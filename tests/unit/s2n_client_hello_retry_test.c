@@ -1241,6 +1241,55 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
          EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
 
+         /* Ensure the supported_versions extension has been processed */
+         {
+             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                           s2n_connection_ptr_free);
+             EXPECT_NOT_NULL(server_conn);
+             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                           s2n_connection_ptr_free);
+             EXPECT_NOT_NULL(server_conn);
+             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+             struct s2n_test_io_pair io_pair = { 0 };
+             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+             /* Force the HRR path */
+             client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+             /* ClientHello 1 */
+             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                             s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+             /* Server receives ClientHello 1 */
+             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+
+             /* Set a protocol version that will fail when processing the
+              * supported_versions extension */
+             server_conn->server_protocol_version = S2N_TLS13 + 10;
+
+             /* Server sends HelloRetryRequest */
+             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+
+             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                             s2n_stuffer_data_available(&server_conn->handshake.io)));
+             client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+
+             /* Expect a bad message error from
+              * s2n_extensions_server_supported_versions_process when finding an
+              * unexpected version */
+             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
+                    S2N_ERR_BAD_MESSAGE);
+         }
+
          /* Ensure the key_share extension has been processed */
          {
              DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
