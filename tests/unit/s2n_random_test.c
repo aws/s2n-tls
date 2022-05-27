@@ -48,12 +48,13 @@ struct random_test_case {
     const char *test_case_label;
     int (*test_case_cb)(struct random_test_case *test_case);
     int test_case_must_pass_clone_test;
+    int expected_return_status;
 };
 
 static uint8_t thread_data[MAX_NUMBER_OF_TEST_THREADS][RANDOM_GENERATE_DATA_SIZE];
 
 
-static void s2n_verify_child_exit_status(pid_t proc_pid)
+static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
 {
     int status = 0;
 #if defined(S2N_CLONE_SUPPORTED)
@@ -64,12 +65,12 @@ static void s2n_verify_child_exit_status(pid_t proc_pid)
      */
     EXPECT_EQUAL(waitpid(proc_pid, &status, 0), proc_pid);
 #endif
-    /* Check that child exited with EXIT_SUCCESS. If not, this indicates
+    /* Check that child exited with expected_status. If not, this indicates
      * that an error was encountered in the unit tests executed in that
      * child process.
      */
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
-    EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
+    EXPECT_EQUAL(WEXITSTATUS(status), expected_status);
 }
 
 static int s2n_init_cb(void)
@@ -237,7 +238,7 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     EXPECT_SUCCESS(close(pipes[0]));
 
     /* Also remember to verify that the child exited okay */
-    s2n_verify_child_exit_status(proc_id);
+    s2n_verify_child_exit_status(proc_id, S2N_SUCCESS);
 
     return S2N_RESULT_OK;
 }
@@ -387,7 +388,7 @@ static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
 
     EXPECT_SUCCESS(s2n_cleanup());
 
-    return S2N_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case)
@@ -400,13 +401,34 @@ static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case
 
     EXPECT_SUCCESS(s2n_cleanup());
 
-    return S2N_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
-#define NUMBER_OF_RANDOM_TEST_CASES 2
+static int s2n_random_test_case_failure_path_cb(struct random_test_case *test_case)
+{
+    EXPECT_SUCCESS(s2n_init());
+
+    /* This is a cheap way to ensure that failures in a fork bubble up to the
+     * parent as a failure. This should be caught in the parent when querying
+     * the return status code of the child. All test macro's will cause a
+     * process to exit with EXIT_FAILURE. We call exit() directly to avoid
+     * messages being printed on stderr, in turn, appearing in logs.
+     */
+    exit(1);
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return EXIT_SUCCESS;
+}
+
+#define NUMBER_OF_RANDOM_TEST_CASES 3
 struct random_test_case random_test_cases[NUMBER_OF_RANDOM_TEST_CASES] = {
-    {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME},
-    {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME},};
+    {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
+    {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
+    /* FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need to use
+     * 1 below and in s2n_random_test_case_failure_path_cb().
+     */
+    {"Failure path.", s2n_random_test_case_failure_path_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},};
 
 int main(int argc, char **argv)
 {
@@ -430,7 +452,7 @@ int main(int argc, char **argv)
 
         if (proc_ids[i] == 0) {
             /* In child */
-            EXPECT_EQUAL(random_test_cases[i].test_case_cb(&random_test_cases[i]), S2N_SUCCESS);
+            EXPECT_EQUAL(random_test_cases[i].test_case_cb(&random_test_cases[i]), EXIT_SUCCESS);
 
             /* Exit code EXIT_SUCCESS means that tests in this process finished
              * successfully. Any errors would have exited the process with an
@@ -440,9 +462,14 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         }
         else {
-            s2n_verify_child_exit_status(proc_ids[i]);
+            s2n_verify_child_exit_status(proc_ids[i], random_test_cases[i].expected_return_status);
         }
     }
+
+    /* We are very paranoid when it comes to randomness. So, run the basic test
+     * set without using the fork infrastructure above.
+     */
+    EXPECT_EQUAL(s2n_random_test_case_default_cb(&random_test_cases[0]), EXIT_SUCCESS);
 
     END_TEST_NO_INIT();
 }
