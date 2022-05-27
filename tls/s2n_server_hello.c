@@ -155,7 +155,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
      *# value 0.
      *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-     *= type=test
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
      *# legacy_version, legacy_session_id_echo, cipher_suite, and
      *# legacy_compression_method as specified in Section 4.1.3 and then
