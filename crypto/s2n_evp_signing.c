@@ -122,6 +122,7 @@ int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
     size_t signature_size = signature->size;
     POSIX_GUARD_OSSL(EVP_DigestSignFinal(ctx, signature->data, &signature_size), S2N_ERR_SIGN);
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
+    EVP_PKEY_CTX_free(pctx);
     signature->size = signature_size;
     return S2N_SUCCESS;
 }
@@ -150,5 +151,6 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
 
     POSIX_GUARD_OSSL(EVP_DigestVerifyFinal(ctx, signature->data, signature->size), S2N_ERR_VERIFY_SIGNATURE);
+    EVP_PKEY_CTX_free(pctx);
     return S2N_SUCCESS;
 }
