@@ -2721,6 +2721,13 @@ extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 /**
  * A function that provides a human readable string of the cipher suite that was chosen
  * for a connection.
+ *
+ * @warning The string "TLS_NULL_WITH_NULL_NULL" is returned before the TLS handshake has been performed.
+ * This does not mean that the ciphersuite "TLS_NULL_WITH_NULL_NULL" will be used by the connection,
+ * it is merely being used as a placeholder.
+ *
+ * @note This function is only accurate after the TLS handshake.
+ *
  * @param conn A pointer to the connection
  * @returns A string indicating the cipher suite negotiated by s2n in OpenSSL format.
  */

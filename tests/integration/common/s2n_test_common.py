@@ -57,14 +57,20 @@ def get_process(cmd):
 def basic_write_test(server, client):
     server_msg = "Message:" + str(uuid.uuid4())
     server.stdin.write((server_msg + "\n\n").encode("utf-8"))
-    server.stdin.flush()
+    try:
+        server.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     if not wait_for_output(client.stdout, server_msg, line_limit=200):
         return Result("Failed to write '%s' from server to client" % (server_msg))
 
     client_msg = "Message:" + str(uuid.uuid4())
     client.stdin.write((client_msg + "\n\n").encode("utf-8"))
-    client.stdin.flush()
+    try:
+        client.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     if not wait_for_output(server.stdout, client_msg, line_limit=200):
         return Result("Failed to write %s from client to server" % (client_msg))
