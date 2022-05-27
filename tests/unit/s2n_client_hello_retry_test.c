@@ -866,7 +866,7 @@ int main(int argc, char **argv)
                     S2N_ERR_BAD_MESSAGE);
         }
 
-        /**
+        /*
          * Test: If the initial ClientHello includes all extensions, so does the second ClientHello.
          *
          * This includes TLS1.2 extensions, since the ClientHello is sent before
@@ -877,20 +877,7 @@ int main(int argc, char **argv)
          *
          * TLS1.2 and TLS1.3 session tickets are mutually exclusive and use different
          * extensions, so we test once with each.
-         *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-         *# Upon receipt of a HelloRetryRequest, the client MUST check the
-         *# legacy_version, legacy_session_id_echo, cipher_suite, and
-         *# legacy_compression_method as specified in Section 4.1.3 and then
-         *# process the extensions, starting with determining the version using
-         *# "supported_versions".
-         * - Process extensions, starting with supported_versions
-         *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-         *= type=test
-         *# Otherwise, the client MUST process all extensions in the
-         *# HelloRetryRequest and send a second updated ClientHello.
-         **/
+         */
         for (size_t tls13_tickets = 0; tls13_tickets < 2; tls13_tickets++) {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
                     s2n_config_ptr_free);
@@ -1227,6 +1214,82 @@ int main(int argc, char **argv)
                                       S2N_ERR_BAD_MESSAGE);
         }
     }
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Upon receipt of a HelloRetryRequest, the client MUST check the
+     *# legacy_version, legacy_session_id_echo, cipher_suite, and
+     *# legacy_compression_method as specified in Section 4.1.3 and then
+     *# process the extensions, starting with determining the version using
+     *# "supported_versions".
+     * - Process extensions, starting with supported_versions
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# Otherwise, the client MUST process all extensions in the
+     *# HelloRetryRequest and send a second updated ClientHello.
+     **/
+     {
+         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+                       s2n_cert_chain_and_key_ptr_free);
+         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                                                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                       s2n_config_ptr_free);
+         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
+         /* Ensure the key_share extension has been processed */
+         {
+             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                           s2n_connection_ptr_free);
+             EXPECT_NOT_NULL(server_conn);
+             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                           s2n_connection_ptr_free);
+             EXPECT_NOT_NULL(server_conn);
+             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+             struct s2n_test_io_pair io_pair = { 0 };
+             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+             /* Force the HRR path */
+             client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+             /* ClientHello 1 */
+             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                             s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+             /* Server receives ClientHello 1 */
+             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+
+             /* Server sends HelloRetryRequest */
+             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+
+             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                             s2n_stuffer_data_available(&server_conn->handshake.io)));
+             client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+
+             /* The negotiated curve should not have been set yet */
+             EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+
+             /* Client receives HelloRetryRequest */
+             EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+             /* The negotiated curve should have been set after processing the key_share
+              * extension */
+             EXPECT_NOT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+         }
+     }
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
