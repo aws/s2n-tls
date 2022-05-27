@@ -433,8 +433,27 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Find potential certificate matches before we choose the cipher. */
     POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
 
+    /* Save the previous cipher suite */
+    uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = {0, 0};
+    POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+
     /* Now choose the ciphers we have certs for. */
     POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Servers MUST ensure that they negotiate the
+     *# same cipher suite when receiving a conformant updated ClientHello (if
+     *# the server selects the cipher suite as the first step in the
+     *# negotiation, then this will happen automatically).
+     **/
+    if (s2n_is_hello_retry_handshake(conn)
+        && previous_cipher_suite_iana[0] != 0
+        && previous_cipher_suite_iana[1] != 0) {
+        POSIX_ENSURE(previous_cipher_suite_iana[0] == conn->secure.cipher_suite->iana_value[0] &&
+                     previous_cipher_suite_iana[1] == conn->secure.cipher_suite->iana_value[1],
+                     S2N_ERR_BAD_MESSAGE);
+    }
 
     /* If we're using a PSK, we don't need to choose a signature algorithm or certificate,
      * because no additional auth is required. */
