@@ -168,7 +168,31 @@ int main()
             EXPECT_TRUE(S2N_CBIT_TEST(conn.extension_requests_received, test_extension_id));
         }
 
-        /* response extension */
+        /**
+         * response extension
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+         *= type=test
+         *# Implementations MUST NOT send extension responses if the remote
+         *# endpoint did not send the corresponding extension requests, with the
+         *# exception of the "cookie" extension in the HelloRetryRequest.  Upon
+         *# receiving such an extension, an endpoint MUST abort the handshake
+         *# with an "unsupported_extension" alert.
+         *
+         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= type=test
+         *# If the original session did not use the "extended_master_secret"
+         *# extension but the new ServerHello contains the extension, the
+         *# client MUST abort the handshake.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= type=test
+         *# As
+         *# with the ServerHello, a HelloRetryRequest MUST NOT contain any
+         *# extensions that were not first offered by the client in its
+         *# ClientHello, with the exception of optionally the "cookie" (see
+         *# Section 4.2.2) extension.
+         **/
         {
             struct s2n_connection conn = { 0 };
             s2n_extension_type response_extension_type = test_extension_type;
@@ -244,7 +268,31 @@ int main()
             s2n_stuffer_free(&stuffer);
         }
 
-        /* response extension */
+        /**
+         * response extension
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+         *= type=test
+         *# Implementations MUST NOT send extension responses if the remote
+         *# endpoint did not send the corresponding extension requests, with the
+         *# exception of the "cookie" extension in the HelloRetryRequest.  Upon
+         *# receiving such an extension, an endpoint MUST abort the handshake
+         *# with an "unsupported_extension" alert.
+         *
+         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= type=test
+         *# If the original session did not use the "extended_master_secret"
+         *# extension but the new ServerHello contains the extension, the
+         *# client MUST abort the handshake.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= type=test
+         *# As
+         *# with the ServerHello, a HelloRetryRequest MUST NOT contain any
+         *# extensions that were not first offered by the client in its
+         *# ClientHello, with the exception of optionally the "cookie" (see
+         *# Section 4.2.2) extension.
+         **/
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
