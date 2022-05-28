@@ -1390,6 +1390,60 @@ int main(int argc, char **argv)
                 S2N_ERR_BAD_MESSAGE);
      }
 
+     /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# The value of selected_version in the HelloRetryRequest
+     *# "supported_versions" extension MUST be retained in the ServerHello,
+     *# and a client MUST abort the handshake with an "illegal_parameter"
+     *# alert if the value changes.
+     **/
+     {
+         DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key, s2n_cert_chain_and_key_ptr_free);
+         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                                                        S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
+         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+         EXPECT_NOT_NULL(server_conn);
+         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+         EXPECT_NOT_NULL(server_conn);
+         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+         struct s2n_test_io_pair io_pair = { 0 };
+         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+         /* Force the HRR path */
+         client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+         /* Send ClientHello */
+         s2n_blocked_status blocked = 0;
+         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+
+         /* Receive ClientHello */
+         EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, HELLO_RETRY_MSG));
+
+         /* Skip to before server sends ServerHello */
+         EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, CLIENT_HELLO));
+         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, CLIENT_HELLO));
+
+         /* Change the server_protocol_version so the value found in the ServerHello
+          * differs from the value found in the HelloRetryRequest */
+         server_conn->server_protocol_version = S2N_TLS13 + 10;
+
+         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                                   S2N_ERR_BAD_MESSAGE);
+     }
+
      EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     END_TEST();
