@@ -216,6 +216,9 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     uint8_t parent_data[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob parent_blob = { .data = parent_data, .size = RANDOM_GENERATE_DATA_SIZE };
 
+    /* Quickly verify we are in the parent process and not the child */
+    EXPECT_NOT_EQUAL(proc_id, 0);
+
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(pipes[1]));
 
@@ -236,7 +239,7 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
     return S2N_RESULT_OK;
 }
 
-/* This function lists a number of stanza's performing various random data
+/* This function lists a number of stanzas performing various random data
  * generation tests. Each stanza goes through a different combination of forking
  * a process and threading. Each stanza must end with
  * s2n_fork_test_verify_result() to verify the result and the exit code of the
@@ -418,7 +421,7 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 
     /* This is a cheap way to ensure that failures in a fork bubble up to the
      * parent as a failure. This should be caught in the parent when querying
-     * the return status code of the child. All test macro's will cause a
+     * the return status code of the child. All test macros will cause a
      * process to exit with EXIT_FAILURE. We call exit() directly to avoid
      * messages being printed on stderr, in turn, appearing in logs.
      */
@@ -448,8 +451,8 @@ int main(int argc, char **argv)
      * each test case.
      *
      * Fork detection is lazily initialised on first invocation of
-     * s2n_get_fork_generation_number(). Hence, it is important that childs are
-     * created before calling into the fork detection code.
+     * s2n_get_fork_generation_number(). Hence, it is important that children
+     * are created before calling into the fork detection code.
      */
     pid_t proc_ids[NUMBER_OF_RANDOM_TEST_CASES] = {0};
 
@@ -465,7 +468,7 @@ int main(int argc, char **argv)
             /* Exit code EXIT_SUCCESS means that tests in this process finished
              * successfully. Any errors would have exited the process with an
              * exit code != EXIT_SUCCESS. We verify this in the parent process.
-             * Also prevents child from creating more childs.
+             * Also prevents child from creating more children.
              */
             exit(EXIT_SUCCESS);
         }
