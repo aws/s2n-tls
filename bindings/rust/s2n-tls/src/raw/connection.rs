@@ -21,12 +21,30 @@ use libc::c_void;
 use s2n_tls_sys::*;
 use std::{ffi::CStr, mem};
 
+mod builder;
+pub use builder::*;
+
 macro_rules! static_const_str {
     ($c_chars:expr) => {
         unsafe { CStr::from_ptr($c_chars) }
             .to_str()
             .map_err(|_| Error::InvalidInput)
     };
+}
+
+/// A trait indicating that a structure can function as a connection.
+pub trait AsConnection {
+    fn conn(&self) -> &Connection;
+    fn conn_mut(&mut self) -> &mut Connection;
+}
+
+impl AsConnection for Connection {
+    fn conn(&self) -> &Connection {
+        self
+    }
+    fn conn_mut(&mut self) -> &mut Connection {
+        self
+    }
 }
 
 pub struct Connection {

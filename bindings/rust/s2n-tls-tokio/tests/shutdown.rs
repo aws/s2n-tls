@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::raw::error;
+use s2n_tls::raw::{connection::Connection, error};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::convert::TryFrom;
 use tokio::{
@@ -11,7 +11,9 @@ use tokio::{
 
 mod common;
 
-async fn read_until_shutdown(stream: &mut TlsStream<TcpStream>) -> Result<(), std::io::Error> {
+async fn read_until_shutdown(
+    stream: &mut TlsStream<TcpStream, Connection>,
+) -> Result<(), std::io::Error> {
     let mut received = [0; 1];
     // Zero bytes read indicates EOF
     while stream.read(&mut received).await? != 0 {}
@@ -38,7 +40,7 @@ async fn client_initiated_shutdown() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (mut client, mut server) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     tokio::try_join!(read_until_shutdown(&mut server), client.shutdown())?;
 
@@ -53,7 +55,7 @@ async fn server_initiated_shutdown() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (mut client, mut server) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     tokio::try_join!(read_until_shutdown(&mut client), server.shutdown())?;
 
@@ -68,7 +70,7 @@ async fn shutdown_after_split() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (client, mut server) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     let (mut client_reader, mut client_writer) = tokio::io::split(client);
 

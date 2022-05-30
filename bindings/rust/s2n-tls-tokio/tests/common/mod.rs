@@ -1,8 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::raw::{config, error::Error, security::DEFAULT_TLS13};
-use s2n_tls_tokio::{Builder, TlsAcceptor, TlsConnector, TlsStream};
+use s2n_tls::raw::{config, connection::Builder, error::Error, security::DEFAULT_TLS13};
+use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use tokio::net::{TcpListener, TcpStream};
 
 /// NOTE: this certificate and key are used for testing purposes only!
@@ -39,11 +39,21 @@ pub fn server_config() -> Result<config::Builder, Error> {
 }
 
 pub async fn run_negotiate<A: Builder, B: Builder>(
-    client: TlsConnector<A>,
+    client: &TlsConnector<A>,
     client_stream: TcpStream,
-    server: TlsAcceptor<B>,
+    server: &TlsAcceptor<B>,
     server_stream: TcpStream,
-) -> Result<(TlsStream<TcpStream>, TlsStream<TcpStream>), Error> {
+) -> Result<
+    (
+        TlsStream<TcpStream, A::Output>,
+        TlsStream<TcpStream, B::Output>,
+    ),
+    Error,
+>
+where
+    <A as Builder>::Output: Unpin,
+    <B as Builder>::Output: Unpin,
+{
     tokio::try_join!(
         client.connect("localhost", client_stream),
         server.accept(server_stream)
