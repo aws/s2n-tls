@@ -1,7 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::{config::Config, connection::Connection, enums::Mode, error::Error};
+use crate::raw::{
+    config::Config,
+    connection::Connection,
+    enums::Mode,
+    error::Error,
+    pool::{Pool, PooledConnection},
+};
 
 /// A trait indicating that a structure can produce connections.
 pub trait Builder: Clone {
@@ -19,9 +25,22 @@ impl Builder for Config {
     }
 }
 
+/// Produces new connections from a pool of reuseable connections.
+impl<T: Pool + Clone> Builder for T {
+    type Output = PooledConnection<T>;
+    fn build_connection(&self, mode: Mode) -> Result<Self::Output, Error> {
+        if mode == self.mode() {
+            Ok(PooledConnection::new(self)?)
+        } else {
+            Err(Error::InvalidInput)
+        }
+    }
+}
+
 /// Produces new connections from a builder, then modifies them.
 ///
-/// Can be used to apply connection-level config.
+/// Can be used to apply connection-level config, for example
+/// when using a [`crate::raw::pool::ConfigPool`].
 #[derive(Clone)]
 pub struct ModifiedBuilder<F, B: Builder>
 where
@@ -55,12 +74,22 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::raw::pool::ConfigPoolBuilder;
 
     #[test]
     fn config_builder() -> Result<(), Box<dyn std::error::Error>> {
         let config = Config::default();
         let conn = config.build_connection(Mode::Server)?;
         assert_eq!(conn.config(), Some(config));
+        Ok(())
+    }
+
+    #[test]
+    fn pool_builder() -> Result<(), Box<dyn std::error::Error>> {
+        let config = Config::default();
+        let pool = ConfigPoolBuilder::new(Mode::Server, config.clone()).build();
+        let conn = pool.build_connection(Mode::Server)?;
+        assert_eq!(conn.as_ref().config(), Some(config));
         Ok(())
     }
 
