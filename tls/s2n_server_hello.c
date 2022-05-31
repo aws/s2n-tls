@@ -118,7 +118,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
 
         /**
-         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
          *# If a client receives a second
          *# HelloRetryRequest in the same connection (i.e., where the ClientHello
          *# was itself in response to a HelloRetryRequest), it MUST abort the
