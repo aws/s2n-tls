@@ -1386,9 +1386,6 @@ int main(int argc, char **argv)
 
          EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
-         /* Server sends HelloRetryRequest */
-         //EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
-
          /* Custom s2n_server_hello_retry_send */
          {
              POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
