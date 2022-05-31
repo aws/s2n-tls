@@ -177,15 +177,14 @@ impl Connection {
         let config = unsafe {
             s2n_connection_get_config(self.connection.as_ptr(), &mut raw)
                 .into_result()
-                .ok()
-                .and_then(|_ok| NonNull::new(raw))
-                .map(|raw| Config::from_raw(raw))
+                .ok()?;
+            let raw = NonNull::new(raw)?;
+            Config::from_raw(raw)
         };
         // Because the config pointer is still set on the connection, this is a copy,
         // not the original config. This is fine -- Configs are immutable.
-        let clone = config.clone();
-        let _ = config.map(ManuallyDrop::new);
-        clone
+        let _ = ManuallyDrop::new(config.clone());
+        Some(config)
     }
 
     pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
