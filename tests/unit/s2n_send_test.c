@@ -119,9 +119,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* s2n_send tracks conn->wire_bytes_out on send */
+    /* s2n_send tracks conn->wire_bytes_out on partial send */
     {
-        struct s2n_connection *conn;
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
@@ -139,10 +140,6 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_custom_send_fn_called);
         EXPECT_EQUAL(sent_bytes, conn->wire_bytes_out);
         EXPECT_EQUAL(sent_bytes, s2n_connection_get_wire_bytes_out(conn));
-        EXPECT_EQUAL(conn->wire_bytes_out, s2n_connection_get_wire_bytes_out(conn));
-
-        /* Cleanup */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();
