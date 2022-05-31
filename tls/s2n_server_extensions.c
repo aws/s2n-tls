@@ -71,16 +71,24 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
      * - Process extensions, starting with supported_versions
-     *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-     *# Otherwise, the client MUST process all extensions in the
-     *# HelloRetryRequest and send a second updated ClientHello.
-     * - Process all extensions
      **/
     POSIX_GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
     if (s2n_is_hello_retry_message(conn)) {
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *# Otherwise, the client MUST process all extensions in the
+         *# HelloRetryRequest and send a second updated ClientHello.
+         * - Process all extensions
+         */
         POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, &parsed_extension_list));
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *# The server's extensions MUST contain "supported_versions".
+         **/
+        POSIX_ENSURE(conn->server_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION,
+                S2N_ERR_BAD_MESSAGE);
     } else if (conn->server_protocol_version >= S2N_TLS13) {
         POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, &parsed_extension_list));
     } else {
