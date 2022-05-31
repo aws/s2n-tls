@@ -1,16 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::{
-    config::Config,
-    connection::{AsConnection, Connection},
-    enums::Mode,
-    error::Error,
-};
+use crate::raw::{config::Config, connection::Connection, enums::Mode, error::Error};
 
 /// A trait indicating that a structure can produce connections.
 pub trait Builder: Clone {
-    type Output: AsConnection;
+    type Output: AsMut<Connection> + AsRef<Connection>;
     fn build(&self, mode: Mode) -> Result<Self::Output, Error>;
 }
 
@@ -52,7 +47,7 @@ where
     type Output = B::Output;
     fn build(&self, mode: Mode) -> Result<Self::Output, Error> {
         let mut conn = self.builder.build(mode)?;
-        (self.modifier)(conn.conn_mut())?;
+        (self.modifier)(conn.as_mut())?;
         Ok(conn)
     }
 }

@@ -32,21 +32,6 @@ macro_rules! static_const_str {
     };
 }
 
-/// A trait indicating that a structure can function as a connection.
-pub trait AsConnection {
-    fn conn(&self) -> &Connection;
-    fn conn_mut(&mut self) -> &mut Connection;
-}
-
-impl AsConnection for Connection {
-    fn conn(&self) -> &Connection {
-        self
-    }
-    fn conn_mut(&mut self) -> &mut Connection {
-        self
-    }
-}
-
 pub struct Connection {
     connection: NonNull<s2n_connection>,
 }
@@ -586,6 +571,18 @@ impl Connection {
         s2n_connection_set_secret_callback(self.connection.as_ptr(), callback, context)
             .into_result()?;
         Ok(self)
+    }
+}
+
+impl AsRef<Connection> for Connection {
+    fn as_ref(&self) -> &Connection {
+        self
+    }
+}
+
+impl AsMut<Connection> for Connection {
+    fn as_mut(&mut self) -> &mut Connection {
+        self
     }
 }
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use s2n_tls::raw::{
-    connection::{AsConnection, Connection, ModifiedBuilder},
+    connection::{Connection, ModifiedBuilder},
     enums::{ClientAuthType, Version},
     error::Error,
 };
@@ -22,11 +22,11 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
 
     for tls in [client_result, server_result] {
         // Security policy ensures TLS1.3.
-        assert_eq!(tls.conn().actual_protocol_version()?, Version::TLS13);
+        assert_eq!(tls.as_ref().actual_protocol_version()?, Version::TLS13);
         // Handshake types may change, but will at least be negotiated.
-        assert!(tls.conn().handshake_type()?.contains("NEGOTIATED"));
+        assert!(tls.as_ref().handshake_type()?.contains("NEGOTIATED"));
         // Cipher suite may change, so just makes sure we can retrieve it.
-        assert!(tls.conn().cipher_suite().is_ok());
+        assert!(tls.as_ref().cipher_suite().is_ok());
     }
 
     Ok(())
@@ -53,7 +53,7 @@ async fn handshake_with_connection_config() -> Result<(), Box<dyn std::error::Er
         common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     for tls in [client_result, server_result] {
-        assert!(tls.conn().handshake_type()?.contains("CLIENT_AUTH"));
+        assert!(tls.as_ref().handshake_type()?.contains("CLIENT_AUTH"));
     }
 
     Ok(())
