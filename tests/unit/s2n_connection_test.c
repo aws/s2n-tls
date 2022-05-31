@@ -651,15 +651,14 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_get_wire_bytes_out */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_EQUAL(0, s2n_connection_get_wire_bytes_out(conn));
 
         uint64_t magic_number = 123456;
         conn->wire_bytes_out = magic_number;
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
