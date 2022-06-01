@@ -13,12 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include <stdbool.h>
-
-#include "api/s2n.h"
-
 #pragma once
 
-extern int s2n_fips_init(void);
-extern int s2n_is_in_fips_mode(void);
-bool s2n_libcrypto_is_fips(void);
+#include "utils/s2n_result.h"
+
+S2N_RESULT s2n_libcrypto_validate_runtime(void);
