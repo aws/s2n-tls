@@ -374,7 +374,7 @@ int main(int argc, char **argv)
         const uint16_t TLS13_RECORD_OVERHEAD = 22;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob));
         EXPECT_EQUAL(bytes_taken, ONE_BLOCK); /* we wrote the full blob size */
-        EXPECT_EQUAL(server_conn->wire_bytes_out, ONE_BLOCK + TLS13_RECORD_OVERHEAD); /* bytes on the wire */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), ONE_BLOCK + TLS13_RECORD_OVERHEAD); /* bytes on the wire */
 
         /* Check we get a friendly error if we use s2n_record_write again */
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
@@ -388,19 +388,18 @@ int main(int argc, char **argv)
         /* Test that s2n_record_write() doesn't error on writing large payloads.
          * Also asserts the bytes written on the wire.
          */
-        server_conn->wire_bytes_out = 0;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
 
         /* We verify that s2n_record_write() is able to send the maximum fragment length as specified by TLS RFCs */
         const uint16_t TLS_MAX_FRAG_LEN = 16384;
         EXPECT_EQUAL(bytes_taken, TLS_MAX_FRAG_LEN); /* plaintext bytes taken */
-        EXPECT_EQUAL(server_conn->wire_bytes_out, TLS_MAX_FRAG_LEN + TLS13_RECORD_OVERHEAD); /* bytes sent on the wire */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), TLS_MAX_FRAG_LEN + TLS13_RECORD_OVERHEAD); /* bytes sent on the wire */
 
         /* These are invariant regardless of s2n implementation */
         EXPECT_TRUE(bytes_taken <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH); /* Plaintext max size - 2^14 = 16384 */
         EXPECT_TRUE(bytes_taken <= (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 255)); /* Max record size for TLS 1.3 - 2^14 + 255 = 16639 */
-        EXPECT_TRUE(server_conn->wire_bytes_out <= S2N_TLS_MAXIMUM_RECORD_LENGTH);
-        EXPECT_TRUE(server_conn->wire_bytes_out <= S2N_TLS13_MAXIMUM_RECORD_LENGTH);
+        EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->out) <= S2N_TLS_MAXIMUM_RECORD_LENGTH);
+        EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->out) <= S2N_TLS13_MAXIMUM_RECORD_LENGTH);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
