@@ -3,6 +3,7 @@
 
 use errno::{set_errno, Errno};
 use s2n_tls::raw::{
+    config::Config,
     connection::{Builder, Connection},
     enums::{CallbackResult, Mode},
     error::Error,
@@ -18,7 +19,7 @@ use std::{
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 #[derive(Clone)]
-pub struct TlsAcceptor<B: Builder>
+pub struct TlsAcceptor<B: Builder = Config>
 where
     <B as Builder>::Output: Unpin,
 {
@@ -43,7 +44,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct TlsConnector<B: Builder>
+pub struct TlsConnector<B: Builder = Config>
 where
     <B as Builder>::Output: Unpin,
 {
@@ -95,7 +96,7 @@ where
     }
 }
 
-pub struct TlsStream<S, C>
+pub struct TlsStream<S, C = Connection>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
