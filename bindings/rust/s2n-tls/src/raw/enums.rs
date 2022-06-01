@@ -22,6 +22,15 @@ impl From<CallbackResult> for s2n_status_code::Type {
     }
 }
 
+impl<T, E> From<Result<T, E>> for CallbackResult {
+    fn from(result: Result<T, E>) -> CallbackResult {
+        match result {
+            Ok(_) => CallbackResult::Success,
+            Err(_) => CallbackResult::Failure,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Mode {
     Server,
