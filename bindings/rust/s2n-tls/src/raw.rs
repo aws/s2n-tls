@@ -4,6 +4,7 @@
 #[macro_use]
 pub mod error;
 
+pub mod callbacks;
 pub mod config;
 pub mod connection;
 pub mod enums;
