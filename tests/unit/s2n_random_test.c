@@ -173,40 +173,40 @@ static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bou
     uint64_t current_bound;
     uint64_t current_output;
     /* The type of the `bound` parameter in s2n_public_random() is signed */
-    int64_t range_strict_upper_bound;
-    struct s2n_blob bound_blob = { .data = (void *) &range_strict_upper_bound, .size = sizeof(range_strict_upper_bound) };
+    int64_t chosen_upper_bound;
+    struct s2n_blob upper_bound_blob = { .data = (void *) &chosen_upper_bound, .size = sizeof(chosen_upper_bound) };
 
-    /* 0 is not a legal bound */
+    /* 0 is not a legal upper bound */
     current_bound = 0;
     EXPECT_ERROR(s2n_get_range_cb(current_bound, &current_output));
 
-    /* For a bound of 1, only 0 should be the only possible output */
+    /* For an upper bound of 1, 0 should be the only possible output */
     current_bound = 1;
     EXPECT_OK(s2n_get_range_cb(current_bound, &current_output));
     EXPECT_EQUAL(current_output, 0);
 
-    /* For a bound of 2, 0 and 1 are the only possible outputs */
+    /* For a upper bound of 2, 0 and 1 should be the only possible outputs */
     current_bound = 1;
     EXPECT_OK(s2n_get_range_cb(current_bound, &current_output));
     EXPECT_TRUE((current_output == 0) || (current_output == 1));
 
-    /* Test NUMBER_OF_BOUNDS bounds. For each resulting range, draw
-     * NUMBER_OF_RANGE_FUNCTION_CALLS numbers and verify the output.
-     * Set 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS as the minimal value for the
-     * range upper bound.
+    /* Test NUMBER_OF_BOUNDS upper bounds. For each resulting range, draw
+     * NUMBER_OF_RANGE_FUNCTION_CALLS numbers from s2n_public_random() and
+     * verify the output. Set 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS as the
+     * minimal value for the upper bound.
      */
-    int64_t minimal_range_upper_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
+    int64_t minimal_upper_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
     for (size_t bound_ctr = 0; bound_ctr < NUMBER_OF_BOUNDS; bound_ctr++) {
 
-BOUND_TOO_SMALL:
-        EXPECT_OK(s2n_get_private_random_data(&bound_blob));
-        if (range_strict_upper_bound < minimal_range_upper_bound) {
-            goto BOUND_TOO_SMALL;
+UPPER_BOUND_TOO_SMALL:
+        EXPECT_OK(s2n_get_private_random_data(&upper_bound_blob));
+        if (chosen_upper_bound < minimal_upper_bound) {
+            goto UPPER_BOUND_TOO_SMALL;
         }
 
         for (size_t func_call_ctr = 0; func_call_ctr < NUMBER_OF_RANGE_FUNCTION_CALLS; func_call_ctr++) {
-            EXPECT_OK(s2n_public_random(range_strict_upper_bound, &range_results[func_call_ctr]));
-            EXPECT_TRUE(range_results[func_call_ctr] < range_strict_upper_bound);
+            EXPECT_OK(s2n_public_random(chosen_upper_bound, &range_results[func_call_ctr]));
+            EXPECT_TRUE(range_results[func_call_ctr] < chosen_upper_bound);
         }
 
         /* The probability of "at least MAX_REPEATED_OUTPUT repeated values"
