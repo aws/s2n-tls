@@ -20,6 +20,7 @@ tar -xvf "$DOXYGEN_VERSION.tar.gz"
 
 # Pull in git tags
 git fetch origin --tags
+git submodule update --init --recursive docs/doxygen/doxygen-css
 
 # Add a version to the Doxygen documentation
 # For example: v1.3.13-3b413f18
