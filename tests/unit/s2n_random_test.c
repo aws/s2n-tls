@@ -231,12 +231,12 @@ UPPER_BOUND_TOO_SMALL:
         sort_array(range_results);
         uint64_t current_value = range_results[0];
         size_t repeat_count = 1;
-        for (size_t index = 1; index < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; index++) {
+        for (size_t ctr = 1; ctr < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; ctr++) {
 
-            if (current_value == range_results[index]) {
+            if (current_value == range_results[ctr]) {
                 repeat_count = repeat_count + 1;
             } else {
-                current_value = range_results[index];
+                current_value = range_results[ctr];
                 repeat_count = 1;
             }
 
