@@ -7,6 +7,3 @@
 [submodule "tests/litani"]
 	path = tests/litani
 	url = https://github.com/awslabs/aws-build-accumulator
-[submodule "docs/doxygen/doxygen-css"]
-	path = docs/doxygen/doxygen-css
-	url = https://github.com/jothepro/doxygen-awesome-css.git
