@@ -370,10 +370,22 @@ int s2n_stack_traces_enabled_set(bool newval)
 #ifdef S2N_HAVE_EXECINFO
 
 #define MAX_BACKTRACE_DEPTH 20
-__thread struct s2n_stacktrace tl_stacktrace = {0};
+__thread struct s2n_stacktrace tl_stacktrace;
+__thread bool s2n_stacktrace_initialized;
+
+int s2n_init_stacktrace(void)
+{
+    if (!s2n_stacktrace_initialized) {
+        struct s2n_stacktrace zero_stacktrace = {0};
+        tl_stacktrace = zero_stacktrace;
+        s2n_stacktrace_initialized = true;
+    }
+    return S2N_SUCCESS;
+}
 
 int s2n_free_stacktrace(void)
 {
+    POSIX_GUARD(s2n_init_stacktrace());
     if (tl_stacktrace.trace != NULL) {
         free(tl_stacktrace.trace);
 	struct s2n_stacktrace zero_stacktrace = {0};
@@ -388,6 +400,7 @@ int s2n_calculate_stacktrace(void)
         return S2N_SUCCESS;
     }
 
+    POSIX_GUARD(s2n_init_stacktrace());
     int old_errno = errno;
     POSIX_GUARD(s2n_free_stacktrace());
     void *array[MAX_BACKTRACE_DEPTH];
@@ -398,6 +411,7 @@ int s2n_calculate_stacktrace(void)
 }
 
 int s2n_get_stacktrace(struct s2n_stacktrace *trace) {
+    POSIX_GUARD(s2n_init_stacktrace());
     *trace = tl_stacktrace;
     return S2N_SUCCESS;
 }
@@ -411,6 +425,7 @@ int s2n_print_stacktrace(FILE *fptr)
         return S2N_SUCCESS;
     }
 
+    POSIX_GUARD(s2n_init_stacktrace());
     fprintf(fptr, "\nStacktrace is:\n");
     for (int i = 0; i < tl_stacktrace.trace_size; ++i){
         fprintf(fptr, "%s\n",  tl_stacktrace.trace[i]);
