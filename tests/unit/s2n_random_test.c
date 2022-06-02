@@ -26,6 +26,7 @@
 
 #include <pthread.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
@@ -146,48 +147,42 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
     return S2N_RESULT_OK;
 }
 
-static void swap(size_t i, size_t j,
-    uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS]) {
-    uint64_t temp = range_results[j];
-    range_results[j] = range_results[i];
-    range_results[i] = temp;
-}
+int qsort_comparator(const void *pval1, const void *pval2)
+{
+    const uint64_t val1 = *(uint64_t*) pval1;
+    const uint64_t val2 = *(uint64_t*) pval2;
 
-static void sort_array(uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS]) {
-    for (size_t i = 1; i < NUMBER_OF_RANGE_FUNCTION_CALLS; i++) {
-        for (size_t j = i; j > 0; j--) {
-            if (range_results[j - 1] > range_results[j]) {
-                swap(j - 1, j, range_results);
-            }
-            else {
-                /* Invariant: subarray [0, i-1] is sorted */
-                continue;
-            }
-        }
+    if (val1 < val2) {
+        return -1;
+    }
+    else if (val1 > val2) {
+        return 1;
+    }
+    else {
+        return 0;
     }
 }
 
 static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bound, uint64_t *output))
 {
     uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS] = {0};
-    uint64_t current_bound;
-    uint64_t current_output;
+    uint64_t current_output = 0;
     /* The type of the `bound` parameter in s2n_public_random() is signed */
-    int64_t chosen_upper_bound;
+    int64_t chosen_upper_bound = 0;
     struct s2n_blob upper_bound_blob = { .data = (void *) &chosen_upper_bound, .size = sizeof(chosen_upper_bound) };
 
     /* 0 is not a legal upper bound */
-    current_bound = 0;
-    EXPECT_ERROR(s2n_get_range_cb(current_bound, &current_output));
+    chosen_upper_bound = 0;
+    EXPECT_ERROR_WITH_ERRNO(s2n_get_range_cb(chosen_upper_bound, &current_output), S2N_ERR_SAFETY);
 
     /* For an upper bound of 1, 0 should be the only possible output */
-    current_bound = 1;
-    EXPECT_OK(s2n_get_range_cb(current_bound, &current_output));
+    chosen_upper_bound = 1;
+    EXPECT_OK(s2n_get_range_cb(chosen_upper_bound, &current_output));
     EXPECT_EQUAL(current_output, 0);
 
     /* For a upper bound of 2, 0 and 1 should be the only possible outputs */
-    current_bound = 1;
-    EXPECT_OK(s2n_get_range_cb(current_bound, &current_output));
+    chosen_upper_bound = 1;
+    EXPECT_OK(s2n_get_range_cb(chosen_upper_bound, &current_output));
     EXPECT_TRUE((current_output == 0) || (current_output == 1));
 
     /* Test NUMBER_OF_BOUNDS upper bounds. For each resulting range, draw
@@ -198,14 +193,19 @@ static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bou
     int64_t minimal_upper_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
     for (size_t bound_ctr = 0; bound_ctr < NUMBER_OF_BOUNDS; bound_ctr++) {
 
-UPPER_BOUND_TOO_SMALL:
-        EXPECT_OK(s2n_get_private_random_data(&upper_bound_blob));
-        if (chosen_upper_bound < minimal_upper_bound) {
-            goto UPPER_BOUND_TOO_SMALL;
-        }
+        /* chosen_upper_bound is supposedly chosen uniformly at random and
+         * minimal_upper_bound is only 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS, so
+         * this should not iterate for too long
+         */
+        do {
+            EXPECT_OK(s2n_get_private_random_data(&upper_bound_blob));
+        } while (chosen_upper_bound < minimal_upper_bound);
 
+        /* Pick NUMBER_OF_RANGE_FUNCTION_CALLS numbers in the given interval.
+         * While doing that, also verify that the upper bound is respected.
+         */
         for (size_t func_call_ctr = 0; func_call_ctr < NUMBER_OF_RANGE_FUNCTION_CALLS; func_call_ctr++) {
-            EXPECT_OK(s2n_public_random(chosen_upper_bound, &range_results[func_call_ctr]));
+            EXPECT_OK(s2n_get_range_cb(chosen_upper_bound, &range_results[func_call_ctr]));
             EXPECT_TRUE(range_results[func_call_ctr] < chosen_upper_bound);
         }
 
@@ -223,20 +223,26 @@ UPPER_BOUND_TOO_SMALL:
          * this ends up with about a ~1/2^30 probability of failing this test
          * with a false positive.
          *
-         * O(n^2) sorting below, but NUMBER_OF_RANGE_FUNCTION_CALLS is very
-         * small, so no big biggie. Sorting the array means that we can check
-         * for reapeated numbers by just counting from left to right resetting
-         * the count when meeting a different value.
+         * qsort() complexity is not guaranteed, but
+         * NUMBER_OF_RANGE_FUNCTION_CALLS is very small, so no biggie.
+         * Sorting the array means that we can check for repeated numbers by
+         * just counting from left to right resetting the count when meeting a
+         * different value.
          */
-        sort_array(range_results);
+        qsort(range_results, NUMBER_OF_RANGE_FUNCTION_CALLS, sizeof(uint64_t),
+            qsort_comparator);
         uint64_t current_value = range_results[0];
+        uint64_t maybe_next_value = 0;
         size_t repeat_count = 1;
         for (size_t ctr = 1; ctr < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; ctr++) {
 
-            if (current_value == range_results[ctr]) {
+            maybe_next_value = range_results[ctr];
+
+            if (current_value == maybe_next_value) {
                 repeat_count = repeat_count + 1;
             } else {
-                current_value = range_results[ctr];
+                RESULT_ENSURE_LT(current_value, maybe_next_value);
+                current_value = maybe_next_value;
                 repeat_count = 1;
             }
 
@@ -244,7 +250,7 @@ UPPER_BOUND_TOO_SMALL:
         }
 
         /* Reset for next iteration */
-        memset(range_results, 0, sizeof(range_results));
+        RESULT_CHECKED_MEMSET(&range_results[0], 0, sizeof(range_results));
     }
 
     return S2N_RESULT_OK;
@@ -512,6 +518,7 @@ static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
     return EXIT_SUCCESS;
 }
 
+/* Test case that turns off prediction resistance */
 static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
@@ -525,6 +532,9 @@ static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case
     return EXIT_SUCCESS;
 }
 
+/* Test case that turns off prediction resistance and all fork detection
+ * mechanisms expect pthread_at_fork()
+ */
 static int s2n_random_test_case_without_pr_pthread_atfork_cb(struct random_test_case *test_case)
 {
     POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
