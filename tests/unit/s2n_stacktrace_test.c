@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-#ifdef S2N_HAVE_EXECINFO
+#ifndef S2N_NO_STACKTRACE
     EXPECT_SUCCESS(s2n_stack_traces_enabled_set(true));
     struct s2n_stacktrace trace;
     /* If nothing has errored yet, we have no stacktrace */

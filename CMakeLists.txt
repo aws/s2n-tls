@@ -27,6 +27,8 @@ option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed 
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
+option(S2N_NO_STACKTRACE "Disables stacktrace functionality in s2n-tls." OFF)
+
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -434,8 +436,8 @@ if(ADX_SUPPORTED)
     message(STATUS "Support for ADX assembly instructions detected")
 endif()
 
-if(S2N_HAVE_EXECINFO)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_HAVE_EXECINFO)
+if(NOT S2N_HAVE_EXECINFO OR S2N_NO_STACKTRACE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_STACKTRACE)
 endif()
 
 if(S2N_CPUID_AVAILABLE)
