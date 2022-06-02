@@ -438,6 +438,7 @@ endif()
 
 if(NOT S2N_HAVE_EXECINFO OR S2N_NO_STACKTRACE)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_STACKTRACE)
+    message(STATUS "Disabling stacktrace functionality")
 endif()
 
 if(S2N_CPUID_AVAILABLE)
