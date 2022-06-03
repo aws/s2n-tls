@@ -149,8 +149,8 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
 
 int qsort_comparator(const void *pval1, const void *pval2)
 {
-    const uint64_t val1 = *(uint64_t*) pval1;
-    const uint64_t val2 = *(uint64_t*) pval2;
+    const uint64_t val1 = *(const uint64_t*) pval1;
+    const uint64_t val2 = *(const uint64_t*) pval2;
 
     if (val1 < val2) {
         return -1;
@@ -163,7 +163,7 @@ int qsort_comparator(const void *pval1, const void *pval2)
     }
 }
 
-static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bound, uint64_t *output))
+static S2N_RESULT s2n_tests_get_range(void)
 {
     uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS] = {0};
     uint64_t current_output = 0;
@@ -173,22 +173,24 @@ static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bou
 
     /* 0 is not a legal upper bound */
     chosen_upper_bound = 0;
-    EXPECT_ERROR_WITH_ERRNO(s2n_get_range_cb(chosen_upper_bound, &current_output), S2N_ERR_SAFETY);
+    EXPECT_ERROR_WITH_ERRNO(s2n_public_random(chosen_upper_bound, &current_output), S2N_ERR_SAFETY);
 
     /* For an upper bound of 1, 0 should be the only possible output */
     chosen_upper_bound = 1;
-    EXPECT_OK(s2n_get_range_cb(chosen_upper_bound, &current_output));
+    EXPECT_OK(s2n_public_random(chosen_upper_bound, &current_output));
     EXPECT_EQUAL(current_output, 0);
 
     /* For a upper bound of 2, 0 and 1 should be the only possible outputs */
     chosen_upper_bound = 1;
-    EXPECT_OK(s2n_get_range_cb(chosen_upper_bound, &current_output));
+    EXPECT_OK(s2n_public_random(chosen_upper_bound, &current_output));
     EXPECT_TRUE((current_output == 0) || (current_output == 1));
 
     /* Test NUMBER_OF_BOUNDS upper bounds. For each resulting range, draw
      * NUMBER_OF_RANGE_FUNCTION_CALLS numbers from s2n_public_random() and
      * verify the output. Set 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS as the
-     * minimal value for the upper bound.
+     * minimal value for the upper bound. The minimal upper bound value is
+     * chosen to make the likelihood of a false positive small - see below for
+     * probability calculations.
      */
     int64_t minimal_upper_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
     for (size_t bound_ctr = 0; bound_ctr < NUMBER_OF_BOUNDS; bound_ctr++) {
@@ -205,7 +207,7 @@ static S2N_RESULT s2n_tests_get_range(S2N_RESULT (*s2n_get_range_cb)(int64_t bou
          * While doing that, also verify that the upper bound is respected.
          */
         for (size_t func_call_ctr = 0; func_call_ctr < NUMBER_OF_RANGE_FUNCTION_CALLS; func_call_ctr++) {
-            EXPECT_OK(s2n_get_range_cb(chosen_upper_bound, &range_results[func_call_ctr]));
+            EXPECT_OK(s2n_public_random(chosen_upper_bound, &range_results[func_call_ctr]));
             EXPECT_TRUE(range_results[func_call_ctr] < chosen_upper_bound);
         }
 
@@ -487,7 +489,7 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_basic_pattern_tests(s2n_get_private_random_data));
 
     /* Special range function tests */
-    EXPECT_OK(s2n_tests_get_range(s2n_public_random));
+    EXPECT_OK(s2n_tests_get_range());
 
     /* Just a sanity check and avoids cppcheck "unassignedVariable" errors.
      * In future PRs this part will be expanded.
