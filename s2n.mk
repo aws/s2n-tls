@@ -185,8 +185,8 @@ try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$
 
 # Determine if execinfo.h is available
 TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
-ifneq ($(TRY_COMPILE_EXECINFO), 0)
-	DEFAULT_CFLAGS += -DS2N_NO_STACKTRACE
+ifeq ($(TRY_COMPILE_EXECINFO), 0)
+	DEFAULT_CFLAGS += -DS2N_STACKTRACE
 endif
 
 # Determine if cpuid.h is available

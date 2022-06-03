@@ -24,7 +24,7 @@
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 
-#ifndef S2N_NO_STACKTRACE
+#ifdef S2N_STACKTRACE
 #   include <execinfo.h>
 #endif
 
@@ -367,7 +367,7 @@ int s2n_stack_traces_enabled_set(bool newval)
     return S2N_SUCCESS;
 }
 
-#ifndef S2N_NO_STACKTRACE
+#ifdef S2N_STACKTRACE
 
 #define MAX_BACKTRACE_DEPTH 20
 __thread struct s2n_stacktrace tl_stacktrace = {0};
@@ -418,7 +418,7 @@ int s2n_print_stacktrace(FILE *fptr)
     return S2N_SUCCESS;
 }
 
-#else /* !S2N_NO_STACKTRACE */
+#else /* !S2N_STACKTRACE */
 int s2n_free_stacktrace(void)
 {
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
@@ -443,4 +443,4 @@ int s2n_print_stacktrace(FILE *fptr)
 {
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
-#endif /* S2N_NO_STACKTRACE */
+#endif /* S2N_STACKTRACE */
