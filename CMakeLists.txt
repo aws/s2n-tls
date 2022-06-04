@@ -495,7 +495,16 @@ if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
 endif()
 
-#work around target differences
+# For interning, we need to find the static libcrypto library. Cmake configs
+# can branch on the variable BUILD_SHARED_LIBS to e.g. avoid having to define
+# multiple targets. An example is AWS-LC:
+# https://github.com/awslabs/aws-lc/blob/main/crypto/cmake/crypto-config.cmake#L5
+if (S2N_INTERN_LIBCRYPTO)
+    set(BUILD_SHARED_LIBS_BACKUP ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF)
+endif()
+
+# Work around target differences
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
     set(LINK_LIB "crypto")
@@ -506,6 +515,8 @@ else()
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
+    # Restore the old BUILD_SHARED_LIBS value
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BACKUP})
     message(STATUS "Enabling libcrypto interning")
 endif()
 
@@ -546,9 +557,31 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
+
+    # Check if the AWS::crypto target has beeen added and handle it
+    if (TARGET AWS::crypto)
+        # Get the target library type (shared or static)
+        get_target_property(target_type AWS::crypto TYPE)
+        message(STATUS "AWS::crypto target type: ${target_type}")
+
+        # If we didn't find the a target with static library type, fallback to
+        # existing crypto_STATIC_LIBRARY and crypto_INCLUDE_DIR
+        if (target_type STREQUAL STATIC_LIBRARY)
+            # We need an path to the include directory and libcrypto.a archive.
+            # The finder module defines these appropriately, but if we go through
+            # the target config we need to query this information from the target
+            # first.
+            get_target_property(crypto_STATIC_LIBRARY AWS::crypto LOCATION)
+            get_target_property(crypto_INCLUDE_DIR AWS::crypto INTERFACE_INCLUDE_DIRECTORIES)
+        endif()
+    endif()
+
     if (NOT crypto_STATIC_LIBRARY)
         message(FATAL_ERROR "libcrypto interning requires a static build of libcrypto.a to be available")
     endif()
+
+    message(STATUS "crypto_STATIC_LIBRARY: ${crypto_STATIC_LIBRARY}")
+    message(STATUS "crypto_INCLUDE_DIR: ${crypto_INCLUDE_DIR}")
 
     # Don't call link_target_libraries here, just make sure the libcrypto include dir is in the path
     include_directories("${crypto_INCLUDE_DIR}")
