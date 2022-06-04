@@ -234,17 +234,17 @@ static S2N_RESULT s2n_tests_get_range(void)
         qsort(range_results, NUMBER_OF_RANGE_FUNCTION_CALLS, sizeof(uint64_t),
             qsort_comparator);
         uint64_t current_value = range_results[0];
-        uint64_t maybe_next_value = 0;
+        uint64_t next_value = 0;
         size_t repeat_count = 1;
         for (size_t ctr = 1; ctr < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; ctr++) {
 
-            maybe_next_value = range_results[ctr];
+            next_value = range_results[ctr];
 
-            if (current_value == maybe_next_value) {
+            if (current_value == next_value) {
                 repeat_count = repeat_count + 1;
             } else {
-                RESULT_ENSURE_LT(current_value, maybe_next_value);
-                current_value = maybe_next_value;
+                RESULT_ENSURE_LT(current_value, next_value);
+                current_value = next_value;
                 repeat_count = 1;
             }
 
