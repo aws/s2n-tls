@@ -14,9 +14,9 @@ default = []
 errno = { version = "0.2" }
 libc = { version = "0.2" }
 s2n-tls = { version = "=0.0.8", path = "../s2n-tls" }
-tokio = { version = "1", features = ["net"] }
+tokio = { version = "1", features = ["net", "time"] }
 
 [dev-dependencies]
 clap = { version = "3.1", features = ["derive"] }
 rand = { version = "0.8" }
-tokio = { version = "1", features = [ "io-std", "io-util", "macros", "net", "rt-multi-thread", "time"] }
+tokio = { version = "1", features = [ "io-std", "io-util", "macros", "net", "rt-multi-thread", "test-util", "time"] }

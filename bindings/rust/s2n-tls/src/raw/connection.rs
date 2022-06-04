@@ -123,6 +123,13 @@ impl Connection {
         Ok(self)
     }
 
+    /// Reports the remaining nanoseconds before the connection may be safely closed.
+    ///
+    /// If [`shutdown`] is called before this method reports "0", then an error will occur.
+    pub fn remaining_blinding_nanos(&self) -> Result<u64, Error> {
+        unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }
+    }
+
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.
     ///
     /// If this is set to ClientAuthType::Optional the server will request a client certificate

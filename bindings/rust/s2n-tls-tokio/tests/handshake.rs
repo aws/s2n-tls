@@ -3,16 +3,18 @@
 
 use rand::Rng;
 use s2n_tls::raw::{
+    config::Config,
     connection::{Connection, ModifiedBuilder},
     enums::{ClientAuthType, Mode, Version},
     error::Error,
     pool::ConfigPoolBuilder,
+    security::DEFAULT_TLS13,
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
-use std::collections::VecDeque;
-use tokio::time::{sleep, Duration};
+use std::{collections::VecDeque, time::Duration};
+use tokio::time;
 
-mod common;
+pub mod common;
 
 #[tokio::test]
 async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
@@ -60,7 +62,7 @@ async fn handshake_with_pool_multithread() -> Result<(), Box<dyn std::error::Err
         tasks.push_back(tokio::spawn(async move {
             // Start each handshake at a randomly determined time
             let rand = rand::thread_rng().gen_range(0..50);
-            sleep(Duration::from_millis(rand)).await;
+            time::sleep(Duration::from_millis(rand)).await;
 
             let (server_stream, client_stream) = common::get_streams().await.unwrap();
             common::run_negotiate(&client, client_stream, &server, server_stream).await
@@ -122,6 +124,60 @@ async fn handshake_with_connection_config_with_pool() -> Result<(), Box<dyn std:
             .handshake_type()?
             .contains("CLIENT_AUTH"));
     }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn handshake_error() -> Result<(), Box<dyn std::error::Error>> {
+    // Config::default() does not include any RSA certificates,
+    // but only provides TLS1.2 cipher suites that require RSA auth.
+    // The server will fail to choose a cipher suite, but
+    // S2N_ERR_CIPHER_NOT_SUPPORTED is specifically excluded from blinding.
+    let bad_config = Config::default();
+    let client_config = common::client_config()?.build()?;
+    let server_config = bad_config;
+
+    let client = TlsConnector::new(client_config);
+    let server = TlsAcceptor::new(server_config);
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let result = common::run_negotiate(&client, client_stream, &server, server_stream).await;
+    assert!(matches!(result, Err(e) if !e.is_retryable()));
+
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
+    // Config::builder() does not include a trust store.
+    // The client will reject the server certificate as untrusted.
+    let mut bad_config = Config::builder();
+    bad_config.set_security_policy(&DEFAULT_TLS13)?;
+    let client_config = bad_config.build()?;
+    let server_config = common::server_config()?.build()?;
+
+    let client = TlsConnector::new(client_config.clone());
+    let server = TlsAcceptor::new(server_config.clone());
+
+    // Handshake MUST NOT finish faster than minimal blinding time.
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let timeout = time::timeout(
+        common::MIN_BLINDING_SECS,
+        common::run_negotiate(&client, client_stream, &server, server_stream),
+    )
+    .await;
+    assert!(timeout.is_err());
+
+    // Handshake MUST eventually gracefully close after blinding
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let timeout = time::timeout(
+        common::MAX_BLINDING_SECS.mul_f32(1.1),
+        common::run_negotiate(&client, client_stream, &server, server_stream),
+    )
+    .await;
+    let result = timeout?;
+    assert!(result.is_err());
 
     Ok(())
 }

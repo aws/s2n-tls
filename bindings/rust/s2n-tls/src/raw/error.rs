@@ -70,6 +70,27 @@ impl Fallible for isize {
     }
 }
 
+impl Fallible for u64 {
+    type Output = Self;
+
+    /// Converts a u64 to a Result by checking for the maximum value.
+    ///
+    /// If a method that returns an unsigned int is fallible,
+    /// then the -1 error result wraps around to the maximum value.
+    /// The maximum value must not be possible otherwise.
+    ///
+    /// For example, [`s2n_connection_get_delay`] can't return
+    /// the maximum value because s2n-tls blinding delays are limited
+    /// to 30s, or a return value of 3^10.
+    fn into_result(self) -> Result<Self::Output, Error> {
+        if self != Self::MAX {
+            Ok(self)
+        } else {
+            Err(Error::capture())
+        }
+    }
+}
+
 impl<T> Fallible for *mut T {
     type Output = NonNull<T>;
 
@@ -218,6 +239,12 @@ impl TryFrom<std::io::Error> for Error {
             .downcast::<Self>()
             .map(|error| *error)
             .map_err(|_| Error::InvalidInput)
+    }
+}
+
+impl From<Error> for std::io::Error {
+    fn from(input: Error) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, input)
     }
 }
 
