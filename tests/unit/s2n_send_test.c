@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "api/s2n.h"
+#include "utils/s2n_random.h"
 
 bool s2n_custom_send_fn_called = false;
 static uint64_t sent_bytes = 0;
@@ -190,7 +191,7 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_blob large_data = {0}, s2n_free);
     /* Allocate 32KB so it takes multiple records to send complete data. */
     EXPECT_SUCCESS(s2n_alloc(&large_data, 1 << 15));
-    EXPECT_SUCCESS(s2n_get_public_random_data(&large_data));
+    EXPECT_OK(s2n_get_public_random_data(&large_data));
 
     /* s2n_send cannot be called concurrently */
     {
