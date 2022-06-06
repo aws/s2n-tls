@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "api/s2n.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
 bool s2n_custom_send_fn_called = false;
@@ -63,7 +64,6 @@ static int s2n_broken_pipe_send_fn(void *io_context, const uint8_t *buf, uint32_
 
     return partial_read;
 }
-
 
 static int s2n_fail_send_with_injected_errno_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
@@ -149,7 +149,7 @@ static int s2n_dynamic_record_sizing_fn(void *io_context, const uint8_t *buf, ui
     POSIX_GUARD_RESULT(s2n_record_min_write_payload_size(conn, &min_payload_size));
     EXPECT_EQUAL(1398, min_payload_size);
 
-    /* Until we hit the dyanmic record resize threshold we expect that the records are divisible
+    /* Until we hit the dynamic record resize threshold we expect that the records are divisible
      * by the s2n_record_min_write_payload_size. */
     if (conn->active_application_bytes_consumed <= conn->dynamic_record_resize_threshold) {
         /* The test is set up so dynamic record sizes are only used in the first and third writes. */
@@ -380,37 +380,27 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
     }
 
-    /* s2n_sendv_with_offset_impl checks for a closed socket */
+    /* s2n_sendv_with_offset checks for a closed socket */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
 
         conn->closed = 1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset_impl(conn, NULL, 0, 0, NULL), S2N_ERR_CLOSED);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, NULL, 0, 0, NULL), S2N_ERR_CLOSED);
     }
 
-    /* s2n_sendv_with_offset_impl checks for a closed socket */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-            s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-
-        conn->closed = 1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset_impl(conn, NULL, 0, 0, NULL), S2N_ERR_CLOSED);
-    }
-
-    /* s2n_sendv_with_offset_impl errors when Quic is enabled */
+    /* s2n_sendv_with_offset errors when Quic is enabled */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset_impl(conn, NULL, 0, 0, NULL), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, NULL, 0, 0, NULL), S2N_ERR_UNSUPPORTED_WITH_QUIC);
     }
 
-    /* s2n_sendv_with_offset_impl mitigates BEAST with small writes  */
+    /* s2n_sendv_with_offset mitigates BEAST with small writes  */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
