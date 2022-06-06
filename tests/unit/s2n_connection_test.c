@@ -661,6 +661,22 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
     }
 
+    /* Test s2n_connection_set_dynamic_record_threshold */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        /* value of S2N_TLS_MAX_RESIZE_THRESHOLD at time of writing test is
+         * (1024 * 1024 * 8) which is well below overflowing a uint32_t. */
+        uint32_t max_resize_threshold = S2N_TLS_MAX_RESIZE_THRESHOLD;
+        uint16_t arbitrary_timeout_threshold = 1;
+
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_record_threshold(conn, max_resize_threshold, arbitrary_timeout_threshold));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_dynamic_record_threshold(conn, max_resize_threshold+1, arbitrary_timeout_threshold), S2N_ERR_INVALID_DYNAMIC_THRESHOLD);
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));
     END_TEST();
