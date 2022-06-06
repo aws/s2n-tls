@@ -121,7 +121,7 @@ static int s2n_send_mitigates_beast_fn(void *io_context, const uint8_t *buf, uin
 static int s2n_partial_socket_send_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
     struct s2n_connection *conn = (struct s2n_connection*) io_context;
-    uint32_t *sent_bytes = (uint32_t*) s2n_connection_get_ctx(conn);
+    uint32_t *written_bytes = (uint32_t*) s2n_connection_get_ctx(conn);
 
     /* Break loop on second call. */
     if (s2n_custom_send_fn_called) {
@@ -132,7 +132,7 @@ static int s2n_partial_socket_send_fn(void *io_context, const uint8_t *buf, uint
     s2n_custom_send_fn_called = true;
     int partial_read = len-3;
 
-    *sent_bytes = partial_read;
+    *written_bytes = partial_read;
     errno = EAGAIN;
 
     return partial_read;
