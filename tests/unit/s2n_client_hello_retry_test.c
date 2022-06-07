@@ -1067,7 +1067,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Set a session id that's different from the client hello */
-            memset(client_conn->session_id, 0, S2N_TLS_SESSION_ID_MAX_LEN);
+            POSIX_CHECKED_MEMSET(&client_conn->session_id, 0, S2N_TLS_SESSION_ID_MAX_LEN);
 
             /* Server sends HelloRetryRequest */
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
