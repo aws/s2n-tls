@@ -425,14 +425,16 @@ int main(int argc, char **argv)
          * 2. connection is in client mode
          * 3. the chosen cipher uses CBC */
         conn->actual_protocol_version = S2N_TLS10;
-        /* This can be any cipher suite, we only care that it uses CBC. */
+        /* This can be any cipher suite that uses CBC. */
         struct s2n_cipher_suite *cipher_suite = &s2n_rsa_with_3des_ede_cbc_sha;
         conn->client->cipher_suite = cipher_suite;
 
-        s2n_custom_send_fn_called = false;
-        EXPECT_SUCCESS(s2n_send(conn, test_data, sizeof(test_data), &blocked));
-        EXPECT_TRUE(s2n_custom_send_fn_called);
-        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        if (cipher_suite->available) {
+            s2n_custom_send_fn_called = false;
+            EXPECT_SUCCESS(s2n_send(conn, test_data, sizeof(test_data), &blocked));
+            EXPECT_TRUE(s2n_custom_send_fn_called);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        }
     }
 
     /* s2n_send partial writes are flushed in proceeding sends */
@@ -516,7 +518,6 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_custom_send_fn_called);
 
         EXPECT_NOT_EQUAL(conn->last_write_elapsed, last_clock);
-        last_clock = conn->last_write_elapsed;
 
         /* Two full sends with no dynamic record size reset. */
         EXPECT_EQUAL(conn->active_application_bytes_consumed, large_data.size * 2);
