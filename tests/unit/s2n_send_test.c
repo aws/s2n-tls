@@ -427,11 +427,13 @@ int main(int argc, char **argv)
          * 2. connection is in client mode
          * 3. the chosen cipher uses CBC */
         conn->actual_protocol_version = S2N_TLS10;
-        /* This can be any cipher suite that uses CBC. */
+        /* This can be any cipher suite that uses CBC. s2n_rsa_with_3des_ede_cbc_sha is chosen because it's easier to stub. */
         struct s2n_cipher_suite *cipher_suite = &s2n_rsa_with_3des_ede_cbc_sha;
+        struct s2n_cipher_suite *composite_cipher_suite = &s2n_rsa_with_aes_128_cbc_sha;
         conn->client->cipher_suite = cipher_suite;
 
-        if (cipher_suite->available) {
+        /* We need to check out if a composite cipher is available to filter out BoringSSL and AWSLC, or s2n_send will fail trying to use CBC. */
+        if (cipher_suite->available && composite_cipher_suite->all_record_algs[0]->cipher->is_available()) {
             s2n_custom_send_fn_called = false;
             EXPECT_SUCCESS(s2n_send(conn, test_data, sizeof(test_data), &blocked));
             EXPECT_TRUE(s2n_custom_send_fn_called);
