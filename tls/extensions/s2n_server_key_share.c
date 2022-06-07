@@ -28,7 +28,7 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
 const s2n_extension_type s2n_server_key_share_extension = {
     .iana_value = TLS_EXTENSION_KEY_SHARE,
     .minimum_version = S2N_TLS13,
-    .is_response = true,
+    .is_response = false,
     .send = s2n_server_key_share_send,
     .recv = s2n_server_key_share_recv,
     .should_send = s2n_extension_always_send,
