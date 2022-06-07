@@ -449,7 +449,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      **/
     uint8_t null_cipher[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_NULL_WITH_NULL_NULL};
     if (s2n_is_hello_retry_handshake(conn)
-        && memcmp(previous_cipher_suite_iana, null_cipher, S2N_TLS_CIPHER_SUITE_LEN) != 0) {
+        && previous_cipher_suite_iana[0] != null_cipher[0]
+        && previous_cipher_suite_iana[1] != null_cipher[1]) {
         POSIX_ENSURE(previous_cipher_suite_iana[0] == conn->secure.cipher_suite->iana_value[0] &&
                      previous_cipher_suite_iana[1] == conn->secure.cipher_suite->iana_value[1],
                      S2N_ERR_BAD_MESSAGE);
