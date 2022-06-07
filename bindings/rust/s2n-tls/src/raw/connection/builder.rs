@@ -6,13 +6,13 @@ use crate::raw::{config::Config, connection::Connection, enums::Mode, error::Err
 /// A trait indicating that a structure can produce connections.
 pub trait Builder: Clone {
     type Output: AsMut<Connection> + AsRef<Connection>;
-    fn build(&self, mode: Mode) -> Result<Self::Output, Error>;
+    fn build_connection(&self, mode: Mode) -> Result<Self::Output, Error>;
 }
 
 /// Produces new connections with the given Config set.
 impl Builder for Config {
     type Output = Connection;
-    fn build(&self, mode: Mode) -> Result<Self::Output, Error> {
+    fn build_connection(&self, mode: Mode) -> Result<Self::Output, Error> {
         let mut conn = Connection::new(mode);
         conn.set_config(self.clone())?;
         Ok(conn)
@@ -45,8 +45,8 @@ where
     F: Fn(&mut Connection) -> Result<&mut Connection, Error> + Clone,
 {
     type Output = B::Output;
-    fn build(&self, mode: Mode) -> Result<Self::Output, Error> {
-        let mut conn = self.builder.build(mode)?;
+    fn build_connection(&self, mode: Mode) -> Result<Self::Output, Error> {
+        let mut conn = self.builder.build_connection(mode)?;
         (self.modifier)(conn.as_mut())?;
         Ok(conn)
     }
@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn config_builder() -> Result<(), Box<dyn std::error::Error>> {
         let config = Config::default();
-        let conn = config.build(Mode::Server)?;
+        let conn = config.build_connection(Mode::Server)?;
         assert_eq!(conn.config(), Some(config));
         Ok(())
     }
@@ -73,7 +73,7 @@ mod tests {
         let builder =
             ModifiedBuilder::new(config_a.clone(), |conn| conn.set_config(config_b.clone()));
 
-        let conn = builder.build(Mode::Server)?;
+        let conn = builder.build_connection(Mode::Server)?;
         assert!(conn.config() != Some(config_a));
         assert_eq!(conn.config(), Some(config_b));
         Ok(())

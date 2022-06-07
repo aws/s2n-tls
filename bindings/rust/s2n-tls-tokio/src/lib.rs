@@ -38,7 +38,7 @@ where
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        let conn = self.builder.build(Mode::Server)?;
+        let conn = self.builder.build_connection(Mode::Server)?;
         TlsStream::open(conn, stream).await
     }
 }
@@ -67,7 +67,7 @@ where
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        let mut conn = self.builder.build(Mode::Client)?;
+        let mut conn = self.builder.build_connection(Mode::Client)?;
         conn.as_mut().set_server_name(domain)?;
         TlsStream::open(conn, stream).await
     }
