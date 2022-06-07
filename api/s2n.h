@@ -136,16 +136,32 @@ extern int *s2n_errno_location(void);
  *
  * This enum is optimized for use in C switch statements. Each value in the enum represents
  * an error "category".
+ *
+ * s2n-tls organizes errors into different "types" to allow applications to handle error
+ * values without catching all possibilities. Applications using non-blocking I/O should check
+ * the error type to determine if the I/O operation failed because it would block or for some other
+ * error. To retrieve the type for a given error use `s2n_error_get_type()`. Applications should
+ * perform any error handling logic using these high level types.
+ *
+ * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#error-handling) section for how the errors should be interpreted. 
  */
 typedef enum {
-    S2N_ERR_T_OK=0,
-    S2N_ERR_T_IO,
-    S2N_ERR_T_CLOSED,
-    S2N_ERR_T_BLOCKED,
-    S2N_ERR_T_ALERT,
-    S2N_ERR_T_PROTO,
-    S2N_ERR_T_INTERNAL,
-    S2N_ERR_T_USAGE
+  /** No error */
+  S2N_ERR_T_OK=0,
+  /** Underlying I/O operation failed, check system errno */
+  S2N_ERR_T_IO, 
+  /** EOF */
+  S2N_ERR_T_CLOSED,
+  /** Underlying I/O operation would block */
+  S2N_ERR_T_BLOCKED,
+  /** Incoming Alert */
+  S2N_ERR_T_ALERT,
+  /** Failure in some part of the TLS protocol. Ex: CBC verification failure */
+  S2N_ERR_T_PROTO,
+  /** Error internal to s2n-tls. A precondition could have failed. */
+  S2N_ERR_T_INTERNAL,
+  /** User input error. Ex: Providing an invalid cipher preference version */
+  S2N_ERR_T_USAGE 
 } s2n_error_type;
 
 /**
@@ -176,6 +192,13 @@ struct s2n_connection;
  * prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate
  * with S2N.
  *
+ * @warning This function must be called BEFORE s2n_init() to have any effect. It will return an error
+ * if s2n is already initialized.
+ *
+ * @note If you disable this and are using a version of OpenSSL/libcrypto < 1.1.x, you will
+ * be responsible for library init and cleanup (specifically `OPENSSL_add_all_algorithms()`
+ * or `OPENSSL_crypto_init()`, and EVP_* APIs will not be usable unless the library is initialized.
+ *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
@@ -184,6 +207,12 @@ extern int s2n_crypto_disable_init(void);
 /**
  * Prevents S2N from installing an atexit handler, which allows safe shutdown of S2N from within a
  * re-entrant shared library
+ *
+ * @warning This function must be called BEFORE s2n_init() to have any effect. It will return an error
+ * if s2n is already initialized.
+ *
+ * @note This will cause `s2n_cleanup` to do complete cleanup of s2n-tls when called from the main
+ * thread (the thread `s2n_init` was called from).
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
