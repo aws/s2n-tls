@@ -169,7 +169,7 @@ int main()
         }
 
         /**
-         * response extension
+         * Response extension tests
          *
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2
          *= type=test
