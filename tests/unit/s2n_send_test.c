@@ -395,9 +395,11 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
-        EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, NULL, 0, 0, NULL), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+        if (s2n_is_tls13_fully_supported()) {
+            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, NULL, 0, 0, NULL), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+        }
     }
 
     /* s2n_sendv_with_offset mitigates BEAST with small writes  */
