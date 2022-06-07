@@ -1260,13 +1260,10 @@ int main(int argc, char **argv)
          /* Custom s2n_server_hello_retry_send */
          {
              POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-
              POSIX_GUARD(s2n_server_hello_write_message(server_conn));
 
              /* Custom s2n_server_extensions_send */
              {
-                 uint32_t data_available_before_extensions = s2n_stuffer_data_available(&server_conn->handshake.io);
-
                  struct s2n_stuffer_reservation total_extensions_size = {0};
                  POSIX_GUARD(s2n_stuffer_reserve_uint16(&server_conn->handshake.io, &total_extensions_size));
 
@@ -1274,10 +1271,6 @@ int main(int argc, char **argv)
                  s2n_extension_send(&s2n_server_key_share_extension, server_conn, &server_conn->handshake.io);
 
                  POSIX_GUARD(s2n_stuffer_write_vector_size(&total_extensions_size));
-
-                 if(s2n_stuffer_data_available(&server_conn->handshake.io) - data_available_before_extensions == sizeof(uint16_t)) {
-                     POSIX_GUARD(s2n_stuffer_wipe_n(&server_conn->handshake.io, sizeof(uint16_t)));
-                 }
              }
 
              /* Update transcript */
