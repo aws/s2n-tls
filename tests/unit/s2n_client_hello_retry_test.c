@@ -1022,10 +1022,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
-            /*
-             * Set actual protocol version to < TLS 1.2, so the legacy protocol version
-             * is written to this value in s2n_server_hello_write_message
-             */
+            /* Force the server to send an erroneous legacy protocol version in the HelloRetryRequest message */
             server_conn->actual_protocol_version = S2N_TLS11;
 
             /* Server sends HelloRetryRequest */
