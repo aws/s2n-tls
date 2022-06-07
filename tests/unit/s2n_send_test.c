@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "api/s2n.h"
+#include "tls/s2n_tls.h"
 
 /* s2n_send buffered send test case parameter.
  *
