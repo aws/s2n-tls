@@ -672,6 +672,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_EQUAL(valid_buffer_size, conn->send_buffer_size);
+        EXPECT_EQUAL(conn->send_mode, S2N_BUFFERED_SEND);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));

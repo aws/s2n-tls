@@ -32,7 +32,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
+bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
 {
     /* If the connection is unbuffered then flush on every record written.
      * The rest of this function assumes conn->send_mode == S2N_BUFFERED_SEND */
@@ -45,6 +45,13 @@ static bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_
     /* If the stuffer can't store the max possible max fragment size 
      * without growing it's time to flush. */
     if (available_space < max_write_size) {
+        return true;
+    }
+
+    uint32_t bytes_in_stuffer = s2n_stuffer_data_available(&conn->out);
+
+    /* If the stuffer cannot contain a max fragment size record then it is time to flush. */
+    if (bytes_in_stuffer + max_write_size > conn->send_buffer_size) {
         return true;
     }
 

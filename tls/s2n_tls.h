@@ -23,6 +23,7 @@
 extern uint8_t s2n_unknown_protocol_version;
 extern uint8_t s2n_highest_protocol_version;
 
+extern bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size);
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
 int s2n_client_hello_request_recv(struct s2n_connection *conn);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
