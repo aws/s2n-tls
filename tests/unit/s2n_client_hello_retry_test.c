@@ -129,7 +129,6 @@ int main(int argc, char **argv)
 
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                                             s2n_stuffer_data_available(&client_conn->handshake.io)));
 
@@ -679,7 +678,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_test_io_pair io_pair = { 0 };
@@ -707,7 +706,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -740,7 +739,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -773,7 +772,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
@@ -807,7 +806,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
@@ -842,7 +841,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -891,7 +890,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
@@ -1004,7 +1003,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                           s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_test_io_pair io_pair = { 0 };
@@ -1016,13 +1015,11 @@ int main(int argc, char **argv)
 
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                                             s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
             /*
@@ -1053,7 +1050,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                           s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_test_io_pair io_pair = { 0 };
@@ -1065,13 +1062,11 @@ int main(int argc, char **argv)
 
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                                             s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Set a session id that's different from the client hello */
@@ -1108,7 +1103,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                           s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_test_io_pair io_pair = { 0 };
@@ -1145,7 +1140,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                           s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_test_io_pair io_pair = { 0 };
@@ -1157,13 +1152,11 @@ int main(int argc, char **argv)
 
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                                             s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Custom s2n_server_hello_retry_send */
@@ -1249,7 +1242,7 @@ int main(int argc, char **argv)
 
              DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                            s2n_connection_ptr_free);
-             EXPECT_NOT_NULL(server_conn);
+             EXPECT_NOT_NULL(client_conn);
              EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
              struct s2n_test_io_pair io_pair = { 0 };
@@ -1298,7 +1291,7 @@ int main(int argc, char **argv)
 
              DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                            s2n_connection_ptr_free);
-             EXPECT_NOT_NULL(server_conn);
+             EXPECT_NOT_NULL(client_conn);
              EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
              struct s2n_test_io_pair io_pair = { 0 };
@@ -1363,7 +1356,7 @@ int main(int argc, char **argv)
 
          DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                        s2n_connection_ptr_free);
-         EXPECT_NOT_NULL(server_conn);
+         EXPECT_NOT_NULL(client_conn);
          EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
          struct s2n_test_io_pair io_pair = { 0 };
@@ -1450,7 +1443,7 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
          DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-         EXPECT_NOT_NULL(server_conn);
+         EXPECT_NOT_NULL(client_conn);
          EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
          EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -1500,7 +1493,7 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
          DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-         EXPECT_NOT_NULL(server_conn);
+         EXPECT_NOT_NULL(client_conn);
          EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
          EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
