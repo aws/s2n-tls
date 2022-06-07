@@ -284,7 +284,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
         /* Send test data */
-        uint8_t test_data[SEND_BUFFER_SIZE] = {0xB, 0xE, 0xE, 0xF}; /* Rest is 0x0, but we only care about the buffer size */
+        uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
 
         s2n_blocked_status blocked = 0;
         s2n_custom_send_fn_called = false;
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
         /* Send test data */
-        uint8_t test_data[SEND_BUFFER_SIZE] = {0xB, 0xE, 0xE, 0xF}; /* Rest is 0x0, but we only care about the buffer size */
+        uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
 
         s2n_blocked_status blocked = 0;
         s2n_custom_send_fn_called = false;
