@@ -149,8 +149,7 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
      *# client MUST abort the handshake.
      *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-     *# As
-     *# with the ServerHello, a HelloRetryRequest MUST NOT contain any
+     *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
      *# extensions that were not first offered by the client in its
      *# ClientHello, with the exception of optionally the "cookie" (see
      *# Section 4.2.2) extension.
