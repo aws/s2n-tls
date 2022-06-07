@@ -133,8 +133,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *# legacy_compression_method as specified in Section 4.1.3 and then
          *# process the extensions, starting with determining the version using
          *# "supported_versions".
-         *
-         * The client MUST check the legacy_version
          **/
         POSIX_ENSURE(legacy_version == S2N_TLS12, S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -161,8 +159,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
      *# legacy_compression_method as specified in Section 4.1.3 and then
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
-     *
-     * The client MUST check the legacy_compression_method
      **/
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
@@ -189,8 +185,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *# legacy_compression_method as specified in Section 4.1.3 and then
          *# process the extensions, starting with determining the version using
          *# "supported_versions".
-         *
-         * The client MUST check the legacy_session_id_echo
          **/
         POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
 

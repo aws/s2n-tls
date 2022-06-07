@@ -428,8 +428,6 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *# Otherwise, the client MUST process all extensions in the
      *# HelloRetryRequest and send a second updated ClientHello.
-     *
-     * The client MUST send a second updated ClientHello
      **/
     [NEGOTIATED | HELLO_RETRY_REQUEST] = {
             CLIENT_HELLO,
