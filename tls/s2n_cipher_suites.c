@@ -1149,7 +1149,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# legacy_compression_method as specified in Section 4.1.3 and then
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
-     * - Check cipher_suite
+     *
+     * The client MUST check the Check cipher_suite
      **/
     POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 

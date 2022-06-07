@@ -1223,7 +1223,8 @@ int main(int argc, char **argv)
      *# legacy_compression_method as specified in Section 4.1.3 and then
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
-     * - Process extensions, starting with supported_versions
+     *
+     * The client MUST Process extensions, starting with supported_versions
      *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test

@@ -70,7 +70,8 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
      *# legacy_compression_method as specified in Section 4.1.3 and then
      *# process the extensions, starting with determining the version using
      *# "supported_versions".
-     * - Process extensions, starting with supported_versions
+     *
+     * The client MUST process the extensions, starting with supported_versions
      **/
     POSIX_GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
@@ -79,7 +80,8 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
          *= https://tools.ietf.org/rfc/rfc8446#4.1.4
          *# Otherwise, the client MUST process all extensions in the
          *# HelloRetryRequest and send a second updated ClientHello.
-         * - Process all extensions
+         *
+         * The client MUST process all extensions
          */
         POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, &parsed_extension_list));
 
