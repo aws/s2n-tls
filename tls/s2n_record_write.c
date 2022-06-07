@@ -303,6 +303,8 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         }
     }
 
+    /* A record only local stuffer used to avoid tainting the conn->out stuffer. It should be
+     * used to add an individual record to the out stuffer. */
     struct s2n_stuffer record_stuffer = {0};
     POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &conn->out.blob));
     POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, conn->out.write_cursor));
@@ -490,6 +492,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&record_stuffer, encrypted_length) };
     POSIX_GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
 
+    /* Sync the out stuffer write cursor to with the record stuffer. */
     POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
     POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, record_stuffer.write_cursor));
 
