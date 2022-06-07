@@ -1532,6 +1532,33 @@ int main(int argc, char **argv)
                                    S2N_ERR_BAD_MESSAGE);
      }
 
+     /**
+     * Ensure all hello retry extensions have is_response set to 1
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# As
+     *# with the ServerHello, a HelloRetryRequest MUST NOT contain any
+     *# extensions that were not first offered by the client in its
+     *# ClientHello, with the exception of optionally the "cookie" (see
+     *# Section 4.2.2) extension.
+     **/
+     {
+         s2n_extension_type_list *hello_retry_extension_types;
+         POSIX_GUARD(s2n_extension_type_list_get(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, &hello_retry_extension_types));
+
+         for (int i = 0; i < hello_retry_extension_types->count; ++i) {
+             const s2n_extension_type *const extension_type = hello_retry_extension_types->extension_types[i];
+
+             /* with the exception of optionally the "cookie" extension. */
+             if (extension_type->iana_value == TLS_EXTENSION_COOKIE) {
+                 continue;
+             }
+
+             EXPECT_TRUE(extension_type->is_response);
+         }
+     }
+
      EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     END_TEST();
