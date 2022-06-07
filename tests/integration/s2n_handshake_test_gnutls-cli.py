@@ -83,7 +83,10 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, ssl_v
     # in the gnutls-cli handshake output
     written_str = "s2n" + priority_str
     gnutls_cli.stdin.write((written_str + "\n").encode("utf-8"))
-    gnutls_cli.stdin.flush()
+    try:
+        gnutls_cli.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     # Read it
     found = 0
@@ -101,7 +104,10 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, ssl_v
 
     # Write the cipher name from s2n
     s2nd.stdin.write((written_str + "\n").encode("utf-8"))
-    s2nd.stdin.flush()
+    try:
+        s2nd.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
     found = 0
     for line in range(0, 50):
         output = gnutls_cli.stdout.readline().decode("utf-8")

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 
 #include "error/s2n_errno.h"
 
@@ -35,11 +36,6 @@
 
 static void s2n_cleanup_atexit(void);
 
-unsigned long s2n_get_openssl_version(void)
-{
-    return OPENSSL_VERSION_NUMBER;
-}
-
 static pthread_t main_thread = 0;
 static bool initialized = false;
 static bool atexit_cleanup = true;
@@ -52,6 +48,7 @@ int s2n_disable_atexit(void) {
 int s2n_init(void)
 {
     main_thread = pthread_self();
+    POSIX_GUARD_RESULT(s2n_libcrypto_validate_runtime());
     POSIX_GUARD(s2n_fips_init());
     POSIX_GUARD(s2n_mem_init());
     POSIX_GUARD_RESULT(s2n_rand_init());

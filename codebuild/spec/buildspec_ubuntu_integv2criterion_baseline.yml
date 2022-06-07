@@ -1,0 +1,30 @@
+---
+version: 0.2
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+phases:
+  install:
+    runtime-versions:
+      python: 3.x
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
+  build:
+    commands:
+      - $CB_BIN_DIR/criterion_baseline.sh
+      - mkdir -p tests/integrationv2/target/criterion
+      - echo "{id:$CODEBUILD_BUILD_ID}" >> tests/integrationv2/target/criterion/artifact.json
+
+artifacts:
+  files:
+    - "**/index.html"
+    - "**/*.svg"
+    - "**/*.json"
+  base-directory: "tests/integrationv2/target/criterion"
+  discard-paths: no
+
