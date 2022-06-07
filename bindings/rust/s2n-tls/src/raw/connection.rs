@@ -4,6 +4,7 @@
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
 use crate::raw::{
+    callbacks::*,
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
@@ -12,6 +13,7 @@ use crate::raw::{
 use core::{
     convert::TryInto,
     fmt,
+    mem::ManuallyDrop,
     ptr::NonNull,
     task::{Poll, Waker},
 };
@@ -49,12 +51,12 @@ impl fmt::Debug for Connection {
 
 /// # Safety
 ///
-/// Safety: s2n_connection objects can be sent across threads
+/// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
 /// # Safety
 ///
-/// Safety: All C methods that mutate the s2n_connection are wrapped
+/// All C methods that mutate the s2n_connection are wrapped
 /// in Rust methods that require a mutable reference.
 unsafe impl Sync for Connection {}
 
@@ -168,6 +170,21 @@ impl Connection {
         }
 
         Ok(self)
+    }
+
+    pub(crate) fn config(&self) -> Option<Config> {
+        let mut raw = core::ptr::null_mut();
+        let config = unsafe {
+            s2n_connection_get_config(self.connection.as_ptr(), &mut raw)
+                .into_result()
+                .ok()?;
+            let raw = NonNull::new(raw)?;
+            Config::from_raw(raw)
+        };
+        // Because the config pointer is still set on the connection, this is a copy,
+        // not the original config. This is fine -- Configs are immutable.
+        let _ = ManuallyDrop::new(config.clone());
+        Some(config)
     }
 
     pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
@@ -307,9 +324,35 @@ impl Connection {
         Ok(self)
     }
 
+    /// Sets the currently executing async callback.
+    ///
+    /// Multiple callbacks can be configured for a connection and config, but
+    /// [`negotiate`] can only execute and block on one callback at a time.
+    /// The handshake is sequential, not concurrent, and stops execution when
+    /// it encounters an async callback. It does not continue execution (and
+    /// therefore can't call any other callbacks) until the blocking async callback
+    /// reports completion and is no longer the "pending" callback.
+    pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
+        debug_assert!(self.context_mut().pending_callback.is_none());
+        if let Some(callback) = callback {
+            let _ = self.context_mut().pending_callback.insert(callback);
+        }
+    }
+
     /// Performs the TLS handshake to completion
     pub fn negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+
+        // If we blocked on a callback, poll the callback again.
+        if let Some(mut callback) = self.context_mut().pending_callback.take() {
+            match callback.poll(self) {
+                Poll::Ready(r) => r?,
+                Poll::Pending => {
+                    self.set_pending_callback(Some(callback));
+                    return Poll::Pending;
+                }
+            }
+        }
 
         unsafe {
             s2n_negotiate(self.connection.as_ptr(), &mut blocked)
@@ -443,16 +486,10 @@ impl Connection {
         }
     }
 
-    #[cfg(test)]
-    /// Test if a config has been set on the connection.
-    ///
-    /// `s2n_connection_get_config` should return a NULL pointer if the `s2n_connection_set_config`
-    /// has not been called by the application.
-    pub fn test_config_exists(&mut self) -> Result<(), Error> {
-        let mut config = core::ptr::null_mut();
-        let _config = unsafe {
-            s2n_connection_get_config(self.connection.as_ptr(), &mut config).into_result()?
-        };
+    pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {
+        unsafe {
+            s2n_client_hello_cb_done(self.connection.as_ptr()).into_result()?;
+        }
         Ok(())
     }
 
@@ -483,6 +520,7 @@ impl Connection {
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
+    pending_callback: Option<Box<dyn AsyncCallback>>,
 }
 
 #[cfg(feature = "quic")]

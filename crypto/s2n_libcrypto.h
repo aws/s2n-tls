@@ -13,34 +13,8 @@
  * permissions and limitations under the License.
  */
 
-/* Set the margins to place a small amount of whitespace on the left and right
- * side of the page.
- */
-div.contents {
-	margin-left:4em;
-	margin-right:4em;
-}
+#pragma once
 
-/* Justify text in paragraphs. */
-p {
-	text-align: justify;
-}
+#include "utils/s2n_result.h"
 
-/* Style of section headings. */
-h1 {
-	border-bottom: 1px solid #879ECB;
-	color: #354C7B;
-	font-size: 160%;
-	font-weight: normal;
-	padding-bottom: 4px;
-	padding-top: 8px;
-}
-
-/* Style of subsection headings. */
-h2:not(.memtitle):not(.groupheader) {
-	font-size: 125%;
-	margin-bottom: 0px;
-	margin-top: 16px;
-	padding: 0px;
-}
-
+S2N_RESULT s2n_libcrypto_validate_runtime(void);
