@@ -434,7 +434,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
 
     /* Save the previous cipher suite */
-    uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = {0, 0};
+    uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = {0};
     POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
