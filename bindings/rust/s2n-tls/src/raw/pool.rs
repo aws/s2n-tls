@@ -19,7 +19,7 @@
 
 use crate::raw::{
     config::Config,
-    connection::Connection,
+    connection::{Builder, Connection},
     enums::Mode,
     error::Error,
 };
@@ -27,27 +27,26 @@ use std::{
     collections::VecDeque,
     sync::{Arc, Mutex},
 };
-use crate::raw::connection::Builder;
 
 /// A connection produced by a [`Pool`].
 ///
 /// When dropped, returns ownership of the connection to
 /// the pool that produced it by calling [`Pool::reclaim()`].
 #[derive(Debug)]
-pub struct PooledConnection<T: Pool> {
+pub struct PooledConnection<T: Pool = Arc<dyn Pool>> {
     pool: T,
     conn: Option<Connection>,
 }
 
 impl<T: Pool> AsRef<Connection> for PooledConnection<T> {
     fn as_ref(&self) -> &Connection {
-        self.conn.as_ref().map(|c| c.as_ref()).unwrap()
+        self.conn.as_ref().unwrap()
     }
 }
 
 impl<T: Pool> AsMut<Connection> for PooledConnection<T> {
     fn as_mut(&mut self) -> &mut Connection {
-        self.conn.as_mut().map(|c| c.as_mut()).unwrap()
+        self.conn.as_mut().unwrap()
     }
 }
 
@@ -59,7 +58,7 @@ impl<T: Pool> Drop for PooledConnection<T> {
     }
 }
 
-impl<T: Pool> PooledConnection<T> {
+impl<T: Pool + Clone> PooledConnection<T> {
     pub fn new(pool: &T) -> Result<PooledConnection<T>, Error> {
         pool.take().map(|conn| {
             let conn = Some(conn);
@@ -73,13 +72,38 @@ impl<T: Pool> PooledConnection<T> {
 ///
 /// Minimally, an implementation should call [`Connection::wipe()`]
 /// during [`reclaim()`].
-pub trait Pool: Clone {
+pub trait Pool {
     fn mode(&self) -> Mode;
     fn take(&self) -> Result<Connection, Error>;
     fn give(&self, conn: Connection);
 }
 
-struct ConfigPoolState {
+impl Pool for Arc<dyn Pool> {
+    fn mode(&self) -> Mode {
+        self.as_ref().mode()
+    }
+    fn take(&self) -> Result<Connection, Error> {
+        self.as_ref().take()
+    }
+    fn give(&self, conn: Connection) {
+        self.as_ref().give(conn)
+    }
+}
+
+impl<T: Pool> Pool for Arc<T> {
+    fn mode(&self) -> Mode {
+        self.as_ref().mode()
+    }
+    fn take(&self) -> Result<Connection, Error> {
+        self.as_ref().take()
+    }
+    fn give(&self, conn: Connection) {
+        self.as_ref().give(conn)
+    }
+}
+
+#[derive(Debug)]
+pub struct ConfigPool {
     mode: Mode,
     config: Config,
     pool: Mutex<VecDeque<Connection>>,
@@ -87,10 +111,10 @@ struct ConfigPoolState {
 }
 
 /// Builder for [`ConfigPool`].
-pub struct ConfigPoolBuilder(ConfigPoolState);
+pub struct ConfigPoolBuilder(ConfigPool);
 impl ConfigPoolBuilder {
     pub fn new(mode: Mode, config: Config) -> Self {
-        Self(ConfigPoolState {
+        Self(ConfigPool {
             mode,
             config,
             pool: Mutex::new(VecDeque::new()),
@@ -114,27 +138,24 @@ impl ConfigPoolBuilder {
         self
     }
 
-    pub fn build(self) -> ConfigPool {
-        ConfigPool(Arc::new(self.0))
+    pub fn build(self) -> Arc<ConfigPool> {
+        Arc::new(self.0)
     }
 }
 
-#[derive(Clone)]
-pub struct ConfigPool(Arc<ConfigPoolState>);
-
 impl ConfigPool {
     pub fn pool_size(&self) -> usize {
-        self.0.pool.lock().map(|pool| pool.len()).unwrap_or(0)
+        self.pool.lock().map(|pool| pool.len()).unwrap_or(0)
     }
 
     pub fn is_poisoned(&self) -> bool {
-        self.0.pool.is_poisoned()
+        self.pool.is_poisoned()
     }
 }
 
 impl Pool for ConfigPool {
     fn mode(&self) -> Mode {
-        self.0.mode
+        self.mode
     }
 
     /// Get a connection.
@@ -142,8 +163,7 @@ impl Pool for ConfigPool {
     /// If connections are available in the pool, one will
     /// be returned. Otherwise, a new connection will be created.
     fn take(&self) -> Result<Connection, Error> {
-        let inner = &self.0;
-        let from_pool = match inner.pool.lock() {
+        let from_pool = match self.pool.lock() {
             Ok(mut pool) => pool.pop_front(),
             Err(_) => None,
         };
@@ -152,7 +172,7 @@ impl Pool for ConfigPool {
             // so we don't need to reset the config.
             Some(conn) => conn,
             // Create a new connection with the stored config.
-            None => inner.config.build_connection(inner.mode)?
+            None => self.config.build_connection(self.mode)?,
         };
         Ok(conn)
     }
@@ -162,10 +182,9 @@ impl Pool for ConfigPool {
     /// The connection is wiped and returned to the pool
     /// if space is available.
     fn give(&self, mut conn: Connection) {
-        let inner = &self.0;
         let wiped = conn.wipe().is_ok();
-        if let Ok(mut pool) = inner.pool.lock() {
-            if pool.len() < inner.max_pool_size && wiped {
+        if let Ok(mut pool) = self.pool.lock() {
+            if pool.len() < self.max_pool_size && wiped {
                 pool.push_back(conn);
             }
         }
@@ -178,7 +197,7 @@ mod tests {
     use crate::raw::config::Config;
 
     #[test]
-    fn simple_pool_single_connection() -> Result<(), Box<dyn std::error::Error>> {
+    fn config_pool_single_connection() -> Result<(), Box<dyn std::error::Error>> {
         let pool = ConfigPoolBuilder::new(Mode::Server, Config::default()).build();
 
         // Repeatedly checkout the same connection
@@ -192,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_pool_multiple_connections() -> Result<(), Box<dyn std::error::Error>> {
+    fn config_pool_multiple_connections() -> Result<(), Box<dyn std::error::Error>> {
         let pool = ConfigPoolBuilder::new(Mode::Server, Config::default()).build();
 
         // We need to hold onto connections so that they're not
@@ -229,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_pool_with_max_size() -> Result<(), Box<dyn std::error::Error>> {
+    fn config_pool_with_max_size() -> Result<(), Box<dyn std::error::Error>> {
         const POOL_MAX_SIZE: usize = 11;
         let mut pool = ConfigPoolBuilder::new(Mode::Server, Config::default());
         pool.set_max_pool_size(POOL_MAX_SIZE);
@@ -251,6 +270,19 @@ mod tests {
         conns.clear();
         assert_eq!(pool.pool_size(), POOL_MAX_SIZE);
 
+        Ok(())
+    }
+
+    #[test]
+    fn non_generic_pool() -> Result<(), Box<dyn std::error::Error>> {
+        let config_pool = ConfigPoolBuilder::new(Mode::Server, Config::default()).build();
+        // Note the unweildy type parameters on PooledConnection here.
+        let _: PooledConnection<Arc<ConfigPool>> = PooledConnection::new(&config_pool)?;
+        // To avoid specifying the generic type parameters on PooledConnection,
+        // the pool can be converted to an Arc<dyn Pool>.
+        let pool: Arc<dyn Pool> = config_pool;
+        // Note no generic type parameters on PooledConnection here.
+        let _: PooledConnection = PooledConnection::new(&pool)?;
         Ok(())
     }
 }
