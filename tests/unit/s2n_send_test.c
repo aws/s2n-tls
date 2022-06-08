@@ -89,14 +89,14 @@ int s2n_expected_unbuffered_send_fn(void *io_context, const uint8_t *buf, uint32
     EXPECT_OK(s2n_record_max_write_size(conn, max_record_payload_size, &max_record_fragment_size));
     EXPECT_EQUAL(max_record_fragment_size, 9116);
 
-    uint32_t expected_send_sizes[] = {8109, 8109, 4328};
+    uint32_t expected_send_sizes[] = {8087, 16174, SEND_BUFFER_SIZE};
     uint32_t expected_stuffer_space_remaining[] = {1007, 1007, 4788};
 
     /* Drain outbound stuffer like send implementation would. */
     EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->out, len));
     s2n_custom_send_fn_called = true;
 
-    EXPECT_EQUAL(len, expected_send_sizes[s2n_expected_size_call_count]);
+    EXPECT_EQUAL(conn->current_user_data_consumed, expected_send_sizes[s2n_expected_size_call_count]);
     EXPECT_EQUAL(s2n_stuffer_space_remaining(&conn->out), expected_stuffer_space_remaining[s2n_expected_size_call_count]);
 
     s2n_expected_size_call_count += 1;
@@ -133,14 +133,14 @@ int s2n_expected_buffered_send_fn(void *io_context, const uint8_t *buf, uint32_t
      *    write. Note these sizes are missing the TLS record overhead.
      * 5. Rest of data is sent so we expected a partial record containing 4328 bytes, leaving
      *    16152 bytes in the conn->out stuffer. */
-    uint32_t expected_send_sizes[] = {16218, 4328};
+    uint32_t expected_send_sizes[] = {16174, SEND_BUFFER_SIZE};
     uint32_t expected_stuffer_space_remaining[] = {4262, 16152};
 
     /* Drain outbound stuffer like send implementation would. */
     EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->out, len));
     s2n_custom_send_fn_called = true;
 
-    EXPECT_EQUAL(len, expected_send_sizes[s2n_expected_size_call_count]);
+    EXPECT_EQUAL(conn->current_user_data_consumed, expected_send_sizes[s2n_expected_size_call_count]);
     EXPECT_EQUAL(s2n_stuffer_space_remaining(&conn->out), expected_stuffer_space_remaining[s2n_expected_size_call_count]);
 
     s2n_expected_size_call_count += 1;
