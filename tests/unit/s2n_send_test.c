@@ -464,12 +464,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
 
         /* This is to be kept in sync with the partial write performed by s2n_partial_socket_send_fn.
-         * As of this comment it will perform the entire right except the last 3 bytes. */
+         * As of this comment it will perform the entire write except the last 3 bytes. */
         uint32_t expected_remaining_data = sizeof(test_data) - (sizeof(test_data) - 3);
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), expected_remaining_data);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
-
-
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
         EXPECT_SUCCESS(s2n_send(conn, test_data, sizeof(test_data), &blocked));
         EXPECT_TRUE(s2n_custom_send_fn_called);
