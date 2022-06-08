@@ -20,7 +20,7 @@ async fn send_and_recv_basic() -> Result<(), Box<dyn std::error::Error>> {
     let acceptor = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (mut client, mut server) =
-        common::run_negotiate(connector, client_stream, acceptor, server_stream).await?;
+        common::run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
 
     client.write_all(TEST_DATA).await?;
 
@@ -39,7 +39,7 @@ async fn send_and_recv_multiple_records() -> Result<(), Box<dyn std::error::Erro
     let acceptor = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (mut client, mut server) =
-        common::run_negotiate(connector, client_stream, acceptor, server_stream).await?;
+        common::run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
 
     let mut received = [0; LARGE_TEST_DATA.len()];
     let (_, read_size) = tokio::try_join!(
@@ -60,7 +60,7 @@ async fn send_and_recv_split() -> Result<(), Box<dyn std::error::Error>> {
     let acceptor = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (client, server) =
-        common::run_negotiate(connector, client_stream, acceptor, server_stream).await?;
+        common::run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
 
     let (mut client_read, mut client_write) = tokio::io::split(client);
     let (mut server_read, mut server_write) = tokio::io::split(server);

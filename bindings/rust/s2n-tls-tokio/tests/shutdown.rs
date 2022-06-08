@@ -38,7 +38,7 @@ async fn client_initiated_shutdown() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (mut client, mut server) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     tokio::try_join!(read_until_shutdown(&mut server), client.shutdown())?;
 
@@ -53,7 +53,7 @@ async fn server_initiated_shutdown() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (mut client, mut server) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     tokio::try_join!(read_until_shutdown(&mut client), server.shutdown())?;
 
@@ -68,7 +68,7 @@ async fn shutdown_after_split() -> Result<(), Box<dyn std::error::Error>> {
     let server = TlsAcceptor::new(common::server_config()?.build()?);
 
     let (client, mut server) =
-        common::run_negotiate(client, client_stream, server, server_stream).await?;
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
     let (mut client_reader, mut client_writer) = tokio::io::split(client);
 

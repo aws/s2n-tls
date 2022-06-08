@@ -21,6 +21,9 @@ use libc::c_void;
 use s2n_tls_sys::*;
 use std::{ffi::CStr, mem};
 
+mod builder;
+pub use builder::*;
+
 macro_rules! static_const_str {
     ($c_chars:expr) => {
         unsafe { CStr::from_ptr($c_chars) }
@@ -568,6 +571,18 @@ impl Connection {
         s2n_connection_set_secret_callback(self.connection.as_ptr(), callback, context)
             .into_result()?;
         Ok(self)
+    }
+}
+
+impl AsRef<Connection> for Connection {
+    fn as_ref(&self) -> &Connection {
+        self
+    }
+}
+
+impl AsMut<Connection> for Connection {
+    fn as_mut(&mut self) -> &mut Connection {
+        self
     }
 }
 
