@@ -52,7 +52,7 @@ CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
 
 ### Amazonlinux2
 
-Install dependancies with `./codebuild/bin/install_al2_dependencies.sh` after cloning.
+Install dependencies with `./codebuild/bin/install_al2_dependencies.sh` after cloning.
 
 ```sh
 git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
@@ -62,11 +62,18 @@ cmake --build ./build -j $(nproc)
 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
 ```
 
-
 ## Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
 
 Otherwise, if you think you might have found a security impacting issue, please instead follow [our Security Notification Process.](#security-issue-notifications)
+
+## Documentation
+
+s2n-tls uses [Doxygen](https://doxygen.nl/index.html) to document its public API. The latest s2n-tls documentation can be found on [GitHub pages](https://aws.github.io/s2n-tls/doxygen/).
+
+Documentation for older versions or branches of s2n-tls can be generated locally. To generate the documentation, install doxygen and run `doxygen docs/doxygen/Doxyfile`. The doxygen documentation can now be found at `docs/doxygen/output/html/index.html`.
+
+Doxygen installation instructions are available at the [Doxygen](https://doxygen.nl/download.html) webpage.
 
 ## Using s2n-tls
 
@@ -95,7 +102,7 @@ int bytes_written;
 bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &blocked);
 ```
 
-For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [API Reference](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md).
+For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [usage guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md).
 
 ## s2n-tls features
 
