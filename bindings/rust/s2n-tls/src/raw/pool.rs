@@ -110,6 +110,8 @@ pub struct ConfigPool {
     max_pool_size: usize,
 }
 
+pub type ConfigPoolRef = Arc<ConfigPool>;
+
 /// Builder for [`ConfigPool`].
 pub struct ConfigPoolBuilder(ConfigPool);
 impl ConfigPoolBuilder {
@@ -277,7 +279,7 @@ mod tests {
     fn non_generic_pool() -> Result<(), Box<dyn std::error::Error>> {
         let config_pool = ConfigPoolBuilder::new(Mode::Server, Config::default()).build();
         // Note the unweildy type parameters on PooledConnection here.
-        let _: PooledConnection<Arc<ConfigPool>> = PooledConnection::new(&config_pool)?;
+        let _: PooledConnection<ConfigPoolRef> = PooledConnection::new(&config_pool)?;
         // To avoid specifying the generic type parameters on PooledConnection,
         // the pool can be converted to an Arc<dyn Pool>.
         let pool: Arc<dyn Pool> = config_pool;
