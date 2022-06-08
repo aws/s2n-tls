@@ -223,155 +223,36 @@ s2n-tls also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're ha
 # s2n-tls API
 
 The API exposed by s2n-tls is the set of functions and declarations that
-are in the "s2n.h" header file. Any functions and declarations that are in the "s2n.h" file
+are in the [s2n.h](../api/s2n.h) header file. Any functions and declarations that are in the [s2n.h](../api/s2n.h) file
 are intended to be stable (API and ABI) within major version numbers of s2n-tls releases. Other functions
 and structures used in s2n-tls internally can not be considered stable and their parameters, names, and
 sizes may change.
 
-The VERSIONING.rst document contains more details about s2n's approach to versions and API changes.
+The [VERSIONING.rst](../VERSIONING.rst) document contains more details about s2n's approach to versions and API changes.
 
-## Preprocessor macros
+## API Reference
 
-s2n-tls defines five preprocessor macros that are used to determine what
-version of SSL/TLS is in use on a connection.
+s2n-tls uses [Doxygen](https://doxygen.nl/index.html) to document its public API. The latest s2n-tls documentation can be found on [GitHub pages](https://aws.github.io/s2n-tls/doxygen/).
 
-```c
-#define S2N_SSLv2 20
-#define S2N_SSLv3 30
-#define S2N_TLS10 31
-#define S2N_TLS11 32
-#define S2N_TLS12 33
-#define S2N_TLS13 34
-```
+Documentation for older versions or branches of s2n-tls can be generated locally. To generate the documentation, install doxygen and run `doxygen docs/doxygen/Doxyfile`. The doxygen documentation can now be found at `docs/doxygen/output/html/index.html`.
 
-These correspond to SSL2.0, SSL3.0, TLS1.0, TLS1.1, TLS1.2 and TLS1.3 respectively.
-Note that s2n-tls does not support SSL2.0 for sending and receiving encrypted data,
-but does accept SSL2.0 hello messages.
+Doxygen installation instructions are available at the [Doxygen](https://doxygen.nl/download.html) webpage.
 
-## Enums
+The doxygen documentation should be used in conjunction with this guide.
 
-s2n-tls defines the following enum types:
+## Supported TLS Versions
 
-### s2n_error_type
+Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3. See the [Security Policies](#security-policies) section for more information.
 
-```c
-typedef enum {
-    S2N_ERR_T_OK=0,
-    S2N_ERR_T_IO,
-    S2N_ERR_T_CLOSED,
-    S2N_ERR_T_BLOCKED,
-    S2N_ERR_T_ALERT,
-    S2N_ERR_T_PROTO,
-    S2N_ERR_T_INTERNAL,
-    S2N_ERR_T_USAGE
-} s2n_error_type;
-```
-
-***s2n_error_type*** is used to help applications determine why an s2n-tls function failed.
-This enum is optimized for use in C switch statements. Each value in the enum represents
-an error "category". See [Error Handling](#error-handling) for more detail.
-
-### s2n_mode
-
-```c
-typedef enum {
-  S2N_SERVER,
-  S2N_CLIENT
-} s2n_mode;
-```
-
-**s2n_mode** is used to declare connections as server or client type, respectively.
-
-### s2n_blocked_status
-
-```c
-typedef enum {
-    S2N_NOT_BLOCKED = 0,
-    S2N_BLOCKED_ON_READ,
-    S2N_BLOCKED_ON_WRITE,
-    S2N_BLOCKED_ON_APPLICATION_INPUT,
-    S2N_BLOCKED_ON_EARLY_DATA,
-} s2n_blocked_status;
-```
-
-**s2n_blocked_status** is used in non-blocking mode to indicate in which
-direction s2n-tls became blocked on I/O before it returned control to the caller.
-This allows an application to avoid retrying s2n-tls operations until I/O is
-possible in that direction.
-
-### s2n_blinding
-
-```c
-typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
-```
-
-**s2n_blinding** is used to opt-out of s2n-tls's built-in blinding. Blinding is a
-mitigation against timing side-channels which in some cases can leak information
-about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and
-30 seconds whenever tampering is detected.
-
-Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
-turns off this behavior. This is useful for applications that are handling many connections
-in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error,
-self-service applications should call **s2n_connection_get_delay** and pause
-activity on the connection  for the specified number of nanoseconds before calling
-close() or shutdown().
-
-### s2n_status_request_type
-
-```c
-typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
-```
-
-**s2n_status_request_type** is used to define the type, if any, of certificate
-status request an S2N_CLIENT should make during the handshake. The only
-supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
-
-### s2n_cert_auth_type
-
-```c
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
-```
-**s2n_cert_auth_type** is used to declare what type of client certificate authentication to use.
-Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
-
-## Opaque structures
-
-s2n-tls defines several opaque structures that are used for managed objects. Because
-these structures are opaque, they can only be safely referenced indirectly through
-pointers and their sizes may change with future versions of s2n-tls.
-
-```c
-struct s2n_config;
-struct s2n_connection;
-```
-
-**s2n_config** structures are a configuration object, used by servers for
-holding cryptographic certificates, keys and preferences. **s2n_connection**
-structures are used to track each connection.
-
-
-```c
-struct s2n_rsa_public_key;
-struct s2n_cert_public_key;
-```
-
-**s2n_rsa_public_key** and **s2n_cert_public_key** can be used by consumers of s2n-tls to get and set public keys through other API calls.
-
+**Note:** s2n-tls does not support SSL2.0 for sending and receiving encrypted data, but does accept SSL2.0 hello messages.
 
 ## Error handling
-
-```
-const char *s2n_strerror(int error, const char *lang);
-const char *s2n_strerror_debug(int error, const char *lang);
-const char *s2n_strerror_name(int error);
-````
 
 s2n-tls functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n-tls functions that return pointer types return NULL in the case of
 failure. When an s2n-tls function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
-explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
+explaining the error in English by calling `s2n_strerror(s2n_errno, "EN")`.
 A string containing human readable error name, can be generated with `s2n_strerror_name`.
 A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
 This string is useful to include when reporting issues to the s2n-tls development team.
@@ -387,178 +268,76 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
 
-When using s2n-tls outside of `C`, the address of the thread-local `s2n_errno` may be obtained by calling the `int *s2n_errno_location()` function.
+When using s2n-tls outside of `C`, the address of the thread-local `s2n_errno` may be obtained by calling the `s2n_errno_location` function.
 This will ensure that the same TLS mechanisms are used with which s2n-tls was compiled.
+
+### Error Types
+
+s2n-tls organizes errors into different "types" to allow applications to handle error values without catching all possibilities.
+Applications using non-blocking I/O should check the error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use `s2n_error_get_type()`.
+Applications should perform any error handling logic using these high level types:
+
+Here's an example that handles errors based on type:
+
+```c
+#define SUCCESS 0
+#define FAILURE 1
+#define RETRY 2
+
+s2n_errno = S2N_ERR_T_OK;
+if (s2n_negotiate(conn, &blocked) < 0) {
+    switch(s2n_error_get_type(s2n_errno)) {
+        case S2N_ERR_T_BLOCKED:
+            /* Blocked, come back later */
+            return RETRY;
+        case S2N_ERR_T_CLOSED:
+            return SUCCESS;
+        case S2N_ERR_T_IO:
+            handle_io_err();
+            return FAILURE;
+        case S2N_ERR_T_PROTO:
+            handle_proto_err();
+            return FAILURE;
+        case S2N_ERR_T_ALERT:
+            log_alert(s2n_connection_get_alert(conn));
+            return FAILURE;
+        /* Everything else */
+        default:
+            log_other_error();
+            return FAILURE;
+    }
+}
+```
+
+### Blinding
+
+Blinding is a mitigation against timing side-channels which in some cases can leak information about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and 30 seconds whenever tampering is detected. 
+
+Setting the `S2N_SELF_SERVICE_BLINDING` option with `s2n_connection_set_blinding()` turns off this behavior. This is useful for applications that are handling many connections in a single thread. In that case, if `s2n_recv()` or `s2n_negotiate()` return an error, self-service applications must call `s2n_connection_get_delay()` and pause activity on the connection  for the specified number of nanoseconds before calling `close()` or `shutdown()`. `s2n_shutdown()` will fail if called before the blinding delay elapses.
 
 ### Stacktraces
 s2n-tls has an mechanism to capture stacktraces when errors occur.
 This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
 It can be enabled globally by setting the environment variable `S2N_PRINT_STACKTRACE=1`.
-Note that enabling stacktraces this can significantly slow down unit tests, and can cause failures on unit-tests (such as `s2n_cbc_verify`) that measure the timing of events.
 
-```
-bool s2n_stack_traces_enabled();
-int s2n_stack_traces_enabled_set(bool newval);
+Call `s2n_print_stacktrace()` to print your stacktrace.
 
-int s2n_calculate_stacktrace(void);
-int s2n_print_stacktrace(FILE *fptr);
-int s2n_free_stacktrace(void);
-int s2n_get_stacktrace(char*** trace, int* trace_size);
-```
-
-### Error categories
-
-s2n-tls organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities.
-Applications using non-blocking I/O should check error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use `s2n_error_get_type()`.
-Applications should perform any error handling logic using these high level types:
-
-```
-S2N_ERR_T_OK=0, /* No error */
-S2N_ERR_T_IO, /* Underlying I/O operation failed, check system errno */
-S2N_ERR_T_CLOSED, /* EOF */
-S2N_ERR_T_BLOCKED, /* Underlying I/O operation would block */
-S2N_ERR_T_ALERT, /* Incoming Alert */
-S2N_ERR_T_PROTO, /* Failure in some part of the TLS protocol. Ex: CBC verification failure */
-S2N_ERR_T_INTERNAL, /* Error internal to s2n-tls. A precondition could have failed. */
-S2N_ERR_T_USAGE /* User input error. Ex: Providing an invalid cipher preference version */
-```
-
-Here's an example that handles errors based on type:
-
-```
-s2n_errno = S2N_ERR_T_OK;
-if (s2n_recv(conn, &blocked) < 0) {
-    switch(s2n_error_get_type(s2n_errno)) {
-        case S2N_ERR_T_BLOCKED:
-            /* Blocked, come back later */
-            return -1;
-        case S2N_ERR_T_CLOSED:
-            return 0;
-        case S2N_ERR_T_IO:
-            handle_io_err();
-            return -1;
-        case S2N_ERR_T_PROTO:
-            handle_proto_err();
-            return -1;
-        case S2N_ERR_T_ALERT:
-            log_alert(s2n_connection_get_alert(conn));
-            return -1;
-        /* Everything else */
-        default:
-            log_other_error();
-            return -1;
-    }
-}
-```
+**Note:** Enabling stacktraces can significantly slow down unit tests, causing failures on tests (such as `s2n_cbc_verify`) that measure the timing of events.
 
 
 ## Initialization and teardown
 
-### s2n\_get\_openssl\_version
+The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` MUST NOT be called more than once, even when an application uses multiple threads or processes. To clean up, `s2n_cleanup()` must be called from every thread or process created after `s2n_init()` was called.
 
-```c
-unsigned long s2n_get_openssl_version();
-```
+Initialization can be modified by calling `s2n_crypto_disable_init()` or `s2n_disable_atexit()` before `s2n_init()`.
 
-**s2n_get_openssl_version** returns the version number of OpenSSL that s2n-tls was compiled with. It can be used by
-applications to validate at runtime that the versions of s2n-tls and Openssl that they have loaded are correct.
+If you are trying to use FIPS mode, you must enable FIPS in your libcrypto library (probably by calling `FIPS_mode_set(1)`) before calling `s2n_init()`.
 
+## Security Policies
 
-### s2n\_init
-
-```c
-int s2n_init();
-```
-
-**s2n_init** initializes the s2n-tls library and should be called once in your application,
-before any other s2n-tls functions are called. Failure to call s2n_init() will result
-in errors from other s2n-tls functions.
-
-### s2n\_crypto\_disable\_init
-
-```c
-int s2n_crypto_disable_init();
-```
-
-**s2n_crypto_disable_init** prevents s2n-tls from initializing or tearing down the crypto
-library. This is most useful when s2n-tls is embedded in an application or environment that
-shares usage of the OpenSSL or libcrypto library. Note that if you disable this and are
-using a version of OpenSSL/libcrypto < 1.1.x, you will be responsible for library init
-and cleanup (specifically OPENSSL_add_all_algorithms() or OPENSSL_crypto_init), and
-`EVP_*` APIs will not be usable unless the library is initialized.
-
-This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
-if s2n is already initialized.
-
-### s2n\_disable\_atexit
-
-```c
-int s2n_disable_atexit();
-```
-
-**s2n_disable_atexit** prevents s2n-tls from installing an atexit() handler to clean itself
-up. This is most useful when s2n-tls is embedded in an application or environment that
-shares usage of the OpenSSL or libcrypto library. Note that this will cause `s2n_cleanup` to
-do complete cleanup of s2n-tls when called from the main thread (the thread `s2n_init` was
-called from).
-
-This function must be called BEFORE `s2n_init()` to have any effect. It will return an error
-if s2n is already initialized.
-
-### s2n\_cleanup
-
-```c
-int s2n_cleanup();
-```
-
-**s2n_cleanup** cleans up any internal resources used by s2n-tls. This function should be
-called from each thread or process that is created subsequent to calling **s2n_init**
-when that thread or process is done calling other s2n-tls functions.
-
-## Configuration-oriented functions
-
-### s2n\_config\_new
-
-```c
-struct s2n_config * s2n_config_new();
-```
-
-**s2n_config_new** returns a new configuration object suitable for associating certs and keys.
-This object can (and should) be associated with many connection objects.
-
-### s2n\_config\_free
-
-```c
-int s2n_config_free(struct s2n_config *config);
-```
-
-**s2n_config_free** frees the memory associated with an **s2n_config** object.
-
-### s2n\_config\_set\_ctx
-
-```c
-int s2n_config_set_ctx(struct s2n_config *config, void *ctx);
-```
-
-**s2n_config_set_ctx** sets user defined context on the **s2n_config** object.
-
-### s2n\_config\_get\_ctx
-
-```c
-int s2n_config_get_ctx(struct s2n_config *config, void **ctx);
-```
-
-**s2n_config_get_ctx** gets user defined context from the **s2n_config** object.
-
-
-### s2n\_config\_set\_cipher\_preferences
-
-```c
-int s2n_config_set_cipher_preferences(struct s2n_config *config,
-                                      const char *version);
-```
-
-**s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
+s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS. 
+ 
+`s2n_config_set_cipher_preferences()` sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.
 
 The following chart maps the security policy version to protocol version and ciphersuites supported:
 
@@ -657,71 +436,33 @@ The following chart maps the security policy version to the supported curves/gro
 |   "20190802"   |      X       |      X     |        |
 |   "20200207"   |      X       |      X     |   X    |
 
-### s2n\_config\_add\_cert\_chain\_and\_key
+## Certificates and Authentication
 
-```c
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config,
-                                      const char *cert_chain_pem,
-                                      const char *private_key_pem);
-```
+TLS uses certificates to authenticate the server (and optionally the client). The handshake will fail if the client cannot verify the server’s certificate.
 
-**s2n_config_add_cert_chain_and_key** associates a certificate chain and a
-private key, with an **s2n_config** object. At present, only one
-certificate-chain/key pair may be associated with a config.
+Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using [session resumption](#session-resumption-related-calls) or [pre-shared keys](#tls13-pre-shared-key-related-calls).
 
-**cert_chain_pem** should be a PEM encoded certificate chain, with the first
-certificate in the chain being your servers certificate. **private_key_pem**
-should be a PEM encoded private key corresponding to the server certificate.
+### Configuring the Trust Store
 
-### s2n\_config\_add\_cert\_chain\_and\_key\_to\_store
+To validate the peer’s certificate, the local “trust store” must contain a certificate that can authenticate the peer’s certificate.
 
-```c
-int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
-                                               struct s2n_cert_chain_and_key *cert_key_pair);
-```
+By default, s2n-tls will be initialized with the common trust store locations for the host operating system. To completely override those locations, call `s2n_config_wipe_trust_store()`. To add certificates to the trust store, call `s2n_config_set_verification_ca_location()` or `s2n_config_add_pem_to_trust_store()`. 
 
-**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
+### Server Authentication
 
-**s2n_config_add_cert_chain_and_key_to_store** may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities(supported ciphers). In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the **first** call to **s2n_config_add_cert_chain_and_key_to_store** will be selected.
+A server must have a certificate and private key pair to prove its identity. s2n-tls supports RSA, RSA-PSS, and ECDSA certificates, and allows one of each type to be added to a config. 
 
-### s2n\_config\_set\_cert\_chain\_and\_key\_defaults
+Create a new certificate and key pair by calling `s2n_cert_chain_and_key_new()`, then load the pem-encoded data with `s2n_cert_chain_and_key_load_pem_bytes()`.  Call `s2n_config_add_cert_chain_and_key_to_store()` to add the certificate and key pair to the config. When a certificate and key pair is no longer needed, it must be cleaned up with `s2n_cert_chain_and_key_free()`.
 
-```c
-int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
-                                               struct s2n_cert_chain_and_key **cert_key_pairs,
-                                               uint32_t num_cert_key_pairs);
-```
+A client can add restrictions on the certificate’s hostname by setting a custom `s2n_verify_host_fn` with  `s2n_config_set_verify_host_callback()`. The default behavior is to require that the hostname match the server name set with `s2n_set_server_name()`.
 
-**s2n_config_set_cert_chain_and_key_defaults** explicitly sets certificate chain and private key pairs to be used as defaults for each auth method (key type). A "default" certificate is used when there is not an SNI match with any other configured certificate. Only one certificate can be set as the default per auth method (one RSA default, one ECDSA default, etc.). All previous default certificates will be cleared and re-set when this API is called. This API is called for a specific **s2n_config** object.
+### Client / Mutual Authentication
 
-s2n-tls will attempt to automatically choose default certificates for each auth method (key type) based on the order that **s2n_cert_chain_and_key** are added to the **s2n_config** using one of the APIs listed above. **s2n_config_set_cert_chain_and_key_defaults** can be called at any time; s2n-tls will clear defaults and no longer attempt to automatically choose any default certificates.
+Client authentication is not enabled by default. However, the server can require that the client also provide a certificate, if the server needs to authenticate clients before accepting connections.
 
-### s2n\_cert\_tiebreak\_callback
-```c
-typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
-```
+Client authentication can be configured by calling `s2n_config_set_client_auth_type()` or `s2n_connection_set_client_auth_type()` for both the client and server. Additionally, the client will need to load a certificate and key pair as described for the server in [Server Authentication](#server-authentication) and the server will need to configure its trust store as described in [Configuring the Trust Store](#configuring-the-trust-store).
 
-**s2n_cert_tiebreak_callback** is invoked if s2n-tls cannot resolve a conflict between two certificates with the same domain name. This function is invoked while certificates are added to an **s2n_config**.
-Currently, the only builtin resolution for domain name conflicts is certificate type(RSA, ECDSA, etc).
-The callback should return a pointer to the **s2n_cert_chain_and_key** that should be used for dns name **name**. If NULL is returned, the first certificate will be used.
-Typically an application will use properties like trust and expiry to implement tiebreaking.
-
-### s2n\_config\_set\_cert\_tiebreak\_callback
-```c
-int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback tiebreak_fn);
-```
-
-**s2n_config_set_cert_tiebreak_callback** sets the **s2n_cert_tiebreak_callback** for resolving domain name conflicts. If no callback is set, the first certificate added for a domain name will always be preferred.
-
-### s2n\_config\_add\_dhparams
-
-```c
-int s2n_config_add_dhparams(struct s2n_config *config,
-                            char *dhparams_pem);
-```
-
-**s2n_config_add_dhparams** associates a set of Diffie-Hellman parameters with
-an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
+When using client authentication, the server MUST implement the `s2n_verify_host_fn`, because the default behavior will likely reject all client certificates.
 
 ### s2n\_config\_set\_protocol\_preferences
 
@@ -739,16 +480,6 @@ included in the Client Hello message as the ALPN extension.  As an
 **S2N_SERVER**, the list is used to negotiate a mutual application protocol
 with the client. After the negotiation for the connection has completed, the
 agreed upon protocol can be retrieved with [s2n_get_application_protocol](#s2n_get_application_protocol)
-
-### s2n\_config\_set\_status\_request\_type
-
-```c
-int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
-```
-
-**s2n_config_set_status_request_type** Sets up an S2N_CLIENT to request the
-server certificate status during an SSL handshake.  If set to
-S2N_STATUS_REQUEST_NONE, no status request is made.
 
 ### s2n\_config\_set\_extension\_data
 
@@ -821,63 +552,6 @@ The integer pointed to by the second pointer should be an always increasing valu
 should return 0 on success and -1 on error. The default implementation, which uses the MONOTONIC clock,
 will be used if this callback is not manually set.
 
-### s2n\_config\_set\_verification\_ca\_location
-```c
-int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
-```
-
-**s2n_config_set_verification_ca_location** adds to the trust store from a CA file or directory
-containing trusted certificates. Note that the trust store will be initialized with the common locations
-for the host operating system by default. To completely override those locations, call
-[s2n_config_wipe_trust_store](#s2n_config_wipe_trust_store) before calling this function.
-Returns 0 on success and -1 on failure.
-
-### s2n\_config\_add\_pem\_to\_trust\_store
-```c
-int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
-```
-
-**s2n_config_add_pem_to_trust_store**  adds a PEM to the trust store. This will allocate memory, and load PEM into the Trust Store.
-Note that the trust store will be initialized with the common locations for the host operating system by default.
-To completely override those locations, call [s2n_config_wipe_trust_store](#s2n_config_wipe_trust_store)
-before calling this function.
-This function returns 0 on success and -1 on error.
-
-
-### s2n\_config\_wipe\_trust\_store
-```c
-int s2n_config_wipe_trust_store(struct s2n_config *config);
-```
-
-***s2n_config_wipe_trust_store*** clears the trust store.
-Note that the trust store will be initialized with the common locations for the host operating system by default.
-To completely override those locations, call this before functions like
-[s2n_config_set_verification_ca_location](#s2n_config_set_verification_ca_location)
-or [s2n_config_add_pem_to_trust_store](#s2n_config_add_pem_to_trust_store).
-This function returns 0 on success and -1 on error.
-
-### s2n\_verify\_host\_fn
-```c
-typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *ctx);
-```
-
-**s2n_verify_host_fn** is invoked (usually multiple times) during X.509 validation for each name encountered in the leaf certificate.
-Return 1 to trust that hostname or 0 to not trust the hostname. If this function returns 1, then the certificate is considered trusted and that portion
-of the X.509 validation will succeed. If no hostname results in a 1 being returned,
-the certificate will be untrusted and the validation will terminate immediately. The default behavior is to reject all host names found in a certificate
-if client mode or client authentication is being used..
-
-### s2n\_config\_set\_verify\_host\_callback
-```c
-int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *ctx);
-```
-
-**s2n_config_set_verify_host_callback** sets the callback to use for verifying that a hostname from an X.509 certificate
-is trusted. By default, no certificate will be trusted. To override this behavior, set this callback.
-See [s2n_verify_host_fn](#s2n_verify_host_fn) for details. This configuration will be inherited by default to new instances of **s2n_connection**.
-If a separate callback for different connections using the same config is desired, see
-[s2n_connection_set_verify_host_callback](#s2n_connection_set_verify_host_callback).
-
 ### s2n\_config\_set\_check\_stapled\_ocsp\_response
 
 ```c
@@ -887,23 +561,6 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
 **s2n_config_set_check_stapled_ocsp_response** toggles whether or not to validate stapled OCSP responses. 1 means OCSP responses
 will be validated when they are encountered, while 0 means this step will be skipped. The default value is 1 if the underlying
 libCrypto implementation supports OCSP.  Returns 0 on success and -1 on failure.
-
-### s2n\_config\_disable\_x509\_verification
-
-```c
-int s2n_config_disable_x509_verification(struct s2n_config *config);
-```
-
-**s2n_config_disable_x509_verification** turns off all X.509 validation during the negotiation phase of the connection. This should only be used
-for testing or debugging purposes.
-
-```c
-int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_depth);
-```
-
-**s2n_config_set_max_cert_chain_depth** sets the maximum allowed depth of a cert chain used for X509 validation. The default value is 7. If this limit
-is exceeded, validation will fail if s2n_config_disable_x509_verification() has not been called. 0 is an illegal value and will return an error.
-1 means only a root certificate will be used.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
@@ -984,101 +641,6 @@ Sets whether or not a connection should enforce strict signature validation duri
 `mode` can take the following values:
 - `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
 - `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
-
-## Certificate-related functions
-
-### s2n\_cert\_chain\_and\_key\_new
-
-```c
-struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
-```
-**s2n_cert_chain_and_key_new** returns a new object used to represent a certificate-chain/key pair. This object can be associated with many config objects.
-
-### s2n\_cert\_chain\_and\_key\_free
-
-```c
-int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
-```
-**s2n_cert_chain_and_key_free** frees the memory associated with an **s2n_cert_chain_and_key** object.
-
-### s2n\_cert\_chain\_and\_key\_load\_pem
-
-```c
-int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
-```
-
-**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object.
-
-**cert_chain_pem** should be a PEM encoded certificate chain, with the first
-certificate in the chain being your leaf certificate. **private_key_pem**
-should be a PEM encoded private key corresponding to the leaf certificate.
-
-### s2n\_cert\_chain\_and\_key\_load\_pem\_bytes
-
-```c
-int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
-```
-
-**s2n_cert_chain_and_key_load_pem_bytes** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object.
-
-**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
-**chain_pem_len** is the length of the certificate chain.
-**private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
-**private_key_pem_len** is the length of the private key.
-
-### s2n\_cert\_chain\_and\_key\_load\_public\_pem\_bytes
-
-```c
-int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
-```
-
-**s2n_cert_chain_and_key_load_public_pem_bytes** associates a public certificate chain with a **s2n_cert_chain_and_key** object. It does NOT set a private key, so the connection will need to be configured to [offload private key operations](#offloading-asynchronous-private-key-operations).
-
-**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
-**chain_pem_len** is the length in bytes of the PEM encoded certificate chain.
-
-### s2n\_cert\_chain\_and\_key\_set\_ctx
-
-```c
-int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *chain_and_key, void *ctx);
-```
-
-**s2n_cert_chain_and_key_set_ctx** associates an application defined context with a **s2n_cert_chain_and_key** object.
-This is useful when multiple s2n_cert_chain_and_key objects are used and the application would like to associate unique data
-with each certificate.
-
-### s2n\_cert\_chain\_and\_key\_get\_ctx
-
-```c
-int s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *chain_and_key);
-```
-
-**s2n_cert_chain_and_key_set_ctx** returns a previously set context pointer or NULL if no context was set.
-
-### s2n\_cert\_chain\_and\_key\_get\_key
-
-```c
-extern s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_chain_and_key *cert_and_key);
-```
-
-**s2n_cert_chain_and_key_get_private_key** returns a private key from
-**s2n_cert_chain_and_key** object.
-
-## Client Auth Related calls
-Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
-
-1. Using these API's requires users to: Complete full x509 parsing and hostname validation in the application layer
-2. Application knowledge of TLS code points for certificate types
-3. Application dependency on libcrypto to give a libcrypto RSA struct back to s2n-tls
-
-### s2n\_config\_set\_client\_auth\_type and s2n\_connection\_set\_client\_auth\_type
-```c
-int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type cert_auth_type);
-int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
-```
-Sets whether or not a Client Certificate should be required to complete the TLS Connection. If this is set to
-**S2N_CERT_AUTH_OPTIONAL** the server will request a client certificate but allow the client to not provide one.
-Rejecting a client certificate when using **S2N_CERT_AUTH_OPTIONAL** will terminate the handshake.
 
 ### Public Key API's
 ```c
@@ -1198,24 +760,6 @@ int s2n_connection_set_config(struct s2n_connection *conn,
 **s2n_connection_set_config** Associates a configuration object with a
 connection.
 
-### s2n\_connection\_set\_ctx
-
-```c
-int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx);
-```
-
-**s2n_connection_set_ctx** sets user defined context in **s2n_connection**
-object.
-
-### s2n\_connection\_get\_ctx
-
-```c
-void *s2n_connection_get_ctx(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_ctx** gets user defined context from **s2n_connection**
-object.
-
 ### s2n\_connection\_set\_fd
 
 ```c
@@ -1236,62 +780,6 @@ types of I/O).
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_connection\_is\_valid\_for\_cipher\_preferences
-
-```c
-int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
-```
-
-**s2n_connection_is_valid_for_cipher_preferences** checks if the cipher used by current connection
-is supported by a given cipher preferences. It returns
--  1 if the connection satisfies the cipher suite
--  0 if it does not
-- -1 on any other errors
-
-
-### s2n\_connection\_set\_cipher\_preferences
-
-```c
-int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
-```
-
-**s2n_connection_set_cipher_preferences** sets the cipher preference override for the
-s2n_connection. Calling this function is not necessary unless you want to set the
-cipher preferences on the connection to something different than what is in the s2n_config.
-
-
-### s2n\_connection\_set\_protocol\_preferences
-
-```c
-int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
-```
-
-**s2n_connection_set_protocol_preferences** sets the protocol preference override for the
-s2n_connection. Calling this function is not necessary unless you want to set the
-protocol preferences on the connection to something different than what is in the s2n_config.
-
-### s2n\_set\_server\_name
-
-```c
-int s2n_set_server_name(struct s2n_connection *conn,
-                        const char *server_name);
-```
-
-**s2n_set_server_name** Sets the server name for the connection. In future,
-this can be used by clients who wish to use the TLS "Server Name indicator"
-extension. At present, client functionality is disabled.
-
-### s2n\_get\_server\_name
-
-```c
-const char *s2n_get_server_name(struct s2n_connection *conn);
-```
-
-**s2n_get_server_name** returns the server name associated with a connection,
-or NULL if none is found. This can be used by a server to determine which server
-name the client is using. This function returns the first ServerName entry in the ServerNameList
-sent by the client. Subsequent entries are not returned.
 
 ### s2n\_connection\_set\_blinding
 
@@ -1332,17 +820,6 @@ preferring throughput will use large record sizes that minimize overhead.
 provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**.
 **s2n_send** uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
 and reset record size back to a single segment after timeout_threshold seconds of inactivity.
-
-### s2n\_connection\_get\_wire\_bytes
-
-```c
-uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
-uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_wire_bytes_in** and **s2n_connection_get_wire_bytes_out**
-return the number of bytes transmitted by s2n-tls "on the wire", in and out
-respectively.
 
 ### s2n\_connection\_get\_protocol\_version
 
@@ -1458,84 +935,6 @@ These functions retrieve the session id as sent by the client in the ClientHello
 
 **s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
 
-### s2n\_connection\_client\_cert\_used
-
-```c
-int s2n_connection_client_cert_used(struct s2n_connection *conn);
-```
-**s2n_connection_client_cert_used** returns 1 if the handshake completed and Client Auth was
-negotiated during the handshake.
-
-### s2n\_get\_application\_protocol
-
-```c
-const char *s2n_get_application_protocol(struct s2n_connection *conn);
-```
-
-**s2n_get_application_protocol** returns the negotiated application protocol
-for a **s2n_connection**.  In the event of no protocol being negotiated, NULL
-is returned.
-
-### s2n\_connection\_get\_ocsp\_response
-
-```c
-const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length);
-```
-
-**s2n_connection_get_ocsp_response** returns the OCSP response sent by a server
-during the handshake.  If no status response is received, NULL is returned.
-
-### s2n\_connection\_is\_ocsp\_stapled
-
-```c
-int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
-```
-
-**s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was sent (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
-
-### s2n\_connection\_get\_handshake\_type\_name
-
-```c
-const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_handshake_type_name** returns a human-readable handshake type name, e.g. "NEGOTIATED|FULL_HANDSHAKE|PERFECT_FORWARD_SECRECY"
-
-### s2n\_connection\_get\_last\_message\_name
-
-```c
-const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_last_message_name** returns the last message name in TLS state machine, e.g. "SERVER_HELLO", "APPLICATION_DATA".
-
-### s2n\_connection\_get\_alert
-
-```c
-int s2n_connection_get_alert(struct s2n_connection *conn);
-```
-
-If a connection was shut down by the peer, **s2n_connection_get_alert** returns
-the TLS alert code that caused a connection to be shut down. s2n-tls considers all
-TLS alerts fatal and shuts down a connection whenever one is received.
-
-### s2n\_connection\_get\_cipher
-
-```c
-const char * s2n_connection_get_cipher(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_cipher** returns a string indicating the cipher suite
-negotiated by s2n-tls for a connection in Openssl format, e.g. "ECDHE-RSA-AES128-GCM-SHA256".
-
-### s2n\_connection\_get\_curve
-
-```c
-const char * s2n_connection_get_curve(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
-
 ### s2n\_connection\_get\_selected\_cert
 
 ```c
@@ -1553,14 +952,6 @@ Return the certificate that was used during the TLS handshake.
 This function returns NULL if the certificate selection phase of the handshake has not completed
  or if a certificate was not requested by the peer.
 
-### s2n\_cert\_chain\_get\_length
-
-```c
-int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
-```
-
-**s2n_cert_chain_get_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
-
 ### s2n\_cert\_chain\_get\_cert
 
 ```c
@@ -1568,56 +959,6 @@ int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, 
 ```
 
 **s2n_cert_chain_get_cert** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
-
-### s2n\_cert\_get\_der
-
-```c
-int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
-```
-
-**s2n_cert_get_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate.
-
-### s2n\_connection\_get_peer\_cert\_chain
-
-```c
-int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *s2n_cert_chain_and_key);
-```
-
-**s2n_connection_get_peer_cert_chain** gets the validated peer certificate chain from the s2n connection object.
-
-### s2n\_cert\_get\_x509\_extension\_value\_length
-
-```c
-int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t ext_value_len);
-```
-
-**s2n_cert_get_x509_extension_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
-
-
-### s2n\_cert\_get\_x509\_extension\_value
-
-```c
-int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
-```
-
-**s2n_cert_get_x509_extension_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
-
-
-### s2n\_cert\_get\_utf8\_string\_from\_extension\_data\_length
-
-```c
-int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
-```
-
-**s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String length of the ASN.1 X.509 certificate extension data.
-
-### s2n\_cert\_get\_utf8\_string\_from\_extension\_data
-
-```c
-int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
-```
-
-**s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
 
 ### Session Resumption Related calls
 
