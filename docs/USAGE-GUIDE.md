@@ -1660,7 +1660,7 @@ int main(void) {
     /* The connection object will now be configured with the desired send buffer size. */
     s2n_connection_set_config(conn, config);
 
-    /* Now further changes are required for the feature to work. */
+    /* No further changes are required for the feature to work. */
 
     ...
 
