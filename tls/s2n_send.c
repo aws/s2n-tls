@@ -35,8 +35,8 @@
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
 {
     /* If the connection is unbuffered then flush on every record written.
-     * The rest of this function assumes conn->send_mode == S2N_BUFFERED_SEND */
-    if (conn->send_mode == S2N_UNBUFFERED_SEND) {
+     * The rest of this function assumes conn->send_mode == S2N_MULTI_RECORD_SEND */
+    if (conn->send_mode == S2N_DEFAULT_SEND) {
         return true;
     }
 

@@ -239,7 +239,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_fragment_size));
 
         /* Buffered send won't flush an empty connection. */
-        conn->send_mode = S2N_BUFFERED_SEND;
+        conn->send_mode = S2N_MULTI_RECORD_SEND;
         conn->custom_send_buffer_size = mock_total_message_size;
         EXPECT_FALSE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_fragment_size));
 

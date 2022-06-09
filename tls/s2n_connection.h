@@ -50,8 +50,11 @@
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
 typedef enum {
-    S2N_UNBUFFERED_SEND,
-    S2N_BUFFERED_SEND
+    /** The conn->out stuffer is flushed every time a record is written to it. */
+    S2N_DEFAULT_SEND,
+    /** The conn->out stuffer is flushed based on a custom send buffer size. This allows multiple
+     * records to be written at in one socket send. */
+    S2N_MULTI_RECORD_SEND
 } s2n_send_mode;
 
 typedef enum {

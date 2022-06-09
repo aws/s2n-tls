@@ -219,7 +219,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     uint16_t block_size = 0;
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
-    if (conn->send_mode == S2N_UNBUFFERED_SEND) {
+    if (conn->send_mode == S2N_DEFAULT_SEND) {
         /* If the user has not specified a send buffer size then the TLS records
          * are flushed immediately. This implies a logic error if the stuffer was
          * not reset in this mode. */
@@ -297,7 +297,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
          */
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
-        if (conn->send_mode == S2N_BUFFERED_SEND) {
+        if (conn->send_mode == S2N_MULTI_RECORD_SEND) {
             POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, conn->custom_send_buffer_size));
         } else {
             POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));

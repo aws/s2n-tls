@@ -436,9 +436,9 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     conn->custom_send_buffer_size = config->custom_send_buffer_size;
     if (conn->custom_send_buffer_size != 0) {
-        conn->send_mode = S2N_BUFFERED_SEND;
+        conn->send_mode = S2N_MULTI_RECORD_SEND;
     } else {
-        conn->send_mode = S2N_UNBUFFERED_SEND;
+        conn->send_mode = S2N_DEFAULT_SEND;
     }
 
     conn->config = config;
