@@ -143,8 +143,8 @@ struct s2n_config {
     /* The user defined context associated with config */
     void *context;
 
-    /* Used to determine the stuffer size for a connection's `out` stuffer. */
-    uint32_t send_buffer_size;
+    /* Used to override the stuffer size for a connection's `out` stuffer. */
+    uint32_t custom_send_buffer_size;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
@@ -160,4 +160,4 @@ void s2n_wipe_static_configs(void);
 extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(struct s2n_config *config);
 
-int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t buffer_byte_size);
+int s2n_config_set_custom_send_buffer_size(struct s2n_config *config, uint32_t buffer_byte_size);

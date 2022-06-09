@@ -229,7 +229,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
         ssize_t mock_total_message_size = 1 << 15;
 
-        /* Make stuffer larger than the send buffer size so we can test that the conn->send_buffer_size
+        /* Make stuffer larger than the send buffer size so we can test that the conn->custom_send_buffer_size
          * bound is enforced. */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->out, mock_total_message_size*2));
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 
         /* Buffered send won't flush an empty connection. */
         conn->send_mode = S2N_BUFFERED_SEND;
-        conn->send_buffer_size = mock_total_message_size;
+        conn->custom_send_buffer_size = mock_total_message_size;
         EXPECT_FALSE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_fragment_size));
 
         /* If the whole user buffer has been consumed it is time to flush. */
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
     {
         /* Setup connections */
         struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, SEND_BUFFER_SIZE));
+        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE));
 
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));

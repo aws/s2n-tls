@@ -434,8 +434,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         POSIX_GUARD(s2n_connection_enable_quic(conn));
     }
 
-    conn->send_buffer_size = config->send_buffer_size;
-    if (conn->send_buffer_size != 0) {
+    conn->custom_send_buffer_size = config->custom_send_buffer_size;
+    if (conn->custom_send_buffer_size != 0) {
         conn->send_mode = S2N_BUFFERED_SEND;
     } else {
         conn->send_mode = S2N_UNBUFFERED_SEND;

@@ -231,7 +231,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
 
     if (send_buffer_byte_size > 0) {
-        GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
+        GUARD_EXIT(s2n_config_set_custom_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
     }
 }
 

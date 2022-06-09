@@ -40,25 +40,22 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, u
         return true;
     }
 
-    if (conn->send_buffer_size < S2N_TLS_MAXIMUM_RECORD_LENGTH) {
+    if (conn->custom_send_buffer_size < S2N_TLS_MAXIMUM_RECORD_LENGTH) {
         return true;
     }
 
     uint32_t available_space = s2n_stuffer_space_remaining(&conn->out);
-
-    /* If the stuffer can't store the max possible max fragment size 
-     * without growing it's time to flush. */
-    if (available_space < max_write_size) {
-        return true;
-    }
-
     uint32_t bytes_in_stuffer = s2n_stuffer_data_available(&conn->out);
 
-    /* If the stuffer cannot contain a max fragment size record then it is time to flush.
-     * This is not redundant with the above check if the conn->send_buffer_size is smaller
-     * than the conn->out stuffer. This is possible because the conn->out stuffer MUST 
-     * be growable currently. */
-    if (bytes_in_stuffer + max_write_size > conn->send_buffer_size) {
+    /* If the stuffer can't store the max possible max fragment size 
+     * without growing it's time to flush.
+     *
+     * We must check if conn->custom_send_buffer_size is smaller than the conn->out
+     * stuffer because is it possible that the conn->out stuffer grew larger
+     * then conn->custom_send_buffer_size. 
+     *
+     * We must also check that the stuffer has enough space for another max_write_size record. */
+    if ((bytes_in_stuffer + max_write_size > conn->custom_send_buffer_size) || available_space < max_write_size) {
         return true;
     }
 

@@ -374,8 +374,8 @@ struct s2n_connection {
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
 
-    /* Used to determine the stuffer size for the `out` stuffer. */
-    uint32_t send_buffer_size;
+    /* Used to override the stuffer size for the `out` stuffer. */
+    uint32_t custom_send_buffer_size;
     /* Tracks the current send mode. */
     s2n_send_mode send_mode;
 };

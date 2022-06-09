@@ -661,17 +661,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
     }
 
-    /* Test s2n_config_set_send_buffer_size */
+    /* Test s2n_config_set_custom_send_buffer_size */
     {
         uint32_t valid_buffer_size = S2N_TLS_MAXIMUM_RECORD_LENGTH;
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, valid_buffer_size));
+        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, valid_buffer_size));
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-        EXPECT_EQUAL(valid_buffer_size, conn->send_buffer_size);
+        EXPECT_EQUAL(valid_buffer_size, conn->custom_send_buffer_size);
         EXPECT_EQUAL(conn->send_mode, S2N_BUFFERED_SEND);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));

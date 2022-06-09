@@ -298,7 +298,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
         if (conn->send_mode == S2N_BUFFERED_SEND) {
-            POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, conn->send_buffer_size));
+            POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, conn->custom_send_buffer_size));
         } else {
             POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
         }
