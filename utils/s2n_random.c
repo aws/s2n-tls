@@ -14,6 +14,7 @@
  */
 
 #include <openssl/engine.h>
+#include <openssl/rand.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -28,24 +29,19 @@
 #include <errno.h>
 #include <time.h>
 
-#include "api/s2n.h"
-
 #if defined(S2N_CPUID_AVAILABLE)
 #include <cpuid.h>
 #endif
 
-#include "stuffer/s2n_stuffer.h"
-
+#include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
-
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_mem.h"
-
-#include <openssl/rand.h>
 
 #define ENTROPY_SOURCE "/dev/urandom"
 
@@ -60,14 +56,19 @@
 
 static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
 
-static __thread struct s2n_drbg per_thread_private_drbg = {0};
-static __thread struct s2n_drbg per_thread_public_drbg = {0};
+struct s2n_rand_state {
+    uint64_t cached_fork_generation_number;
+    struct s2n_drbg public_drbg;
+    struct s2n_drbg private_drbg;
+    bool drbgs_initialised;
+};
 
-static void *zeroed_when_forked_page = NULL;
-static int zero = 0;
-
-static __thread void *zero_if_forked_ptr = &zero;
-#define zero_if_forked (* (int *) zero_if_forked_ptr)
+static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
+    .cached_fork_generation_number = 0,
+    .public_drbg = {0},
+    .private_drbg = {0},
+    .drbgs_initialised = false
+};
 
 static int s2n_rand_init_impl(void);
 static int s2n_rand_cleanup_impl(void);
@@ -79,7 +80,7 @@ static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
 static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
 static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
 
-bool s2n_cpu_supports_rdrand() {
+static bool s2n_cpu_supports_rdrand() {
 #if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
     if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
@@ -128,26 +129,76 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
-void s2n_on_fork(void)
-{
-    zero_if_forked = 0;
-}
-
-static inline S2N_RESULT s2n_defend_if_forked(void)
+static S2N_RESULT s2n_initialise_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = {.data = s2n_public_drbg,.size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
+    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
 
-    if (zero_if_forked == 0) {
-        /* Clean up the old drbg first */
+    RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
+    RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
+
+    s2n_per_thread_rand_state.drbgs_initialised = true;
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_maybe_initialise_drbgs(void)
+{
+    if (s2n_per_thread_rand_state.drbgs_initialised == false) {
+        RESULT_GUARD(s2n_initialise_drbgs());
+
+        /* Then cache the fork generation number. We just initialised the drbg
+         * states with new entropy and forking is not an external event.
+         */
+        uint64_t returned_fork_generation_number = 0;
+        RESULT_GUARD(s2n_get_fork_generation_number(&returned_fork_generation_number));
+        s2n_per_thread_rand_state.cached_fork_generation_number = returned_fork_generation_number;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* s2n_defend_against_ube() implements defenses against ube's (uniqueness
+ * breaking events). Currently, only implements fork detection.
+ */
+static S2N_RESULT s2n_defend_against_ube(void)
+{
+    uint64_t returned_fork_generation_number = 0;
+    RESULT_GUARD(s2n_get_fork_generation_number(&returned_fork_generation_number));
+
+    if (returned_fork_generation_number != s2n_per_thread_rand_state.cached_fork_generation_number) {
+
+        /* This assumes that s2n_rand_cleanup_thread() doesn't mutate any other
+         * state than the drbg states and it resets the drbg initialisation
+         * boolean to false. s2n_maybe_initialise_drbgs() will cache the new
+         * fork generation number in the per thread state.
+         */
         RESULT_GUARD(s2n_rand_cleanup_thread());
-        /* Instantiate the new ones */
-        RESULT_GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
-        RESULT_GUARD(s2n_drbg_instantiate(&per_thread_private_drbg, &private, S2N_AES_128_CTR_NO_DF_PR));
-        zero_if_forked_ptr = zeroed_when_forked_page;
-        zero_if_forked = 1;
+        RESULT_GUARD(s2n_maybe_initialise_drbgs());
+    }
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
+    struct s2n_drbg *drbg_state)
+{
+    RESULT_GUARD(s2n_maybe_initialise_drbgs());
+    RESULT_GUARD(s2n_defend_against_ube());
+
+    uint32_t offset = 0;
+    uint32_t remaining = out_blob->size;
+
+    while(remaining) {
+        struct s2n_blob slice = { 0 };
+
+        RESULT_GUARD_POSIX(s2n_blob_slice(out_blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
+        RESULT_GUARD(s2n_drbg_generate(drbg_state, &slice));
+
+        remaining -= slice.size;
+        offset += slice.size;
     }
 
     return S2N_RESULT_OK;
@@ -155,111 +206,31 @@ static inline S2N_RESULT s2n_defend_if_forked(void)
 
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_defend_if_forked());
-
-    uint32_t offset = 0;
-    uint32_t remaining = blob->size;
-
-    while(remaining) {
-        struct s2n_blob slice = { 0 };
-
-        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
-
-        RESULT_GUARD(s2n_drbg_generate(&per_thread_public_drbg, &slice));
-
-        remaining -= slice.size;
-        offset += slice.size;
-    }
+    RESULT_GUARD(s2n_get_random_data(blob, &s2n_per_thread_rand_state.public_drbg));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_defend_if_forked());
-
-    uint32_t offset = 0;
-    uint32_t remaining = blob->size;
-
-    while(remaining) {
-        struct s2n_blob slice = { 0 };
-
-        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
-
-        RESULT_GUARD(s2n_drbg_generate(&per_thread_private_drbg, &slice));
-
-        remaining -= slice.size;
-        offset += slice.size;
-    }
+    RESULT_GUARD(s2n_get_random_data(blob, &s2n_per_thread_rand_state.private_drbg));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_public_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD(s2n_drbg_bytes_used(&per_thread_public_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&s2n_per_thread_rand_state.public_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD(s2n_drbg_bytes_used(&per_thread_private_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&s2n_per_thread_rand_state.private_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
-static int s2n_rand_urandom_impl(void *ptr, uint32_t size)
-{
-    POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
-
-    uint8_t *data = ptr;
-    uint32_t n = size;
-    struct timespec sleep_time = {.tv_sec = 0, .tv_nsec = 0 };
-    long backoff = 1;
-
-    while (n) {
-        errno = 0;
-        int r = read(entropy_fd, data, n);
-        if (r <= 0) {
-            /*
-             * A non-blocking read() on /dev/urandom should "never" fail,
-             * except for EINTR. If it does, briefly pause and use
-             * exponential backoff to avoid creating a tight spinning loop.
-             *
-             * iteration          delay
-             * ---------    -----------------
-             *    1         10          nsec
-             *    2         100         nsec
-             *    3         1,000       nsec
-             *    4         10,000      nsec
-             *    5         100,000     nsec
-             *    6         1,000,000   nsec
-             *    7         10,000,000  nsec
-             *    8         99,999,999  nsec
-             *    9         99,999,999  nsec
-             *    ...
-             */
-            if (errno != EINTR) {
-                backoff = MIN(backoff * 10, ONE_S - 1);
-                sleep_time.tv_nsec = backoff;
-                do {
-                    r = nanosleep(&sleep_time, &sleep_time);
-                }
-                while (r != 0);
-            }
-
-            continue;
-        }
-
-        data += r;
-        n -= r;
-    }
-
-    return S2N_SUCCESS;
-}
-
-/*
- * Return a random number in the range [0, bound)
- */
+/* Return a random number in the range [0, bound) */
 S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 {
     uint64_t r;
@@ -267,21 +238,20 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
     RESULT_ENSURE_GT(bound, 0);
 
     while (1) {
-        struct s2n_blob blob = {.data = (void *)&r, sizeof(r) };
+        struct s2n_blob blob = { .data = (void *)&r, sizeof(r) };
         RESULT_GUARD(s2n_get_public_random_data(&blob));
 
-        /* Imagine an int was one byte and UINT_MAX was 256. If the
-         * caller asked for s2n_random(129, ...) we'd end up in
-         * trouble. Each number in the range 0...127 would be twice
-         * as likely as 128. That's because r == 0 % 129 -> 0, and
-         * r == 129 % 129 -> 0, but only r == 128 returns 128,
-         * r == 257 is out of range.
+        /* Imagine an int was one byte and UINT_MAX was 256. If the caller asked
+         * for s2n_random(129, ...) we'd end up in trouble. Each number in the
+         * range 0...127 would be twice as likely as 128. That's because
+         * r == 0 % 129 -> 0, and r == 129 % 129 -> 0, but only
+         * r == 128 returns 128, r == 257 is out of range.
          *
-         * To de-bias the dice, we discard values of r that are higher
-         * that the highest multiple of 'bound' an int can support. If
-         * bound is a uint, then in the worst case we discard 50% - 1 r's.
-         * But since 'bound' is an int and INT_MAX is <= UINT_MAX / 2,
-         * in the worst case we discard 25% - 1 r's.
+         * To de-bias the dice, we discard values of r that are higher that the
+         * highest multiple of 'bound' an int can support. If bound is a uint,
+         * then in the worst case we discard 50% - 1 r's. But since 'bound' is
+         * an int and INT_MAX is <= UINT_MAX / 2, in the worst case we discard
+         * 25% - 1 r's.
          */
         if (r < (UINT64_MAX - (UINT64_MAX % bound))) {
             *output = r % bound;
@@ -296,7 +266,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
-    struct s2n_blob out = {.data = buf,.size = num };
+    struct s2n_blob out = { .data = buf,.size = num };
 
     if (s2n_result_is_error(s2n_get_private_random_data(&out))) {
         return 0;
@@ -328,7 +298,7 @@ static int s2n_rand_init_impl(void)
 {
   OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
-    if (entropy_fd == S2N_FAILURE) {
+    if (entropy_fd == -1) {
         if (errno == EINTR) {
             goto OPEN;
         }
@@ -344,33 +314,9 @@ static int s2n_rand_init_impl(void)
 
 S2N_RESULT s2n_rand_init(void)
 {
-    uint32_t pagesize;
-
     RESULT_GUARD_POSIX(s2n_rand_init_cb());
 
-    pagesize = s2n_mem_get_page_size();
-
-    /* We need a single-aligned page for our protected memory region */
-    RESULT_ENSURE(posix_memalign(&zeroed_when_forked_page, pagesize, pagesize) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-    RESULT_ENSURE(zeroed_when_forked_page != NULL, S2N_ERR_OPEN_RANDOM);
-
-    /* Initialized to zero to ensure that we seed our DRBGs */
-    zero_if_forked = 0;
-
-    /* INHERIT_ZERO and WIPEONFORK reset a page to all-zeroes when a fork occurs */
-#if defined(MAP_INHERIT_ZERO)
-    RESULT_ENSURE(minherit(zeroed_when_forked_page, pagesize, MAP_INHERIT_ZERO) != S2N_FAILURE, S2N_ERR_OPEN_RANDOM);
-#endif
-
-#if defined(MADV_WIPEONFORK)
-    RESULT_ENSURE(madvise(zeroed_when_forked_page, pagesize, MADV_WIPEONFORK) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-#endif
-
-    /* For defence in depth */
-    RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_on_fork) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-
-    /* Seed everything */
-    RESULT_GUARD(s2n_defend_if_forked());
+    RESULT_GUARD(s2n_maybe_initialise_drbgs());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Create an engine */
@@ -423,12 +369,6 @@ S2N_RESULT s2n_rand_cleanup(void)
     }
 #endif
 
-    if (zeroed_when_forked_page != NULL) {
-        free(zeroed_when_forked_page);
-        zeroed_when_forked_page = NULL;
-        zero_if_forked_ptr = &zero;
-    }
-
     s2n_rand_init_cb = s2n_rand_init_impl;
     s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
     s2n_rand_seed_cb = s2n_rand_urandom_impl;
@@ -439,28 +379,69 @@ S2N_RESULT s2n_rand_cleanup(void)
 
 S2N_RESULT s2n_rand_cleanup_thread(void)
 {
-    RESULT_GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
-    RESULT_GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
+    /* Currently, it is only safe for this function to mutate the drbg states
+     * in the per thread rand state. See s2n_defend_against_ube().
+     */
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.public_drbg));
+
+    s2n_per_thread_rand_state.drbgs_initialised = false;
 
     return S2N_RESULT_OK;
 }
 
-/*
- * This must only be used for unit tests. Any real use is dangerous and will be overwritten in s2n_defend_if_forked if
- * it is forked. This was added to support known answer tests that use OpenSSL and s2n_get_private_random_data directly.
- */
-S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
+static int s2n_rand_urandom_impl(void *ptr, uint32_t size)
 {
-    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    RESULT_GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
+    POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
-    per_thread_private_drbg = drbg;
-    return S2N_RESULT_OK;
+    uint8_t *data = ptr;
+    uint32_t n = size;
+    struct timespec sleep_time = { .tv_sec = 0, .tv_nsec = 0 };
+    long backoff = 1;
+
+    while (n) {
+        errno = 0;
+        int r = read(entropy_fd, data, n);
+        if (r <= 0) {
+            /*
+             * A non-blocking read() on /dev/urandom should "never" fail, except
+             * for EINTR. If it does, briefly pause and use exponential backoff
+             * to avoid creating a tight spinning loop.
+             *
+             * iteration          delay
+             * ---------    -----------------
+             *    1         10          nsec
+             *    2         100         nsec
+             *    3         1,000       nsec
+             *    4         10,000      nsec
+             *    5         100,000     nsec
+             *    6         1,000,000   nsec
+             *    7         10,000,000  nsec
+             *    8         99,999,999  nsec
+             *    9         99,999,999  nsec
+             *    ...
+             */
+            if (errno != EINTR) {
+                backoff = MIN(backoff * 10, ONE_S - 1);
+                sleep_time.tv_nsec = backoff;
+                do {
+                    r = nanosleep(&sleep_time, &sleep_time);
+                }
+                while (r != 0);
+            }
+
+            continue;
+        }
+
+        data += r;
+        n -= r;
+    }
+
+    return S2N_SUCCESS;
 }
 
-/*
- * volatile is important to prevent the compiler from
- * re-ordering or optimizing the use of RDRAND.
+/* Volatile is important to prevent the compiler from re-ordering or optimizing
+ * the use of RDRAND.
  */
 static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 {
@@ -472,7 +453,9 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
         uint64_t u64;
 #if defined(__i386__)
         struct {
-            /* since we check first that we're on intel, we can safely assume little endian. */
+            /* Since we check first that we're on intel, we can safely assume
+             * little endian
+             */
             uint32_t u_low;
             uint32_t u_high;
         } i386_fields;
@@ -487,14 +470,15 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 
         for (int tries = 0; tries < 10; tries++) {
 #if defined(__i386__)
-            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
-            * output.i386_fields.u_low). Check the carry bit, which will be set on success. Then clober the register and reset
-            * the carry bit. Due to needing to support an ancient assembler we use the opcode syntax.
-            * the %b1 is to force compilers to use c1 instead of ecx.
-            * Here's a description of how the opcode is encoded:
-            * 0x0fc7 (rdrand)
-            * 0xf0 (store the result in eax).
-            */
+            /* Execute the rdrand instruction, store the result in a general
+             * purpose register (it's assigned to output.i386_fields.u_low).
+             * Check the carry bit, which will be set on success. Then clobber
+             * the register and reset the carry bit. Due to needing to support
+             * an ancient assembler we use the opcode syntax. the %b1 is to
+             * force compilers to use c1 instead of ecx. Here's a description of
+             * how the opcode is encoded: 0x0fc7 (rdrand) 0xf0 (store the result
+             * in eax).
+             */
             unsigned char success_high = 0, success_low = 0;
             __asm__ __volatile__(".byte 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.i386_fields.u_low), "=qm"(success_low)
                                  :
@@ -507,7 +491,8 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             success = success_high & success_low;
 
             /* Treat either all 1 or all 0 bits in either the high or low order
-             * bits as failure */
+             * bits as failure
+             */
             if (output.i386_fields.u_low == 0 ||
                     output.i386_fields.u_low == UINT32_MAX ||
                     output.i386_fields.u_high == 0 ||
@@ -515,30 +500,36 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
                 success = 0;
             }
 #else
-            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
-            * output.u64). Check the carry bit, which will be set on success. Then clober the carry bit.
-            * Due to needing to support an ancient assembler we use the opcode syntax.
-            * the %b1 is to force compilers to use c1 instead of ecx.
-            * Here's a description of how the opcode is encoded:
-            * 0x48 (pick a 64-bit register it does more too, but that's all that matters there)
-            * 0x0fc7 (rdrand)
-            * 0xf0 (store the result in rax). */
+            /* Execute the rdrand instruction, store the result in a general
+             * purpose register (it's assigned to output.u64). Check the carry
+             * bit, which will be set on success. Then clober the carry bit. Due
+             * to needing to support an ancient assembler we use the opcode
+             * syntax. the %b1 is to force compilers to use c1 instead of ecx.
+             * Here's a description of how the opcode is encoded:
+             * 0x48 (pick a 64-bit register it does more too, but that's all
+             *  that matters there)
+             * 0x0fc7 (rdrand)
+             * 0xf0 (store the result in rax).
+             */
             __asm__ __volatile__(".byte 0x48, 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.u64), "=qm"(success)
             :
             :"cc");
 #endif /* defined(__i386__) */
 
-            /* Some AMD CPUs will find that RDRAND "sticks" on all 1s but still reports success.
-             * Some other very old CPUs use all 0s as an error condition while still reporting success.
-             * If we encounter either of these suspicious values (a 1/2^63 chance) we'll treat them as
+            /* Some AMD CPUs will find that RDRAND "sticks" on all 1s but still
+             * reports success. Some other very old CPUs use all 0s as an error
+             * condition while still reporting success. If we encounter either
+             * of these suspicious values (a 1/2^63 chance) we'll treat them as
              * a failure and generate a new value.
              *
-             * In the future we could add CPUID checks to detect processors with these known bugs,
-             * however it does not appear worth it. The entropy loss is negligible and the
-             * corresponding likelihood that a healthy CPU generates either of these values is also
-             * negligible (1/2^63). Finally, adding processor specific logic would greatly
-             * increase the complexity and would cause us to "miss" any unknown processors with
-             * similar bugs. */
+             * In the future we could add CPUID checks to detect processors with
+             * these known bugs, however it does not appear worth it. The
+             * entropy loss is negligible and the corresponding likelihood that
+             * a healthy CPU generates either of these values is also negligible
+             * (1/2^63). Finally, adding processor specific logic would greatly
+             * increase the complexity and would cause us to "miss" any unknown
+             * processors with similar bugs.
+             */
             if (output.u64 == UINT64_MAX ||
                 output.u64 == 0) {
                 success = 0;
@@ -560,4 +551,18 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 #else
     POSIX_BAIL(S2N_ERR_UNSUPPORTED_CPU);
 #endif
+}
+
+/* This must only be used for unit tests. Any real use is dangerous and will be
+ * overwritten in s2n_defend_against_ube if it is forked. This was added to
+ * support known answer tests that use OpenSSL and s2n_get_private_random_data
+ * directly.
+ */
+S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
+{
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    RESULT_ENSURE_OK(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg), S2N_ERR_NOT_IN_UNIT_TEST);
+    s2n_per_thread_rand_state.private_drbg = drbg;
+
+    return S2N_RESULT_OK;
 }
