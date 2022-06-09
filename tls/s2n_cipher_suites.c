@@ -1125,6 +1125,9 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     POSIX_ENSURE_REF(security_policy);
 
     /**
+     * Ensure that the wire cipher suite is contained in the security
+     * policy, and thus was offered by the client.
+     *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.3
      *# A client which receives a
      *# cipher suite that was not offered MUST abort the handshake with an
@@ -1134,8 +1137,9 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# A client which receives a cipher suite that was not offered MUST
      *# abort the handshake.
      *
-     * Ensure that the wire cipher suite is contained in the security
-     * policy, and thus was offered by the client.
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Upon receipt of a HelloRetryRequest, the client MUST check the
+     *# legacy_version, legacy_session_id_echo, cipher_suite
      **/
     struct s2n_cipher_suite *cipher_suite = NULL;
     for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
@@ -1145,15 +1149,6 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
             break;
         }
     }
-
-     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-     *# Upon receipt of a HelloRetryRequest, the client MUST check the
-     *# legacy_version, legacy_session_id_echo, cipher_suite, and
-     *# legacy_compression_method as specified in Section 4.1.3 and then
-     *# process the extensions, starting with determining the version using
-     *# "supported_versions".
-     **/
     POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);

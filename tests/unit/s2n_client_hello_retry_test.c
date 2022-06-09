@@ -520,14 +520,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /*
+    /**
+     * Ensure the client aborts the handshake if more than one
+     * HelloRetryRequest is received
+     *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test
      *# If a client receives a second
      *# HelloRetryRequest in the same connection (i.e., where the ClientHello
      *# was itself in response to a HelloRetryRequest), it MUST abort the
      *# handshake with an "unexpected_message" alert.
-     */
+     **/
     {
         struct s2n_config *server_config;
         struct s2n_config *client_config;
@@ -598,13 +601,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
-    /*
+    /**
+     * Ensure that s2n_random_value_is_hello_retry returns true for hello
+     * retry random values, and false otherwise
+     *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.3
      *= type=test
      *# Upon receiving a message with type server_hello, implementations MUST
      *# first examine the Random value and, if it matches this value, process
      *# it as described in Section 4.1.4).
-     */
+     **/
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -612,19 +618,22 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, not_hello_retry_request_random,
                               S2N_TLS_RANDOM_DATA_LEN);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_random_value_is_hello_retry(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+        EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        EXPECT_SUCCESS(s2n_random_value_is_hello_retry(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /*
+    /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Upon receiving
      *# the ServerHello, clients MUST check that the cipher suite supplied in
      *# the ServerHello is the same as that in the HelloRetryRequest and
      *# otherwise abort the handshake with an "illegal_parameter" alert.
-     */
+     **/
     {
         struct s2n_connection *server_conn;
         struct s2n_connection *client_conn;
@@ -981,6 +990,10 @@ int main(int argc, char **argv)
     }
 
     /**
+     * Ensure each of the following are checked: legacy_version,
+     * legacy_session_id_echo, cipher_suite, and
+     * legacy_compression_method
+     *
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
@@ -993,7 +1006,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                       s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                                                       S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+                       S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                       S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                       s2n_config_ptr_free);
@@ -1254,33 +1268,17 @@ int main(int argc, char **argv)
 
          /* Server receives ClientHello 1 */
          EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-
          EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
-         /* Custom s2n_server_hello_retry_send */
-         {
-             POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-             POSIX_GUARD(s2n_server_hello_write_message(server_conn));
+         POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+         POSIX_GUARD(s2n_server_hello_write_message(server_conn));
+         struct s2n_stuffer_reservation total_extensions_size = {0};
+         POSIX_GUARD(s2n_stuffer_reserve_uint16(&server_conn->handshake.io, &total_extensions_size));
 
-             /* Custom s2n_server_extensions_send */
-             {
-                 struct s2n_stuffer_reservation total_extensions_size = {0};
-                 POSIX_GUARD(s2n_stuffer_reserve_uint16(&server_conn->handshake.io, &total_extensions_size));
+         /* Only send key share extension - exclude supported_versions */
+         s2n_extension_send(&s2n_server_key_share_extension, server_conn, &server_conn->handshake.io);
 
-                 /* Only send key share extension - exclude supported_versions */
-                 s2n_extension_send(&s2n_server_key_share_extension, server_conn, &server_conn->handshake.io);
-
-                 POSIX_GUARD(s2n_stuffer_write_vector_size(&total_extensions_size));
-             }
-
-             /* Update transcript */
-             POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(server_conn));
-
-             /* Reset handshake values */
-             server_conn->handshake.client_hello_received = 0;
-             server_conn->client_hello.parsed = 0;
-             POSIX_CHECKED_MEMSET((uint8_t*) server_conn->extension_requests_received, 0, sizeof(s2n_extension_bitfield));
-         }
+         POSIX_GUARD(s2n_stuffer_write_vector_size(&total_extensions_size));
 
          EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
          EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
@@ -1344,13 +1342,16 @@ int main(int argc, char **argv)
      }
 
      /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-     *= type=test
-     *# The value of selected_version in the HelloRetryRequest
-     *# "supported_versions" extension MUST be retained in the ServerHello,
-     *# and a client MUST abort the handshake with an "illegal_parameter"
-     *# alert if the value changes.
-     **/
+      * Ensure that the client aborts the handshake if selected_version
+      * differs in the received server hellos
+      *
+      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+      *= type=test
+      *# The value of selected_version in the HelloRetryRequest
+      *# "supported_versions" extension MUST be retained in the ServerHello,
+      *# and a client MUST abort the handshake with an "illegal_parameter"
+      *# alert if the value changes.
+      **/
      {
          DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key, s2n_cert_chain_and_key_ptr_free);
          EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

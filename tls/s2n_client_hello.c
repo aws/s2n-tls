@@ -434,7 +434,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
 
     /* Save the previous cipher suite */
-    uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+    uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
@@ -447,11 +447,11 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      *# the server selects the cipher suite as the first step in the
      *# negotiation, then this will happen automatically).
      **/
+    uint8_t null_cipher[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_NULL_WITH_NULL_NULL};
     if (s2n_is_hello_retry_handshake(conn) &&
-        !(previous_cipher_suite_iana[0] == 0 && previous_cipher_suite_iana[1] == 0)) {
-        POSIX_ENSURE(previous_cipher_suite_iana[0] == conn->secure.cipher_suite->iana_value[0] &&
-                     previous_cipher_suite_iana[1] == conn->secure.cipher_suite->iana_value[1],
-                     S2N_ERR_BAD_MESSAGE);
+        !s2n_constant_time_equals(previous_cipher_suite_iana, null_cipher, S2N_TLS_CIPHER_SUITE_LEN)) {
+        POSIX_ENSURE(s2n_constant_time_equals(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value,
+                S2N_TLS_CIPHER_SUITE_LEN),S2N_ERR_BAD_MESSAGE);
     }
 
     /* If we're using a PSK, we don't need to choose a signature algorithm or certificate,

@@ -169,7 +169,7 @@ int main()
         }
 
         /**
-         * Response extension tests
+         * Ensure response extensions are only received if sent
          *
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2
          *= type=test
@@ -265,7 +265,7 @@ int main()
         }
 
         /**
-         * Response extension tests
+         * Ensure correct response extension send behavior
          *
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2
          *= type=test

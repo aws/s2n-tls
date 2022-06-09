@@ -79,8 +79,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
      *# and a client MUST abort the handshake with an "illegal_parameter"
      *# alert if the value changes.
      **/
-    if (s2n_is_hello_retry_handshake(conn)
-        && conn->server_protocol_version != 0) {
+    if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
         POSIX_ENSURE(conn->server_protocol_version == server_version,
                      S2N_ERR_BAD_MESSAGE);
     }

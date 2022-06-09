@@ -51,7 +51,7 @@ const uint8_t tls11_downgrade_protection_bytes[] = {
     0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00
 };
 
-static int s2n_hello_retry_validate(struct s2n_connection *conn) {
+static int s2n_random_value_is_hello_retry(struct s2n_connection *conn) {
     POSIX_ENSURE_REF(conn);
 
     POSIX_ENSURE(memcmp(hello_retry_req_random, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
@@ -115,7 +115,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
      *# first examine the Random value and, if it matches this value, process
      *# it as described in Section 4.1.4).
      **/
-    if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
+    if (s2n_random_value_is_hello_retry(conn) == S2N_SUCCESS) {
 
         /**
          *= https://tools.ietf.org/rfc/rfc8446#4.1.4
@@ -129,10 +129,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         /**
          *= https://tools.ietf.org/rfc/rfc8446#4.1.4
          *# Upon receipt of a HelloRetryRequest, the client MUST check the
-         *# legacy_version, legacy_session_id_echo, cipher_suite, and
-         *# legacy_compression_method as specified in Section 4.1.3 and then
-         *# process the extensions, starting with determining the version using
-         *# "supported_versions".
+         *# legacy_version
          **/
         POSIX_ENSURE(legacy_version == S2N_TLS12, S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -156,9 +153,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
      *# legacy_version, legacy_session_id_echo, cipher_suite, and
-     *# legacy_compression_method as specified in Section 4.1.3 and then
-     *# process the extensions, starting with determining the version using
-     *# "supported_versions".
+     *# legacy_compression_method
      **/
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
@@ -181,10 +176,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *
          *= https://tools.ietf.org/rfc/rfc8446#4.1.4
          *# Upon receipt of a HelloRetryRequest, the client MUST check the
-         *# legacy_version, legacy_session_id_echo, cipher_suite, and
-         *# legacy_compression_method as specified in Section 4.1.3 and then
-         *# process the extensions, starting with determining the version using
-         *# "supported_versions".
+         *# legacy_version, legacy_session_id_echo
          **/
         POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
 
