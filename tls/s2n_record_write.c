@@ -297,9 +297,10 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
          */
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
-        POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
         if (conn->send_mode == S2N_BUFFERED_SEND) {
-            POSIX_GUARD(s2n_stuffer_resize(&conn->out, conn->send_buffer_size));
+            POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, conn->send_buffer_size));
+        } else {
+            POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
         }
     }
 
@@ -307,7 +308,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
      * used to add an individual record to the out stuffer. */
     struct s2n_blob record_blob = { 0 };
     struct s2n_stuffer record_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&record_blob, &conn->out.blob + conn->out.write_cursor, s2n_stuffer_space_remaining(&conn->out);
+    POSIX_GUARD(s2n_blob_init(&record_blob, conn->out.blob.data + conn->out.write_cursor, s2n_stuffer_space_remaining(&conn->out)));
     POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &record_blob));
 
     /* Now that we know the length, start writing the record */
@@ -453,7 +454,6 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* Rewind to rewrite/encrypt the packet */
     POSIX_GUARD(s2n_stuffer_rewrite(&record_stuffer));
-    POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, conn->out.write_cursor));
     
     /* Skip the header */
     POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, S2N_TLS_RECORD_HEADER_LENGTH));
@@ -494,8 +494,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     POSIX_GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
 
     /* Sync the out stuffer write cursor to with the record stuffer. */
-    POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
-    POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, record_stuffer.write_cursor));
+    POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, s2n_stuffer_data_available(&record_stuffer)));
 
     if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
         conn->client = current_client_crypto;

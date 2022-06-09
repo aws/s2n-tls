@@ -40,6 +40,10 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, u
         return true;
     }
 
+    if (conn->send_buffer_size < S2N_TLS_MAXIMUM_RECORD_LENGTH) {
+        return true;
+    }
+
     uint32_t available_space = s2n_stuffer_space_remaining(&conn->out);
 
     /* If the stuffer can't store the max possible max fragment size 
