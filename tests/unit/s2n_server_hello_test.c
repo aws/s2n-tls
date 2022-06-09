@@ -243,6 +243,7 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         struct s2n_stuffer *io = &client_conn->handshake.io;

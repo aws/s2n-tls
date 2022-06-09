@@ -260,6 +260,8 @@ int main(int argc, char **argv)
             }
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -294,6 +296,8 @@ int main(int argc, char **argv)
                 }
 
                 EXPECT_NOT_NULL(client_config = s2n_config_new());
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
                 EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
@@ -364,6 +368,7 @@ int main(int argc, char **argv)
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
 
             struct s2n_security_policy security_policy = {
                 .minimum_protocol_version = server_config->security_policy->minimum_protocol_version,

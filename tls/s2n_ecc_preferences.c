@@ -33,6 +33,11 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20200310[] = {
     &s2n_ecc_curve_secp384r1,
 };
 
+const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_default_fips[] = {
+    &s2n_ecc_curve_secp256r1,
+    &s2n_ecc_curve_secp384r1,
+};
+
 const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20201021[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
@@ -60,6 +65,11 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_20140601 = {
 const struct s2n_ecc_preferences s2n_ecc_preferences_20200310 = {
         .count = s2n_array_len(s2n_ecc_pref_list_20200310),
         .ecc_curves = s2n_ecc_pref_list_20200310,
+};
+
+const struct s2n_ecc_preferences s2n_ecc_preferences_default_fips = {
+        .count = s2n_array_len(s2n_ecc_pref_list_default_fips),
+        .ecc_curves = s2n_ecc_pref_list_default_fips,
 };
 
 const struct s2n_ecc_preferences s2n_ecc_preferences_20201021 = {
@@ -92,10 +102,10 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
         for (size_t j = 0; j < s2n_all_supported_curves_list_len; j++) {
             if (named_curve->iana_id == s2n_all_supported_curves_list[j]->iana_id) {
                 curve_found = 1;
-                break; 
+                break;
             }
         }
-        check *= curve_found; 
+        check *= curve_found;
         if (check == 0) {
             POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         }
