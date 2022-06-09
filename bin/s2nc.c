@@ -272,7 +272,7 @@ int main(int argc, char *const *argv)
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len = 0;
     char *early_data = NULL;
-    uint32_t           send_buffer_byte_size = 0;
+    uint32_t send_buffer_byte_size = 0;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -300,7 +300,7 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
-        { "buffered-send", required_argument, 0, 'b' },
+        {"buffered-send", required_argument, 0, 'b' },
         { 0 },
     };
 

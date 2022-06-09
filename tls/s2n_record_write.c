@@ -305,9 +305,10 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* A record only local stuffer used to avoid tainting the conn->out stuffer. It should be
      * used to add an individual record to the out stuffer. */
-    struct s2n_stuffer record_stuffer = {0};
-    POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &conn->out.blob));
-    POSIX_GUARD(s2n_stuffer_skip_write(&record_stuffer, conn->out.write_cursor));
+    struct s2n_blob record_blob = { 0 };
+    struct s2n_stuffer record_stuffer = { 0 };
+    POSIX_GUARD(s2n_blob_init(&record_blob, &conn->out.blob + conn->out.write_cursor, s2n_stuffer_space_remaining(&conn->out);
+    POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &record_blob));
 
     /* Now that we know the length, start writing the record */
     POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, is_tls13_record ?
