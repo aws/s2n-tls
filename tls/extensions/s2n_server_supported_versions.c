@@ -41,15 +41,13 @@
 static int s2n_server_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in);
 
-static int s2n_server_supported_versions_if_missing(struct s2n_connection *conn);
-
 const s2n_extension_type s2n_server_supported_versions_extension = {
     .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
     .is_response = true,
     .send = s2n_server_supported_versions_send,
     .recv = s2n_server_supported_versions_recv,
     .should_send = s2n_extension_send_if_tls13_connection,
-    .if_missing = s2n_server_supported_versions_if_missing,
+    .if_missing = s2n_extension_noop_if_missing,
 };
 
 static int s2n_server_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -100,18 +98,6 @@ static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struc
     }
 
     S2N_ERROR_IF(s2n_extensions_server_supported_versions_process(conn, in) < 0, S2N_ERR_BAD_MESSAGE);
-    return S2N_SUCCESS;
-}
-
-static int s2n_server_supported_versions_if_missing(struct s2n_connection *conn) {
-    if (s2n_is_hello_retry_message(conn)) {
-        /**
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-         *# The server's extensions MUST contain "supported_versions".
-         **/
-        POSIX_ENSURE(conn->server_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION,
-                     S2N_ERR_BAD_MESSAGE);
-    }
     return S2N_SUCCESS;
 }
 

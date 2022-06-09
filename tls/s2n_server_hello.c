@@ -188,6 +188,15 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         POSIX_ENSURE(!s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
         POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+        /**
+         * If the supported_versions extension was not processed,
+         * server_protocol_version will be S2N_UNKNOWN_PROTOCOL_VERSION
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *# The server's extensions MUST contain "supported_versions".
+         **/
+        POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_BAD_MESSAGE);
+
         /*
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
          *# A client that attempts to send 0-RTT data MUST fail a connection if
