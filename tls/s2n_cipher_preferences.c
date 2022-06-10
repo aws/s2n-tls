@@ -86,7 +86,7 @@ const struct s2n_cipher_preferences cipher_preferences_20210831 = {
  * The following security policy is derived from the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
  *
- * Only supports TLS1.2
+ * Supports TLS1.2, TLS1.1, TLS1.0
  */
 struct s2n_cipher_suite *cipher_suites_default_fips[] = {
     /* tls1.2 with ECDSA */
