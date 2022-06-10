@@ -1273,6 +1273,24 @@ int main(int argc, char **argv)
      *# negotiation, then this will happen automatically).
      **/
      {
+         /* Create a custom security policy so it can be changed mid-handshake */
+         struct s2n_cipher_suite *test_cipher_suites[] = {
+             &s2n_tls13_aes_128_gcm_sha256,
+             &s2n_tls13_aes_256_gcm_sha384
+         };
+         struct s2n_cipher_preferences test_cipher_preferences = {
+             .count = s2n_array_len(test_cipher_suites),
+             .suites = test_cipher_suites,
+         };
+         struct s2n_security_policy security_policy_test_tls13_retry_temp = {
+             .minimum_protocol_version = S2N_TLS10,
+             .cipher_preferences = &test_cipher_preferences,
+             .kem_preferences = &kem_preferences_null,
+             .signature_preferences = &s2n_signature_preferences_20200207,
+             .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
+             .ecc_preferences = &ecc_preferences_for_retry,
+         };
+
          DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key, s2n_cert_chain_and_key_ptr_free);
          EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                                                         S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
@@ -1298,7 +1316,7 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
          /* Force the HRR path */
-         client_conn->security_policy_override = &security_policy_test_tls13_retry;
+         client_conn->security_policy_override = &security_policy_test_tls13_retry_temp;
 
          /* Send ClientHello */
          s2n_blocked_status blocked = 0;
