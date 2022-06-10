@@ -365,6 +365,22 @@ extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_n
 S2N_API
 extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 
+/** 
+ * Allows the caller to set a custom send buffer size. This buffer size will be use to override the default
+ * `s2n_send()` behavior of immediately sending created TLS records over the wire. After enabling this feature
+ * s2n-tls will use the specified buffer size and fill it with as many TLS records as possible before sending
+ * the buffer over the wire.
+ *
+ * @note The requested `buffer_byte_size` must be larger than 16KB to ensure that the buffer is larger than the maximum
+ * possible TLS record size.
+ *
+ * @param config The configuration object being updated
+ * @param buffer_byte_size The desired custom buffer size
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API
+extern int s2n_config_set_custom_send_buffer_size(struct s2n_config *config, uint32_t buffer_byte_size);
+
 /**
  * Translates an s2n_error code to a human readable string explaining the error.
  *

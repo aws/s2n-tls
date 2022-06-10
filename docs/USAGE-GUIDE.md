@@ -1310,6 +1310,40 @@ If the read end of the pipe is closed unexpectedly, writing to the pipe will rai
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
 
+## Buffered s2n_send
+
+s2n-tls has an feature that allows `s2n_send` to buffer TLS records until the allotted buffer size is reached. This can improve throughput and CPU usage for applications
+that need to send a large number of bytes.
+
+This buffer size cannot be smaller than 16KB, which is the maximum possible TLS record size.
+
+**Warning**: The underlying buffer for the records may grow to be larger than the configured buffer size. This feature does not guarantee any exact memory limits but a ballpark limit. This does not affect the sizes of the buffers written over send, only the underlying memory allocation.
+
+### Example
+```c
+/* Since this feature is unstable the required API can only be reached from a private header file. Once the feature
+has stablized it can be reached from api/s2n.h. */
+#include "api/s2n.h"
+
+#define SEND_BUFFER_SIZE_BYTES 65536
+
+int main(void) {
+    struct s2n_config *config = s2n_config_new();
+    /* Specify the desired send buffer size in bytes. */
+    s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE_BYTES);
+
+    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+    /* The connection object will now be configured with the desired send buffer size. */
+    s2n_connection_set_config(conn, config);
+
+    /* No further changes are required for the feature to work. */
+
+    ...
+
+    return 0;
+}
+```
+
 ### s2n\_negotiate
 
 ```c
@@ -1629,41 +1663,3 @@ int s2n_early_data_cb_async_impl(struct s2n_connection *conn, struct s2n_offered
 To understand the API it may be easiest to see examples in action. s2n-tls's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
 
-# Unstable Features
-
-This section covers new s2n-tls features that are not yet ready to join the public s2n-tls API. The use of these APIs should not be used for production workloads and 
-they are subject to changes. All public APIs can be found in [api/s2n.h](../api/s2n.h).
-
-## Buffered s2n_send
-
-s2n-tls has an unstable feature that allows `s2n_send` to buffer TLS records until the allotted buffer size is reached. This can improve throughput and CPU usage for applications
-that need to send a large number of bytes.
-
-This buffer size cannot be smaller than 16KB, which is the maximum possible TLS record size.
-
-**Warning**: The underlying buffer for the records may grow to be larger than the configured buffer size. This feature does not guarantee any exact memory limits but a ballpark limit. This does not affect the sizes of the buffers written over send, only the underlying memory allocation.
-
-### Example
-```c
-/* Since this feature is unstable the required API can only be reached from a private header file. Once the feature
-has stablized it can be reached from api/s2n.h. */
-#include "tls/s2n_config.h"
-
-#define SEND_BUFFER_SIZE_BYTES 65536
-
-int main(void) {
-    struct s2n_config *config = s2n_config_new();
-    /* Specify the desired send buffer size in bytes. */
-    s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE_BYTES);
-
-    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-    /* The connection object will now be configured with the desired send buffer size. */
-    s2n_connection_set_config(conn, config);
-
-    /* No further changes are required for the feature to work. */
-
-    ...
-
-    return 0;
-}
-```
