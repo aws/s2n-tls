@@ -102,6 +102,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         /* Send the client hello */
@@ -175,6 +176,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         /* Send the client hello */

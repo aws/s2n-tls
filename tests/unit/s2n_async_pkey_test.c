@@ -243,7 +243,7 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_SUCCESS(s2n_hash_digest(&digest, expected_digest.data, expected_digest.size));
     EXPECT_SUCCESS(s2n_hash_free(&digest));
 
-    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */ 
+    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input1.data, input1.size));
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input2.data, input2.size));
 
@@ -279,7 +279,7 @@ int async_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pk
     struct s2n_blob input_buffer2 = { 0 };
     EXPECT_SUCCESS(s2n_alloc(&input_buffer2, input_size));
 
-    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */ 
+    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer1.data, input_buffer1.size));
     EXPECT_BYTEARRAY_EQUAL(input_buffer1.data, test_encrypted_data, test_encrypted_size);
 
@@ -400,6 +400,7 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -478,6 +479,7 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -520,6 +522,7 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -588,7 +591,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&encrypted_data, test_encrypted_data, test_encrypted_size));
 
         struct s2n_blob decrypted_data = { 0 };
-        /* Re-use the encrypted data buffer to make sure that the data was actually transformed in the callback. 
+        /* Re-use the encrypted data buffer to make sure that the data was actually transformed in the callback.
          * If we filled this with the decrypted data, we would not know if the decryption happened in the callback. */
         EXPECT_SUCCESS(s2n_blob_init(&decrypted_data, test_encrypted_data, test_encrypted_size));
 

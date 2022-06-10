@@ -98,6 +98,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
     EXPECT_NOT_NULL(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());

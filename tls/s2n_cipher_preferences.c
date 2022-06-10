@@ -85,8 +85,6 @@ const struct s2n_cipher_preferences cipher_preferences_20210831 = {
 /*
  * The following security policy is derived from the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
- *
- * Supports TLS1.2, TLS1.1, TLS1.0
  */
 struct s2n_cipher_suite *cipher_suites_default_fips[] = {
     /* tls1.2 with ECDSA */
@@ -104,16 +102,6 @@ struct s2n_cipher_suite *cipher_suites_default_fips[] = {
     &s2n_dhe_rsa_with_aes_256_cbc_sha256,
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,
-
-    /* tls1.2, tls1.1, tls1.0 with ECDSA */
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
-
-    /* tls1.2, tls1.1, tls1.0 with RSA */
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_dhe_rsa_with_aes_128_cbc_sha,
-    &s2n_dhe_rsa_with_aes_256_cbc_sha,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_default_fips = {

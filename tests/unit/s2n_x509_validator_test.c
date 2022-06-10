@@ -283,11 +283,17 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -300,11 +306,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
 
         s2n_x509_validator_wipe(&validator);
@@ -364,11 +369,17 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -381,11 +392,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
 
         s2n_x509_validator_wipe(&validator);
@@ -439,11 +449,17 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -452,19 +468,18 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
-        s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
+        s2n_clock_time_nanoseconds old_clock = conn->config->wall_clock;
+        s2n_config_set_wall_clock(conn->config, fetch_expired_after_ocsp_timestamp, NULL);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        s2n_config_set_wall_clock(connection->config, old_clock, NULL);
-        s2n_connection_free(connection);
+        s2n_config_set_wall_clock(conn->config, old_clock, NULL);
         s2n_pkey_free(&public_key_out);
 
         s2n_x509_validator_wipe(&validator);
@@ -480,11 +495,17 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -497,12 +518,11 @@ int main(int argc, char **argv) {
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out);
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -519,9 +539,16 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_reject_everything, &verify_data));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
+
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_reject_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -533,11 +560,10 @@ int main(int argc, char **argv) {
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out);
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -560,9 +586,16 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_reject_everything, &verify_data));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
+
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_reject_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -574,11 +607,10 @@ int main(int argc, char **argv) {
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out);
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
@@ -594,9 +626,16 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
+
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -609,12 +648,11 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
 
-        s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -637,9 +675,17 @@ int main(int argc, char **argv) {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        s2n_connection_set_config(conn, config);
+
+
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -652,13 +698,12 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
         s2n_pkey_free(&public_key_out);
 
-        s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
@@ -1488,7 +1533,7 @@ int main(int argc, char **argv) {
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
-        
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -1532,7 +1577,7 @@ int main(int argc, char **argv) {
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
-        
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -1544,7 +1589,7 @@ int main(int argc, char **argv) {
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
-        
+
         s2n_stuffer_free(&chain_stuffer);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);

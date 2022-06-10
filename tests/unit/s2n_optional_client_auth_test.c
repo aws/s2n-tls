@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 
     /* Setup baseline server config and certs. */
     EXPECT_NOT_NULL(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
@@ -87,7 +89,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&security_policy, default_security_policy, sizeof(security_policy));
         security_policy.cipher_preferences = &server_cipher_preferences;
 
@@ -245,7 +247,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
-    
+
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
 
@@ -428,7 +430,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&security_policy, default_security_policy, sizeof(security_policy));
         security_policy.cipher_preferences = &server_cipher_preferences;
 
@@ -459,7 +461,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
-    
+
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
     EXPECT_SUCCESS(s2n_config_free(server_config));
