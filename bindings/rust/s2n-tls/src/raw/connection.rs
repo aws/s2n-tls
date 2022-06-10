@@ -19,7 +19,7 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem};
+use std::{ffi::CStr, mem, time::Duration};
 
 mod builder;
 pub use builder::*;
@@ -126,8 +126,9 @@ impl Connection {
     /// Reports the remaining nanoseconds before the connection may be safely closed.
     ///
     /// If [`shutdown`] is called before this method reports "0", then an error will occur.
-    pub fn remaining_blinding_nanos(&self) -> Result<u64, Error> {
-        unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }
+    pub fn remaining_blinding_delay(&self) -> Result<Duration, Error> {
+        let nanos = unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }?;
+        Ok(Duration::from_nanos(nanos))
     }
 
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.

@@ -299,14 +299,13 @@ where
         if tls.blinding.is_none() {
             let delay = tls
                 .as_ref()
-                .remaining_blinding_nanos()
+                .remaining_blinding_delay()
                 .map_err(io::Error::from)?;
-            if delay > 0 {
+            if !delay.is_zero() {
                 // Sleep operates at the milisecond resolution, so add an extra
                 // millisecond to account for any stray nanoseconds.
                 let safety = Duration::from_millis(1);
-                let delay = Duration::from_nanos(delay).saturating_add(safety);
-                tls.blinding = Some(Box::pin(sleep(delay)));
+                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
             }
         };
 
