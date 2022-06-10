@@ -625,7 +625,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST_NO_INIT();
 
-    /* For each test case, creates a child processes that runs the test case.
+    /* For each test case, creates a child process that runs the test case.
      *
      * Fork detection is lazily initialised on first invocation of
      * s2n_get_fork_generation_number(). Hence, it is important that children

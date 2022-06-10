@@ -196,7 +196,7 @@ static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
     while(remaining) {
         struct s2n_blob slice = { 0 };
 
-        RESULT_GUARD_POSIX(s2n_blob_slice(out_blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
+        RESULT_GUARD_POSIX(s2n_blob_slice(out_blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
         RESULT_GUARD(s2n_drbg_generate(drbg_state, &slice));
 
         remaining -= slice.size;
