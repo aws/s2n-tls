@@ -89,64 +89,30 @@ const struct s2n_cipher_preferences cipher_preferences_20210831 = {
  * Only supports TLS1.2
  */
 struct s2n_cipher_suite *cipher_suites_default_fips[] = {
-    /* /1* tls1.3 *1/ */
-    /* /1* TLS_AES_128_GCM_SHA256 (0x13, 0x01) *1/ */
-    /* &s2n_tls13_aes_128_gcm_sha256, */
-    /* /1* TLS_AES_256_GCM_SHA384 (0x13, 0x02) *1/ */
-    /* &s2n_tls13_aes_256_gcm_sha384, */
-    /* /1* TLS_AES_128_CCM_SHA256 (0x13, 0x04) *1/ */
-    /* /1* TLS_AES_128_CCM_8_SHA256 (0x13, 0x05) *1/ */
-
     /* tls1.2 with ECDSA */
-    /* TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 (0xC0, 0x2B) */
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-    /* TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 (0xC0, 0x2C) */
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    /* TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 (0xC0, 0x23) */
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    /* TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 (0xC0, 0x24) */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-    /* TLS_ECDHE_ECDSA_WITH_AES_128_CCM (0xC0, 0xAC) */
-    /* TLS_ECDHE_ECDSA_WITH_AES_256_CCM (0xC0, 0xAD) */
-    /* TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8 (0xC0, 0xAE) */
-    /* TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8 (0xC0, 0xAF) */
 
     /* tls1.2 with RSA */
-    /* TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xC0, 0x2F) */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    /* TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 (0xC0, 0x30) */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    /* TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 (0xC0, 0x27) */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    /* TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 (0xC0, 0x28) */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    /* TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 (0x00, 0x67) */
     &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-    /* TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 (0x00, 0x6B) */
     &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-    /* TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 (0x00, 0x9E) */
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,
-    /* TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 (0x00, 0x9F) */
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,
-    /* TLS_DHE_RSA_WITH_AES_128_CCM (0xC0, 0x9E) */
-    /* TLS_DHE_RSA_WITH_AES_256_CCM (0xC0, 0x9F) */
-    /* TLS_DHE_RSA_WITH_AES_128_CCM_8 (0xC0, 0xA2) */
-    /* TLS_DHE_RSA_WITH_AES_256_CCM_8 (0xC0, 0xA3) */
 
     /* tls1.2, tls1.1, tls1.0 with ECDSA */
-    /* TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA (0xC0, 0x09) */
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
-    /* TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA (0xC0, 0x0A) */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
 
     /* tls1.2, tls1.1, tls1.0 with RSA */
-    /* TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA (0xC0, 0x13) */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    /* TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA (0xC0, 0x14) */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    /* TLS_DHE_RSA_WITH_AES_128_CBC_SHA (0x00, 0x33) */
     &s2n_dhe_rsa_with_aes_128_cbc_sha,
-    /* TLS_DHE_RSA_WITH_AES_256_CBC_SHA (0x00, 0x39) */
     &s2n_dhe_rsa_with_aes_256_cbc_sha,
 };
 
