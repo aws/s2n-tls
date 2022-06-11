@@ -105,6 +105,10 @@ where
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        // Retrieve a result, either from the stored error
+        // or by polling Connection::negotiate().
+        // Connection::negotiate() only completes once,
+        // regardless of how often this method is polled.
         let result = match self.error.take() {
             Some(err) => Err(err),
             None => {
@@ -114,6 +118,12 @@ where
                 }))
             }
         };
+        // If the result isn't a fatal error, return it immediately.
+        // Otherwise, poll Connection::shutdown().
+        //
+        // Shutdown is only best-effort.
+        // When Connection::shutdown() completes, even with an error,
+        // we return the original Connection::negotiate() error.
         match result {
             Ok(r) => Ok(r).into(),
             Err(e) if e.is_retryable() => Err(e).into(),

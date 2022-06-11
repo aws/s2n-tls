@@ -114,7 +114,11 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
     );
     assert!(timeout.is_err());
 
-    // Shutdown MUST eventually gracefully complete after blinding
+    // Shutdown MUST eventually complete after blinding.
+    //
+    // We check for completion, but not for success. At the moment, the
+    // call to s2n_shutdown will fail. See `shutdown_with_blinding_slow()`
+    // for verification that s2n_shutdown eventually suceeds.
     let (timeout, _) = join!(
         time::timeout(common::MAX_BLINDING_SECS, server.shutdown()),
         time::timeout(common::MAX_BLINDING_SECS, read_until_shutdown(&mut client)),
