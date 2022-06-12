@@ -1179,15 +1179,15 @@ int main(int argc, char **argv)
 
             /* Server sends HelloRetryRequest */
             POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-            POSIX_GUARD(s2n_server_hello_write_message(server_conn));
+            EXPECT_SUCCESS(s2n_server_hello_write_message(server_conn));
 
             /* Overwrite compression method to 1 */
             struct s2n_stuffer *io = &server_conn->handshake.io;
             io->write_cursor -= 1;
-            s2n_stuffer_write_uint8(io, 1);
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 1));
 
             /* Write the extensions */
-            POSIX_GUARD(s2n_server_extensions_send(server_conn, &server_conn->handshake.io));
+            EXPECT_SUCCESS(s2n_server_extensions_send(server_conn, &server_conn->handshake.io));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
