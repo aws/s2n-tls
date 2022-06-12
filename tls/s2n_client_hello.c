@@ -440,16 +440,18 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Now choose the ciphers we have certs for. */
     POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
-    /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
-     *# Servers MUST ensure that they negotiate the
-     *# same cipher suite when receiving a conformant updated ClientHello (if
-     *# the server selects the cipher suite as the first step in the
-     *# negotiation, then this will happen automatically).
-     **/
-    uint8_t null_cipher[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_NULL_WITH_NULL_NULL};
+    /* Check if this is the second client hello in a hello retry handshake */
     if (s2n_is_hello_retry_handshake(conn) &&
-        !s2n_constant_time_equals(previous_cipher_suite_iana, null_cipher, S2N_TLS_CIPHER_SUITE_LEN)) {
+        s2n_conn_get_current_message_type(conn) == CLIENT_HELLO &&
+        conn->handshake.message_number > 0) {
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *# Servers MUST ensure that they negotiate the
+         *# same cipher suite when receiving a conformant updated ClientHello (if
+         *# the server selects the cipher suite as the first step in the
+         *# negotiation, then this will happen automatically).
+         **/
         POSIX_ENSURE(s2n_constant_time_equals(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value,
                 S2N_TLS_CIPHER_SUITE_LEN),S2N_ERR_BAD_MESSAGE);
     }
