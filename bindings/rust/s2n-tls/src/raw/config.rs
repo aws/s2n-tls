@@ -14,6 +14,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+#[derive(Debug, PartialEq)]
 pub struct Config(NonNull<s2n_config>);
 
 /// # Safety
