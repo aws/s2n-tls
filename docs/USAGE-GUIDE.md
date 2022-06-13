@@ -1321,8 +1321,6 @@ This buffer size cannot be smaller than 16KB, which is the maximum possible TLS 
 
 ### Example
 ```c
-/* Since this feature is unstable the required API can only be reached from a private header file. Once the feature
-has stablized it can be reached from api/s2n.h. */
 #include "api/s2n.h"
 
 #define SEND_BUFFER_SIZE_BYTES 65536
