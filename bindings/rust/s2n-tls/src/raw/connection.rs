@@ -19,7 +19,10 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem};
+use std::{ffi::CStr, mem, time::Duration};
+
+mod builder;
+pub use builder::*;
 
 macro_rules! static_const_str {
     ($c_chars:expr) => {
@@ -73,16 +76,26 @@ impl Connection {
                     .is_err()
             }
         }
+
+        let mut connection = Self { connection };
+        connection.init_context();
+        connection
+    }
+
+    fn init_context(&mut self) {
         let context = Box::new(Context::default());
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {
-            s2n_connection_set_ctx(connection.as_ptr(), context)
+            // There should never be an existing context
+            debug_assert!(s2n_connection_get_ctx(self.connection.as_ptr())
+                .into_result()
+                .is_err());
+
+            s2n_connection_set_ctx(self.connection.as_ptr(), context)
                 .into_result()
                 .unwrap();
         }
-
-        Self { connection }
     }
 
     pub fn new_client() -> Self {
@@ -108,6 +121,14 @@ impl Connection {
             s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result()
         }?;
         Ok(self)
+    }
+
+    /// Reports the remaining nanoseconds before the connection may be safely closed.
+    ///
+    /// If [`shutdown`] is called before this method reports "0", then an error will occur.
+    pub fn remaining_blinding_delay(&self) -> Result<Duration, Error> {
+        let nanos = unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }?;
+        Ok(Duration::from_nanos(nanos))
     }
 
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.
@@ -320,7 +341,16 @@ impl Connection {
     /// called. Reusing the same connection handle(s) is more performant than repeatedly
     /// calling s2n_connection_new and s2n_connection_free
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
-        unsafe { s2n_connection_wipe(self.connection.as_ptr()).into_result() }?;
+        unsafe {
+            // Wiping the connection will wipe the pointer to the context,
+            // so retrieve and drop that memory first.
+            let ctx = self.context_mut();
+            drop(Box::from_raw(ctx));
+
+            s2n_connection_wipe(self.connection.as_ptr()).into_result()
+        }?;
+
+        self.init_context();
         Ok(self)
     }
 
@@ -568,6 +598,18 @@ impl Connection {
         s2n_connection_set_secret_callback(self.connection.as_ptr(), callback, context)
             .into_result()?;
         Ok(self)
+    }
+}
+
+impl AsRef<Connection> for Connection {
+    fn as_ref(&self) -> &Connection {
+        self
+    }
+}
+
+impl AsMut<Connection> for Connection {
+    fn as_mut(&mut self) -> &mut Connection {
+        self
     }
 }
 

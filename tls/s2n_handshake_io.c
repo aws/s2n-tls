@@ -1365,6 +1365,11 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         /* Flush any pending I/O or alert messages */
         POSIX_GUARD(s2n_flush(conn, blocked));
 
+        /* If the connection is closed, the handshake will never complete. */
+        if (conn->closed) {
+            POSIX_BAIL(S2N_ERR_CLOSED);
+        }
+
         /* If the handshake was paused, retry the current message */
         if (conn->handshake.paused) {
             *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;

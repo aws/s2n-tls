@@ -26,6 +26,7 @@
 
 #include <pthread.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
@@ -36,6 +37,10 @@
 
 #define RANDOM_GENERATE_DATA_SIZE 100
 #define MAX_RANDOM_GENERATE_DATA_SIZE 5120
+
+#define NUMBER_OF_BOUNDS 10
+#define NUMBER_OF_RANGE_FUNCTION_CALLS 200
+#define MAX_REPEATED_OUTPUT 4
 
 
 struct random_test_case {
@@ -61,9 +66,9 @@ static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
      */
     EXPECT_EQUAL(waitpid(proc_pid, &status, 0), proc_pid);
 #endif
-    /* Check that child exited with expected_status. If not, this indicates
-     * that an error was encountered in the unit tests executed in that
-     * child process.
+    /* Check that child exited with status = expected_status. If not, this
+     * indicates that an error was encountered in the unit tests executed in
+     * that child process.
      */
     EXPECT_NOT_EQUAL(WIFEXITED(status), 0);
     EXPECT_EQUAL(WEXITSTATUS(status), expected_status);
@@ -84,8 +89,8 @@ static int s2n_entropy_cb(void *ptr, uint32_t size)
     return S2N_SUCCESS;
 }
 
-/* Generates random data, every size between 1 and 5120 bytes, and performs
- * basic pattern tests on the ouput
+/* Generates random data (every size between 1 and 5120 bytes) and performs
+ * basic pattern tests on the resulting output
  */
 static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
 {
@@ -142,6 +147,117 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
     return S2N_RESULT_OK;
 }
 
+int qsort_comparator(const void *pval1, const void *pval2)
+{
+    const uint64_t val1 = *(const uint64_t*) pval1;
+    const uint64_t val2 = *(const uint64_t*) pval2;
+
+    if (val1 < val2) {
+        return -1;
+    }
+    else if (val1 > val2) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+static S2N_RESULT s2n_tests_get_range(void)
+{
+    uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS] = {0};
+    uint64_t current_output = 0;
+    /* The type of the `bound` parameter in s2n_public_random() is signed */
+    int64_t chosen_upper_bound = 0;
+    struct s2n_blob upper_bound_blob = { .data = (void *) &chosen_upper_bound, .size = sizeof(chosen_upper_bound) };
+
+    /* 0 is not a legal upper bound */
+    chosen_upper_bound = 0;
+    EXPECT_ERROR_WITH_ERRNO(s2n_public_random(chosen_upper_bound, &current_output), S2N_ERR_SAFETY);
+
+    /* For an upper bound of 1, 0 should be the only possible output */
+    chosen_upper_bound = 1;
+    EXPECT_OK(s2n_public_random(chosen_upper_bound, &current_output));
+    EXPECT_EQUAL(current_output, 0);
+
+    /* For a upper bound of 2, 0 and 1 should be the only possible outputs */
+    chosen_upper_bound = 1;
+    EXPECT_OK(s2n_public_random(chosen_upper_bound, &current_output));
+    EXPECT_TRUE((current_output == 0) || (current_output == 1));
+
+    /* Test NUMBER_OF_BOUNDS upper bounds. For each resulting range, draw
+     * NUMBER_OF_RANGE_FUNCTION_CALLS numbers from s2n_public_random() and
+     * verify the output. Set 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS as the
+     * minimal value for the upper bound. The minimal upper bound value is
+     * chosen to make the likelihood of a false positive small - see below for
+     * probability calculations.
+     */
+    int64_t minimal_upper_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
+    for (size_t bound_ctr = 0; bound_ctr < NUMBER_OF_BOUNDS; bound_ctr++) {
+
+        /* chosen_upper_bound is supposedly chosen uniformly at random and
+         * minimal_upper_bound is only 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS, so
+         * this should not iterate for too long
+         */
+        do {
+            EXPECT_OK(s2n_get_private_random_data(&upper_bound_blob));
+        } while (chosen_upper_bound < minimal_upper_bound);
+
+        /* Pick NUMBER_OF_RANGE_FUNCTION_CALLS numbers in the given interval.
+         * While doing that, also verify that the upper bound is respected.
+         */
+        for (size_t func_call_ctr = 0; func_call_ctr < NUMBER_OF_RANGE_FUNCTION_CALLS; func_call_ctr++) {
+            EXPECT_OK(s2n_public_random(chosen_upper_bound, &range_results[func_call_ctr]));
+            EXPECT_TRUE(range_results[func_call_ctr] < chosen_upper_bound);
+        }
+
+        /* The probability of "at least MAX_REPEATED_OUTPUT repeated values"
+         * follows a binomial distribution. Hence, we can get an upper bound via
+         * Markov's inequality:
+         * P("at least MAX_REPEATED_OUTPUT repeated values")
+         *      <= E("at least MAX_REPEATED_OUTPUT repeated values") / MAX_REPEATED_OUTPUT.
+         *       = (NUMBER_OF_RANGE_FUNCTION_CALLS * 1/(2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS)) / MAX_REPEATED_OUTPUT
+         *       = 1/(2^30 * MAX_REPEATED_OUTPUT)
+         *
+         * With current parameters
+         *   NUMBER_OF_BOUNDS = 10
+         *   MAX_REPEATED_OUTPUT = 4
+         * this ends up with about a ~1/2^30 probability of failing this test
+         * with a false positive.
+         *
+         * qsort() complexity is not guaranteed, but
+         * NUMBER_OF_RANGE_FUNCTION_CALLS is very small, so no biggie.
+         * Sorting the array means that we can check for repeated numbers by
+         * just counting from left to right resetting the count when meeting a
+         * different value.
+         */
+        qsort(range_results, NUMBER_OF_RANGE_FUNCTION_CALLS, sizeof(uint64_t),
+            qsort_comparator);
+        uint64_t current_value = range_results[0];
+        uint64_t next_value = 0;
+        size_t repeat_count = 1;
+        for (size_t ctr = 1; ctr < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; ctr++) {
+
+            next_value = range_results[ctr];
+
+            if (current_value == next_value) {
+                repeat_count = repeat_count + 1;
+            } else {
+                RESULT_ENSURE_LT(current_value, next_value);
+                current_value = next_value;
+                repeat_count = 1;
+            }
+
+            EXPECT_TRUE(repeat_count < MAX_REPEATED_OUTPUT);
+        }
+
+        /* Reset for next iteration */
+        RESULT_CHECKED_MEMSET(&range_results[0], 0, sizeof(range_results));
+    }
+
+    return S2N_RESULT_OK;
+}
+
 void * s2n_thread_test_cb(void *thread_comms)
 {
     struct random_thread_communication *thread_comms_ptr = (struct random_thread_communication *) thread_comms;
@@ -155,8 +271,9 @@ void * s2n_thread_test_cb(void *thread_comms)
     return NULL;
 }
 
-/* Creates two threads and generates random data from those two threads, and the
- * parent threads. Verifies that all data blobs are different.
+/* Creates two threads and generates random data in those two threads as well
+ * as the parent thread. Verifies that all three resulting data blobs are
+ * different.
  */
 static S2N_RESULT s2n_thread_test(
     S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
@@ -243,7 +360,7 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
  * generation tests. Each stanza goes through a different combination of forking
  * a process and threading. Each stanza must end with
  * s2n_fork_test_verify_result() to verify the result and the exit code of the
- * child process
+ * child process.
  */
 static S2N_RESULT s2n_fork_test(
     S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
@@ -253,7 +370,7 @@ static S2N_RESULT s2n_fork_test(
     int pipes[2];
 
     /* A simple fork test. Generates random data in the parent and child, and
-     * verifies the two data blobs are different.
+     * verifies that the two resulting data blobs are different.
      */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
@@ -277,7 +394,7 @@ static S2N_RESULT s2n_fork_test(
     }
     EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, s2n_get_random_data_cb));
 
-    /* Creates threads and generates random data but only after gereating
+    /* Creates threads and generates random data but only after generating
      * random data in the child process */
     EXPECT_SUCCESS(pipe(pipes));
     proc_id = fork();
@@ -324,9 +441,7 @@ static S2N_RESULT s2n_basic_generate_tests(void)
     struct s2n_blob blob1 = { .data = data1 };
     struct s2n_blob blob2 = { .data = data2 };
 
-    /* Get two sets of data in the same process/thread, and confirm that they
-     * differ
-     */
+    /* Generate two random data blobs and confirm that they are unique */
     blob1.size = RANDOM_GENERATE_DATA_SIZE;
     blob2.size = RANDOM_GENERATE_DATA_SIZE;
     EXPECT_OK(s2n_get_public_random_data(&blob1));
@@ -373,6 +488,9 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_basic_pattern_tests(s2n_get_public_random_data));
     EXPECT_OK(s2n_basic_pattern_tests(s2n_get_private_random_data));
 
+    /* Special range function tests */
+    EXPECT_OK(s2n_tests_get_range());
+
     /* Just a sanity check and avoids cppcheck "unassignedVariable" errors.
      * In future PRs this part will be expanded.
      */
@@ -402,8 +520,27 @@ static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
     return EXIT_SUCCESS;
 }
 
+/* Test case that turns off prediction resistance */
 static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case)
 {
+    EXPECT_SUCCESS(s2n_init());
+
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return EXIT_SUCCESS;
+}
+
+/* Test case that turns off prediction resistance and all fork detection
+ * mechanisms expect pthread_at_fork()
+ */
+static int s2n_random_test_case_without_pr_pthread_atfork_cb(struct random_test_case *test_case)
+{
+    POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
+
     EXPECT_SUCCESS(s2n_init());
 
     POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
@@ -421,8 +558,8 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 
     /* This is a cheap way to ensure that failures in a fork bubble up to the
      * parent as a failure. This should be caught in the parent when querying
-     * the return status code of the child. All test macros will cause a
-     * process to exit with EXIT_FAILURE. We call exit() directly to avoid
+     * the return status code of the child. All s2n test macros will cause a
+     * process to exit with error status = 1. We call exit() directly to avoid
      * messages being printed on stderr, in turn, appearing in logs.
      */
     exit(1);
@@ -432,12 +569,13 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
     return EXIT_SUCCESS;
 }
 
-#define NUMBER_OF_RANDOM_TEST_CASES 3
+#define NUMBER_OF_RANDOM_TEST_CASES 4
 struct random_test_case random_test_cases[NUMBER_OF_RANDOM_TEST_CASES] = {
     {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
     {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
-    /* FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need to use
-     * 1 below and in s2n_random_test_case_failure_path_cb().
+    {"Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS},
+    /* The s2n FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need
+     * to use 1 below and in s2n_random_test_case_failure_cb().
      */
     {"Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},};
 
@@ -447,8 +585,8 @@ int main(int argc, char **argv)
 
     EXPECT_TRUE(s2n_array_len(random_test_cases) == NUMBER_OF_RANDOM_TEST_CASES);
 
-    /* Create NUMBER_OF_RANDOM_TEST_CASES number of child processes that run
-     * each test case.
+    /* Create NUMBER_OF_RANDOM_TEST_CASES number of child processes that each
+     * run a test case.
      *
      * Fork detection is lazily initialised on first invocation of
      * s2n_get_fork_generation_number(). Hence, it is important that children
