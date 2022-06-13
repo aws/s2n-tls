@@ -5,7 +5,7 @@ use errno::{set_errno, Errno};
 use s2n_tls::raw::{
     config::Config,
     connection::{Builder, Connection},
-    enums::{CallbackResult, Mode},
+    enums::{Blinding, CallbackResult, Mode},
     error::Error,
 };
 use std::{
@@ -14,9 +14,24 @@ use std::{
     io,
     os::raw::{c_int, c_void},
     pin::Pin,
-    task::{Context, Poll},
+    task::{
+        Context, Poll,
+        Poll::{Pending, Ready},
+    },
 };
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, ReadBuf},
+    time::{sleep, Duration, Sleep},
+};
+
+macro_rules! ready {
+    ($x:expr) => {
+        match $x {
+            Ready(r) => r,
+            Pending => return Pending,
+        }
+    };
+}
 
 #[derive(Clone)]
 pub struct TlsAcceptor<B: Builder = Config>
@@ -79,6 +94,7 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     tls: &'a mut TlsStream<S, C>,
+    error: Option<Error>,
 }
 
 impl<S, C> Future for TlsHandshake<'_, S, C>
@@ -89,10 +105,36 @@ where
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.tls.with_io(ctx, |context| {
-            let conn = context.get_mut().as_mut();
-            conn.negotiate().map(|r| r.map(|_| ()))
-        })
+        // Retrieve a result, either from the stored error
+        // or by polling Connection::negotiate().
+        // Connection::negotiate() only completes once,
+        // regardless of how often this method is polled.
+        let result = match self.error.take() {
+            Some(err) => Err(err),
+            None => {
+                ready!(self.tls.with_io(ctx, |context| {
+                    let conn = context.get_mut().as_mut();
+                    conn.negotiate().map(|r| r.map(|_| ()))
+                }))
+            }
+        };
+        // If the result isn't a fatal error, return it immediately.
+        // Otherwise, poll Connection::shutdown().
+        //
+        // Shutdown is only best-effort.
+        // When Connection::shutdown() completes, even with an error,
+        // we return the original Connection::negotiate() error.
+        match result {
+            Ok(r) => Ok(r).into(),
+            Err(e) if e.is_retryable() => Err(e).into(),
+            Err(e) => match Pin::new(&mut self.tls).poll_shutdown(ctx) {
+                Pending => {
+                    self.error = Some(e);
+                    Pending
+                }
+                Ready(_) => Err(e).into(),
+            },
+        }
     }
 }
 
@@ -103,6 +145,7 @@ where
 {
     conn: C,
     stream: S,
+    blinding: Option<Pin<Box<Sleep>>>,
 }
 
 impl<S, C> TlsStream<S, C>
@@ -110,9 +153,18 @@ where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    async fn open(conn: C, stream: S) -> Result<Self, Error> {
-        let mut tls = TlsStream { conn, stream };
-        TlsHandshake { tls: &mut tls }.await?;
+    async fn open(mut conn: C, stream: S) -> Result<Self, Error> {
+        conn.as_mut().set_blinding(Blinding::SelfService)?;
+        let mut tls = TlsStream {
+            conn,
+            stream,
+            blinding: None,
+        };
+        TlsHandshake {
+            tls: &mut tls,
+            error: None,
+        }
+        .await?;
         Ok(tls)
     }
 
@@ -211,17 +263,17 @@ where
         ctx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        self.get_mut()
-            .with_io(ctx, |mut context| {
-                context
-                    .conn
-                    .as_mut()
-                    .recv(buf.initialize_unfilled())
-                    .map_ok(|size| {
-                        buf.advance(size);
-                    })
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+        let tls = self.get_mut();
+        tls.with_io(ctx, |mut context| {
+            context
+                .conn
+                .as_mut()
+                .recv(buf.initialize_unfilled())
+                .map_ok(|size| {
+                    buf.advance(size);
+                })
+        })
+        .map_err(io::Error::from)
     }
 }
 
@@ -235,37 +287,49 @@ where
         ctx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        self.get_mut()
-            .with_io(ctx, |mut context| context.conn.as_mut().send(buf))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+        let tls = self.get_mut();
+        tls.with_io(ctx, |mut context| context.conn.as_mut().send(buf))
+            .map_err(io::Error::from)
     }
 
     fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
-        let tls_flush = tls
-            .with_io(ctx, |mut context| {
-                context.conn.as_mut().flush().map(|r| r.map(|_| ()))
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
-        if tls_flush.is_ready() {
-            Pin::new(&mut tls.stream).poll_flush(ctx)
-        } else {
-            tls_flush
-        }
+
+        ready!(tls.with_io(ctx, |mut context| {
+            context.conn.as_mut().flush().map(|r| r.map(|_| ()))
+        }))
+        .map_err(io::Error::from)?;
+
+        Pin::new(&mut tls.stream).poll_flush(ctx)
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
-        let tls_shutdown = tls
-            .with_io(ctx, |mut context| {
-                context.conn.as_mut().shutdown().map(|r| r.map(|_| ()))
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
-        if tls_shutdown.is_ready() {
-            Pin::new(&mut tls.stream).poll_shutdown(ctx)
-        } else {
-            tls_shutdown
+
+        if tls.blinding.is_none() {
+            let delay = tls
+                .as_ref()
+                .remaining_blinding_delay()
+                .map_err(io::Error::from)?;
+            if !delay.is_zero() {
+                // Sleep operates at the milisecond resolution, so add an extra
+                // millisecond to account for any stray nanoseconds.
+                let safety = Duration::from_millis(1);
+                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
+            }
+        };
+
+        if let Some(timer) = tls.blinding.as_mut() {
+            ready!(timer.as_mut().poll(ctx));
+            tls.blinding = None;
         }
+
+        ready!(tls.with_io(ctx, |mut context| {
+            context.conn.as_mut().shutdown().map(|r| r.map(|_| ()))
+        }))
+        .map_err(io::Error::from)?;
+
+        Pin::new(&mut tls.stream).poll_shutdown(ctx)
     }
 }
 

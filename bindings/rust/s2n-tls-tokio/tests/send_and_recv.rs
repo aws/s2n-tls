@@ -1,10 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use s2n_tls::raw::error::Error;
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
+use std::{io, task::Poll::*};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-mod common;
+pub mod common;
 
 const TEST_DATA: &[u8] = "hello world".as_bytes();
 
@@ -78,6 +80,53 @@ async fn send_and_recv_split() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(server_bytes, LARGE_TEST_DATA.len());
     assert_eq!(LARGE_TEST_DATA, client_received);
     assert_eq!(LARGE_TEST_DATA, server_received);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn send_error() -> Result<(), Box<dyn std::error::Error>> {
+    let client = TlsConnector::new(common::client_config()?.build()?);
+    let server = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let client_stream = common::TestStream::new(client_stream);
+    let overrides = client_stream.overrides();
+    let (mut client, _) =
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
+
+    // Setup write to fail
+    overrides.next_write(Some(Box::new(|_, _, _| {
+        Ready(Err(io::Error::from(Error::InvalidInput)))
+    })));
+
+    // Verify write fails
+    let result = client.write_all(TEST_DATA).await;
+    assert!(result.is_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn recv_error() -> Result<(), Box<dyn std::error::Error>> {
+    let client = TlsConnector::new(common::client_config()?.build()?);
+    let server = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let client_stream = common::TestStream::new(client_stream);
+    let overrides = client_stream.overrides();
+    let (mut client, _) =
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
+
+    // Setup read to fail
+    overrides.next_read(Some(Box::new(|_, _, _| {
+        Ready(Err(io::Error::from(Error::InvalidInput)))
+    })));
+
+    // Verify read fails
+    let mut received = [0; 1];
+    let result = client.read_exact(&mut received).await;
+    assert!(result.is_err());
 
     Ok(())
 }

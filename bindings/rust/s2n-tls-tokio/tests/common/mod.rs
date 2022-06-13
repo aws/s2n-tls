@@ -3,7 +3,14 @@
 
 use s2n_tls::raw::{config, connection::Builder, error::Error, security::DEFAULT_TLS13};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
-use tokio::net::{TcpListener, TcpStream};
+use std::time::Duration;
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    net::{TcpListener, TcpStream},
+};
+
+mod stream;
+pub use stream::*;
 
 /// NOTE: this certificate and key are used for testing purposes only!
 pub static CERT_PEM: &[u8] = include_bytes!(concat!(
@@ -14,6 +21,9 @@ pub static KEY_PEM: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/examples/certs/key.pem"
 ));
+
+pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
+pub const MAX_BLINDING_SECS: Duration = Duration::from_secs(30);
 
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     let localhost = "127.0.0.1".to_owned();
@@ -38,24 +48,21 @@ pub fn server_config() -> Result<config::Builder, Error> {
     Ok(builder)
 }
 
-pub async fn run_negotiate<A: Builder, B: Builder>(
+pub async fn run_negotiate<A: Builder, B: Builder, C, D>(
     client: &TlsConnector<A>,
-    client_stream: TcpStream,
+    client_stream: C,
     server: &TlsAcceptor<B>,
-    server_stream: TcpStream,
-) -> Result<
-    (
-        TlsStream<TcpStream, A::Output>,
-        TlsStream<TcpStream, B::Output>,
-    ),
-    Error,
->
+    server_stream: D,
+) -> Result<(TlsStream<C, A::Output>, TlsStream<D, B::Output>), Error>
 where
     <A as Builder>::Output: Unpin,
     <B as Builder>::Output: Unpin,
+    C: AsyncRead + AsyncWrite + Unpin,
+    D: AsyncRead + AsyncWrite + Unpin,
 {
-    tokio::try_join!(
+    let (client, server) = tokio::join!(
         client.connect("localhost", client_stream),
         server.accept(server_stream)
-    )
+    );
+    Ok((client?, server?))
 }
