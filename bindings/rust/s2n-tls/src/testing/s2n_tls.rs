@@ -213,58 +213,62 @@ mod tests {
     }
 
     #[test]
-    fn static_config_and_clone_interaction() {
-        let config = build_config(&security::DEFAULT_TLS13).unwrap();
-        assert_eq!(config.test_get_refcount().unwrap(), 1);
+    fn default_config_and_clone_interaction() -> Result<(), Error> {
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        assert_eq!(config.test_get_refcount()?, 1);
         {
+            // Create new connection.
             let mut server = crate::raw::connection::Connection::new_server();
-            // default config is not returned on the connection
-            assert!(server.test_config_exists().is_err());
-            assert_eq!(config.test_get_refcount().unwrap(), 1);
-            server.set_config(config.clone()).unwrap();
-            assert_eq!(config.test_get_refcount().unwrap(), 2);
-            assert!(server.test_config_exists().is_ok());
+            // Can't retrieve default config.
+            assert!(server.config().is_none());
+            // Custom config reference count doesn't change.
+            assert_eq!(config.test_get_refcount()?, 1);
 
+            // Set custom config on connection.
+            server.set_config(config.clone())?;
+            // Can retrieve custom config.
+            assert!(server.config().is_some());
+            // Custom config now referenced once more.
+            assert_eq!(config.test_get_refcount()?, 2);
+
+            // Create new connection.
             let mut client = crate::raw::connection::Connection::new_client();
-            // default config is not returned on the connection
-            assert!(client.test_config_exists().is_err());
-            assert_eq!(config.test_get_refcount().unwrap(), 2);
-            client.set_config(config.clone()).unwrap();
-            assert_eq!(config.test_get_refcount().unwrap(), 3);
-            assert!(client.test_config_exists().is_ok());
+            // Can't retrieve default config.
+            assert!(client.config().is_none());
+            // Custom config reference count doesn't change.
+            assert_eq!(config.test_get_refcount()?, 2);
 
-            let mut third = crate::raw::connection::Connection::new_server();
-            // default config is not returned on the connection
-            assert!(third.test_config_exists().is_err());
-            assert_eq!(config.test_get_refcount().unwrap(), 3);
-            third.set_config(config.clone()).unwrap();
-            assert_eq!(config.test_get_refcount().unwrap(), 4);
-            assert!(third.test_config_exists().is_ok());
+            // Set custom config on connection.
+            client.set_config(config.clone())?;
+            // Can retrieve custom config.
+            assert!(client.config().is_some());
+            // Custom config now referenced once more.
+            assert_eq!(config.test_get_refcount()?, 3);
 
             // drop all the clones
         }
-        assert_eq!(config.test_get_refcount().unwrap(), 1);
+        assert_eq!(config.test_get_refcount()?, 1);
+        Ok(())
     }
 
     #[test]
-    fn set_config_multiple_times() {
-        let config = build_config(&security::DEFAULT_TLS13).unwrap();
-        assert_eq!(config.test_get_refcount().unwrap(), 1);
+    fn set_config_multiple_times() -> Result<(), Error> {
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        assert_eq!(config.test_get_refcount()?, 1);
 
         let mut server = crate::raw::connection::Connection::new_server();
-        // default config is not returned on the connection
-        assert!(server.test_config_exists().is_err());
-        assert_eq!(config.test_get_refcount().unwrap(), 1);
+        assert_eq!(config.test_get_refcount()?, 1);
 
         // call set_config once
-        server.set_config(config.clone()).unwrap();
-        assert_eq!(config.test_get_refcount().unwrap(), 2);
-        assert!(server.test_config_exists().is_ok());
+        server.set_config(config.clone())?;
+        assert_eq!(config.test_get_refcount()?, 2);
+        assert!(server.config().is_some());
 
         // calling set_config multiple times works since we drop the previous config
-        server.set_config(config.clone()).unwrap();
-        assert_eq!(config.test_get_refcount().unwrap(), 2);
-        assert!(server.test_config_exists().is_ok());
+        server.set_config(config.clone())?;
+        assert_eq!(config.test_get_refcount()?, 2);
+        assert!(server.config().is_some());
+        Ok(())
     }
 
     #[test]
@@ -288,34 +292,30 @@ mod tests {
     }
 
     #[test]
-    fn client_hello_callback() {
+    fn client_hello_callback_async() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
         let require_pending_count = 10;
         let handle = MockClientHelloHandler::new(require_pending_count);
         let config = {
-            let mut config = config_builder(&security::DEFAULT_TLS13).unwrap();
-            config.set_client_hello_handler(handle.clone()).unwrap();
-            // multiple calls to set_client_hello_handler should succeed
-            config.set_client_hello_handler(handle.clone()).unwrap();
-            config.build().unwrap()
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_hello_callback(handle.clone())?;
+            // multiple calls to set_client_hello_callback should succeed
+            config.set_client_hello_callback(handle.clone())?;
+            config.build()?
         };
 
         let server = {
             // create and configure a server connection
             let mut server = crate::raw::connection::Connection::new_server();
-            server
-                .set_config(config.clone())
-                .expect("Failed to bind config to server connection");
-            server.set_waker(Some(&waker)).unwrap();
+            server.set_config(config.clone())?;
+            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
         let client = {
             // create a client connection
             let mut client = crate::raw::connection::Connection::new_client();
-            client
-                .set_config(config)
-                .expect("Unable to set client config");
+            client.set_config(config)?;
             Harness::new(client)
         };
 
@@ -329,5 +329,58 @@ mod tests {
             handle.invoked.load(Ordering::SeqCst),
             require_pending_count + 1
         );
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_callback_sync() -> Result<(), Error> {
+        #[derive(Clone)]
+        struct ClientHelloSyncCallback(Arc<AtomicUsize>);
+        impl ClientHelloSyncCallback {
+            fn new() -> Self {
+                ClientHelloSyncCallback(Arc::new(AtomicUsize::new(0)))
+            }
+            fn count(&self) -> usize {
+                self.0.load(Ordering::Relaxed)
+            }
+        }
+        impl ClientHelloCallback for ClientHelloSyncCallback {
+            fn poll_client_hello(
+                &self,
+                connection: &mut crate::raw::connection::Connection,
+            ) -> Poll<Result<(), error::Error>> {
+                connection.server_name_extension_used();
+                self.0.fetch_add(1, Ordering::Relaxed);
+                Poll::Ready(Ok(()))
+            }
+        }
+        let callback = ClientHelloSyncCallback::new();
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_hello_callback(callback.clone())?;
+            config.build()?
+        };
+
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::raw::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            // create a client connection
+            let mut client = crate::raw::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+
+        assert_eq!(callback.count(), 0);
+        poll_tls_pair(pair);
+        assert_eq!(callback.count(), 1);
+        Ok(())
     }
 }

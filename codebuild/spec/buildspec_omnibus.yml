@@ -303,6 +303,28 @@ batch:
           S2N_LIBCRYPTO: 'openssl-1.0.2'
           BUILD_S2N: 'true'
 
+    - identifier: s2nValgrindAwslc
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'awslc'
+          BUILD_S2N: 'true'
+
+    - identifier: s2nValgrindAwslcFips
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'awslc-fips'
+          BUILD_S2N: 'true'
+
     - identifier: s2nAsanOpenSSL111Coverage
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:

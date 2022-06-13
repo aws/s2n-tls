@@ -7,7 +7,7 @@ use crate::raw::error::Error;
 use core::convert::TryFrom;
 use s2n_tls_sys::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CallbackResult {
     Success,
     Failure,
@@ -22,7 +22,16 @@ impl From<CallbackResult> for s2n_status_code::Type {
     }
 }
 
-#[derive(Debug, PartialEq)]
+impl<T, E> From<Result<T, E>> for CallbackResult {
+    fn from(result: Result<T, E>) -> CallbackResult {
+        match result {
+            Ok(_) => CallbackResult::Success,
+            Err(_) => CallbackResult::Failure,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
     Server,
     Client,
@@ -38,7 +47,7 @@ impl From<Mode> for s2n_mode::Type {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Version {
     SSLV2,
     SSLV3,
@@ -66,7 +75,7 @@ impl TryFrom<s2n_tls_version::Type> for Version {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Blinding {
     SelfService,
     BuiltIn,
@@ -82,7 +91,7 @@ impl From<Blinding> for s2n_blinding::Type {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ClientAuthType {
     Required,
     Optional,
@@ -100,7 +109,7 @@ impl From<ClientAuthType> for s2n_cert_auth_type::Type {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum AlertBehavior {
     FailOnWarnings,
     IgnoreWarnings,
