@@ -145,7 +145,7 @@ static S2N_RESULT s2n_init_drbgs(void)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_maybe_init_drbgs(void)
+static S2N_RESULT s2n_ensure_initialized_drbgs(void)
 {
     if (s2n_per_thread_rand_state.drbgs_initialized == false) {
         RESULT_GUARD(s2n_init_drbgs());
@@ -174,11 +174,11 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
 
         /* This assumes that s2n_rand_cleanup_thread() doesn't mutate any other
          * state than the drbg states and it resets the drbg initialization
-         * boolean to false. s2n_maybe_init_drbgs() will cache the new fork
-         * generation number in the per thread state.
+         * boolean to false. s2n_ensure_initialized_drbgs() will cache the new
+         * fork generation number in the per thread state.
          */
         RESULT_GUARD(s2n_rand_cleanup_thread());
-        RESULT_GUARD(s2n_maybe_init_drbgs());
+        RESULT_GUARD(s2n_ensure_initialized_drbgs());
     }
 
     return S2N_RESULT_OK;
@@ -187,7 +187,7 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
 static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
     struct s2n_drbg *drbg_state)
 {
-    RESULT_GUARD(s2n_maybe_init_drbgs());
+    RESULT_GUARD(s2n_ensure_initialized_drbgs());
     RESULT_GUARD(s2n_ensure_uniqueness());
 
     uint32_t offset = 0;
@@ -371,7 +371,7 @@ S2N_RESULT s2n_rand_init(void)
 {
     RESULT_GUARD_POSIX(s2n_rand_init_cb());
 
-    RESULT_GUARD(s2n_maybe_init_drbgs());
+    RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Create an engine */
