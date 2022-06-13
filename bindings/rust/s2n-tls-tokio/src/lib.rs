@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use errno::{set_errno, Errno};
-use s2n_tls::raw::{
+use s2n_tls::{
     config::Config,
     connection::{Builder, Connection},
     enums::{Blinding, CallbackResult, Mode},

@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::{
+use crate::{
     callbacks::*,
     enums::*,
     error::{Error, Fallible},
@@ -152,7 +152,7 @@ pub struct Builder(Config);
 
 impl Builder {
     pub fn new() -> Self {
-        crate::raw::init::init();
+        crate::init::init();
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
         let context = Box::new(Context::default());
