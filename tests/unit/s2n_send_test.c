@@ -115,11 +115,11 @@ static int s2n_dynamic_record_sizing_fn(void *io_context, const uint8_t *buf, ui
      * until the dynamic record resize timer is triggered.
      * 
      * Since the send is larger than the dynamic record resize threshold and the connection timer for the dynamic sizing
-     * is in practice frozen for this test we can control which writes using the dynamic record sizing. 
+     * is in practice frozen for this test, we can control which writes use the dynamic record sizing. 
      *
      * We will expect that the first write and the third write are forced to use dynamic record sizing, so every
-     * record fragment sent over the wire should be divisble by single_eth_frame_record_size. We check this property 
-     * by making sure conn->current_user_data_consumed modulus single_eth_frame_record_size is equal to zero. */
+     * record fragment sent over the wire should be divisible by single_eth_frame_record_size.
+     */
     if (conn->active_application_bytes_consumed <= conn->dynamic_record_resize_threshold) {
         /* The test is set up so dynamic record sizes are only used in the first and third writes. */
         EXPECT_TRUE(*writes == 1 || *writes == 3);
