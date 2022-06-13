@@ -130,7 +130,7 @@ int main(int argc, char **argv)
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+                    s2n_stuffer_data_available(&server_conn->handshake.io)));
             client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
             /* Read the message off the wire */
             EXPECT_SUCCESS(s2n_server_hello_parse(client_conn));
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
+                s2n_stuffer_data_available(&client_conn->handshake.io)));
 
         /* Server receives ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+                s2n_stuffer_data_available(&server_conn->handshake.io)));
         client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
         /* Client receives the HelloRetryRequest mesage, note that s2n_server_hello_retry_recreate_transcript
          * is called within the s2n_server_hello_recv function */
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
+                s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
@@ -574,7 +574,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+                s2n_stuffer_data_available(&server_conn->handshake.io)));
         client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
@@ -582,7 +582,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
+                s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         /* Server HelloRetryRequest 2 */
@@ -590,7 +590,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+                s2n_stuffer_data_available(&server_conn->handshake.io)));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_INVALID_HELLO_RETRY);
 
@@ -655,7 +655,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+                s2n_stuffer_data_available(&server_conn->handshake.io)));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
@@ -676,8 +676,8 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
@@ -1005,8 +1005,8 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                       s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                       S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                       s2n_config_ptr_free);
@@ -1036,7 +1036,7 @@ int main(int argc, char **argv)
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+                    s2n_stuffer_data_available(&server_conn->handshake.io)));
             client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
             /* Client receives HelloRetryRequest */
@@ -1080,7 +1080,7 @@ int main(int argc, char **argv)
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -1094,7 +1094,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+                    s2n_stuffer_data_available(&server_conn->handshake.io)));
             client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
             /* Client receives HelloRetryRequest */
@@ -1170,7 +1170,7 @@ int main(int argc, char **argv)
             /* ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -1190,7 +1190,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+                    s2n_stuffer_data_available(&server_conn->handshake.io)));
             client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
             /* Client receives HelloRetryRequest */
@@ -1207,8 +1207,8 @@ int main(int argc, char **argv)
      {
          DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                        s2n_cert_chain_and_key_ptr_free);
-         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
          DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                        s2n_config_ptr_free);
@@ -1237,7 +1237,7 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
          EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                         s2n_stuffer_data_available(&client_conn->handshake.io)));
+                 s2n_stuffer_data_available(&client_conn->handshake.io)));
 
          /* Server receives ClientHello 1 */
          EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -1255,7 +1255,7 @@ int main(int argc, char **argv)
 
          EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
          EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                         s2n_stuffer_data_available(&server_conn->handshake.io)));
+                 s2n_stuffer_data_available(&server_conn->handshake.io)));
          client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
          /* Client receives HelloRetryRequest */
@@ -1291,8 +1291,8 @@ int main(int argc, char **argv)
          };
 
          DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key, s2n_cert_chain_and_key_ptr_free);
-         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
          DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
          EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -1344,8 +1344,8 @@ int main(int argc, char **argv)
       **/
      {
          DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key, s2n_cert_chain_and_key_ptr_free);
-         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
          DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
          EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
