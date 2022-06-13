@@ -442,7 +442,6 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     /* Check if this is the second client hello in a hello retry handshake */
     if (s2n_is_hello_retry_handshake(conn) &&
-        s2n_conn_get_current_message_type(conn) == CLIENT_HELLO &&
         conn->handshake.message_number > 0) {
 
         /**
