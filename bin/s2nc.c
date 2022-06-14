@@ -96,8 +96,6 @@ void usage()
     fprintf(stderr, "  -E ,--early-data <file path>\n");
     fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -b,--buffered-send <number of bytes>\n");
-    fprintf(stderr, "    Set s2n-send to buffer tls-records by <number of bytes> before sending them over the wire.\n");
     exit(1);
 }
 
@@ -125,7 +123,7 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
-    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value, uint32_t send_buffer_byte_size) {
+    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
 
     if (config == NULL) {
         print_s2n_error("Error getting new config");
@@ -229,10 +227,6 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     }
 
     GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
-
-    if (send_buffer_byte_size > 0) {
-        GUARD_EXIT(s2n_config_set_custom_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
-    }
 }
 
 int main(int argc, char *const *argv)
@@ -272,7 +266,6 @@ int main(int argc, char *const *argv)
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len = 0;
     char *early_data = NULL;
-    uint32_t send_buffer_byte_size = 0;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -300,13 +293,12 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
-        {"buffered-send", required_argument, 0, 'b' },
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:b:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCBL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -397,13 +389,6 @@ int main(int argc, char *const *argv)
             early_data = load_file_to_cstring(optarg);
             GUARD_EXIT_NULL(early_data);
             break;
-        case 'b':
-            send_buffer_byte_size = (uint32_t) atoi(optarg);
-            if (send_buffer_byte_size < S2N_TLS_MAXIMUM_RECORD_LENGTH) {
-                fprintf(stderr, "Error setting buffered send size, the number of bytes must be larger than 16KB.\n");
-                exit(1);
-            }
-            break;
         case '?':
         default:
             usage();
@@ -493,7 +478,7 @@ int main(int argc, char *const *argv)
         }
 
         struct s2n_config *config = s2n_config_new();
-        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value, send_buffer_byte_size);
+        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
 
         if (client_cert_input != client_key_input) {
             print_s2n_error("Client cert/key pair must be given.");
