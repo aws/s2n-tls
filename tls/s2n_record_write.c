@@ -493,7 +493,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&record_stuffer, encrypted_length) };
     POSIX_GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
 
-    /* Sync the out stuffer write cursor to with the record stuffer. */
+    /* Sync the out stuffer write cursor with the record stuffer. */
     POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, s2n_stuffer_data_available(&record_stuffer)));
 
     if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
