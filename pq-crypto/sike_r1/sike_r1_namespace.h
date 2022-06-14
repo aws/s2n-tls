@@ -20,6 +20,8 @@
 #define xDBLADD xDBLADD_r1
 #define swap_points swap_points_r1
 #define LADDER3PT LADDER3PT_r1
+#define xTPL_fast xTPL_fast_r1
+#define xTPLe_fast xTPLe_fast_r1
 #define load64 load64_r1
 #define store64 store64_r1
 #define KeccakF1600_StatePermute KeccakF1600_StatePermute_r1
@@ -39,6 +41,7 @@
 #define mp_subfast mp_subfast_r1
 #define to_fp2mont to_fp2mont_r1
 #define from_fp2mont from_fp2mont_r1
+#define is_felm_zero is_felm_zero_r1
 #define mp_add mp_add_r1
 #define mp_shiftr1 mp_shiftr1_r1
 #define Alice_order Alice_order_r1
