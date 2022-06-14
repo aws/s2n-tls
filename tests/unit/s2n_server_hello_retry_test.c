@@ -286,44 +286,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Retry requests without a supported version extension are not accepted */
-    {
-        struct s2n_config *conf;
-        struct s2n_connection *conn;
-
-        EXPECT_NOT_NULL(conf = s2n_config_new());
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, conf));
-
-        struct s2n_stuffer *io = &conn->handshake.io;
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
-
-        /* protocol version */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 / 10));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 % 10));
-
-        /* random data */
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN));
-
-        /* session id */
-        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS_SESSION_ID_MAX_LEN));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, session_id, S2N_TLS_SESSION_ID_MAX_LEN));
-
-        /* cipher suites */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(io, (0x13 << 8) + 0x01));
-
-        /* no compression */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0));
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(conn), S2N_ERR_BAD_MESSAGE);
-
-        EXPECT_FALSE(s2n_is_hello_retry_message(conn));
-
-        EXPECT_SUCCESS(s2n_config_free(conf));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
     /* Verify the client key share extension properly handles HelloRetryRequests */
     {
         struct s2n_connection *server_conn;

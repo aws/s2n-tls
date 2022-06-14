@@ -70,6 +70,18 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
 
     uint16_t server_version = (server_version_parts[0] * 10) + server_version_parts[1];
 
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# The value of selected_version in the HelloRetryRequest
+     *# "supported_versions" extension MUST be retained in the ServerHello,
+     *# and a client MUST abort the handshake with an "illegal_parameter"
+     *# alert if the value changes.
+     **/
+    if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
+        POSIX_ENSURE(conn->server_protocol_version == server_version,
+                     S2N_ERR_BAD_MESSAGE);
+    }
+
     POSIX_ENSURE_GTE(server_version, S2N_TLS13);
     POSIX_ENSURE_LTE(server_version, highest_supported_version);
     POSIX_ENSURE_GTE(server_version, minimum_supported_version);
