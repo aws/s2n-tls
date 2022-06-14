@@ -62,7 +62,7 @@ static int s2n_server_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *
      */
     s2n_extension_type_id key_share_ext_id;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
-    POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, key_share_ext_id), S2N_ERR_MISSING_EXTENSION);
+    POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_responses_received, key_share_ext_id), S2N_ERR_MISSING_EXTENSION);
 
     /* From RFC section: https://tools.ietf.org/html/rfc8446#section-4.2.8.1
      * Any future values that are allocated must ensure that the transmitted protocol messages
