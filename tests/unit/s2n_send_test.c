@@ -552,31 +552,5 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* s2n_send checks if the record sequence number has been breached. */
-    {
-        //DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-        //        s2n_connection_ptr_free);
-        //EXPECT_NOT_NULL(conn);
-        //EXPECT_OK(s2n_connection_set_secrets(conn));
-
-        //ssize_t written = 0;
-        //s2n_blocked_status blocked = 0;
-        //s2n_custom_send_fn_called = false;
-
-        ///* Move the callback to a mock send that will always send the entire stuffer. */
-        //EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
-
-        //s2n_custom_send_fn_called = false;
-        ///* We expect now that the total amount of bytes written will be equal to the large_data blob. */
-        //written = s2n_send(conn, large_data.data + written, large_data.size - written, &blocked);
-
-        //EXPECT_TRUE(s2n_custom_send_fn_called);
-        //EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-        //EXPECT_EQUAL(written, large_data.size);
-
-        ///* After an entire buffer has been sent, s2n_send should move conn->current_user_data_consumed back to 0. */ 
-        //EXPECT_EQUAL(conn->current_user_data_consumed, 0);
-    }
-
     END_TEST();
 }
