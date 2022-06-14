@@ -1124,6 +1124,23 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
     POSIX_ENSURE_REF(security_policy);
 
+    /**
+     * Ensure that the wire cipher suite is contained in the security
+     * policy, and thus was offered by the client.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *# A client which receives a
+     *# cipher suite that was not offered MUST abort the handshake with an
+     *# "illegal_parameter" alert.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# A client which receives a cipher suite that was not offered MUST
+     *# abort the handshake.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Upon receipt of a HelloRetryRequest, the client MUST check the
+     *# legacy_version, legacy_session_id_echo, cipher_suite
+     **/
     struct s2n_cipher_suite *cipher_suite = NULL;
     for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
@@ -1133,6 +1150,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
         }
     }
     POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
@@ -1145,7 +1163,13 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
-    /* Verify cipher suite sent in server hello is the same as sent in hello retry */
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# Upon receiving
+     *# the ServerHello, clients MUST check that the cipher suite supplied in
+     *# the ServerHello is the same as that in the HelloRetryRequest and
+     *# otherwise abort the handshake with an "illegal_parameter" alert.
+     **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
         POSIX_ENSURE(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
