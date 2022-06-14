@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "sys/param.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
@@ -22,6 +23,11 @@
 
 /* How many bytes to trim off from a buffer when mocking a partial send. */
 #define PARTIAL_SEND_TRIM 3
+
+#define SMALL_CHUNK_SEND_SIZE (4096)
+#define LARGE_SEND_SIZE (S2N_TLS_MAXIMUM_RECORD_LENGTH * 4)
+/* VERY_LARGE_SEND_SIZE is 0.5 GB. */
+#define VERY_LARGE_SEND_SIZE (1 << 29)
 
 /* Buffer filled with an arbitrary string for testing. */
 static uint8_t test_data[] = "hello world";
@@ -72,10 +78,6 @@ static int s2n_send_always_passes_fn(void *io_context, const uint8_t *buf, uint3
 {
     struct s2n_connection *conn = (struct s2n_connection*) io_context;
     s2n_custom_send_fn_called = true;
-
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->out, buf, len));
-
     return len;
 }
 
@@ -91,9 +93,6 @@ static int s2n_send_mitigates_beast_fn(void *io_context, const uint8_t *buf, uin
     uint32_t expected_write_sizes[] = {1, sizeof(test_data)};
 
     EXPECT_EQUAL(conn->current_user_data_consumed, expected_write_sizes[*writes]);
-
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->out, buf, len));
 
     *writes += 1;
 
@@ -126,10 +125,6 @@ static int s2n_dynamic_record_sizing_fn(void *io_context, const uint8_t *buf, ui
         EXPECT_EQUAL(conn->current_user_data_consumed % single_eth_frame_record_size, 0);
     }
 
-    /* We don't care about the send sizes once we have exceeded conn->dynamic_record_resize_threshold. */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->out, buf, len));
-
     return len;
 }
 
@@ -146,9 +141,6 @@ static int s2n_byte_limit_send_fn(void *io_context, const uint8_t *buf, uint32_t
         return -1;
     }
 
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->out, buf, len));
-
     return len;
 }
 
@@ -158,7 +150,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_blob large_data = {0}, s2n_free);
     /* Allocate 32KB so it takes multiple records to send complete data. */
-    EXPECT_SUCCESS(s2n_alloc(&large_data, 1 << 15));
+    EXPECT_SUCCESS(s2n_alloc(&large_data, LARGE_SEND_SIZE));
     EXPECT_OK(s2n_get_public_random_data(&large_data));
 
     /* s2n_send cannot be called concurrently */
@@ -227,7 +219,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
     }
 
-    /* s2n_flush close a closing connection. */
+    /* s2n_flush will close a closing connection */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
@@ -243,7 +235,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->closed);
     }
 
-    /* s2n_flush will send attempt to send the out stuffer before closing a connection. */
+    /* s2n_flush will send the out stuffer before closing a connection */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
@@ -262,7 +254,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_custom_send_fn_called);
     }
 
-    /* s2n_flush will send any pending alerts and then close the socket if a reader or writer alert are buffered . */
+    /* s2n_flush will send any pending alerts and then close the socket if a reader or writer alert are buffered */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
@@ -292,30 +284,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
     }
 
-    /* s2n_send enforces RE-ENTRENCY. */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-            s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-
-        s2n_blocked_status blocked = 0;
-
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
-
-        EXPECT_FALSE(conn->send_in_use);
-        EXPECT_SUCCESS(s2n_send(conn, test_data, sizeof(test_data), &blocked));
-        EXPECT_FALSE(conn->send_in_use);
-
-        conn->send_in_use = true;
-
-        EXPECT_TRUE(conn->send_in_use);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, test_data, sizeof(test_data), &blocked), S2N_ERR_REENTRANCY);
-        EXPECT_TRUE(conn->send_in_use);
-        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-    }
-
     /* s2n_sendv_with_offset checks for a closed socket */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -324,18 +292,6 @@ int main(int argc, char **argv)
 
         conn->closed = 1;
         EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, NULL, 0, 0, NULL), S2N_ERR_CLOSED);
-    }
-
-    /* s2n_sendv_with_offset errors when quic is enabled */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-            s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-
-        if (s2n_is_tls13_fully_supported()) {
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_sendv_with_offset(conn, NULL, 0, 0, NULL), S2N_ERR_UNSUPPORTED_WITH_QUIC);
-        }
     }
 
     /* s2n_sendv_with_offset mitigates the BEAST attack by writing a 1 byte record
@@ -396,7 +352,7 @@ int main(int argc, char **argv)
 
         /* We will use 16KB as our dynamic record threshold. This means we will try to send the max amount of bytes
          * we can in a single ethernet frame, until we have reached the 16KB of data sent or if the threshold timer expires. */
-        uint32_t resize_threshold = 1 << 14;
+        uint32_t resize_threshold = S2N_TLS_MAXIMUM_RECORD_LENGTH;
         /* Choose a long time out so the first two calls to s2n_send do not reset the dynamic record size threshold. */
         uint16_t timeout_threshold_secs = UINT16_MAX;
         EXPECT_SUCCESS(s2n_connection_set_dynamic_record_threshold(conn, resize_threshold, timeout_threshold_secs));
@@ -493,6 +449,133 @@ int main(int argc, char **argv)
 
         /* After an entire buffer has been sent, s2n_send should move conn->current_user_data_consumed back to 0. */ 
         EXPECT_EQUAL(conn->current_user_data_consumed, 0);
+    }
+
+    /* Very large s2n_send */
+    {
+        DEFER_CLEANUP(struct s2n_blob very_large_data = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&very_large_data, VERY_LARGE_SEND_SIZE));
+        EXPECT_OK(s2n_get_public_random_data(&very_large_data));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN,
+                                                       S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+
+        ssize_t written = 0;
+        s2n_blocked_status blocked = 0;
+
+        while (written < very_large_data.size) {
+            (void)s2n_recv(server_conn, very_large_data.data + written, very_large_data.size - written, &blocked);
+            written += s2n_send(client_conn, very_large_data.data + written, very_large_data.size - written, &blocked);
+        }
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        EXPECT_EQUAL(written, very_large_data.size);
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /* Many small s2n_sends */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN,
+                                                       S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+
+        ssize_t written = 0;
+        s2n_blocked_status blocked = 0;
+
+        while (written < large_data.size) {
+            ssize_t next_write_size = MIN(large_data.size - written, SMALL_CHUNK_SEND_SIZE);
+            (void)s2n_recv(server_conn, large_data.data + written, next_write_size, &blocked);
+            written += s2n_send(client_conn, large_data.data + written, next_write_size, &blocked);
+        }
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        EXPECT_EQUAL(written, large_data.size);
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /* s2n_send checks if the record sequence number has been breached. */
+    {
+        //DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+        //        s2n_connection_ptr_free);
+        //EXPECT_NOT_NULL(conn);
+        //EXPECT_OK(s2n_connection_set_secrets(conn));
+
+        //ssize_t written = 0;
+        //s2n_blocked_status blocked = 0;
+        //s2n_custom_send_fn_called = false;
+
+        ///* Move the callback to a mock send that will always send the entire stuffer. */
+        //EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
+
+        //s2n_custom_send_fn_called = false;
+        ///* We expect now that the total amount of bytes written will be equal to the large_data blob. */
+        //written = s2n_send(conn, large_data.data + written, large_data.size - written, &blocked);
+
+        //EXPECT_TRUE(s2n_custom_send_fn_called);
+        //EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        //EXPECT_EQUAL(written, large_data.size);
+
+        ///* After an entire buffer has been sent, s2n_send should move conn->current_user_data_consumed back to 0. */ 
+        //EXPECT_EQUAL(conn->current_user_data_consumed, 0);
     }
 
     END_TEST();
