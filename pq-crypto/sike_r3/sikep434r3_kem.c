@@ -84,7 +84,7 @@ int s2n_sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     bool dont_copy = 1;
 
     /* Decrypt */
-    if (!EphemeralSecretAgreement_B(sk + S2N_SIKE_P434_R3_MSG_BYTES, ct, jinvariant_) == 0) {
+    if (!(EphemeralSecretAgreement_B(sk + S2N_SIKE_P434_R3_MSG_BYTES, ct, jinvariant_) == 0)) {
         goto S2N_SIKE_P434_R3_HASHING;
     }
 
