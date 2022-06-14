@@ -37,6 +37,8 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/extensions/s2n_early_data_indication.h"
+#include "utils/s2n_bitmap.h"
 
 #define HELLO_RETRY_MSG_NO 1
 #define SERVER_HELLO_MSG_NO 5
@@ -460,10 +462,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* Self-Talk test: the client initiates a handshake with an X25519 share.
+    /**
+     * Self-Talk test: the client initiates a handshake with an X25519 share.
      * The server, however does not support x25519 and prefers P-256.
      * The server then sends a HelloRetryRequest that requires the
-     * client to generate a key share on the P-256 curve. */
+     * client to generate a key share on the P-256 curve.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.1
+     *= type=test
+     *# If the server selects an (EC)DHE group and the client did not offer a
+     *# compatible "key_share" extension in the initial ClientHello, the
+     *# server MUST respond with a HelloRetryRequest (Section 4.1.4) message.
+     **/
     if (s2n_is_evp_apis_supported()) {
         struct s2n_config *server_config;
         struct s2n_config *client_config;
@@ -1386,6 +1396,79 @@ int main(int argc, char **argv)
 
          EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                                    S2N_ERR_BAD_MESSAGE);
+     }
+
+     /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+     *= type=test
+     *# -  Removing the "early_data" extension (Section 4.2.10) if one was
+     *#    present.  Early data is not permitted after a HelloRetryRequest.
+     **/
+     {
+         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+                       s2n_cert_chain_and_key_ptr_free);
+         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                                                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                                                        S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                       s2n_config_ptr_free);
+         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
+         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                       s2n_connection_ptr_free);
+         EXPECT_NOT_NULL(server_conn);
+         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                       s2n_connection_ptr_free);
+         EXPECT_NOT_NULL(client_conn);
+         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+         struct s2n_test_io_pair io_pair = { 0 };
+         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+         /* Force the HRR path */
+         client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+         /* Request early data */
+         EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 10, &s2n_tls13_aes_256_gcm_sha384));
+         EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+
+         /* ClientHello 1 */
+         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                         s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+         s2n_extension_type_id early_data_id;
+         s2n_extension_supported_iana_value_to_id(s2n_client_early_data_indication_extension.iana_value, &early_data_id);
+
+         /* The client should send an early data indication extension with the first ClientHello */
+         EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, early_data_id));
+
+         /* Server receives ClientHello 1 */
+         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+
+         /* Server sends HelloRetryRequest */
+         EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+
+         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                         s2n_stuffer_data_available(&server_conn->handshake.io)));
+         client_conn->handshake.message_number = 2; // hello retry
+
+         /* Client receives HelloRetryRequest */
+         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+         /* Client sends ClientHello 2 */
+         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+         /* The client should NOT send an early data indication extension after receiving a HelloRetryRequest */
+         EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_sent, early_data_id));
      }
 
      EXPECT_SUCCESS(s2n_disable_tls13_in_test());

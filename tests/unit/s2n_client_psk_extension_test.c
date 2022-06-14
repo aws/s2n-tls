@@ -547,6 +547,55 @@ int main(int argc, char **argv)
             /* Verify the handshake could complete successfully */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
+
+        /**
+         * Ensure obfuscated_ticket_age and binder values are updated on a client hello after a HRR
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+         *= type=test
+         *# -   Updating the "pre_shared_key" extension if present by recomputing
+         *#     the "obfuscated_ticket_age" and binder values and (optionally)
+         *#     removing any PSKs which are incompatible with the server's
+         *#     indicated cipher suite.
+         **/
+        {
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 },
+                          s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                          s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                          s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            struct s2n_psk *psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+            EXPECT_OK(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
+            EXPECT_SUCCESS(s2n_psk_set_identity(psk, test_identity, sizeof(test_identity)));
+            psk->hmac_alg = S2N_HMAC_SHA384;
+            psk->ticket_age_add = 50;
+            psk->ticket_issue_time = 0;
+
+            EXPECT_SUCCESS(s2n_client_psk_extension.send(conn, &out));
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&out, sizeof(uint16_t) /* identity_list_size */ +
+                    sizeof(uint16_t) /* identity_size */ + sizeof(test_identity)));
+
+            /* Ensure the obfuscated ticket age has been updated */
+            uint32_t obfuscated_ticket_age = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&out, &obfuscated_ticket_age));
+            EXPECT_TRUE(obfuscated_ticket_age == 550);
+
+            /* Ensure the binder list size has been updated */
+            EXPECT_TRUE(conn->psk_params.binder_list_size != 0);
+        }
     }
 
     /* Test: s2n_select_external_psk */
