@@ -581,7 +581,15 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(security_policy);
         const struct s2n_ecc_named_curve *test_curve = security_policy->ecc_preferences->ecc_curves[0];
 
-        /* Retry for key share is valid */
+        /**
+         * Retry for key share is valid
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *= type=test
+         *# and (2) the selected_group field does not
+         *# correspond to a group which was provided in the "key_share" extension
+         *# in the original ClientHello.
+         **/
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);

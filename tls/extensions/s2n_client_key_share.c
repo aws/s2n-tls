@@ -84,6 +84,13 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
             POSIX_GUARD(s2n_ecc_evp_params_free(client_params));
         }
 
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *# Otherwise, when sending the new ClientHello, the client MUST
+         *# replace the original "key_share" extension with one containing only a
+         *# new KeyShareEntry for the group indicated in the selected_group field
+         *# of the triggering HelloRetryRequest.
+         **/
         client_params->negotiated_curve = server_curve;
     } else {
         client_params->negotiated_curve = ecc_pref->ecc_curves[0];
@@ -164,6 +171,13 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
             POSIX_GUARD(s2n_kem_group_free(client_params));
         }
 
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *# Otherwise, when sending the new ClientHello, the client MUST
+         *# replace the original "key_share" extension with one containing only a
+         *# new KeyShareEntry for the group indicated in the selected_group field
+         *# of the triggering HelloRetryRequest.
+         **/
         client_params->kem_group = server_group;
     } else {
         client_params->kem_group = kem_pref->tls13_kem_groups[0];
