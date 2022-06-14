@@ -76,7 +76,6 @@ static int s2n_broken_pipe_send_fn(void *io_context, const uint8_t *buf, uint32_
 /* Mock send that will always do a successful full send. */
 static int s2n_send_always_passes_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_connection *conn = (struct s2n_connection*) io_context;
     s2n_custom_send_fn_called = true;
     return len;
 }
@@ -241,7 +240,6 @@ int main(int argc, char **argv)
             s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
 
         s2n_blocked_status blocked = 0;
         EXPECT_SUCCESS(s2n_stuffer_alloc(&conn->out, sizeof(test_data)));
@@ -261,7 +259,6 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
 
         s2n_blocked_status blocked = 0;
