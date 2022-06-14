@@ -81,9 +81,13 @@ int s2n_sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     unsigned char h_[S2N_SIKE_P434_R3_MSG_BYTES];
     unsigned char c0_[S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES];
     unsigned char temp[S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES];
+    bool dont_copy = 1;
 
     /* Decrypt */
-    EphemeralSecretAgreement_B(sk + S2N_SIKE_P434_R3_MSG_BYTES, ct, jinvariant_);
+    if (!EphemeralSecretAgreement_B(sk + S2N_SIKE_P434_R3_MSG_BYTES, ct, jinvariant_) == 0) {
+        goto S2N_SIKE_P434_R3_HASHING;
+    }
+
     shake256(h_, S2N_SIKE_P434_R3_MSG_BYTES, jinvariant_, S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
     for (int i = 0; i < S2N_SIKE_P434_R3_MSG_BYTES; i++) {
         temp[i] = ct[i + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES] ^ h_[i];
@@ -103,7 +107,8 @@ int s2n_sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
      *
      * If c0_ and ct are equal, then decaps succeeded and we skip the overwrite and output
      * the actual shared secret: ss = H(m||ct) (dont_copy = true). */
-    bool dont_copy = s2n_constant_time_equals(c0_, ct, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
+    dont_copy = s2n_constant_time_equals(c0_, ct, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
+S2N_SIKE_P434_R3_HASHING:
     POSIX_GUARD(s2n_constant_time_copy_or_dont(temp, sk, S2N_SIKE_P434_R3_MSG_BYTES, dont_copy));
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);
     shake256(ss, S2N_SIKE_P434_R3_SHARED_SECRET_BYTES, temp, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);

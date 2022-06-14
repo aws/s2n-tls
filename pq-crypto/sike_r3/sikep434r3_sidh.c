@@ -245,15 +245,57 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
     return 0;
 }
 
+int publickey_validation(const f2elm_t* PKB, const f2elm_t *A)
+{ // Public key validation
+    point_proj_t P = { 0 }, Q = { 0 };
+    f2elm_t _A2={0}, _tmp1={0}, _tmp2={0};
+    f2elm_t *A2=&_A2, *tmp1=&_tmp1, *tmp2=&_tmp2;
+
+    // Verify that P and Q generate E_A[3^e_3] by checking that [3^(e_3-1)]P != [+-3^(e_3-1)]Q
+    fp2div2(A, A2);
+    fp2copy(&PKB[0], &P->X);
+    fpcopy((const digit_t*)&Montgomery_one, (digit_t*)&P->Z);
+    fp2copy(&PKB[1], &Q->X);
+    fpcopy((const digit_t*)&Montgomery_one, (digit_t*)&Q->Z);
+
+    xTPLe_fast(P, P, A2, S2N_SIKE_P434_R3_MAX_BOB - 1);
+    xTPLe_fast(Q, Q, A2, S2N_SIKE_P434_R3_MAX_BOB - 1);
+    fp2correction(&P->Z);
+    fp2correction(&Q->Z);
+
+    if ((is_felm_zero((P->Z.e)[0]) && is_felm_zero((P->Z.e)[1])) || (is_felm_zero((Q->Z.e)[0]) && is_felm_zero((Q->Z.e)[1]))) {
+        return 1;
+    }
+
+    fp2mul_mont(&P->X, &Q->Z, tmp1);
+    fp2mul_mont(&P->Z, &Q->X, tmp2);
+    fp2correction(tmp1);
+    fp2correction(tmp2);
+
+    if (memcmp((uint8_t*)tmp1, (uint8_t*)tmp2, S2N_SIKE_P434_R3_FP2_ENCODED_BYTES) == 0) {
+        return 1;
+    }
+
+    // Check that Ord(P) = Ord(Q) = 3^(e_3)
+    xTPL_fast(P, P, A2);
+    xTPL_fast(Q, Q, A2);
+    fp2correction(&P->Z);
+    fp2correction(&Q->Z);
+
+    if (!is_felm_zero((P->Z.e)[0]) || !is_felm_zero((P->Z.e)[1]) || !is_felm_zero((Q->Z.e)[0]) || !is_felm_zero((Q->Z.e)[1])) {
+        return 1;
+    }
+
+    return 0;
+}
+
 /* Bob's ephemeral shared secret computation
  * It produces a shared secret key SharedSecretB using his secret key PrivateKeyB and Alice's public key PublicKeyA
  * Inputs: Bob's PrivateKeyB is an integer in the range [0, 2^Floor(Log(2,oB)) - 1].
  *     Alice's PublicKeyA consists of 3 elements in GF(p^2) encoded by removing leading 0 bytes.
  * Output: a shared secret SharedSecretB that consists of one element in GF(p^2) encoded
  *     by removing leading 0 bytes.   */
-int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned char* PublicKeyA,
-        unsigned char* SharedSecretB)
-{
+int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB) {
     point_proj_t R, pts[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB];
     f2elm_t coeff[3], PKB[3], _jinv;
     f2elm_t _A24plus = {0}, _A24minus = {0}, _A = {0};
@@ -271,6 +313,11 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
     mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, A24minus->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
     mp2_add(A, A24minus, A24plus);
     mp2_sub_p2(A, A24minus, A24minus);
+
+    // Always perform public key validation before using peer's public key
+    if (publickey_validation(PKB, A) == 1) {
+        return 1;
+    }
 
     /* Retrieve kernel point */
     decode_to_digits(PrivateKeyB, SecretKeyB, S2N_SIKE_P434_R3_SECRETKEY_B_BYTES, S2N_SIKE_P434_R3_NWORDS_ORDER);
