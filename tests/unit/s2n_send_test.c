@@ -260,21 +260,21 @@ int main(int argc, char **argv)
 
     /* s2n_send buffered send */
     {
-        /* Setup connections */
-        struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE));
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
 
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
-        /* Setup bad send callback */
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_expected_buffered_send_fn));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
-        /* Send test data */
         uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
 
         s2n_blocked_status blocked = 0;
@@ -286,30 +286,26 @@ int main(int argc, char **argv)
         /* Magic number based on buffer sizes. See `s2n_expected_buffered_send_fn` for
          * a breakdown. */
         EXPECT_TRUE(s2n_expected_size_call_count == 2);
-
-        /* Cleanup */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     /* s2n_send unbuffered send */
     {
         s2n_expected_size_call_count = 0;
 
-        /* Setup connections */
-        struct s2n_config *config = s2n_config_new();
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
 
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
-        /* Setup bad send callback */
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_expected_unbuffered_send_fn));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
-        /* Send test data */
         uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
 
         s2n_blocked_status blocked = 0;
@@ -321,10 +317,6 @@ int main(int argc, char **argv)
         /* Magic number based on buffer sizes. See `s2n_expected_unbuffered_send_fn` for
          * a breakdown. */
         EXPECT_TRUE(s2n_expected_size_call_count == 3);
-
-        /* Cleanup */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();
