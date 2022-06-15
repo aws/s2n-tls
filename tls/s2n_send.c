@@ -32,7 +32,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
+bool s2n_send_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
 {
     /* If the connection is unbuffered then flush on every record written.
      * The rest of this function assumes conn->send_mode == S2N_MULTI_RECORD_SEND */
@@ -40,13 +40,9 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size, u
         return true;
     }
 
-    if (conn->custom_send_buffer_size < S2N_TLS_MAXIMUM_RECORD_LENGTH) {
-        return true;
-    }
-
     uint32_t available_space = s2n_stuffer_space_remaining(&conn->out);
 
-    /* If the stuffer can't store the max possible max fragment size 
+    /* If the stuffer can't store the max possible record size 
      * without growing it's time to flush. */
     if (available_space < max_write_size) {
         return true;
@@ -213,7 +209,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         conn->current_user_data_consumed += written_to_record;
         conn->active_application_bytes_consumed += written_to_record;
         
-        if (s2n_should_flush(conn, total_size, max_write_size)) {
+        if (s2n_send_should_flush(conn, total_size, max_write_size)) {
             if(s2n_flush(conn, blocked) < 0) {
                 if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
                     /* We successfully sent >0 user bytes on the wire, but not the full requested payload

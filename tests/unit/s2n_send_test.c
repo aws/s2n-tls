@@ -81,7 +81,7 @@ int s2n_expected_unbuffered_send_fn(void *io_context, const uint8_t *buf, uint32
     /* In unbuffered mode s2n-tls should flush one record at at time. The last record is smaller
      * than S2N_DEFAULT_FRAGMENT_LENGTH but should contain the rest of the test data. */
     uint32_t expected_send_sizes[] = {S2N_DEFAULT_FRAGMENT_LENGTH, S2N_DEFAULT_FRAGMENT_LENGTH * 2, SEND_BUFFER_SIZE};
-    POSIX_GUARD(writes < sizeof(expected_send_sizes));
+    EXPECT_TRUE(writes < sizeof(expected_send_sizes));
     EXPECT_EQUAL(conn->current_user_data_consumed, expected_send_sizes[writes]);
 
     writes += 1;
@@ -103,7 +103,7 @@ int s2n_partial_buffered_send_fn(void *io_context, const uint8_t *buf, uint32_t 
      * over the socket. The second send will contain the rest of the test data. */
     uint32_t expected_send_sizes[] = {S2N_DEFAULT_FRAGMENT_LENGTH * 2, SEND_BUFFER_SIZE};
 
-    POSIX_GUARD(writes < sizeof(expected_send_sizes));
+    EXPECT_TRUE(writes < sizeof(expected_send_sizes));
     EXPECT_EQUAL(conn->current_user_data_consumed, expected_send_sizes[writes]);
 
     writes += 1;
