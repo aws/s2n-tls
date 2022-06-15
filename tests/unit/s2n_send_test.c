@@ -197,7 +197,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(sent_bytes, s2n_connection_get_wire_bytes_out(conn));
     }
 
-    /* s2n_should_flush */
+    /* s2n_send_should_flush */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -208,29 +208,29 @@ int main(int argc, char **argv)
         uint16_t mock_max_record_size = S2N_TLS_MAXIMUM_RECORD_LENGTH;
 
         /* Unbuffered send should always return true. */
-        EXPECT_TRUE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_size));
+        EXPECT_TRUE(s2n_send_should_flush(conn, mock_total_message_size, mock_max_record_size));
 
         /* Buffered send won't flush an empty connection. */
         conn->send_mode = S2N_MULTI_RECORD_SEND;
         conn->custom_send_buffer_size = mock_total_message_size;
-        EXPECT_FALSE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_size));
+        EXPECT_FALSE(s2n_send_should_flush(conn, mock_total_message_size, mock_max_record_size));
 
         /* If the whole user buffer has been consumed it is time to flush. */
         conn->current_user_data_consumed = mock_total_message_size;
-        EXPECT_TRUE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_size));
+        EXPECT_TRUE(s2n_send_should_flush(conn, mock_total_message_size, mock_max_record_size));
         conn->current_user_data_consumed = 0;
 
         /* If the space available in the out stuffer is < than mock_max_record_size, it's time to flush. */
         conn->out.write_cursor = (uint32_t)(mock_total_message_size - (mock_max_record_size/2));
-        EXPECT_TRUE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_size));
+        EXPECT_TRUE(s2n_send_should_flush(conn, mock_total_message_size, mock_max_record_size));
 
         /* If the data available in the out stuffer + the max_write_size is == the send buffer size, we should not flush */
         conn->out.write_cursor = (uint32_t)(mock_total_message_size - mock_max_record_size);
-        EXPECT_FALSE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_size));
+        EXPECT_FALSE(s2n_send_should_flush(conn, mock_total_message_size, mock_max_record_size));
 
         /* If the space available in the out stuffer is > than mock_max_record_size, we should not flush. */
         conn->out.write_cursor = (uint32_t)(mock_total_message_size - mock_max_record_size*2);
-        EXPECT_FALSE(s2n_should_flush(conn, mock_total_message_size, mock_max_record_size));
+        EXPECT_FALSE(s2n_send_should_flush(conn, mock_total_message_size, mock_max_record_size));
     }
 
     /* s2n_send partial buffered send */
