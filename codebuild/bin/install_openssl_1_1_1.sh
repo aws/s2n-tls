@@ -33,8 +33,13 @@ RELEASE=1_1_1-stable
 
 mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
-curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
+# Re-enable once OpenSSL 1.1.1 stable release is working.
+# curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
+curl --retry 3 -L https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1o.zip --output OpenSSL_${RELEASE}.zip
+
 unzip OpenSSL_${RELEASE}.zip
+# Renae to avoid modfiying rest of script
+mv openssl-OpenSSL_1_1_1o openssl-OpenSSL_${RELEASE}
 cd openssl-OpenSSL_${RELEASE}
 
 if [ "$OS_NAME" == "linux" ]; then
