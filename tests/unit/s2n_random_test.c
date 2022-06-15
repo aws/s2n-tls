@@ -50,9 +50,11 @@ struct random_test_case {
     int expected_return_status;
 };
 
-struct random_thread_communication {
-    S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob);
+struct random_ipc {
+    S2N_RESULT (*s2n_get_random_data_cb_1)(struct s2n_blob *blob);
+    S2N_RESULT (*s2n_get_random_data_cb_2)(struct s2n_blob *blob);
     uint8_t thread_data[RANDOM_GENERATE_DATA_SIZE];
+    int *pipes;
 };
 
 static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
@@ -260,11 +262,12 @@ static S2N_RESULT s2n_tests_get_range(void)
 
 void * s2n_thread_test_cb(void *thread_comms)
 {
-    struct random_thread_communication *thread_comms_ptr = (struct random_thread_communication *) thread_comms;
+    struct random_ipc *thread_comms_ptr = (struct random_ipc *) thread_comms;
 
     struct s2n_blob thread_blob = { .data = thread_comms_ptr->thread_data, .size = RANDOM_GENERATE_DATA_SIZE };
 
-    EXPECT_OK(thread_comms_ptr->s2n_get_random_data_cb_thread(&thread_blob));
+    EXPECT_NOT_NULL(thread_comms_ptr->s2n_get_random_data_cb_1);
+    EXPECT_OK(thread_comms_ptr->s2n_get_random_data_cb_1(&thread_blob));
 
     EXPECT_OK(s2n_rand_cleanup_thread());
 
@@ -283,10 +286,10 @@ static S2N_RESULT s2n_thread_test(
     struct s2n_blob blob = { .data = data };
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
-    struct random_thread_communication thread_communication_0 =
-        { .s2n_get_random_data_cb_thread = s2n_get_random_data_cb_thread };
-    struct random_thread_communication thread_communication_1 =
-        { .s2n_get_random_data_cb_thread = s2n_get_random_data_cb_thread };
+    struct random_ipc thread_communication_0 =
+        { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
+    struct random_ipc thread_communication_1 =
+        { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
 
     /* Create two threads and have them each grab RANDOM_GENERATE_DATA_SIZE
      * bytes.
@@ -431,6 +434,63 @@ static S2N_RESULT s2n_fork_test(
     return S2N_RESULT_OK;
 }
 
+static int s2n_clone_tests_child_process(void *ipc)
+{
+    struct random_ipc *ipc_ptr = (struct random_ipc *) ipc;
+
+    /* This is the child process, close the read end of the pipe */
+    EXPECT_SUCCESS(close((int) ipc_ptr->pipes[0]));
+    EXPECT_NOT_NULL(ipc_ptr->s2n_get_random_data_cb_2);
+    s2n_fork_test_generate_randomness((int) ipc_ptr->pipes[1], ipc_ptr->s2n_get_random_data_cb_2);
+
+    /* s2n_fork_test_generate_randomness() will exit. But we need a return
+     * statement because we are in a non-void return type function. */
+    return EXIT_SUCCESS;
+}
+
+#define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
+static S2N_RESULT s2n_clone_tests(
+    S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+    S2N_RESULT (*s2n_get_random_data_cb_clone)(struct s2n_blob *blob))
+{
+#if defined(S2N_CLONE_SUPPORTED)
+
+    int proc_id;
+    int pipes[2];
+
+    EXPECT_SUCCESS(pipe(pipes));
+
+    /* Use stack memory for this... We don't exit unit_test_clone() before this
+     * memory has served its purpose.
+     * Why? Using dynamically allocated memory causes Valgrind to squat on the
+     * allocated memory when the child process exists.
+     */
+    char process_child_stack[PROCESS_CHILD_STACK_SIZE];
+    EXPECT_NOT_NULL(process_child_stack);
+
+    struct random_ipc ipc =
+        { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
+          .s2n_get_random_data_cb_2 = s2n_get_random_data_cb_clone,
+          .pipes = (int *) pipes };
+
+    proc_id = clone(s2n_clone_tests_child_process, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) &ipc);
+    EXPECT_NOT_EQUAL(proc_id, -1);
+    EXPECT_OK(s2n_fork_test_verify_result(pipes, proc_id, ipc.s2n_get_random_data_cb_1));
+#endif
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_execute_clone_tests(void) {
+
+    EXPECT_OK(s2n_clone_tests(s2n_get_public_random_data, s2n_get_public_random_data));
+    EXPECT_OK(s2n_clone_tests(s2n_get_private_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_clone_tests(s2n_get_public_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_clone_tests(s2n_get_private_random_data, s2n_get_public_random_data));
+
+    return S2N_RESULT_OK;
+}
+
 /* Very basic test generating random data a few times and checking that the
  * output is different
  */
@@ -462,6 +522,8 @@ static int s2n_common_tests(struct random_test_case *test_case)
     uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob blob1 = { .data = data1 };
     struct s2n_blob blob2 = { .data = data2 };
+    int64_t bound = 0;
+    uint64_t output = 0;
 
     /* Get one byte of data, to make sure the pool is (almost) full */
     blob1.size = 1;
@@ -481,6 +543,17 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_private_random_data));
     EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_public_random_data));
 
+    /* Some fork detection mechanisms can also detect forks through clone() */
+    if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
+        EXPECT_EQUAL(s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported(), true);
+        EXPECT_OK(s2n_execute_clone_tests());
+    }
+    else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
+        if (s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported()) {
+            EXPECT_OK(s2n_execute_clone_tests());
+        }
+    }
+
     /* Basic tests generating randomness */
     EXPECT_OK(s2n_basic_generate_tests());
 
@@ -491,14 +564,41 @@ static int s2n_common_tests(struct random_test_case *test_case)
     /* Special range function tests */
     EXPECT_OK(s2n_tests_get_range());
 
-    /* Just a sanity check and avoids cppcheck "unassignedVariable" errors.
-     * In future PRs this part will be expanded.
+   /* Try to cleanup in the current thread and gather random data again for
+     * each of the public functions. We did not call s2n_rand_cleanup(), so this
+     * should still work properly.
      */
+    EXPECT_OK(s2n_rand_cleanup_thread());
     blob1.size = RANDOM_GENERATE_DATA_SIZE;
     EXPECT_OK(s2n_get_public_random_data(&blob1));
+    EXPECT_OK(s2n_basic_generate_tests());
+
+    EXPECT_OK(s2n_rand_cleanup_thread());
     blob2.size = RANDOM_GENERATE_DATA_SIZE;
     EXPECT_OK(s2n_get_private_random_data(&blob2));
+    EXPECT_OK(s2n_basic_generate_tests());
+
+    bound = RANDOM_GENERATE_DATA_SIZE;
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_public_random(bound, &output));
+    EXPECT_TRUE(output < bound);
+
+    /* Just a sanity check */
     EXPECT_BYTEARRAY_NOT_EQUAL(data1, data2, RANDOM_GENERATE_DATA_SIZE);
+
+    /* Verify that fork detection also works if we fork before initializing
+     * the drbgs
+     */
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_private_random_data));
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_public_random_data));
+
+    /* Verify that threading before initializing doesn't cause any issues */
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_thread_test(s2n_get_public_random_data, s2n_get_public_random_data));
+    EXPECT_OK(s2n_rand_cleanup_thread());
+    EXPECT_OK(s2n_thread_test(s2n_get_private_random_data, s2n_get_private_random_data));
 
     return S2N_SUCCESS;
 }
