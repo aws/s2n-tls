@@ -47,6 +47,13 @@ static int s2n_track_sent_bytes_fn(void *io_context, const uint8_t *buf, uint32_
     return len;
 }
 
+/* Mock send that will always do a successful full send. */
+static int s2n_send_always_passes_fn(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    s2n_custom_send_fn_called = true;
+    return len;
+}
+
 static int s2n_track_sent_bytes_partial_send_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
     (void) io_context;
@@ -121,6 +128,21 @@ int s2n_full_buffered_send_fn(void *io_context, const uint8_t *buf, uint32_t len
     writes += 1;
 
     return len;
+}
+
+/* Mock send that will send a set amount of bytes before returning and then setting EAGAIN in subsequent sends. */
+static int s2n_buffered_byte_limit_send_fn(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    ssize_t *bytes_to_send = (ssize_t*) io_context;
+
+    if (s2n_custom_send_fn_called) {
+        errno = EAGAIN;
+        return -1;
+    }
+
+    s2n_custom_send_fn_called = true;
+
+    return *bytes_to_send;
 }
 
 int main(int argc, char **argv)
@@ -327,6 +349,82 @@ int main(int argc, char **argv)
         /* Magic number based on buffer sizes. See `s2n_expected_unbuffered_send_fn` for
          * a breakdown. */
         EXPECT_TRUE(writes == 3);
+    }
+
+    /* s2n_send buffered send is resistant to external s2n_flush calls */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE * 2));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
+
+        ssize_t total_bytes_to_send = SEND_BUFFER_SIZE / 3;
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_byte_limit_send_fn));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*)&total_bytes_to_send));
+
+        uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
+
+        s2n_blocked_status blocked = 0;
+        s2n_custom_send_fn_called = false;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, test_data, sizeof(test_data), &blocked),
+                S2N_ERR_IO_BLOCKED);
+        EXPECT_TRUE(s2n_custom_send_fn_called);
+
+        s2n_custom_send_fn_called = false;
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
+        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+        EXPECT_TRUE(s2n_custom_send_fn_called);
+
+        s2n_custom_send_fn_called = false;
+        EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked),
+                SEND_BUFFER_SIZE);
+        /* Everything was already buffered in the stuffer so we shouldn't need to flush again. */
+        EXPECT_FALSE(s2n_custom_send_fn_called);
+    }
+
+    /* s2n_send partial buffered send is resistant to external s2n_flush calls */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
+
+        ssize_t total_bytes_to_send = SEND_BUFFER_SIZE / 3;
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_byte_limit_send_fn));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*)&total_bytes_to_send));
+
+        uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
+
+        s2n_blocked_status blocked = 0;
+        s2n_custom_send_fn_called = false;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, test_data, sizeof(test_data), &blocked),
+                S2N_ERR_IO_BLOCKED);
+        EXPECT_TRUE(s2n_custom_send_fn_called);
+
+        s2n_custom_send_fn_called = false;
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_send_always_passes_fn));
+        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+        EXPECT_TRUE(s2n_custom_send_fn_called);
+
+        s2n_custom_send_fn_called = false;
+        EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked),
+                SEND_BUFFER_SIZE);
+        /* We should flush again because only a partial piece of the test data would have been flushed by the external flush. */
+        EXPECT_TRUE(s2n_custom_send_fn_called);
     }
 
     END_TEST();
