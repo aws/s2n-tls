@@ -17,6 +17,9 @@
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
      * Without the below line, <sys/wait.h> cannot be imported (it requires __BSD_VISIBLE) */
     #undef _POSIX_C_SOURCE
+#else
+    /* For clone() */
+    #define _GNU_SOURCE
 #endif
 
 #include "s2n_test.h"
