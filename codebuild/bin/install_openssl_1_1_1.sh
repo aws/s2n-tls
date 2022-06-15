@@ -29,17 +29,14 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-RELEASE=1_1_1-stable
+# TODO: Re-enable OpenSSL 1.1.1 stable when it is working.
+# https://github.com/aws/s2n-tls/issues/3369
+RELEASE=1_1_1o
 
 mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
-# Re-enable once OpenSSL 1.1.1 stable release is working.
-# curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
-curl --retry 3 -L https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1o.zip --output OpenSSL_${RELEASE}.zip
-
+curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
 unzip OpenSSL_${RELEASE}.zip
-# Rename to avoid modifying rest of script
-mv openssl-OpenSSL_1_1_1o openssl-OpenSSL_${RELEASE}
 cd openssl-OpenSSL_${RELEASE}
 
 if [ "$OS_NAME" == "linux" ]; then
