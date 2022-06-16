@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use clap::Parser;
-use s2n_tls::raw::{config::Config, security::DEFAULT_TLS13};
+use s2n_tls::{config::Config, security::DEFAULT_TLS13};
 use s2n_tls_tokio::TlsConnector;
 use std::{error::Error, fs};
 use tokio::{io::AsyncWriteExt, net::TcpStream};

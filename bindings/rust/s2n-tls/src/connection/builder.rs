@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::{
+use crate::{
     config::Config,
     connection::Connection,
     enums::Mode,
@@ -40,7 +40,7 @@ impl<T: Pool + Clone> Builder for T {
 /// Produces new connections from a builder, then modifies them.
 ///
 /// Can be used to apply connection-level config, for example
-/// when using a [`crate::raw::pool::ConfigPool`].
+/// when using a [`crate::pool::ConfigPool`].
 #[derive(Clone)]
 pub struct ModifiedBuilder<F, B: Builder>
 where
@@ -74,7 +74,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::pool::ConfigPoolBuilder;
+    use crate::pool::ConfigPoolBuilder;
 
     #[test]
     fn config_builder() -> Result<(), Box<dyn std::error::Error>> {
