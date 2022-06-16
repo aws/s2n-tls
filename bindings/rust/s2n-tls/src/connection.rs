@@ -419,12 +419,20 @@ impl Connection {
         self.send(&[0; 0]).map_ok(|_| self)
     }
 
+    /// Gets the number of bytes that are currently available in the buffer to be read.
+    pub fn available(&self) -> usize {
+        unsafe { s2n_peek(self.connection.as_ptr()) as usize }
+    }
+
     /// Attempts a graceful shutdown of the TLS connection.
     ///
     /// The shutdown is not complete until the necessary shutdown messages
     /// have been successfully sent and received. If the peer does not respond
     /// correctly, the graceful shutdown may fail.
     pub fn shutdown(&mut self) -> Poll<Result<&mut Self, Error>> {
+        if !self.remaining_blinding_delay()?.is_zero() {
+            return Poll::Pending;
+        }
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         unsafe {
             s2n_shutdown(self.connection.as_ptr(), &mut blocked)
@@ -514,6 +522,33 @@ impl Connection {
                 .into_result()
                 .unwrap();
         }
+    }
+
+    /// Check if client auth was used for a connection.
+    ///
+    /// This is only relevant if [`ClientAuthType::Optional] was used.
+    pub fn client_cert_used(&self) -> bool {
+        unsafe { s2n_connection_client_cert_used(self.connection.as_ptr()) == 1 }
+    }
+
+    /// Retrieves the raw bytes of the client cert chain received from the peer, if present.
+    pub fn client_cert_chain_bytes(&self) -> Result<Option<&[u8]>, Error> {
+        if !self.client_cert_used() {
+            return Ok(None);
+        }
+
+        let mut chain = std::ptr::null_mut();
+        let mut len = 0;
+        unsafe {
+            s2n_connection_get_client_cert_chain(self.connection.as_ptr(), &mut chain, &mut len)
+                .into_result()?;
+        }
+
+        if chain.is_null() || len == 0 {
+            return Ok(None);
+        }
+
+        unsafe { Ok(Some(std::slice::from_raw_parts(chain, len as usize))) }
     }
 
     pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {

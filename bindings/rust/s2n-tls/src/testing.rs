@@ -189,7 +189,7 @@ pub fn s2n_tls_pair(config: crate::config::Config) {
     poll_tls_pair(pair);
 }
 
-pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
+pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => {
@@ -201,6 +201,8 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) {
     }
 
     // TODO add assertions to make sure the handshake actually succeeded
+
+    pair
 }
 
 #[derive(Clone)]
