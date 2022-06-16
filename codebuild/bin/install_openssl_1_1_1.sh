@@ -29,7 +29,9 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-RELEASE=1_1_1-stable
+# TODO: Re-enable OpenSSL 1.1.1 stable when it is working.
+# https://github.com/aws/s2n-tls/issues/3369
+RELEASE=1_1_1o
 
 mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
