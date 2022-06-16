@@ -76,12 +76,15 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_MUT(max_fragment_size);
-    RESULT_ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    /* There at least needs to be space for an alert message. */
+    RESULT_ENSURE(conn->max_outgoing_fragment_length >= 2, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    RESULT_ENSURE(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH >= 2, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
     *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     /* If a custom send buffer is configured, ensure it will be large enough for the payload.
-     * That may mean we need a smaller fragment size.
+     * That may mean we need a smaller fragment size, but we still need space of at least one
+     * alert message.
      */
     uint32_t send_buffer_override = conn->config->send_buffer_size_override;
     if (send_buffer_override) {
@@ -90,6 +93,7 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
         if (send_buffer_override < max_record_size) {
             size_t overhead = (max_record_size - *max_fragment_size);
             RESULT_ENSURE_GT(send_buffer_override, overhead);
+            RESULT_ENSURE((send_buffer_override - overhead) >= 2, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
             *max_fragment_size = send_buffer_override - overhead;
         }
     }

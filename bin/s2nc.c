@@ -39,6 +39,7 @@
 #define OPT_SEND_FILE 1002
 #define OPT_RENEG 1003
 #define OPT_NPN 1004
+#define OPT_BUFFERED_SEND 1005
 
 void usage()
 {
@@ -109,6 +110,8 @@ void usage()
     fprintf(stderr, "  --npn \n");
     fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "\n");
+    fprintf(stderr, "  --buffered-send <number of bytes>\n");
+    fprintf(stderr, "    Set s2n-send to buffer tls-records by <number of bytes> before sending them over the wire.\n");
     exit(1);
 }
 
@@ -154,7 +157,7 @@ static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegoti
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
-    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
+    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value, uint32_t send_buffer_byte_size) {
 
     if (config == NULL) {
         print_s2n_error("Error getting new config");
@@ -258,6 +261,10 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     }
 
     GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
+
+    if (send_buffer_byte_size != 0) {
+        GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
+    }
 }
 
 int main(int argc, char *const *argv)
@@ -300,7 +307,6 @@ int main(int argc, char *const *argv)
     char *early_data = NULL;
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
-    bool npn = false;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -330,7 +336,6 @@ int main(int argc, char *const *argv)
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
         {"renegotiation", required_argument, 0, OPT_RENEG},
-        {"npn", no_argument, 0, OPT_NPN},
         { 0 },
     };
 
@@ -444,9 +449,6 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
             break;
-        case OPT_NPN:
-            npn = true;
-            break;
         case '?':
         default:
             usage();
@@ -536,7 +538,7 @@ int main(int argc, char *const *argv)
         }
 
         struct s2n_config *config = s2n_config_new();
-        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
+        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value, send_buffer_byte_size);
 
         if (client_cert_input != client_key_input) {
             print_s2n_error("Client cert/key pair must be given.");

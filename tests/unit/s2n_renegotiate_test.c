@@ -198,7 +198,8 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            size_t small_frag_len = 1;
+            /* The smallest fragment length allowed. Can't fragment alert messages. */
+            size_t small_frag_len = 2;
             client_conn->max_outgoing_fragment_length = small_frag_len;
 
             EXPECT_EQUAL(s2n_send(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));

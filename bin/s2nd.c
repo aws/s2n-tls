@@ -125,6 +125,7 @@ static char default_private_key[] =
     "-----END RSA PRIVATE KEY-----";
 
 
+#define OPT_BUFFERED_SEND 1002
 
 void usage()
 {
@@ -197,6 +198,8 @@ void usage()
     fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
+    fprintf(stderr, "  --buffered-send <number of bytes>\n");
+    fprintf(stderr, "    Set s2n-send to buffer tls-records by <number of bytes> before sending them over the wire.\n");
 
     exit(1);
 }
@@ -279,6 +282,7 @@ int main(int argc, char *const *argv)
     conn_settings.max_conns = -1;
     conn_settings.psk_list_len = 0;
     int max_early_data = 0;
+    uint32_t send_buffer_byte_size = 0;
     bool npn = false;
 
     struct option long_options[] = {
@@ -311,6 +315,7 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"max-early-data", required_argument, 0, 'E'},
+        {"buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -407,6 +412,9 @@ int main(int argc, char *const *argv)
             bytes = strtoul(optarg, NULL, 10);
             GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
             conn_settings.https_bench = bytes;
+            break;
+        case OPT_BUFFERED_SEND:
+            send_buffer_byte_size = (uint32_t) atoi(optarg);
             break;
         case 'A':
             alpn = optarg;
@@ -588,6 +596,10 @@ int main(int argc, char *const *argv)
     if (alpn) {
         const char *protocols[] = { alpn };
         GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
+    }
+
+    if (send_buffer_byte_size != 0) {
+        GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
     }
 
     if (npn) {
