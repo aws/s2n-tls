@@ -284,39 +284,6 @@ int main(int argc, char **argv)
         EXPECT_TRUE(params.writes == params.consumed_user_data_sizes_len);
     }
 
-    /* s2n_send full buffered send */
-    {
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(config);
-
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-
-        /* Increase the s2n_send buffer size so the entire test_data buffer fits in a single send. */
-        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, SEND_BUFFER_SIZE * 2));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-        
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
-        EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_send_test_callback_fn));
-
-        uint32_t expected_send_sizes[] = {SEND_BUFFER_SIZE};
-        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, s2n_array_len(expected_send_sizes)};
-        EXPECT_SUCCESS(s2n_connection_set_ctx(conn, (void*) &params));
-
-        uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
-
-        s2n_blocked_status blocked = 0;
-        s2n_custom_send_fn_called = false;
-        EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked),
-                SEND_BUFFER_SIZE);
-        EXPECT_TRUE(s2n_custom_send_fn_called);
-        EXPECT_TRUE(params.writes == params.consumed_user_data_sizes_len);
-    }
-
     /* s2n_send unbuffered send */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
