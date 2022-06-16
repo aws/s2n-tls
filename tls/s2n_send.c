@@ -35,10 +35,15 @@
 bool s2n_send_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 {
     uint16_t max_payload_size = 0;
-    POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_payload_size));
+
+    if (!s2n_result_is_ok(s2n_record_max_write_payload_size(conn, &max_payload_size))) {
+        return true;
+    }
 
     uint16_t max_write_size = 0;
-    POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_payload_size, &max_write_size));
+    if (!s2n_result_is_ok(s2n_record_max_write_size(conn, max_payload_size, &max_write_size))) {
+        return true;
+    }
 
     /* If the connection is unbuffered then flush on every record written.
      * The rest of this function assumes conn->send_mode == S2N_MULTI_RECORD_SEND */
