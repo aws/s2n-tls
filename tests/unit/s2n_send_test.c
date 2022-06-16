@@ -238,7 +238,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_send_test_callback_fn));
 
         uint32_t expected_send_sizes[] = {S2N_DEFAULT_FRAGMENT_LENGTH * 2, SEND_BUFFER_SIZE};
-        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, sizeof(expected_send_sizes) / sizeof(expected_send_sizes[0])};
+        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, s2n_array_len(expected_send_sizes)};
         EXPECT_SUCCESS(s2n_connection_set_ctx(conn, (void*) &params));
 
         uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_send_test_callback_fn));
 
         uint32_t expected_send_sizes[] = {SEND_BUFFER_SIZE};
-        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, sizeof(expected_send_sizes) / sizeof(expected_send_sizes[0])};
+        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, s2n_array_len(expected_send_sizes)};
         EXPECT_SUCCESS(s2n_connection_set_ctx(conn, (void*) &params));
 
         uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_send_test_callback_fn));
 
         uint32_t expected_send_sizes[] = {SEND_BUFFER_SIZE};
-        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, sizeof(expected_send_sizes) / sizeof(expected_send_sizes[0])};
+        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, s2n_array_len(expected_send_sizes)};
         EXPECT_SUCCESS(s2n_connection_set_ctx(conn, (void*) &params));
 
         uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_buffered_send_test_callback_fn));
 
         uint32_t expected_send_sizes[] = {S2N_DEFAULT_FRAGMENT_LENGTH, S2N_DEFAULT_FRAGMENT_LENGTH * 2, SEND_BUFFER_SIZE};
-        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, sizeof(expected_send_sizes) / sizeof(expected_send_sizes[0])};
+        struct s2n_buffered_send_test_callback_params params = { 0, expected_send_sizes, s2n_array_len(expected_send_sizes)};
         EXPECT_SUCCESS(s2n_connection_set_ctx(conn, (void*) &params));
 
         uint8_t test_data[SEND_BUFFER_SIZE] = {0xA, 0xB, 0xC, 0xD}; /* Rest is 0x0, but we only care about the buffer size */
