@@ -186,7 +186,7 @@ try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$
 # Determine if execinfo.h is available
 TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
 ifeq ($(TRY_COMPILE_EXECINFO), 0)
-	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
+	DEFAULT_CFLAGS += -DS2N_STACKTRACE
 endif
 
 # Determine if cpuid.h is available
@@ -217,6 +217,12 @@ endif
 TRY_EVP_MD5_SHA1_HASH := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md5_sha1.c)
 ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
+endif
+
+# Determine if EVP_md5_sha1 is available
+TRY_EVP_RC4 := $(call try_compile,$(S2N_ROOT)/tests/features/evp_rc4.c)
+ifeq ($(TRY_EVP_RC4), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4
 endif
 
 # Determine if EVP_MD_CTX_set_pkey_ctx is available

@@ -1,19 +1,20 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::raw::{
-    connection::Connection,
+use crate::{
+    callbacks::*,
+    enums::*,
     error::{Error, Fallible},
     security,
 };
-use core::{convert::TryInto, ptr::NonNull, task::Poll};
+use core::{convert::TryInto, ptr::NonNull};
 use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
-    mem::ManuallyDrop,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+#[derive(Debug, PartialEq)]
 pub struct Config(NonNull<s2n_config>);
 
 /// # Safety
@@ -43,8 +44,17 @@ impl Config {
     /// # Safety
     ///
     /// This config _MUST_ have been initialized with a [`Builder`].
+    /// Additionally, this does NOT increment the config reference count,
+    /// so consider cloning the result if the source pointer is still
+    /// valid and useable afterwards.
     pub(crate) unsafe fn from_raw(config: NonNull<s2n_config>) -> Self {
-        Self(config)
+        let config = Self(config);
+
+        // Check if the context can be retrieved.
+        // If it can't, this is not a valid config.
+        config.context();
+
+        config
     }
 
     pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
@@ -52,37 +62,31 @@ impl Config {
     }
 
     /// Retrieve a reference to the [`Context`] stored on the config.
-    ///
-    /// # Safety
-    ///
-    /// This function assumes that this Config was created using a [`Builder`]
-    /// and has a [`Context`] stored on its context.
-    unsafe fn context(&self) -> &Context {
+    pub(crate) fn context(&self) -> &Context {
         let mut ctx = core::ptr::null_mut();
-        s2n_config_get_ctx(self.0.as_ptr(), &mut ctx)
-            .into_result()
-            .unwrap();
-        &*(ctx as *const Context)
+        unsafe {
+            s2n_config_get_ctx(self.0.as_ptr(), &mut ctx)
+                .into_result()
+                .unwrap();
+            &*(ctx as *const Context)
+        }
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the config.
-    ///
-    /// # Safety
-    ///
-    /// This function assumes that this Config was created using a [`Builder`]
-    /// and has a [`Context`] stored on its context.
-    unsafe fn context_mut(&mut self) -> &mut Context {
+    fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
-        s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
-            .into_result()
-            .unwrap();
-        &mut *(ctx as *mut Context)
+        unsafe {
+            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
+                .into_result()
+                .unwrap();
+            &mut *(ctx as *mut Context)
+        }
     }
 
     #[cfg(test)]
     /// Get the refcount associated with the config
     pub fn test_get_refcount(&self) -> Result<usize, Error> {
-        let context = unsafe { self.context() };
+        let context = self.context();
         Ok(context.refcount.load(Ordering::SeqCst))
     }
 }
@@ -95,7 +99,7 @@ impl Default for Config {
 
 impl Clone for Config {
     fn clone(&self) -> Self {
-        let context = unsafe { self.context() };
+        let context = self.context();
 
         // Safety
         //
@@ -110,7 +114,7 @@ impl Clone for Config {
 
 impl Drop for Config {
     fn drop(&mut self) {
-        let context = unsafe { self.context_mut() };
+        let context = self.context_mut();
         let count = context.refcount.fetch_sub(1, Ordering::Release);
         debug_assert!(count > 0, "refcount should not drop below 1 instance");
 
@@ -148,7 +152,7 @@ pub struct Builder(Config);
 
 impl Builder {
     pub fn new() -> Self {
-        crate::raw::init::init();
+        crate::init::init();
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
         let context = Box::new(Context::default());
@@ -163,11 +167,8 @@ impl Builder {
         Self(Config(config))
     }
 
-    pub fn set_alert_behavior(
-        &mut self,
-        value: s2n_alert_behavior::Type,
-    ) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_alert_behavior(self.as_mut_ptr(), value).into_result() }?;
+    pub fn set_alert_behavior(&mut self, value: AlertBehavior) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_alert_behavior(self.as_mut_ptr(), value.into()).into_result() }?;
         Ok(self)
     }
 
@@ -182,8 +183,8 @@ impl Builder {
     /// sets the application protocol preferences on an s2n_config object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first,
-    /// and of length protocol_count. When acting as an S2N_CLIENT the protocol list is
-    /// included in the Client Hello message as the ALPN extension. As an S2N_SERVER, the
+    /// and of length protocol_count. When acting as a client the protocol list is
+    /// included in the Client Hello message as the ALPN extension. As a server, the
     /// list is used to negotiate a mutual application protocol with the client. After
     /// the negotiation for the connection has completed, the agreed upon protocol can
     /// be retrieved with s2n_get_application_protocol
@@ -259,11 +260,10 @@ impl Builder {
     /// Sets whether or not a client certificate should be required to complete the TLS connection.
     ///
     /// See the [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#client-auth-related-calls) for more details.
-    pub fn set_client_auth_type(
-        &mut self,
-        auth_type: s2n_cert_auth_type::Type,
-    ) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type).into_result() }?;
+    pub fn set_client_auth_type(&mut self, auth_type: ClientAuthType) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type.into()).into_result()
+        }?;
         Ok(self)
     }
 
@@ -272,7 +272,7 @@ impl Builder {
     ///
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
-    pub fn set_verify_host_handler<T: 'static + VerifyClientCertificateHandler>(
+    pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -285,15 +285,15 @@ impl Builder {
             let host_name = core::slice::from_raw_parts(host_name, host_name_len);
             if let Ok(host_name_str) = core::str::from_utf8(host_name) {
                 let context = &mut *(context as *mut Context);
-                let handler = context.verify_host_handler.as_mut().unwrap();
+                let handler = context.verify_host_callback.as_mut().unwrap();
                 return handler.verify_host_name(host_name_str) as u8;
             }
             0 // If the host name can't be parsed, fail closed.
         }
 
         let handler = Box::new(handler);
-        let context = unsafe { self.0.context_mut() };
-        context.verify_host_handler = Some(handler);
+        let context = self.0.context_mut();
+        context.verify_host_callback = Some(handler);
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
@@ -323,49 +323,25 @@ impl Builder {
     }
 
     /// Set a custom callback function which is run after parsing the client hello.
-    ///
-    /// The callback can be called more than once. The application is response for calling
-    /// [`Connection::server_name_extension_used()`] if connection properties are modified
-    /// on the server name extension.
-    pub fn set_client_hello_handler<T: 'static + ClientHelloHandler>(
+    pub fn set_client_hello_callback<T: 'static + ClientHelloCallback>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
         unsafe extern "C" fn client_hello_cb(
             connection_ptr: *mut s2n_connection,
-            context: *mut core::ffi::c_void,
+            _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
-            let context = &mut *(context as *mut Context);
-            let handler = context.client_hello_handler.as_mut().unwrap();
-
-            let connection_ptr =
-                NonNull::new(connection_ptr).expect("connection should not be null");
-
-            // Since this is a callback, which receives a pointer to the connection, do
-            // not call drop on the connection object.
-            let mut connection = ManuallyDrop::new(Connection::from_raw(connection_ptr));
-
-            match handler.poll_client_hello(&mut connection) {
-                Poll::Ready(Ok(())) => {
-                    s2n_client_hello_cb_done(connection_ptr.as_ptr());
-                    s2n_status_code::SUCCESS
-                }
-                Poll::Ready(Err(_)) => {
-                    s2n_client_hello_cb_done(connection_ptr.as_ptr());
-                    s2n_status_code::FAILURE
-                }
-                Poll::Pending => s2n_status_code::SUCCESS,
-            }
+            with_connection(connection_ptr, |conn| {
+                let callback = AsyncClientHelloCallback {};
+                trigger_async_callback(callback, conn).into()
+            })
         }
 
         let handler = Box::new(handler);
-        let context = unsafe { self.0.context_mut() };
-        context.client_hello_handler = Some(handler);
+        let context = self.0.context_mut();
+        context.client_hello_callback = Some(handler);
 
         unsafe {
-            // Enable client_hello_callback polling to model the polling behavior of Futures in
-            // Rust
-            s2n_config_client_hello_cb_enable_poll(self.as_mut_ptr()).into_result()?;
             s2n_config_set_client_hello_cb_mode(
                 self.as_mut_ptr(),
                 s2n_client_hello_cb_mode::NONBLOCKING,
@@ -374,7 +350,7 @@ impl Builder {
             s2n_config_set_client_hello_cb(
                 self.as_mut_ptr(),
                 Some(client_hello_cb),
-                self.0.context_mut() as *mut _ as *mut c_void,
+                core::ptr::null_mut(),
             )
             .into_result()?;
         }
@@ -401,8 +377,8 @@ impl Builder {
 
 pub(crate) struct Context {
     refcount: AtomicUsize,
-    client_hello_handler: Option<Box<dyn ClientHelloHandler>>,
-    verify_host_handler: Option<Box<dyn VerifyClientCertificateHandler>>,
+    pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
+    pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
 }
 
 impl Default for Context {
@@ -413,23 +389,8 @@ impl Default for Context {
 
         Self {
             refcount,
-            client_hello_handler: None,
-            verify_host_handler: None,
+            client_hello_callback: None,
+            verify_host_callback: None,
         }
     }
-}
-
-/// This trait represents the client_hello callback which is run after parsing the client_hello.
-///
-/// Use in conjunction with [`Builder::set_client_hello_handler()`].
-pub trait ClientHelloHandler: Send + Sync {
-    fn poll_client_hello(&self, connection: &mut Connection) -> core::task::Poll<Result<(), ()>>;
-}
-
-/// Trait which a user must implement to verify host name(s) during X509 verification when using
-/// mutual TLS.
-pub trait VerifyClientCertificateHandler: Send + Sync {
-    /// The implementation shall verify the host name by returning `true` if the certificate host name is valid,
-    /// and `false` otherwise.
-    fn verify_host_name(&self, _host_name: &str) -> bool;
 }

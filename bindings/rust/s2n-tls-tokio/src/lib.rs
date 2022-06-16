@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use errno::{set_errno, Errno};
-use s2n_tls::raw::{
+use s2n_tls::{
     config::Config,
-    connection::{CallbackResult, Connection, Mode},
+    connection::{Builder, Connection},
+    enums::{Blinding, CallbackResult, Mode},
     error::Error,
 };
 use std::{
@@ -13,79 +14,157 @@ use std::{
     io,
     os::raw::{c_int, c_void},
     pin::Pin,
-    task::{Context, Poll},
+    task::{
+        Context, Poll,
+        Poll::{Pending, Ready},
+    },
 };
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, ReadBuf},
+    time::{sleep, Duration, Sleep},
+};
 
-#[derive(Clone)]
-pub struct TlsAcceptor {
-    config: Config,
-}
-
-impl TlsAcceptor {
-    pub fn new(config: Config) -> Self {
-        TlsAcceptor { config }
-    }
-
-    pub async fn accept<S>(&self, stream: S) -> Result<TlsStream<S>, Error>
-    where
-        S: AsyncRead + AsyncWrite + Unpin,
-    {
-        TlsStream::open(self.config.clone(), Mode::Server, stream).await
-    }
+macro_rules! ready {
+    ($x:expr) => {
+        match $x {
+            Ready(r) => r,
+            Pending => return Pending,
+        }
+    };
 }
 
 #[derive(Clone)]
-pub struct TlsConnector {
-    config: Config,
-}
-
-impl TlsConnector {
-    pub fn new(config: Config) -> Self {
-        TlsConnector { config }
-    }
-
-    pub async fn connect<S>(&self, _domain: &str, stream: S) -> Result<TlsStream<S>, Error>
-    where
-        S: AsyncRead + AsyncWrite + Unpin,
-    {
-        TlsStream::open(self.config.clone(), Mode::Client, stream).await
-    }
-}
-
-struct TlsHandshake<'a, S> {
-    tls: &'a mut TlsStream<S>,
-}
-
-impl<S> Future for TlsHandshake<'_, S>
+pub struct TlsAcceptor<B: Builder = Config>
 where
+    <B as Builder>::Output: Unpin,
+{
+    builder: B,
+}
+
+impl<B: Builder> TlsAcceptor<B>
+where
+    <B as Builder>::Output: Unpin,
+{
+    pub fn new(builder: B) -> Self {
+        TlsAcceptor { builder }
+    }
+
+    pub async fn accept<S>(&self, stream: S) -> Result<TlsStream<S, B::Output>, Error>
+    where
+        S: AsyncRead + AsyncWrite + Unpin,
+    {
+        let conn = self.builder.build_connection(Mode::Server)?;
+        TlsStream::open(conn, stream).await
+    }
+}
+
+#[derive(Clone)]
+pub struct TlsConnector<B: Builder = Config>
+where
+    <B as Builder>::Output: Unpin,
+{
+    builder: B,
+}
+
+impl<B: Builder> TlsConnector<B>
+where
+    <B as Builder>::Output: Unpin,
+{
+    pub fn new(builder: B) -> Self {
+        TlsConnector { builder }
+    }
+
+    pub async fn connect<S>(
+        &self,
+        domain: &str,
+        stream: S,
+    ) -> Result<TlsStream<S, B::Output>, Error>
+    where
+        S: AsyncRead + AsyncWrite + Unpin,
+    {
+        let mut conn = self.builder.build_connection(Mode::Client)?;
+        conn.as_mut().set_server_name(domain)?;
+        TlsStream::open(conn, stream).await
+    }
+}
+
+struct TlsHandshake<'a, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    tls: &'a mut TlsStream<S, C>,
+    error: Option<Error>,
+}
+
+impl<S, C> Future for TlsHandshake<'_, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.tls.with_io(ctx, |context| {
-            let conn = context.get_mut().get_mut();
-            conn.negotiate().map(|r| r.map(|_| ()))
-        })
+        // Retrieve a result, either from the stored error
+        // or by polling Connection::negotiate().
+        // Connection::negotiate() only completes once,
+        // regardless of how often this method is polled.
+        let result = match self.error.take() {
+            Some(err) => Err(err),
+            None => {
+                ready!(self.tls.with_io(ctx, |context| {
+                    let conn = context.get_mut().as_mut();
+                    conn.negotiate().map(|r| r.map(|_| ()))
+                }))
+            }
+        };
+        // If the result isn't a fatal error, return it immediately.
+        // Otherwise, poll Connection::shutdown().
+        //
+        // Shutdown is only best-effort.
+        // When Connection::shutdown() completes, even with an error,
+        // we return the original Connection::negotiate() error.
+        match result {
+            Ok(r) => Ok(r).into(),
+            Err(e) if e.is_retryable() => Err(e).into(),
+            Err(e) => match Pin::new(&mut self.tls).poll_shutdown(ctx) {
+                Pending => {
+                    self.error = Some(e);
+                    Pending
+                }
+                Ready(_) => Err(e).into(),
+            },
+        }
     }
 }
 
-pub struct TlsStream<S> {
-    conn: Connection,
-    stream: S,
-}
-
-impl<S> TlsStream<S>
+pub struct TlsStream<S, C = Connection>
 where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    async fn open(config: Config, mode: Mode, stream: S) -> Result<Self, Error> {
-        let mut conn = Connection::new(mode);
-        conn.set_config(config)?;
+    conn: C,
+    stream: S,
+    blinding: Option<Pin<Box<Sleep>>>,
+}
 
-        let mut tls = TlsStream { conn, stream };
-        TlsHandshake { tls: &mut tls }.await?;
+impl<S, C> TlsStream<S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    async fn open(mut conn: C, stream: S) -> Result<Self, Error> {
+        conn.as_mut().set_blinding(Blinding::SelfService)?;
+        let mut tls = TlsStream {
+            conn,
+            stream,
+            blinding: None,
+        };
+        TlsHandshake {
+            tls: &mut tls,
+            error: None,
+        }
+        .await?;
         Ok(tls)
     }
 
@@ -100,19 +179,19 @@ where
         unsafe {
             let context = self as *mut Self as *mut c_void;
 
-            self.conn.set_receive_callback(Some(Self::recv_io_cb))?;
-            self.conn.set_send_callback(Some(Self::send_io_cb))?;
-            self.conn.set_receive_context(context)?;
-            self.conn.set_send_context(context)?;
-            self.conn.set_waker(Some(ctx.waker()))?;
+            self.as_mut().set_receive_callback(Some(Self::recv_io_cb))?;
+            self.as_mut().set_send_callback(Some(Self::send_io_cb))?;
+            self.as_mut().set_receive_context(context)?;
+            self.as_mut().set_send_context(context)?;
+            self.as_mut().set_waker(Some(ctx.waker()))?;
 
             let result = action(Pin::new(self));
 
-            self.conn.set_receive_callback(None)?;
-            self.conn.set_send_callback(None)?;
-            self.conn.set_receive_context(std::ptr::null_mut())?;
-            self.conn.set_send_context(std::ptr::null_mut())?;
-            self.conn.set_waker(None)?;
+            self.as_mut().set_receive_callback(None)?;
+            self.as_mut().set_send_callback(None)?;
+            self.as_mut().set_receive_context(std::ptr::null_mut())?;
+            self.as_mut().set_send_context(std::ptr::null_mut())?;
+            self.as_mut().set_waker(None)?;
             result
         }
     }
@@ -124,7 +203,7 @@ where
         debug_assert_ne!(ctx, std::ptr::null_mut());
         let tls = unsafe { &mut *(ctx as *mut Self) };
 
-        let mut async_context = Context::from_waker(tls.conn.waker().unwrap());
+        let mut async_context = Context::from_waker(tls.conn.as_ref().waker().unwrap());
         let stream = Pin::new(&mut tls.stream);
 
         match action(stream, &mut async_context) {
@@ -152,18 +231,31 @@ where
             stream.poll_write(async_context, src)
         })
     }
+}
 
-    pub fn get_ref(&self) -> &Connection {
-        &self.conn
-    }
-
-    pub fn get_mut(&mut self) -> &mut Connection {
-        &mut self.conn
+impl<S, C> AsRef<Connection> for TlsStream<S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    fn as_ref(&self) -> &Connection {
+        self.conn.as_ref()
     }
 }
 
-impl<S> AsyncRead for TlsStream<S>
+impl<S, C> AsMut<Connection> for TlsStream<S, C>
 where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    fn as_mut(&mut self) -> &mut Connection {
+        self.conn.as_mut()
+    }
+}
+
+impl<S, C> AsyncRead for TlsStream<S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
     fn poll_read(
@@ -171,18 +263,23 @@ where
         ctx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        self.get_mut()
-            .with_io(ctx, |mut context| {
-                context.conn.recv(buf.initialize_unfilled()).map_ok(|size| {
+        let tls = self.get_mut();
+        tls.with_io(ctx, |mut context| {
+            context
+                .conn
+                .as_mut()
+                .recv(buf.initialize_unfilled())
+                .map_ok(|size| {
                     buf.advance(size);
                 })
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+        })
+        .map_err(io::Error::from)
     }
 }
 
-impl<S> AsyncWrite for TlsStream<S>
+impl<S, C> AsyncWrite for TlsStream<S, C>
 where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
     fn poll_write(
@@ -190,44 +287,60 @@ where
         ctx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        self.get_mut()
-            .with_io(ctx, |mut context| context.conn.send(buf))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+        let tls = self.get_mut();
+        tls.with_io(ctx, |mut context| context.conn.as_mut().send(buf))
+            .map_err(io::Error::from)
     }
 
     fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
-        let tls_flush = tls
-            .with_io(ctx, |mut context| {
-                context.conn.flush().map(|r| r.map(|_| ()))
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
-        if tls_flush.is_ready() {
-            Pin::new(&mut tls.stream).poll_flush(ctx)
-        } else {
-            tls_flush
-        }
+
+        ready!(tls.with_io(ctx, |mut context| {
+            context.conn.as_mut().flush().map(|r| r.map(|_| ()))
+        }))
+        .map_err(io::Error::from)?;
+
+        Pin::new(&mut tls.stream).poll_flush(ctx)
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
-        let tls_shutdown = tls
-            .with_io(ctx, |mut context| {
-                context.conn.shutdown().map(|r| r.map(|_| ()))
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
-        if tls_shutdown.is_ready() {
-            Pin::new(&mut tls.stream).poll_shutdown(ctx)
-        } else {
-            tls_shutdown
+
+        if tls.blinding.is_none() {
+            let delay = tls
+                .as_ref()
+                .remaining_blinding_delay()
+                .map_err(io::Error::from)?;
+            if !delay.is_zero() {
+                // Sleep operates at the milisecond resolution, so add an extra
+                // millisecond to account for any stray nanoseconds.
+                let safety = Duration::from_millis(1);
+                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
+            }
+        };
+
+        if let Some(timer) = tls.blinding.as_mut() {
+            ready!(timer.as_mut().poll(ctx));
+            tls.blinding = None;
         }
+
+        ready!(tls.with_io(ctx, |mut context| {
+            context.conn.as_mut().shutdown().map(|r| r.map(|_| ()))
+        }))
+        .map_err(io::Error::from)?;
+
+        Pin::new(&mut tls.stream).poll_shutdown(ctx)
     }
 }
 
-impl<S> fmt::Debug for TlsStream<S> {
+impl<S, C> fmt::Debug for TlsStream<S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("TlsStream")
-            .field("connection", &self.conn)
+            .field("connection", self.as_ref())
             .finish()
     }
 }

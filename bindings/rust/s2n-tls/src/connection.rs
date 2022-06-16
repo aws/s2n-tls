@@ -3,22 +3,26 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
-use crate::raw::{
+use crate::{
+    callbacks::*,
     config::Config,
+    enums::*,
     error::{Error, Fallible, Pollable},
     security,
 };
 use core::{
-    convert::{TryFrom, TryInto},
+    convert::TryInto,
     fmt,
+    mem::ManuallyDrop,
     ptr::NonNull,
     task::{Poll, Waker},
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem};
+use std::{ffi::CStr, mem, time::Duration};
 
-use s2n_tls_sys::s2n_mode;
+mod builder;
+pub use builder::*;
 
 macro_rules! static_const_str {
     ($c_chars:expr) => {
@@ -26,64 +30,6 @@ macro_rules! static_const_str {
             .to_str()
             .map_err(|_| Error::InvalidInput)
     };
-}
-
-#[derive(Debug, PartialEq)]
-pub enum CallbackResult {
-    Success,
-    Failure,
-}
-
-impl From<CallbackResult> for s2n_status_code::Type {
-    fn from(input: CallbackResult) -> s2n_status_code::Type {
-        match input {
-            CallbackResult::Success => s2n_status_code::SUCCESS,
-            CallbackResult::Failure => s2n_status_code::FAILURE,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Mode {
-    Server,
-    Client,
-}
-
-impl From<Mode> for s2n_mode::Type {
-    fn from(input: Mode) -> s2n_mode::Type {
-        match input {
-            Mode::Server => s2n_mode::SERVER,
-            Mode::Client => s2n_mode::CLIENT,
-        }
-    }
-}
-
-#[non_exhaustive]
-#[derive(Debug, PartialEq)]
-pub enum Version {
-    SSLV2,
-    SSLV3,
-    TLS10,
-    TLS11,
-    TLS12,
-    TLS13,
-}
-
-impl TryFrom<s2n_tls_version::Type> for Version {
-    type Error = Error;
-
-    fn try_from(input: s2n_tls_version::Type) -> Result<Self, Self::Error> {
-        let version = match input {
-            s2n_tls_version::SSLV2 => Self::SSLV2,
-            s2n_tls_version::SSLV3 => Self::SSLV3,
-            s2n_tls_version::TLS10 => Self::TLS10,
-            s2n_tls_version::TLS11 => Self::TLS11,
-            s2n_tls_version::TLS12 => Self::TLS12,
-            s2n_tls_version::TLS13 => Self::TLS13,
-            _ => return Err(Error::InvalidInput),
-        };
-        Ok(version)
-    }
 }
 
 pub struct Connection {
@@ -108,18 +54,18 @@ impl fmt::Debug for Connection {
 
 /// # Safety
 ///
-/// Safety: s2n_connection objects can be sent across threads
+/// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
 /// # Safety
 ///
-/// Safety: All C methods that mutate the s2n_connection are wrapped
+/// All C methods that mutate the s2n_connection are wrapped
 /// in Rust methods that require a mutable reference.
 unsafe impl Sync for Connection {}
 
 impl Connection {
     pub fn new(mode: Mode) -> Self {
-        crate::raw::init::init();
+        crate::init::init();
 
         let connection = unsafe { s2n_connection_new(mode.into()).into_result() }.unwrap();
 
@@ -130,16 +76,26 @@ impl Connection {
                     .is_err()
             }
         }
+
+        let mut connection = Self { connection };
+        connection.init_context();
+        connection
+    }
+
+    fn init_context(&mut self) {
         let context = Box::new(Context::default());
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {
-            s2n_connection_set_ctx(connection.as_ptr(), context)
+            // There should never be an existing context
+            debug_assert!(s2n_connection_get_ctx(self.connection.as_ptr())
+                .into_result()
+                .is_err());
+
+            s2n_connection_set_ctx(self.connection.as_ptr(), context)
                 .into_result()
                 .unwrap();
         }
-
-        Self { connection }
     }
 
     pub fn new_client() -> Self {
@@ -158,24 +114,34 @@ impl Connection {
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
-    /// to S2N_BUILT_IN_BLINDING) or self-service blinding (set blinding to
-    /// S2N_SELF_SERVICE_BLINDING).
-    pub fn set_blinding(&mut self, blinding: s2n_blinding::Type) -> Result<&mut Self, Error> {
-        unsafe { s2n_connection_set_blinding(self.connection.as_ptr(), blinding).into_result() }?;
+    /// to Blinding::BuiltIn) or self-service blinding (set blinding to
+    /// Blinding::SelfService).
+    pub fn set_blinding(&mut self, blinding: Blinding) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_blinding(self.connection.as_ptr(), blinding.into()).into_result()
+        }?;
         Ok(self)
+    }
+
+    /// Reports the remaining nanoseconds before the connection may be safely closed.
+    ///
+    /// If [`shutdown`] is called before this method reports "0", then an error will occur.
+    pub fn remaining_blinding_delay(&self) -> Result<Duration, Error> {
+        let nanos = unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }?;
+        Ok(Duration::from_nanos(nanos))
     }
 
     /// Sets whether or not a Client Certificate should be required to complete the TLS Connection.
     ///
-    /// If this is set to S2N_CERT_AUTH_OPTIONAL the server will request a client certificate
+    /// If this is set to ClientAuthType::Optional the server will request a client certificate
     /// but allow the client to not provide one. Rejecting a client certificate when using
-    /// S2N_CERT_AUTH_OPTIONAL will terminate the handshake.
+    /// ClientAuthType::Optional will terminate the handshake.
     pub fn set_client_auth_type(
         &mut self,
-        client_auth_type: s2n_cert_auth_type::Type,
+        client_auth_type: ClientAuthType,
     ) -> Result<&mut Self, Error> {
         unsafe {
-            s2n_connection_set_client_auth_type(self.connection.as_ptr(), client_auth_type)
+            s2n_connection_set_client_auth_type(self.connection.as_ptr(), client_auth_type.into())
                 .into_result()
         }?;
         Ok(self)
@@ -227,6 +193,21 @@ impl Connection {
         Ok(self)
     }
 
+    pub(crate) fn config(&self) -> Option<Config> {
+        let mut raw = core::ptr::null_mut();
+        let config = unsafe {
+            s2n_connection_get_config(self.connection.as_ptr(), &mut raw)
+                .into_result()
+                .ok()?;
+            let raw = NonNull::new(raw)?;
+            Config::from_raw(raw)
+        };
+        // Because the config pointer is still set on the connection, this is a copy,
+        // not the original config. This is fine -- Configs are immutable.
+        let _ = ManuallyDrop::new(config.clone());
+        Some(config)
+    }
+
     pub fn set_security_policy(&mut self, policy: &security::Policy) -> Result<&mut Self, Error> {
         unsafe {
             s2n_connection_set_cipher_preferences(
@@ -262,8 +243,8 @@ impl Connection {
     /// sets the application protocol preferences on an s2n_connection object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first, and of
-    /// length protocol_count. When acting as an S2N_CLIENT the protocol list is included in the
-    /// Client Hello message as the ALPN extension. As an S2N_SERVER, the list is used to negotiate
+    /// length protocol_count. When acting as a client the protocol list is included in the
+    /// Client Hello message as the ALPN extension. As a server, the list is used to negotiate
     /// a mutual application protocol with the client. After the negotiation for the connection has
     /// completed, the agreed upon protocol can be retrieved with s2n_get_application_protocol
     pub fn set_application_protocol_preference<P: IntoIterator<Item = I>, I: AsRef<[u8]>>(
@@ -360,13 +341,48 @@ impl Connection {
     /// called. Reusing the same connection handle(s) is more performant than repeatedly
     /// calling s2n_connection_new and s2n_connection_free
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
-        unsafe { s2n_connection_wipe(self.connection.as_ptr()).into_result() }?;
+        unsafe {
+            // Wiping the connection will wipe the pointer to the context,
+            // so retrieve and drop that memory first.
+            let ctx = self.context_mut();
+            drop(Box::from_raw(ctx));
+
+            s2n_connection_wipe(self.connection.as_ptr()).into_result()
+        }?;
+
+        self.init_context();
         Ok(self)
+    }
+
+    /// Sets the currently executing async callback.
+    ///
+    /// Multiple callbacks can be configured for a connection and config, but
+    /// [`negotiate`] can only execute and block on one callback at a time.
+    /// The handshake is sequential, not concurrent, and stops execution when
+    /// it encounters an async callback. It does not continue execution (and
+    /// therefore can't call any other callbacks) until the blocking async callback
+    /// reports completion and is no longer the "pending" callback.
+    pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
+        debug_assert!(self.context_mut().pending_callback.is_none());
+        if let Some(callback) = callback {
+            let _ = self.context_mut().pending_callback.insert(callback);
+        }
     }
 
     /// Performs the TLS handshake to completion
     pub fn negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+
+        // If we blocked on a callback, poll the callback again.
+        if let Some(mut callback) = self.context_mut().pending_callback.take() {
+            match callback.poll(self) {
+                Poll::Ready(r) => r?,
+                Poll::Pending => {
+                    self.set_pending_callback(Some(callback));
+                    return Poll::Pending;
+                }
+            }
+        }
 
         unsafe {
             s2n_negotiate(self.connection.as_ptr(), &mut blocked)
@@ -500,16 +516,10 @@ impl Connection {
         }
     }
 
-    #[cfg(test)]
-    /// Test if a config has been set on the connection.
-    ///
-    /// `s2n_connection_get_config` should return a NULL pointer if the `s2n_connection_set_config`
-    /// has not been called by the application.
-    pub fn test_config_exists(&mut self) -> Result<(), Error> {
-        let mut config = core::ptr::null_mut();
-        let _config = unsafe {
-            s2n_connection_get_config(self.connection.as_ptr(), &mut config).into_result()?
-        };
+    pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {
+        unsafe {
+            s2n_client_hello_cb_done(self.connection.as_ptr()).into_result()?;
+        }
         Ok(())
     }
 
@@ -540,6 +550,7 @@ impl Connection {
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
+    pending_callback: Option<Box<dyn AsyncCallback>>,
 }
 
 #[cfg(feature = "quic")]
@@ -587,6 +598,18 @@ impl Connection {
         s2n_connection_set_secret_callback(self.connection.as_ptr(), callback, context)
             .into_result()?;
         Ok(self)
+    }
+}
+
+impl AsRef<Connection> for Connection {
+    fn as_ref(&self) -> &Connection {
+        self
+    }
+}
+
+impl AsMut<Connection> for Connection {
+    fn as_mut(&mut self) -> &mut Connection {
+        self
     }
 }
 

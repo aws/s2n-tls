@@ -1,13 +1,16 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::raw::{
-    config::{Builder, Config},
-    error::Error,
-    security::DEFAULT_TLS13,
-};
+use s2n_tls::{config, connection::Builder, error::Error, security::DEFAULT_TLS13};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
-use tokio::net::{TcpListener, TcpStream};
+use std::time::Duration;
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    net::{TcpListener, TcpStream},
+};
+
+mod stream;
+pub use stream::*;
 
 /// NOTE: this certificate and key are used for testing purposes only!
 pub static CERT_PEM: &[u8] = include_bytes!(concat!(
@@ -19,6 +22,9 @@ pub static KEY_PEM: &[u8] = include_bytes!(concat!(
     "/examples/certs/key.pem"
 ));
 
+pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
+pub const MAX_BLINDING_SECS: Duration = Duration::from_secs(30);
+
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     let localhost = "127.0.0.1".to_owned();
     let listener = TcpListener::bind(format!("{}:0", localhost)).await?;
@@ -28,31 +34,35 @@ pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     Ok((server_stream, client_stream))
 }
 
-pub fn client_config() -> Result<Builder, Error> {
-    let mut builder = Config::builder();
+pub fn client_config() -> Result<config::Builder, Error> {
+    let mut builder = config::Config::builder();
     builder.set_security_policy(&DEFAULT_TLS13)?;
     builder.trust_pem(CERT_PEM)?;
-    unsafe {
-        builder.disable_x509_verification()?;
-    }
     Ok(builder)
 }
 
-pub fn server_config() -> Result<Builder, Error> {
-    let mut builder = Config::builder();
+pub fn server_config() -> Result<config::Builder, Error> {
+    let mut builder = config::Config::builder();
     builder.set_security_policy(&DEFAULT_TLS13)?;
     builder.load_pem(CERT_PEM, KEY_PEM)?;
     Ok(builder)
 }
 
-pub async fn run_negotiate(
-    client: TlsConnector,
-    client_stream: TcpStream,
-    server: TlsAcceptor,
-    server_stream: TcpStream,
-) -> Result<(TlsStream<TcpStream>, TlsStream<TcpStream>), Error> {
-    tokio::try_join!(
+pub async fn run_negotiate<A: Builder, B: Builder, C, D>(
+    client: &TlsConnector<A>,
+    client_stream: C,
+    server: &TlsAcceptor<B>,
+    server_stream: D,
+) -> Result<(TlsStream<C, A::Output>, TlsStream<D, B::Output>), Error>
+where
+    <A as Builder>::Output: Unpin,
+    <B as Builder>::Output: Unpin,
+    C: AsyncRead + AsyncWrite + Unpin,
+    D: AsyncRead + AsyncWrite + Unpin,
+{
+    let (client, server) = tokio::join!(
         client.connect("localhost", client_stream),
         server.accept(server_stream)
-    )
+    );
+    Ok((client?, server?))
 }

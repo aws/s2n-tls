@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    raw::{config::*, security},
+    callbacks::{ClientHelloCallback, VerifyHostNameCallback},
+    config::*,
+    error, security,
     testing::s2n_tls::Harness,
 };
 use alloc::{collections::VecDeque, sync::Arc};
@@ -136,20 +138,18 @@ impl CertKeyPair {
 
 #[derive(Default)]
 pub struct UnsecureAcceptAllClientCertificatesHandler {}
-impl VerifyClientCertificateHandler for UnsecureAcceptAllClientCertificatesHandler {
+impl VerifyHostNameCallback for UnsecureAcceptAllClientCertificatesHandler {
     fn verify_host_name(&self, _host_name: &str) -> bool {
         true
     }
 }
 
-pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
+pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::config::Config, Error> {
     let builder = config_builder(cipher_prefs)?;
     Ok(builder.build().expect("Unable to build server config"))
 }
 
-pub fn config_builder(
-    cipher_prefs: &security::Policy,
-) -> Result<crate::raw::config::Builder, Error> {
+pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::Builder, Error> {
     let mut builder = Builder::new();
     let mut keypair = CertKeyPair::default();
     // Build a config
@@ -161,7 +161,7 @@ pub fn config_builder(
         .expect("Unable to load cert/pem");
     unsafe {
         builder
-            .set_verify_host_handler(UnsecureAcceptAllClientCertificatesHandler::default())
+            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler::default())
             .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()
@@ -170,19 +170,16 @@ pub fn config_builder(
     Ok(builder)
 }
 
-pub fn s2n_tls_pair(config: crate::raw::config::Config) {
+pub fn s2n_tls_pair(config: crate::config::Config) {
     // create and configure a server connection
-    let mut server = crate::raw::connection::Connection::new_server();
+    let mut server = crate::connection::Connection::new_server();
     server
         .set_config(config.clone())
         .expect("Failed to bind config to server connection");
-    server
-        .set_client_auth_type(s2n_tls_sys::s2n_cert_auth_type::NONE)
-        .expect("Unable to set server client auth type");
     let server = Harness::new(server);
 
     // create a client connection
-    let mut client = crate::raw::connection::Connection::new_client();
+    let mut client = crate::connection::Connection::new_client();
     client
         .set_config(config)
         .expect("Unabel to set client config");
@@ -221,11 +218,11 @@ impl MockClientHelloHandler {
     }
 }
 
-impl ClientHelloHandler for MockClientHelloHandler {
+impl ClientHelloCallback for MockClientHelloHandler {
     fn poll_client_hello(
         &self,
-        connection: &mut crate::raw::connection::Connection,
-    ) -> core::task::Poll<Result<(), ()>> {
+        connection: &mut crate::connection::Connection,
+    ) -> core::task::Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
             // confirm the callback can access the waker
             connection.waker().unwrap().wake_by_ref();

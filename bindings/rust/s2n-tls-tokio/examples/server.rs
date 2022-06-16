@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use clap::Parser;
-use s2n_tls::raw::{config::Config, security::DEFAULT_TLS13};
+use s2n_tls::{config::Config, enums::Mode, pool::ConfigPoolBuilder, security::DEFAULT_TLS13};
 use s2n_tls_tokio::TlsAcceptor;
 use std::{error::Error, fs};
 use tokio::{io::AsyncWriteExt, net::TcpListener};
@@ -28,8 +28,12 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), B
     config.set_security_policy(&DEFAULT_TLS13)?;
     config.load_pem(cert_pem, key_pem)?;
 
-    // Create the TlsAcceptor based on the configuration.
-    let server = TlsAcceptor::new(config.build()?);
+    // Create a connection pool to reuse connections.
+    let mut pool = ConfigPoolBuilder::new(Mode::Server, config.build()?);
+    pool.set_max_pool_size(10);
+
+    // Create the TlsAcceptor based on the pool.
+    let server = TlsAcceptor::new(pool.build());
 
     // Bind to an address and listen for connections.
     // ":0" can be used to automatically assign a port.

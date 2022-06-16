@@ -13,6 +13,7 @@
 *.tmp
 *.pyc
 coverage/html/*
+docs/doxygen/output/
 libcrypto-build/*
 libcrypto-root
 libcrypto-root/*
