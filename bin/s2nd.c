@@ -191,6 +191,8 @@ void usage()
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
+    fprintf(stderr, "  -u,--buffered-send <number of bytes>\n");
+    fprintf(stderr, "    Set s2n-send to buffer tls-records by <number of bytes> before sending them over the wire.\n");
 
     exit(1);
 }
@@ -273,6 +275,7 @@ int main(int argc, char *const *argv)
     conn_settings.max_conns = -1;
     conn_settings.psk_list_len = 0;
     int max_early_data = 0;
+    uint32_t send_buffer_byte_size = 0;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -303,12 +306,13 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"max-early-data", required_argument, 0, 'E'},
+        {"buffered-send", required_argument, 0, 'u' },
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:E:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:E:u:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -399,6 +403,9 @@ int main(int argc, char *const *argv)
             bytes = strtoul(optarg, NULL, 10);
             GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
             conn_settings.https_bench = bytes;
+            break;
+        case 'u':
+            send_buffer_byte_size = (uint32_t) atoi(optarg);
             break;
         case 'A':
             alpn = optarg;
@@ -577,6 +584,10 @@ int main(int argc, char *const *argv)
     if (alpn) {
         const char *protocols[] = { alpn };
         GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
+    }
+
+    if (send_buffer_byte_size != 0) {
+        GUARD_EXIT(s2n_config_set_custom_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
     }
 
     FILE *key_log_file = NULL;
