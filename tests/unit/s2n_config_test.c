@@ -274,16 +274,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    /* s2n_config_set_custom_send_buffer_size */
+    /* s2n_config_set_send_buffer_size */
     {
         uint32_t invalid_buffer_size = 42;
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_custom_send_buffer_size(config, invalid_buffer_size), S2N_ERR_INVALID_ARGUMENT);
-        EXPECT_FAILURE(s2n_config_set_custom_send_buffer_size(NULL, invalid_buffer_size));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(config, invalid_buffer_size), S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_FAILURE(s2n_config_set_send_buffer_size(NULL, invalid_buffer_size));
 
-        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, S2N_TLS_MAXIMUM_RECORD_LENGTH));
+        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, S2N_TLS_MAXIMUM_RECORD_LENGTH));
         EXPECT_EQUAL(config->custom_send_buffer_size, S2N_TLS_MAXIMUM_RECORD_LENGTH);
     }
 

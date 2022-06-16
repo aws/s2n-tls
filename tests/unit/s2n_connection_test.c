@@ -661,7 +661,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
     }
 
-    /* Test s2n_config_set_custom_send_buffer_size */
+    /* Test s2n_config_set_send_buffer_size */
     {
         uint32_t valid_buffer_size = S2N_TLS_MAXIMUM_RECORD_LENGTH;
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -671,7 +671,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
 
-        EXPECT_SUCCESS(s2n_config_set_custom_send_buffer_size(config, valid_buffer_size));
+        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, valid_buffer_size));
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_EQUAL(valid_buffer_size, conn->custom_send_buffer_size);

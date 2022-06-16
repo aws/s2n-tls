@@ -32,8 +32,14 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-bool s2n_send_should_flush(struct s2n_connection *conn, ssize_t total_message_size, uint16_t max_write_size)
+bool s2n_send_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 {
+    uint16_t max_payload_size = 0;
+    POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_payload_size));
+
+    uint16_t max_write_size = 0;
+    POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_payload_size, &max_write_size));
+
     /* If the connection is unbuffered then flush on every record written.
      * The rest of this function assumes conn->send_mode == S2N_MULTI_RECORD_SEND */
     if (conn->send_mode == S2N_DEFAULT_SEND) {
@@ -129,9 +135,6 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     uint16_t max_payload_size = 0;
     POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_payload_size));
-
-    uint16_t max_write_size = 0;
-    POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_payload_size, &max_write_size));
     
     /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work
      * around this by splitting messages into one byte records, and then
@@ -209,7 +212,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         conn->current_user_data_consumed += written_to_record;
         conn->active_application_bytes_consumed += written_to_record;
         
-        if (s2n_send_should_flush(conn, total_size, max_write_size)) {
+        if (s2n_send_should_flush(conn, total_size)) {
             if(s2n_flush(conn, blocked) < 0) {
                 if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
                     /* We successfully sent >0 user bytes on the wire, but not the full requested payload

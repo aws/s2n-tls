@@ -1328,7 +1328,7 @@ This buffer size cannot be smaller than 16KB, which is the maximum possible TLS 
 int main(void) {
     struct s2n_config *config = s2n_config_new();
     /* Specify the desired send buffer size in bytes. */
-    s2n_config_set_custom_send_buffer_size(config, SEND_BUFFER_SIZE_BYTES);
+    s2n_config_set_send_buffer_size(config, SEND_BUFFER_SIZE_BYTES);
 
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
     /* The connection object will now be configured with the desired send buffer size. */
