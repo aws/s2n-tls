@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    raw::connection::Connection,
+    connection::Connection,
     testing::{Context, Error, Result},
 };
 use bytes::BytesMut;
@@ -218,7 +218,7 @@ mod tests {
         assert_eq!(config.test_get_refcount()?, 1);
         {
             // Create new connection.
-            let mut server = crate::raw::connection::Connection::new_server();
+            let mut server = crate::connection::Connection::new_server();
             // Can't retrieve default config.
             assert!(server.config().is_none());
             // Custom config reference count doesn't change.
@@ -232,7 +232,7 @@ mod tests {
             assert_eq!(config.test_get_refcount()?, 2);
 
             // Create new connection.
-            let mut client = crate::raw::connection::Connection::new_client();
+            let mut client = crate::connection::Connection::new_client();
             // Can't retrieve default config.
             assert!(client.config().is_none());
             // Custom config reference count doesn't change.
@@ -256,7 +256,7 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13)?;
         assert_eq!(config.test_get_refcount()?, 1);
 
-        let mut server = crate::raw::connection::Connection::new_server();
+        let mut server = crate::connection::Connection::new_server();
         assert_eq!(config.test_get_refcount()?, 1);
 
         // call set_config once
@@ -276,7 +276,7 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         assert_eq!(config.test_get_refcount().unwrap(), 1);
 
-        let mut server = crate::raw::connection::Connection::new_server();
+        let mut server = crate::connection::Connection::new_server();
         server.set_config(config).unwrap();
 
         assert!(server.waker().is_none());
@@ -306,7 +306,7 @@ mod tests {
 
         let server = {
             // create and configure a server connection
-            let mut server = crate::raw::connection::Connection::new_server();
+            let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
             server.set_waker(Some(&waker))?;
             Harness::new(server)
@@ -314,7 +314,7 @@ mod tests {
 
         let client = {
             // create a client connection
-            let mut client = crate::raw::connection::Connection::new_client();
+            let mut client = crate::connection::Connection::new_client();
             client.set_config(config)?;
             Harness::new(client)
         };
@@ -347,7 +347,7 @@ mod tests {
         impl ClientHelloCallback for ClientHelloSyncCallback {
             fn poll_client_hello(
                 &self,
-                connection: &mut crate::raw::connection::Connection,
+                connection: &mut crate::connection::Connection,
             ) -> Poll<Result<(), error::Error>> {
                 connection.server_name_extension_used();
                 self.0.fetch_add(1, Ordering::Relaxed);
@@ -364,14 +364,14 @@ mod tests {
 
         let server = {
             // create and configure a server connection
-            let mut server = crate::raw::connection::Connection::new_server();
+            let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
             Harness::new(server)
         };
 
         let client = {
             // create a client connection
-            let mut client = crate::raw::connection::Connection::new_client();
+            let mut client = crate::connection::Connection::new_client();
             client.set_config(config)?;
             Harness::new(client)
         };

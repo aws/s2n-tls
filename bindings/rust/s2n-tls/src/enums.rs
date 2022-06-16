@@ -3,7 +3,7 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
-use crate::raw::error::Error;
+use crate::error::Error;
 use core::convert::TryFrom;
 use s2n_tls_sys::*;
 

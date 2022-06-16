@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::raw::error;
+use s2n_tls::error;
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::convert::TryFrom;
 use tokio::{
