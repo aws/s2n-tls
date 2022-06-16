@@ -1,7 +1,7 @@
 import copy
 import pytest
 
-from configuration import available_ports, PROTOCOLS 
+from configuration import available_ports, PROTOCOLS, ALL_TEST_CIPHERS, ALL_TEST_CERTS
 from common import ProviderOptions, Ciphers, Certificates, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL, GnuTLS
@@ -9,24 +9,13 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 
 SEND_BUFFER_SIZE = 2 ** 16
 
-CIPHERS_TO_TEST = [
-    Ciphers.AES256_SHA,
-    Ciphers.ECDHE_ECDSA_AES256_SHA,
-    Ciphers.AES256_GCM_SHA384
-]
-
-CERTIFICATES_TO_TEST = [
-    Certificates.RSA_4096_SHA384,
-    Certificates.ECDSA_384
-]
-
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("client_provider", [OpenSSL, GnuTLS, S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("server_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", CERTIFICATES_TO_TEST, ids=get_parameter_name)
-@pytest.mark.parametrize("buffer_size", [ 2 ** y for y in range(14, 20, 2)] , ids=get_parameter_name) # Test various buffer sizes until the buffer size is larger than SEND_BUFFER_SIZE
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("buffer_size", [ 2 ** y for y in range(15, 20, 2)] , ids=get_parameter_name) # Test various buffer sizes until the buffer size is larger than SEND_BUFFER_SIZE
 def test_s2n_buffered_send(managed_process, cipher, client_provider, server_provider, protocol, certificate, buffer_size):
     port = next(available_ports)
 
