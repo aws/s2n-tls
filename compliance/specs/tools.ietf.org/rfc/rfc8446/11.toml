@@ -1,0 +1,120 @@
+target = "https://tools.ietf.org/rfc/rfc8446#11"
+
+# 11.  IANA Considerations
+#
+# This document uses several registries that were originally created in
+# [RFC4346] and updated in [RFC8447].  IANA has updated these to
+# reference this document.  The registries and their allocation
+# policies are below:
+# 
+# -  TLS Cipher Suites registry: values with the first byte in the
+#    range 0-254 (decimal) are assigned via Specification Required
+#    [RFC8126].  Values with the first byte 255 (decimal) are reserved
+#    for Private Use [RFC8126].
+# 
+#    IANA has added the cipher suites listed in Appendix B.4 to the
+#    registry.  The "Value" and "Description" columns are taken from
+#    the table.  The "DTLS-OK" and "Recommended" columns are both
+#    marked as "Y" for each new cipher suite.
+# 
+# -  TLS ContentType registry: Future values are allocated via
+#    Standards Action [RFC8126].
+# 
+# -  TLS Alerts registry: Future values are allocated via Standards
+#    Action [RFC8126].  IANA has populated this registry with the
+#    values from Appendix B.2.  The "DTLS-OK" column is marked as "Y"
+#    for all such values.  Values marked as "_RESERVED" have comments
+#    describing their previous usage.
+# 
+# -  TLS HandshakeType registry: Future values are allocated via
+#    Standards Action [RFC8126].  IANA has updated this registry to
+#    rename item 4 from "NewSessionTicket" to "new_session_ticket" and
+#    populated this registry with the values from Appendix B.3.  The
+#    "DTLS-OK" column is marked as "Y" for all such values.  Values
+#    marked "_RESERVED" have comments describing their previous or
+#    temporary usage.
+# 
+# This document also uses the TLS ExtensionType Values registry
+# originally created in [RFC4366].  IANA has updated it to reference
+# this document.  Changes to the registry follow:
+# 
+# -  IANA has updated the registration policy as follows:
+# 
+#    Values with the first byte in the range 0-254 (decimal) are
+#    assigned via Specification Required [RFC8126].  Values with the
+#    first byte 255 (decimal) are reserved for Private Use [RFC8126].
+# 
+# -  IANA has updated this registry to include the "key_share",
+#    "pre_shared_key", "psk_key_exchange_modes", "early_data",
+#    "cookie", "supported_versions", "certificate_authorities",
+#    "oid_filters", "post_handshake_auth", and
+#    "signature_algorithms_cert" extensions with the values defined in
+#    this document and the "Recommended" value of "Y".
+# 
+# -  IANA has updated this registry to include a "TLS 1.3" column which
+#    lists the messages in which the extension may appear.  This column
+#    has been initially populated from the table in Section 4.2, with
+#    any extension not listed there marked as "-" to indicate that it
+#    is not used by TLS 1.3.
+# 
+# This document updates an entry in the TLS Certificate Types registry
+# originally created in [RFC6091] and updated in [RFC8447].  IANA has
+# updated the entry for value 1 to have the name "OpenPGP_RESERVED",
+# "Recommended" value "N", and comment "Used in TLS versions prior
+# to 1.3."
+# 
+# This document updates an entry in the TLS Certificate Status Types
+# registry originally created in [RFC6961].  IANA has updated the entry
+# for value 2 to have the name "ocsp_multi_RESERVED" and comment "Used
+# in TLS versions prior to 1.3".
+# 
+# This document updates two entries in the TLS Supported Groups
+# registry (created under a different name by [RFC4492]; now maintained
+# by [RFC8422]) and updated by [RFC7919] and [RFC8447].  The entries
+# for values 29 and 30 (x25519 and x448) have been updated to also
+# refer to this document.
+# 
+# In addition, this document defines two new registries that are
+# maintained by IANA:
+# 
+# -  TLS SignatureScheme registry: Values with the first byte in the
+#    range 0-253 (decimal) are assigned via Specification Required
+#    [RFC8126].  Values with the first byte 254 or 255 (decimal) are
+#    reserved for Private Use [RFC8126].  Values with the first byte in
+#    the range 0-6 or with the second byte in the range 0-3 that are
+#    not currently allocated are reserved for backward compatibility.
+#    This registry has a "Recommended" column.  The registry has been
+#    initially populated with the values described in Section 4.2.3.
+#    The following values are marked as "Recommended":
+#    ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384,
+#    rsa_pss_rsae_sha256, rsa_pss_rsae_sha384, rsa_pss_rsae_sha512,
+#    rsa_pss_pss_sha256, rsa_pss_pss_sha384, rsa_pss_pss_sha512, and
+#    ed25519.  The "Recommended" column is assigned a value of "N"
+#    unless explicitly requested, and adding a value with a
+#    "Recommended" value of "Y" requires Standards Action [RFC8126].
+#    IESG Approval is REQUIRED for a Y->N transition.
+# 
+# -  TLS PskKeyExchangeMode registry: Values in the range 0-253
+#    (decimal) are assigned via Specification Required [RFC8126].
+#    The values 254 and 255 (decimal) are reserved for Private Use
+#    [RFC8126].  This registry has a "Recommended" column.  The
+#    registry has been initially populated with psk_ke (0) and
+#    psk_dhe_ke (1).  Both are marked as "Recommended".  The
+#    "Recommended" column is assigned a value of "N" unless explicitly
+#    requested, and adding a value with a "Recommended" value of "Y"
+#    requires Standards Action [RFC8126].  IESG Approval is REQUIRED
+#    for a Y->N transition.
+
+[[spec]]
+level = "MUST"
+quote = '''
+IESG Approval is REQUIRED for a Y->N transition.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+IESG Approval is REQUIRED
+for a Y->N transition.
+'''
+

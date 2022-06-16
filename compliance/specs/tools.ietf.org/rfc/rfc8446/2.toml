@@ -1,0 +1,164 @@
+target = "https://tools.ietf.org/rfc/rfc8446#2"
+
+# 2.  Protocol Overview
+#
+# The cryptographic parameters used by the secure channel are produced
+# by the TLS handshake protocol.  This sub-protocol of TLS is used by
+# the client and server when first communicating with each other.  The
+# handshake protocol allows peers to negotiate a protocol version,
+# select cryptographic algorithms, optionally authenticate each other,
+# and establish shared secret keying material.  Once the handshake is
+# complete, the peers use the established keys to protect the
+# application-layer traffic.
+# 
+# A failure of the handshake or other protocol error triggers the
+# termination of the connection, optionally preceded by an alert
+# message (Section 6).
+# 
+# TLS supports three basic key exchange modes:
+# 
+# -  (EC)DHE (Diffie-Hellman over either finite fields or elliptic
+#    curves)
+# 
+# -  PSK-only
+# 
+# -  PSK with (EC)DHE
+# 
+# Figure 1 below shows the basic full TLS handshake:
+# 
+#     Client                                           Server
+# 
+#   | + signature_algorithms*
+#   | + psk_key_exchange_modes*
+#   v + pre_shared_key*       -------->
+#                                                ServerHello  ^ Key
+#                                               + key_share*  | Exch
+#                                          + pre_shared_key*  v
+#                                      {EncryptedExtensions}  ^  Server
+#                                      {CertificateRequest*}  v  Params
+#                                             {Certificate*}  ^
+#                                       {CertificateVerify*}  | Auth
+#                                                 {Finished}  v
+#                             <--------  [Application Data*]
+#   ^ {Certificate*}
+#   v {Finished}              -------->
+#     [Application Data]      <------->  [Application Data]
+# 
+#            +  Indicates noteworthy extensions sent in the
+#               previously noted message.
+# 
+#            *  Indicates optional or situation-dependent
+#               messages/extensions that are not always sent.
+# 
+#            {} Indicates messages protected using keys
+#               derived from a [sender]_handshake_traffic_secret.
+# 
+#            [] Indicates messages protected using keys
+#               derived from [sender]_application_traffic_secret_N.
+# 
+#             Figure 1: Message Flow for Full TLS Handshake
+# 
+# The handshake can be thought of as having three phases (indicated in
+# the diagram above):
+# 
+# -  Key Exchange: Establish shared keying material and select the
+#    cryptographic parameters.  Everything after this phase is
+#    encrypted.
+# 
+# -  Server Parameters: Establish other handshake parameters
+#    (whether the client is authenticated, application-layer protocol
+#    support, etc.).
+# 
+# -  Authentication: Authenticate the server (and, optionally, the
+#    client) and provide key confirmation and handshake integrity.
+# 
+# In the Key Exchange phase, the client sends the ClientHello
+# (Section 4.1.2) message, which contains a random nonce
+# (ClientHello.random); its offered protocol versions; a list of
+# symmetric cipher/HKDF hash pairs; either a set of Diffie-Hellman key
+# shares (in the "key_share" (Section 4.2.8) extension), a set of
+# pre-shared key labels (in the "pre_shared_key" (Section 4.2.11)
+# extension), or both; and potentially additional extensions.
+# Additional fields and/or messages may also be present for middlebox
+# compatibility.
+# 
+# The server processes the ClientHello and determines the appropriate
+# cryptographic parameters for the connection.  It then responds with
+# its own ServerHello (Section 4.1.3), which indicates the negotiated
+# connection parameters.  The combination of the ClientHello and the
+# ServerHello determines the shared keys.  If (EC)DHE key establishment
+# is in use, then the ServerHello contains a "key_share" extension with
+# the server's ephemeral Diffie-Hellman share; the server's share MUST
+# be in the same group as one of the client's shares.  If PSK key
+# establishment is in use, then the ServerHello contains a
+# "pre_shared_key" extension indicating which of the client's offered
+# PSKs was selected.  Note that implementations can use (EC)DHE and PSK
+# together, in which case both extensions will be supplied.
+# 
+# The server then sends two messages to establish the Server
+# Parameters:
+# 
+# EncryptedExtensions:  responses to ClientHello extensions that are
+#    not required to determine the cryptographic parameters, other than
+#    those that are specific to individual certificates.
+#    [Section 4.3.1]
+# 
+# CertificateRequest:  if certificate-based client authentication is
+#    desired, the desired parameters for that certificate.  This
+#    message is omitted if client authentication is not desired.
+#    [Section 4.3.2]
+# 
+# Finally, the client and server exchange Authentication messages.  TLS
+# uses the same set of messages every time that certificate-based
+# authentication is needed.  (PSK-based authentication happens as a
+# side effect of key exchange.)  Specifically:
+# 
+# Certificate:  The certificate of the endpoint and any per-certificate
+#    extensions.  This message is omitted by the server if not
+#    authenticating with a certificate and by the client if the server
+#    did not send CertificateRequest (thus indicating that the client
+#    should not authenticate with a certificate).  Note that if raw
+#    public keys [RFC7250] or the cached information extension
+#    [RFC7924] are in use, then this message will not contain a
+#    certificate but rather some other value corresponding to the
+#    server's long-term key.  [Section 4.4.2]
+# 
+# CertificateVerify:  A signature over the entire handshake using the
+#    private key corresponding to the public key in the Certificate
+#    message.  This message is omitted if the endpoint is not
+#    authenticating via a certificate.  [Section 4.4.3]
+# 
+# Finished:  A MAC (Message Authentication Code) over the entire
+#    handshake.  This message provides key confirmation, binds the
+#    endpoint's identity to the exchanged keys, and in PSK mode also
+#    authenticates the handshake.  [Section 4.4.4]
+# 
+# Upon receiving the server's messages, the client responds with its
+# Authentication messages, namely Certificate and CertificateVerify (if
+# requested), and Finished.
+# 
+# At this point, the handshake is complete, and the client and server
+# derive the keying material required by the record layer to exchange
+# application-layer data protected through authenticated encryption.
+# Application Data MUST NOT be sent prior to sending the Finished
+# message, except as specified in Section 2.3.  Note that while the
+# server may send Application Data prior to receiving the client's
+# Authentication messages, any data sent at that point is, of course,
+# being sent to an unauthenticated peer.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If (EC)DHE key establishment
+is in use, then the ServerHello contains a "key_share" extension with
+the server's ephemeral Diffie-Hellman share; the server's share MUST
+be in the same group as one of the client's shares.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Application Data MUST NOT be sent prior to sending the Finished
+message, except as specified in Section 2.3.
+'''
+

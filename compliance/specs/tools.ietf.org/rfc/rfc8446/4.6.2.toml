@@ -1,0 +1,94 @@
+target = "https://tools.ietf.org/rfc/rfc8446#4.6.2"
+
+# 4.6.2.  Post-Handshake Authentication
+#
+# When the client has sent the "post_handshake_auth" extension (see
+# Section 4.2.6), a server MAY request client authentication at any
+# time after the handshake has completed by sending a
+# CertificateRequest message.  The client MUST respond with the
+# appropriate Authentication messages (see Section 4.4).  If the client
+# chooses to authenticate, it MUST send Certificate, CertificateVerify,
+# 
+# and Finished.  If it declines, it MUST send a Certificate message
+# containing no certificates followed by Finished.  All of the client's
+# messages for a given response MUST appear consecutively on the wire
+# with no intervening messages of other types.
+# 
+# A client that receives a CertificateRequest message without having
+# sent the "post_handshake_auth" extension MUST send an
+# "unexpected_message" fatal alert.
+# 
+# Note: Because client authentication could involve prompting the user,
+# servers MUST be prepared for some delay, including receiving an
+# arbitrary number of other messages between sending the
+# CertificateRequest and receiving a response.  In addition, clients
+# which receive multiple CertificateRequests in close succession MAY
+# respond to them in a different order than they were received (the
+# certificate_request_context value allows the server to disambiguate
+# the responses).
+
+[[spec]]
+level = "MAY"
+quote = '''
+When the client has sent the "post_handshake_auth" extension (see
+Section 4.2.6), a server MAY request client authentication at any
+time after the handshake has completed by sending a
+CertificateRequest message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The client MUST respond with the
+appropriate Authentication messages (see Section 4.4).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client
+chooses to authenticate, it MUST send Certificate, CertificateVerify,
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If it declines, it MUST send a Certificate message
+containing no certificates followed by Finished.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All of the client's
+messages for a given response MUST appear consecutively on the wire
+with no intervening messages of other types.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A client that receives a CertificateRequest message without having
+sent the "post_handshake_auth" extension MUST send an
+"unexpected_message" fatal alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Note: Because client authentication could involve prompting the user,
+servers MUST be prepared for some delay, including receiving an
+arbitrary number of other messages between sending the
+CertificateRequest and receiving a response.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+In addition, clients
+which receive multiple CertificateRequests in close succession MAY
+respond to them in a different order than they were received (the
+certificate_request_context value allows the server to disambiguate
+the responses).
+'''
+

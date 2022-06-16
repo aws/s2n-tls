@@ -1,0 +1,82 @@
+target = "https://tools.ietf.org/rfc/rfc8446#5"
+
+# 5.  Record Protocol
+#
+# The TLS record protocol takes messages to be transmitted, fragments
+# the data into manageable blocks, protects the records, and transmits
+# the result.  Received data is verified, decrypted, reassembled, and
+# then delivered to higher-level clients.
+# 
+# TLS records are typed, which allows multiple higher-level protocols
+# to be multiplexed over the same record layer.  This document
+# specifies four content types: handshake, application_data, alert, and
+# change_cipher_spec.  The change_cipher_spec record is used only for
+# compatibility purposes (see Appendix D.4).
+# 
+# An implementation may receive an unencrypted record of type
+# change_cipher_spec consisting of the single byte value 0x01 at any
+# time after the first ClientHello message has been sent or received
+# and before the peer's Finished message has been received and MUST
+# simply drop it without further processing.  Note that this record may
+# appear at a point at the handshake where the implementation is
+# expecting protected records, and so it is necessary to detect this
+# condition prior to attempting to deprotect the record.  An
+# implementation which receives any other change_cipher_spec value or
+# which receives a protected change_cipher_spec record MUST abort the
+# handshake with an "unexpected_message" alert.  If an implementation
+# detects a change_cipher_spec record received before the first
+# ClientHello message or after the peer's Finished message, it MUST be
+# treated as an unexpected record type (though stateless servers may
+# not be able to distinguish these cases from allowed cases).
+# 
+# Implementations MUST NOT send record types not defined in this
+# document unless negotiated by some extension.  If a TLS
+# implementation receives an unexpected record type, it MUST terminate
+# the connection with an "unexpected_message" alert.  New record
+# content type values are assigned by IANA in the TLS ContentType
+# registry as described in Section 11.
+
+[[spec]]
+level = "MUST"
+quote = '''
+An implementation may receive an unencrypted record of type
+change_cipher_spec consisting of the single byte value 0x01 at any
+time after the first ClientHello message has been sent or received
+and before the peer's Finished message has been received and MUST
+simply drop it without further processing.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+An
+implementation which receives any other change_cipher_spec value or
+which receives a protected change_cipher_spec record MUST abort the
+handshake with an "unexpected_message" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If an implementation
+detects a change_cipher_spec record received before the first
+ClientHello message or after the peer's Finished message, it MUST be
+treated as an unexpected record type (though stateless servers may
+not be able to distinguish these cases from allowed cases).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST NOT send record types not defined in this
+document unless negotiated by some extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a TLS
+implementation receives an unexpected record type, it MUST terminate
+the connection with an "unexpected_message" alert.
+'''
+
