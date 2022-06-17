@@ -96,13 +96,16 @@ int SIKE_P503_r1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     unsigned char c0_[SIKE_P503_R1_PUBLIC_KEY_BYTES];
     unsigned char temp[SIKE_P503_R1_CIPHERTEXT_BYTES+MSG_BYTES];
     unsigned int i;
+    bool dont_copy = 1;
 
     digit_t _sk[SECRETKEY_B_BYTES/sizeof(digit_t)];
 
 	memcpy(_sk, sk + MSG_BYTES, SECRETKEY_B_BYTES);
 
     // Decrypt
-    EphemeralSecretAgreement_B(_sk, ct, jinvariant_);
+    if (!(EphemeralSecretAgreement_B(_sk, ct, jinvariant_) == 0)) {
+        goto S2N_SIKE_P503_R1_HASHING;
+    }
     cshake256_simple(h_, MSG_BYTES, P, jinvariant_, FP2_ENCODED_BYTES);
     for (i = 0; i < MSG_BYTES; i++) temp[i] = ct[i + SIKE_P503_R1_PUBLIC_KEY_BYTES] ^ h_[i];
 
@@ -120,7 +123,8 @@ int SIKE_P503_r1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
 
     // Note: This step deviates from the NIST supplied code by using constant time operations.
     // We only want to copy the data if c0_ and ct are different
-    bool dont_copy = s2n_constant_time_equals(c0_, ct, SIKE_P503_R1_PUBLIC_KEY_BYTES);
+    dont_copy = s2n_constant_time_equals(c0_, ct, SIKE_P503_R1_PUBLIC_KEY_BYTES);
+S2N_SIKE_P503_R1_HASHING:
     // The last argument to s2n_constant_time_copy_or_dont is dont and thus prevents the copy when non-zero/true
     s2n_constant_time_copy_or_dont(temp, sk, MSG_BYTES, dont_copy);
 

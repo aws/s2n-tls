@@ -268,6 +268,49 @@ int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* 
     return S2N_SUCCESS;
 }
 
+int sike_p503_r1_publickey_validation(const f2elm_t *PKB, const f2elm_t *A)
+{ // Public key validation
+    point_proj_t P = { 0 }, Q = { 0 };
+    f2elm_t _A2={0}, _tmp1={0}, _tmp2={0};
+    f2elm_t *A2=&_A2, *tmp1=&_tmp1, *tmp2=&_tmp2;
+
+    // Verify that P and Q generate E_A[3^e_3] by checking that [3^(e_3-1)]P != [+-3^(e_3-1)]Q
+    fp2div2(A, A2);
+    fp2copy(&PKB[0], &P->X);
+    fpcopy((const digit_t*)&Montgomery_one, (digit_t*)&P->Z);
+    fp2copy(&PKB[1], &Q->X);
+    fpcopy((const digit_t*)&Montgomery_one, (digit_t*)&Q->Z);
+
+    xTPLe_fast(P, P, A2, MAX_Bob - 1);
+    xTPLe_fast(Q, Q, A2, MAX_Bob - 1);
+    fp2correction(&P->Z);
+    fp2correction(&Q->Z);
+
+    if ((is_felm_zero((P->Z.e)[0]) && is_felm_zero((P->Z.e)[1])) || (is_felm_zero((Q->Z.e)[0]) && is_felm_zero((Q->Z.e)[1]))) {
+        return 1;
+    }
+
+    fp2mul_mont(&P->X, &Q->Z, tmp1);
+    fp2mul_mont(&P->Z, &Q->X, tmp2);
+    fp2correction(tmp1);
+    fp2correction(tmp2);
+
+    if (memcmp((uint8_t*)tmp1, (uint8_t*)tmp2, FP2_ENCODED_BYTES) == 0) {
+        return 1;
+    }
+
+    // Check that Ord(P) = Ord(Q) = 3^(e_3)
+    xTPL_fast(P, P, A2);
+    xTPL_fast(Q, Q, A2);
+    fp2correction(&P->Z);
+    fp2correction(&Q->Z);
+
+    if (!is_felm_zero((P->Z.e)[0]) || !is_felm_zero((P->Z.e)[1]) || !is_felm_zero((Q->Z.e)[0]) || !is_felm_zero((Q->Z.e)[1])) {
+        return 1;
+    }
+
+    return 0;
+}
 
 int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB)
 { // Bob's ephemeral shared secret computation
@@ -291,6 +334,11 @@ int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* 
     fpadd((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, A24minus->e[0]);
     fp2add(A, A24minus, A24plus);
     fp2sub(A, A24minus, A24minus);
+
+    // Always perform public key validation before using peer's public key
+    if (sike_p503_r1_publickey_validation(PKB, A) == 1) {
+        return 1;
+    }
 
     // Retrieve kernel point
     LADDER3PT(&PKB[0], &PKB[1], &PKB[2], PrivateKeyB, BOB, R, A);
