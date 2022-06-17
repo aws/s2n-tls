@@ -30,10 +30,11 @@ let fp2_encode_spec = do {
 };
 
 let sike_p503_r1_publickey_validation_spec = do {
-    (PKB, PKBp) <- A_f2elm_t "PKB";
-    (A, Ap) <- A_f2elm_t "A";
+    // Assume that sike_p503_r1_publickey_validation() always returns zero, and does not have any side effects when 
+    // called with pointers to two disjoint memory regions.
+    PKBp <- crucible_alloc_readonly f2elm_t;
+    Ap <- crucible_alloc_readonly f2elm_t;
     crucible_execute_func [PKBp, Ap];
-    // Assume that PublicKey Validation always succeeds
     crucible_return (crucible_term {{ 0:[32] }});
 };
 
