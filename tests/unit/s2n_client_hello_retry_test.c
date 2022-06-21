@@ -1508,16 +1508,13 @@ int main(int argc, char **argv)
          /* Force the HRR path */
          client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
-         /* ClientHello 1 */
-         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                         s2n_stuffer_data_available(&client_conn->handshake.io)));
-
-         /* Server receives ClientHello 1 */
-         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+         /* Send/receive ClientHello 1 */
+         s2n_blocked_status blocked = 0;
+         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+         EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, HELLO_RETRY_MSG));
 
          /* Server sends HelloRetryRequest */
+         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
          EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
 
          EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
