@@ -297,8 +297,8 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
 
-        s2n_connection_allow_response_extension(client_conn, s2n_server_key_share_extension.iana_value);
-        s2n_connection_allow_response_extension(server_conn, s2n_server_key_share_extension.iana_value);
+        EXPECT_SUCCESS(s2n_connection_allow_response_extension(client_conn, s2n_server_key_share_extension.iana_value));
+        EXPECT_SUCCESS(s2n_connection_allow_response_extension(server_conn, s2n_server_key_share_extension.iana_value));
 
         POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
