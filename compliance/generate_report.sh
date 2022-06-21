@@ -21,8 +21,8 @@ duvet \
   --source-pattern '(*=,*#)tls/**/*.[ch]' \
   --source-pattern '(*=,*#)utils/**/*.[ch]' \
   --require-tests false \
-  --blob-link "https://github.com/awslabs/s2n/blob/$BLOB" \
-  --issue-link 'https://github.com/awslabs/s2n/issues' \
+  --blob-link "https://github.com/aws/s2n/blob/$BLOB" \
+  --issue-link 'https://github.com/aws/s2n/issues' \
   --no-cargo \
   --html compliance/report.html
   
