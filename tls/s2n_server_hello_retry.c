@@ -76,30 +76,6 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.2.8
-     *# Upon receipt of this extension in a HelloRetryRequest, the client
-     *# MUST verify that (1) the selected_group field corresponds to a group
-     *# which was provided in the "supported_groups" extension in the
-     *# original ClientHello
-     **/
-    bool selected_group_in_supported_groups = false;
-    if (named_curve != NULL) {
-        for (size_t i = 0; i < ecc_pref->count; i++) {
-            if (named_curve->iana_id == ecc_pref->ecc_curves[i]->iana_id) {
-                selected_group_in_supported_groups = true;
-            }
-        }
-    }
-    if (kem_group != NULL) {
-        for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-            if (kem_group->iana_id == kem_pref->tls13_kem_groups[i]->iana_id) {
-                selected_group_in_supported_groups = true;
-                break;
-            }
-        }
-    }
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
      *# and (2) the selected_group field does not
      *# correspond to a group which was provided in the "key_share" extension
      *# in the original ClientHello.
@@ -130,7 +106,6 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      **/
     POSIX_ENSURE((conn->early_data_state == S2N_EARLY_DATA_REJECTED) || new_key_share_requested,
             S2N_ERR_INVALID_HELLO_RETRY);
-    POSIX_ENSURE(selected_group_in_supported_groups, S2N_ERR_INVALID_HELLO_RETRY);
 
     /* Update transcript hash */
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));

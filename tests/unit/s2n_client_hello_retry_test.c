@@ -1453,6 +1453,9 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
          EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
 
+         /* Set the curve to secp521r1, which was not provided in supported_groups */
+         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
+
          /* Server sends HelloRetryRequest */
          EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
 
@@ -1461,12 +1464,9 @@ int main(int argc, char **argv)
                                          s2n_stuffer_data_available(&server_conn->handshake.io)));
          client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
-         /* Set the curve to secp521r1, which was not provided in supported_groups */
-         client_conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
-
          /* Client receives HelloRetryRequest */
          EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
-                                   S2N_ERR_INVALID_HELLO_RETRY);
+                                   S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
      }
 
      /**
