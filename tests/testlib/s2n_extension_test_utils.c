@@ -26,17 +26,19 @@ int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_t iana_value)
+int s2n_connection_mark_response_extension_received(struct s2n_connection *conn, uint16_t iana_value)
 {
     s2n_extension_type_id extension_id = s2n_unsupported_extension;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(iana_value, &extension_id));
     S2N_CBIT_SET(conn->extension_responses_received, extension_id);
+    return S2N_SUCCESS;
 }
 
-int s2n_connection_allow_request_extension(struct s2n_connection *conn, uint16_t iana_value)
+int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_t iana_value)
 {
     s2n_extension_type_id extension_id = s2n_unsupported_extension;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(iana_value, &extension_id));
     S2N_CBIT_SET(conn->extension_requests_sent, extension_id);
     S2N_CBIT_SET(conn->extension_requests_received, extension_id);
+    return S2N_SUCCESS;
 }
