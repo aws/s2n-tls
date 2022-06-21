@@ -60,7 +60,7 @@ static int s2n_server_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *
      * Any other mode selected by the server is invalid because it was not offered by the client.
      * A key_share extension MUST have been received in order to use a pre-shared key in (EC)DHE key exchange mode.
      */
-    s2n_extension_type_id key_share_ext_id;
+    s2n_extension_type_id key_share_ext_id = s2n_unsupported_extension;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
     POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_responses_received, key_share_ext_id), S2N_ERR_MISSING_EXTENSION);
 

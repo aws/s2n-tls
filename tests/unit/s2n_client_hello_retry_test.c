@@ -1001,7 +1001,7 @@ int main(int argc, char **argv)
      *# Section 4.2.2) extension.
      **/
     {
-        s2n_extension_type_list *hello_retry_extension_types;
+        s2n_extension_type_list *hello_retry_extension_types = 0;
         POSIX_GUARD(s2n_extension_type_list_get(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, &hello_retry_extension_types));
 
         for (int i = 0; i < hello_retry_extension_types->count; ++i) {

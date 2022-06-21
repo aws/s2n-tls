@@ -171,7 +171,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     *# The server's extensions MUST contain "supported_versions".
     **/
     if (s2n_is_hello_retry_message(conn)) {
-        s2n_extension_type_id supported_versions_id;
+        s2n_extension_type_id supported_versions_id = s2n_unsupported_extension;
         POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SUPPORTED_VERSIONS, &supported_versions_id));
         POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_responses_received, supported_versions_id),
                      S2N_ERR_MISSING_EXTENSION);
