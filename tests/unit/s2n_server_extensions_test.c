@@ -288,10 +288,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Fake receiving the key share extension */
-            s2n_extension_type_id key_share_id;
-            s2n_extension_supported_iana_value_to_id(s2n_server_key_share_extension.iana_value, &key_share_id);
-            S2N_CBIT_SET(conn->extension_requests_received, key_share_id);
+            s2n_connection_allow_request_extension(conn, s2n_server_key_share_extension.iana_value);
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -333,10 +330,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Fake receiving the key share extension */
-            s2n_extension_type_id key_share_id;
-            s2n_extension_supported_iana_value_to_id(s2n_server_key_share_extension.iana_value, &key_share_id);
-            S2N_CBIT_SET(conn->extension_requests_received, key_share_id);
+            s2n_connection_allow_request_extension(conn, s2n_server_key_share_extension.iana_value);
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -382,10 +376,7 @@ int main(int argc, char **argv)
             S2N_CBIT_SET(conn->extension_requests_received, extension_id);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Fake receiving the key share extension */
-            s2n_extension_type_id key_share_id;
-            s2n_extension_supported_iana_value_to_id(s2n_server_key_share_extension.iana_value, &key_share_id);
-            S2N_CBIT_SET(conn->extension_requests_received, key_share_id);
+            s2n_connection_allow_request_extension(conn, s2n_server_key_share_extension.iana_value);
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -442,10 +433,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Fake receiving the key share extension */
-            s2n_extension_type_id key_share_id;
-            s2n_extension_supported_iana_value_to_id(s2n_server_key_share_extension.iana_value, &key_share_id);
-            S2N_CBIT_SET(conn->extension_requests_received, key_share_id);
+            s2n_connection_allow_request_extension(conn, s2n_server_key_share_extension.iana_value);
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
 
@@ -658,10 +646,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
                 client_conn->actual_protocol_version = S2N_TLS13;
 
-                /* Fake receiving the key share extension */
-                s2n_extension_type_id key_share_id;
-                s2n_extension_supported_iana_value_to_id(s2n_server_key_share_extension.iana_value, &key_share_id);
-                S2N_CBIT_SET(client_conn->extension_responses_received, key_share_id);
+                s2n_connection_allow_response_extension(client_conn, s2n_server_key_share_extension.iana_value);
 
                 for (size_t i = 0; i <= test_wire_index; i++) {
                     struct s2n_psk *psk = NULL;

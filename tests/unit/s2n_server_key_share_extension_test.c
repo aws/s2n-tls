@@ -281,10 +281,7 @@ int main(int argc, char **argv)
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-                /* Fake sending the key share extension */
-                s2n_extension_type_id key_share_id;
-                s2n_extension_supported_iana_value_to_id(s2n_server_key_share_extension.iana_value, &key_share_id);
-                S2N_CBIT_SET(client_conn->extension_requests_sent, key_share_id);
+                s2n_connection_allow_request_extension(client_conn, s2n_server_key_share_extension.iana_value);
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
