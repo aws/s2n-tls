@@ -16,7 +16,6 @@ jobs:
           repository: aws/s2n-quic
           path: ./s2n-quic
           submodules: true
-          ref: duvet-action
       - uses: ./s2n-quic/.github/actions/duvet
         with:
           s2n-quic-dir: ./s2n-quic
