@@ -1523,7 +1523,8 @@ int main(int argc, char **argv)
          EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
          EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
                                          s2n_stuffer_data_available(&server_conn->handshake.io)));
-         client_conn->handshake.message_number = 3; // server hello
+         int server_hello = 3;
+         client_conn->handshake.message_number = server_hello;
 
          /* Set the negotiated curve to something other than what was sent in the HRR */
          client_conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
