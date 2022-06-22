@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_send_conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
-
+  
             struct s2n_stuffer* extension_stuffer = &server_send_conn->handshake.io;
 
             server_send_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
@@ -251,10 +251,6 @@ int main(int argc, char **argv)
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-                    s2n_config_ptr_free);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-                s2n_connection_set_config(client_conn, config);
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
@@ -283,10 +279,6 @@ int main(int argc, char **argv)
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-                    s2n_config_ptr_free);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-                s2n_connection_set_config(client_conn, config);
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
@@ -338,11 +330,6 @@ int main(int argc, char **argv)
             struct s2n_connection *client_conn;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-                s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-            s2n_connection_set_config(client_conn, config);
-
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);

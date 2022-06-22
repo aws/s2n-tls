@@ -83,7 +83,7 @@ const struct s2n_cipher_preferences cipher_preferences_20210831 = {
 };
 
 /*
- * The following security policy is derived from the following specification:
+ * These cipher suites were chosen based on the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
  */
 struct s2n_cipher_suite *cipher_suites_default_fips[] = {

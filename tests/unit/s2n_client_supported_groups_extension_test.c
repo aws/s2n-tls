@@ -353,13 +353,8 @@ int main()
                 client_conn->security_policy_override = test_policy_overrides[i][0];
 
                 struct s2n_connection *server_conn;
-                EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+                EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
                 server_conn->security_policy_override = test_policy_overrides[i][1];
-
-                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-                    s2n_config_ptr_free);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-                s2n_connection_set_config(client_conn, config);
 
                 const struct s2n_ecc_preferences *server_ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &server_ecc_pref));

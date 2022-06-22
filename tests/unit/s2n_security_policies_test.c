@@ -806,9 +806,9 @@ int main(int argc, char **argv)
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
     {
         const struct s2n_ecc_named_curve test_curve = {
-            .iana_id = 12345,
-            .libcrypto_nid = 0,
-            .name = "test_curve",
+            .iana_id = 12345, 
+            .libcrypto_nid = 0, 
+            .name = "test_curve", 
             .share_size = 0
         };
 

@@ -37,7 +37,7 @@ const struct s2n_security_policy security_policy_default_tls13 = {
 };
 
 /*
- * The following security policy is derived from the following specification:
+ * This security policy is derived from the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
  *
  * Supports TLS1.2
@@ -47,7 +47,7 @@ const struct s2n_security_policy security_policy_default_fips = {
     .cipher_preferences = &cipher_preferences_default_fips,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_default_fips,
-    .certificate_signature_preferences = &s2n_certificate_signature_preferences_default_fips,
+    .certificate_signature_preferences = &s2n_signature_preferences_default_fips,
     .ecc_preferences = &s2n_ecc_preferences_default_fips,
 };
 

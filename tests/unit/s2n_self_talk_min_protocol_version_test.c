@@ -36,13 +36,13 @@ int mock_client(struct s2n_test_io_pair *io_pair)
 
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     s2n_connection_set_config(client_conn, client_config);
     s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING);
 
     /* Force TLSv1 on a client so that server will fail handshake */
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
     client_conn->client_protocol_version = S2N_TLS10;
 
     s2n_connection_set_io_pair(client_conn, io_pair);
