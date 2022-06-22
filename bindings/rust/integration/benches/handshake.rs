@@ -3,7 +3,7 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use s2n_tls::{
-    raw::security,
+    security,
     testing::{build_config, s2n_tls_pair},
 };
 

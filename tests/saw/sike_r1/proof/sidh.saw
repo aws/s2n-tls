@@ -29,6 +29,15 @@ let fp2_encode_spec = do {
     crucible_points_to encp (tm enc);
 };
 
+let sike_p503_r1_publickey_validation_spec = do {
+    // Assume that sike_p503_r1_publickey_validation() always returns zero, and does not have any side effects when 
+    // called with pointers to two disjoint memory regions.
+    PKBp <- crucible_alloc_readonly f2elm_t;
+    Ap <- crucible_alloc_readonly f2elm_t;
+    crucible_execute_func [PKBp, Ap];
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
 let random_mod_order_B_spec = do {
     random_digits_p <- crucible_alloc (llvm_array SECRETKEY_B_BYTES char_t);
     crucible_execute_func [random_digits_p];
@@ -89,6 +98,8 @@ fp2_encode_ov <- verify fp2_encode_fun_name
     [from_fp2mont_ov]
     fp2_encode_spec;
 
+sike_p503_r1_publickey_validation_ov <- crucible_llvm_unsafe_assume_spec m sike_p503_r1_publickey_validation_fun_name sike_p503_r1_publickey_validation_spec;
+
 let O_base_Key =
     [ fpcopy_ov
     , fpzero_ov
@@ -118,7 +129,8 @@ let O_base_KeyA = concat O_base_Key [ LADDER3PT_A_ov ];
 let O_base_KeyB = concat O_base_Key [ LADDER3PT_B_ov ];
 
 let O_base_Secret =
-    [ fpcopy_ov
+    [ sike_p503_r1_publickey_validation_ov
+    , fpcopy_ov
     , fpzero_ov
     , fp2copy_ov
     , fp2add_ov

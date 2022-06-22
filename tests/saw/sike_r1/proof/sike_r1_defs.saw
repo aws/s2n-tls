@@ -87,6 +87,7 @@ let random_mod_order_B_fun_name = "random_mod_order_B_r1";
 let init_basis_fun_name = "init_basis_r1";
 let fp2_decode_fun_name = "fp2_decode_r1";
 let fp2_encode_fun_name = "fp2_encode_r1";
+let sike_p503_r1_publickey_validation_fun_name = "sike_p503_r1_publickey_validation";
 let EphemeralKeyGeneration_A_fun_name = "EphemeralKeyGeneration_A_r1";
 let EphemeralKeyGeneration_B_fun_name = "EphemeralKeyGeneration_B_r1";
 let EphemeralSecretAgreement_A_fun_name = "EphemeralSecretAgreement_A_r1";

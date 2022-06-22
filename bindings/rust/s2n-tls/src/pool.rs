@@ -7,7 +7,7 @@
 //! memory allocations (about 50-60 KB, according to some tests).
 //! Instead of allocating memory for a new connection, existing
 //! memory can be reused by calling
-//! [Connection::wipe()](`s2n_tls::raw::connection::Connection::wipe()).
+//! [Connection::wipe()](`s2n_tls::connection::Connection::wipe()).
 //!
 //! The [`Pool`] trait allows applications to define an
 //! [Object pool](https://en.wikipedia.org/wiki/Object_pool_pattern) that
@@ -17,7 +17,7 @@
 //! implements the pool as a [VecDeque](`std::collections::VecDeque`)
 //! with a fixed maximum size.
 
-use crate::raw::{
+use crate::{
     config::Config,
     connection::{Builder, Connection},
     enums::Mode,
@@ -196,7 +196,7 @@ impl Pool for ConfigPool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::raw::config::Config;
+    use crate::config::Config;
 
     #[test]
     fn config_pool_single_connection() -> Result<(), Box<dyn std::error::Error>> {
