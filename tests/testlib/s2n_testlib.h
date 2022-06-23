@@ -61,7 +61,7 @@ int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
 
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
-int s2n_connection_mark_response_extension_received(struct s2n_connection *conn, uint16_t iana_value);
+int s2n_connection_mark_extension_received(struct s2n_connection *conn, uint16_t iana_value);
 int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_t iana_value);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);

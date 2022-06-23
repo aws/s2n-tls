@@ -646,7 +646,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
                 client_conn->actual_protocol_version = S2N_TLS13;
 
-                EXPECT_SUCCESS(s2n_connection_mark_response_extension_received(client_conn, s2n_server_key_share_extension.iana_value));
+                EXPECT_SUCCESS(s2n_connection_mark_extension_received(client_conn, s2n_server_key_share_extension.iana_value));
 
                 for (size_t i = 0; i <= test_wire_index; i++) {
                     struct s2n_psk *psk = NULL;
