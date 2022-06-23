@@ -522,6 +522,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
+        /* Ensure the handshake included a hello retry request */
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
