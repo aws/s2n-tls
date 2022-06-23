@@ -612,31 +612,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Retry for early data is valid */
-        {
-            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_NOT_NULL(conn);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20201021"));
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
-            conn->kex_params.client_ecc_evp_params.negotiated_curve = test_curve;
-            conn->kex_params.client_ecc_evp_params.evp_pkey = EVP_PKEY_new();
-            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
-
-            /* Early data rejected: allow retry */
-            conn->early_data_state = S2N_EARLY_DATA_REJECTED;
-            EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
-
-            /* Early data not rejected: do NOT allow retry */
-            conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn),
-                    S2N_ERR_INVALID_HELLO_RETRY);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
         /* Retry for multiple reasons is valid */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
