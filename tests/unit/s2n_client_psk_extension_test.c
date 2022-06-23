@@ -1616,7 +1616,7 @@ int main(int argc, char **argv)
         s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_1, 32);
         client_conn->handshake.io.read_cursor = 0;
 
-        /* Ensure ticket age and binder were updated after ClientHello 1*/
+        /* Ensure that the ticket age and binder was updated after ClientHello 1 */
         EXPECT_TRUE(obfuscated_ticket_age_1 != 0);
         uint8_t zero_array[32] = { 0 };
         EXPECT_FALSE(s2n_constant_time_equals(binder_1, zero_array, 32));
@@ -1657,7 +1657,7 @@ int main(int argc, char **argv)
         uint8_t binder_2[32] = { 0 };
         s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_2, 32);
 
-        /* Ensure ticket age and binder were updated after ClientHello 2 */
+        /* Ensure that the ticket age and binder was updated after ClientHello 2 */
         EXPECT_TRUE(obfuscated_ticket_age_1 != obfuscated_ticket_age_2);
         EXPECT_FALSE(s2n_constant_time_equals(binder_1, binder_2, 32));
     }
