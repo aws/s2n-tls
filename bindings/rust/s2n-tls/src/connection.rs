@@ -420,7 +420,7 @@ impl Connection {
     }
 
     /// Gets the number of bytes that are currently available in the buffer to be read.
-    pub fn available(&self) -> usize {
+    pub fn peek_len(&self) -> usize {
         unsafe { s2n_peek(self.connection.as_ptr()) as usize }
     }
 
