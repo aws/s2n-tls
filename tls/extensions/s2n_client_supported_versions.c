@@ -115,7 +115,8 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
         conn->actual_protocol_version = MAX(client_version, conn->actual_protocol_version);
     }
 
-    S2N_ERROR_IF(conn->actual_protocol_version == s2n_unknown_protocol_version, S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
+    POSIX_ENSURE(conn->client_protocol_version != s2n_unknown_protocol_version, S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
+    POSIX_ENSURE(conn->actual_protocol_version != s2n_unknown_protocol_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     return S2N_SUCCESS;
 }
@@ -126,10 +127,12 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
         return S2N_SUCCESS;
     }
 
-    if (s2n_extensions_client_supported_versions_process(conn, in) < 0) {
+    int result = s2n_extensions_client_supported_versions_process(conn, in);
+    if (result != S2N_SUCCESS) {
         s2n_queue_reader_unsupported_protocol_version_alert(conn);
-        POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(s2n_errno != S2N_ERR_SAFETY, S2N_ERR_BAD_MESSAGE);
     }
+    POSIX_GUARD(result);
     return S2N_SUCCESS;
 }
 
