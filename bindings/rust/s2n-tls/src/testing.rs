@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    raw::{
-        callbacks::{ClientHelloCallback, VerifyHostNameCallback},
-        config::*,
-        error, security,
-    },
+    callbacks::{ClientHelloCallback, VerifyHostNameCallback},
+    config::*,
+    error, security,
     testing::s2n_tls::Harness,
 };
 use alloc::{collections::VecDeque, sync::Arc};
@@ -146,14 +144,12 @@ impl VerifyHostNameCallback for UnsecureAcceptAllClientCertificatesHandler {
     }
 }
 
-pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
+pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::config::Config, Error> {
     let builder = config_builder(cipher_prefs)?;
     Ok(builder.build().expect("Unable to build server config"))
 }
 
-pub fn config_builder(
-    cipher_prefs: &security::Policy,
-) -> Result<crate::raw::config::Builder, Error> {
+pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::Builder, Error> {
     let mut builder = Builder::new();
     let mut keypair = CertKeyPair::default();
     // Build a config
@@ -174,16 +170,16 @@ pub fn config_builder(
     Ok(builder)
 }
 
-pub fn s2n_tls_pair(config: crate::raw::config::Config) {
+pub fn s2n_tls_pair(config: crate::config::Config) {
     // create and configure a server connection
-    let mut server = crate::raw::connection::Connection::new_server();
+    let mut server = crate::connection::Connection::new_server();
     server
         .set_config(config.clone())
         .expect("Failed to bind config to server connection");
     let server = Harness::new(server);
 
     // create a client connection
-    let mut client = crate::raw::connection::Connection::new_client();
+    let mut client = crate::connection::Connection::new_client();
     client
         .set_config(config)
         .expect("Unabel to set client config");
@@ -225,7 +221,7 @@ impl MockClientHelloHandler {
 impl ClientHelloCallback for MockClientHelloHandler {
     fn poll_client_hello(
         &self,
-        connection: &mut crate::raw::connection::Connection,
+        connection: &mut crate::connection::Connection,
     ) -> core::task::Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
             // confirm the callback can access the waker

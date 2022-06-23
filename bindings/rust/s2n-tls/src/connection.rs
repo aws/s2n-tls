@@ -3,7 +3,7 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
-use crate::raw::{
+use crate::{
     callbacks::*,
     config::Config,
     enums::*,
@@ -65,7 +65,7 @@ unsafe impl Sync for Connection {}
 
 impl Connection {
     pub fn new(mode: Mode) -> Self {
-        crate::raw::init::init();
+        crate::init::init();
 
         let connection = unsafe { s2n_connection_new(mode.into()).into_result() }.unwrap();
 

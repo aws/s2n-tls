@@ -552,6 +552,46 @@ static int s2n_random_test_case_without_pr_pthread_atfork_cb(struct random_test_
     return EXIT_SUCCESS;
 }
 
+static int s2n_random_test_case_without_pr_madv_wipeonfork_cb(struct random_test_case *test_case)
+{
+    if (s2n_is_madv_wipeonfork_supported() == false) {
+        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_random_test_case_without_pr_map_inherit_zero_cb(struct random_test_case *test_case)
+{
+    if (s2n_is_map_inherit_zero_supported() == false) {
+        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD_RESULT(s2n_ignore_pthread_atfork_for_testing());
+
+    EXPECT_SUCCESS(s2n_init());
+
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(true));
+    EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
+    POSIX_GUARD_RESULT(s2n_ignore_prediction_resistance_for_testing(false));
+
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
@@ -569,37 +609,36 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
     return EXIT_SUCCESS;
 }
 
-#define NUMBER_OF_RANDOM_TEST_CASES 4
-struct random_test_case random_test_cases[NUMBER_OF_RANDOM_TEST_CASES] = {
+struct random_test_case random_test_cases[] = {
     {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
     {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
     {"Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS},
+    {"Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES},
+    {"Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES},
     /* The s2n FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need
      * to use 1 below and in s2n_random_test_case_failure_cb().
      */
-    {"Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},};
+    {"Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},
+};
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST_NO_INIT();
 
-    EXPECT_TRUE(s2n_array_len(random_test_cases) == NUMBER_OF_RANDOM_TEST_CASES);
-
-    /* Create NUMBER_OF_RANDOM_TEST_CASES number of child processes that each
-     * run a test case.
+    /* For each test case, creates a child process that runs the test case.
      *
      * Fork detection is lazily initialised on first invocation of
      * s2n_get_fork_generation_number(). Hence, it is important that children
      * are created before calling into the fork detection code.
      */
-    pid_t proc_ids[NUMBER_OF_RANDOM_TEST_CASES] = {0};
+    for (size_t i = 0; i < s2n_array_len(random_test_cases); i++) {
 
-    for (size_t i = 0; i < NUMBER_OF_RANDOM_TEST_CASES; i++) {
+        pid_t proc_id = 0;
 
-        proc_ids[i] = fork();
-        EXPECT_TRUE(proc_ids[i] >= 0);
+        proc_id = fork();
+        EXPECT_TRUE(proc_id >= 0);
 
-        if (proc_ids[i] == 0) {
+        if (proc_id == 0) {
             /* In child */
             EXPECT_EQUAL(random_test_cases[i].test_case_cb(&random_test_cases[i]), EXIT_SUCCESS);
 
@@ -611,7 +650,7 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         }
         else {
-            s2n_verify_child_exit_status(proc_ids[i], random_test_cases[i].expected_return_status);
+            s2n_verify_child_exit_status(proc_id, random_test_cases[i].expected_return_status);
         }
     }
 

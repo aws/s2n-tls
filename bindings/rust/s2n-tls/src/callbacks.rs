@@ -10,7 +10,7 @@
 //! target callback type and pass your implementation to the appropriate
 //! connection or config method. For example, you can implement
 //! [`ClientHelloCallback`] and pass that implementation to
-//! [config::Builder::set_client_hello_callback()](`crate::raw::config::Builder::set_client_hello_callback()`)
+//! [config::Builder::set_client_hello_callback()](`crate::config::Builder::set_client_hello_callback()`)
 //! in order to execute custom logic after an s2n-tls server receives a client hello.
 //!
 //! s2n-tls callbacks come in two flavors:
@@ -19,10 +19,10 @@
 //!   [`VerifyHostNameCallback`] as an example.
 //! * "async" callbacks return a [`Poll`] and should not block the task performing the handshake.
 //!   They will be polled until they return [`Poll::Ready`].
-//!   [Connection::waker()](`crate::raw::connection::Connection::waker()`)
+//!   [Connection::waker()](`crate::connection::Connection::waker()`)
 //!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
 
-use crate::raw::{connection::Connection, enums::CallbackResult, error::Error};
+use crate::{connection::Connection, enums::CallbackResult, error::Error};
 use core::{mem::ManuallyDrop, ptr::NonNull, task::Poll};
 use s2n_tls_sys::s2n_connection;
 
@@ -124,7 +124,7 @@ pub(crate) trait AsyncCallback {
 /// A trait for the callback executed after parsing the TLS Client Hello.
 ///
 /// Use in conjunction with
-/// [config::Builder::set_client_hello_callback](`crate::raw::config::Builder::set_client_hello_callback()`).
+/// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
 pub trait ClientHelloCallback {
     fn poll_client_hello(&self, connection: &mut Connection) -> Poll<Result<(), Error>>;
 }

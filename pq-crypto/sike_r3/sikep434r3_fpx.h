@@ -25,6 +25,9 @@ void fp2copy(const f2elm_t *a, f2elm_t *c);
 #define fp2div2 S2N_SIKE_P434_R3_NAMESPACE(fp2div2)
 void fp2div2(const f2elm_t *a, f2elm_t *c);
 
+#define fp2correction S2N_SIKE_P434_R3_NAMESPACE(fp2correction)
+void fp2correction(f2elm_t *a);
+
 #define mp_add S2N_SIKE_P434_R3_NAMESPACE(mp_add)
 unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords);
 
@@ -39,6 +42,9 @@ void fp2inv_mont(f2elm_t *a);
 
 #define mp_shiftr1 S2N_SIKE_P434_R3_NAMESPACE(mp_shiftr1)
 void mp_shiftr1(digit_t* x, const unsigned int nwords);
+
+#define is_felm_zero S2N_SIKE_P434_R3_NAMESPACE(is_felm_zero)
+unsigned int is_felm_zero(const felm_t x);
 
 #define decode_to_digits S2N_SIKE_P434_R3_NAMESPACE(decode_to_digits)
 void decode_to_digits(const unsigned char* x, digit_t* dec, int nbytes, int ndigits);

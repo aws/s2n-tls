@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use rand::Rng;
-use s2n_tls::raw::{
+use s2n_tls::{
     config::Config,
     connection::{Connection, ModifiedBuilder},
     enums::{ClientAuthType, Mode, Version},
