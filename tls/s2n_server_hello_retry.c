@@ -98,14 +98,11 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      *# in any change in the ClientHello.
      *
      *= https://tools.ietf.org/rfc/rfc8446#4.2.8
-     *= type=exception
-     *= reason=Permit HRRs to leave the selected_group field unmodified if sent due to rejecting early data
      *# If either of these checks fails, then
      *# the client MUST abort the handshake with an "illegal_parameter"
      *# alert.
      **/
-    POSIX_ENSURE((conn->early_data_state == S2N_EARLY_DATA_REJECTED) || new_key_share_requested,
-            S2N_ERR_INVALID_HELLO_RETRY);
+    POSIX_ENSURE(new_key_share_requested, S2N_ERR_INVALID_HELLO_RETRY);
 
     /* Update transcript hash */
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
