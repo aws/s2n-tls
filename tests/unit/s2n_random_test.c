@@ -53,7 +53,7 @@ struct random_test_case {
     int expected_return_status;
 };
 
-struct random_ipc {
+struct random_communication {
     S2N_RESULT (*s2n_get_random_data_cb_1)(struct s2n_blob *blob);
     S2N_RESULT (*s2n_get_random_data_cb_2)(struct s2n_blob *blob);
     uint8_t thread_data[RANDOM_GENERATE_DATA_SIZE];
@@ -265,7 +265,7 @@ static S2N_RESULT s2n_tests_get_range(void)
 
 void * s2n_thread_test_cb(void *thread_comms)
 {
-    struct random_ipc *thread_comms_ptr = (struct random_ipc *) thread_comms;
+    struct random_communication *thread_comms_ptr = (struct random_communication *) thread_comms;
 
     struct s2n_blob thread_blob = { .data = thread_comms_ptr->thread_data, .size = RANDOM_GENERATE_DATA_SIZE };
 
@@ -289,9 +289,9 @@ static S2N_RESULT s2n_thread_test(
     struct s2n_blob blob = { .data = data };
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
-    struct random_ipc thread_communication_0 =
+    struct random_communication thread_communication_0 =
         { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
-    struct random_ipc thread_communication_1 =
+    struct random_communication thread_communication_1 =
         { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
 
     /* Create two threads and have them each grab RANDOM_GENERATE_DATA_SIZE
@@ -439,7 +439,7 @@ static S2N_RESULT s2n_fork_test(
 
 static int s2n_clone_tests_child_process(void *ipc)
 {
-    struct random_ipc *ipc_ptr = (struct random_ipc *) ipc;
+    struct random_communication *ipc_ptr = (struct random_communication *) ipc;
 
     /* This is the child process, close the read end of the pipe */
     EXPECT_SUCCESS(close((int) ipc_ptr->pipes[0]));
@@ -471,7 +471,7 @@ static S2N_RESULT s2n_clone_tests(
     char process_child_stack[PROCESS_CHILD_STACK_SIZE];
     EXPECT_NOT_NULL(process_child_stack);
 
-    struct random_ipc ipc =
+    struct random_communication ipc =
         { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
           .s2n_get_random_data_cb_2 = s2n_get_random_data_cb_clone,
           .pipes = (int *) pipes };
@@ -546,7 +546,13 @@ static int s2n_common_tests(struct random_test_case *test_case)
     EXPECT_OK(s2n_fork_test(s2n_get_public_random_data, s2n_get_private_random_data));
     EXPECT_OK(s2n_fork_test(s2n_get_private_random_data, s2n_get_public_random_data));
 
-    /* Some fork detection mechanisms can also detect forks through clone() */
+    /* Some fork detection mechanisms can also detect forks through clone().
+     * s2n_is_X_supported() only determines whether the system runtime
+     * environment supports fork detection method X. The function is not aware
+     * of the test case which is running. So, we need the CLONE_* tags to
+     * determine whether the clone test should run or not since some test cases
+     * disables the fork detection methods that can detect forks through clone()
+     */
     if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
         EXPECT_EQUAL(s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported(), true);
         EXPECT_OK(s2n_execute_clone_tests());
@@ -716,8 +722,8 @@ struct random_test_case random_test_cases[] = {
     {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
     {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
     {"Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS},
-    {"Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES},
-    {"Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES},
+    {"Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES, EXIT_SUCCESS},
+    {"Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES, EXIT_SUCCESS},
     /* The s2n FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need
      * to use 1 below and in s2n_random_test_case_failure_cb().
      */
