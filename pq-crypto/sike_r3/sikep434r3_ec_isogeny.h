@@ -44,3 +44,9 @@ void j_inv(const f2elm_t *A, const f2elm_t *C, f2elm_t *jinv);
 #define LADDER3PT S2N_SIKE_P434_R3_NAMESPACE(LADDER3PT)
 void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const digit_t *m,
         const unsigned int AliceOrBob, point_proj_t R, const f2elm_t *A);
+
+#define xTPL_fast S2N_SIKE_P434_R3_NAMESPACE(xTPL_fast)
+void xTPL_fast(const point_proj_t P, point_proj_t Q, const f2elm_t *A2);
+
+#define xTPLe_fast S2N_SIKE_P434_R3_NAMESPACE(xTPLe_fast)
+void xTPLe_fast(point_proj_t P, point_proj_t Q, const f2elm_t *A2, int e);
