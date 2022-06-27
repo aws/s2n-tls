@@ -1,0 +1,102 @@
+target = "https://tools.ietf.org/rfc/rfc8446#8.2"
+
+# 8.2.  Client Hello Recording
+#
+# An alternative form of anti-replay is to record a unique value
+# derived from the ClientHello (generally either the random value or
+# the PSK binder) and reject duplicates.  Recording all ClientHellos
+# causes state to grow without bound, but a server can instead record
+# ClientHellos within a given time window and use the
+# "obfuscated_ticket_age" to ensure that tickets aren't reused outside
+# that window.
+# 
+# In order to implement this, when a ClientHello is received, the
+# server first verifies the PSK binder as described in Section 4.2.11.
+# It then computes the expected_arrival_time as described in the next
+# section and rejects 0-RTT if it is outside the recording window,
+# falling back to the 1-RTT handshake.
+# 
+# If the expected_arrival_time is in the window, then the server checks
+# to see if it has recorded a matching ClientHello.  If one is found,
+# it either aborts the handshake with an "illegal_parameter" alert or
+# accepts the PSK but rejects 0-RTT.  If no matching ClientHello is
+# found, then it accepts 0-RTT and then stores the ClientHello for as
+# long as the expected_arrival_time is inside the window.  Servers MAY
+# also implement data stores with false positives, such as Bloom
+# filters, in which case they MUST respond to apparent replay by
+# rejecting 0-RTT but MUST NOT abort the handshake.
+# 
+# The server MUST derive the storage key only from validated sections
+# of the ClientHello.  If the ClientHello contains multiple PSK
+# identities, then an attacker can create multiple ClientHellos with
+# different binder values for the less-preferred identity on the
+# assumption that the server will not verify it (as recommended by
+# Section 4.2.11).  I.e., if the client sends PSKs A and B but the
+# server prefers A, then the attacker can change the binder for B
+# without affecting the binder for A.  If the binder for B is part of
+# the storage key, then this ClientHello will not appear as a
+# duplicate, which will cause the ClientHello to be accepted, and may
+# cause side effects such as replay cache pollution, although any 0-RTT
+# data will not be decryptable because it will use different keys.  If
+# the validated binder or the ClientHello.random is used as the storage
+# key, then this attack is not possible.
+# 
+# Because this mechanism does not require storing all outstanding
+# tickets, it may be easier to implement in distributed systems with
+# high rates of resumption and 0-RTT, at the cost of potentially weaker
+# anti-replay defense because of the difficulty of reliably storing and
+# retrieving the received ClientHello messages.  In many such systems,
+# it is impractical to have globally consistent storage of all the
+# received ClientHellos.  In this case, the best anti-replay protection
+# is provided by having a single storage zone be authoritative for a
+# given ticket and refusing 0-RTT for that ticket in any other zone.
+# This approach prevents simple replay by the attacker because only one
+# zone will accept 0-RTT data.  A weaker design is to implement
+# separate storage for each zone but allow 0-RTT in any zone.  This
+# approach limits the number of replays to once per zone.  Application
+# message duplication of course remains possible with either design.
+# 
+# When implementations are freshly started, they SHOULD reject 0-RTT as
+# long as any portion of their recording window overlaps the startup
+# time.  Otherwise, they run the risk of accepting replays which were
+# originally sent during that period.
+# 
+# Note: If the client's clock is running much faster than the server's,
+# then a ClientHello may be received that is outside the window in the
+# future, in which case it might be accepted for 1-RTT, causing a
+# client retry, and then acceptable later for 0-RTT.  This is another
+# variant of the second form of attack described in Section 8.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MAY
+also implement data stores with false positives, such as Bloom
+filters, in which case they MUST respond to apparent replay by
+rejecting 0-RTT but MUST NOT abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MAY
+also implement data stores with false positives, such as Bloom
+filters, in which case they MUST respond to apparent replay by
+rejecting 0-RTT but MUST NOT abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST derive the storage key only from validated sections
+of the ClientHello.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When implementations are freshly started, they SHOULD reject 0-RTT as
+long as any portion of their recording window overlaps the startup
+time.
+'''
+

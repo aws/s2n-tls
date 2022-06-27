@@ -1,0 +1,27 @@
+---
+name: Compliance
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  duvet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          repository: aws/s2n-quic
+          path: ./s2n-quic
+          submodules: true
+      - uses: ./s2n-quic/.github/actions/duvet
+        with:
+          s2n-quic-dir: ./s2n-quic
+          report-script: compliance/generate_report.sh
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-s3-bucket-name: s2n-tls-ci-artifacts
+          aws-s3-region: us-west-2
+          cdn: https://d3fqnyekunr9xg.cloudfront.net

@@ -1,0 +1,50 @@
+target = "https://tools.ietf.org/rfc/rfc8446#4.2.8.2"
+
+# 4.2.8.2.  ECDHE Parameters
+#
+# ECDHE parameters for both clients and servers are encoded in the
+# opaque key_exchange field of a KeyShareEntry in a KeyShare structure.
+# 
+# For secp256r1, secp384r1, and secp521r1, the contents are the
+# serialized value of the following struct:
+# 
+#    struct {
+#        uint8 legacy_form = 4;
+#        opaque X[coordinate_length];
+#        opaque Y[coordinate_length];
+#    } UncompressedPointRepresentation;
+# 
+# X and Y, respectively, are the binary representations of the x and y
+# values in network byte order.  There are no internal length markers,
+# so each number representation occupies as many octets as implied by
+# the curve parameters.  For P-256, this means that each of X and Y use
+# 32 octets, padded on the left by zeros if necessary.  For P-384, they
+# take 48 octets each.  For P-521, they take 66 octets each.
+# 
+# For the curves secp256r1, secp384r1, and secp521r1, peers MUST
+# validate each other's public value Q by ensuring that the point is a
+# valid point on the elliptic curve.  The appropriate validation
+# procedures are defined in Section 4.3.7 of [ECDSA] and alternatively
+# in Section 5.6.2.3 of [KEYAGREEMENT].  This process consists of three
+# steps: (1) verify that Q is not the point at infinity (O), (2) verify
+# that for Q = (x, y) both integers x and y are in the correct
+# interval, and (3) ensure that (x, y) is a correct solution to the
+# elliptic curve equation.  For these curves, implementors do not need
+# to verify membership in the correct subgroup.
+# 
+# For X25519 and X448, the contents of the public value are the byte
+# string inputs and outputs of the corresponding functions defined in
+# [RFC7748]: 32 bytes for X25519 and 56 bytes for X448.
+# 
+# Note: Versions of TLS prior to 1.3 permitted point format
+# negotiation; TLS 1.3 removes this feature in favor of a single point
+# format for each curve.
+
+[[spec]]
+level = "MUST"
+quote = '''
+For the curves secp256r1, secp384r1, and secp521r1, peers MUST
+validate each other's public value Q by ensuring that the point is a
+valid point on the elliptic curve.
+'''
+

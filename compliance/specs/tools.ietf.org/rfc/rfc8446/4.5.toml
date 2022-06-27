@@ -1,0 +1,49 @@
+target = "https://tools.ietf.org/rfc/rfc8446#4.5"
+
+# 4.5.  End of Early Data
+#
+#    struct {} EndOfEarlyData;
+# 
+# If the server sent an "early_data" extension in EncryptedExtensions,
+# the client MUST send an EndOfEarlyData message after receiving the
+# server Finished.  If the server does not send an "early_data"
+# extension in EncryptedExtensions, then the client MUST NOT send an
+# EndOfEarlyData message.  This message indicates that all 0-RTT
+# application_data messages, if any, have been transmitted and that the
+# 
+# following records are protected under handshake traffic keys.
+# Servers MUST NOT send this message, and clients receiving it MUST
+# terminate the connection with an "unexpected_message" alert.  This
+# message is encrypted under keys derived from the
+# client_early_traffic_secret.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server sent an "early_data" extension in EncryptedExtensions,
+the client MUST send an EndOfEarlyData message after receiving the
+server Finished.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server does not send an "early_data"
+extension in EncryptedExtensions, then the client MUST NOT send an
+EndOfEarlyData message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST NOT send this message, and clients receiving it MUST
+terminate the connection with an "unexpected_message" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST NOT send this message, and clients receiving it MUST
+terminate the connection with an "unexpected_message" alert.
+'''
+

@@ -1,0 +1,47 @@
+target = "https://tools.ietf.org/rfc/rfc5869#3.3"
+
+# 3.3.  To Skip or not to Skip
+#
+# In some applications, the input key material IKM may already be
+# present as a cryptographically strong key (for example, the premaster
+# secret in TLS RSA cipher suites would be a pseudorandom string,
+# except for the first two octets).  In this case, one can skip the
+# extract part and use IKM directly to key HMAC in the expand step.  On
+# the other hand, applications may still use the extract part for the
+# sake of compatibility with the general case.  In particular, if IKM
+# is random (or pseudorandom) but longer than an HMAC key, the extract
+# step can serve to output a suitable HMAC key (in the case of HMAC
+# 
+# this shortening via the extractor is not strictly necessary since
+# HMAC is defined to work with long keys too).  Note, however, that if
+# the IKM is a Diffie-Hellman value, as in the case of TLS with Diffie-
+# Hellman, then the extract part SHOULD NOT be skipped.  Doing so would
+# result in using the Diffie-Hellman value g^{xy} itself (which is NOT
+# a uniformly random or pseudorandom string) as the key PRK for HMAC.
+# Instead, HKDF should apply the extract step to g^{xy} (preferably
+# with a salt value) and use the resultant PRK as a key to HMAC in the
+# expansion part.
+# 
+# In the case where the amount of required key bits, L, is no more than
+# HashLen, one could use PRK directly as the OKM.  This, however, is
+# NOT RECOMMENDED, especially because it would omit the use of 'info'
+# as part of the derivation process (and adding 'info' as an input to
+# the extract step is not advisable -- see [HKDF-paper]).
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Note, however, that if
+the IKM is a Diffie-Hellman value, as in the case of TLS with Diffie-
+Hellman, then the extract part SHOULD NOT be skipped.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+This, however, is
+NOT RECOMMENDED, especially because it would omit the use of 'info'
+as part of the derivation process (and adding 'info' as an input to
+the extract step is not advisable -- see [HKDF-paper]).
+'''
+
