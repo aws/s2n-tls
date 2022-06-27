@@ -1611,7 +1611,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_conn->handshake.io, 3));
         uint8_t binder_1[32] = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_1, 32));
-        client_conn->handshake.io.read_cursor = 0;
+        EXPECT_SUCCESS(s2n_stuffer_reread(&client_conn->handshake.io));
 
         /* Ensure that the ticket age and binder was updated after ClientHello 1 */
         EXPECT_TRUE(obfuscated_ticket_age_1 != 0);
