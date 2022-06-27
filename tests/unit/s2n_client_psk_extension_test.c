@@ -1596,9 +1596,6 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
         EXPECT_OK(s2n_select_resumption_psk(server_conn, &identity_list));
 
-        struct s2n_psk_parameters *psk_params = &client_conn->psk_params;
-        struct s2n_psk *psk = psk_params->chosen_psk;
-
         /* Add arbitrary amount to ticket age so a nonzero value implies it's been processed */
         client_conn->psk_params.chosen_psk->ticket_age_add = 10;
 
