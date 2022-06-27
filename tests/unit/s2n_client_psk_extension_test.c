@@ -1606,14 +1606,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
         /* Read the obfuscated ticket age from ClientHello 1 */
-        client_conn->handshake.io.read_cursor = 342;
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_conn->handshake.io, 342));
         uint32_t obfuscated_ticket_age_1 = 0;
-        s2n_stuffer_read_uint32(&client_conn->handshake.io, &obfuscated_ticket_age_1);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32(&client_conn->handshake.io, &obfuscated_ticket_age_1));
 
         /* Read the binder from ClientHello 1 */
-        client_conn->handshake.io.read_cursor = 349;
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_conn->handshake.io, 3));
         uint8_t binder_1[32] = { 0 };
-        s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_1, 32);
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_1, 32));
         client_conn->handshake.io.read_cursor = 0;
 
         /* Ensure that the ticket age and binder was updated after ClientHello 1 */
@@ -1639,7 +1639,7 @@ int main(int argc, char **argv)
         /* Client receives HelloRetryRequest */
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
-        s2n_stuffer_rewrite(&client_conn->handshake.io);
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&client_conn->handshake.io));
 
         /* Add another arbitrary amount to ticket age so a change in the value implies it's been processed */
         client_conn->psk_params.chosen_psk->ticket_age_add = 20;
@@ -1648,14 +1648,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
         /* Read the obfuscated ticket age from ClientHello 2 */
-        client_conn->handshake.io.read_cursor = 309;
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_conn->handshake.io, 309));
         uint32_t obfuscated_ticket_age_2 = 0;
-        s2n_stuffer_read_uint32(&client_conn->handshake.io, &obfuscated_ticket_age_2);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32(&client_conn->handshake.io, &obfuscated_ticket_age_2));
 
         /* Read the binder from ClientHello 2 */
-        client_conn->handshake.io.read_cursor = 316;
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_conn->handshake.io, 3));
         uint8_t binder_2[32] = { 0 };
-        s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_2, 32);
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&client_conn->handshake.io, binder_2, 32));
 
         /* Ensure that the ticket age and binder was updated after ClientHello 2 */
         EXPECT_TRUE(obfuscated_ticket_age_1 != obfuscated_ticket_age_2);
