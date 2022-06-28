@@ -1600,9 +1600,9 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
         EXPECT_OK(s2n_select_resumption_psk(server_conn, &identity_list));
 
-        /* Add arbitrary amount to ticket age so a non-zero value implies it's been processed */
+        /* Set the ticket issue time to be 10 milliseconds ago, so the obfuscated ticket age will be non-zero */
         struct s2n_psk *psk = client_conn->psk_params.chosen_psk;
-        psk->ticket_age_add = 10;
+        psk->ticket_issue_time -= MILLIS_TO_NANOS(10);
 
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -1651,8 +1651,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_rewrite(client_io));
 
-        /* Add another arbitrary amount to ticket age so a change in the value implies it's been processed */
-        psk->ticket_age_add = 20;
+        /* Change the ticket issue time so a new obfuscated ticket age will change */
+        psk->ticket_issue_time -= MILLIS_TO_NANOS(1);
 
         /* Client sends ClientHello 2 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
