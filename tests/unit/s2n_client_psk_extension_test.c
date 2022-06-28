@@ -1604,12 +1604,16 @@ int main(int argc, char **argv)
         struct s2n_psk *psk = client_conn->psk_params.chosen_psk;
         psk->ticket_issue_time -= MILLIS_TO_NANOS(10);
 
+        /* Calculate the size of the identity without the key name. Used to first seek to the key name as the target for
+         * s2n_stuffer_skip_read_until, and then seek to the end of the identity. */
+        const unsigned long identity_data_size = psk->identity.size - strlen((char*) psk->identity.data);
+
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
         /* Read the obfuscated ticket age from ClientHello 1 */
         EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size - strlen((char*) psk->identity.data)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, identity_data_size));
         uint32_t obfuscated_ticket_age_1 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_1));
 
@@ -1659,7 +1663,7 @@ int main(int argc, char **argv)
 
         /* Read the obfuscated ticket age from ClientHello 2 */
         EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size - strlen((char*) psk->identity.data)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, identity_data_size));
         uint32_t obfuscated_ticket_age_2 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_2));
 
