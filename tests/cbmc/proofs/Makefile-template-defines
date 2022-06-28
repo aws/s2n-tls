@@ -6,7 +6,7 @@ SRCDIR ?= $(abspath $(PROOF_ROOT)/../../..)
 
 # Absolute path to the litani script.
 #
-LITANI ?= $(abspath $(PROOF_ROOT)/../../litani/litani)
+LITANI ?= litani
 
 
 # Name of this proof project, displayed in proof reports. For example,
