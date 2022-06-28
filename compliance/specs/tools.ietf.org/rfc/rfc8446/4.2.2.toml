@@ -1,0 +1,66 @@
+target = "https://tools.ietf.org/rfc/rfc8446#4.2.2"
+
+# 4.2.2.  Cookie
+#
+#    struct {
+#        opaque cookie<1..2^16-1>;
+#    } Cookie;
+# 
+# Cookies serve two primary purposes:
+# 
+# -  Allowing the server to force the client to demonstrate
+#    reachability at their apparent network address (thus providing a
+#    measure of DoS protection).  This is primarily useful for
+#    non-connection-oriented transports (see [RFC6347] for an example
+#    of this).
+# 
+# -  Allowing the server to offload state to the client, thus allowing
+#    it to send a HelloRetryRequest without storing any state.  The
+#    server can do this by storing the hash of the ClientHello in the
+#    HelloRetryRequest cookie (protected with some suitable integrity
+#    protection algorithm).
+# 
+# When sending a HelloRetryRequest, the server MAY provide a "cookie"
+# extension to the client (this is an exception to the usual rule that
+# the only extensions that may be sent are those that appear in the
+# ClientHello).  When sending the new ClientHello, the client MUST copy
+# the contents of the extension received in the HelloRetryRequest into
+# a "cookie" extension in the new ClientHello.  Clients MUST NOT use
+# cookies in their initial ClientHello in subsequent connections.
+# 
+# When a server is operating statelessly, it may receive an unprotected
+# record of type change_cipher_spec between the first and second
+# ClientHello (see Section 5).  Since the server is not storing any
+# state, this will appear as if it were the first message to be
+# received.  Servers operating statelessly MUST ignore these records.
+
+[[spec]]
+level = "MAY"
+quote = '''
+When sending a HelloRetryRequest, the server MAY provide a "cookie"
+extension to the client (this is an exception to the usual rule that
+the only extensions that may be sent are those that appear in the
+ClientHello).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When sending the new ClientHello, the client MUST copy
+the contents of the extension received in the HelloRetryRequest into
+a "cookie" extension in the new ClientHello.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST NOT use
+cookies in their initial ClientHello in subsequent connections.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers operating statelessly MUST ignore these records.
+'''
+

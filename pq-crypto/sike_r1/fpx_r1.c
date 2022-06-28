@@ -333,6 +333,17 @@ void from_fp2mont(const f2elm_t *ma, f2elm_t *c)
     from_mont(ma->e[1], c->e[1]);
 }
 
+unsigned int is_felm_zero(const felm_t x)
+{ // Is x = 0? return 1 (TRUE) if condition is true, 0 (FALSE) otherwise.
+  // SECURITY NOTE: This function does not run in constant-time.
+
+    for (unsigned int i = 0; i < NWORDS_FIELD; i++) {
+        if (x[i] != 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
 
 unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
 { // Multiprecision addition, c = a+b, where lng(a) = lng(b) = nwords. Returns the carry bit.

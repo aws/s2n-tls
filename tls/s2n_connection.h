@@ -144,7 +144,7 @@ struct s2n_connection {
     void *send_io_context;
     void *recv_io_context;
 
-    /* Track request extensions to ensure correct response extension behavior.
+    /* Track request/response extensions to ensure correct response extension behavior.
      *
      * We need to track client and server extensions separately because some
      * extensions (like request_status and other Certificate extensions) can
@@ -152,6 +152,7 @@ struct s2n_connection {
      */
     s2n_extension_bitfield extension_requests_sent;
     s2n_extension_bitfield extension_requests_received;
+    s2n_extension_bitfield extension_responses_received;
 
     /* Is this connection a client or a server connection */
     s2n_mode mode;
