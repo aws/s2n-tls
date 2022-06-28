@@ -482,7 +482,7 @@ Certificate transparency information can be applied to both client and server ce
 
 To use certificate transparency, the requester (usually the client) must call `s2n_config_set_ct_support_level()` with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call `s2n_config_set_extension_data()` with S2N_EXTENSION_CERTIFICATE_TRANSPARENCY to set the raw bytes of the transparency information. Note that `s2n_config_set_extension_data()` modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. This means that when using certificate transparency data, `s2n_config_add_cert_chain_and_key()` must be used to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store()`.
 
-Call `s2n_connection_get_sct_list()` to retrieve the received certificate transparency information. Call `s2n_connection_get_sct_list()` to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.
+Call `s2n_connection_get_sct_list()` to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
