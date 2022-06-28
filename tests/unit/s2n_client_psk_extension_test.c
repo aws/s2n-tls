@@ -1614,8 +1614,15 @@ int main(int argc, char **argv)
         uint32_t obfuscated_ticket_age_1 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_1));
 
+        /* Skip over the size of the binders list */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, sizeof(uint16_t)));
+
+        /* Ensure the binder size is as expected */
+        uint8_t binder_1_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(client_io, &binder_1_size));
+        EXPECT_TRUE(binder_1_size == BINDER_SIZE);
+
         /* Read the binder from ClientHello 1 */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, 3));
         uint8_t binder_1[BINDER_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_read_bytes(client_io, binder_1, BINDER_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_reread(client_io));
@@ -1658,8 +1665,15 @@ int main(int argc, char **argv)
         uint32_t obfuscated_ticket_age_2 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_2));
 
+        /* Skip over the size of the binders list */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, sizeof(uint16_t)));
+
+        /* Ensure the binder size is as expected */
+        uint8_t binder_2_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(client_io, &binder_2_size));
+        EXPECT_TRUE(binder_2_size == BINDER_SIZE);
+
         /* Read the binder from ClientHello 2 */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, 3));
         uint8_t binder_2[BINDER_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_read_bytes(client_io, binder_2, BINDER_SIZE));
 
