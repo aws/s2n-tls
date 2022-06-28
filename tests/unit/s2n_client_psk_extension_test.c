@@ -1609,8 +1609,7 @@ int main(int argc, char **argv)
 
         /* Read the obfuscated ticket age from ClientHello 1 */
         EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
-        EXPECT_SUCCESS(s2n_stuffer_rewind_read(client_io, strlen((char*) psk->identity.data)));
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size - strlen((char*) psk->identity.data)));
         uint32_t obfuscated_ticket_age_1 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_1));
 
@@ -1660,8 +1659,7 @@ int main(int argc, char **argv)
 
         /* Read the obfuscated ticket age from ClientHello 2 */
         EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
-        EXPECT_SUCCESS(s2n_stuffer_rewind_read(client_io, strlen((char*) psk->identity.data)));
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size - strlen((char*) psk->identity.data)));
         uint32_t obfuscated_ticket_age_2 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_2));
 
