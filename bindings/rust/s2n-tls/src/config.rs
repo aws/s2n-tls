@@ -438,7 +438,7 @@ impl Builder {
     /// The wall clock time is the best-guess at the real time, measured since the epoch.
     /// Unlike monotonic time, it CAN move backwards.
     /// It is used by s2n-tls for timestamps.
-    pub fn set_wall_clock_callback<T: 'static + WallClockCallback>(
+    pub fn set_wall_clock<T: 'static + WallClock>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -447,7 +447,7 @@ impl Builder {
             time_in_nanos: *mut u64,
         ) -> libc::c_int {
             let context = &mut *(context as *mut Context);
-            if let Some(handler) = context.wall_clock_callback.as_mut() {
+            if let Some(handler) = context.wall_clock.as_mut() {
                 if let Ok(nanos) = handler.get_time_since_epoch().as_nanos().try_into() {
                     *time_in_nanos = nanos;
                     return CallbackResult::Success.into();
@@ -458,7 +458,7 @@ impl Builder {
 
         let handler = Box::new(handler);
         let context = self.0.context_mut();
-        context.wall_clock_callback = Some(handler);
+        context.wall_clock = Some(handler);
         unsafe {
             s2n_config_set_wall_clock(
                 self.as_mut_ptr(),
@@ -475,7 +475,7 @@ impl Builder {
     /// The monotonic time is the time since an arbitrary, unspecified point.
     /// Unlike wall clock time, it MUST never move backwards.
     /// It is used by s2n-tls for timers.
-    pub fn set_monotonic_clock_callback<T: 'static + MonotonicClockCallback>(
+    pub fn set_monotonic_clock<T: 'static + MonotonicClock>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
@@ -484,7 +484,7 @@ impl Builder {
             time_in_nanos: *mut u64,
         ) -> libc::c_int {
             let context = &mut *(context as *mut Context);
-            if let Some(handler) = context.monotonic_clock_callback.as_mut() {
+            if let Some(handler) = context.monotonic_clock.as_mut() {
                 if let Ok(nanos) = handler.get_time().as_nanos().try_into() {
                     *time_in_nanos = nanos;
                     return CallbackResult::Success.into();
@@ -495,7 +495,7 @@ impl Builder {
 
         let handler = Box::new(handler);
         let context = self.0.context_mut();
-        context.monotonic_clock_callback = Some(handler);
+        context.monotonic_clock = Some(handler);
         unsafe {
             s2n_config_set_monotonic_clock(
                 self.as_mut_ptr(),
@@ -528,8 +528,8 @@ pub(crate) struct Context {
     refcount: AtomicUsize,
     pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
-    pub(crate) wall_clock_callback: Option<Box<dyn WallClockCallback>>,
-    pub(crate) monotonic_clock_callback: Option<Box<dyn MonotonicClockCallback>>,
+    pub(crate) wall_clock: Option<Box<dyn WallClock>>,
+    pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
 }
 
 impl Default for Context {
@@ -542,8 +542,8 @@ impl Default for Context {
             refcount,
             client_hello_callback: None,
             verify_host_callback: None,
-            wall_clock_callback: None,
-            monotonic_clock_callback: None,
+            wall_clock: None,
+            monotonic_clock: None,
         }
     }
 }

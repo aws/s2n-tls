@@ -88,7 +88,7 @@ async fn shutdown_after_split() -> Result<(), Box<dyn std::error::Error>> {
 async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
     let clock = common::TokioTime::default();
     let mut server_config = common::server_config()?;
-    server_config.set_monotonic_clock_callback(clock)?;
+    server_config.set_monotonic_clock(clock)?;
 
     let client = TlsConnector::new(common::client_config()?.build()?);
     let server = TlsAcceptor::new(server_config.build()?);

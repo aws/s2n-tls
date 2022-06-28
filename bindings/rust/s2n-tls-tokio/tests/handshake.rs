@@ -156,7 +156,7 @@ async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error
     // The client will reject the server certificate as untrusted.
     let mut bad_config = Config::builder();
     bad_config.set_security_policy(&DEFAULT_TLS13)?;
-    bad_config.set_monotonic_clock_callback(clock)?;
+    bad_config.set_monotonic_clock(clock)?;
     let client_config = bad_config.build()?;
     let server_config = common::server_config()?.build()?;
 

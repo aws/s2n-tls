@@ -155,11 +155,11 @@ pub trait VerifyHostNameCallback {
 }
 
 /// A trait for the callback used to retrieve the system / wall clock time.
-pub trait WallClockCallback {
+pub trait WallClock {
     fn get_time_since_epoch(&self) -> Duration;
 }
 
 /// A trait for the callback used to retrieve the monotonic time.
-pub trait MonotonicClockCallback {
+pub trait MonotonicClock {
     fn get_time(&self) -> Duration;
 }
