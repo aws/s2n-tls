@@ -306,7 +306,7 @@ impl Builder {
     }
 
     /// # Safety
-    ///
+    /// THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
     /// The `context` pointer must live at least as long as the config
     pub unsafe fn set_key_log_callback(
         &mut self,

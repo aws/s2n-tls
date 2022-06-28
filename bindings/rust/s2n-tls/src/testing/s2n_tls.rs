@@ -383,4 +383,14 @@ mod tests {
         assert_eq!(callback.count(), 1);
         Ok(())
     }
+
+    #[test]
+    fn new_security_policy() -> Result<(), Error> {
+        use crate::security::Policy;
+
+        let policy = Policy::from_version("default")?;
+        config_builder(&policy)?;
+
+        Ok(())
+    }
 }

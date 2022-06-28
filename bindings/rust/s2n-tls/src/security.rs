@@ -1,18 +1,34 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::error::Error;
 use core::fmt;
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 
 #[derive(Clone, PartialEq)]
-pub struct Policy(&'static [u8]);
+enum Context {
+    Static(&'static [u8]),
+    Owned(CString),
+}
+
+#[derive(Clone, PartialEq)]
+pub struct Policy(Context);
 
 impl Policy {
     pub(crate) fn as_cstr(&self) -> &CStr {
-        unsafe {
-            // Safety: Policies are always created with null-terminated strings
-            CStr::from_bytes_with_nul_unchecked(self.0)
+        match &self.0 {
+            Context::Static(x) => unsafe {
+                // Safety: Policies are always created with null-terminated strings
+                CStr::from_bytes_with_nul_unchecked(x)
+            },
+            Context::Owned(x) => x.as_c_str(),
         }
+    }
+
+    pub fn from_version(version: &str) -> Result<Policy, Error> {
+        let cstr = CString::new(version).map_err(|_| Error::InvalidInput)?;
+        let context = Context::Owned(cstr);
+        Ok(Self(context))
     }
 }
 
@@ -24,7 +40,7 @@ impl fmt::Debug for Policy {
 
 macro_rules! policy {
     ($name:ident, $version:expr) => {
-        pub const $name: Policy = Policy(concat!($version, "\0").as_bytes());
+        pub const $name: Policy = Policy(Context::Static(concat!($version, "\0").as_bytes()));
     };
 }
 
