@@ -286,10 +286,8 @@ extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 /**
  * Callback function type used to get the system time.
  *
- * Takes two arguments. A pointer to arbitrary data for use within the callback and a pointer to a 64 bit int.
- * the callback and a pointer to a 64 bit int. The 64 bit pointer should be set to the
- * number of nanoseconds since the Unix epoch.
- *
+ * @param void* A pointer to arbitrary data for use within the callback
+ * @param uint64_t* A pointer that the callback will set to the time in nanoseconds
  * The function should return 0 on success and -1 on failure.
  */
 typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
@@ -345,7 +343,11 @@ typedef int (*s2n_cache_delete_callback) (struct s2n_connection *conn,  void *, 
 
 /** 
  * Allows the caller to set a callback function that will be used to get the
- * system time. 
+ * system time. The time returned should be the number of nanoseconds since the
+ * Unix epoch (Midnight, January 1st, 1970).
+ *
+ * s2n-tls uses this clock for timestamps.
+ *
  * @param config The configuration object being updated
  * @param clock_fn The wall clock time callback function
  * @param ctx An opaque pointer that the callback will be invoked with
@@ -356,7 +358,11 @@ extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_n
 
 /** 
  * Allows the caller to set a callback function that will be used to get 
- * monotonic time.
+ * monotonic time. The monotonic time is the time since an arbitrary, unspecified
+ * point. Unlike wall clock time, it MUST never move backwards.
+ *
+ * s2n-tls uses this clock for timers.
+ *
  * @param config The configuration object being updated
  * @param clock_fn The monotonic time callback function
  * @param ctx An opaque pointer that the callback will be invoked with
@@ -1023,6 +1029,13 @@ extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_be
  * parameters are set to NULL, no new data is set in the `s2n_config` object,
  * effectively clearing existing data.
  *
+ * # Safety
+ *
+ * `s2n_config_set_extension_data` modifies the certificate chain instead of the config,
+ * so it can’t be used with configs that share a certificate chain with other configs.
+ * Whenever this function is called, `s2n_config_add_cert_chain_and_key` must be used
+ * to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store`.
+ * 
  * @param config The configuration object being updated
  * @param type The extension type
  * @param data Data for the extension
@@ -1707,7 +1720,7 @@ S2N_API
 extern const char *s2n_get_application_protocol(struct s2n_connection *conn);
 
 /**
- * Query the connection for a buffer containing the OCSP reponse.
+ * Query the connection for a buffer containing the OCSP response.
  * 
  * @param conn The connection object being queried
  * @param length A pointer that is set to the certificate transparency response buffer's size
