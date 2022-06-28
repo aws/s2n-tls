@@ -1601,13 +1601,16 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_select_resumption_psk(server_conn, &identity_list));
 
         /* Add arbitrary amount to ticket age so a non-zero value implies it's been processed */
-        client_conn->psk_params.chosen_psk->ticket_age_add = 10;
+        struct s2n_psk *psk = client_conn->psk_params.chosen_psk;
+        psk->ticket_age_add = 10;
 
         /* ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
         /* Read the obfuscated ticket age from ClientHello 1 */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, 342));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
+        EXPECT_SUCCESS(s2n_stuffer_rewind_read(client_io, strlen((char*) psk->identity.data)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size));
         uint32_t obfuscated_ticket_age_1 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_1));
 
@@ -1643,13 +1646,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_rewrite(client_io));
 
         /* Add another arbitrary amount to ticket age so a change in the value implies it's been processed */
-        client_conn->psk_params.chosen_psk->ticket_age_add = 20;
+        psk->ticket_age_add = 20;
 
         /* Client sends ClientHello 2 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
         /* Read the obfuscated ticket age from ClientHello 2 */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, 309));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
+        EXPECT_SUCCESS(s2n_stuffer_rewind_read(client_io, strlen((char*) psk->identity.data)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, psk->identity.size));
         uint32_t obfuscated_ticket_age_2 = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_2));
 
