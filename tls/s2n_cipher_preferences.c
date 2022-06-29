@@ -82,6 +82,33 @@ const struct s2n_cipher_preferences cipher_preferences_20210831 = {
     .suites = cipher_suites_20210831,
 };
 
+/*
+ * These cipher suites were chosen based on the following specification:
+ * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
+ */
+struct s2n_cipher_suite *cipher_suites_default_fips[] = {
+    /* tls1.2 with ECDSA */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+
+    /* tls1.2 with RSA */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_default_fips = {
+    .count = s2n_array_len(cipher_suites_default_fips),
+    .suites = cipher_suites_default_fips,
+};
+
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 struct s2n_cipher_suite *cipher_suites_20140601[] = {
     &s2n_dhe_rsa_with_aes_128_cbc_sha256,
