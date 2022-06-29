@@ -29,6 +29,12 @@
 
 struct s2n_cipher_preferences;
 
+typedef enum {
+    S2N_NOT_OWNED = 0,
+    S2N_APP_OWNED,
+    S2N_LIB_OWNED,
+} s2n_cert_ownership;
+
 struct s2n_config {
     unsigned use_tickets:1;
 
@@ -36,7 +42,6 @@ struct s2n_config {
      * See s2n_quic_support.h */
     unsigned quic_enabled:1;
 
-    unsigned cert_allocated:1;
     unsigned default_certs_are_explicit:1;
     unsigned use_session_cache:1;
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
@@ -142,6 +147,8 @@ struct s2n_config {
 
     /* The user defined context associated with config */
     void *context;
+
+    s2n_cert_ownership cert_ownership;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);

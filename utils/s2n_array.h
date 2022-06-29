@@ -41,5 +41,5 @@ extern S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t id
 extern S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len);
 extern S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity);
 extern S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx);
-extern S2N_RESULT s2n_array_free_p(struct s2n_array **parray);
+extern S2N_CLEANUP_RESULT s2n_array_free_p(struct s2n_array **parray);
 extern S2N_RESULT s2n_array_free(struct s2n_array *array);

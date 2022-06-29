@@ -717,6 +717,12 @@ extern void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_
 S2N_API
 extern s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_chain_and_key *cert_and_key);
 
+S2N_API
+int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+
+S2N_API
+int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+
 /**
  * A callback function that is invoked if s2n-tls cannot resolve a conflict between 
  * two certificates with the same domain name. This function is invoked while certificates

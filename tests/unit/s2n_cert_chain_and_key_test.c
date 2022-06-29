@@ -140,6 +140,56 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
+    /* Do not allow configs to call both
+     * s2n_config_add_cert_chain_and_key and s2n_config_add_cert_chain_and_key_to_store */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        /* Config first uses s2n_config_add_cert_chain_and_key: library owns chain */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_EQUAL(config->cert_ownership, S2N_NOT_OWNED);
+
+            /* Add first chain */
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain, private_key));
+            EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
+
+            /* Try to add second chain of same type */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert_chain, private_key),
+                    S2N_ERR_CERT_OWNERSHIP);
+            EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
+
+            /* Try to add chain using other method */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, chain),
+                    S2N_ERR_CERT_OWNERSHIP);
+            EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
+        }
+
+        /* Config first uses s2n_config_add_cert_chain_and_key_to_store: application owns chain */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_EQUAL(config->cert_ownership, S2N_NOT_OWNED);
+
+            /* Add first chain */
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain));
+            EXPECT_EQUAL(config->cert_ownership, S2N_APP_OWNED);
+
+            /* Add second chain */
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain));
+            EXPECT_EQUAL(config->cert_ownership, S2N_APP_OWNED);
+
+            /* Try to add chain using other method */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert_chain, private_key),
+                    S2N_ERR_CERT_OWNERSHIP);
+            EXPECT_EQUAL(config->cert_ownership, S2N_APP_OWNED);
+        }
+    }
+
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
