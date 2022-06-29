@@ -199,6 +199,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::testing::*;
     use futures_test::task::new_count_waker;
+    use std::{fs, path::Path};
 
     #[test]
     fn handshake_default() {
@@ -390,6 +391,66 @@ mod tests {
 
         let policy = Policy::from_version("default")?;
         config_builder(&policy)?;
+        Ok(())
+    }
+
+    #[test]
+    fn trust_location() -> Result<(), Error> {
+        struct AcceptAllHostnames {}
+        impl VerifyHostNameCallback for AcceptAllHostnames {
+            fn verify_host_name(&self, _: &str) -> bool {
+                true
+            }
+        }
+
+        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
+        let mut cert = pem_dir.to_path_buf();
+        cert.push("rsa_4096_sha512_client_cert.pem");
+        let mut key = pem_dir.to_path_buf();
+        key.push("rsa_4096_sha512_client_key.pem");
+
+        let mut builder = crate::config::Builder::new();
+        builder.set_security_policy(&security::DEFAULT_TLS13)?;
+        builder.set_verify_host_callback(AcceptAllHostnames {})?;
+        builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
+        builder.trust_location(Some(&cert), None)?;
+
+        s2n_tls_pair(builder.build()?);
+        Ok(())
+    }
+
+    #[test]
+    fn client_auth() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::Optional)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        assert!(server.client_cert_used());
+        assert!(client.client_cert_used());
+        let cert = server.client_cert_chain_bytes()?;
+        assert!(cert.is_some());
+        assert!(!cert.unwrap().is_empty());
 
         Ok(())
     }
