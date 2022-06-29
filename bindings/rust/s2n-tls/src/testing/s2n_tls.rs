@@ -44,7 +44,7 @@ impl super::Connection for Harness {
             callback.set(&mut self.connection);
         }
 
-        let result = self.connection.negotiate().map_ok(|_| ());
+        let result = self.connection.poll_negotiate().map_ok(|_| ());
 
         callback.unset(&mut self.connection)?;
 

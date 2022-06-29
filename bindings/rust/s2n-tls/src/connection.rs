@@ -370,7 +370,7 @@ impl Connection {
     }
 
     /// Performs the TLS handshake to completion
-    pub fn negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
+    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
         // If we blocked on a callback, poll the callback again.
@@ -395,7 +395,7 @@ impl Connection {
     /// [negotiate](`Self::negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
-    pub fn send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+    pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
@@ -407,7 +407,7 @@ impl Connection {
     ///
     /// Returns the number of bytes read, and may indicate a partial read.
     /// 0 bytes returned indicates EOF due to connection closure.
-    pub fn recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+    pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
@@ -415,8 +415,8 @@ impl Connection {
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::negotiate`).
-    pub fn flush(&mut self) -> Poll<Result<&mut Self, Error>> {
-        self.send(&[0; 0]).map_ok(|_| self)
+    pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
+        self.poll_send(&[0; 0]).map_ok(|_| self)
     }
 
     /// Gets the number of bytes that are currently available in the buffer to be read.
@@ -429,7 +429,7 @@ impl Connection {
     /// The shutdown is not complete until the necessary shutdown messages
     /// have been successfully sent and received. If the peer does not respond
     /// correctly, the graceful shutdown may fail.
-    pub fn shutdown(&mut self) -> Poll<Result<&mut Self, Error>> {
+    pub fn poll_shutdown(&mut self) -> Poll<Result<&mut Self, Error>> {
         if !self.remaining_blinding_delay()?.is_zero() {
             return Poll::Pending;
         }
