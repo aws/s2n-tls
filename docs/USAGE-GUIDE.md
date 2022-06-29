@@ -472,7 +472,7 @@ OCSP stapling can be applied to both client and server certificates when using T
 
 To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_config_set_extension_data()` with S2N_EXTENSION_OCSP_STAPLING to set the raw bytes of the OCSP stapling data. Note that `s2n_config_set_extension_data()` modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. This means that when using OCSP data, `s2n_config_add_cert_chain_and_key()` must be used to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store()`.
 
-The OCSP stapling information can be automatically validated by the underlying libcrypto if `s2n_config_set_check_stapled_ocsp_response()` is called with “1”. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
+The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
 
 ### Certificate Transparency
 
