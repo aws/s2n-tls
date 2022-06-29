@@ -11,6 +11,7 @@ use core::{convert::TryInto, ptr::NonNull};
 use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
+    path::Path,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -73,7 +74,7 @@ impl Config {
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the config.
-    fn context_mut(&mut self) -> &mut Context {
+    pub(crate) fn context_mut(&mut self) -> &mut Context {
         let mut ctx = core::ptr::null_mut();
         unsafe {
             s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
@@ -230,6 +231,12 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn add_dhparams(&mut self, pem: &[u8]) -> Result<&mut Self, Error> {
+        let cstring = CString::new(pem).map_err(|_| Error::InvalidInput)?;
+        unsafe { s2n_config_add_dhparams(self.as_mut_ptr(), cstring.as_ptr()).into_result() }?;
+        Ok(self)
+    }
+
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::InvalidInput)?;
         let private_key = CString::new(private_key).map_err(|_| Error::InvalidInput)?;
@@ -252,6 +259,41 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn trust_location(
+        &mut self,
+        file: Option<&Path>,
+        dir: Option<&Path>,
+    ) -> Result<&mut Self, Error> {
+        fn to_cstr(input: Option<&Path>) -> Result<Option<CString>, Error> {
+            Ok(match input {
+                Some(input) => {
+                    let string = input.to_str().ok_or(Error::InvalidInput)?;
+                    let cstring = CString::new(string).map_err(|_| Error::InvalidInput)?;
+                    Some(cstring)
+                }
+                None => None,
+            })
+        }
+
+        let file_cstr = to_cstr(file)?;
+        let file_ptr = file_cstr
+            .as_ref()
+            .map(|f| f.as_ptr())
+            .unwrap_or(core::ptr::null());
+
+        let dir_cstr = to_cstr(dir)?;
+        let dir_ptr = dir_cstr
+            .as_ref()
+            .map(|f| f.as_ptr())
+            .unwrap_or(core::ptr::null());
+
+        unsafe {
+            s2n_config_set_verification_ca_location(self.as_mut_ptr(), file_ptr, dir_ptr)
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     pub fn wipe_trust_store(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_config_wipe_trust_store(self.as_mut_ptr()).into_result()? };
         Ok(self)
@@ -265,6 +307,39 @@ impl Builder {
             s2n_config_set_client_auth_type(self.as_mut_ptr(), auth_type.into()).into_result()
         }?;
         Ok(self)
+    }
+
+    /// Clients will request OCSP stapling from the server.
+    pub fn enable_ocsp(&mut self) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::OCSP)
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Sets the OCSP data for the default certificate chain associated with the Config.
+    ///
+    /// Servers will send the data in response to OCSP stapling requests from clients.
+    //
+    // NOTE: this modifies a certificate chain, NOT the Config itself. This is currently safe
+    // because the certificate chain is set with s2n_config_add_cert_chain_and_key, which
+    // creates a new certificate chain only accessible by the given config. It will
+    // NOT be safe when we add support for the newer s2n_config_add_cert_chain_and_key_to_store API,
+    // which allows certificate chains to be shared across configs.
+    // In that case, we'll need additional guard rails either in these bindings or in the underlying C.
+    pub fn set_ocsp_data(&mut self, data: &[u8]) -> Result<&mut Self, Error> {
+        let size: u32 = data.len().try_into().map_err(|_| Error::InvalidInput)?;
+        unsafe {
+            s2n_config_set_extension_data(
+                self.as_mut_ptr(),
+                s2n_tls_extension_type::OCSP_STAPLING,
+                data.as_ptr(),
+                size,
+            )
+            .into_result()
+        }?;
+        self.enable_ocsp()
     }
 
     /// Set a custom callback function which is run during client certificate validation during
@@ -306,7 +381,7 @@ impl Builder {
     }
 
     /// # Safety
-    ///
+    /// THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
     /// The `context` pointer must live at least as long as the config
     pub unsafe fn set_key_log_callback(
         &mut self,
@@ -358,6 +433,80 @@ impl Builder {
         Ok(self)
     }
 
+    /// Set a callback function that will be used to get the system time.
+    ///
+    /// The wall clock time is the best-guess at the real time, measured since the epoch.
+    /// Unlike monotonic time, it CAN move backwards.
+    /// It is used by s2n-tls for timestamps.
+    pub fn set_wall_clock<T: 'static + WallClock>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn clock_cb(
+            context: *mut ::libc::c_void,
+            time_in_nanos: *mut u64,
+        ) -> libc::c_int {
+            let context = &mut *(context as *mut Context);
+            if let Some(handler) = context.wall_clock.as_mut() {
+                if let Ok(nanos) = handler.get_time_since_epoch().as_nanos().try_into() {
+                    *time_in_nanos = nanos;
+                    return CallbackResult::Success.into();
+                }
+            }
+            CallbackResult::Failure.into()
+        }
+
+        let handler = Box::new(handler);
+        let context = self.0.context_mut();
+        context.wall_clock = Some(handler);
+        unsafe {
+            s2n_config_set_wall_clock(
+                self.as_mut_ptr(),
+                Some(clock_cb),
+                self.0.context_mut() as *mut _ as *mut c_void,
+            )
+            .into_result()?;
+        }
+        Ok(self)
+    }
+
+    /// Set a callback function that will be used to get the monotonic time.
+    ///
+    /// The monotonic time is the time since an arbitrary, unspecified point.
+    /// Unlike wall clock time, it MUST never move backwards.
+    /// It is used by s2n-tls for timers.
+    pub fn set_monotonic_clock<T: 'static + MonotonicClock>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn clock_cb(
+            context: *mut ::libc::c_void,
+            time_in_nanos: *mut u64,
+        ) -> libc::c_int {
+            let context = &mut *(context as *mut Context);
+            if let Some(handler) = context.monotonic_clock.as_mut() {
+                if let Ok(nanos) = handler.get_time().as_nanos().try_into() {
+                    *time_in_nanos = nanos;
+                    return CallbackResult::Success.into();
+                }
+            }
+            CallbackResult::Failure.into()
+        }
+
+        let handler = Box::new(handler);
+        let context = self.0.context_mut();
+        context.monotonic_clock = Some(handler);
+        unsafe {
+            s2n_config_set_monotonic_clock(
+                self.as_mut_ptr(),
+                Some(clock_cb),
+                self.0.context_mut() as *mut _ as *mut c_void,
+            )
+            .into_result()?;
+        }
+        Ok(self)
+    }
+
     pub fn build(self) -> Result<Config, Error> {
         Ok(self.0)
     }
@@ -379,6 +528,8 @@ pub(crate) struct Context {
     refcount: AtomicUsize,
     pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
+    pub(crate) wall_clock: Option<Box<dyn WallClock>>,
+    pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
 }
 
 impl Default for Context {
@@ -391,6 +542,8 @@ impl Default for Context {
             refcount,
             client_hello_callback: None,
             verify_host_callback: None,
+            wall_clock: None,
+            monotonic_clock: None,
         }
     }
 }

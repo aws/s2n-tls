@@ -23,7 +23,7 @@
 //!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
 
 use crate::{connection::Connection, enums::CallbackResult, error::Error};
-use core::{mem::ManuallyDrop, ptr::NonNull, task::Poll};
+use core::{mem::ManuallyDrop, ptr::NonNull, task::Poll, time::Duration};
 use s2n_tls_sys::s2n_connection;
 
 const READY_OK: Poll<Result<(), Error>> = Poll::Ready(Ok(()));
@@ -152,4 +152,14 @@ impl AsyncCallback for AsyncClientHelloCallback {
 /// if the name is valid, `false` otherwise.
 pub trait VerifyHostNameCallback {
     fn verify_host_name(&self, host_name: &str) -> bool;
+}
+
+/// A trait for the callback used to retrieve the system / wall clock time.
+pub trait WallClock {
+    fn get_time_since_epoch(&self) -> Duration;
+}
+
+/// A trait for the callback used to retrieve the monotonic time.
+pub trait MonotonicClock {
+    fn get_time(&self) -> Duration;
 }

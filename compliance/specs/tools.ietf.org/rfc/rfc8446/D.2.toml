@@ -1,0 +1,54 @@
+target = "https://tools.ietf.org/rfc/rfc8446#D.2"
+
+# D.2.  Negotiating with an Older Client
+#
+# A TLS server can also receive a ClientHello indicating a version
+# number smaller than its highest supported version.  If the
+# "supported_versions" extension is present, the server MUST negotiate
+# using that extension as described in Section 4.2.1.  If the
+# "supported_versions" extension is not present, the server MUST
+# negotiate the minimum of ClientHello.legacy_version and TLS 1.2.  For
+# example, if the server supports TLS 1.0, 1.1, and 1.2, and
+# legacy_version is TLS 1.0, the server will proceed with a TLS 1.0
+# ServerHello.  If the "supported_versions" extension is absent and the
+# server only supports versions greater than
+# ClientHello.legacy_version, the server MUST abort the handshake with
+# a "protocol_version" alert.
+# 
+# Note that earlier versions of TLS did not clearly specify the record
+# layer version number value in all cases
+# (TLSPlaintext.legacy_record_version).  Servers will receive various
+# TLS 1.x versions in this field, but its value MUST always be ignored.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the
+"supported_versions" extension is present, the server MUST negotiate
+using that extension as described in Section 4.2.1.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the
+"supported_versions" extension is not present, the server MUST
+negotiate the minimum of ClientHello.legacy_version and TLS 1.2.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the "supported_versions" extension is absent and the
+server only supports versions greater than
+ClientHello.legacy_version, the server MUST abort the handshake with
+a "protocol_version" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers will receive various
+TLS 1.x versions in this field, but its value MUST always be ignored.
+'''
+

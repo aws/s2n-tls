@@ -11,6 +11,8 @@ use tokio::{
 
 mod stream;
 pub use stream::*;
+mod time;
+pub use time::*;
 
 /// NOTE: this certificate and key are used for testing purposes only!
 pub static CERT_PEM: &[u8] = include_bytes!(concat!(

@@ -1,0 +1,29 @@
+target = "https://tools.ietf.org/rfc/rfc8446#4.2.6"
+
+# 4.2.6.  Post-Handshake Client Authentication
+#
+# The "post_handshake_auth" extension is used to indicate that a client
+# is willing to perform post-handshake authentication (Section 4.6.2).
+# Servers MUST NOT send a post-handshake CertificateRequest to clients
+# which do not offer this extension.  Servers MUST NOT send this
+# extension.
+# 
+#    struct {} PostHandshakeAuth;
+# 
+# The "extension_data" field of the "post_handshake_auth" extension is
+# zero length.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST NOT send a post-handshake CertificateRequest to clients
+which do not offer this extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST NOT send this
+extension.
+'''
+

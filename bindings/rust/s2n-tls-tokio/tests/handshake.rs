@@ -6,7 +6,7 @@ use s2n_tls::{
     config::Config,
     connection::{Connection, ModifiedBuilder},
     enums::{ClientAuthType, Mode, Version},
-    error::Error,
+    error::{Error, ErrorType},
     pool::ConfigPoolBuilder,
     security::DEFAULT_TLS13,
 };
@@ -150,10 +150,13 @@ async fn handshake_error() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test(start_paused = true)]
 async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
+    let clock = common::TokioTime::default();
+
     // Config::builder() does not include a trust store.
     // The client will reject the server certificate as untrusted.
     let mut bad_config = Config::builder();
     bad_config.set_security_policy(&DEFAULT_TLS13)?;
+    bad_config.set_monotonic_clock(clock)?;
     let client_config = bad_config.build()?;
     let server_config = common::server_config()?.build()?;
 
@@ -178,6 +181,7 @@ async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error
     .await;
     let result = timeout?;
     assert!(result.is_err());
+    assert_eq!(result.unwrap_err().kind(), Some(ErrorType::ProtocolError));
 
     Ok(())
 }

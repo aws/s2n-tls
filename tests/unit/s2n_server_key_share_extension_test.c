@@ -28,6 +28,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq.h"
+#include "utils/s2n_bitmap.h"
 
 #define HELLO_RETRY_MSG_NO 1
 
@@ -279,6 +280,8 @@ int main(int argc, char **argv)
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+                EXPECT_SUCCESS(s2n_connection_allow_response_extension(client_conn, s2n_server_key_share_extension.iana_value));
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
