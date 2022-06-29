@@ -400,6 +400,8 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            /* Security policy must support all cipher suites in test_cipher_suites above */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -439,6 +441,8 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            /* Security policy must support all cipher suites in test_cipher_suites above */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -478,6 +482,8 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            /* Security policy must support all cipher suites in test_cipher_suites above */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -520,6 +526,8 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            /* Security policy must support all cipher suites in test_cipher_suites above */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 

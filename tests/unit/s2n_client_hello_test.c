@@ -688,6 +688,8 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        /* Security policy must support SSLv2 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello message */
@@ -697,7 +699,7 @@ int main(int argc, char **argv)
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
         EXPECT_TRUE(s2n_conn_get_current_message_type(server_conn) > CLIENT_HELLO);
-        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
+        EXPECT_TRUE(IS_NEGOTIATED(server_conn));
 
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
 
@@ -858,6 +860,8 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
+        /* Security policy must allow cipher suite hard coded into client hello */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -1072,6 +1076,8 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
+        /* Security policy must allow cipher suite hard coded into client hello */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         /* Recreate config */
@@ -1201,6 +1207,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        /* Security policy must allow cipher suite hard coded into client hello */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());

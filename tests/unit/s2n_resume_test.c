@@ -661,6 +661,8 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
+            /* Security policy must allow cipher suite hard coded into ticket */
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
@@ -682,6 +684,8 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
+            /* Security policy must allow cipher suite hard coded into ticket */
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
             EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
             
@@ -699,6 +703,8 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->actual_protocol_version = S2N_TLS12;
+            /* Security policy must allow chosen cipher suite */
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
             struct s2n_blob blob = { 0 };
             struct s2n_stuffer stuffer = { 0 };
@@ -1155,6 +1161,8 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn);
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+                /* Security policy must allow chosen cipher suite */
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
                 uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
                 struct s2n_blob state_blob = { 0 };

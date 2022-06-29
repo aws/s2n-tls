@@ -181,6 +181,8 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(connection);
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -206,6 +208,8 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(connection);
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -254,6 +258,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -291,6 +297,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -372,6 +380,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -409,6 +419,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -447,6 +459,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -488,6 +502,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -525,6 +541,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -566,6 +584,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -600,6 +620,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -643,6 +665,8 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
         EXPECT_TRUE(chain_len > 0);
@@ -1491,6 +1515,8 @@ int main(int argc, char **argv) {
         
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        /* This cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS13);
         EXPECT_TRUE(chain_len > 0);
