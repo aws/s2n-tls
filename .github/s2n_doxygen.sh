@@ -30,9 +30,11 @@ sed -i "s/PROJECT_NUMBER_PLACEHOLDER/$DOC_VERSION/" docs/doxygen/Doxyfile
 
 # We want to examine stderr for warnings
 # Ignore doxygen warnings from using the README.md as the mainpage
-WARNING_COUNT=$($DOXYGEN_VERSION/bin/doxygen docs/doxygen/Doxyfile 2>&1 | grep -i "warning" | grep -vi "readme" | wc -l)
+WARNING=$($DOXYGEN_VERSION/bin/doxygen docs/doxygen/Doxyfile 2>&1 | grep -i "warning" | grep -vi "readme" )
+WARNING_COUNT=$($WARNING | wc -l)
 
 if [ $WARNING_COUNT -ne 0 ]; then
+    echo $WARNING
     exit 1
 else
     exit 0
