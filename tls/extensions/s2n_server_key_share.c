@@ -307,24 +307,11 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
-    /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
-     *# Upon receipt of this extension in a HelloRetryRequest, the client
-     *# MUST verify that (1) the selected_group field corresponds to a group
-     *# which was provided in the "supported_groups" extension in the
-     *# original ClientHello
-     **/
     if (s2n_ecc_preferences_includes_curve(ecc_pref, negotiated_named_group_iana)) {
         POSIX_GUARD(s2n_server_key_share_recv_ecc(conn, negotiated_named_group_iana, extension));
     } else if (s2n_kem_preferences_includes_tls13_kem_group(kem_pref, negotiated_named_group_iana)) {
         POSIX_GUARD(s2n_server_key_share_recv_pq_hybrid(conn, negotiated_named_group_iana, extension));
     } else {
-        /**
-         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
-         *# If either of these checks fails, then
-         *# the client MUST abort the handshake with an "illegal_parameter"
-         *# alert.
-         **/
         POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     }
 
