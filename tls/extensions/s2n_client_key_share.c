@@ -189,6 +189,16 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
 
 static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    if (s2n_is_hello_retry_handshake(conn)) {
+        const struct s2n_ecc_named_curve *server_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
+        const struct s2n_ecc_named_curve *client_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
+        const struct s2n_kem_group *server_group = conn->kex_params.server_kem_group_params.kem_group;
+        const struct s2n_kem_group *client_group = conn->kex_params.client_kem_group_params.kem_group;
+
+        /* Ensure a new key share will be sent after a hello retry request */
+        POSIX_ENSURE(server_curve != client_curve || server_group != client_group, S2N_ERR_BAD_KEY_SHARE);
+    }
+
     struct s2n_stuffer_reservation shares_size = {0};
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
     POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
