@@ -1644,8 +1644,6 @@ int main(int argc, char **argv)
         /* Change the ticket issue time so a new obfuscated ticket age will change */
         psk->ticket_issue_time -= MILLIS_TO_NANOS(1);
 
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&io_stuffer));
-
         /* Client sends ClientHello 2 */
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
