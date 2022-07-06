@@ -281,6 +281,9 @@ int main(int argc, char **argv)
             server_conn->handshake.message_number = 2;
             client_conn->handshake.message_number = 2;
 
+            /* Update the selected_group to ensure the HRR is valid */
+            client_conn->kex_params.client_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
+
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
                     s2n_stuffer_data_available(&server_conn->handshake.io)));
