@@ -51,6 +51,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_20210816_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20210825;
 extern const struct s2n_cipher_preferences cipher_preferences_20210825_gcm;
 extern const struct s2n_cipher_preferences cipher_preferences_20210831;
+extern const struct s2n_cipher_preferences cipher_preferences_default_fips;
 
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 

@@ -1,0 +1,168 @@
+target = "https://tools.ietf.org/rfc/rfc8446#9.2"
+
+# 9.2.  Mandatory-to-Implement Extensions
+#
+# In the absence of an application profile standard specifying
+# otherwise, a TLS-compliant application MUST implement the following
+# TLS extensions:
+# 
+# -  Supported Versions ("supported_versions"; Section 4.2.1)
+# 
+# -  Cookie ("cookie"; Section 4.2.2)
+# 
+# -  Signature Algorithms ("signature_algorithms"; Section 4.2.3)
+# 
+# -  Signature Algorithms Certificate ("signature_algorithms_cert";
+#    Section 4.2.3)
+# 
+# -  Negotiated Groups ("supported_groups"; Section 4.2.7)
+# 
+# -  Key Share ("key_share"; Section 4.2.8)
+# 
+# -  Server Name Indication ("server_name"; Section 3 of [RFC6066])
+# 
+# All implementations MUST send and use these extensions when offering
+# applicable features:
+# 
+# -  "supported_versions" is REQUIRED for all ClientHello, ServerHello,
+#    and HelloRetryRequest messages.
+# 
+# -  "signature_algorithms" is REQUIRED for certificate authentication.
+# 
+# -  "supported_groups" is REQUIRED for ClientHello messages using DHE
+#    or ECDHE key exchange.
+# 
+# -  "key_share" is REQUIRED for DHE or ECDHE key exchange.
+# 
+# -  "pre_shared_key" is REQUIRED for PSK key agreement.
+# 
+# -  "psk_key_exchange_modes" is REQUIRED for PSK key agreement.
+# 
+# A client is considered to be attempting to negotiate using this
+# specification if the ClientHello contains a "supported_versions"
+# extension with 0x0304 contained in its body.  Such a ClientHello
+# message MUST meet the following requirements:
+# 
+# -  If not containing a "pre_shared_key" extension, it MUST contain
+#    both a "signature_algorithms" extension and a "supported_groups"
+#    extension.
+# 
+# -  If containing a "supported_groups" extension, it MUST also contain
+#    a "key_share" extension, and vice versa.  An empty
+#    KeyShare.client_shares vector is permitted.
+# 
+# Servers receiving a ClientHello which does not conform to these
+# requirements MUST abort the handshake with a "missing_extension"
+# alert.
+# 
+# Additionally, all implementations MUST support the use of the
+# "server_name" extension with applications capable of using it.
+# Servers MAY require clients to send a valid "server_name" extension.
+# Servers requiring this extension SHOULD respond to a ClientHello
+# lacking a "server_name" extension by terminating the connection with
+# a "missing_extension" alert.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In the absence of an application profile standard specifying
+otherwise, a TLS-compliant application MUST implement the following
+TLS extensions:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All implementations MUST send and use these extensions when offering
+applicable features:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  "supported_versions" is REQUIRED for all ClientHello, ServerHello,
+and HelloRetryRequest messages.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  "signature_algorithms" is REQUIRED for certificate authentication.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  "supported_groups" is REQUIRED for ClientHello messages using DHE
+or ECDHE key exchange.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  "key_share" is REQUIRED for DHE or ECDHE key exchange.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  "pre_shared_key" is REQUIRED for PSK key agreement.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  "psk_key_exchange_modes" is REQUIRED for PSK key agreement.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Such a ClientHello
+message MUST meet the following requirements:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  If not containing a "pre_shared_key" extension, it MUST contain
+both a "signature_algorithms" extension and a "supported_groups"
+extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  If containing a "supported_groups" extension, it MUST also contain
+a "key_share" extension, and vice versa.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers receiving a ClientHello which does not conform to these
+requirements MUST abort the handshake with a "missing_extension"
+alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Additionally, all implementations MUST support the use of the
+"server_name" extension with applications capable of using it.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Servers MAY require clients to send a valid "server_name" extension.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers requiring this extension SHOULD respond to a ClientHello
+lacking a "server_name" extension by terminating the connection with
+a "missing_extension" alert.
+'''
+

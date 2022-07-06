@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use errno::{set_errno, Errno};
-use s2n_tls::raw::{
+use s2n_tls::{
     config::Config,
     connection::{Builder, Connection},
     enums::{Blinding, CallbackResult, Mode},
@@ -106,24 +106,24 @@ where
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         // Retrieve a result, either from the stored error
-        // or by polling Connection::negotiate().
-        // Connection::negotiate() only completes once,
+        // or by polling Connection::poll_negotiate().
+        // Connection::poll_negotiate() only completes once,
         // regardless of how often this method is polled.
         let result = match self.error.take() {
             Some(err) => Err(err),
             None => {
                 ready!(self.tls.with_io(ctx, |context| {
                     let conn = context.get_mut().as_mut();
-                    conn.negotiate().map(|r| r.map(|_| ()))
+                    conn.poll_negotiate().map(|r| r.map(|_| ()))
                 }))
             }
         };
         // If the result isn't a fatal error, return it immediately.
-        // Otherwise, poll Connection::shutdown().
+        // Otherwise, poll Connection::poll_shutdown().
         //
         // Shutdown is only best-effort.
-        // When Connection::shutdown() completes, even with an error,
-        // we return the original Connection::negotiate() error.
+        // When Connection::poll_shutdown() completes, even with an error,
+        // we return the original Connection::poll_negotiate() error.
         match result {
             Ok(r) => Ok(r).into(),
             Err(e) if e.is_retryable() => Err(e).into(),
@@ -268,7 +268,7 @@ where
             context
                 .conn
                 .as_mut()
-                .recv(buf.initialize_unfilled())
+                .poll_recv(buf.initialize_unfilled())
                 .map_ok(|size| {
                     buf.advance(size);
                 })
@@ -288,7 +288,7 @@ where
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
         let tls = self.get_mut();
-        tls.with_io(ctx, |mut context| context.conn.as_mut().send(buf))
+        tls.with_io(ctx, |mut context| context.conn.as_mut().poll_send(buf))
             .map_err(io::Error::from)
     }
 
@@ -296,7 +296,7 @@ where
         let tls = self.get_mut();
 
         ready!(tls.with_io(ctx, |mut context| {
-            context.conn.as_mut().flush().map(|r| r.map(|_| ()))
+            context.conn.as_mut().poll_flush().map(|r| r.map(|_| ()))
         }))
         .map_err(io::Error::from)?;
 
@@ -325,7 +325,7 @@ where
         }
 
         ready!(tls.with_io(ctx, |mut context| {
-            context.conn.as_mut().shutdown().map(|r| r.map(|_| ()))
+            context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
         }))
         .map_err(io::Error::from)?;
 

@@ -260,6 +260,28 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
         &s2n_ecdsa_sha1,
 };
 
+/*
+ * These signature schemes were chosen based on the following specification:
+ * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
+ */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_default_fips[] = {
+        /* RSA PKCS1 - TLS1.2 */
+        &s2n_rsa_pkcs1_sha256,
+        &s2n_rsa_pkcs1_sha384,
+        &s2n_rsa_pkcs1_sha512,
+
+        /* ECDSA - TLS 1.2 */
+        &s2n_ecdsa_sha256, /* same iana value as TLS 1.3 s2n_ecdsa_secp256r1_sha256 */
+        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
+        &s2n_ecdsa_sha512,
+        &s2n_ecdsa_sha224,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_default_fips = {
+        .count = s2n_array_len(s2n_sig_scheme_pref_list_default_fips),
+        .signature_schemes = s2n_sig_scheme_pref_list_default_fips,
+};
+
 /* Add s2n_ecdsa_secp521r1_sha512 */
 const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201021[] = {
         /* RSA PSS */

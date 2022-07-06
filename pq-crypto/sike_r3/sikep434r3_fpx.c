@@ -122,6 +122,28 @@ void fp2div2(const f2elm_t *a, f2elm_t *c)
     fpdiv2_434(a->e[1], c->e[1]);
 }
 
+void fpcorrection(digit_t* a)
+{ // Modular correction to reduce field element a in [0, 2*p434-1] to [0, p434-1].
+    unsigned int i, borrow = 0;
+    digit_t mask;
+
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
+        S2N_SIKE_P434_R3_SUBC(borrow, a[i], ((const digit_t*)p434)[i], borrow, a[i]);
+    }
+    mask = 0 - (digit_t)borrow;
+
+    borrow = 0;
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
+        S2N_SIKE_P434_R3_ADDC(borrow, a[i], ((const digit_t*)p434)[i] & mask, borrow, a[i]);
+    }
+}
+
+void fp2correction(f2elm_t *a)
+{ // Modular correction, a = a in GF(p^2).
+    fpcorrection(a->e[0]);
+    fpcorrection(a->e[1]);
+}
+
 /* Multiprecision addition, c = a+b, where lng(a) = lng(b) = nwords. Returns the carry bit. */
 unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
 {
@@ -409,6 +431,18 @@ void mp_shiftr1(digit_t* x, const unsigned int nwords)
         S2N_SIKE_P434_R3_SHIFTR(x[i+1], x[i], 1, x[i], S2N_SIKE_P434_R3_RADIX);
     }
     x[nwords-1] >>= 1;
+}
+
+unsigned int is_felm_zero(const felm_t x)
+{ // Is x = 0? return 1 (TRUE) if condition is true, 0 (FALSE) otherwise.
+  // SECURITY NOTE: This function does not run in constant-time.
+
+    for (unsigned int i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
+        if (x[i] != 0) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 void decode_to_digits(const unsigned char* x, digit_t* dec, int nbytes, int ndigits)

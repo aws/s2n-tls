@@ -1,0 +1,47 @@
+target = "https://tools.ietf.org/rfc/rfc8446#A.1"
+
+# A.1.  Client
+#
+#                            START <----+
+#             Send ClientHello |        | Recv HelloRetryRequest
+#        [K_send = early data] |        |
+#                              v        |
+#         /                 WAIT_SH ----+
+#         |                    | Recv ServerHello
+#         |                    | K_recv = handshake
+#     Can |                    V
+#    send |                 WAIT_EE
+#   early |                    | Recv EncryptedExtensions
+#    data |           +--------+--------+
+#         |     Using |                 | Using certificate
+#         |       PSK |                 v
+#         |           |            WAIT_CERT_CR
+#         |           |        Recv |       | Recv CertificateRequest
+#         |           | Certificate |       v
+#         |           |             |    WAIT_CERT
+#         |           |             |       | Recv Certificate
+#         |           |             v       v
+#         |           |              WAIT_CV
+#         |           |                 | Recv CertificateVerify
+#         |           +> WAIT_FINISHED <+
+#         |                  | Recv Finished
+#         \                  | [Send EndOfEarlyData]
+#                            | K_send = handshake
+#                            | [Send Certificate [+ CertificateVerify]]
+#  Can send                  | Send Finished
+#  app data   -->            | K_send = K_recv = application
+#  after here                v
+#                        CONNECTED
+# 
+# Note that with the transitions as shown above, clients may send
+# alerts that derive from post-ServerHello messages in the clear or
+# with the early data keys.  If clients need to send such alerts, they
+# SHOULD first rekey to the handshake keys if possible.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If clients need to send such alerts, they
+SHOULD first rekey to the handshake keys if possible.
+'''
+
