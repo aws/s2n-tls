@@ -25,6 +25,7 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_result.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_tls13.h"
 
 int test_count;
@@ -38,40 +39,65 @@ int test_count;
 
 #define EXPECT_SUCCESS_WITHOUT_COUNT( function_call )  EXPECT_NOT_EQUAL_WITHOUT_COUNT( (function_call) ,  -1 )
 
-/**
- * This is a very basic, but functional unit testing framework. All testing should
- * happen in main() and start with a BEGIN_TEST() and end with an END_TEST();
- */
-#define BEGIN_TEST()                                           \
-  do {                                                         \
-    test_count = 0;                                            \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));  \
-    S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
-    fprintf(stdout, "Running %-50s ... ", __FILE__);           \
-  } while(0)
+#define END_TEST_PRINT()                                                            \
+    if (isatty(fileno(stdout))) {                                                   \
+        if (test_count) {                                                           \
+            fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count );   \
+        }                                                                           \
+        else {                                                                      \
+            fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n" );         \
+        }                                                                           \
+    }                                                                               \
+    else {                                                                          \
+        if (test_count) {                                                           \
+            fprintf(stdout, "PASSED %10d tests\n", test_count );                    \
+        }                                                                           \
+        else {                                                                      \
+            fprintf(stdout, "SKIPPED       ALL tests\n" );                          \
+        }                                                                           \
+    }
 
-#define END_TEST()   do { \
-                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));      \
-                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());       \
-                        if (isatty(fileno(stdout))) { \
-                            if (test_count) { \
-                                fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
-                            }\
-                            else {\
-                                fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n" ); \
-                            }\
-                       } \
-                       else { \
-                            if (test_count) { \
-                                fprintf(stdout, "PASSED %10d tests\n", test_count ); \
-                            }\
-                            else {\
-                                fprintf(stdout, "SKIPPED       ALL tests\n" ); \
-                            }\
-                       } \
-                       return 0;\
-                    } while(0)
+/* Macros similar to BEGIN_TEST() and END_TEST() but for tests where s2n should
+ * not initialise at the start of the test. Useful for tests that e.g spawn a
+ * number of independent childs at the start of a unit test and where you want
+ * each child to have its own independently initialised s2n.
+ *
+ * BEGIN_TEST() prints unit test information to stdout. But this often gets
+ * buffered by the kernel and will then be flushed in each child spawned. The
+ * result is a number of repeated messages being send to stdout and, in turn,
+ * appear in the logs. At the moment, we think this is better than risking not
+ * having any printing at all.
+ */
+#define BEGIN_TEST_NO_INIT()                                        \
+    do {                                                            \
+        test_count = 0;                                             \
+        fprintf(stdout, "Running %-50s ... ", __FILE__);            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
+        S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
+    } while(0)
+
+#define END_TEST_NO_INIT()                                          \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));  \
+        END_TEST_PRINT()                                            \
+        return 0;                                                   \
+    } while(0)
+
+/* This is a very basic, but functional unit testing framework. All testing
+ * should happen in main() and start with a BEGIN_TEST() and end with an
+ * END_TEST().
+ */
+#define BEGIN_TEST()                                                \
+    do {                                                            \
+        BEGIN_TEST_NO_INIT();                                       \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
+    } while(0)
+
+#define END_TEST()                                                  \
+    do {                                                            \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());                \
+        END_TEST_NO_INIT();                                         \
+    } while(0)
 
 #define FAIL()      FAIL_MSG("")
 
@@ -135,6 +161,15 @@ int test_count;
 #define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) \
     do { \
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ); \
+        RESET_ERRNO(); \
+    } while(0)
+
+#define EXPECT_FAILURE_WITH_ALERT( function_call, err, alert ) \
+    do { \
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(function_call, err); \
+        uint8_t _alert_for_failure = 0; \
+        EXPECT_SUCCESS(s2n_error_get_alert(s2n_errno, &_alert_for_failure)); \
+        EXPECT_EQUAL(_alert_for_failure, (alert)); \
         RESET_ERRNO(); \
     } while(0)
 

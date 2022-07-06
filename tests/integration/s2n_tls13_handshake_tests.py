@@ -65,7 +65,10 @@ def key_update_send_and_receive(client, server, key_update_request):
 
     # Trigger Openssl to send a KeyUpdate message
     client.stdin.write((key_update_request + "\n\n").encode("utf-8"))
-    client.stdin.flush()
+    try:
+        client.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     # Confirm that the KeyUpdate was sent
     time.sleep(0.01)
@@ -74,7 +77,10 @@ def key_update_send_and_receive(client, server, key_update_request):
 
     # Write a message from Openssl
     client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
-    client.stdin.flush()
+    try:
+        client.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     # Confirm that s2n can decrypt msg
     if not (wait_for_output(server.stdout, openssl_msg, 100)):
@@ -82,7 +88,10 @@ def key_update_send_and_receive(client, server, key_update_request):
 
     # Write a message from s2n
     server.stdin.write((s2n_msg + "\n\n").encode("utf-8"))
-    server.stdin.flush()
+    try:
+        server.stdin.flush()
+    except BrokenPipeError:
+        print("Error: Tried to flush a broken pipe!")
 
     # Confirm that Openssl can decrypt msg
     if not (wait_for_output(client.stdout, s2n_msg, 100)):

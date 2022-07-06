@@ -207,6 +207,10 @@ typedef enum {
     S2N_ERR_INVALID_CERT_STATE,
     S2N_ERR_INVALID_EARLY_DATA_STATE,
     S2N_ERR_PKEY_CTX_INIT,
+    S2N_ERR_FORK_DETECTION_INIT,
+    S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER,
+    S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH,
+    S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH,
     S2N_ERR_T_INTERNAL_END,
 
     /* S2N_ERR_T_USAGE */
@@ -282,6 +286,7 @@ typedef enum {
     S2N_ERR_INVALID_X509_EXTENSION_TYPE,
     S2N_ERR_INSUFFICIENT_MEM_SIZE,
     S2N_ERR_KEYING_MATERIAL_EXPIRED,
+    S2N_ERR_SECRET_SCHEDULE_STATE,
     S2N_ERR_T_USAGE_END,
 } s2n_error;
 
@@ -294,11 +299,17 @@ extern __thread const char *s2n_debug_str;
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ ":" STRING__LINE__
 #define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
-#define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
-#define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
-#define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IS_BLOCKING( x )    ( s2n_error_get_type(x) == S2N_ERR_T_BLOCKED )
+
+/* DEPRECATED: use POSIX_BAIL instead */
+#define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
+
+/* DEPRECATED: use PTR_BAIL instead */
+#define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
+
+/* DEPRECATED: use POSIX_ENSURE instead */
+#define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {

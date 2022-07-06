@@ -162,15 +162,15 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
 
         /**
          *= https://tools.ietf.org/rfc/rfc7627#section-5.3
-         *# If the original session did not use the "extended_master_secret"
-         *# extension but the new ClientHello contains the extension, then the
-         *# server MUST NOT perform the abbreviated handshake.  Instead, it
-         *# SHOULD continue with a full handshake (as described in
-         *# Section 5.2) to negotiate a new session.
+         *# o  If the original session did not use the "extended_master_secret"
+         *#    extension but the new ClientHello contains the extension, then the
+         *#    server MUST NOT perform the abbreviated handshake.  Instead, it
+         *#    SHOULD continue with a full handshake (as described in
+         *#    Section 5.2) to negotiate a new session.
          *#
-         *# If the original session used the "extended_master_secret"
-         *# extension but the new ClientHello does not contain it, the server
-         *# MUST abort the abbreviated handshake.
+         *# o  If the original session used the "extended_master_secret"
+         *#    extension but the new ClientHello does not contain it, the server
+         *#    MUST abort the abbreviated handshake.
          **/
         if (conn->ems_negotiated != ems_negotiated) {
             /* The session ticket needs to have the same EMS state as the current session. If it doesn't

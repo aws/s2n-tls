@@ -147,6 +147,12 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
      *# If the original session did not use the "extended_master_secret"
      *# extension but the new ServerHello contains the extension, the
      *# client MUST abort the handshake.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
+     *# extensions that were not first offered by the client in its
+     *# ClientHello, with the exception of optionally the "cookie" (see
+     *# Section 4.2.2) extension.
      **/
     if (extension_type->is_response &&
             !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
@@ -161,7 +167,9 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(extension_type->recv(conn, in));
 
     /* Set request bit flag */
-    if (!extension_type->is_response) {
+    if (extension_type->is_response) {
+        S2N_CBIT_SET(conn->extension_responses_received, extension_id);
+    } else {
         S2N_CBIT_SET(conn->extension_requests_received, extension_id);
     }
 

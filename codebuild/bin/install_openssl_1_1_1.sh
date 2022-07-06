@@ -29,7 +29,9 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-RELEASE=1_1_1-stable
+# TODO: Re-enable OpenSSL 1.1.1 stable when it is working.
+# https://github.com/aws/s2n-tls/issues/3369
+RELEASE=1_1_1o
 
 mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
@@ -39,7 +41,7 @@ cd openssl-OpenSSL_${RELEASE}
 
 if [ "$OS_NAME" == "linux" ]; then
     CONFIGURE="./config -d"
-elif [ "$OS_NAME" == "osx" ]; then
+elif [[ "$OS_NAME" == "osx" || "$OS_NAME" == "darwin" ]]; then
     CONFIGURE="./Configure darwin64-x86_64-cc"
 else
     echo "Invalid platform! $OS_NAME"

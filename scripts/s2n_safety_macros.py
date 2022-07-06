@@ -662,6 +662,7 @@ docs = """
 # S2N Safety Macros
 """
 checks = []
+deprecation_message = "DEPRECATED: all methods (except those in s2n.h) should return s2n_result."
 
 def push_doc(args):
     args['doc'] = textwrap.dedent(args['doc']).format_map(args).strip()
@@ -684,6 +685,10 @@ for context in CONTEXTS:
         args.update(context)
         args.update(value)
 
+        args['doc'] = textwrap.dedent(args['doc']).strip()
+        if context['ret'] != DEFAULT['ret']:
+            args['doc'] = (deprecation_message + "\n\n" + args['doc'])
+
         docs += push_doc(args)
         header += push_macro(args)
 
@@ -699,6 +704,14 @@ for context in CONTEXTS:
     for other in CONTEXTS:
         if len(other['suffix']) > 0:
             doc = 'Ensures `{is_ok}`, otherwise the function will return `{error}`'
+            if other == PTR:
+                doc += '\n\nDoes not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for {prefix}ENSURE_REF.'
+            if context['ret'] != DEFAULT['ret']:
+                doc = (deprecation_message + "\n\n" + doc)
+
+            if other == context:
+                continue;
+
             impl = '__S2N_ENSURE({is_ok}, return {error})'
             args = {
                 'prefix': context['prefix'],
@@ -714,7 +727,16 @@ for context in CONTEXTS:
             docs += push_doc(args)
             header += push_macro(args)
 
+def cleanup(contents):
+    # Remove any unnecessary generated "X_GUARD_X"s, like "RESULT_GUARD_RESULT"
+    for context in CONTEXTS:
+        x_guard = "{name}_GUARD".format_map(context)
+        x_guard_x = "{name}_GUARD_{name}".format_map(context)
+        contents = contents.replace(x_guard_x, x_guard)
+    return contents
+
 def write(f, contents):
+    contents = cleanup(contents)
     header_file = open(f, "w")
     header_file.write(contents)
     header_file.close()

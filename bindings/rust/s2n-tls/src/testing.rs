@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    raw::{config::*, security},
+    callbacks::{ClientHelloCallback, VerifyHostNameCallback},
+    config::*,
+    error, security,
     testing::s2n_tls::Harness,
 };
+use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
-use core::task::Poll;
-use std::collections::VecDeque;
+use core::{sync::atomic::Ordering, task::Poll};
+use std::sync::atomic::AtomicUsize;
 
 pub mod s2n_tls;
 
@@ -133,7 +136,20 @@ impl CertKeyPair {
     }
 }
 
-pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::config::Config, Error> {
+#[derive(Default)]
+pub struct UnsecureAcceptAllClientCertificatesHandler {}
+impl VerifyHostNameCallback for UnsecureAcceptAllClientCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        true
+    }
+}
+
+pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::config::Config, Error> {
+    let builder = config_builder(cipher_prefs)?;
+    Ok(builder.build().expect("Unable to build server config"))
+}
+
+pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::Builder, Error> {
     let mut builder = Builder::new();
     let mut keypair = CertKeyPair::default();
     // Build a config
@@ -144,53 +160,36 @@ pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::raw::confi
         .load_pem(keypair.cert(), keypair.key())
         .expect("Unable to load cert/pem");
     unsafe {
-        let ctx: *mut core::ffi::c_void = std::ptr::null_mut();
         builder
-            .set_verify_host_callback(Some(verify_host_cb), ctx)
+            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler::default())
             .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()
             .expect("Unable to disable x509 verification");
     };
-    Ok(builder.build().expect("Unable to build server config"))
+    Ok(builder)
 }
 
-// host verify callback for x509
-// see: https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#s2n_verify_host_fn
-unsafe extern "C" fn verify_host_cb(
-    hostname: *const i8,
-    hostname_len: usize,
-    _context: *mut core::ffi::c_void,
-) -> u8 {
-    let host_str = ::std::str::from_utf8(::std::slice::from_raw_parts(
-        hostname as *const u8,
-        hostname_len,
-    ));
-    match host_str {
-        Err(_) => 0,
-        Ok(_host) => 1,
-    }
-}
-
-pub fn s2n_tls_pair(config: crate::raw::config::Config) {
+pub fn s2n_tls_pair(config: crate::config::Config) {
     // create and configure a server connection
-    let mut server = crate::raw::connection::Connection::new_server();
+    let mut server = crate::connection::Connection::new_server();
     server
         .set_config(config.clone())
         .expect("Failed to bind config to server connection");
-    server
-        .set_client_auth_type(s2n_tls_sys::s2n_cert_auth_type::NONE)
-        .expect("Unable to set server client auth type");
     let server = Harness::new(server);
 
     // create a client connection
-    let mut client = crate::raw::connection::Connection::new_client();
+    let mut client = crate::connection::Connection::new_client();
     client
         .set_config(config)
         .expect("Unabel to set client config");
     let client = Harness::new(client);
 
-    let mut pair = Pair::new(server, client, SAMPLES);
+    let pair = Pair::new(server, client, SAMPLES);
+    poll_tls_pair(pair);
+}
+
+pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => {
@@ -202,4 +201,39 @@ pub fn s2n_tls_pair(config: crate::raw::config::Config) {
     }
 
     // TODO add assertions to make sure the handshake actually succeeded
+
+    pair
+}
+
+#[derive(Clone)]
+pub struct MockClientHelloHandler {
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
+}
+
+impl MockClientHelloHandler {
+    pub fn new(require_pending_count: usize) -> Self {
+        Self {
+            require_pending_count,
+            invoked: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
+impl ClientHelloCallback for MockClientHelloHandler {
+    fn poll_client_hello(
+        &self,
+        connection: &mut crate::connection::Connection,
+    ) -> core::task::Poll<Result<(), error::Error>> {
+        if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
+            // confirm the callback can access the waker
+            connection.waker().unwrap().wake_by_ref();
+            return Poll::Pending;
+        }
+
+        // Test that server_name_extension_used can be invoked
+        connection.server_name_extension_used();
+
+        Poll::Ready(Ok(()))
+    }
 }

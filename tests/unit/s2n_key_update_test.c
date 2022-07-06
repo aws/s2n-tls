@@ -73,7 +73,13 @@ int main(int argc, char **argv)
     }
     /* s2n_key_update_recv */
     {
-        /* Key update message not allowed when running with QUIC */
+        /* Key update message not allowed when running with QUIC
+         *
+         *= https://tools.ietf.org/rfc/rfc9001.txt#6
+         *= type=test
+         *# Endpoints MUST treat the receipt of a TLS KeyUpdate message as a connection error
+         *# of type 0x010a, equivalent to a fatal TLS alert of unexpected_message
+         **/
         {
             const size_t test_data_len = 10;
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
@@ -88,7 +94,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, quic_config));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
+            EXPECT_FAILURE_WITH_ALERT(s2n_key_update_recv(conn, &input),
+                    S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
             /* Verify method was a no-op and the message was not read */
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), test_data_len);

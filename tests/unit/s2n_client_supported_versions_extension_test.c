@@ -217,7 +217,8 @@ int main(int argc, char **argv)
             POSIX_GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
         }
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension),
+                S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
@@ -283,7 +284,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        uint8_t supported_version_list[] = { S2N_UNKNOWN_PROTOCOL_VERSION };
+        uint8_t supported_version_list[] = { S2N_SSLv3 };
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
         struct s2n_stuffer extension;
@@ -292,7 +293,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
                 supported_version_list_length));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension),
+                S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -310,7 +312,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension),
+                S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
         EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

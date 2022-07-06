@@ -22,6 +22,7 @@
 #include "crypto/s2n_fips.h"
 
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_internal.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
@@ -249,8 +250,8 @@ int s2n_config_defaults_init(void)
 
 void s2n_wipe_static_configs(void)
 {
-    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_fips_config);
+    s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_default_tls13_config);
 }
 
@@ -906,4 +907,34 @@ int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_asy
     }
 
     POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+}
+
+int s2n_config_set_ctx(struct s2n_config *config, void *ctx) {
+    POSIX_ENSURE_REF(config);
+
+    config->context = ctx;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_get_ctx(struct s2n_config *config, void **ctx) {
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(ctx);
+
+    *ctx = config->context;
+
+    return S2N_SUCCESS;
+}
+
+/*
+ * Set the client_hello callback behavior to polling.
+ *
+ * Polling means that the callback function can be called multiple times.
+ */
+int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
+    POSIX_ENSURE_REF(config);
+
+    config->client_hello_cb_enable_poll = 1;
+
+    return S2N_SUCCESS;
 }

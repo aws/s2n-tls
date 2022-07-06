@@ -27,7 +27,7 @@
  * point to data in the raw_message stuffer
  */
 struct s2n_client_hello {
-    struct s2n_stuffer raw_message;
+    struct s2n_blob raw_message;
 
     s2n_parsed_extensions_list extensions;
     struct s2n_blob cipher_suites;
@@ -36,6 +36,14 @@ struct s2n_client_hello {
     unsigned int callback_invoked:1;
     unsigned int callback_async_blocked:1;
     unsigned int callback_async_done:1;
+    /*
+     * Marks if the client hello has been parsed.
+     *
+     * While a client_hello is only parsed once, it is possible to parse
+     * two different client_hello during a single handshake if the server
+     * issues a hello retry.
+     */
+    unsigned int parsed:1;
 };
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);

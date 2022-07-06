@@ -303,6 +303,28 @@ batch:
           S2N_LIBCRYPTO: 'openssl-1.0.2'
           BUILD_S2N: 'true'
 
+    - identifier: s2nValgrindAwslc
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'awslc'
+          BUILD_S2N: 'true'
+
+    - identifier: s2nValgrindAwslcFips
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'awslc-fips'
+          BUILD_S2N: 'true'
+
     - identifier: s2nAsanOpenSSL111Coverage
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
@@ -361,7 +383,7 @@ batch:
           TESTS: unit
           S2N_NO_PQ: 1
 
-    - identifier: s2nLibcryptoInterning
+    - identifier: s2nLibcryptoInterningOpenSSL
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
@@ -369,6 +391,25 @@ batch:
         variables:
           TESTS: interning
           BUILD_S2N: 'true'
+
+    - identifier: s2nLibcryptoInterningAwslc
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: interning
+          BUILD_S2N: 'true'
+          S2N_LIBCRYPTO: awslc
+
+    - identifier: s2nUnitCRT
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        privileged-mode: true
+        variables:
+          GCC_VERSION: '6'
+          TESTS: crt
 
     # Fuzz tests
     - identifier: s2nFuzzerOpenSSL111Coverage

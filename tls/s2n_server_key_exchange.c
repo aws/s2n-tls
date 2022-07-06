@@ -29,6 +29,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_dhe.h"
+#include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
@@ -56,6 +57,11 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* Verify the SigScheme picked by the Server was in the preference list we sent (or is the default SigScheme) */
         POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, active_sig_scheme));
+    }
+
+    /* FIPS specifically allows MD5 for <TLS1.2 */
+    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+        POSIX_GUARD(s2n_hash_allow_md5_for_fips(signature_hash));
     }
 
     POSIX_GUARD(s2n_hash_init(signature_hash, active_sig_scheme->hash_alg));
@@ -248,6 +254,11 @@ int s2n_server_key_send(struct s2n_connection *conn)
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
         POSIX_GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.conn_sig_scheme.iana_value));
+    }
+
+    /* FIPS specifically allows MD5 for <TLS1.2 */
+    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+        POSIX_GUARD(s2n_hash_allow_md5_for_fips(signature_hash));
     }
 
     /* Add the random data to the hash */

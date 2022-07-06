@@ -14,6 +14,7 @@
  */
 
 #include <openssl/engine.h>
+#include <openssl/rand.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -28,24 +29,19 @@
 #include <errno.h>
 #include <time.h>
 
-#include "api/s2n.h"
-
 #if defined(S2N_CPUID_AVAILABLE)
 #include <cpuid.h>
 #endif
 
-#include "stuffer/s2n_stuffer.h"
-
+#include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
-
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_mem.h"
-
-#include <openssl/rand.h>
 
 #define ENTROPY_SOURCE "/dev/urandom"
 
@@ -60,14 +56,19 @@
 
 static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
 
-static __thread struct s2n_drbg per_thread_private_drbg = {0};
-static __thread struct s2n_drbg per_thread_public_drbg = {0};
+struct s2n_rand_state {
+    uint64_t cached_fork_generation_number;
+    struct s2n_drbg public_drbg;
+    struct s2n_drbg private_drbg;
+    bool drbgs_initialized;
+};
 
-static void *zeroed_when_forked_page;
-static int zero = 0;
-
-static __thread void *zero_if_forked_ptr = &zero;
-#define zero_if_forked (* (int *) zero_if_forked_ptr)
+static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
+    .cached_fork_generation_number = 0,
+    .public_drbg = {0},
+    .private_drbg = {0},
+    .drbgs_initialized = false
+};
 
 static int s2n_rand_init_impl(void);
 static int s2n_rand_cleanup_impl(void);
@@ -79,6 +80,7 @@ static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
 static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
 static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
 
+/* non-static for SAW proof */
 bool s2n_cpu_supports_rdrand() {
 #if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
@@ -128,26 +130,77 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
-void s2n_on_fork(void)
-{
-    zero_if_forked = 0;
-}
-
-static inline S2N_RESULT s2n_defend_if_forked(void)
+static S2N_RESULT s2n_init_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = {.data = s2n_public_drbg,.size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
+    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
 
-    if (zero_if_forked == 0) {
-        /* Clean up the old drbg first */
+    RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
+    RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
+
+    s2n_per_thread_rand_state.drbgs_initialized = true;
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_ensure_initialized_drbgs(void)
+{
+    if (s2n_per_thread_rand_state.drbgs_initialized == false) {
+        RESULT_GUARD(s2n_init_drbgs());
+
+        /* Then cache the fork generation number. We just initialized the drbg
+         * states with new entropy and forking is not an external event.
+         */
+        uint64_t returned_fork_generation_number = 0;
+        RESULT_GUARD(s2n_get_fork_generation_number(&returned_fork_generation_number));
+        s2n_per_thread_rand_state.cached_fork_generation_number = returned_fork_generation_number;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* s2n_ensure_uniqueness() implements defenses against uniqueness
+ * breaking events that might cause duplicated drbg states. Currently, only
+ * implements fork detection.
+ */
+static S2N_RESULT s2n_ensure_uniqueness(void)
+{
+    uint64_t returned_fork_generation_number = 0;
+    RESULT_GUARD(s2n_get_fork_generation_number(&returned_fork_generation_number));
+
+    if (returned_fork_generation_number != s2n_per_thread_rand_state.cached_fork_generation_number) {
+
+        /* This assumes that s2n_rand_cleanup_thread() doesn't mutate any other
+         * state than the drbg states and it resets the drbg initialization
+         * boolean to false. s2n_ensure_initialized_drbgs() will cache the new
+         * fork generation number in the per thread state.
+         */
         RESULT_GUARD(s2n_rand_cleanup_thread());
-        /* Instantiate the new ones */
-        RESULT_GUARD_POSIX(s2n_drbg_instantiate(&per_thread_public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
-        RESULT_GUARD_POSIX(s2n_drbg_instantiate(&per_thread_private_drbg, &private, S2N_AES_128_CTR_NO_DF_PR));
-        zero_if_forked_ptr = zeroed_when_forked_page;
-        zero_if_forked = 1;
+        RESULT_GUARD(s2n_ensure_initialized_drbgs());
+    }
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
+    struct s2n_drbg *drbg_state)
+{
+    RESULT_GUARD(s2n_ensure_initialized_drbgs());
+    RESULT_GUARD(s2n_ensure_uniqueness());
+
+    uint32_t offset = 0;
+    uint32_t remaining = out_blob->size;
+
+    while(remaining) {
+        struct s2n_blob slice = { 0 };
+
+        RESULT_GUARD_POSIX(s2n_blob_slice(out_blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
+        RESULT_GUARD(s2n_drbg_generate(drbg_state, &slice));
+
+        remaining -= slice.size;
+        offset += slice.size;
     }
 
     return S2N_RESULT_OK;
@@ -155,55 +208,27 @@ static inline S2N_RESULT s2n_defend_if_forked(void)
 
 S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_defend_if_forked());
-
-    uint32_t offset = 0;
-    uint32_t remaining = blob->size;
-
-    while(remaining) {
-        struct s2n_blob slice = { 0 };
-
-        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
-
-        RESULT_GUARD_POSIX(s2n_drbg_generate(&per_thread_public_drbg, &slice));
-
-        remaining -= slice.size;
-        offset += slice.size;
-    }
+    RESULT_GUARD(s2n_get_random_data(blob, &s2n_per_thread_rand_state.public_drbg));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    RESULT_GUARD(s2n_defend_if_forked());
-
-    uint32_t offset = 0;
-    uint32_t remaining = blob->size;
-
-    while(remaining) {
-        struct s2n_blob slice = { 0 };
-
-        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
-
-        RESULT_GUARD_POSIX(s2n_drbg_generate(&per_thread_private_drbg, &slice));
-
-        remaining -= slice.size;
-        offset += slice.size;
-    }
+    RESULT_GUARD(s2n_get_random_data(blob, &s2n_per_thread_rand_state.private_drbg));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_public_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD_POSIX(s2n_drbg_bytes_used(&per_thread_public_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&s2n_per_thread_rand_state.public_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
 {
-    RESULT_GUARD_POSIX(s2n_drbg_bytes_used(&per_thread_private_drbg, bytes_used));
+    RESULT_GUARD(s2n_drbg_bytes_used(&s2n_per_thread_rand_state.private_drbg, bytes_used));
     return S2N_RESULT_OK;
 }
 
@@ -292,6 +317,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 
+#define S2N_RAND_ENGINE_ID "s2n_rand"
+
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
     struct s2n_blob out = {.data = buf,.size = num };
@@ -326,7 +353,7 @@ static int s2n_rand_init_impl(void)
 {
   OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
-    if (entropy_fd == S2N_FAILURE) {
+    if (entropy_fd == -1) {
         if (errno == EINTR) {
             goto OPEN;
         }
@@ -342,40 +369,16 @@ static int s2n_rand_init_impl(void)
 
 S2N_RESULT s2n_rand_init(void)
 {
-    uint32_t pagesize;
-
     RESULT_GUARD_POSIX(s2n_rand_init_cb());
 
-    pagesize = s2n_mem_get_page_size();
-
-    /* We need a single-aligned page for our protected memory region */
-    RESULT_ENSURE(posix_memalign(&zeroed_when_forked_page, pagesize, pagesize) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-    RESULT_ENSURE(zeroed_when_forked_page != NULL, S2N_ERR_OPEN_RANDOM);
-
-    /* Initialized to zero to ensure that we seed our DRBGs */
-    zero_if_forked = 0;
-
-    /* INHERIT_ZERO and WIPEONFORK reset a page to all-zeroes when a fork occurs */
-#if defined(MAP_INHERIT_ZERO)
-    RESULT_ENSURE(minherit(zeroed_when_forked_page, pagesize, MAP_INHERIT_ZERO) != S2N_FAILURE, S2N_ERR_OPEN_RANDOM);
-#endif
-
-#if defined(MADV_WIPEONFORK)
-    RESULT_ENSURE(madvise(zeroed_when_forked_page, pagesize, MADV_WIPEONFORK) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-#endif
-
-    /* For defence in depth */
-    RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_on_fork) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
-
-    /* Seed everything */
-    RESULT_GUARD(s2n_defend_if_forked());
+    RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 
     RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_id(e, "s2n_rand"), S2N_ERR_OPEN_RANDOM);
+    RESULT_GUARD_OSSL(ENGINE_set_id(e, S2N_RAND_ENGINE_ID), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_name(e, "s2n entropy generator"), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_init_function(e, s2n_openssl_compat_init), S2N_ERR_OPEN_RANDOM);
@@ -384,7 +387,7 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_GUARD_OSSL(ENGINE_free(e) , S2N_ERR_OPEN_RANDOM);
 
     /* Use that engine for rand() */
-    e = ENGINE_by_id("s2n_rand");
+    e = ENGINE_by_id(S2N_RAND_ENGINE_ID);
     RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_init(e), S2N_ERR_OPEN_RANDOM);
     RESULT_GUARD_OSSL(ENGINE_set_default(e, ENGINE_METHOD_RAND), S2N_ERR_OPEN_RANDOM);
@@ -410,8 +413,9 @@ S2N_RESULT s2n_rand_cleanup(void)
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Cleanup our rand ENGINE in libcrypto */
-    ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
+    ENGINE *rand_engine = ENGINE_by_id(S2N_RAND_ENGINE_ID);
     if (rand_engine) {
+        ENGINE_remove(rand_engine);
         ENGINE_finish(rand_engine);
         ENGINE_free(rand_engine);
         ENGINE_cleanup();
@@ -430,22 +434,29 @@ S2N_RESULT s2n_rand_cleanup(void)
 
 S2N_RESULT s2n_rand_cleanup_thread(void)
 {
-    RESULT_GUARD_POSIX(s2n_drbg_wipe(&per_thread_private_drbg));
-    RESULT_GUARD_POSIX(s2n_drbg_wipe(&per_thread_public_drbg));
+    /* Currently, it is only safe for this function to mutate the drbg states
+     * in the per thread rand state. See s2n_ensure_uniqueness().
+     */
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.public_drbg));
+
+    s2n_per_thread_rand_state.drbgs_initialized = false;
 
     return S2N_RESULT_OK;
 }
 
-/*
- * This must only be used for unit tests. Any real use is dangerous and will be overwritten in s2n_defend_if_forked if
- * it is forked. This was added to support known answer tests that use OpenSSL and s2n_get_private_random_data directly.
+/* This must only be used for unit tests. Any real use is dangerous and will be
+ * overwritten in s2n_ensure_uniqueness() if it is forked. This was added to
+ * support known answer tests that use OpenSSL and s2n_get_private_random_data
+ * directly.
  */
 S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    RESULT_GUARD_POSIX(s2n_drbg_wipe(&per_thread_private_drbg));
+    RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg));
 
-    per_thread_private_drbg = drbg;
+    s2n_per_thread_rand_state.private_drbg = drbg;
+
     return S2N_RESULT_OK;
 }
 

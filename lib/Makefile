@@ -33,3 +33,14 @@ libs2n.so: ${OBJS}
 
 libs2n.dylib: ${OBJS}
 	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic  ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS} -o libs2n.dylib ${OBJS}
+
+$(libdir):
+	@mkdir -p $(libdir)
+
+install: libs2n.a libs2n.so $(libdir)
+	@cp libs2n.*  $(libdir)
+	@cp ../api/s2n.h  $(includedir)
+
+uninstall:
+	@rm $(libdir)/libs2n.*
+	@rm $(includedir)/s2n.h

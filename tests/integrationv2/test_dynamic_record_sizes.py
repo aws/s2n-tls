@@ -41,10 +41,12 @@ def find_fragmented_packet(results):
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES)
-@pytest.mark.parametrize("provider", [OpenSSL])
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, provider, protocol, certificate):
+def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, provider, other_provider, protocol,
+                                   certificate):
     port = next(available_ports)
 
     # 16384 bytes is enough to reliably get a packet that will exceed the MTU
@@ -73,7 +75,8 @@ def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, p
 
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
 
     for results in server.get_results():
         results.assert_success()

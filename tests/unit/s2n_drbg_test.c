@@ -299,7 +299,7 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
         POSIX_GUARD(s2n_rand_set_callbacks(nist_fake_entropy_init_cleanup, nist_fake_entropy_init_cleanup, generator, generator));
 
         /* Instantiate the DRBG */
-        POSIX_GUARD(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
+        POSIX_GUARD_RESULT(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
 
         uint8_t nist_v[16];
 
@@ -309,13 +309,13 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
         /* Generate 512 bits (FIRST CALL) */
         uint8_t out[64];
         struct s2n_blob generated = {.data = out, .size = 64 };
-        POSIX_GUARD(s2n_drbg_generate(&nist_drbg, &generated));
+        POSIX_GUARD_RESULT(s2n_drbg_generate(&nist_drbg, &generated));
 
         POSIX_GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
         POSIX_ENSURE_EQ(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
 
         /* Generate another 512 bits (SECOND CALL) */
-        POSIX_GUARD(s2n_drbg_generate(&nist_drbg, &generated));
+        POSIX_GUARD_RESULT(s2n_drbg_generate(&nist_drbg, &generated));
 
         POSIX_GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
         POSIX_ENSURE_EQ(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
@@ -331,7 +331,7 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
             POSIX_BAIL(S2N_ERR_DRBG);
         }
 
-        POSIX_GUARD(s2n_drbg_wipe(&nist_drbg));
+        POSIX_GUARD_RESULT(s2n_drbg_wipe(&nist_drbg));
     }
     return 0;
 }
@@ -346,21 +346,21 @@ int main(int argc, char **argv)
     struct s2n_drbg aes256_pr_drbg = {0};
     struct s2n_blob blob = {.data = data, .size = 64 };
 
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes256_pr_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));
+    EXPECT_OK(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
+    EXPECT_OK(s2n_drbg_instantiate(&aes256_pr_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Use the AES128 DRBG for 32MB of data */
     for (int i = 0; i < 500000; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
     }
     EXPECT_EQUAL(aes128_drbg.mixes, 500000);
 
     /* Use the AES256 DRBG with prediction resistance for 32MB of data */
     for (int i = 0; i < 500000; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     }
     EXPECT_EQUAL(aes256_pr_drbg.mixes, 500000);
 
@@ -368,11 +368,31 @@ int main(int argc, char **argv)
     /* the DRBG state is 128 bytes, test that we can get more than that */
     blob.size = 129;
     for (int i = 0; i < 10; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     }
     EXPECT_EQUAL(aes128_drbg.mixes, 500010);
     EXPECT_EQUAL(aes256_pr_drbg.mixes, 500010);
+
+    /* Check that ignoring prediction resistance works */
+    EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(true));
+    uint64_t aes128_drbg_mixes_start = aes128_drbg.mixes;
+    uint64_t aes256_pr_drbg_mixes_start = aes256_pr_drbg.mixes;
+    for (int i = 0; i < 10; i++) {
+        EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    }
+    EXPECT_EQUAL(aes128_drbg.mixes, aes128_drbg_mixes_start);
+    EXPECT_EQUAL(aes256_pr_drbg.mixes, aes256_pr_drbg_mixes_start);
+
+    /* Check that we can enable prediction resistance again */
+    EXPECT_OK(s2n_ignore_prediction_resistance_for_testing(false));
+    for (int i = 0; i < 10; i++) {
+        EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    }
+    EXPECT_EQUAL(aes128_drbg.mixes, aes128_drbg_mixes_start + 10);
+    EXPECT_EQUAL(aes256_pr_drbg.mixes, aes256_pr_drbg_mixes_start + 10);
 
     /* Generate 31 (= 16 + 15) bytes. Since the DRBG generates 16 bytes at a time,
      * a common error is to incorrectly fill the last (not-aligned) bytes. Sometimes
@@ -380,7 +400,7 @@ int main(int argc, char **argv)
      * that the last 15 bytes are not all equal to guard against this. */
     POSIX_CHECKED_MEMSET((void*)data, 0, 31);
     blob.size = 31;
-    EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
+    EXPECT_OK(s2n_drbg_generate(&aes128_drbg, &blob));
     bool bytes_are_all_equal = true;
     for (size_t i = 17; i < 31; i++) {
         if (data[16] != data[i]) {
@@ -392,7 +412,7 @@ int main(int argc, char **argv)
 
     POSIX_CHECKED_MEMSET((void*)data, 0, 31);
     blob.size = 31;
-    EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    EXPECT_OK(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     bytes_are_all_equal = true;
     for (size_t i = 17; i < 31; i++) {
         if (data[16] != data[i]) {
@@ -402,8 +422,8 @@ int main(int argc, char **argv)
     }
     EXPECT_FALSE(bytes_are_all_equal);
 
-    EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
-    EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));
+    EXPECT_OK(s2n_drbg_wipe(&aes128_drbg));
+    EXPECT_OK(s2n_drbg_wipe(&aes256_pr_drbg));
 
     /* Check everything against the NIST AES 128 vectors with prediction resistance */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_entropy, nist_aes128_reference_entropy_hex));

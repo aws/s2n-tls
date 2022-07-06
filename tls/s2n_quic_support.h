@@ -25,13 +25,13 @@
  * the behavior of S2N in potentially dangerous ways and should only be used by implementations
  * of the QUIC protocol.
  *
- * Additionally, the QUIC RFC is not yet finalized, so all QUIC APIs are considered experimental
- * and are subject to change without notice. They should only be used for testing purposes.
+ * Additionally, all QUIC APIs are considered experimental and are subject to change without
+ * notice. They should only be used for testing purposes.
  */
 
 S2N_API int s2n_config_enable_quic(struct s2n_config *config);
 S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
-bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
+S2N_API bool s2n_connection_is_quic_enabled(struct s2n_connection *conn);
 
 /*
  * Set the data to be sent in the quic_transport_parameters extension.
@@ -76,3 +76,16 @@ typedef int (*s2n_secret_cb) (void* context, struct s2n_connection *conn,
  * used outside of a QUIC implementation.
  */
 S2N_API int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx);
+
+/*
+ * Return the TLS alert that S2N-TLS would send, if S2N-TLS sent specific alerts.
+ *
+ * S2N-TLS only sends generic close_notify alerts for security reasons, and TLS never
+ * sends alerts when used by QUIC. This method returns the alert that would have been
+ * sent if S2N-TLS sent specific alerts as defined in the protocol specifications.
+ *
+ * WARNING: this method is still considered experimental and will not always report
+ * the correct alert description. It may be used for testing and logging, but
+ * not relied on for production logic.
+ */
+S2N_API int s2n_error_get_alert(int error, uint8_t *alert);

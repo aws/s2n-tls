@@ -1,0 +1,73 @@
+target = "https://tools.ietf.org/rfc/rfc8446#7.4.2"
+
+# 7.4.2.  Elliptic Curve Diffie-Hellman
+#
+# For secp256r1, secp384r1, and secp521r1, ECDH calculations (including
+# parameter and key generation as well as the shared secret
+# calculation) are performed according to [IEEE1363] using the
+# ECKAS-DH1 scheme with the identity map as the key derivation function
+# (KDF), so that the shared secret is the x-coordinate of the ECDH
+# shared secret elliptic curve point represented as an octet string.
+# Note that this octet string ("Z" in IEEE 1363 terminology) as output
+# by FE2OSP (the Field Element to Octet String Conversion Primitive)
+# has constant length for any given field; leading zeros found in this
+# octet string MUST NOT be truncated.
+# 
+# (Note that this use of the identity KDF is a technicality.  The
+# complete picture is that ECDH is employed with a non-trivial KDF
+# because TLS does not directly use this secret for anything other than
+# for computing other secrets.)
+# 
+# For X25519 and X448, the ECDH calculations are as follows:
+# 
+# -  The public key to put into the KeyShareEntry.key_exchange
+#    structure is the result of applying the ECDH scalar multiplication
+#    function to the secret key of appropriate length (into scalar
+#    input) and the standard public basepoint (into u-coordinate point
+#    input).
+# 
+# -  The ECDH shared secret is the result of applying the ECDH scalar
+#    multiplication function to the secret key (into scalar input) and
+#    the peer's public key (into u-coordinate point input).  The output
+#    is used raw, with no processing.
+# 
+# For these curves, implementations SHOULD use the approach specified
+# in [RFC7748] to calculate the Diffie-Hellman shared secret.
+# Implementations MUST check whether the computed Diffie-Hellman shared
+# secret is the all-zero value and abort if so, as described in
+# Section 6 of [RFC7748].  If implementors use an alternative
+# implementation of these elliptic curves, they SHOULD perform the
+# additional checks specified in Section 7 of [RFC7748].
+
+[[spec]]
+level = "MUST"
+quote = '''
+Note that this octet string ("Z" in IEEE 1363 terminology) as output
+by FE2OSP (the Field Element to Octet String Conversion Primitive)
+has constant length for any given field; leading zeros found in this
+octet string MUST NOT be truncated.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+For these curves, implementations SHOULD use the approach specified
+in [RFC7748] to calculate the Diffie-Hellman shared secret.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST check whether the computed Diffie-Hellman shared
+secret is the all-zero value and abort if so, as described in
+Section 6 of [RFC7748].
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If implementors use an alternative
+implementation of these elliptic curves, they SHOULD perform the
+additional checks specified in Section 7 of [RFC7748].
+'''
+

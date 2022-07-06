@@ -24,6 +24,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+// WARNING: handshake_io_lowlevel.saw enables lax_loads_and_stores, which is
+// currently only supported by SAW's What4 backend. As a result, all of the
+// llvm_verify commands in this file use What4-based tactics (e.g., w4_unint_z3)
+// rather than SBV-based tactics (e.g., sbv_unint_z3 or z3).
 include "handshake_io_lowlevel.saw";
 import "rfc_handshake_tls12.cry";
 import "rfc_handshake_tls13.cry";
@@ -39,6 +43,13 @@ let equalNat_ite = core_axiom
   "(x y z : Nat) -> (b : Bool) -> Eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
 // Low-level handshake_io correspondence proof
+//
+// WARNING: Because `enable_lax_loads_and_stores` is enabled in this module,
+// these proofs must use What4-based proof tactics (i.e., those with a `w4_`
+// prefix). Otherwise, they will fail, likely with an error message to the
+// effect of:
+//
+//   FOTArray unimplemented for backend
 let prove_handshake_io_lowlevel = do {
     print "Beginning the low-level spec equivalence proof";
 
@@ -63,9 +74,9 @@ let prove_handshake_io_lowlevel = do {
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked, s2n_socket_quickack];
 
     print "Proving correctness of get_auth_type";
-    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); (w4_unint_yices []);});
     print "Proving correctness of s2n_advance_message";
-    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec yices;
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec (w4_unint_yices []);
     // To prove s2n_conn_set_handshake_type's correctness, we invoke its
     // specification (s2n_conn_set_handshake_type_spec) twice: once where
     // chosen_psk is assumed to be NULL, and once again where chosen_psk is
@@ -76,34 +87,46 @@ let prove_handshake_io_lowlevel = do {
     // Issue #3052 is about removing the need to invoke the specification twice.
     let s2n_conn_set_handshake_type_ovs = [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket];
     print "Proving correctness of s2n_conn_set_handshake_type (NULL chosen_psk)";
-    s2n_conn_set_handshake_type_chosen_psk_null_proof     <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec true)  yices;
+    s2n_conn_set_handshake_type_chosen_psk_null_proof     <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec true)  (w4_unint_yices []);
     print "Proving correctness of s2n_conn_set_handshake_type (non-NULL chosen_psk)";
-    s2n_conn_set_handshake_type_chosen_psk_non_null_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec false) yices;
+    s2n_conn_set_handshake_type_chosen_psk_non_null_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" s2n_conn_set_handshake_type_ovs false (s2n_conn_set_handshake_type_spec false) (w4_unint_yices []);
 
     print "Done: Verified that the low-level specification corresponds to the C code";
 
     return ();
 };
 
+// WARNING: Because `enable_lax_loads_and_stores` is enabled in this module,
+// these proofs must use What4-based proof tactics (i.e., those with a `w4_`
+// prefix). Otherwise, they will fail, likely with an error message to the
+// effect of:
+//
+//   FOTArray unimplemented for backend
 let prove_state_machine = do {
     print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
-    prove_print abc {{ tls12rfcSimulatesS2N `{16} }};
+    prove_print (w4_unint_z3 []) {{ tls12rfcSimulatesS2N `{16} }};
 
     print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
-    prove_print z3 {{ tls13rfcSimulatesS2N `{16} }};
+    prove_print (w4_unint_z3 []) {{ tls13rfcSimulatesS2N `{16} }};
 
     return ();
 };
 
+// WARNING: Because `enable_lax_loads_and_stores` is enabled in this module,
+// these proofs must use What4-based proof tactics (i.e., those with a `w4_`
+// prefix). Otherwise, they will fail, likely with an error message to the
+// effect of:
+//
+//   FOTArray unimplemented for backend
 let prove_cork_uncork = do {
     print "Verifying the low-level->high-level cork-uncork simulation";
-    prove_print z3 {{ highLevelSimulatesLowLevel `{16} }};
+    prove_print (w4_unint_z3 []) {{ highLevelSimulatesLowLevel `{16} }};
 
     print "Verifying that double uncorking or corking cannot occur in server mode";
-    prove_print z3 {{ noDoubleCorkUncork `{16} }};
+    prove_print (w4_unint_z3 []) {{ noDoubleCorkUncork `{16} }};
 
     print "Expecting failure when proving low-high simulation without the server mode assumption";
-    sat z3 {{ ~highLevelDoesNotSimulateLowLevel `{16} }};
+    sat (w4_unint_z3 []) {{ ~highLevelDoesNotSimulateLowLevel `{16} }};
 
     return ();
 };

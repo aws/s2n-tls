@@ -17,25 +17,40 @@
 
 #include "crypto/s2n_fips.h"
 
+#if defined(S2N_INTERN_LIBCRYPTO) && defined(OPENSSL_FIPS)
+#error "Interning with OpenSSL fips-validated libcrypto is not currently supported. See https://github.com/aws/s2n-tls/issues/2741"
+#endif
+
 static int s2n_fips_mode = 0;
+
+/* FIPS mode can be checked if OpenSSL was configured and built for FIPS which then defines OPENSSL_FIPS.
+ *
+ * AWS-LC always defines FIPS_mode() that you can call and check what the library was built with. It does not define
+ * a public OPENSSL_FIPS/AWSLC_FIPS macro that we can (or need to) check here
+ *
+ * Safeguard with macro's, for example because Libressl dosn't define
+ * FIPS_mode() by default.
+ *
+ * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only returns the current state. Applications
+ * using s2n must call FIPS_mode_set(1) prior to s2n_init.
+ * */
+bool s2n_libcrypto_is_fips(void) {
+#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
+    if (FIPS_mode() == 1) {
+        return true;
+    }
+#endif
+    return false;
+}
 
 int s2n_fips_init(void)
 {
     s2n_fips_mode = 0;
 
-    /* FIPS mode can be checked if OpenSSL was configured and built for FIPS which then defines OPENSSL_FIPS.
-     *
-     * AWS-LC always defines FIPS_mode() that you can call and check what the library was built with. It does not define
-     * a public OPENSSL_FIPS/AWSLC_FIPS macro that we can (or need to) check here
-     *
-     * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only returns the current state. Applications
-     * using s2n must call FIPS_mode_set(1) prior to s2n_init.
-     * */
-#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
-    if (FIPS_mode()) {
+    if (s2n_libcrypto_is_fips()) {
         s2n_fips_mode = 1;
     }
-#endif
+
     return 0;
 }
 

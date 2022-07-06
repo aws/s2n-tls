@@ -68,22 +68,25 @@ fi
 
 if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
     # Install tox
-    if [[ ! -x `which tox` ]]; then
-        case "$DISTRO" in
-        "ubuntu")
-          apt-get -y install tox
-          ;;
-        "amazon linux")
-          yum install -y python3-pip
-          python3 -m pip install --user tox          ;;
-        "apple")
-          brew install python@3
-          python3 -m pip install --user tox          ;;
-        *)
-          echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
-          exit 1
-          ;;
-        esac
+    if [[ "$DISTRO" == "ubuntu" ]]; then
+        if [[ ! -x `python3.9 -m tox --version` ]]; then
+            python3.9 -m pip install tox
+        fi
+    else
+        if [[ ! -x `which tox` ]]; then
+            case "$DISTRO" in
+            "amazon linux")
+                yum install -y python3-pip
+                python3 -m pip install --user tox ;;
+            "apple")
+                brew install python@3
+                python3 -m pip install --user tox ;;
+            *)
+                echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
+                exit 1
+                ;;
+            esac
+        fi
     fi
 
     if [[ ! -x "$OPENSSL_0_9_8_INSTALL_DIR/bin/openssl" ]]; then
@@ -98,10 +101,16 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
       codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" > /dev/null ;
     fi
 
+    if [[ ! -x "$GNUTLS37_INSTALL_DIR/bin/gnutls-cli" ]]; then
+      # Download and Install GnuTLS for integration tests
+      mkdir -p "$GNUTLS37_INSTALL_DIR"||true
+      codebuild/bin/install_gnutls37.sh "$(mktemp -d)" "$GNUTLS37_INSTALL_DIR" > /dev/null ;
+    fi
+
     if [[ ! -x "$OQS_OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
       # Download and Install OQS OpenSSL for integration tests
       mkdir -p "$OQS_OPENSSL_1_1_1_INSTALL_DIR" ||true
-      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+      codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" | head -50
     fi
 
     # Install SSLyze for all Integration Tests on Ubuntu.

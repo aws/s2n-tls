@@ -24,7 +24,7 @@
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 
-#if S2N_HAVE_EXECINFO
+#ifdef S2N_STACKTRACE
 #   include <execinfo.h>
 #endif
 
@@ -265,6 +265,11 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KEYING_MATERIAL_EXPIRED, "The lifetime of the connection keying material has exceeded the limit. Perform a new full handshake.") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_TRIAL_DECRYPT, "Unable to decrypt rejected early data") \
     ERR_ENTRY(S2N_ERR_PKEY_CTX_INIT, "Unable to initialize the libcrypto pkey context") \
+    ERR_ENTRY(S2N_ERR_FORK_DETECTION_INIT, "Fork detection initialization failed") \
+    ERR_ENTRY(S2N_ERR_RETRIEVE_FORK_GENERATION_NUMBER, "Retrieving fork generation number failed") \
+    ERR_ENTRY(S2N_ERR_SECRET_SCHEDULE_STATE, "Correct inputs to secret calculation not available") \
+    ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH, "The libcrypto major version number seen at compile-time is different from the major version number seen at run-time") \
+    ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH, "The libcrypto major version name seen at compile-time is different from the major version name seen at run-time") \
 /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
@@ -362,7 +367,7 @@ int s2n_stack_traces_enabled_set(bool newval)
     return S2N_SUCCESS;
 }
 
-#ifdef S2N_HAVE_EXECINFO
+#ifdef S2N_STACKTRACE
 
 #define MAX_BACKTRACE_DEPTH 20
 __thread struct s2n_stacktrace tl_stacktrace = {0};
@@ -413,7 +418,7 @@ int s2n_print_stacktrace(FILE *fptr)
     return S2N_SUCCESS;
 }
 
-#else /* !S2N_HAVE_EXECINFO */
+#else /* !S2N_STACKTRACE */
 int s2n_free_stacktrace(void)
 {
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
@@ -438,4 +443,4 @@ int s2n_print_stacktrace(FILE *fptr)
 {
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
-#endif /* S2N_HAVE_EXECINFO */
+#endif /* S2N_STACKTRACE */

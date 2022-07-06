@@ -34,7 +34,7 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
 
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn);
 
-int s2n_tls13_handle_secrets(struct s2n_connection *conn);
+int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret);
 int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, keyupdate_status status);
 
 int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn);

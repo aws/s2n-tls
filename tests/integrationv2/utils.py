@@ -1,5 +1,6 @@
 from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
+from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
 
 
 def to_bytes(val):
@@ -23,16 +24,21 @@ def get_expected_s2n_version(protocol, provider):
 
 
 def get_expected_openssl_version(protocol):
-    if protocol == Protocols.TLS13:
-        version = 'TLSv1.3'
-    elif protocol == Protocols.TLS12:
-        version = 'TLSv1.2'
-    elif protocol == Protocols.TLS11:
-        version = 'TLSv1.1'
-    elif protocol == Protocols.TLS10:
-        version = 'TLSv1'
+    return {
+        Protocols.TLS10.value: "TLSv1",
+        Protocols.TLS11.value: "TLSv1.1",
+        Protocols.TLS12.value: "TLSv1.2",
+        Protocols.TLS13.value: "TLSv1.3"
+    }.get(protocol.value)
 
-    return version
+
+def get_expected_gnutls_version(protocol):
+    return {
+        Protocols.TLS10.value: "TLS1.0",
+        Protocols.TLS11.value: "TLS1.1",
+        Protocols.TLS12.value: "TLS1.2",
+        Protocols.TLS13.value: "TLS1.3"
+    }.get(protocol.value)
 
 
 def get_parameter_name(item):
@@ -49,10 +55,14 @@ def invalid_test_parameters(*args, **kwargs):
     """
     protocol = kwargs.get('protocol')
     provider = kwargs.get('provider')
+    other_provider = kwargs.get('other_provider')
     certificate = kwargs.get('certificate')
     client_certificate = kwargs.get('client_certificate')
     cipher = kwargs.get('cipher')
     curve = kwargs.get('curve')
+    signature = kwargs.get('signature')
+
+    providers = [provider_ for provider_ in [provider, other_provider] if provider_]
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
@@ -62,8 +72,9 @@ def invalid_test_parameters(*args, **kwargs):
         if certificate and certificate.algorithm == 'RSAPSS':
             return True
 
-    if provider is not None and not provider.supports_protocol(protocol):
-        return True
+    for provider_ in providers:
+        if not provider_.supports_protocol(protocol):
+            return True
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
@@ -76,14 +87,21 @@ def invalid_test_parameters(*args, **kwargs):
             if protocol is Protocols.TLS13 and cipher.min_version < protocol:
                 return True
 
-        if provider is not None and not provider.supports_cipher(cipher, with_curve=curve):
-            return True
+        for provider_ in providers:
+            if not provider_.supports_cipher(cipher, with_curve=curve):
+                return True
+
+        if get_flag(S2N_FIPS_MODE):
+            if not cipher.fips:
+                return True
 
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test if the wrong certificate is used.
     if certificate is not None:
-        if protocol is not None and provider.supports_protocol(protocol, with_cert=certificate) is False:
-            return True
+        if protocol is not None:
+            for provider_ in providers:
+                if provider_.supports_protocol(protocol, with_cert=certificate) is False:
+                    return True
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 
@@ -98,5 +116,10 @@ def invalid_test_parameters(*args, **kwargs):
     if curve is not None:
         if protocol is not None and curve.min_protocol > protocol:
             return True
+
+    if signature is not None:
+        for provider_ in providers:
+            if provider_.supports_signature(signature) is False:
+                return True
 
     return False

@@ -1,19 +1,45 @@
 [package]
 name = "s2n-tls-sys"
-version = "0.1.0"
+description = "A C99 implementation of the TLS/SSL protocols"
+version = "0.0.8"
 authors = ["AWS s2n"]
-edition = "2018"
+edition = "2021"
 links = "s2n-tls"
+repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
+include = [
+  "build.rs",
+  "Cargo.toml",
+  "files.rs",
+  "lib/**/*.c",
+  "lib/**/*.h",
+  "lib/**/*.S",
+  "lib/CMakeLists.txt",
+  "lib/**/*.cmake",
+  "src/**/*.rs",
+  "tests/**/*.rs",
+]
 
 [features]
 default = []
-pq = []
+pq = ["cmake"] # the pq build logic is complicated so just use cmake instead
 quic = []
+internal = []
 
 [dependencies]
 libc = "0.2"
+# NOTE: The version of the `openssl-sys` crate is not the same as OpenSSL itself.
+#       Versions 1.0.1 - 3.0.0 are automatically discovered.
 openssl-sys = { version = "0.9" }
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
+cmake = { version = "0.1", optional = true }
+
+[dev-dependencies]
+# Pin to this version until s2n-tls supports OpenSSL 3.0
+# Build the vendored version to make it easy to test in dev
+#
+# NOTE: The version of the `openssl-sys` crate is not the same as OpenSSL itself.
+#       Versions 1.0.1 - 3.0.0 are automatically discovered.
+openssl-sys = { version = "<= 0.9.68", features = ["vendored"] }

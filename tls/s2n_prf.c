@@ -44,6 +44,11 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
     POSIX_ENSURE_REF(conn->handshake.hashes);
     struct s2n_hash_state *workspace = &conn->handshake.hashes->hash_workspace;
 
+    /* FIPS specifically allows MD5 for the legacy PRF */
+    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+        POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
+    }
+
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
     uint8_t iteration = 1;
@@ -585,15 +590,14 @@ S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_bl
     RESULT_ENSURE_REF(conn->handshake.hashes);
     RESULT_ENSURE_REF(output);
 
-    struct s2n_hash_state hash_state = { 0 };
-    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state(conn, hash_alg, &hash_state));
-    RESULT_GUARD_POSIX(s2n_hash_copy(&conn->handshake.hashes->hash_workspace, &hash_state));
-    RESULT_GUARD_POSIX(s2n_hash_update(&conn->handshake.hashes->hash_workspace, message->data, message->size));
+    struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;
+    RESULT_GUARD(s2n_handshake_copy_hash_state(conn, hash_alg, hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_update(hash_state, message->data, message->size));
 
     uint8_t digest_size = 0;
-    RESULT_GUARD_POSIX(s2n_hash_digest_size(conn->handshake.hashes->hash_workspace.alg, &digest_size));
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_alg, &digest_size));
     RESULT_ENSURE_GTE(output->size, digest_size);
-    RESULT_GUARD_POSIX(s2n_hash_digest(&conn->handshake.hashes->hash_workspace, output->data, digest_size));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, output->data, digest_size));
     output->size = digest_size;
 
     return S2N_RESULT_OK;

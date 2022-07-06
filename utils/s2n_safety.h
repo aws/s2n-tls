@@ -16,7 +16,6 @@
 #pragma once
 
 #include <string.h>
-#include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -48,14 +47,6 @@ int s2n_in_unit_test_set(bool newval);
 
 #define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
 #define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
-
-/**
- * Get the process id
- *
- * Returns:
- *  The process ID of the current process
- */
-extern pid_t s2n_actual_getpid();
 
 /* Returns 1 if a and b are equal, in constant time */
 extern bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len);

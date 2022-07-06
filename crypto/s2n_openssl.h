@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /**
  * openssl with OPENSSL_VERSION_NUMBER < 0x10100003L made data type details unavailable
  * libressl use openssl with data type details available, but mandatorily set
@@ -38,8 +40,10 @@
 
 #if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) && (!defined(OPENSSL_IS_BORINGSSL)) && (!defined(OPENSSL_IS_AWSLC))
 #define s2n_evp_ctx_init(ctx) POSIX_GUARD_OSSL(EVP_CIPHER_CTX_init(ctx), S2N_ERR_DRBG)
+#define RESULT_EVP_CTX_INIT(ctx) RESULT_GUARD_OSSL(EVP_CIPHER_CTX_init(ctx), S2N_ERR_DRBG)
 #else
 #define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_init(ctx)
+#define RESULT_EVP_CTX_INIT(ctx) EVP_CIPHER_CTX_init(ctx)
 #endif
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_AWSLC) && !defined(OPENSSL_NO_ENGINE)
@@ -47,3 +51,6 @@
 #else
 #define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0
 #endif
+
+bool s2n_libcrypto_is_awslc();
+bool s2n_libcrypto_is_boringssl();

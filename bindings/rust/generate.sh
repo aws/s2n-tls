@@ -2,9 +2,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+set -e
+
 # cd into the script directory so it can be executed from anywhere
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# delete the existing copy in case we have extra files
+rm -rf s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib/tests
 
@@ -24,14 +28,23 @@ cp -r \
   ../../tests/features \
   s2n-tls-sys/lib/tests/
 
+cp -r \
+  ../../CMakeLists.txt \
+  ../../cmake \
+  s2n-tls-sys/lib/
+
 # generate the bindings modules from the copied sources
 cd generate && cargo run -- ../s2n-tls-sys && cd ..
 
 # make sure everything builds and passes sanity checks
 cd s2n-tls-sys \
   && cargo test \
-  && cargo test --release \
+  && cargo test --features pq \
   && cargo test --features quic \
+  && cargo test --features internal \
+  && cargo test --release \
+  && cargo publish --dry-run --allow-dirty \
+  && cargo publish --dry-run --allow-dirty --all-features \
   && cd ..
 
 cd integration \

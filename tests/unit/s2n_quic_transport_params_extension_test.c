@@ -70,9 +70,18 @@ int main(int argc, char **argv)
         /* Succeeds if quic not enabled (default) */
         EXPECT_SUCCESS(s2n_quic_transport_parameters_extension.if_missing(conn));
 
-        /* Fails if quic enabled */
+        /* Fails if quic enabled
+         *
+         *= https://tools.ietf.org/rfc/rfc9001.txt#8.2
+         *= type=test
+         *# Endpoints MUST send the quic_transport_parameters extension; endpoints that receive
+         *# ClientHello or EncryptedExtensions messages without the quic_transport_parameters
+         *# extension MUST close the connection with an error of type 0x016d (equivalent to a fatal
+         *# TLS missing_extension alert
+         **/
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_quic_transport_parameters_extension.if_missing(conn), S2N_ERR_MISSING_EXTENSION);
+        EXPECT_FAILURE_WITH_ALERT(s2n_quic_transport_parameters_extension.if_missing(conn),
+                S2N_ERR_MISSING_EXTENSION, S2N_TLS_ALERT_MISSING_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));

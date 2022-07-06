@@ -103,33 +103,20 @@ static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_has
     return S2N_SUCCESS;
 }
 
-int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg)
+S2N_RESULT s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg)
 {
-    struct s2n_hash_state *hash_state_ptr = NULL;
-    POSIX_GUARD(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state_ptr));
-
-    POSIX_GUARD(s2n_hash_reset(hash_state_ptr));
-
-    return S2N_SUCCESS;
+    struct s2n_hash_state *hash_state = NULL;
+    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_reset(hash_state));
+    return S2N_RESULT_OK;
 }
 
-/* Copy the current hash state into the caller supplied pointer.
- * NOTE: If the underlying digest implementation is using the EVP API
- * then a pointer to the EVP ctx and md is copied. So you are actually
- * taking a reference, not a value.
- * Before using the hash_state returned by this function you must
- * use s2n_hash_copy() to avoid modifying the underlying value.
- */
-int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state)
+S2N_RESULT s2n_handshake_copy_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *copy)
 {
-    POSIX_ENSURE_REF(hash_state);
-
-    struct s2n_hash_state *hash_state_ptr = NULL;
-    POSIX_GUARD(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state_ptr));
-
-    *hash_state = *hash_state_ptr;
-
-    return S2N_SUCCESS;
+    struct s2n_hash_state *hash_state = NULL;
+    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state));
+    RESULT_GUARD_POSIX(s2n_hash_copy(copy, hash_state));
+    return S2N_RESULT_OK;
 }
 
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)

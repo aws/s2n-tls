@@ -11,10 +11,10 @@ typedef struct{
 } polyvec;
 
 #define polyvec_compress_avx2 S2N_KYBER_512_R3_NAMESPACE(polyvec_compress_avx2)
-void polyvec_compress_avx2(uint8_t r[S2N_KYBER_512_R3_POLYCOMPRESSEDBYTES+2], const polyvec *a);
+void polyvec_compress_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+2], const polyvec *a);
 
 #define polyvec_decompress_avx2 S2N_KYBER_512_R3_NAMESPACE(polyvec_decompress_avx2)
-void polyvec_decompress_avx2(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYCOMPRESSEDBYTES+12]);
+void polyvec_decompress_avx2(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES+12]);
 
 #define polyvec_tobytes_avx2 S2N_KYBER_512_R3_NAMESPACE(polyvec_tobytes_avx2)
 void polyvec_tobytes_avx2(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], const polyvec *a);

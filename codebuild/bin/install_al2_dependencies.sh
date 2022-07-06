@@ -22,7 +22,12 @@ if [[ ${DISTRO} != "amazon linux" ]]; then
 fi
 
 base_packages() {
+    # Latest AL2 image had dependency issues related to NodeJS.
+    # We don't use NodeJS, so just remove it.
+    yum erase -y nodejs || true
     yum update -y
+    # The default openssl-devel on AL2 is openssl-1.0.
+    # We replace it with openssl-1.1 later in the build process.
     yum erase -y openssl-devel || true
     yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm || true
     yum install amazon-linux-extras

@@ -281,6 +281,8 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
+        /* Security policy must allow all test cipher suites */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
         /* TEST RSA */
@@ -487,6 +489,9 @@ int main(int argc, char **argv)
          */
         {
             const struct s2n_cipher_suite *expected_wire_choice = &s2n_rsa_with_rc4_128_md5;
+            if (!expected_wire_choice->available) {
+                expected_wire_choice = &s2n_rsa_with_3des_ede_cbc_sha;
+            }
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;

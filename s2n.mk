@@ -158,6 +158,13 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 
 endif
 
+# Disable strict-prototypes check in clang
+ifneq '' '$(findstring clang,$(CC))'
+	CFLAGS += -Wno-strict-prototypes
+	DEFAULT_CFLAGS += -Wno-strict-prototypes
+	CPPFLAGS += -Wno-strict-prototypes
+endif
+
 # If COV_TOOL isn't set, pick a default COV_TOOL depending on if the LLVM Marker File was created.
 ifndef COV_TOOL
 	ifneq ("$(wildcard $(LLVM_GCOV_MARKER_FILE))","")
@@ -167,18 +174,31 @@ ifndef COV_TOOL
 	endif
 endif
 
+# Used for testing.
+prefix ?= /usr/local
+exec_prefix ?= $(prefix)
+bindir ?= $(exec_prefix)/bin
+libdir ?= $(exec_prefix)/lib64
+includedir ?= $(exec_prefix)/include
+
 try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
 
 # Determine if execinfo.h is available
 TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
 ifeq ($(TRY_COMPILE_EXECINFO), 0)
-	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
+	DEFAULT_CFLAGS += -DS2N_STACKTRACE
 endif
 
 # Determine if cpuid.h is available
 TRY_COMPILE_CPUID := $(call try_compile,$(S2N_ROOT)/tests/features/cpuid.c)
 ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
+endif
+
+# Determine if features.h is availabe
+TRY_COMPILE_FEATURES := $(call try_compile,$(S2N_ROOT)/tests/features/features.c)
+ifeq ($(TRY_COMPILE_FEATURES), 0)
+	DEFAULT_CFLAGS += -DS2N_FEATURES_AVAILABLE
 endif
 
 # Determine if __attribute__((fallthrough)) is available
@@ -199,10 +219,34 @@ ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
 endif
 
+# Determine if EVP_md5_sha1 is available
+TRY_EVP_RC4 := $(call try_compile,$(S2N_ROOT)/tests/features/evp_rc4.c)
+ifeq ($(TRY_EVP_RC4), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4
+endif
+
 # Determine if EVP_MD_CTX_set_pkey_ctx is available
 TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
 ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
+endif
+
+# Determine if madvise() is available
+TRY_COMPILE_MADVISE := $(call try_compile,$(S2N_ROOT)/tests/features/madvise.c)
+ifeq ($(TRY_COMPILE_MADVISE), 0)
+	DEFAULT_CFLAGS += -DS2N_MADVISE_SUPPORTED
+endif
+
+# Determine if minherit() is available
+TRY_COMPILE_MINHERIT:= $(call try_compile,$(S2N_ROOT)/tests/features/minherit.c)
+ifeq ($(TRY_COMPILE_MINHERIT), 0)
+	DEFAULT_CFLAGS += -DS2N_MINHERIT_SUPPORTED
+endif
+
+# Determine if clone() is available
+TRY_COMPILE_CLONE := $(call try_compile,$(S2N_ROOT)/tests/features/clone.c)
+ifeq ($(TRY_COMPILE_CLONE), 0)
+	DEFAULT_CFLAGS += -DS2N_CLONE_SUPPORTED
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

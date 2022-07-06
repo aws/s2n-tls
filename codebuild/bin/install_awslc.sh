@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -ex
+set -e
 pushd "$(pwd)"
 
 usage() {
@@ -27,16 +27,30 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 IS_FIPS=$3
+
 source codebuild/bin/jobs.sh
 
+mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
 git clone https://github.com/awslabs/aws-lc.git
-mkdir build
-cd build
+if [ "$IS_FIPS" == "1" ]; then
+  echo "Checking out FIPS branch"
+  cd aws-lc
+  git checkout -b fips-2021-10-20 origin/fips-2021-10-20
+  cd ..
+fi
 
-cmake ../aws-lc -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
-ninja -j "${JOBS}" install
+install_awslc() {
+	echo "Building with shared library=$1"
+	cmake ./aws-lc -Bbuild -GNinja -DBUILD_SHARED_LIBS=$1 -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
+	ninja -j "${JOBS}" -C build install
+	ninja -C build clean
+}
 
-popd
+if [ "$IS_FIPS" != "1" ]; then
+  install_awslc 0
+fi
+
+install_awslc 1
 
 exit 0

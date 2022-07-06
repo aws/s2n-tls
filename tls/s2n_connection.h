@@ -26,16 +26,16 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_early_data.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_key_update.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_quic_support.h"
+#include "tls/s2n_record.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
-#include "tls/s2n_key_update.h"
-#include "tls/s2n_kem_preferences.h"
-#include "tls/s2n_ecc_preferences.h"
-#include "tls/s2n_security_policies.h"
-#include "tls/s2n_record.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
@@ -56,15 +56,6 @@ typedef enum {
 } s2n_session_ticket_status;
 
 struct s2n_connection {
-    /* The following bitfield flags are used in SAW proofs. The positions of
-     * these flags are important, as SAW looks up each flag by their index
-     * in the struct starting from 0. See the comments surrounding
-     * conn_bitfield in tests/saw/spec/handshake/handshake_io_lowlevel.saw for
-     * more details. Make sure that any new flags are added after these ones
-     * so that the indices in the SAW proofs do not need to be changed each time.
-     *
-     * START OF SAW-TRACKED BITFIELD FLAGS */
-
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
      * managed_send_io
      */
@@ -75,8 +66,6 @@ struct s2n_connection {
 
     /* Connection can be used by a QUIC implementation */
     unsigned quic_enabled:1;
-
-    /* END OF SAW-TRACKED BITFIELD FLAGS */
 
     /* Determines if we're currently sending or receiving in s2n_shutdown */
     unsigned close_notify_queued:1;
@@ -155,7 +144,7 @@ struct s2n_connection {
     void *send_io_context;
     void *recv_io_context;
 
-    /* Track request extensions to ensure correct response extension behavior.
+    /* Track request/response extensions to ensure correct response extension behavior.
      *
      * We need to track client and server extensions separately because some
      * extensions (like request_status and other Certificate extensions) can
@@ -163,6 +152,7 @@ struct s2n_connection {
      */
     s2n_extension_bitfield extension_requests_sent;
     s2n_extension_bitfield extension_requests_received;
+    s2n_extension_bitfield extension_responses_received;
 
     /* Is this connection a client or a server connection */
     s2n_mode mode;
@@ -363,7 +353,7 @@ struct s2n_connection {
     struct s2n_blob application_protocols_overridden;
 
     /* Cookie extension data */
-    struct s2n_stuffer cookie_stuffer;
+    struct s2n_blob cookie;
 
     /* Flags to prevent users from calling methods recursively.
      * This can be an easy mistake to make when implementing callbacks.

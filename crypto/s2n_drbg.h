@@ -52,12 +52,15 @@ typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR} s2n_drbg_mode;
 
 /* Per NIST SP 800-90C 6.3
  *
- * s2n's DRBG does provide prediction resistance
- * and does not support the additional_input parameter (which per 800-90C may be zero).
+ * s2n's DRBG uses prediction resistance and does not support the
+ * additional_input parameter (which per 800-90C may be zero).
  *
-  * The security strength provided by s2n's DRBG is either 128 or 256 bits depending on the s2n_drbg_mode passed in.
+ * The security strength provided by s2n's DRBG is either 128 or 256 bits
+ * depending on the s2n_drbg_mode passed in.
  */
-extern int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode);
-extern int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *returned_bits);
-extern int s2n_drbg_wipe(struct s2n_drbg *drbg);
-extern int s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used);
+S2N_RESULT s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode);
+S2N_RESULT s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *returned_bits);
+S2N_RESULT s2n_drbg_wipe(struct s2n_drbg *drbg);
+S2N_RESULT s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used);
+/* Use for testing only */
+S2N_RESULT s2n_ignore_prediction_resistance_for_testing(bool true_or_false);

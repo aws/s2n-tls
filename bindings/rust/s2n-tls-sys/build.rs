@@ -4,13 +4,74 @@
 use std::path::{Path, PathBuf};
 
 fn main() {
+    let external = External::default();
+    if external.is_enabled() {
+        external.link();
+    } else {
+        #[cfg(feature = "cmake")]
+        {
+            // branch on a runtime value so we don't get unused code warnings
+            if option_env("CARGO_FEATURE_CMAKE").is_some() {
+                build_cmake();
+            } else {
+                build_vendored();
+            }
+        }
+
+        #[cfg(not(feature = "cmake"))]
+        build_vendored();
+    }
+}
+
+fn env<N: AsRef<str>>(name: N) -> String {
+    option_env(name).expect("missing env var")
+}
+
+fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
+    let name = name.as_ref();
+    eprintln!("cargo:rerun-if-env-changed={}", name);
+    std::env::var(name).ok()
+}
+
+struct FeatureDetector<'a> {
+    out_dir: &'a std::path::Path,
+}
+
+impl<'a> FeatureDetector<'a> {
+    pub fn new(out_dir: &'a Path) -> Self {
+        Self { out_dir }
+    }
+
+    pub fn supports(&self, name: &str) -> bool {
+        let out = self.out_dir.join("features").join(name);
+        let out = out.to_str().unwrap();
+
+        cc::Build::new()
+            .file(
+                std::path::Path::new("lib/tests/features")
+                    .join(name)
+                    .with_extension("c"),
+            )
+            // don't print anything
+            .cargo_metadata(false)
+            // make sure it doesn't warn
+            .warnings(true)
+            .debug(false)
+            // set the archiver to the `true` program, since we don't actually link anything
+            .archiver("true")
+            .try_compile(out)
+            .is_ok()
+    }
+}
+
+fn build_vendored() {
     let mut build = cc::Build::new();
 
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
 
     // TODO each pq section needs to be built separately since it
     //      has its own relative include paths
-    assert!(!pq, "pq builds are not currently supported");
+    assert!(!pq, "pq builds are not currently supported without cmake");
 
     build.files(include!("./files.rs").iter().copied().filter(|file| {
         // the pq entry file is still needed
@@ -61,12 +122,28 @@ fn main() {
         build.define("S2N_CPUID_AVAILABLE", "1");
     }
 
+    if features.supports("features") {
+        build.define("S2N_FEATURES_AVAILABLE", "1");
+    }
+
     if features.supports("fallthrough") {
         build.define("FALL_THROUGH_SUPPORTED", "1");
     }
 
     if features.supports("__restrict__") {
         build.define("__RESTRICT__SUPPORTED", "1");
+    }
+
+    if features.supports("madvise") {
+        build.define("MADVISE_SUPPORTED", "1");
+    }
+
+    if features.supports("minherit") {
+        build.define("MINHERIT_SUPPORTED", "1");
+    }
+
+    if features.supports("clone") {
+        build.define("CLONE_SUPPORTED", "1");
     }
 
     // don't spit out a bunch of warnings to the end user, since they won't really be able
@@ -85,43 +162,96 @@ fn main() {
     println!("cargo:include={}", include_dir.display());
 }
 
-fn env<N: AsRef<str>>(name: N) -> String {
-    option_env(name).expect("missing env var")
-}
+#[cfg(feature = "cmake")]
+fn build_cmake() {
+    let mut config = cmake::Config::new("lib");
 
-fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
-    let name = name.as_ref();
-    eprintln!("cargo:rerun-if-env-changed={}", name);
-    std::env::var(name).ok()
-}
-
-struct FeatureDetector<'a> {
-    out_dir: &'a std::path::Path,
-}
-
-impl<'a> FeatureDetector<'a> {
-    pub fn new(out_dir: &'a Path) -> Self {
-        Self { out_dir }
+    // sometimes openssl-sys decides not to set this value so we may need to set it anyway
+    if option_env("DEP_OPENSSL_ROOT").is_none() {
+        let include = env("DEP_OPENSSL_INCLUDE");
+        if let Some(root) = Path::new(&include).parent() {
+            std::env::set_var("DEP_OPENSSL_ROOT", root);
+        }
     }
 
-    pub fn supports(&self, name: &str) -> bool {
-        let out = self.out_dir.join("features").join(name);
-        let out = out.to_str().unwrap();
+    config
+        .register_dep("openssl")
+        .configure_arg("-DBUILD_TESTING=off");
 
-        cc::Build::new()
-            .file(
-                std::path::Path::new("lib/tests/features")
-                    .join(name)
-                    .with_extension("c"),
-            )
-            // don't print anything
-            .cargo_metadata(false)
-            // make sure it doesn't warn
-            .warnings(true)
-            .debug(false)
-            // set the archiver to the `true` program, since we don't actually link anything
-            .archiver("true")
-            .try_compile(out)
-            .is_ok()
+    if option_env("CARGO_FEATURE_PQ").is_none() {
+        config.configure_arg("-DS2N_NO_PQ=on");
+    }
+
+    let dst = config.build();
+
+    let lib = search(dst.join("lib64"))
+        .or_else(|| search(dst.join("lib")))
+        .or_else(|| search(dst.join("build").join("lib")))
+        .expect("could not build libs2n");
+
+    // link the built artifact
+    if lib.join("libs2n.a").exists() {
+        println!("cargo:rustc-link-lib=static=s2n");
+    } else {
+        println!("cargo:rustc-link-lib=s2n");
+    }
+
+    println!("cargo:include={}", dst.join("include").display());
+
+    // tell rust we're linking with libcrypto
+    println!("cargo:rustc-link-lib=crypto");
+
+    fn search(path: PathBuf) -> Option<PathBuf> {
+        if path.exists() {
+            println!("cargo:rustc-link-search={}", path.display());
+            Some(path)
+        } else {
+            None
+        }
+    }
+}
+
+struct External {
+    lib_dir: Option<PathBuf>,
+    include_dir: Option<PathBuf>,
+}
+
+impl Default for External {
+    fn default() -> Self {
+        let dir = option_env("S2N_TLS_DIR").map(PathBuf::from);
+
+        let lib_dir = option_env("S2N_TLS_LIB_DIR")
+            .map(PathBuf::from)
+            .or_else(|| dir.as_ref().map(|d| d.join("lib")));
+
+        let include_dir = option_env("S2N_TLS_INCLUDE_DIR")
+            .map(PathBuf::from)
+            .or_else(|| dir.as_ref().map(|d| d.join("include")));
+
+        Self {
+            lib_dir,
+            include_dir,
+        }
+    }
+}
+
+impl External {
+    fn is_enabled(&self) -> bool {
+        self.lib_dir.is_some()
+    }
+
+    fn link(&self) {
+        println!(
+            "cargo:rustc-link-search={}",
+            self.lib_dir.as_ref().unwrap().display()
+        );
+        println!("cargo:rustc-link-lib=s2n");
+
+        // tell rust we're linking with libcrypto
+        println!("cargo:rustc-link-lib=crypto");
+
+        if let Some(include_dir) = self.include_dir.as_ref() {
+            println!("cargo:include={}", include_dir.display());
+        }
     }
 }
