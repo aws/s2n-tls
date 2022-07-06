@@ -1573,17 +1573,16 @@ int main(int argc, char **argv)
                       s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        struct s2n_stuffer *server_io = &server_conn->handshake.io;
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                       s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        struct s2n_stuffer *client_io = &client_conn->handshake.io;
 
-        struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
 
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1608,76 +1607,65 @@ int main(int argc, char **argv)
          * s2n_stuffer_skip_read_until, and then seek to the end of the identity. */
         const unsigned long identity_data_size = psk->identity.size - strlen((char*) psk->identity.data);
 
-        /* ClientHello 1 */
-        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+        s2n_blocked_status blocked = 0;
+
+        /* Client sends ClientHello 1 */
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
         /* Read the obfuscated ticket age from ClientHello 1 */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, identity_data_size));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&io_stuffer, (char*) psk->identity.data));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, identity_data_size));
         uint32_t obfuscated_ticket_age_1 = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_1));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32(&io_stuffer, &obfuscated_ticket_age_1));
 
         /* Skip over the size of the binders list */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, sizeof(uint16_t)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, sizeof(uint16_t)));
 
         /* Ensure the binder size is as expected */
         uint8_t binder_1_size = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8(client_io, &binder_1_size));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_stuffer, &binder_1_size));
         EXPECT_TRUE(binder_1_size == BINDER_SIZE);
 
         /* Read the binder from ClientHello 1 */
         uint8_t binder_1[BINDER_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_stuffer_read_bytes(client_io, binder_1, BINDER_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_reread(client_io));
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_stuffer, binder_1, BINDER_SIZE));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
 
         /* Ensure that the ticket age and binder are non-zero */
         EXPECT_TRUE(obfuscated_ticket_age_1 != 0);
         uint8_t zero_array[BINDER_SIZE] = { 0 };
         EXPECT_FALSE(s2n_constant_time_equals(binder_1, zero_array, BINDER_SIZE));
 
-        EXPECT_SUCCESS(s2n_stuffer_copy(client_io, server_io,
-                                        s2n_stuffer_data_available(client_io)));
-
-        /* Server receives ClientHello 1 */
-        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
-
-        /* Server sends HelloRetryRequest */
-        EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
-
-        EXPECT_SUCCESS(s2n_stuffer_wipe(client_io));
-        EXPECT_SUCCESS(s2n_stuffer_copy(server_io, client_io,
-                                        s2n_stuffer_data_available(server_io)));
-        client_conn->handshake.message_number = 1; /* hello retry */
-
-        /* Client receives HelloRetryRequest */
-        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
-
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(client_io));
+        /* Skip to before the client sends ClientHello 2 */
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, HELLO_RETRY_MSG));
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, CLIENT_HELLO));
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, CLIENT_HELLO));
 
         /* Change the ticket issue time so a new obfuscated ticket age will change */
         psk->ticket_issue_time -= MILLIS_TO_NANOS(1);
 
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&io_stuffer));
+
         /* Client sends ClientHello 2 */
-        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
         /* Read the obfuscated ticket age from ClientHello 2 */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(client_io, (char*) psk->identity.data));
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, identity_data_size));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&io_stuffer, (char*) psk->identity.data));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, identity_data_size));
         uint32_t obfuscated_ticket_age_2 = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint32(client_io, &obfuscated_ticket_age_2));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32(&io_stuffer, &obfuscated_ticket_age_2));
 
         /* Skip over the size of the binders list */
-        EXPECT_SUCCESS(s2n_stuffer_skip_read(client_io, sizeof(uint16_t)));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, sizeof(uint16_t)));
 
         /* Ensure the binder size is as expected */
         uint8_t binder_2_size = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8(client_io, &binder_2_size));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_stuffer, &binder_2_size));
         EXPECT_TRUE(binder_2_size == BINDER_SIZE);
 
         /* Read the binder from ClientHello 2 */
         uint8_t binder_2[BINDER_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_stuffer_read_bytes(client_io, binder_2, BINDER_SIZE));
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_stuffer, binder_2, BINDER_SIZE));
 
         /* Ensure that the ticket age and binder were updated after ClientHello 2 */
         EXPECT_TRUE(obfuscated_ticket_age_1 != obfuscated_ticket_age_2);
