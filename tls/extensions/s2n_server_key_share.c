@@ -238,7 +238,24 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     }
 
     struct s2n_ecc_evp_params *server_ecc_evp_params = &conn->kex_params.server_ecc_evp_params;
-    server_ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[supported_curve_index];
+    const struct s2n_ecc_named_curve *negotiated_curve = ecc_pref->ecc_curves[supported_curve_index];
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *# If using (EC)DHE key establishment and a HelloRetryRequest containing a
+     *# "key_share" extension was received by the client, the client MUST
+     *# verify that the selected NamedGroup in the ServerHello is the same as
+     *# that in the HelloRetryRequest. If this check fails, the client MUST
+     *# abort the handshake with an "illegal_parameter" alert.
+     **/
+    if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
+        POSIX_ENSURE_REF(server_ecc_evp_params->negotiated_curve);
+        const struct s2n_ecc_named_curve *previous_negotiated_curve = server_ecc_evp_params->negotiated_curve;
+        POSIX_ENSURE(negotiated_curve == previous_negotiated_curve,
+                     S2N_ERR_BAD_MESSAGE);
+    }
+
+    server_ecc_evp_params->negotiated_curve = negotiated_curve;
 
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
      * Set the server negotiated curve and exit early so a proper keyshare can be generated. */
