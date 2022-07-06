@@ -1495,11 +1495,13 @@ int main(int argc, char **argv)
                        s2n_connection_ptr_free);
          EXPECT_NOT_NULL(server_conn);
          EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
          DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                        s2n_connection_ptr_free);
          EXPECT_NOT_NULL(client_conn);
          EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
          struct s2n_test_io_pair io_pair = { 0 };
          EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -1508,7 +1510,7 @@ int main(int argc, char **argv)
          /* Force the HRR path */
          client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
-         /* Skip to before server sends ServerHello 2 */
+         /* Skip to before client receives ServerHello 2 */
          s2n_blocked_status blocked = 0;
          EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
          EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, HELLO_RETRY_MSG));
@@ -1516,21 +1518,14 @@ int main(int argc, char **argv)
          EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, CLIENT_HELLO));
          EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
          EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, SERVER_HELLO));
-
-         /* Server sends ServerHello 2 */
-         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
-
-         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
-         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                         s2n_stuffer_data_available(&server_conn->handshake.io)));
-         int server_hello = 3;
-         client_conn->handshake.message_number = server_hello;
+         EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, ENCRYPTED_EXTENSIONS));
 
          /* Set the negotiated curve to something other than what was sent in the HRR */
          client_conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp521r1;
 
          /* Client receives ServerHello 2 */
-         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_BAD_MESSAGE);
+         EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(client_conn, &blocked, ENCRYPTED_EXTENSIONS),
+                                 S2N_ERR_BAD_MESSAGE);
      }
 
      EXPECT_SUCCESS(s2n_disable_tls13_in_test());
