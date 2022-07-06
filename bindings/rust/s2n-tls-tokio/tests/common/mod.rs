@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::raw::{config, connection::Builder, error::Error, security::DEFAULT_TLS13};
+use s2n_tls::{config, connection::Builder, error::Error, security::DEFAULT_TLS13};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::time::Duration;
 use tokio::{
@@ -11,6 +11,8 @@ use tokio::{
 
 mod stream;
 pub use stream::*;
+mod time;
+pub use time::*;
 
 /// NOTE: this certificate and key are used for testing purposes only!
 pub static CERT_PEM: &[u8] = include_bytes!(concat!(

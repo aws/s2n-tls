@@ -1,0 +1,58 @@
+target = "https://tools.ietf.org/rfc/rfc8446#5.3"
+
+# 5.3.  Per-Record Nonce
+#
+# A 64-bit sequence number is maintained separately for reading and
+# writing records.  The appropriate sequence number is incremented by
+# one after reading or writing each record.  Each sequence number is
+# set to zero at the beginning of a connection and whenever the key is
+# changed; the first record transmitted under a particular traffic key
+# MUST use sequence number 0.
+# 
+# Because the size of sequence numbers is 64-bit, they should not wrap.
+# If a TLS implementation would need to wrap a sequence number, it MUST
+# either rekey (Section 4.6.3) or terminate the connection.
+# 
+# Each AEAD algorithm will specify a range of possible lengths for the
+# per-record nonce, from N_MIN bytes to N_MAX bytes of input [RFC5116].
+# The length of the TLS per-record nonce (iv_length) is set to the
+# larger of 8 bytes and N_MIN for the AEAD algorithm (see [RFC5116],
+# Section 4).  An AEAD algorithm where N_MAX is less than 8 bytes
+# MUST NOT be used with TLS.  The per-record nonce for the AEAD
+# construction is formed as follows:
+# 
+# 1.  The 64-bit record sequence number is encoded in network byte
+#     order and padded to the left with zeros to iv_length.
+# 
+# 2.  The padded sequence number is XORed with either the static
+#     client_write_iv or server_write_iv (depending on the role).
+# 
+# The resulting quantity (of length iv_length) is used as the
+# per-record nonce.
+# 
+# Note: This is a different construction from that in TLS 1.2, which
+# specified a partially explicit nonce.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Each sequence number is
+set to zero at the beginning of a connection and whenever the key is
+changed; the first record transmitted under a particular traffic key
+MUST use sequence number 0.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a TLS implementation would need to wrap a sequence number, it MUST
+either rekey (Section 4.6.3) or terminate the connection.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+An AEAD algorithm where N_MAX is less than 8 bytes
+MUST NOT be used with TLS.
+'''
+

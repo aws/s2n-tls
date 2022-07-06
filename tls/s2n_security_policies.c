@@ -36,6 +36,21 @@ const struct s2n_security_policy security_policy_default_tls13 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+/*
+ * This security policy is derived from the following specification:
+ * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
+ *
+ * Supports TLS1.2
+ */
+const struct s2n_security_policy security_policy_default_fips = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_default_fips,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_default_fips,
+    .certificate_signature_preferences = &s2n_signature_preferences_default_fips,
+    .ecc_preferences = &s2n_ecc_preferences_default_fips,
+};
+
 const struct s2n_security_policy security_policy_20190801 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
@@ -362,7 +377,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
 };
 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = {
-    .minimum_protocol_version = S2N_TLS10,  
+    .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2019_11,
     .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2019_11,
     .signature_preferences = &s2n_signature_preferences_20140601,
@@ -370,7 +385,7 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = 
 };
 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = {
-    .minimum_protocol_version = S2N_TLS10,  
+    .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2020_02,
     .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2020_02,
     .signature_preferences = &s2n_signature_preferences_20140601,
@@ -734,7 +749,7 @@ const struct s2n_security_policy security_policy_null = {
 struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="default", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="default_tls13", .security_policy=&security_policy_default_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="default_fips", .security_policy=&security_policy_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="default_fips", .security_policy=&security_policy_default_fips, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy=&security_policy_elb_2015_04, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
     { .version="ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy=&security_policy_elb_2016_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
@@ -743,9 +758,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="ELBSecurityPolicy-TLS-1-2-2017-01", .security_policy=&security_policy_elb_tls_1_2_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .security_policy=&security_policy_elb_tls_1_2_ext_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="ELBSecurityPolicy-FS-2018-06", .security_policy=&security_policy_elb_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .security_policy=&security_policy_elb_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 }, 
-    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .security_policy=&security_policy_elb_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 }, 
-    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy=&security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 }, 
+    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .security_policy=&security_policy_elb_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .security_policy=&security_policy_elb_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy=&security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-Upstream", .security_policy=&security_policy_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-Upstream-TLS-1-0", .security_policy=&security_policy_cloudfront_upstream_tls10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-Upstream-TLS-1-1", .security_policy=&security_policy_cloudfront_upstream_tls11, .ecc_extension_required=0, .pq_kem_extension_required=0 },

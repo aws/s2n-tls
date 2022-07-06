@@ -1,0 +1,174 @@
+target = "https://tools.ietf.org/rfc/rfc8446#E.1"
+
+# E.1.  Handshake
+#
+# The TLS handshake is an Authenticated Key Exchange (AKE) protocol
+# which is intended to provide both one-way authenticated (server-only)
+# and mutually authenticated (client and server) functionality.  At the
+# completion of the handshake, each side outputs its view of the
+# following values:
+# 
+# -  A set of "session keys" (the various secrets derived from the
+#    master secret) from which can be derived a set of working keys.
+# 
+# -  A set of cryptographic parameters (algorithms, etc.).
+# 
+# -  The identities of the communicating parties.
+# 
+# We assume the attacker to be an active network attacker, which means
+# it has complete control over the network used to communicate between
+# the parties [RFC3552].  Even under these conditions, the handshake
+# should provide the properties listed below.  Note that these
+# properties are not necessarily independent, but reflect the protocol
+# consumers' needs.
+# 
+# Establishing the same session keys:  The handshake needs to output
+#    the same set of session keys on both sides of the handshake,
+#    provided that it completes successfully on each endpoint (see
+#    [CK01], Definition 1, part 1).
+# 
+# Secrecy of the session keys:  The shared session keys should be known
+#    only to the communicating parties and not to the attacker (see
+#    [CK01], Definition 1, part 2).  Note that in a unilaterally
+#    authenticated connection, the attacker can establish its own
+#    session keys with the server, but those session keys are distinct
+#    from those established by the client.
+# 
+# Peer authentication:  The client's view of the peer identity should
+#    reflect the server's identity.  If the client is authenticated,
+#    the server's view of the peer identity should match the client's
+#    identity.
+# 
+# Uniqueness of the session keys:  Any two distinct handshakes should
+#    produce distinct, unrelated session keys.  Individual session keys
+#    produced by a handshake should also be distinct and independent.
+# 
+# Downgrade protection:  The cryptographic parameters should be the
+#    same on both sides and should be the same as if the peers had been
+#    communicating in the absence of an attack (see [BBFGKZ16],
+#    Definitions 8 and 9).
+# 
+# Forward secret with respect to long-term keys:  If the long-term
+#    keying material (in this case the signature keys in certificate-
+#    based authentication modes or the external/resumption PSK in PSK
+#    with (EC)DHE modes) is compromised after the handshake is
+#    complete, this does not compromise the security of the session key
+#    (see [DOW92]), as long as the session key itself has been erased.
+#    The forward secrecy property is not satisfied when PSK is used in
+#    the "psk_ke" PskKeyExchangeMode.
+# 
+# Key Compromise Impersonation (KCI) resistance:  In a mutually
+#    authenticated connection with certificates, compromising the
+#    long-term secret of one actor should not break that actor's
+#    authentication of their peer in the given connection (see
+#    [HGFS15]).  For example, if a client's signature key is
+#    compromised, it should not be possible to impersonate arbitrary
+#    servers to that client in subsequent handshakes.
+# 
+# Protection of endpoint identities:  The server's identity
+#    (certificate) should be protected against passive attackers.  The
+#    client's identity should be protected against both passive and
+#    active attackers.
+# 
+# Informally, the signature-based modes of TLS 1.3 provide for the
+# establishment of a unique, secret, shared key established by an
+# (EC)DHE key exchange and authenticated by the server's signature over
+# the handshake transcript, as well as tied to the server's identity by
+# a MAC.  If the client is authenticated by a certificate, it also
+# signs over the handshake transcript and provides a MAC tied to both
+# identities.  [SIGMA] describes the design and analysis of this type
+# of key exchange protocol.  If fresh (EC)DHE keys are used for each
+# connection, then the output keys are forward secret.
+# 
+# The external PSK and resumption PSK bootstrap from a long-term shared
+# secret into a unique per-connection set of short-term session keys.
+# This secret may have been established in a previous handshake.  If
+# PSK with (EC)DHE key establishment is used, these session keys will
+# also be forward secret.  The resumption PSK has been designed so that
+# the resumption master secret computed by connection N and needed to
+# form connection N+1 is separate from the traffic keys used by
+# 
+# connection N, thus providing forward secrecy between the connections.
+# In addition, if multiple tickets are established on the same
+# connection, they are associated with different keys, so compromise of
+# the PSK associated with one ticket does not lead to the compromise of
+# connections established with PSKs associated with other tickets.
+# This property is most interesting if tickets are stored in a database
+# (and so can be deleted) rather than if they are self-encrypted.
+# 
+# The PSK binder value forms a binding between a PSK and the current
+# handshake, as well as between the session where the PSK was
+# established and the current session.  This binding transitively
+# includes the original handshake transcript, because that transcript
+# is digested into the values which produce the resumption master
+# secret.  This requires that both the KDF used to produce the
+# resumption master secret and the MAC used to compute the binder be
+# collision resistant.  See Appendix E.1.1 for more on this.  Note: The
+# binder does not cover the binder values from other PSKs, though they
+# are included in the Finished MAC.
+# 
+# TLS does not currently permit the server to send a
+# certificate_request message in non-certificate-based handshakes
+# (e.g., PSK).  If this restriction were to be relaxed in future, the
+# client's signature would not cover the server's certificate directly.
+# However, if the PSK was established through a NewSessionTicket, the
+# client's signature would transitively cover the server's certificate
+# through the PSK binder.  [PSK-FINISHED] describes a concrete attack
+# on constructions that do not bind to the server's certificate (see
+# also [Kraw16]).  It is unsafe to use certificate-based client
+# authentication when the client might potentially share the same
+# PSK/key-id pair with two different endpoints.  Implementations
+# MUST NOT combine external PSKs with certificate-based authentication
+# of either the client or the server unless negotiated by some
+# extension.
+# 
+# If an exporter is used, then it produces values which are unique and
+# secret (because they are generated from a unique session key).
+# Exporters computed with different labels and contexts are
+# computationally independent, so it is not feasible to compute one
+# from another or the session secret from the exported value.
+# Note: Exporters can produce arbitrary-length values; if exporters are
+# to be used as channel bindings, the exported value MUST be large
+# enough to provide collision resistance.  The exporters provided in
+# TLS 1.3 are derived from the same Handshake Contexts as the early
+# traffic keys and the application traffic keys, respectively, and thus
+# have similar security properties.  Note that they do not include the
+# client's certificate; future applications which wish to bind to the
+# client's certificate may need to define a new exporter that includes
+# the full handshake transcript.
+# 
+# For all handshake modes, the Finished MAC (and, where present, the
+# signature) prevents downgrade attacks.  In addition, the use of
+# certain bytes in the random nonces as described in Section 4.1.3
+# allows the detection of downgrade to previous TLS versions.  See
+# [BBFGKZ16] for more details on TLS 1.3 and downgrade.
+# 
+# As soon as the client and the server have exchanged enough
+# information to establish shared keys, the remainder of the handshake
+# is encrypted, thus providing protection against passive attackers,
+# even if the computed shared key is not authenticated.  Because the
+# server authenticates before the client, the client can ensure that if
+# it authenticates to the server, it only reveals its identity to an
+# authenticated server.  Note that implementations must use the
+# provided record-padding mechanism during the handshake to avoid
+# leaking information about the identities due to length.  The client's
+# proposed PSK identities are not encrypted, nor is the one that the
+# server selects.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations
+MUST NOT combine external PSKs with certificate-based authentication
+of either the client or the server unless negotiated by some
+extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Note: Exporters can produce arbitrary-length values; if exporters are
+to be used as channel bindings, the exported value MUST be large
+enough to provide collision resistance.
+'''
+

@@ -1004,6 +1004,33 @@ int main(int argc, char **argv)
     }
 
     /**
+     * Ensure all hello retry extensions sent by the server will have first
+     * been sent by the client.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= type=test
+     *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
+     *# extensions that were not first offered by the client in its
+     *# ClientHello, with the exception of optionally the "cookie" (see
+     *# Section 4.2.2) extension.
+     **/
+    {
+        s2n_extension_type_list *hello_retry_extension_types = 0;
+        POSIX_GUARD(s2n_extension_type_list_get(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, &hello_retry_extension_types));
+
+        for (int i = 0; i < hello_retry_extension_types->count; ++i) {
+            const s2n_extension_type *const extension_type = hello_retry_extension_types->extension_types[i];
+
+            /* with the exception of optionally the "cookie" extension. */
+            if (extension_type->iana_value == TLS_EXTENSION_COOKIE) {
+                continue;
+            }
+
+            EXPECT_TRUE(extension_type->is_response);
+        }
+    }
+
+    /**
      * Ensure each of the following are checked: legacy_version,
      * legacy_session_id_echo, cipher_suite, and
      * legacy_compression_method
@@ -1274,7 +1301,7 @@ int main(int argc, char **argv)
 
          /* Client receives HelloRetryRequest */
          EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
-                                   S2N_ERR_BAD_MESSAGE);
+                                   S2N_ERR_MISSING_EXTENSION);
      }
 
      /**

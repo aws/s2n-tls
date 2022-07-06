@@ -204,7 +204,7 @@ int main(int argc, char **argv)
             /* The keyshare extension needs to be present, as s2n currently only
              * supports pre-shared keys in (EC)DHE key exchange mode.
              */
-            S2N_CBIT_SET(conn->extension_requests_received, key_share_ext_id);
+            S2N_CBIT_SET(conn->extension_responses_received, key_share_ext_id);
 
             /* Invalid chosen psk wire index */
             uint16_t chosen_psk_wire_index = 10;
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
             /* The keyshare extension needs to be present, as s2n currently only
              * supports pre-shared keys in (EC)DHE key exchange mode.
              */
-            S2N_CBIT_SET(conn->extension_requests_received, key_share_ext_id);
+            S2N_CBIT_SET(conn->extension_responses_received, key_share_ext_id);
 
             uint16_t chosen_psk_wire_index = TEST_PSK_WIRE_INDEX;
             conn->actual_protocol_version = S2N_TLS13;

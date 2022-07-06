@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    raw::connection::Connection,
+    connection::Connection,
     testing::{Context, Error, Result},
 };
 use bytes::BytesMut;
@@ -44,7 +44,7 @@ impl super::Connection for Harness {
             callback.set(&mut self.connection);
         }
 
-        let result = self.connection.negotiate().map_ok(|_| ());
+        let result = self.connection.poll_negotiate().map_ok(|_| ());
 
         callback.unset(&mut self.connection)?;
 
@@ -199,6 +199,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::testing::*;
     use futures_test::task::new_count_waker;
+    use std::{fs, path::Path};
 
     #[test]
     fn handshake_default() {
@@ -218,7 +219,7 @@ mod tests {
         assert_eq!(config.test_get_refcount()?, 1);
         {
             // Create new connection.
-            let mut server = crate::raw::connection::Connection::new_server();
+            let mut server = crate::connection::Connection::new_server();
             // Can't retrieve default config.
             assert!(server.config().is_none());
             // Custom config reference count doesn't change.
@@ -232,7 +233,7 @@ mod tests {
             assert_eq!(config.test_get_refcount()?, 2);
 
             // Create new connection.
-            let mut client = crate::raw::connection::Connection::new_client();
+            let mut client = crate::connection::Connection::new_client();
             // Can't retrieve default config.
             assert!(client.config().is_none());
             // Custom config reference count doesn't change.
@@ -256,7 +257,7 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13)?;
         assert_eq!(config.test_get_refcount()?, 1);
 
-        let mut server = crate::raw::connection::Connection::new_server();
+        let mut server = crate::connection::Connection::new_server();
         assert_eq!(config.test_get_refcount()?, 1);
 
         // call set_config once
@@ -276,7 +277,7 @@ mod tests {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
         assert_eq!(config.test_get_refcount().unwrap(), 1);
 
-        let mut server = crate::raw::connection::Connection::new_server();
+        let mut server = crate::connection::Connection::new_server();
         server.set_config(config).unwrap();
 
         assert!(server.waker().is_none());
@@ -306,7 +307,7 @@ mod tests {
 
         let server = {
             // create and configure a server connection
-            let mut server = crate::raw::connection::Connection::new_server();
+            let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
             server.set_waker(Some(&waker))?;
             Harness::new(server)
@@ -314,7 +315,7 @@ mod tests {
 
         let client = {
             // create a client connection
-            let mut client = crate::raw::connection::Connection::new_client();
+            let mut client = crate::connection::Connection::new_client();
             client.set_config(config)?;
             Harness::new(client)
         };
@@ -347,7 +348,7 @@ mod tests {
         impl ClientHelloCallback for ClientHelloSyncCallback {
             fn poll_client_hello(
                 &self,
-                connection: &mut crate::raw::connection::Connection,
+                connection: &mut crate::connection::Connection,
             ) -> Poll<Result<(), error::Error>> {
                 connection.server_name_extension_used();
                 self.0.fetch_add(1, Ordering::Relaxed);
@@ -364,14 +365,14 @@ mod tests {
 
         let server = {
             // create and configure a server connection
-            let mut server = crate::raw::connection::Connection::new_server();
+            let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
             Harness::new(server)
         };
 
         let client = {
             // create a client connection
-            let mut client = crate::raw::connection::Connection::new_client();
+            let mut client = crate::connection::Connection::new_client();
             client.set_config(config)?;
             Harness::new(client)
         };
@@ -381,6 +382,76 @@ mod tests {
         assert_eq!(callback.count(), 0);
         poll_tls_pair(pair);
         assert_eq!(callback.count(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn new_security_policy() -> Result<(), Error> {
+        use crate::security::Policy;
+
+        let policy = Policy::from_version("default")?;
+        config_builder(&policy)?;
+        Ok(())
+    }
+
+    #[test]
+    fn trust_location() -> Result<(), Error> {
+        struct AcceptAllHostnames {}
+        impl VerifyHostNameCallback for AcceptAllHostnames {
+            fn verify_host_name(&self, _: &str) -> bool {
+                true
+            }
+        }
+
+        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
+        let mut cert = pem_dir.to_path_buf();
+        cert.push("rsa_4096_sha512_client_cert.pem");
+        let mut key = pem_dir.to_path_buf();
+        key.push("rsa_4096_sha512_client_key.pem");
+
+        let mut builder = crate::config::Builder::new();
+        builder.set_security_policy(&security::DEFAULT_TLS13)?;
+        builder.set_verify_host_callback(AcceptAllHostnames {})?;
+        builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
+        builder.trust_location(Some(&cert), None)?;
+
+        s2n_tls_pair(builder.build()?);
+        Ok(())
+    }
+
+    #[test]
+    fn client_auth() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::Optional)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        assert!(server.client_cert_used());
+        assert!(client.client_cert_used());
+        let cert = server.client_cert_chain_bytes()?;
+        assert!(cert.is_some());
+        assert!(!cert.unwrap().is_empty());
+
         Ok(())
     }
 }

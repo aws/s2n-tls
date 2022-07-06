@@ -167,7 +167,9 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(extension_type->recv(conn, in));
 
     /* Set request bit flag */
-    if (!extension_type->is_response) {
+    if (extension_type->is_response) {
+        S2N_CBIT_SET(conn->extension_responses_received, extension_id);
+    } else {
         S2N_CBIT_SET(conn->extension_requests_received, extension_id);
     }
 
