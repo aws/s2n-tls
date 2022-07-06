@@ -1587,7 +1587,6 @@ int main(int argc, char **argv)
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
-        client_conn->actual_protocol_version = S2N_TLS13;
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         /* Set a resumption psk */
