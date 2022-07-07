@@ -84,6 +84,13 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
             POSIX_GUARD(s2n_ecc_evp_params_free(client_params));
         }
 
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *# Otherwise, when sending the new ClientHello, the client MUST
+         *# replace the original "key_share" extension with one containing only a
+         *# new KeyShareEntry for the group indicated in the selected_group field
+         *# of the triggering HelloRetryRequest.
+         **/
         client_params->negotiated_curve = server_curve;
     } else {
         client_params->negotiated_curve = ecc_pref->ecc_curves[0];
@@ -164,6 +171,13 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
             POSIX_GUARD(s2n_kem_group_free(client_params));
         }
 
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *# Otherwise, when sending the new ClientHello, the client MUST
+         *# replace the original "key_share" extension with one containing only a
+         *# new KeyShareEntry for the group indicated in the selected_group field
+         *# of the triggering HelloRetryRequest.
+         **/
         client_params->kem_group = server_group;
     } else {
         client_params->kem_group = kem_pref->tls13_kem_groups[0];
@@ -175,6 +189,16 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
 
 static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    if (s2n_is_hello_retry_handshake(conn)) {
+        const struct s2n_ecc_named_curve *server_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
+        const struct s2n_ecc_named_curve *client_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
+        const struct s2n_kem_group *server_group = conn->kex_params.server_kem_group_params.kem_group;
+        const struct s2n_kem_group *client_group = conn->kex_params.client_kem_group_params.kem_group;
+
+        /* Ensure a new key share will be sent after a hello retry request */
+        POSIX_ENSURE(server_curve != client_curve || server_group != client_group, S2N_ERR_BAD_KEY_SHARE);
+    }
+
     struct s2n_stuffer_reservation shares_size = {0};
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
     POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
@@ -397,8 +421,15 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     /* During a retry, the client should only have sent one keyshare */
     POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn) || keyshare_count == 1, S2N_ERR_BAD_MESSAGE);
 
-    /* If there were no matching key shares, then we received an empty key share extension
-     * or we didn't match a key share with a supported group. We should send a retry. */
+    /**
+     * If there were no matching key shares, then we received an empty key share extension
+     * or we didn't match a key share with a supported group. We should send a retry.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.1
+     *# If the server selects an (EC)DHE group and the client did not offer a
+     *# compatible "key_share" extension in the initial ClientHello, the
+     *# server MUST respond with a HelloRetryRequest (Section 4.1.4) message.
+     **/
     struct s2n_ecc_evp_params *client_ecc_params = &conn->kex_params.client_ecc_evp_params;
     struct s2n_kem_group_params *client_pq_params = &conn->kex_params.client_kem_group_params;
     if (!client_pq_params->kem_group && !client_ecc_params->negotiated_curve) {

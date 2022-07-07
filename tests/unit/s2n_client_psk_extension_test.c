@@ -27,6 +27,8 @@
 
 #define MILLIS_TO_NANOS(millis) (millis * (uint64_t)ONE_MILLISEC_IN_NANOS)
 
+#define BINDER_SIZE 32
+
 struct s2n_psk_test_case {
     s2n_hmac_algorithm hmac_alg;
     uint8_t hash_size;
@@ -1541,6 +1543,132 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /**
+     * Ensure obfuscated_ticket_age and binder values are updated on a client hello after a HRR
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+     *= type=test
+     *# -   Updating the "pre_shared_key" extension if present by recomputing
+     *#     the "obfuscated_ticket_age" and binder values and (optionally)
+     *#     removing any PSKs which are incompatible with the server's
+     *#     indicated cipher suite.
+     **/
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+                      s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                                                       S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                                                       S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                      s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+        EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                      s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                      s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+
+        /* Force the HRR path */
+        client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+        /* Set a resumption psk */
+        DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
+        EXPECT_OK(s2n_setup_encrypted_ticket(client_conn, &psk_identity));
+        struct s2n_offered_psk_list identity_list = { .conn = client_conn };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
+        EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
+        EXPECT_OK(s2n_select_resumption_psk(server_conn, &identity_list));
+
+        /* Set the ticket issue time to be 10 milliseconds ago, so the obfuscated ticket age will be non-zero */
+        struct s2n_psk *psk = client_conn->psk_params.chosen_psk;
+        psk->ticket_issue_time -= MILLIS_TO_NANOS(10);
+
+        /* Calculate the size of the identity without the key name. Used to first seek to the key name as the target for
+         * s2n_stuffer_skip_read_until, and then seek to the end of the identity. */
+        const unsigned long identity_data_size = psk->identity.size - strlen((char*) psk->identity.data);
+
+        s2n_blocked_status blocked = 0;
+
+        /* Client sends ClientHello 1 */
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+
+        /* Read the obfuscated ticket age from ClientHello 1 */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&io_stuffer, (char*) psk->identity.data));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, identity_data_size));
+        uint32_t obfuscated_ticket_age_1 = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32(&io_stuffer, &obfuscated_ticket_age_1));
+
+        /* Skip over the size of the binders list */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, sizeof(uint16_t)));
+
+        /* Ensure the binder size is as expected */
+        uint8_t binder_1_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_stuffer, &binder_1_size));
+        EXPECT_TRUE(binder_1_size == BINDER_SIZE);
+
+        /* Read the binder from ClientHello 1 */
+        uint8_t binder_1[BINDER_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_stuffer, binder_1, BINDER_SIZE));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
+
+        /* Ensure that the ticket age and binder are non-zero */
+        EXPECT_TRUE(obfuscated_ticket_age_1 != 0);
+        uint8_t zero_array[BINDER_SIZE] = { 0 };
+        EXPECT_FALSE(s2n_constant_time_equals(binder_1, zero_array, BINDER_SIZE));
+
+        /* Skip to before the client sends ClientHello 2 */
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, HELLO_RETRY_MSG));
+        EXPECT_OK(s2n_negotiate_until_message(server_conn, &blocked, CLIENT_HELLO));
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, CLIENT_HELLO));
+
+        /* Change the ticket issue time so a new obfuscated ticket age will change */
+        psk->ticket_issue_time -= MILLIS_TO_NANOS(1);
+
+        /* Client sends ClientHello 2 */
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+
+        /* Read the obfuscated ticket age from ClientHello 2 */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&io_stuffer, (char*) psk->identity.data));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, identity_data_size));
+        uint32_t obfuscated_ticket_age_2 = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32(&io_stuffer, &obfuscated_ticket_age_2));
+
+        /* Skip over the size of the binders list */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&io_stuffer, sizeof(uint16_t)));
+
+        /* Ensure the binder size is as expected */
+        uint8_t binder_2_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_stuffer, &binder_2_size));
+        EXPECT_TRUE(binder_2_size == BINDER_SIZE);
+
+        /* Read the binder from ClientHello 2 */
+        uint8_t binder_2[BINDER_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_stuffer, binder_2, BINDER_SIZE));
+
+        /* Ensure that the ticket age and binder were updated after ClientHello 2 */
+        EXPECT_TRUE(obfuscated_ticket_age_1 != obfuscated_ticket_age_2);
+        EXPECT_FALSE(s2n_constant_time_equals(binder_1, binder_2, BINDER_SIZE));
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
     }
 
     END_TEST();
