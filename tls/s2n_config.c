@@ -493,9 +493,11 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
             config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         } else {
             /* Because library-owned certificates are tracked and cleaned up via the
-             * default_certs_by_type mapping, library-owned chains MUST be set as the default.
+             * default_certs_by_type mapping, library-owned chains MUST be set as the default
+             * to avoid a memory leak. If they're not the default, they're not freed.
              */
-            POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
+            POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED,
+                    S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
         }
     }
 

@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
             /* Try to add second chain of same type */
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert_chain, private_key),
-                    S2N_ERR_CERT_OWNERSHIP);
+                    S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
             EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
 
             /* Try to add chain using other method */

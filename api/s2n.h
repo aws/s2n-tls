@@ -717,11 +717,28 @@ extern void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_
 S2N_API
 extern s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_chain_and_key *cert_and_key);
 
+/**
+ * Set the raw OCSP stapling data for a certificate chain.
+ *
+ * @param chain_and_key The certificate chain handle
+ * @param data A pointer to the raw OCSP stapling data bytes. The data will be copied.
+ * @param length The length of the data bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
 S2N_API
-int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+extern int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 
+/**
+ * Set the signed certificate timestamp (SCT) for a certificate chain.
+ * This is used for Certificate Transparency.
+ *
+ * @param chain_and_key The certificate chain handle
+ * @param data A pointer to the SCT data. The data will be copied.
+ * @param length The length of the data bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
 S2N_API
-int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+extern int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 
 /**
  * A callback function that is invoked if s2n-tls cannot resolve a conflict between 
@@ -750,16 +767,18 @@ S2N_API
 extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);
 
 /**
- * Associates a certificate chain and a private key, with an `s2n_config` object. 
- * At present, only one certificate-chain/key pair may be associated with a config. 
+ * Associates a certificate chain and private key with an `s2n_config` object.
+ * Using this API, only one cert chain of each type (like ECDSA or RSA) may be associated with a config.
  * `cert_chain_pem` should be a PEM encoded certificate chain, with the first certificate 
- * in the chain being your servers certificate. `private_key_pem` should be a
+ * in the chain being your server's certificate. `private_key_pem` should be a
  * PEM encoded private key corresponding to the server certificate.
+ *
+ * @deprecated Use s2n_config_add_cert_chain_and_key_to_store instead.
  *
  * @param config The configuration object being updated
  * @param cert_chain_pem A byte array of a PEM encoded certificate chain.
  * @param private_key_pem A byte array of a PEM encoded key.
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
@@ -1035,13 +1054,8 @@ extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_be
  * parameters are set to NULL, no new data is set in the `s2n_config` object,
  * effectively clearing existing data.
  *
- * # Safety
+ * @deprecated Use s2n_cert_chain_and_key_set_ocsp_data and s2n_cert_chain_and_key_set_sct_list instead.
  *
- * `s2n_config_set_extension_data` modifies the certificate chain instead of the config,
- * so it can’t be used with configs that share a certificate chain with other configs.
- * Whenever this function is called, `s2n_config_add_cert_chain_and_key` must be used
- * to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store`.
- * 
  * @param config The configuration object being updated
  * @param type The extension type
  * @param data Data for the extension
