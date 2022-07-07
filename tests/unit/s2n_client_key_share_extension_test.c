@@ -166,6 +166,12 @@ int main(int argc, char **argv)
          * For HelloRetryRequests when a keyshare does not match, test that s2n_client_key_share_extension.send replaces
          * the list of keyshares with a list containing a single KeyShareEntry for the server selected group.
          *
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+         *= type=test
+         *# -   If a "key_share" extension was supplied in the HelloRetryRequest,
+         *#     replacing the list of shares with a list containing a single
+         *#     KeyShareEntry from the indicated group.
+         *
          *= https://tools.ietf.org/rfc/rfc8446#4.2.8
          *= type=test
          *# Otherwise, when sending the new ClientHello, the client MUST

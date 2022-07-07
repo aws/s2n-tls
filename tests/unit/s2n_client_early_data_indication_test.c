@@ -96,13 +96,19 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /** Don't send when performing a retry.
+        /**
+         * Don't send when performing a retry.
          *
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# A client MUST NOT include the
          *# "early_data" extension in its followup ClientHello.
-         */
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+         *= type=test
+         *# -  Removing the "early_data" extension (Section 4.2.10) if one was
+         *#    present.  Early data is not permitted after a HelloRetryRequest.
+         **/
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);

@@ -37,6 +37,8 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/extensions/s2n_early_data_indication.h"
+#include "utils/s2n_bitmap.h"
 
 #define HELLO_RETRY_MSG_NO 1
 #define SERVER_HELLO_MSG_NO 5
@@ -460,10 +462,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* Self-Talk test: the client initiates a handshake with an X25519 share.
+    /**
+     * Self-Talk test: the client initiates a handshake with an X25519 share.
      * The server, however does not support x25519 and prefers P-256.
      * The server then sends a HelloRetryRequest that requires the
-     * client to generate a key share on the P-256 curve. */
+     * client to generate a key share on the P-256 curve.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.1
+     *= type=test
+     *# If the server selects an (EC)DHE group and the client did not offer a
+     *# compatible "key_share" extension in the initial ClientHello, the
+     *# server MUST respond with a HelloRetryRequest (Section 4.1.4) message.
+     **/
     if (s2n_is_evp_apis_supported()) {
         struct s2n_config *server_config;
         struct s2n_config *client_config;
@@ -511,6 +521,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        /* Ensure the handshake included a hello retry request */
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+        EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
