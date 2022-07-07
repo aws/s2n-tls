@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.16-36ae2869</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.16-672e5861</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -936,7 +936,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <p >Callback function for handling private key operations</p>
 <p >Invoked every time an operation requiring the private key is encountered during the handshake.</p>
-<h1><a class="anchor" id="autotoc_md11"></a>
+<h1><a class="anchor" id="autotoc_md12"></a>
 Safety</h1>
 <ul>
 <li><code>op</code> is owned by the application and MUST be freed.</li>
@@ -1076,8 +1076,13 @@ ECDSA, etc). The callback should return a pointer to the <code>s2n_cert_chain_an
       </table>
 </div><div class="memdoc">
 <p >Callback function type used to get the system time.</p>
-<p >Takes two arguments. A pointer to arbitrary data for use within the callback and a pointer to a 64 bit int. the callback and a pointer to a 64 bit int. The 64 bit pointer should be set to the number of nanoseconds since the Unix epoch.</p>
-<p >The function should return 0 on success and -1 on failure. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">void*</td><td>A pointer to arbitrary data for use within the callback </td></tr>
+    <tr><td class="paramname">uint64_t*</td><td>A pointer that the callback will set to the time in nanoseconds The function should return 0 on success and -1 on failure. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -1120,7 +1125,7 @@ ECDSA, etc). The callback should return a pointer to the <code>s2n_cert_chain_an
 <p >Callback function for handling key log events</p>
 <p >THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!</p>
 <p >Each log line is formatted with the <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format">NSS Key Log Format</a> without a newline.</p>
-<h1><a class="anchor" id="autotoc_md17"></a>
+<h1><a class="anchor" id="autotoc_md18"></a>
 Safety</h1>
 <ul>
 <li><code>ctx</code> MUST be cast into the same type of pointer that was originally created</li>
@@ -1210,7 +1215,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Callback function to select a PSK from a list of offered PSKs. Use this callback to implement custom PSK selection logic. The s2n-tls default PSK selection logic chooses the first matching PSK from the list of offered PSKs sent by the client.</p>
-<h1><a class="anchor" id="autotoc_md10"></a>
+<h1><a class="anchor" id="autotoc_md11"></a>
 Safety</h1>
 <p ><code>context</code> is a void pointer and the caller is responsible for ensuring it is cast to the correct type. After the completion of this callback, the pointer to <code>psk_list</code> is invalid.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -1326,7 +1331,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Callback function for receiving a session ticket.</p>
-<h1><a class="anchor" id="autotoc_md0"></a>
+<h1><a class="anchor" id="autotoc_md1"></a>
 Safety</h1>
 <p ><code>ctx</code> is a void pointer and the caller is responsible for ensuring it is cast to the correct type. <code>ticket</code> is valid only within the scope of this callback.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -1699,7 +1704,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Finalizes a private key operation and unblocks the connection.</p>
-<h1><a class="anchor" id="autotoc_md13"></a>
+<h1><a class="anchor" id="autotoc_md14"></a>
 Safety</h1>
 <ul>
 <li><code>conn</code> must match the connection that originally triggered the callback.</li>
@@ -1734,7 +1739,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Frees the opaque structure representing a private key operation.</p>
-<h1><a class="anchor" id="autotoc_md14"></a>
+<h1><a class="anchor" id="autotoc_md15"></a>
 Safety</h1>
 <ul>
 <li>MUST be called for every operation passed to s2n_async_pkey_fn</li>
@@ -1782,7 +1787,7 @@ Safety</h1>
 </div><div class="memdoc">
 <p >Returns the input to the private key operation.</p>
 <p >When signing, the input is the digest to sign. When decrypting, the input is the data to decrypt.</p>
-<h1><a class="anchor" id="autotoc_md15"></a>
+<h1><a class="anchor" id="autotoc_md16"></a>
 Safety</h1>
 <ul>
 <li><code>data</code> must be sufficiently large to contain the input. <code>s2n_async_pkey_op_get_input_size</code> can be called to determine how much memory is required.</li>
@@ -1897,7 +1902,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Performs a private key operation using the given private key.</p>
-<h1><a class="anchor" id="autotoc_md12"></a>
+<h1><a class="anchor" id="autotoc_md13"></a>
 Safety</h1>
 <ul>
 <li>Can only be called once. Any subsequent calls will produce a <code>S2N_ERR_T_USAGE</code> error.</li>
@@ -1946,7 +1951,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets the output of the private key operation.</p>
-<h1><a class="anchor" id="autotoc_md16"></a>
+<h1><a class="anchor" id="autotoc_md17"></a>
 Safety</h1>
 <ul>
 <li>s2n-tls does not take ownership of <code>data</code>. The application still owns the memory and must free it if necessary.</li>
@@ -2299,7 +2304,7 @@ Safety</h1>
 </div><div class="memdoc">
 <p >Returns the certificate <code>out_cert</code> present at the index <code>cert_idx</code> of the certificate chain <code>chain_and_key</code>.</p>
 <p >Note that the index of the leaf certificate is zero. If the certificate chain <code>chain_and_key</code> is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is returned.</p>
-<h1><a class="anchor" id="autotoc_md3"></a>
+<h1><a class="anchor" id="autotoc_md4"></a>
 Safety</h1>
 <p >There is no memory allocation required for <code>out_cert</code> buffer prior to calling the <code>s2n_cert_chain_get_cert</code> API. The <code>out_cert</code> will contain the pointer to the s2n_cert initialized within the input s2n_cert_chain_and_key <code>chain_and_key</code>. The pointer to the output s2n certificate <code>out_cert</code> is valid until <code>chain_and_key</code> is freed up. If a caller wishes to persist the <code>out_cert</code> beyond the lifetime of <code>chain_and_key</code>, the contents would need to be copied prior to freeing <code>chain_and_key</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -2383,7 +2388,7 @@ Safety</h1>
 <p >Returns the s2n certificate in DER format along with its length.</p>
 <p >The API gets the s2n certificate <code>cert</code> in DER format. The certificate is returned in the <code>out_cert_der</code> buffer. Here, <code>cert_len</code> represents the length of the certificate.</p>
 <p >A caller can use certificate parsing tools such as the ones provided by OpenSSL to parse the DER encoded certificate chain returned.</p>
-<h1><a class="anchor" id="autotoc_md4"></a>
+<h1><a class="anchor" id="autotoc_md5"></a>
 Safety</h1>
 <p >The memory for the <code>out_cert_der</code> buffer is allocated and owned by s2n-tls. Since the size of the certificate can potentially be very large, a pointer to internal connection data is returned instead of copying the contents into a caller-provided buffer.</p>
 <p >The pointer to the output buffer <code>out_cert_der</code> is valid only while the connection exists. The <code>s2n_connection_free</code> API frees the memory associated with the out_cert_der buffer and after the <code>s2n_connection_wipe</code> API is called the memory pointed by out_cert_der is invalid.</p>
@@ -4286,6 +4291,9 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets the extension data in the <code>s2n_config</code> object for the specified extension. This method will clear any existing data that is set. If the data and length parameters are set to NULL, no new data is set in the <code>s2n_config</code> object, effectively clearing existing data.</p>
+<h1><a class="anchor" id="autotoc_md0"></a>
+Safety</h1>
+<p ><code>s2n_config_set_extension_data</code> modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. Whenever this function is called, <code>s2n_config_add_cert_chain_and_key</code> must be used to set the certificate chain, NOT <code>s2n_config_add_cert_chain_and_key_to_store</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -4369,7 +4377,7 @@ Safety</h1>
 <p >Sets a key logging callback on the provided config</p>
 <p >THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!</p>
 <p >Setting this function enables configurations to emit secrets in the <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format">NSS Key Log Format</a></p>
-<h1><a class="anchor" id="autotoc_md18"></a>
+<h1><a class="anchor" id="autotoc_md19"></a>
 Safety</h1>
 <ul>
 <li><code>callback</code> MUST cast <code>ctx</code> into the same type of pointer that was originally created</li>
@@ -4456,7 +4464,9 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Allows the caller to set a callback function that will be used to get monotonic time. </p><dl class="params"><dt>Parameters</dt><dd>
+<p >Allows the caller to set a callback function that will be used to get monotonic time. The monotonic time is the time since an arbitrary, unspecified point. Unlike wall clock time, it MUST never move backwards.</p>
+<p >s2n-tls uses this clock for timers.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
     <tr><td class="paramname">clock_fn</td><td>The monotonic time callback function </td></tr>
@@ -4737,7 +4747,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets a session ticket callback to be called when a client receives a new session ticket.</p>
-<h1><a class="anchor" id="autotoc_md1"></a>
+<h1><a class="anchor" id="autotoc_md2"></a>
 Safety</h1>
 <p ><code>callback</code> MUST cast <code>ctx</code> into the same type of pointer that was originally created. <code>ctx</code> MUST be valid for the lifetime of the config, or until a different context is set.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -5022,7 +5032,9 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Allows the caller to set a callback function that will be used to get the system time. </p><dl class="params"><dt>Parameters</dt><dd>
+<p >Allows the caller to set a callback function that will be used to get the system time. The time returned should be the number of nanoseconds since the Unix epoch (Midnight, January 1st, 1970).</p>
+<p >s2n-tls uses this clock for timestamps.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
     <tr><td class="paramname">clock_fn</td><td>The wall clock time callback function </td></tr>
@@ -5832,7 +5844,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Gets the negotiated PSK identity from the s2n connection object. If the negotiated PSK does not exist, the PSK identity will not be obtained and no error will be returned. Prior to this API call, use <code>s2n_connection_get_negotiated_psk_identity_length</code> to determine if a negotiated PSK exists or not.</p>
-<h1><a class="anchor" id="autotoc_md7"></a>
+<h1><a class="anchor" id="autotoc_md8"></a>
 Safety</h1>
 <p >The negotiated PSK identity will be copied into the identity buffer on success. Therefore, the identity buffer must have enough memory to fit the identity length.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -5908,7 +5920,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Query the connection for a buffer containing the OCSP reponse.</p>
+<p >Query the connection for a buffer containing the OCSP response.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>The connection object being queried </td></tr>
@@ -8237,7 +8249,7 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
       </table>
 </div><div class="memdoc">
 <p >Checks whether the offered PSK list has an offered psk object next in line in the list. An offered PSK list contains all the PSKs offered by the client for the server to select.</p>
-<h1><a class="anchor" id="autotoc_md9"></a>
+<h1><a class="anchor" id="autotoc_md10"></a>
 Safety</h1>
 <p >This API returns a pointer to the s2n-tls internal memory with limited lifetime. After the completion of <code>s2n_psk_selection_callback</code> this pointer is invalid.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -8328,7 +8340,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Creates a new s2n offered PSK object. An offered PSK object represents a single PSK sent by the client.</p>
-<h1><a class="anchor" id="autotoc_md8"></a>
+<h1><a class="anchor" id="autotoc_md9"></a>
 Safety</h1>
 <p >Use <code>s2n_offered_psk_free</code> to free the memory allocated to the s2n offered PSK object created by this API.</p>
 <dl class="section return"><dt>Returns</dt><dd>struct s2n_offered_psk* Returns a pointer to the newly created offered PSK object. </dd></dl>
@@ -8626,7 +8638,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets the identity for a given external PSK object. The identity is a unique identifier for the pre-shared secret. It is a non-secret value represented by raw bytes.</p>
-<h1><a class="anchor" id="autotoc_md5"></a>
+<h1><a class="anchor" id="autotoc_md6"></a>
 Safety</h1>
 <p >The identity is transmitted over the network unencrypted and is a non-secret value. Do not include confidential information in the identity.</p>
 <p >Note that the identity is copied into s2n-tls memory and the caller is responsible for freeing the memory associated with the identity input.</p>
@@ -8673,7 +8685,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets the out-of-band/externally provisioned secret for a given external PSK object.</p>
-<h1><a class="anchor" id="autotoc_md6"></a>
+<h1><a class="anchor" id="autotoc_md7"></a>
 Safety</h1>
 <p >Note that the secret is copied into s2n-tls memory and the caller is responsible for freeing the memory associated with the <code>secret</code> input.</p>
 <p >Deriving a shared secret from a password or other low-entropy source is not secure and is subject to dictionary attacks. See <a href="https://tools.ietf.org/rfc/rfc8446#section-2.2">https://tools.ietf.org/rfc/rfc8446#section-2.2</a> for more information.</p>
@@ -8789,7 +8801,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1734</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1747</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -9145,7 +9157,7 @@ Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a1b09f96a5f4fe
       </table>
 </div><div class="memdoc">
 <p >Gets the session ticket data from a session ticket object.</p>
-<h1><a class="anchor" id="autotoc_md2"></a>
+<h1><a class="anchor" id="autotoc_md3"></a>
 Safety</h1>
 <p >The entire session ticket will be copied into <code>data</code> on success. Therefore, <code>data</code> MUST have enough memory to store the session ticket data.</p>
 <dl class="params"><dt>Parameters</dt><dd>
