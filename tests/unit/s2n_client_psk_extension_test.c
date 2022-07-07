@@ -1667,6 +1667,8 @@ int main(int argc, char **argv)
         /* Ensure that the ticket age and binder were updated after ClientHello 2 */
         EXPECT_TRUE(obfuscated_ticket_age_1 != obfuscated_ticket_age_2);
         EXPECT_FALSE(s2n_constant_time_equals(binder_1, binder_2, BINDER_SIZE));
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
     }
 
     END_TEST();
