@@ -162,8 +162,23 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_key_share_extension.send with HelloRetryRequest */
     {
-        /* For HelloRetryRequests when a keyshare does not match, test that s2n_client_key_share_extension.send replaces the list of keyshares,
-         * with a list containing a single KeyShareEntry for the server selected group. */
+        /**
+         * For HelloRetryRequests when a keyshare does not match, test that s2n_client_key_share_extension.send replaces
+         * the list of keyshares with a list containing a single KeyShareEntry for the server selected group.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+         *= type=test
+         *# -   If a "key_share" extension was supplied in the HelloRetryRequest,
+         *#     replacing the list of shares with a list containing a single
+         *#     KeyShareEntry from the indicated group.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *= type=test
+         *# Otherwise, when sending the new ClientHello, the client MUST
+         *# replace the original "key_share" extension with one containing only a
+         *# new KeyShareEntry for the group indicated in the selected_group field
+         *# of the triggering HelloRetryRequest.
+         **/
         if (s2n_is_evp_apis_supported()) {
             struct s2n_connection *conn;
             struct s2n_config *config;
@@ -306,7 +321,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* For HelloRetryRequests, verify that we can resend an existing share to reject early data. */
+        /* For HelloRetryRequests, verify that we cannot resend an existing share. */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
@@ -332,13 +347,8 @@ int main(int argc, char **argv)
             conn->early_data_state = S2N_EARLY_DATA_REJECTED;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
 
-            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &second_extension));
-            EXPECT_EQUAL(conn->kex_params.client_ecc_evp_params.negotiated_curve, curve);
-            EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
-
-            /* Same shares (same bytes) are written both times */
-            EXPECT_EQUAL(first_extension.write_cursor, second_extension.write_cursor);
-            EXPECT_BYTEARRAY_EQUAL(first_extension.blob.data, second_extension.blob.data, first_extension.write_cursor);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_key_share_extension.send(conn, &second_extension),
+                    S2N_ERR_BAD_KEY_SHARE);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&first_extension));
             EXPECT_SUCCESS(s2n_stuffer_free(&second_extension));

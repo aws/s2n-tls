@@ -40,7 +40,14 @@ int main()
         EXPECT_OK(s2n_get_public_random_data(&test_cookies[i]));
     }
 
-    /* Test: client only sends extension if cookie present */
+    /**
+     * Test: client only sends extension if cookie present
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+     *= type=test
+     *# -   Including a "cookie" extension if one was provided in the
+     *#     HelloRetryRequest.
+     **/
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);

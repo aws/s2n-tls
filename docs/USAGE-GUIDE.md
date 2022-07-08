@@ -464,103 +464,25 @@ Client authentication can be configured by calling `s2n_config_set_client_auth_t
 
 When using client authentication, the server MUST implement the `s2n_verify_host_fn`, because the default behavior will likely reject all client certificates.
 
-### s2n\_config\_set\_protocol\_preferences
+### OCSP Stapling
 
-```c
-int s2n_config_set_protocol_preferences(struct s2n_config *config,
-                                        const char **protocols,
-                                        int protocol_count);
-```
+Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.
 
-**s2n_config_set_protocol_preferences** sets the application protocol
-preferences on an **s2n_config** object.  **protocols** is a list in order of
-preference, with most preferred protocol first, and of length
-**protocol_count**.  When acting as an **S2N_CLIENT** the protocol list is
-included in the Client Hello message as the ALPN extension.  As an
-**S2N_SERVER**, the list is used to negotiate a mutual application protocol
-with the client. After the negotiation for the connection has completed, the
-agreed upon protocol can be retrieved with [s2n_get_application_protocol](#s2n_get_application_protocol)
+OCSP stapling can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.
 
-### s2n\_config\_set\_extension\_data
+To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_config_set_extension_data()` with S2N_EXTENSION_OCSP_STAPLING to set the raw bytes of the OCSP stapling data. Note that `s2n_config_set_extension_data()` modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. This means that when using OCSP data, `s2n_config_add_cert_chain_and_key()` must be used to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store()`.
 
-```c
-int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
-```
+The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
 
-**s2n_config_set_extension_data** Sets the extension data in the **s2n_config**
-object for the specified extension.  This method will clear any existing data
-that is set.   If the data and length parameters are set to NULL, no new data
-is set in the **s2n_config** object, effectively clearing existing data.
+### Certificate Transparency
 
-`s2n_tls_extension_type` is defined as:
+Certificate transparency is a framework to store public logs of CA-issued certificates. If requested, certificate owners can send a signed certificate timestamp (SCT) to prove that their certificate exists in these logs. The requester can choose whether or not to accept a certificate based on this information.
 
-```c
-    typedef enum {
-      S2N_EXTENSION_SERVER_NAME = 0,
-      S2N_EXTENSION_MAX_FRAG_LEN = 1,
-      S2N_EXTENSION_OCSP_STAPLING = 5,
-      S2N_EXTENSION_SUPPORTED_GROUPS = 10,
-      S2N_EXTENSION_EC_POINT_FORMATS = 11,
-      S2N_EXTENSION_SIGNATURE_ALGORITHMS = 13,
-      S2N_EXTENSION_ALPN = 16,
-      S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
-      S2N_EXTENSION_RENEGOTIATION_INFO = 65281,
-    } s2n_tls_extension_type;
-```
+Certificate transparency information can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.
 
-At this time the following extensions are supported:
+To use certificate transparency, the requester (usually the client) must call `s2n_config_set_ct_support_level()` with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call `s2n_config_set_extension_data()` with S2N_EXTENSION_CERTIFICATE_TRANSPARENCY to set the raw bytes of the transparency information. Note that `s2n_config_set_extension_data()` modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. This means that when using certificate transparency data, `s2n_config_add_cert_chain_and_key()` must be used to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store()`.
 
-`S2N_EXTENSION_OCSP_STAPLING` - If a client requests the OCSP status of the server
-certificate, this is the response used in the CertificateStatus handshake
-message.
-
-`S2N_EXTENSION_CERTIFICATE_TRANSPARENCY` - If a client supports receiving SCTs
-via the TLS extension (section 3.3.1 of RFC6962) this data is returned within
-the extension response during the handshake.  The format of this data is the
-SignedCertificateTimestampList structure defined in that document.  See
-http://www.certificate-transparency.org/ for more information about Certificate
-Transparency.
-
-### s2n\_config\_set\_wall\_clock
-
-```c
-int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data);
-```
-
-**s2n_config_set_wall_clock** allows the caller to set a
-callback function that will be used to get the system time. The callback function
-takes two arguments; a pointer to arbitrary data for use within the callback,
-and a pointer to a 64 bit unsigned integer. The first pointer will be set to
-the value of **data** which supplied by the caller when setting the callback.
-The integer pointed to by the second pointer should be set to the number of
-nanoseconds since the Unix epoch (Midnight, January 1st, 1970). The function
-should return 0 on success and -1 on error. The default implementation, which uses the REALTIME clock,
-will be used if this callback is not manually set.
-
-### s2n\_config\_set\_monotonic\_clock
-
-```c
-int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data);
-```
-
-**s2n_config_set_monotonic_clock** allows the caller to set a
-callback function that will be used to get monotonic time. The callback function
-takes two arguments; a pointer to arbitrary data for use within the callback,
-and a pointer to a 64 bit unsigned integer. The first pointer will be set to
-the value of **data** which supplied by the caller when setting the callback.
-The integer pointed to by the second pointer should be an always increasing value. The function
-should return 0 on success and -1 on error. The default implementation, which uses the MONOTONIC clock,
-will be used if this callback is not manually set.
-
-### s2n\_config\_set\_check\_stapled\_ocsp\_response
-
-```c
-int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
-```
-
-**s2n_config_set_check_stapled_ocsp_response** toggles whether or not to validate stapled OCSP responses. 1 means OCSP responses
-will be validated when they are encountered, while 0 means this step will be skipped. The default value is 1 if the underlying
-libCrypto implementation supports OCSP.  Returns 0 on success and -1 on failure.
+Call `s2n_connection_get_sct_list()` to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
