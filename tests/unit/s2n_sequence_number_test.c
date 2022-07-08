@@ -32,7 +32,7 @@ int main(int argc, char **argv)
         /* Converts zero */
         {
             uint64_t output = 1;
-            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN]= {0};
+            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
             struct s2n_blob sequence_number = {0};
             
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         /* Converts one */
         {
             uint64_t output = 0;
-            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN]  = {0};
+            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
             data[S2N_TLS_SEQUENCE_NUM_LEN - 1] = 1;
             struct s2n_blob sequence_number = {0};
             
@@ -87,6 +87,25 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER);   
+        }
+
+        /* Matches network order stuffer methods */
+        {
+            uint64_t input = 0x1234ABCD;
+
+            /* Use stuffer to convert to network order */
+            uint8_t stuffer_bytes[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+            struct s2n_blob stuffer_blob = { 0 };
+            struct s2n_stuffer stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&stuffer_blob, stuffer_bytes, sizeof(stuffer_bytes)));
+            EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &stuffer_blob));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, input));
+
+            /* Use s2n_sequence_number_to_uint64 to convert back */
+            uint64_t output = 0;
+            EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&stuffer_blob, &output));
+
+            EXPECT_EQUAL(input, output);
         }
     }
     END_TEST();

@@ -107,10 +107,20 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
     POSIX_ENSURE_REF(conn->secure.cipher_suite);
     POSIX_ENSURE_REF(conn->secure.cipher_suite->record_alg);
 
-    uint64_t output = 0;
-    POSIX_GUARD(s2n_sequence_number_to_uint64(sequence_number, &output));
+    /*
+     * This is the sequence number that will be used for the next record,
+     * because we incremented the sequence number after sending the last record.
+     */
+    uint64_t next_seq_num = 0;
+    POSIX_GUARD(s2n_sequence_number_to_uint64(sequence_number, &next_seq_num));
 
-    if (output + 1 > conn->secure.cipher_suite->record_alg->encryption_limit) {
+    /*
+     * If the next record is the last record we can send, then the next record needs
+     * to contain a KeyUpdate message.
+     *
+     * This should always trigger on "==", but we use ">=" just in case.
+     */
+    if (next_seq_num >= conn->secure.cipher_suite->record_alg->encryption_limit) {
         conn->key_update_pending = true;
     }
 
