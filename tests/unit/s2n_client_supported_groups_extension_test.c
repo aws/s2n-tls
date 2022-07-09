@@ -82,46 +82,10 @@ int main()
 
     {
         /* Define various PQ security policies to test different configurations */
-        /* SIKE, BIKE*/
-        const struct s2n_kem_group *test_kem_groups_sike_bike[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_bike1_l1_r2,
-        };
-        const struct s2n_kem_preferences test_kem_prefs_sike_bike = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups_sike_bike),
-                .tls13_kem_groups = test_kem_groups_sike_bike,
-        };
-        const struct s2n_security_policy test_pq_security_policy_sike_bike = {
-                .minimum_protocol_version = S2N_SSLv3,
-                .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &test_kem_prefs_sike_bike,
-                .signature_preferences = &s2n_signature_preferences_20200207,
-                .ecc_preferences = &s2n_ecc_preferences_20200310,
-        };
-
-        /* BIKE */
-        const struct s2n_kem_group *test_kem_groups_bike[] = {
-                &s2n_secp256r1_bike1_l1_r2,
-        };
-        const struct s2n_kem_preferences test_kem_prefs_bike = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups_bike),
-                .tls13_kem_groups = test_kem_groups_bike,
-        };
-        const struct s2n_security_policy test_pq_security_policy_bike = {
-                .minimum_protocol_version = S2N_SSLv3,
-                .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &test_kem_prefs_bike,
-                .signature_preferences = &s2n_signature_preferences_20200207,
-                .ecc_preferences = &s2n_ecc_preferences_20200310,
-        };
 
         /* Kyber */
         const struct s2n_kem_group *test_kem_groups_kyber[] = {
-                &s2n_secp256r1_kyber_512_r2,
+                &s2n_secp256r1_kyber_512_r3,
         };
         const struct s2n_kem_preferences test_kem_prefs_kyber = {
                 .kem_count = 0,
@@ -137,44 +101,6 @@ int main()
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
 
-        /* BIKE, Kyber */
-        const struct s2n_kem_group *test_kem_groups_bike_kyber[] = {
-                &s2n_secp256r1_bike1_l1_r2,
-                &s2n_secp256r1_kyber_512_r2,
-        };
-        const struct s2n_kem_preferences test_kem_prefs_bike_kyber = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups_bike_kyber),
-                .tls13_kem_groups = test_kem_groups_bike_kyber,
-        };
-        const struct s2n_security_policy test_pq_security_policy_bike_kyber = {
-                .minimum_protocol_version = S2N_SSLv3,
-                .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &test_kem_prefs_bike_kyber,
-                .signature_preferences = &s2n_signature_preferences_20200207,
-                .ecc_preferences = &s2n_ecc_preferences_20200310,
-        };
-
-        /* SIKE, Kyber */
-        const struct s2n_kem_group *test_kem_groups_sike_kyber[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_kyber_512_r2,
-        };
-        const struct s2n_kem_preferences test_kem_prefs_sike_kyber = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups_sike_kyber),
-                .tls13_kem_groups = test_kem_groups_sike_kyber,
-        };
-        const struct s2n_security_policy test_pq_security_policy_sike_kyber = {
-                .minimum_protocol_version = S2N_SSLv3,
-                .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &test_kem_prefs_sike_kyber,
-                .signature_preferences = &s2n_signature_preferences_20200207,
-                .ecc_preferences = &s2n_ecc_preferences_20200310,
-        };
-
         /* Test send with TLS 1.3 KEM groups */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
@@ -183,7 +109,7 @@ int main()
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            conn->security_policy_override = &test_pq_security_policy_sike_bike;
+            conn->security_policy_override = &test_pq_security_policy_kyber;
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -229,7 +155,7 @@ int main()
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            conn->security_policy_override = &test_pq_security_policy_sike_bike;
+            conn->security_policy_override = &test_pq_security_policy_kyber;
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -256,24 +182,16 @@ int main()
         }
         /* Test recv - in each case, the security policy overrides allow for a successful PQ handshake */
         {
-#define NUM_PQ_TEST_POLICY_OVERRIDES 4
+#define NUM_PQ_TEST_POLICY_OVERRIDES 1
             /* Security policy overrides: {client_policy, server_policy} */
             const struct s2n_security_policy *test_policy_overrides[NUM_PQ_TEST_POLICY_OVERRIDES][2] = {
-                    /* Client sends SIKE, BIKE; server supports SIKE, BIKE */
-                    {&test_pq_security_policy_sike_bike, &test_pq_security_policy_sike_bike},
-                    /* Client sends SIKE, BIKE; server supports BIKE */
-                    {&test_pq_security_policy_sike_bike, &test_pq_security_policy_bike},
-                    /* Client sends BIKE; server supports SIKE, BIKE */
-                    {&test_pq_security_policy_bike, &test_pq_security_policy_sike_bike},
-                    /* Client sends SIKE, Kyber; server supports BIKE, Kyber */
-                    {&test_pq_security_policy_sike_kyber, &test_pq_security_policy_bike_kyber},
+                    /* Client sends Kyber; server supports Kyber */
+                    {&test_pq_security_policy_kyber, &test_pq_security_policy_kyber},
+
             };
             /* Expected KEM group to be negotiated - corresponds to test_policy_overrides array */
             const struct s2n_kem_group *expected_negotiated_kem_group[NUM_PQ_TEST_POLICY_OVERRIDES] = {
-                    &s2n_secp256r1_sike_p434_r3,
-                    &s2n_secp256r1_bike1_l1_r2,
-                    &s2n_secp256r1_bike1_l1_r2,
-                    &s2n_secp256r1_kyber_512_r2,
+                    &s2n_secp256r1_kyber_512_r3,
             };
 
             for (size_t i = 0; i < NUM_PQ_TEST_POLICY_OVERRIDES; i++) {
@@ -331,17 +249,13 @@ int main()
         /* Test recv - in each case, the security policy overrides do not allow for a successful PQ handshake,
          * so ECC should be chosen */
         {
-#define NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES 5
+#define NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES 3
             /* Security policy overrides: {client_policy, server_policy} */
             const struct s2n_security_policy *test_policy_overrides[NUM_MISMATCH_PQ_TEST_POLICY_OVERRIDES][2] = {
-                    /* Client sends SIKE, BIKE; server supports only Kyber */
-                    {&test_pq_security_policy_sike_bike, &test_pq_security_policy_kyber},
-                    /* Client sends Kyber; server supports SIKE, BIKE */
-                    {&test_pq_security_policy_kyber, &test_pq_security_policy_sike_bike},
-                    /* Client sends SIKE, BIKE; server supports only ECC */
-                    {&test_pq_security_policy_sike_bike, NULL},
-                    /* Client sends only ECC ; server supports ECC and SIKE, BIKE */
-                    {NULL, &test_pq_security_policy_sike_bike},
+                    /* Client sends Kyber; server supports only ECC */
+                    {&test_pq_security_policy_kyber, NULL},
+                    /* Client sends only ECC ; server supports ECC and Kyber */
+                    {NULL, &test_pq_security_policy_kyber},
                     /* Client sends only ECC; server supports only ECC */
                     {NULL, NULL}
             };
@@ -389,7 +303,7 @@ int main()
 
             struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-            server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
+            server_conn->security_policy_override = &test_pq_security_policy_kyber;
 
             /* Manually craft a supported_groups extension with bogus IDs */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
@@ -423,7 +337,7 @@ int main()
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_EQUAL(s2n_connection_get_protocol_version(client_conn), S2N_TLS12);
-            client_conn->security_policy_override = &test_pq_security_policy_sike_bike;
+            client_conn->security_policy_override = &test_pq_security_policy_kyber;
 
             const struct s2n_ecc_preferences *client_ecc_pref = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &client_ecc_pref));
@@ -435,7 +349,7 @@ int main()
 
             struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-            server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
+            server_conn->security_policy_override = &test_pq_security_policy_kyber;
 
             /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
              * s2n_client_supported_groups_extension.send will ignore PQ IDs when TLS 1.3 is disabled */
@@ -469,7 +383,7 @@ int main()
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_connection *client_conn;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                client_conn->security_policy_override = &test_pq_security_policy_sike_bike;
+                client_conn->security_policy_override = &test_pq_security_policy_kyber;
 
                 const struct s2n_ecc_preferences *client_ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &client_ecc_pref));
@@ -481,7 +395,7 @@ int main()
 
                 struct s2n_connection *server_conn;
                 EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-                server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
+                server_conn->security_policy_override = &test_pq_security_policy_kyber;
 
                 /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
                  * s2n_client_supported_groups_extension.send will ignore PQ IDs when PQ is disabled */

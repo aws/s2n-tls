@@ -64,16 +64,10 @@ well_known_endpoints = [
     {"endpoint": "www.youtube.com"},
     {
         "endpoint": "kms.us-east-1.amazonaws.com",
-        "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06",
+        "cipher_preference_version": "PQ-TLS-1-0-2021-05-24",
         "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "expected_pq_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
+        "expected_pq_cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384",
     },
-    {
-        "endpoint": "kms.us-east-1.amazonaws.com",
-        "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11",
-        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "expected_pq_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
-    }
 ]
 
 

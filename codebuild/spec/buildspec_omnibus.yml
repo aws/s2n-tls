@@ -227,18 +227,6 @@ batch:
           S2N_COVERAGE: true
           CODECOV_IO_UPLOAD: true
 
-    # Saw
-    - identifier: s2nSawBike
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_2XLARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2
-          TESTS: sawBIKE
-          SAW: true
-          GCC_VERSION: NONE
-
     - identifier: sawHMACPlus
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:

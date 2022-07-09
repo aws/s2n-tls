@@ -363,7 +363,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2021_08 = {
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2019_06,
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2019_06,
+    .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
@@ -371,7 +371,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_02,
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_02,
+    .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
@@ -379,7 +379,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2019_11,
-    .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2019_11,
+    .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
@@ -387,7 +387,7 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2020_02,
-    .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2020_02,
+    .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
@@ -395,17 +395,17 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = 
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_07,
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
+    .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12 = {
-        .minimum_protocol_version = S2N_TLS10,
-        .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
-        .kem_preferences = &kem_preferences_pq_tls_1_0_2020_12,
-        .signature_preferences = &s2n_signature_preferences_20200207,
-        .ecc_preferences = &s2n_ecc_preferences_20200310,
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
+    .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17 = {
@@ -434,8 +434,8 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19 = {
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20 = {
     .minimum_protocol_version = S2N_TLS10,
-    /* Yes, this is the same cipher_preferences as kms_pq_tls_1_0_2020_07. Both allow Kyber, BIKE, SIKE. The difference
-     * between these policies is the kem_preferences, which have been updated to prefer Round 3 over Round 2. */
+    /* Yes, this is the same cipher_preferences as kms_pq_tls_1_0_2020_07. The difference between these policies is
+     * the ecc_preferences, with this one adding support for x25519. */
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_07,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
@@ -685,7 +685,7 @@ const struct s2n_security_policy security_policy_20210816_gcm = {
 const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
+    .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
 };
@@ -693,7 +693,7 @@ const struct s2n_security_policy security_policy_test_all = {
 const struct s2n_security_policy security_policy_test_all_tls12 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls12,
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
+    .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };

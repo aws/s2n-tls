@@ -191,8 +191,6 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-            TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
-            TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384,
             TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
@@ -330,8 +328,6 @@ int main(int argc, char **argv)
         /* Test that PQ cipher suites are marked available/unavailable appropriately in s2n_cipher_suites_init() */
         {
             const struct s2n_cipher_suite *pq_suites[] = {
-                    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-                    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
                     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
             };
 
@@ -352,19 +348,19 @@ int main(int argc, char **argv)
                     0xFE, 0x01, /* PQ KEM extension ID */
                     0x00, 0x04, /* Total extension length in bytes */
                     0x00, 0x02, /* Length of the supported parameters list in bytes */
-                    0x00, 0x01  /* BIKE1r1-Level1 */
+                    0x00, TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3  /* Kyber-512-Round3*/
             };
             int client_extensions_len = sizeof(client_extensions_data);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "PQ-TLS-1-0-2021-05-24"));
             conn->actual_protocol_version = S2N_TLS12;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->kex_params.client_pq_kem_extension.data = client_extensions_data;
             conn->kex_params.client_pq_kem_extension.size = client_extensions_len;
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
-            const struct s2n_cipher_suite *bike_cipher = &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384;
+            const struct s2n_cipher_suite *kyber_cipher = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
             const struct s2n_cipher_suite *ecc_cipher = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
             if (s2n_pq_is_enabled()) {
-                EXPECT_EQUAL(conn->secure.cipher_suite, bike_cipher);
+                EXPECT_EQUAL(conn->secure.cipher_suite, kyber_cipher);
             } else {
                 EXPECT_EQUAL(conn->secure.cipher_suite, ecc_cipher);
             }
@@ -826,7 +822,7 @@ int main(int argc, char **argv)
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             uint8_t invalid_cipher_pref[] = {
-                TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384
+                TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384
             };
 
             const uint8_t invalid_cipher_count = sizeof(invalid_cipher_pref) / S2N_TLS_CIPHER_SUITE_LEN;

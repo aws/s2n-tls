@@ -227,9 +227,9 @@ int main() {
     /* Kyber */
     const struct s2n_kem_group *kyber_test_groups[] = {
 #if EVP_APIS_SUPPORTED
-            &s2n_x25519_kyber_512_r2,
+            &s2n_x25519_kyber_512_r3,
 #endif
-            &s2n_secp256r1_kyber_512_r2,
+            &s2n_secp256r1_kyber_512_r3,
     };
 
     const struct s2n_kem_preferences kyber_test_prefs = {
@@ -247,52 +247,6 @@ int main() {
             .ecc_preferences = &s2n_ecc_preferences_20200310,
     };
 
-    /* SIKE */
-    const struct s2n_kem_group *sike_test_groups[] = {
-#if EVP_APIS_SUPPORTED
-            &s2n_x25519_sike_p434_r3,
-#endif
-            &s2n_secp256r1_sike_p434_r3,
-    };
-
-    const struct s2n_kem_preferences sike_test_prefs = {
-            .kem_count = 0,
-            .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(sike_test_groups),
-            .tls13_kem_groups = sike_test_groups,
-    };
-
-    const struct s2n_security_policy sike_test_policy = {
-            .minimum_protocol_version = S2N_TLS10,
-            .cipher_preferences = &cipher_preferences_20190801,
-            .kem_preferences = &sike_test_prefs,
-            .signature_preferences = &s2n_signature_preferences_20200207,
-            .ecc_preferences = &s2n_ecc_preferences_20200310,
-    };
-
-    /* BIKE */
-    const struct s2n_kem_group *bike_test_groups[] = {
-#if EVP_APIS_SUPPORTED
-            &s2n_x25519_bike1_l1_r2,
-#endif
-            &s2n_secp256r1_bike1_l1_r2,
-    };
-
-    const struct s2n_kem_preferences bike_test_prefs = {
-            .kem_count = 0,
-            .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(bike_test_groups),
-            .tls13_kem_groups = bike_test_groups,
-    };
-
-    const struct s2n_security_policy bike_test_policy = {
-            .minimum_protocol_version = S2N_TLS10,
-            .cipher_preferences = &cipher_preferences_20190801,
-            .kem_preferences = &bike_test_prefs,
-            .signature_preferences = &s2n_signature_preferences_20200207,
-            .ecc_preferences = &s2n_ecc_preferences_20200310,
-    };
-
     const struct s2n_security_policy ecc_retry_policy = {
             .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
             .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -301,17 +255,11 @@ int main() {
             .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
     };
 
-    const struct s2n_kem_group *expected_kyber_r2_group = &s2n_x25519_kyber_512_r2;
-    const struct s2n_kem_group *expected_bike_r2_group = &s2n_x25519_bike1_l1_r2;
     const struct s2n_kem_group *expected_kyber_r3_group = &s2n_x25519_kyber_512_r3;
-    const struct s2n_kem_group *expected_sike_r3_group = &s2n_x25519_sike_p434_r3;
     const struct s2n_ecc_named_curve *expected_curve = &s2n_ecc_curve_x25519;
 
     if (!s2n_is_evp_apis_supported()) {
-        expected_kyber_r2_group = &s2n_secp256r1_kyber_512_r2;
-        expected_bike_r2_group = &s2n_secp256r1_bike1_l1_r2;
         expected_kyber_r3_group = &s2n_secp256r1_kyber_512_r3;
-        expected_sike_r3_group = &s2n_secp256r1_sike_p434_r3;
         expected_curve = &s2n_ecc_curve_secp256r1;
     }
 
@@ -369,7 +317,7 @@ int main() {
             {
                     .client_policy = &security_policy_pq_tls_1_0_2020_12,
                     .server_policy = &security_policy_pq_tls_1_0_2020_12,
-                    .expected_kem_group = expected_kyber_r2_group,
+                    .expected_kem_group = expected_kyber_r3_group,
                     .expected_curve = NULL,
                     .hrr_expected = false,
             },
@@ -380,44 +328,8 @@ int main() {
             {
                     .client_policy = &security_policy_pq_tls_1_0_2020_12,
                     .server_policy = &kyber_test_policy,
-                    .expected_kem_group = expected_kyber_r2_group,
+                    .expected_kem_group = expected_kyber_r3_group,
                     .expected_curve = NULL,
-                    .hrr_expected = false,
-            },
-
-            /* Server supports only one KEM group and it is *not* the client's first choice;
-             * client sends only a PQ key share for its first choice (no ECC shares sent);
-             * server sends HRR and negotiates a mutually supported PQ group. */
-            {
-                    .client_policy = &ecc_retry_policy,
-                    .server_policy = &bike_test_policy,
-                    .expected_kem_group = expected_bike_r2_group,
-                    .expected_curve = NULL,
-                    .hrr_expected = true,
-            },
-            {
-                    .client_policy = &ecc_retry_policy,
-                    .server_policy = &sike_test_policy,
-                    .expected_kem_group = expected_sike_r3_group,
-                    .expected_curve = NULL,
-                    .hrr_expected = true,
-            },
-
-            /* Server supports only one KEM group and it is *not* the client's first choice;
-             * client sends a key share for its first PQ choice, and a share for its first EC
-             * choice; server chooses to negotiate EC to avoid additional round trips. */
-            {
-                    .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                    .server_policy = &bike_test_policy,
-                    .expected_kem_group = NULL,
-                    .expected_curve = expected_curve,
-                    .hrr_expected = false,
-            },
-            {
-                    .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                    .server_policy = &sike_test_policy,
-                    .expected_kem_group = NULL,
-                    .expected_curve = expected_curve,
                     .hrr_expected = false,
             },
 

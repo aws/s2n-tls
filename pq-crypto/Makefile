@@ -27,58 +27,20 @@ else
 # Explicitly specify `try_include_asm` target for KEMs that attempt to include assembly
 .PHONY : all
 all: $(OBJS)
-	$(MAKE) -C bike_r1
-	$(MAKE) -C bike_r2
-	$(MAKE) -C bike_r3
-	$(MAKE) -C sike_r1
-	$(MAKE) -C kyber_r2
-	$(MAKE) -C kyber_90s_r2
 	$(MAKE) -C kyber_r3
-	$(MAKE) -C sike_r3 try_include_asm
 endif
-
-.PHONY : sike_r1_bc
-sike_r1_bc: $(BCS1)
-	$(MAKE) -C sike_r1 bc
-
-.PHONY : bike_r1_bc
-bike_r1_bc: $(BCS1)
-	$(MAKE) -C bike_r1 bc
-
-.PHONY : bike_r2_bc
-bike_r2_bc: $(BCS1)
-	$(MAKE) -C bike_r2 bc
 
 .PHONY : run-gcov
 run-gcov: gcov
-	$(MAKE) -C sike_r1 gcov
-	$(MAKE) -C sike_r3 gcov
-	$(MAKE) -C bike_r1 gcov
-	$(MAKE) -C bike_r2 gcov
-	$(MAKE) -C bike_r3 gcov
-	$(MAKE) -C kyber_r2 gcov
 	$(MAKE) -C kyber_r3 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
-	$(MAKE) -C sike_r1 lcov
-	$(MAKE) -C sike_r3 lcov
-	$(MAKE) -C bike_r1 lcov
-	$(MAKE) -C bike_r2 lcov
-	$(MAKE) -C bike_r3 lcov
-	$(MAKE) -C kyber_r2 lcov
 	$(MAKE) -C kyber_r3 lcov
 
 .PHONY : clean
 clean: decruft
-	$(MAKE) -C bike_r1 decruft
-	$(MAKE) -C bike_r2 decruft
-	$(MAKE) -C bike_r3 decruft
-	$(MAKE) -C sike_r1 decruft
-	$(MAKE) -C kyber_r2 decruft
-	$(MAKE) -C kyber_90s_r2 decruft
 	$(MAKE) -C kyber_r3 decruft
-	$(MAKE) -C sike_r3 decruft
 
 include ../s2n.mk
 include ./s2n_pq_asm.mk
