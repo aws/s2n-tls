@@ -536,29 +536,29 @@ int main(int argc, char *const *argv)
         struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
         GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]), "Error getting certificate/key");
 
+        if (ocsp_response_file_path) {
+            int fd = open(ocsp_response_file_path, O_RDONLY);
+            if (fd < 0) {
+                fprintf(stderr, "Error opening OCSP response file: '%s'\n", strerror(errno));
+                exit(1);
+            }
+
+            struct stat st = {0};
+            if (fstat(fd, &st) < 0) {
+                fprintf(stderr, "Error fstat-ing OCSP response file: '%s'\n", strerror(errno));
+                exit(1);
+            }
+
+            uint8_t *ocsp_response = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            if (s2n_cert_chain_and_key_set_ocsp_data(chain_and_key, ocsp_response, st.st_size) < 0) {
+                fprintf(stderr, "Error adding ocsp response: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                exit(1);
+            }
+
+            close(fd);
+        }
+
         GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
-    }
-
-    if (ocsp_response_file_path) {
-        int fd = open(ocsp_response_file_path, O_RDONLY);
-        if (fd < 0) {
-            fprintf(stderr, "Error opening OCSP response file: '%s'\n", strerror(errno));
-            exit(1);
-        }
-
-        struct stat st = {0};
-        if (fstat(fd, &st) < 0) {
-            fprintf(stderr, "Error fstat-ing OCSP response file: '%s'\n", strerror(errno));
-            exit(1);
-        }
-
-        uint8_t *ocsp_response = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (s2n_config_set_extension_data(config, S2N_EXTENSION_OCSP_STAPLING, ocsp_response, st.st_size) < 0) {
-            fprintf(stderr, "Error adding ocsp response: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
-        }
-
-        close(fd);
     }
 
     s2n_set_common_server_config(max_early_data, config, conn_settings, cipher_prefs, session_ticket_key_file_path);

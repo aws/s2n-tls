@@ -185,47 +185,38 @@ int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and
 
 struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 {
-    struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_blob chain_and_key_mem, cert_chain_mem, pkey_mem;
-
+    DEFER_CLEANUP(struct s2n_blob chain_and_key_mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&chain_and_key_mem, sizeof(struct s2n_cert_chain_and_key)));
-    chain_and_key = (struct s2n_cert_chain_and_key *)(void *)chain_and_key_mem.data;
+    PTR_GUARD_POSIX(s2n_blob_zero(&chain_and_key_mem));
 
-    /* Allocate the memory for the chain and key */
-    if (s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)) != S2N_SUCCESS) {
-        goto cleanup;
-    }
+    DEFER_CLEANUP(struct s2n_blob cert_chain_mem = { 0 }, s2n_free);
+    PTR_GUARD_POSIX(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
+    PTR_GUARD_POSIX(s2n_blob_zero(&cert_chain_mem));
+
+    DEFER_CLEANUP(struct s2n_blob pkey_mem = { 0 }, s2n_free);
+    PTR_GUARD_POSIX(s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)));
+    PTR_GUARD_POSIX(s2n_blob_zero(&pkey_mem));
+
+    DEFER_CLEANUP(struct s2n_array *cn_names = NULL, s2n_array_free_p);
+    cn_names = s2n_array_new(sizeof(struct s2n_blob));
+    PTR_ENSURE_REF(cn_names);
+
+    DEFER_CLEANUP(struct s2n_array *san_names = NULL, s2n_array_free_p);
+    san_names = s2n_array_new(sizeof(struct s2n_blob));
+    PTR_ENSURE_REF(san_names);
+
+    struct s2n_cert_chain_and_key *chain_and_key = (struct s2n_cert_chain_and_key *)(void *)chain_and_key_mem.data;
     chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
-
-    if (s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)) != S2N_SUCCESS) {
-        goto cleanup;
-    }
     chain_and_key->private_key = (s2n_cert_private_key *)(void *)pkey_mem.data;
+    chain_and_key->cn_names = cn_names;
+    chain_and_key->san_names = san_names;
 
-    chain_and_key->cert_chain->head = NULL;
-    if (s2n_pkey_zero_init(chain_and_key->private_key) != S2N_SUCCESS) {
-        goto cleanup;
-    }
-    memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
-    memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
-    chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
-    if (!chain_and_key->cn_names) {
-        goto cleanup;
-    }
-
-    chain_and_key->san_names = s2n_array_new(sizeof(struct s2n_blob));
-    if (!chain_and_key->san_names) {
-        goto cleanup;
-    }
-
-    chain_and_key->context = NULL;
-
+    ZERO_TO_DISABLE_DEFER_CLEANUP(chain_and_key_mem);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain_mem);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(pkey_mem);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(cn_names);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(san_names);
     return chain_and_key;
-    cleanup:
-        s2n_free(&pkey_mem);
-        s2n_free(&cert_chain_mem);
-        s2n_free(&chain_and_key_mem);
-    return NULL;
 }
 
 DEFINE_POINTER_CLEANUP_FUNC(GENERAL_NAMES *, GENERAL_NAMES_free);

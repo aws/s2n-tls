@@ -175,7 +175,7 @@ S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_free_p(struct s2n_array **parray)
+S2N_CLEANUP_RESULT s2n_array_free_p(struct s2n_array **parray)
 {
     RESULT_ENSURE_REF(parray);
     struct s2n_array *array = *parray;
