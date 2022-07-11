@@ -289,6 +289,13 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
                 /* Handled when parsing the psk extension */
                 break;
             /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *#    -  Optionally adding, removing, or changing the length of the
+             *#       "padding" extension [RFC7685].
+             */
+            case TLS_EXTENSION_PADDING:
+                break;
+            /*
              * No more exceptions.
              * All other extensions must match.
              */

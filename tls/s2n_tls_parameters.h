@@ -107,6 +107,7 @@
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
 #define TLS_EXTENSION_SCT_LIST             18
+#define TLS_EXTENSION_PADDING              21
 #define TLS_EXTENSION_EMS                  23
 #define TLS_EXTENSION_SESSION_TICKET       35
 #define TLS_EXTENSION_PRE_SHARED_KEY       41
