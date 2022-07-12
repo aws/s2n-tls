@@ -4,9 +4,11 @@
 SRCDIR ?= $(abspath $(PROOF_ROOT)/../../..)
 
 
-# Absolute path to the litani script.
+# How to invoke litani.
+# Use "litani" when litani is present in PATH.
+# Use an absolute path when litani is included as a git submodule.
 #
-LITANI ?= $(abspath $(PROOF_ROOT)/../../litani/litani)
+LITANI ?= litani
 
 
 # Name of this proof project, displayed in proof reports. For example,

@@ -153,7 +153,7 @@ def get_args():
     }, {
             "flags": ["--version"],
             "action": "version",
-            "version": "CBMC starter kit 2.4",
+            "version": "CBMC starter kit 2.5",
             "help": "display version and exit"
     }]:
         flags = arg.pop("flags")
@@ -219,10 +219,8 @@ def run_build(litani, jobs, fail_on_proof_failure, summarize):
 
     logging.debug(" ".join(cmd))
     proc = subprocess.run(cmd, check=False)
-    if proc.returncode:
-        if fail_on_proof_failure:
-            logging.error("One or more proofs failed")
-            sys.exit(10)
+
+    if proc.returncode and not fail_on_proof_failure:
         logging.critical("Failed to run litani run-build")
         sys.exit(1)
 
@@ -230,6 +228,9 @@ def run_build(litani, jobs, fail_on_proof_failure, summarize):
         print_proof_results(out_file)
         out_file.unlink()
 
+    if proc.returncode:
+        logging.error("One or more proofs failed")
+        sys.exit(10)
 
 def get_litani_path(proof_root):
     cmd = [
