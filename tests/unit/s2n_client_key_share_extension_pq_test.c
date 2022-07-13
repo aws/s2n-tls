@@ -205,7 +205,8 @@ int main() {
                     }
 
                     /* Test sending key share in response to HRR */
-                    {
+                    /* Need at least two KEM's to test ClientHelloRetry fallback */
+                    if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
                         struct s2n_connection *conn;
                         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                         conn->security_policy_override = &test_security_policy;
@@ -533,7 +534,8 @@ int main() {
 
                 /* Test that s2n_client_key_share_extension.recv selects the highest priority share,
                  * even if it appears last in the client's list of shares. */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -581,7 +583,8 @@ int main() {
                 /* Test that s2n_client_key_share_extension.recv ignores shares for groups not offered
                  * by the client / "mutually supported", and triggers a retry instead.
                  */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -626,7 +629,8 @@ int main() {
                 /* Test that s2n_client_key_share_extension.recv ignores shares for curves not offered
                  * by the client / "mutually supported", and chooses a lower priority curve instead.
                  */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -676,7 +680,8 @@ int main() {
 
                 /* Test that s2n_client_key_share_extension.recv ignores shares that can't be parsed,
                  * and continues to parse valid shares afterwards. */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
@@ -727,7 +732,8 @@ int main() {
 
                 /* Test that s2n_client_key_share_extension.recv ignores shares that can't be parsed,
                  * and doesn't ignore / forget / overwrite valid shares already parsed. */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;

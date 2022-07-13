@@ -1,4 +1,4 @@
- Post-quantum cryptography for s2n
+# Post-quantum cryptography for s2n
 This directory contains code for new post-quantum key exchange mechanisms. There are no known computationally feasible
 attacks (classical or quantum) against these algorithms when used with the recommended key lengths.
 

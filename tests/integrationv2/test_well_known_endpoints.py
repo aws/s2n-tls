@@ -60,15 +60,15 @@ CIPHERS = [
 if pq_enabled():
     EXPECTED_RESULTS = {
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2019_06):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA38", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA38", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
             {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "kem": "kyber512r3"},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA38", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA38", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
     }
 else:
     EXPECTED_RESULTS = {

@@ -24,6 +24,9 @@
 int main() {
     BEGIN_TEST();
 
+/* Need at least two KEM's to test fallback */
+#if (S2N_SUPPORTED_KEM_GROUPS_COUNT > 1)
+
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /* If client and server have no mutually supported groups, abort the handshake without sending HRR. */
@@ -157,48 +160,45 @@ int main() {
         /* If client has sent no valid keyshares but server and client mutually support KEM group 1,
          * select KEM group 1 and send Hello Retry Request. */
         {
-            /* Need at least two KEM's to test ClientHelloRetry fallback */
-            if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
-                struct s2n_connection *server_conn = NULL;
-                EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-                server_conn->security_policy_override = &test_security_policy;
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+            struct s2n_connection *server_conn = NULL;
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            server_conn->security_policy_override = &test_security_policy;
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
-                const struct s2n_kem_preferences *kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
-                EXPECT_NOT_NULL(kem_pref);
+            const struct s2n_kem_preferences *kem_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_NOT_NULL(kem_pref);
 
-                /* Server would have initially chosen kem_group[1] when processing the supported_groups extension */
-                EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-                struct s2n_kem_group_params *server_params = &server_conn->kex_params.server_kem_group_params;
-                const struct s2n_kem_group *kem_group1 = kem_pref->tls13_kem_groups[1];
-                server_params->kem_group = kem_group1;
-                server_params->kem_params.kem = kem_group1->kem;
-                server_params->ecc_params.negotiated_curve = kem_group1->curve;
+            /* Server would have initially chosen kem_group[1] when processing the supported_groups extension */
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            struct s2n_kem_group_params *server_params = &server_conn->kex_params.server_kem_group_params;
+            const struct s2n_kem_group *kem_group1 = kem_pref->tls13_kem_groups[1];
+            server_params->kem_group = kem_group1;
+            server_params->kem_params.kem = kem_group1->kem;
+            server_params->ecc_params.negotiated_curve = kem_group1->curve;
 
-                /* 0 is not supported, 1 is */
-                EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[0]);
-                server_conn->kex_params.mutually_supported_kem_groups[1] = kem_group1;
+            /* 0 is not supported, 1 is */
+            EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[0]);
+            server_conn->kex_params.mutually_supported_kem_groups[1] = kem_group1;
 
-                /* No keyshares received */
-                EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_params.kem);
-                EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_params.public_key.data);
-                EXPECT_NULL(server_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
+            /* No keyshares received */
+            EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_group);
+            EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_params.kem);
+            EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_params.public_key.data);
+            EXPECT_NULL(server_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
 
-                EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
+            EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
-                /* Server maintains its selection of KEM group 1, sends HRR */
-                EXPECT_EQUAL(server_params->kem_group, kem_group1);
-                EXPECT_EQUAL(server_params->kem_params.kem, kem_group1->kem);
-                EXPECT_EQUAL(server_params->ecc_params.negotiated_curve, kem_group1->curve);
-                EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-                EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
+            /* Server maintains its selection of KEM group 1, sends HRR */
+            EXPECT_EQUAL(server_params->kem_group, kem_group1);
+            EXPECT_EQUAL(server_params->kem_params.kem, kem_group1->kem);
+            EXPECT_EQUAL(server_params->ecc_params.negotiated_curve, kem_group1->curve);
+            EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_group);
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
-                EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            }
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
         /* When client has only sent a valid keyshare for
@@ -441,7 +441,7 @@ int main() {
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
     }
-
+#endif
     END_TEST();
     return 0;
 }

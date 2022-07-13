@@ -158,15 +158,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_kyber_512_r3));
 
         EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-17", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-18", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-19", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-20", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-18", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-19", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-20", &s2n_kyber_512_r3));
         EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-21", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-22", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-23", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-24", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-25", &s2n_kyber_512_r3));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-1-2021-05-26", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-22", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-23", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-24", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-25", &s2n_kyber_512_r3));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "PQ-TLS-1-0-2021-05-26", &s2n_kyber_512_r3));
 
 
     } else {

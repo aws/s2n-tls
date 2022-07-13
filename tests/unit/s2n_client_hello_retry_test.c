@@ -257,53 +257,51 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_connection_free(conn));
                 }
                 /* Test PQ KEM success case for s2n_server_hello_retry_recv. */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
+                    struct s2n_config *config;
+                    struct s2n_connection *conn;
 
-                    if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
-                        struct s2n_config *config;
-                        struct s2n_connection *conn;
+                    struct s2n_cert_chain_and_key *tls13_chain_and_key;
+                    char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
+                    char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
 
-                        struct s2n_cert_chain_and_key *tls13_chain_and_key;
-                        char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
-                        char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
+                    EXPECT_NOT_NULL(config = s2n_config_new());
+                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                    conn->security_policy_override = &test_security_policy;
 
-                        EXPECT_NOT_NULL(config = s2n_config_new());
-                        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-                        conn->security_policy_override = &test_security_policy;
+                    EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
+                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
+                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
+                    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
+                    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
 
-                        EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
-                        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
-                        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
-                        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
-                        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
+                    /* Client sends ClientHello containing key share for p256+Kyber
+                     * (but indicates support for x25519+Kyber in supported_groups) */
+                    EXPECT_SUCCESS(s2n_client_hello_send(conn));
 
-                        /* Client sends ClientHello containing key share for p256+Kyber
-                         * (but indicates support for x25519+Kyber in supported_groups) */
-                        EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+                    conn->session_id_len = 0; /* Wipe the session id to match the HRR hex */
 
-                        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
-                        conn->session_id_len = 0; /* Wipe the session id to match the HRR hex */
+                    /* Server responds with HRR indicating x25519+Kyber as choice for negotiation;
+                     * the last 6 bytes (0033 0002 2F39) are the key share extension with x25519+Kyber */
+                    DEFER_CLEANUP(struct s2n_stuffer hrr = {0}, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&hrr,
+                            "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F39"));
 
-                        /* Server responds with HRR indicating x25519+Kyber as choice for negotiation;
-                         * the last 6 bytes (0033 0002 2F39) are the key share extension with x25519+Kyber */
-                        DEFER_CLEANUP(struct s2n_stuffer hrr = {0}, s2n_stuffer_free);
-                        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&hrr,
-                                "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F39"));
+                    EXPECT_SUCCESS(s2n_stuffer_copy(&hrr, &conn->handshake.io, s2n_stuffer_data_available(&hrr)));
+                    conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+                    /* Read the message off the wire */
+                    EXPECT_SUCCESS(s2n_server_hello_parse(conn));
+                    conn->actual_protocol_version_established = 1;
 
-                        EXPECT_SUCCESS(s2n_stuffer_copy(&hrr, &conn->handshake.io, s2n_stuffer_data_available(&hrr)));
-                        conn->handshake.message_number = HELLO_RETRY_MSG_NO;
-                        /* Read the message off the wire */
-                        EXPECT_SUCCESS(s2n_server_hello_parse(conn));
-                        conn->actual_protocol_version_established = 1;
+                    EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+                    /* Client receives the HelloRetryRequest message */
+                    EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
 
-                        EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
-                        /* Client receives the HelloRetryRequest message */
-                        EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
-
-                        EXPECT_SUCCESS(s2n_config_free(config));
-                        EXPECT_SUCCESS(s2n_connection_free(conn));
-                        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-                    }
+                    EXPECT_SUCCESS(s2n_config_free(config));
+                    EXPECT_SUCCESS(s2n_connection_free(conn));
+                    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
                 }
             }
         }
