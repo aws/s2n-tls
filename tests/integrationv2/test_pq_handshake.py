@@ -57,23 +57,23 @@ EXPECTED_RESULTS = {
 
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, Ciphers.KMS_PQ_TLS_1_0_2019_06):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": "SIKEp503r1-KEM", "kem_group": "NONE"},
+            "kem": "NONE", "kem_group": "NONE"},
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, Ciphers.KMS_PQ_TLS_1_0_2020_02):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": "SIKEp503r1-KEM", "kem_group": "NONE"},
+            "kem": "NONE", "kem_group": "NONE"},
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, Ciphers.KMS_PQ_TLS_1_0_2020_07):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": "SIKEp503r1-KEM", "kem_group": "NONE"},
+            "kem": "NONE", "kem_group": "NONE"},
 
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2019_06):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": "SIKEp503r1-KEM", "kem_group": "NONE"},
+            "kem": "NONE", "kem_group": "NONE"},
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_02):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": "SIKEp434r3-KEM", "kem_group": "NONE"},
+            "kem": "NONE", "kem_group": "NONE"},
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_07):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-            "kem": "SIKEp434r3-KEM", "kem_group": "NONE"},
+            "kem": "NONE", "kem_group": "NONE"},
 
     (Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.KMS_TLS_1_0_2018_10):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384",
