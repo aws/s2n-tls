@@ -211,7 +211,7 @@ batch:
           S2N_COVERAGE: true
           S2N_LIBCRYPTO: openssl-1.1.1
           TESTS: unit
-      identifier: s2nOpenSSL111Gcc6Coverage
+      identifier: s2nUnitOpenSSL111Gcc6Coverage
       
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
