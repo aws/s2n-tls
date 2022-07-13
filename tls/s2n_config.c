@@ -314,15 +314,27 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 {
-    /* Free the cert_chain_and_key since the application has no reference
-     * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
-    if (config->cert_allocated) {
-        for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
-            s2n_cert_chain_and_key_free(config->default_certs_by_type.certs[i]);
-        }
+    /* We track certificate ownership on the config itself because a config
+     * CANNOT use a combination of owned and unowned chains.
+     * If it does, and the unowned chains are freed before the config is,
+     * then iterating over the chains to determine which are owned and need to be freed
+     * will mean also reading the invalid, freed memory of any unowned certificates.
+     * As of now, some tests free chains before the config, so that pattern may also
+     * appear in application code.
+     */
+    if (config->cert_ownership != S2N_LIB_OWNED) {
+        return S2N_SUCCESS;
     }
 
-    return 0;
+    /* Free the cert_chain_and_key since the application has no reference
+     * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        s2n_cert_chain_and_key_free(config->default_certs_by_type.certs[i]);
+        config->default_certs_by_type.certs[i] = NULL;
+    }
+
+    config->cert_ownership = S2N_NOT_OWNED;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_free_dhparams(struct s2n_config *config)
@@ -466,19 +478,7 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-/* Deprecated. Superseded by s2n_config_add_cert_chain_and_key_to_store */
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
-{
-    struct s2n_cert_chain_and_key *chain_and_key;
-    POSIX_ENSURE_REF(chain_and_key = s2n_cert_chain_and_key_new());
-    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
-    POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    config->cert_allocated = 1;
-
-    return 0;
-}
-
-int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
@@ -491,12 +491,48 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
          * default, etc. */
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
             config->default_certs_by_type.certs[cert_type] = cert_key_pair;
+        } else {
+            /* Because library-owned certificates are tracked and cleaned up via the
+             * default_certs_by_type mapping, library-owned chains MUST be set as the default
+             * to avoid a memory leak. If they're not the default, they're not freed.
+             */
+            POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED,
+                    S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
         }
     }
 
     if (s2n_pkey_check_key_exists(cert_key_pair->private_key) != S2N_SUCCESS) {
         config->no_signing_key = true;
     }
+
+    return S2N_SUCCESS;
+}
+
+/* Deprecated. Superseded by s2n_config_add_cert_chain_and_key_to_store */
+int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE(config->cert_ownership != S2N_APP_OWNED, S2N_ERR_CERT_OWNERSHIP);
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+            s2n_cert_chain_and_key_ptr_free);
+    POSIX_ENSURE_REF(chain_and_key);
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_impl(config, chain_and_key));
+    config->cert_ownership = S2N_LIB_OWNED;
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(chain_and_key);
+    return S2N_SUCCESS;
+}
+
+int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
+
+    POSIX_ENSURE_REF(cert_key_pair);
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_impl(config, cert_key_pair));
+    config->cert_ownership = S2N_APP_OWNED;
 
     return S2N_SUCCESS;
 }
@@ -510,12 +546,19 @@ int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey
     return S2N_SUCCESS;
 }
 
-int s2n_config_clear_default_certificates(struct s2n_config *config)
+static int s2n_config_clear_default_certificates(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
+
+    /* Clearing library-owned chains would lead to a memory leak.
+     * See s2n_config_free_cert_chain_and_key.
+     */
+    POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
+
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         config->default_certs_by_type.certs[i] = NULL;
     }
+    config->cert_ownership = S2N_NOT_OWNED;
     return 0;
 }
 
@@ -527,6 +570,11 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     POSIX_ENSURE_REF(cert_key_pairs);
     S2N_ERROR_IF(num_cert_key_pairs < 1 || num_cert_key_pairs > S2N_CERT_TYPE_COUNT,
             S2N_ERR_NUM_DEFAULT_CERTIFICATES);
+
+    /* This method will set application-owned chains, so we must not already be using
+     * any library owned chains. See s2n_config_free_cert_chain_and_key.
+     */
+    POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     /* Validate certs being set before clearing auto-chosen defaults or previously set defaults */
     struct certs_by_type new_defaults = {{ 0 }};
@@ -545,6 +593,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     }
 
     config->default_certs_are_explicit = 1;
+    config->cert_ownership = S2N_APP_OWNED;
     return 0;
 }
 
@@ -639,16 +688,15 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     }
     struct s2n_cert_chain_and_key *config_chain_and_key = s2n_config_get_single_default_cert(config);
     POSIX_ENSURE_REF(config_chain_and_key);
+    POSIX_ENSURE(config->cert_ownership == S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     switch (type) {
         case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
-            {
-                POSIX_GUARD(s2n_cert_chain_and_key_set_sct_list(config_chain_and_key, data, length));
-            } break;
+            POSIX_GUARD(s2n_cert_chain_and_key_set_sct_list(config_chain_and_key, data, length));
+            break;
         case S2N_EXTENSION_OCSP_STAPLING:
-            {
-                POSIX_GUARD(s2n_cert_chain_and_key_set_ocsp_data(config_chain_and_key, data, length));
-            } break;
+            POSIX_GUARD(s2n_cert_chain_and_key_set_ocsp_data(config_chain_and_key, data, length));
+            break;
         default:
             POSIX_BAIL(S2N_ERR_UNRECOGNIZED_EXTENSION);
     }

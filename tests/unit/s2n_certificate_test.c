@@ -113,6 +113,24 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
+    /* Test s2n_cert_chain_and_key_new */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_NOT_NULL(chain);
+
+        /* Sanity check some fields */
+        EXPECT_NOT_NULL(chain->cert_chain);
+        EXPECT_NOT_NULL(chain->private_key);
+        EXPECT_NOT_NULL(chain->cn_names);
+        EXPECT_NOT_NULL(chain->san_names);
+        EXPECT_EQUAL(chain->cert_chain->chain_size, 0);
+        EXPECT_NULL(chain->cert_chain->head);
+        EXPECT_NULL(chain->private_key->pkey);
+        EXPECT_NULL(chain->private_key->sign);
+        EXPECT_NULL(chain->context);
+    }
+
     /* Test s2n_cert_chain_and_key_load_public_pem_bytes */
     {
         uint32_t pem_len = 0;
@@ -726,6 +744,71 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tls12_output_len, tls13_output_len);
             EXPECT_BYTEARRAY_EQUAL(tls12_output, tls13_output, tls13_output_len);
         }
+    }
+
+    /* Test s2n_cert_chain_and_key_set_ocsp_data */
+    {
+        uint8_t more_ocsp_data[] = "more ocsp data";
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        /* Safety checks */
+        EXPECT_FAILURE(s2n_cert_chain_and_key_set_ocsp_data(NULL, ocsp_data, sizeof(ocsp_data)));
+
+        /* Set ocsp data */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain, ocsp_data, sizeof(ocsp_data)));
+        EXPECT_EQUAL(chain->ocsp_status.size, sizeof(ocsp_data));
+        EXPECT_BYTEARRAY_EQUAL(chain->ocsp_status.data, ocsp_data, sizeof(ocsp_data));
+
+        /* Change oscp data */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain, more_ocsp_data, sizeof(more_ocsp_data)));
+        EXPECT_EQUAL(chain->ocsp_status.size, sizeof(more_ocsp_data));
+        EXPECT_BYTEARRAY_EQUAL(chain->ocsp_status.data, more_ocsp_data, sizeof(more_ocsp_data));
+
+        /* Free ocsp data */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain, NULL, 0));
+        EXPECT_EQUAL(chain->ocsp_status.size, 0);
+
+        /* Set ocsp data again */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain, ocsp_data, sizeof(ocsp_data)));
+        EXPECT_EQUAL(chain->ocsp_status.size, sizeof(ocsp_data));
+        EXPECT_BYTEARRAY_EQUAL(chain->ocsp_status.data, ocsp_data, sizeof(ocsp_data));
+    }
+
+    /* Test s2n_cert_chain_and_key_set_sct_list */
+    {
+        uint8_t sct_list[] = "sct list";
+        uint8_t other_sct_list[] = "other sct list";
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        /* Safety checks */
+        EXPECT_FAILURE(s2n_cert_chain_and_key_set_sct_list(NULL, sct_list, sizeof(sct_list)));
+
+        /* Set sct list */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain, sct_list, sizeof(sct_list)));
+        EXPECT_EQUAL(chain->sct_list.size, sizeof(sct_list));
+        EXPECT_BYTEARRAY_EQUAL(chain->sct_list.data, sct_list, sizeof(sct_list));
+
+        /* Change sct list */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain, other_sct_list, sizeof(other_sct_list)));
+        EXPECT_EQUAL(chain->sct_list.size, sizeof(other_sct_list));
+        EXPECT_BYTEARRAY_EQUAL(chain->sct_list.data, other_sct_list, sizeof(other_sct_list));
+
+        /* Free sct list */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain, NULL, 0));
+        EXPECT_EQUAL(chain->sct_list.size, 0);
+
+        /* Set sct list again */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain, sct_list, sizeof(sct_list)));
+        EXPECT_EQUAL(chain->sct_list.size, sizeof(sct_list));
+        EXPECT_BYTEARRAY_EQUAL(chain->sct_list.data, sct_list, sizeof(sct_list));
     }
 
     END_TEST();

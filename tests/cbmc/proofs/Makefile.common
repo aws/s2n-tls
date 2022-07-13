@@ -4,7 +4,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.4
+CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.5
 
 ################################################################
 # The CBMC Starter Kit depends on the files Makefile.common and
@@ -309,6 +309,7 @@ NONDET_STATIC ?=
 # Flags to pass to goto-cc for compilation and linking
 COMPILE_FLAGS ?= -Wall
 LINK_FLAGS ?= -Wall
+EXPORT_FILE_LOCAL_SYMBOLS ?= --export-file-local-symbols
 
 # Preprocessor include paths -I...
 INCLUDES ?=
@@ -439,6 +440,7 @@ CBMC ?= cbmc
 GOTO_ANALYZER ?= goto-analyzer
 GOTO_CC ?= goto-cc
 GOTO_INSTRUMENT ?= goto-instrument
+CRANGLER ?= crangler
 VIEWER ?= cbmc-viewer
 MAKE_SOURCE ?= make-source
 VIEWER2 ?= cbmc-viewer
@@ -485,13 +487,91 @@ CBMC_REMOVE_FUNCTION_BODY := $(patsubst %,--remove-function-body %, $(REMOVE_FUN
 CBMC_RESTRICT_FUNCTION_POINTER := $(patsubst %,--restrict-function-pointer %, $(RESTRICT_FUNCTION_POINTER))
 
 ################################################################
+# Targets for rewriting source files with crangler
+
+# Construct crangler configuration files
+#
+# REWRITTEN_SOURCES is a list of crangler output files source.i.
+# This target assumes that for each source.i
+#   * source.i_SOURCE is the path to a source file,
+#   * source.i_FUNCTIONS is a list of functions (may be empty)
+#   * source.i_OBJECTS is a list of variables (may be empty)
+# This target constructs the crangler configuration file source.i.json
+# of the form
+#   {
+#     "sources":   [ "/proj/code.c" ],
+#     "includes":  [ "/proj/include" ],
+#     "defines":   [ "VAR=1" ],
+#     "functions": [ {"function_name": ["remove static"]} ],
+#     "objects":   [ {"variable_name": ["remove static"]} ],
+#     "output":    "source.i"
+#   }
+# to remove the static attribute from function_name and variable_name
+# in the source file source.c and write the result to source.i.
+#
+# This target assumes that filenames include no spaces and that
+# the INCLUDES and DEFINES variables include no spaces after -I
+# and -D.  For example, use "-DVAR=1" and not "-D VAR=1".
+#
+# Define *_SOURCE, *_FUNCTIONS, and *_OBJECTS in the proof Makefile.
+# The string source.i is usually an absolute path $(PROOFDIR)/code.i
+# to a file in the proof directory that contains the proof Makefile.
+# The proof Makefile usually includes the definitions
+#   $(PROOFDIR)/code.i_SOURCE = /proj/code.c
+#   $(PROOFDIR)/code.i_FUNCTIONS = function_name
+#   $(PROOFDIR)/code.i_OBJECTS = variable_name
+# Because these definitions refer to PROOFDIR that is defined in this
+# Makefile.common, these definitions must appear after the inclusion
+# of Makefile.common in the proof Makefile.
+#
+$(foreach rs,$(REWRITTEN_SOURCES),$(eval $(rs).json: $($(rs)_SOURCE)))
+$(foreach rs,$(REWRITTEN_SOURCES),$(rs).json):
+	echo '{'\
+	  '"sources": ['\
+	  '"$($(@:.json=)_SOURCE)"'\
+	  '],'\
+	  '"includes": ['\
+	    '$(subst $(SPACE),$(COMMA),$(patsubst -I%,"%",$(strip $(INCLUDES))))' \
+	  '],'\
+	  '"defines": ['\
+	    '$(subst $(SPACE),$(COMMA),$(patsubst -D%,"%",$(subst ",\",$(strip $(DEFINES)))))' \
+	  '],'\
+	  '"functions": ['\
+	    '{'\
+	      '$(subst ~, ,$(subst $(SPACE),$(COMMA),$(patsubst %,"%":["remove~static"],$($(@:.json=)_FUNCTIONS))))' \
+	    '}'\
+	  '],'\
+	  '"objects": ['\
+	    '{'\
+	      '$(subst ~, ,$(subst $(SPACE),$(COMMA),$(patsubst %,"%":["remove~static"],$($(@:.json=)_OBJECTS))))' \
+	    '}'\
+	  '],'\
+	  '"output": "$(@:.json=)"'\
+	'}' > $@
+
+# Rewrite source files with crangler
+#
+$(foreach rs,$(REWRITTEN_SOURCES),$(eval $(rs): $(rs).json))
+$(REWRITTEN_SOURCES):
+	$(LITANI) add-job \
+	  --command \
+	  '$(CRANGLER) $@.json' \
+	  --inputs $($@_SOURCE) \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/crangler-$(subst /,_,$(subst .,_,$@))-log.txt \
+	  --interleave-stdout-stderr \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): removing static"
+
+################################################################
 # Build targets that make the relevant .goto files
 
 # Compile project sources
-$(PROJECT_GOTO)1.goto: $(PROJECT_SOURCES)
+$(PROJECT_GOTO)1.goto: $(PROJECT_SOURCES) $(REWRITTEN_SOURCES)
 	$(LITANI) add-job \
 	  --command \
-	    '$(GOTO_CC) $(CBMC_VERBOSITY) --export-file-local-symbols $(COMPILE_FLAGS) $(INCLUDES) $(DEFINES) $^ -o $@' \
+	    '$(GOTO_CC) $(CBMC_VERBOSITY) $(COMPILE_FLAGS) $(EXPORT_FILE_LOCAL_SYMBOLS) $(INCLUDES) $(DEFINES) $^ -o $@' \
 	  --inputs $^ \
 	  --outputs $@ \
 	  --stdout-file $(LOGDIR)/project_sources-log.txt \
@@ -503,7 +583,7 @@ $(PROJECT_GOTO)1.goto: $(PROJECT_SOURCES)
 $(PROOF_GOTO)1.goto: $(PROOF_SOURCES)
 	$(LITANI) add-job \
 	  --command \
-	    '$(GOTO_CC) $(CBMC_VERBOSITY) --export-file-local-symbols $(COMPILE_FLAGS) $(INCLUDES) $(DEFINES) $^ -o $@' \
+	    '$(GOTO_CC) $(CBMC_VERBOSITY) $(COMPILE_FLAGS) $(EXPORT_FILE_LOCAL_SYMBOLS) $(INCLUDES) $(DEFINES) $^ -o $@' \
 	  --inputs $^ \
 	  --outputs $@ \
 	  --stdout-file $(LOGDIR)/proof_sources-log.txt \
@@ -836,6 +916,7 @@ clean:
 	-$(RM) $(DEPENDENT_GOTOS)
 	-$(RM) TAGS*
 	-$(RM) *~ \#*
+	-$(RM) $(REWRITTEN_SOURCES) $(foreach rs,$(REWRITTEN_SOURCES),$(rs).json)
 
 veryclean: clean
 	-$(RM) -r html report

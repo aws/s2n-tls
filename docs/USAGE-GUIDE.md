@@ -470,7 +470,7 @@ Online Certificate Status Protocol (OCSP) is a protocol to establish whether or 
 
 OCSP stapling can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.
 
-To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_config_set_extension_data()` with S2N_EXTENSION_OCSP_STAPLING to set the raw bytes of the OCSP stapling data. Note that `s2n_config_set_extension_data()` modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. This means that when using OCSP data, `s2n_config_add_cert_chain_and_key()` must be used to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store()`.
+To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_cert_chain_and_key_set_ocsp_data()` to set the raw bytes of the OCSP stapling data.
 
 The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
 
@@ -480,7 +480,7 @@ Certificate transparency is a framework to store public logs of CA-issued certif
 
 Certificate transparency information can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.
 
-To use certificate transparency, the requester (usually the client) must call `s2n_config_set_ct_support_level()` with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call `s2n_config_set_extension_data()` with S2N_EXTENSION_CERTIFICATE_TRANSPARENCY to set the raw bytes of the transparency information. Note that `s2n_config_set_extension_data()` modifies the certificate chain instead of the config, so it can’t be used with configs that share a certificate chain with other configs. This means that when using certificate transparency data, `s2n_config_add_cert_chain_and_key()` must be used to set the certificate chain, NOT `s2n_config_add_cert_chain_and_key_to_store()`.
+To use certificate transparency, the requester (usually the client) must call `s2n_config_set_ct_support_level()` with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call `s2n_cert_chain_and_key_set_sct_list()` to set the raw bytes of the transparency information.
 
 Call `s2n_connection_get_sct_list()` to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.
 
