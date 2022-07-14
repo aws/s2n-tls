@@ -19,6 +19,8 @@
 
 #include <assert.h>
 
+int __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(struct s2n_hash_state *);
+
 void s2n_hmac_copy_harness()
 {
     /* Non-deterministic inputs. */

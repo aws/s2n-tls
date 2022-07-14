@@ -19,6 +19,8 @@
 
 #include <assert.h>
 
+int s2n_hmac_hash_block_size(s2n_hmac_algorithm, uint16_t *);
+
 void s2n_hmac_hash_block_size_harness()
 {
     /* Non-deterministic inputs. */

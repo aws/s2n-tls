@@ -17,6 +17,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_evp.h"
+#include "crypto/s2n_fips.h"
 
 #include <assert.h>
 

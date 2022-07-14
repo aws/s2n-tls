@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <crypto/s2n_hash.h>
+#include <utils/s2n_mem.h>
 #include <cbmc_proof/cbmc_utils.h>
 
 /**
