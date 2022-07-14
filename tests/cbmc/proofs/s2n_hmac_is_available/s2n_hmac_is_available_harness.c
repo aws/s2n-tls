@@ -42,6 +42,6 @@ void s2n_hmac_is_available_harness()
         case S2N_HASH_SHA512:
             assert(is_available); break;
         default:
-            __CPROVER_assert(!is_available, "Unssuported algorithm.");
+            __CPROVER_assert(!is_available, "Unsupported algorithm.");
     }
 }

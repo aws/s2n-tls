@@ -38,7 +38,7 @@ void s2n_hash_digest_size_harness()
         case S2N_HASH_SHA512:   assert(*out == SHA512_DIGEST_LENGTH); break;
         case S2N_HASH_MD5_SHA1: assert(*out == MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH); break;
         default:
-            __CPROVER_assert(0, "Unssuported algorithm.");
+            __CPROVER_assert(0, "Unsupported algorithm.");
         }
     }
 }

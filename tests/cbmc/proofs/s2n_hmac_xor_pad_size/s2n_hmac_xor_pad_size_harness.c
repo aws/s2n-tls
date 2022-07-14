@@ -41,7 +41,7 @@ void s2n_hmac_xor_pad_size_harness()
             case S2N_HMAC_SSLv3_MD5:  assert(*xor_pad_size == 48);  break;
             case S2N_HMAC_SSLv3_SHA1: assert(*xor_pad_size == 40);  break;
             default:
-                __CPROVER_assert(0, "Unssuported algorithm.");
+                __CPROVER_assert(0, "Unsupported algorithm.");
         }
     }
 }
