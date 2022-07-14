@@ -230,77 +230,16 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
         S2N_TLS_RANDOM_DATA_LEN
     ), S2N_ERR_BAD_MESSAGE);
 
-    /*
-     * Now enforce that the extensions also exactly match,
-     * except for the exceptions described in the RFC.
+    /* This would be where we enforce that the extensions all match.
+     *
+     * However, it's unclear if the spec expects that the server actually enforces
+     * them to match between ClientHello messages. Until it's cleared up, it's
+     * probably best to not check.
+     *
+     * See:
+     * - https://github.com/tlswg/tls13-spec/issues/1223
+     * - https://github.com/tlswg/tls13-spec/issues/1224
      */
-    for (size_t i = 0; i < s2n_array_len(s2n_supported_extensions); i++) {
-        s2n_parsed_extension *old_extension = &old_ch->extensions.parsed_extensions[i];
-        uint32_t old_size = old_extension->extension.size;
-        s2n_parsed_extension *new_extension = &new_ch->extensions.parsed_extensions[i];
-        uint32_t new_size = new_extension->extension.size;
-
-        /* The extension type is only set if the extension is present.
-         * Look for a non-zero-length extension.
-         */
-        uint16_t extension_type = 0;
-        if (old_size != 0) {
-            extension_type = old_extension->extension_type;
-        } else if (new_size != 0) {
-            extension_type = new_extension->extension_type;
-        } else {
-            continue;
-        }
-
-        switch(extension_type) {
-            /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
-             *#    -  If a "key_share" extension was supplied in the HelloRetryRequest,
-             *#       replacing the list of shares with a list containing a single
-             *#       KeyShareEntry from the indicated group.
-             */
-            case TLS_EXTENSION_KEY_SHARE:
-                /* Handled when parsing the key share extension */
-                break;
-            /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
-             *#    -  Removing the "early_data" extension (Section 4.2.10) if one was
-             *#       present.  Early data is not permitted after a HelloRetryRequest.
-             */
-            case TLS_EXTENSION_EARLY_DATA:
-                RESULT_ENSURE(new_size == 0, S2N_ERR_BAD_MESSAGE);
-                break;
-            /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
-             *#    -  Including a "cookie" extension if one was provided in the
-             *#       HelloRetryRequest.
-             */
-            case TLS_EXTENSION_COOKIE:
-                /* Handled when parsing the cookie extension */
-                break;
-            /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
-             *#    -  Updating the "pre_shared_key" extension if present by recomputing
-             *#       the "obfuscated_ticket_age" and binder values and (optionally)
-             *#       removing any PSKs which are incompatible with the server's
-             *#       indicated cipher suite.
-             */
-            case TLS_EXTENSION_PRE_SHARED_KEY:
-                /* Handled when parsing the psk extension */
-                break;
-            /*
-             * No more exceptions.
-             * All other extensions must match.
-             */
-            default:
-                RESULT_ENSURE(old_size == new_size, S2N_ERR_BAD_MESSAGE);
-                RESULT_ENSURE(s2n_constant_time_equals(
-                    new_extension->extension.data,
-                    old_extension->extension.data,
-                    old_size
-                ), S2N_ERR_BAD_MESSAGE);
-        }
-    }
 
     return S2N_RESULT_OK;
 }
