@@ -663,7 +663,7 @@ void cbmc_populate_s2n_handshake_parameters(struct s2n_handshake_parameters *s2n
     cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->conn_sig_scheme));
     cbmc_populate_s2n_blob(&(s2n_handshake_parameters->client_cert_chain));
     cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->client_cert_sig_scheme));
-    cbmc_populate_s2n_cert_chain_and_key(&(s2n_handshake_parameters->our_chain_and_key));
+    cbmc_populate_s2n_cert_chain_and_key(s2n_handshake_parameters->our_chain_and_key);
     /* `s2n_handshake_parameters->exact_sni_matches`
      * `s2n_handshake_parameters->wc_sni_matches` are never allocated.
      * If required, these initializations should be done in the proof harness.
@@ -709,7 +709,7 @@ void cbmc_populate_s2n_prf_working_space(struct s2n_prf_working_space *s2n_prf_w
      * If required, this initialization should be done in the validation function.
      */
     cbmc_populate_s2n_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
-    cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->p_hash.s2n_hmac));
+    cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->p_hash.evp_hmac));
 }
 
 struct s2n_prf_working_space* cbmc_allocate_s2n_prf_working_space()
