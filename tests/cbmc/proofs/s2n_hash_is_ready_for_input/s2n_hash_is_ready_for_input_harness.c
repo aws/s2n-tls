@@ -17,6 +17,8 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
+#include <assert.h>
+
 void s2n_hash_is_ready_for_input_harness()
 {
     /* Non-deterministic inputs. */

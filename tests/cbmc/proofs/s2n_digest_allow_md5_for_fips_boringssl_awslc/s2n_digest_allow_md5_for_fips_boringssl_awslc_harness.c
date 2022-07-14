@@ -18,6 +18,8 @@
 #include "api/s2n.h"
 #include "crypto/s2n_evp.h"
 
+#include <assert.h>
+
 void s2n_digest_allow_md5_for_fips_boringssl_awslc_harness()
 {
     /* Non-deterministic inputs. */

@@ -115,8 +115,8 @@ bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const s
 
 static int nondet_comparator(const void *a, const void *b)
 {
-    assert(a != NULL);
-    assert(b != NULL);
+    __CPROVER_assert(a != NULL, "a is not NULL");
+    __CPROVER_assert(b != NULL, "b is not NULL");
     return nondet_int();
 }
 

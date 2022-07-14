@@ -17,6 +17,8 @@
 
 #include "crypto/s2n_hmac.h"
 
+#include <assert.h>
+
 void s2n_hmac_xor_pad_size_harness()
 {
     /* Non-deterministic inputs. */

@@ -17,6 +17,8 @@
 
 #include "crypto/s2n_hmac.h"
 
+#include <assert.h>
+
 void s2n_hash_hmac_alg_harness()
 {
     /* Non-deterministic inputs. */

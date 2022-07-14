@@ -15,6 +15,8 @@
 
 #include <tls/s2n_connection.h>
 
+#include <assert.h>
+
 void s2n_is_hello_retry_message_harness()
 {
     /* Non-deterministic inputs. */

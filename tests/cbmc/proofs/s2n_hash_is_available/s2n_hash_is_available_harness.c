@@ -18,6 +18,8 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 
+#include <assert.h>
+
 void s2n_hash_is_available_harness()
 {
     /* Non-deterministic inputs. */

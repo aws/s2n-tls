@@ -10,6 +10,8 @@
 #include <utils/s2n_socket.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
+#include <assert.h>
+
 void s2n_socket_set_read_size_harness()
 {
   /* Non-deterministic inputs. */

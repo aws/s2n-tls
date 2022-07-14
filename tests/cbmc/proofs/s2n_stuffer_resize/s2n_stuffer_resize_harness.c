@@ -20,6 +20,8 @@
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 
+#include <assert.h>
+
 void s2n_stuffer_resize_harness()
 {
     /* Non-deterministic inputs. */
