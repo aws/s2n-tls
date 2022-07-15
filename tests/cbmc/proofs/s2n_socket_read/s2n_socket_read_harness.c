@@ -9,6 +9,8 @@
 #include "utils/s2n_socket.h"
 #include "cbmc_proof/make_common_datastructures.h"
 
+#include <assert.h>
+
 void s2n_socket_read_harness()
 {
   /* Non-deterministic inputs. */

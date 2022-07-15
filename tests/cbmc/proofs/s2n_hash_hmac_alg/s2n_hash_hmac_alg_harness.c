@@ -17,6 +17,8 @@
 
 #include "crypto/s2n_hmac.h"
 
+#include <assert.h>
+
 void s2n_hash_hmac_alg_harness()
 {
     /* Non-deterministic inputs. */
@@ -38,7 +40,7 @@ void s2n_hash_hmac_alg_harness()
         case S2N_HASH_SHA384:     assert(*out == S2N_HMAC_SHA384); break;
         case S2N_HASH_SHA512:     assert(*out == S2N_HMAC_SHA512); break;
         default:
-            __CPROVER_assert(0, "Unssuported algorithm.");
+            __CPROVER_assert(0, "Unsupported algorithm.");
         }
     } else {
         assert(IMPLIES(out != NULL && hash_alg == S2N_HASH_MD5_SHA1, *out == old_out));

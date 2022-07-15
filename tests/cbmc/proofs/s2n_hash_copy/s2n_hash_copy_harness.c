@@ -17,6 +17,10 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
+#include <assert.h>
+
+int __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(struct s2n_hash_state *);
+
 void s2n_hash_copy_harness()
 {
     /* Non-deterministic inputs. */
