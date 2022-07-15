@@ -19,6 +19,8 @@
 #include "crypto/s2n_evp.h"
 #include "utils/s2n_result.h"
 
+#include <assert.h>
+
 void s2n_digest_is_md5_allowed_for_fips_harness()
 {
     /* Non-deterministic inputs. */

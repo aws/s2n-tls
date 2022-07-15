@@ -18,6 +18,8 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 
+#include <assert.h>
+
 void s2n_hash_allow_md5_for_fips_harness()
 {
     /* Non-deterministic inputs. */

@@ -19,6 +19,8 @@
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 
+#include <assert.h>
+
 void s2n_stuffer_is_consumed_harness()
 {
     /* Non-deterministic inputs. */

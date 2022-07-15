@@ -20,6 +20,6 @@
 
 int munlock(const void *addr, size_t len)
 {
-    assert(S2N_MEM_IS_WRITABLE(addr, len));
+    __CPROVER_assert(S2N_MEM_IS_WRITABLE(addr, len), "memory is writable");
     return nondet_int();
 }

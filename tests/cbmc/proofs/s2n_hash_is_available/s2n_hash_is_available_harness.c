@@ -18,6 +18,8 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 
+#include <assert.h>
+
 void s2n_hash_is_available_harness()
 {
     /* Non-deterministic inputs. */
@@ -41,6 +43,6 @@ void s2n_hash_is_available_harness()
         case S2N_HASH_SENTINEL:
             assert(!is_available); break;
         default:
-            __CPROVER_assert(!is_available, "Unssuported algorithm.");
+            __CPROVER_assert(!is_available, "Unsupported algorithm.");
     }
 }

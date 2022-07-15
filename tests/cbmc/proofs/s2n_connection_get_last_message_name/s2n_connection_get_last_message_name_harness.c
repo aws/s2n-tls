@@ -15,6 +15,8 @@
 
 #include <tls/s2n_connection.h>
 
+#include <assert.h>
+
 void s2n_connection_get_last_message_name_harness()
 {
     /* Non-deterministic inputs. */
