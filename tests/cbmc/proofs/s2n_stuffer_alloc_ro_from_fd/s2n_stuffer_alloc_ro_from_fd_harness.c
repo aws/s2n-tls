@@ -21,6 +21,8 @@
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 
+int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *, int);
+
 void s2n_stuffer_alloc_ro_from_fd_harness()
 {
     /* Non-deterministic inputs. */

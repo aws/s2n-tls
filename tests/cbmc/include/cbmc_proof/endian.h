@@ -19,6 +19,20 @@
 #    define __LONG_LONG_PAIR(HI, LO) HI, LO
 #endif
 
+#undef htobe16
+#undef htole16
+#undef htobe32
+#undef htole32
+#undef htobe64
+#undef htole64
+
+#undef be16toh
+#undef le16toh
+#undef be32toh
+#undef le32toh
+#undef be64toh
+#undef le64toh
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #    define htobe16(x) __builtin_bswap16(x)
 #    define htole16(x) (x)

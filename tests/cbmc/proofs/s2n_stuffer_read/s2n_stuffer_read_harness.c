@@ -53,5 +53,5 @@ void s2n_stuffer_read_harness()
 
     assert_byte_from_blob_matches(&stuffer->blob, &old_byte);
     assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
-    assert(s2n_result_is_ok(s2n_blob_validate(stuffer)));
+    assert(s2n_result_is_ok(s2n_blob_validate(blob)));
 }

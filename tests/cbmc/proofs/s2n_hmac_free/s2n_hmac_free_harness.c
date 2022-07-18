@@ -18,6 +18,8 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
+#include <assert.h>
+
 void s2n_hmac_free_harness()
 {
     /* Non-deterministic inputs. */

@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <crypto/s2n_hash.h>
+#include <utils/s2n_mem.h>
 #include <cbmc_proof/cbmc_utils.h>
 
 /**
@@ -241,7 +242,10 @@ void save_abstract_evp_ctx(const EVP_PKEY_CTX *pctx, struct rc_keys_from_evp_pke
 
 void save_rc_keys_from_hash_state(const struct s2n_hash_state *state, struct rc_keys_from_hash_state *storage)
 {
-    storage->evp.pkey = storage->evp.pkey_eckey = storage->evp_md5.pkey = storage->evp_md5.pkey_eckey = NULL;
+    storage->evp.pkey = NULL;
+    storage->evp.pkey_eckey = NULL;
+    storage->evp_md5.pkey = NULL;
+    storage->evp_md5.pkey_eckey = NULL;
     storage->evp.pkey_refs = storage->evp.pkey_eckey_refs = storage->evp_md5.pkey_refs = storage->evp_md5.pkey_eckey_refs = 0;
 
     if (state) {

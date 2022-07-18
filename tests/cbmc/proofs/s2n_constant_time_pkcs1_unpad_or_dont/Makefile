@@ -16,7 +16,7 @@
 MAX_ARR_LEN = 10
 
 # Bound for copy or dont must be at at least three higher than the maximum array length
-BOUND = $(MAX_ARR_LEN) + 3
+BOUND = $(MAX_ARR_LEN)+3
 
 DEFINES += -DMAX_ARR_LEN=$(MAX_ARR_LEN)
 DEFINES += -DBOUND=$(BOUND)

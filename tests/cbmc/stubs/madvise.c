@@ -14,6 +14,8 @@
  */
 
 #include <cbmc_proof/nondet.h>
+
+#include <assert.h>
 #include <errno.h>
 
 #include "error/s2n_errno.h"

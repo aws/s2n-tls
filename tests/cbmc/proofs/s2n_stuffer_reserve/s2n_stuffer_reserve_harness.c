@@ -23,6 +23,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
+int s2n_stuffer_reserve(struct s2n_stuffer *, struct s2n_stuffer_reservation *, const uint8_t);
+
 void s2n_stuffer_reserve_harness()
 {
     /* Non-deterministic inputs. */

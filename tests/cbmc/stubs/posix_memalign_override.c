@@ -17,7 +17,7 @@
 
 #include <cbmc_proof/nondet.h>
 #include <errno.h>
-#include <stdint.h>
+#include <stdlib.h>
 
 /**
  * Overrides the version of posix_memalign used by CBMC.

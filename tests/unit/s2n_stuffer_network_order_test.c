@@ -21,7 +21,7 @@
 
 #define SIZEOF_UINT24 3
 
-int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length);
+int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint64_t input, uint8_t length);
 int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation* reservation, const uint32_t u);
 
 int main(int argc, char **argv)

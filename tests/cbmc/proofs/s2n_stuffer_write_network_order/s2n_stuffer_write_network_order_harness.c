@@ -22,6 +22,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
+int s2n_stuffer_write_network_order(struct s2n_stuffer *, uint64_t, uint8_t);
+
 void s2n_stuffer_write_network_order_harness()
 {
     /* Non-deterministic inputs. */
