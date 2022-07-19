@@ -1705,10 +1705,12 @@ S2N_API
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 
 /**
- * Sets the server name for the connection. 
+ * Sets the server name for the connection.
  *
- * @note In the future, this can be used by clients who wish to use the TLS "Server Name indicator"
- * extension. At present, client functionality is disabled.
+ * It may be desirable for clients
+ * to provide this information to facilitate secure connections to
+ * servers that host multiple 'virtual' servers at a single underlying
+ * network address.
  *
  * @param conn The connection object being queried
  * @param server_name A pointer to a string containing the desired server name
