@@ -5,7 +5,7 @@
 set -e
 
 # cd into the script directory so it can be executed from anywhere
-cd "$(dirname "${BASH_SOURCE[0]}")"
+pushd "$(dirname "${BASH_SOURCE[0]}")"
 
 # delete the existing copy in case we have extra files
 rm -rf s2n-tls-sys/lib
@@ -34,19 +34,23 @@ cp -r \
   s2n-tls-sys/lib/
 
 # generate the bindings modules from the copied sources
-cd generate && cargo run -- ../s2n-tls-sys && cd ..
+pushd generate
+cargo run -- ../s2n-tls-sys
+popd 
 
 # make sure everything builds and passes sanity checks
-cd s2n-tls-sys \
-  && cargo test \
-  && cargo test --features pq \
-  && cargo test --features quic \
-  && cargo test --features internal \
-  && cargo test --release \
-  && cargo publish --dry-run --allow-dirty \
-  && cargo publish --dry-run --allow-dirty --all-features \
-  && cd ..
+pushd s2n-tls-sys
+cargo test
+cargo test --features pq
+cargo test --features quic
+cargo test --features internal
+cargo test --release
+cargo publish --dry-run --allow-dirty 
+cargo publish --dry-run --allow-dirty --all-features
+popd
 
-cd integration \
-  && cargo run \
-  && cd ..
+pushd integration
+cargo run
+popd
+
+popd
