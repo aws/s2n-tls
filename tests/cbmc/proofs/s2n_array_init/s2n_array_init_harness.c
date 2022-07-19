@@ -18,6 +18,8 @@
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/cbmc_utils.h>
 
+#include <assert.h>
+
 void s2n_array_init_harness()
 {
     /* Non-deterministic inputs. */

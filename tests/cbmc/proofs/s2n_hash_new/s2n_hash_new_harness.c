@@ -17,6 +17,8 @@
 
 #include "crypto/s2n_hash.h"
 
+#include <assert.h>
+
 void s2n_hash_new_harness()
 {
     /* Non-deterministic inputs. */

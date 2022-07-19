@@ -17,6 +17,8 @@
 
 #include "crypto/s2n_hash.h"
 
+#include <assert.h>
+
 void s2n_hash_block_size_harness()
 {
     /* Non-deterministic inputs. */
@@ -38,7 +40,7 @@ void s2n_hash_block_size_harness()
             case S2N_HASH_SHA512:
                 assert(*block_size == 128); break;
             default:
-                __CPROVER_assert(0, "Unssuported algorithm.");
+                __CPROVER_assert(0, "Unsupported algorithm.");
         }
     }
 }

@@ -17,6 +17,8 @@
 
 #include "crypto/s2n_hmac.h"
 
+#include <assert.h>
+
 void s2n_hmac_digest_size_harness()
 {
     /* Non-deterministic inputs. */
@@ -37,7 +39,7 @@ void s2n_hmac_digest_size_harness()
         case S2N_HMAC_SSLv3_MD5:  assert(*out == MD5_DIGEST_LENGTH);    break;
         case S2N_HMAC_SSLv3_SHA1: assert(*out == SHA_DIGEST_LENGTH);    break;
         default:
-            __CPROVER_assert(0, "Unssuported algorithm.");
+            __CPROVER_assert(0, "Unsupported algorithm.");
         }
     }
 }

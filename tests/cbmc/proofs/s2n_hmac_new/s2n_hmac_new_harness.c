@@ -18,6 +18,8 @@
 #include "crypto/s2n_hmac.h"
 #include "utils/s2n_result.h"
 
+#include <assert.h>
+
 void s2n_hmac_new_harness()
 {
     /* Non-deterministic inputs. */

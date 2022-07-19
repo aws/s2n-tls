@@ -8,6 +8,8 @@
 
 #include <utils/s2n_socket.h>
 
+#include <assert.h>
+
 void s2n_socket_is_ipv6_harness()
 {
   /* Non-deterministic inputs. */

@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
+#include <assert.h>
+
 /*
  * The reason we don't have full coverage is that we only call s2n_realloc
  * with blob-data == NULL.

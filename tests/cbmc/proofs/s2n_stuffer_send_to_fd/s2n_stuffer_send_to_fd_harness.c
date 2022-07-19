@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
+#include <assert.h>
+
 void s2n_stuffer_send_to_fd_harness()
 {
     /* Non-deterministic inputs. */
