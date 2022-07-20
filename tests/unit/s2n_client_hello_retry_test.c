@@ -43,6 +43,14 @@
 #define HELLO_RETRY_MSG_NO 1
 #define SERVER_HELLO_MSG_NO 5
 
+static int s2n_client_hello_cb_with_get_server_name(struct s2n_connection *conn, void *ctx)
+{
+    const char* expected_server_name = (const char*) ctx;
+    const char* actual_server_name = s2n_get_server_name(conn);
+    POSIX_ENSURE_EQ(strcmp(expected_server_name, actual_server_name), 0);
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -1000,6 +1008,68 @@ int main(int argc, char **argv)
 
             /* Expect successful retry */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        }
+
+        /* Processing an extension early does not affect the extension matching check.
+         *
+         * This test exists because of a previously released bug. Triggering the bug
+         * required a specific series of events:
+         * - The first ClientHello is received.
+         * - The extensions are parsed.
+         * - The ClientHello callback triggers.
+         * - The customer's ClientHello callback implementation calls the s2n_get_server_name API.
+         *   - To retrieve the server name, s2n_get_server_name processes the server name extension early.
+         *     - The server name extension is wiped. Before the "processed" flag, we wiped extensions
+         *       to mark that they had been processed.
+         * - The server sends a HelloRetryRequest, triggering a retry.
+         * - The second ClientHello is received.
+         * - The extensions are parsed.
+         * - The customer's ClientHello callback does NOT trigger this time. The callback only
+         *   triggers after the first ClientHello.
+         *   - Therefore, s2n_get_server_name is not called and the server name extension is not
+         *     processed early or wiped.
+         * - The first ClientHello is compared to the second ClientHello. The second ClientHello
+         *   appears to contain a server name extension not present in the first ClientHello.
+         * - The handshake fails because the ClientHellos must match.
+         */
+        {
+            char server_name[] = "test server name";
+
+            DEFER_CLEANUP(struct s2n_config *config_with_cb = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cb, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_cb, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config_with_cb));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cb));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cb));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Setup server name and client hello callback */
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, server_name));
+            EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_cb,
+                    s2n_client_hello_cb_with_get_server_name, server_name));
+
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+            /* Handshake should complete as expected */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(strcmp(s2n_get_server_name(server_conn), server_name), 0);
+            EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+            EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
         }
     }
 

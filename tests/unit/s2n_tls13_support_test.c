@@ -165,9 +165,9 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
 
-            /* Create parsed extension again, because s2n_extension_process cleared the last one */
-            parsed_extension->extension = extension_data.blob;
-            parsed_extension->extension_type = tls13_extension_type->iana_value;
+            /* Reuse processed extension */
+            EXPECT_TRUE(parsed_extension->processed);
+            parsed_extension->processed = false;
 
             server_conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
