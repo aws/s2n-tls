@@ -257,6 +257,12 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
 
     server_ecc_evp_params->negotiated_curve = negotiated_curve;
 
+    /* Now that ECC has been negotiated, null out this connection's preferred Hybrid KEMs. They will not be used any
+     * more during this TLS connection, but can still be printed by s2nc's client debugging output. */
+    conn->kex_params.client_kem_group_params.kem_group = NULL;
+    conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = NULL;
+    conn->kex_params.client_kem_group_params.kem_params.kem = NULL;
+
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
      * Set the server negotiated curve and exit early so a proper keyshare can be generated. */
     if (s2n_is_hello_retry_message(conn)) {

@@ -513,13 +513,9 @@ int main(int argc, char **argv)
     {
         /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
         const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_bike1_l1_r2,
-                &s2n_secp256r1_kyber_512_r2,
+                &s2n_secp256r1_kyber_512_r3,
 #if EVP_APIS_SUPPORTED
-                &s2n_x25519_sike_p434_r3,
-                &s2n_x25519_bike1_l1_r2,
-                &s2n_x25519_kyber_512_r2,
+                &s2n_x25519_kyber_512_r3,
 #endif
         };
 
@@ -553,22 +549,21 @@ int main(int argc, char **argv)
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
 
-        const struct s2n_kem_group *kem_groups_sike_bike[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_bike1_l1_r2
+        const struct s2n_kem_group *kem_groups_kyber[] = {
+                &s2n_secp256r1_kyber_512_r3,
         };
 
-        const struct s2n_kem_preferences kem_prefs_sike_bike = {
+        const struct s2n_kem_preferences kem_prefs_kyber = {
                 .kem_count = 0,
                 .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(kem_groups_sike_bike),
-                .tls13_kem_groups = kem_groups_sike_bike,
+                .tls13_kem_group_count = s2n_array_len(kem_groups_kyber),
+                .tls13_kem_groups = kem_groups_kyber,
         };
 
-        const struct s2n_security_policy security_policy_sike_bike = {
+        const struct s2n_security_policy security_policy_kyber = {
                 .minimum_protocol_version = S2N_SSLv3,
                 .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &kem_prefs_sike_bike,
+                .kem_preferences = &kem_prefs_kyber,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
@@ -663,10 +658,10 @@ int main(int argc, char **argv)
                     client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
                     client_conn->actual_protocol_version_established = 1;
 
-                    /* In the HRR, the server indicated p256+BIKE as it's choice in the key share extension */
-                    const struct s2n_kem_group *kem_group = &s2n_secp256r1_bike1_l1_r2;
+                    /* In the HRR, the server indicated p256+Kyber as it's choice in the key share extension */
+                    const struct s2n_kem_group *kem_group = &s2n_secp256r1_kyber_512_r3;
                     DEFER_CLEANUP(struct s2n_stuffer key_share_payload = {0}, s2n_stuffer_free);
-                    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_payload, "2F23"));
+                    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_payload, "2F3A"));
 
                     /* Client should successfully parse the indicated group */
                     EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_payload));
@@ -714,7 +709,7 @@ int main(int argc, char **argv)
                         DEFER_CLEANUP(struct s2n_stuffer wrong_share_stuffer = {0}, s2n_stuffer_free);
                         EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&wrong_share_stuffer, wrong_share));
                         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &wrong_share_stuffer),
-                                S2N_ERR_BAD_KEY_SHARE);
+                                S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
                         /* To test the remaining failure cases, we need to read in the test vector from the KAT file, then
                          * manipulate it as necessary. (We do this now, instead of earlier, because we needed
@@ -801,35 +796,35 @@ int main(int argc, char **argv)
             }
 
             if (s2n_pq_is_enabled()) {
-                conn->security_policy_override = &security_policy_sike_bike;
+                conn->security_policy_override = &security_policy_kyber;
 
                 EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
-                conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r2;
+                conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r3;
 
                 EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
                 conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
-                conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-
-                conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_bike1_l1_r2;
-                conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_bike1_l1_r2;
+                conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->kex_params.client_kem_group_params.kem_group = &s2n_secp256r1_bike1_l1_r2;
+                conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
+                conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r3;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = s2n_secp256r1_bike1_l1_r2.curve;
+                conn->kex_params.client_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+
+                conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = s2n_secp256r1_kyber_512_r3.curve;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_kem_group_params.ecc_params));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->kex_params.client_kem_group_params.kem_params.kem = s2n_secp256r1_bike1_l1_r2.kem;
+                conn->kex_params.client_kem_group_params.kem_params.kem = s2n_secp256r1_kyber_512_r3.kem;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
                 EXPECT_SUCCESS(s2n_alloc(&conn->kex_params.client_kem_group_params.kem_params.public_key,
-                        s2n_secp256r1_bike1_l1_r2.kem->public_key_length));
+                        s2n_secp256r1_kyber_512_r3.kem->public_key_length));
                 EXPECT_OK(s2n_kem_generate_keypair(&conn->kex_params.client_kem_group_params.kem_params));
                 EXPECT_SUCCESS(s2n_server_key_share_send_check_pq_hybrid(conn));
             }

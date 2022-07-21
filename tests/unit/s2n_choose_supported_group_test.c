@@ -141,8 +141,10 @@ int main() {
     /* Test for PQ */
     {
         const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_bike1_l1_r2,
+                &s2n_secp256r1_kyber_512_r3,
+    #if EVP_APIS_SUPPORTED
+                    &s2n_x25519_kyber_512_r3,
+    #endif
         };
 
         const struct s2n_kem_preferences test_kem_prefs = {
@@ -235,7 +237,8 @@ int main() {
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
-
+/* Need at least two KEM's to test fallback */
+#if (S2N_SUPPORTED_KEM_GROUPS_COUNT > 1)
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM
          * group should be chosen. */
         {
@@ -274,7 +277,7 @@ int main() {
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
-
+#endif
         /* If there are no mutually supported KEM groups or ECC curves, chosen group should be set to null */
         {
             struct s2n_connection *server_conn = NULL;
