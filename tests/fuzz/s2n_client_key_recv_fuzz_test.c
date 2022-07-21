@@ -127,7 +127,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     }
 
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->kex_params.kem_params.kem = &s2n_sike_p503_r1;
+        server_conn->kex_params.kem_params.kem = &s2n_kyber_512_r3;
     }
 
     /* Run Test

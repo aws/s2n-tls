@@ -16,18 +16,6 @@ version: 0.2
 # Doc for batch https://docs.aws.amazon.com/codebuild/latest/userguide/batch-build-buildspec.html#build-spec.batch.build-list
 batch:
   build-list:
-    # Saw
-    - identifier: s2nSawBike
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_2XLARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2
-          TESTS: sawBIKE
-          SAW: true
-          GCC_VERSION: NONE
-
     - identifier: sawHMACPlus
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:

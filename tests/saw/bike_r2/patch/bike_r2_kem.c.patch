@@ -1,4 +1,0 @@
-107c107
-<   DEFER_CLEANUP(ALIGN(8) compressed_idx_t_t dummy, compressed_idx_t_cleanup);
----
->   DEFER_CLEANUP(ALIGN(8) compressed_idx_t_t dummy = {0}, compressed_idx_t_cleanup);

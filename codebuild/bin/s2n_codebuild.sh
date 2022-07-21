@@ -66,7 +66,7 @@ if [[ -n "$S2N_NO_PQ" ]]; then
 fi
 
 # Run Multiple tests on one flag.
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log sike failure-tests; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log failure-tests; fi
 
 # Run Individual tests
 if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -D${CMAKE_PQ_OPTION} -DBUILD_SHARED_LIBS=on; cmake --build ./build; make -C build test ARGS=-j$(nproc); fi
@@ -83,9 +83,6 @@ if [[ "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C test
 if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/verify_drbg.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then make -C tests/saw tmp/verify_handshake.log ; fi
 if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
-# Below runs sike r_1 r_2 and x86
-if [[ "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE" ]]; then make -C tests/saw bike ; fi
 
 # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml
 # since those will delete .gcov files as they're processed.

@@ -1,4 +1,0 @@
-232c232
-<   ALIGN(8) compressed_idx_t_t dummy;
----
->   ALIGN(8) compressed_idx_t_t dummy = {0};
