@@ -52,6 +52,16 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
     return S2N_SUCCESS;
 }
 
+/**
+ *= https://www.rfc-editor.org/rfc/rfc7627#section-5.1
+ *= type=exception
+ *# When offering an abbreviated handshake, the client MUST send the
+ *# "extended_master_secret" extension in its ClientHello.
+ *
+ *  We added an exception here in order to prevent a drop in 
+ *  session resumption rates during deployment. Eventually clients
+ *  will be forced to do a full handshake and pick up EMS at that point.
+ **/
 static bool s2n_client_ems_should_send(struct s2n_connection *conn)
 {
     /* Don't send this extension if the previous session did not negotiate EMS */
