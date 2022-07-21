@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::{convert::TryInto, fmt, ptr::NonNull, task::Poll};
+use errno::{errno, Errno};
 use libc::c_char;
 use s2n_tls_sys::*;
 use std::{convert::TryFrom, ffi::CStr};
@@ -39,7 +40,7 @@ impl From<libc::c_int> for ErrorType {
 #[derive(PartialEq)]
 pub enum Error {
     InvalidInput,
-    Code(s2n_status_code::Type),
+    Code(s2n_status_code::Type, Errno),
 }
 
 pub trait Fallible {
@@ -151,14 +152,14 @@ impl Error {
             //# an error: s2n_errno = S2N_ERR_T_OK
             *s2n_errno = s2n_error_type::OK as _;
 
-            Self::Code(code)
+            Self::Code(code, errno())
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
             Self::InvalidInput => "InvalidInput",
-            Self::Code(code) => unsafe {
+            Self::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror_name(*code))
             },
@@ -168,7 +169,7 @@ impl Error {
     pub fn message(&self) -> &'static str {
         match self {
             Self::InvalidInput => "A parameter was incorrect",
-            Self::Code(code) => unsafe {
+            Self::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror(*code, core::ptr::null()))
             },
@@ -178,7 +179,7 @@ impl Error {
     pub fn debug(&self) -> Option<&'static str> {
         match self {
             Self::InvalidInput => None,
-            Self::Code(code) => unsafe {
+            Self::Code(code, _) => unsafe {
                 let debug_info = s2n_strerror_debug(*code, core::ptr::null());
 
                 // The debug string should be set to a constant static string
@@ -198,7 +199,7 @@ impl Error {
     pub fn kind(&self) -> Option<ErrorType> {
         match self {
             Self::InvalidInput => None,
-            Self::Code(code) => unsafe { Some(ErrorType::from(s2n_error_get_type(*code))) },
+            Self::Code(code, _) => unsafe { Some(ErrorType::from(s2n_error_get_type(*code))) },
         }
     }
 
@@ -209,7 +210,7 @@ impl Error {
     pub fn alert(&self) -> Option<u8> {
         match self {
             Self::InvalidInput => None,
-            Self::Code(_code) => {
+            Self::Code(_, _) => {
                 None
                 // TODO: We should use the new s2n-tls method
                 //       once it's available.
@@ -246,6 +247,12 @@ impl TryFrom<std::io::Error> for Error {
 
 impl From<Error> for std::io::Error {
     fn from(input: Error) -> Self {
+        if let Error::Code(_, errno) = input {
+            if Some(ErrorType::IOError) == input.kind() {
+                let bare = std::io::Error::from_raw_os_error(errno.0);
+                return std::io::Error::new(bare.kind(), input);
+            }
+        }
         std::io::Error::new(std::io::ErrorKind::Other, input)
     }
 }
@@ -253,7 +260,7 @@ impl From<Error> for std::io::Error {
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = f.debug_struct("Error");
-        if let Self::Code(code) = self {
+        if let Self::Code(code, _) = self {
             s.field("code", code);
         }
 
@@ -268,6 +275,13 @@ impl fmt::Debug for Error {
             s.field("debug", &debug);
         }
 
+        // "errno" is only known to be meaningful for IOErrors.
+        // However, it has occasionally proved useful for debugging
+        // other errors, so include it for all errors.
+        if let Self::Code(_, errno) = self {
+            s.field("errno", &errno.to_string());
+        }
+
         s.finish()
     }
 }
@@ -279,3 +293,61 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use errno::set_errno;
+
+    #[test]
+    fn to_io_error() -> Result<(), Box<dyn std::error::Error>> {
+        // This relies on an implementation detail of s2n-tls errors,
+        // and could make this test brittle. However, the alternative
+        // is a real handshake producing a real IO error, so just updating
+        // this test if the definition of an IO error changes might be easier.
+        let s2n_io_error_code = 1 << 26;
+        let s2n_io_error = Error::Code(s2n_io_error_code, Errno(0));
+        assert_eq!(Some(ErrorType::IOError), s2n_io_error.kind());
+
+        // IO error
+        {
+            let s2n_error = Error::Code(s2n_io_error_code, Errno(libc::EACCES));
+            let io_error = std::io::Error::from(s2n_error);
+            assert_eq!(std::io::ErrorKind::PermissionDenied, io_error.kind());
+            assert!(io_error.into_inner().is_some());
+        }
+
+        // Captured IO error
+        {
+            let result: isize = -1;
+            set_errno(Errno(libc::ECONNRESET));
+            unsafe {
+                let s2n_errno_ptr = s2n_errno_location();
+                *s2n_errno_ptr = s2n_io_error_code;
+            }
+
+            let s2n_error = result.into_result().unwrap_err();
+            let io_error = std::io::Error::from(s2n_error);
+            assert_eq!(std::io::ErrorKind::ConnectionReset, io_error.kind());
+            assert!(io_error.into_inner().is_some());
+        }
+
+        // Not IO error
+        {
+            let s2n_error = Error::Code(s2n_io_error_code - 1, Errno(libc::ECONNRESET));
+            let io_error = std::io::Error::from(s2n_error);
+            assert_eq!(std::io::ErrorKind::Other, io_error.kind());
+            assert!(io_error.into_inner().is_some());
+        }
+
+        // Not s2n-tls error
+        {
+            let s2n_error = Error::InvalidInput;
+            let io_error = std::io::Error::from(s2n_error);
+            assert_eq!(std::io::ErrorKind::Other, io_error.kind());
+            assert!(io_error.into_inner().is_some());
+        }
+
+        Ok(())
+    }
+}

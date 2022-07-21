@@ -125,7 +125,10 @@ impl Connection {
 
     /// Reports the remaining nanoseconds before the connection may be safely closed.
     ///
-    /// If [`shutdown`] is called before this method reports "0", then an error will occur.
+    /// If [`poll_shutdown`] is called before this method reports "0", then an error will occur.
+    ///
+    /// This method is expected to succeed, but could fail if the underlying C call encounters errors.
+    /// If it fails, a graceful two-way shutdown of the connection will not be possible.
     pub fn remaining_blinding_delay(&self) -> Result<Duration, Error> {
         let nanos = unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }?;
         Ok(Duration::from_nanos(nanos))
@@ -357,7 +360,7 @@ impl Connection {
     /// Sets the currently executing async callback.
     ///
     /// Multiple callbacks can be configured for a connection and config, but
-    /// [`negotiate`] can only execute and block on one callback at a time.
+    /// [`poll_negotiate`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
     /// it encounters an async callback. It does not continue execution (and
     /// therefore can't call any other callbacks) until the blocking async callback

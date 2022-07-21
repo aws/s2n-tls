@@ -293,7 +293,7 @@ if (s2n_negotiate(conn, &blocked) < 0) {
         case S2N_ERR_T_CLOSED:
             return SUCCESS;
         case S2N_ERR_T_IO:
-            handle_io_err();
+            handle_io_err(errno);
             return FAILURE;
         case S2N_ERR_T_PROTO:
             handle_proto_err();
