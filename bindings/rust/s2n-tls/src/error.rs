@@ -21,6 +21,13 @@ pub enum ErrorType {
     UsageError,
 }
 
+#[non_exhaustive]
+#[derive(Debug, PartialEq)]
+pub enum ErrorSource {
+    Library,
+    Bindings,
+}
+
 impl From<libc::c_int> for ErrorType {
     fn from(input: libc::c_int) -> Self {
         match input as s2n_error_type::Type {
@@ -37,11 +44,14 @@ impl From<libc::c_int> for ErrorType {
     }
 }
 
-#[derive(PartialEq)]
-pub enum Error {
+#[derive(Clone, PartialEq)]
+pub enum Context {
     InvalidInput,
     Code(s2n_status_code::Type, Errno),
 }
+
+#[derive(Clone, PartialEq)]
+pub struct Error(Context);
 
 pub trait Fallible {
     type Output;
@@ -137,6 +147,12 @@ impl<T: Fallible> Pollable for T {
 }
 
 impl Error {
+    // Previously we referenced InvalidInput via Error::InvalidInput.
+    // Keep this naming.
+    // TODO: Update this + all references to all upper case.
+    #[allow(non_upper_case_globals)]
+    pub const InvalidInput: Error = Self(Context::InvalidInput);
+
     pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
         value.into_result()
     }
@@ -152,35 +168,35 @@ impl Error {
             //# an error: s2n_errno = S2N_ERR_T_OK
             *s2n_errno = s2n_error_type::OK as _;
 
-            Self::Code(code, errno())
+            Self(Context::Code(code, errno()))
         }
     }
 
     pub fn name(&self) -> &'static str {
-        match self {
-            Self::InvalidInput => "InvalidInput",
-            Self::Code(code, _) => unsafe {
+        match self.0 {
+            Context::InvalidInput => "InvalidInput",
+            Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
-                cstr_to_str(s2n_strerror_name(*code))
+                cstr_to_str(s2n_strerror_name(code))
             },
         }
     }
 
     pub fn message(&self) -> &'static str {
-        match self {
-            Self::InvalidInput => "A parameter was incorrect",
-            Self::Code(code, _) => unsafe {
+        match self.0 {
+            Context::InvalidInput => "A parameter was incorrect",
+            Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
-                cstr_to_str(s2n_strerror(*code, core::ptr::null()))
+                cstr_to_str(s2n_strerror(code, core::ptr::null()))
             },
         }
     }
 
     pub fn debug(&self) -> Option<&'static str> {
-        match self {
-            Self::InvalidInput => None,
-            Self::Code(code, _) => unsafe {
-                let debug_info = s2n_strerror_debug(*code, core::ptr::null());
+        match self.0 {
+            Context::InvalidInput => None,
+            Context::Code(code, _) => unsafe {
+                let debug_info = s2n_strerror_debug(code, core::ptr::null());
 
                 // The debug string should be set to a constant static string
                 // when an error occurs, but because it starts out as NULL
@@ -196,21 +212,28 @@ impl Error {
         }
     }
 
-    pub fn kind(&self) -> Option<ErrorType> {
-        match self {
-            Self::InvalidInput => None,
-            Self::Code(code, _) => unsafe { Some(ErrorType::from(s2n_error_get_type(*code))) },
+    pub fn kind(&self) -> ErrorType {
+        match self.0 {
+            Context::InvalidInput => ErrorType::UsageError,
+            Context::Code(code, _) => unsafe { ErrorType::from(s2n_error_get_type(code)) },
+        }
+    }
+
+    pub fn source(&self) -> ErrorSource {
+        match self.0 {
+            Context::InvalidInput => ErrorSource::Bindings,
+            Context::Code(_, _) => ErrorSource::Library,
         }
     }
 
     pub fn is_retryable(&self) -> bool {
-        matches!(self.kind(), Some(ErrorType::Blocked))
+        matches!(self.kind(), ErrorType::Blocked)
     }
 
     pub fn alert(&self) -> Option<u8> {
-        match self {
-            Self::InvalidInput => None,
-            Self::Code(_, _) => {
+        match self.0 {
+            Context::InvalidInput => None,
+            Context::Code(_, _) => {
                 None
                 // TODO: We should use the new s2n-tls method
                 //       once it's available.
@@ -247,8 +270,8 @@ impl TryFrom<std::io::Error> for Error {
 
 impl From<Error> for std::io::Error {
     fn from(input: Error) -> Self {
-        if let Error::Code(_, errno) = input {
-            if Some(ErrorType::IOError) == input.kind() {
+        if let Context::Code(_, errno) = input.0 {
+            if ErrorType::IOError == input.kind() {
                 let bare = std::io::Error::from_raw_os_error(errno.0);
                 return std::io::Error::new(bare.kind(), input);
             }
@@ -260,16 +283,14 @@ impl From<Error> for std::io::Error {
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = f.debug_struct("Error");
-        if let Self::Code(code, _) = self {
-            s.field("code", code);
+        if let Context::Code(code, _) = self.0 {
+            s.field("code", &code);
         }
 
         s.field("name", &self.name());
         s.field("message", &self.message());
-
-        if let Some(kind) = self.kind() {
-            s.field("kind", &kind);
-        }
+        s.field("kind", &self.kind());
+        s.field("source", &self.source());
 
         if let Some(debug) = self.debug() {
             s.field("debug", &debug);
@@ -278,7 +299,7 @@ impl fmt::Debug for Error {
         // "errno" is only known to be meaningful for IOErrors.
         // However, it has occasionally proved useful for debugging
         // other errors, so include it for all errors.
-        if let Self::Code(_, errno) = self {
+        if let Context::Code(_, errno) = self.0 {
             s.field("errno", &errno.to_string());
         }
 
@@ -299,54 +320,66 @@ mod tests {
     use super::*;
     use errno::set_errno;
 
+    const FAILURE: isize = -1;
+
+    // This relies on an implementation detail of s2n-tls errors,
+    // and could make these tests brittle. However, the alternative
+    // is a real handshake producing a real IO error, so just updating
+    // this value if the definition of an IO error changes might be easier.
+    const S2N_IO_ERROR_CODE: s2n_status_code::Type = 1 << 26;
+
     #[test]
-    fn to_io_error() -> Result<(), Box<dyn std::error::Error>> {
-        // This relies on an implementation detail of s2n-tls errors,
-        // and could make this test brittle. However, the alternative
-        // is a real handshake producing a real IO error, so just updating
-        // this test if the definition of an IO error changes might be easier.
-        let s2n_io_error_code = 1 << 26;
-        let s2n_io_error = Error::Code(s2n_io_error_code, Errno(0));
-        assert_eq!(Some(ErrorType::IOError), s2n_io_error.kind());
-
-        // IO error
-        {
-            let s2n_error = Error::Code(s2n_io_error_code, Errno(libc::EACCES));
-            let io_error = std::io::Error::from(s2n_error);
-            assert_eq!(std::io::ErrorKind::PermissionDenied, io_error.kind());
-            assert!(io_error.into_inner().is_some());
+    fn s2n_io_error_to_std_io_error() -> Result<(), Box<dyn std::error::Error>> {
+        set_errno(Errno(libc::ECONNRESET));
+        unsafe {
+            let s2n_errno_ptr = s2n_errno_location();
+            *s2n_errno_ptr = S2N_IO_ERROR_CODE;
         }
 
-        // Captured IO error
-        {
-            let result: isize = -1;
-            set_errno(Errno(libc::ECONNRESET));
-            unsafe {
-                let s2n_errno_ptr = s2n_errno_location();
-                *s2n_errno_ptr = s2n_io_error_code;
-            }
+        let s2n_error = FAILURE.into_result().unwrap_err();
+        assert_eq!(ErrorType::IOError, s2n_error.kind());
 
-            let s2n_error = result.into_result().unwrap_err();
-            let io_error = std::io::Error::from(s2n_error);
-            assert_eq!(std::io::ErrorKind::ConnectionReset, io_error.kind());
-            assert!(io_error.into_inner().is_some());
+        let io_error = std::io::Error::from(s2n_error);
+        assert_eq!(std::io::ErrorKind::ConnectionReset, io_error.kind());
+        assert!(io_error.into_inner().is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn s2n_error_to_std_io_error() -> Result<(), Box<dyn std::error::Error>> {
+        set_errno(Errno(libc::ECONNRESET));
+        unsafe {
+            let s2n_errno_ptr = s2n_errno_location();
+            *s2n_errno_ptr = S2N_IO_ERROR_CODE - 1;
         }
 
-        // Not IO error
-        {
-            let s2n_error = Error::Code(s2n_io_error_code - 1, Errno(libc::ECONNRESET));
-            let io_error = std::io::Error::from(s2n_error);
-            assert_eq!(std::io::ErrorKind::Other, io_error.kind());
-            assert!(io_error.into_inner().is_some());
-        }
+        let s2n_error = Error::InvalidInput;
+        assert_ne!(ErrorType::IOError, s2n_error.kind());
 
-        // Not s2n-tls error
-        {
-            let s2n_error = Error::InvalidInput;
-            let io_error = std::io::Error::from(s2n_error);
-            assert_eq!(std::io::ErrorKind::Other, io_error.kind());
-            assert!(io_error.into_inner().is_some());
-        }
+        let io_error = std::io::Error::from(s2n_error);
+        assert_eq!(std::io::ErrorKind::Other, io_error.kind());
+        assert!(io_error.into_inner().is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_input_to_std_io_error() -> Result<(), Box<dyn std::error::Error>> {
+        let s2n_error = Error::InvalidInput;
+        assert_eq!(ErrorType::UsageError, s2n_error.kind());
+
+        let io_error = std::io::Error::from(s2n_error);
+        assert_eq!(std::io::ErrorKind::Other, io_error.kind());
+        assert!(io_error.into_inner().is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn error_source() -> Result<(), Box<dyn std::error::Error>> {
+        let bindings_error = Error::InvalidInput;
+        assert_eq!(ErrorSource::Bindings, bindings_error.source());
+
+        let library_error = FAILURE.into_result().unwrap_err();
+        assert_eq!(ErrorSource::Library, library_error.source());
 
         Ok(())
     }
