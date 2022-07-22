@@ -25,7 +25,7 @@ async fn write_until_shutdown<S: AsyncWrite + Unpin>(stream: &mut S) -> Result<(
     loop {
         if let Err(err) = stream.write(&sent).await {
             let tls_err = error::Error::try_from(err).unwrap();
-            assert_eq!(tls_err.kind(), Some(error::ErrorType::ConnectionClosed));
+            assert_eq!(tls_err.kind(), error::ErrorType::ConnectionClosed);
             break;
         }
     }

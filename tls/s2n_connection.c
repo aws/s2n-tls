@@ -1328,7 +1328,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     do {
         errno = 0;
         w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-	if (w < 0 && errno == EPIPE) {
+        if (w < 0 && errno == EPIPE) {
             conn->write_fd_broken = 1;
         }
         S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_SEND_STUFFER_TO_CONN);
