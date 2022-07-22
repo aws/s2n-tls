@@ -151,7 +151,7 @@ impl Error {
     // Keep this naming.
     // TODO: Update this + all references to all upper case.
     #[allow(non_upper_case_globals)]
-    pub const InvalidInput: Error = Self(Context::InvalidInput);
+    pub(crate) const InvalidInput: Error = Self(Context::InvalidInput);
 
     pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
         value.into_result()
@@ -325,6 +325,7 @@ impl std::error::Error for Error {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::enums::Version;
     use errno::set_errno;
 
     const FAILURE: isize = -1;
@@ -360,7 +361,7 @@ mod tests {
             *s2n_errno_ptr = S2N_IO_ERROR_CODE - 1;
         }
 
-        let s2n_error = Error::InvalidInput;
+        let s2n_error = FAILURE.into_result().unwrap_err();
         assert_ne!(ErrorType::IOError, s2n_error.kind());
 
         let io_error = std::io::Error::from(s2n_error);
@@ -371,7 +372,7 @@ mod tests {
 
     #[test]
     fn invalid_input_to_std_io_error() -> Result<(), Box<dyn std::error::Error>> {
-        let s2n_error = Error::InvalidInput;
+        let s2n_error = Version::try_from(0).unwrap_err();
         assert_eq!(ErrorType::UsageError, s2n_error.kind());
 
         let io_error = std::io::Error::from(s2n_error);
@@ -382,7 +383,7 @@ mod tests {
 
     #[test]
     fn error_source() -> Result<(), Box<dyn std::error::Error>> {
-        let bindings_error = Error::InvalidInput;
+        let bindings_error = Version::try_from(0).unwrap_err();
         assert_eq!(ErrorSource::Bindings, bindings_error.source());
 
         let library_error = FAILURE.into_result().unwrap_err();

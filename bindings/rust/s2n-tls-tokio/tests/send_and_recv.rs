@@ -1,7 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::error::Error;
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
 use std::{io, task::Poll::*};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -97,7 +96,7 @@ async fn send_error() -> Result<(), Box<dyn std::error::Error>> {
 
     // Setup write to fail
     overrides.next_write(Some(Box::new(|_, _, _| {
-        Ready(Err(io::Error::from(Error::InvalidInput)))
+        Ready(Err(io::Error::from(io::ErrorKind::ConnectionReset)))
     })));
 
     // Verify write fails
@@ -120,7 +119,7 @@ async fn recv_error() -> Result<(), Box<dyn std::error::Error>> {
 
     // Setup read to fail
     overrides.next_read(Some(Box::new(|_, _, _| {
-        Ready(Err(io::Error::from(Error::InvalidInput)))
+        Ready(Err(io::Error::from(io::ErrorKind::ConnectionReset)))
     })));
 
     // Verify read fails
