@@ -53,7 +53,7 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 }
 
 /**
- *= https://www.rfc-editor.org/rfc/rfc7627#section-5.1
+ *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
  *= type=exception
  *# When offering an abbreviated handshake, the client MUST send the
  *# "extended_master_secret" extension in its ClientHello.
