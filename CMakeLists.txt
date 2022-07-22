@@ -70,30 +70,11 @@ else()
     # PQ is enabled, so include all of the PQ crypto code
     file(GLOB PQ_HEADERS
         "pq-crypto/*.h"
-        "pq-crypto/bike_r1/*.h"
-        "pq-crypto/bike_r2/*.h"
-        "pq-crypto/bike_r3/*.h"
-        "pq-crypto/sike_r1/*.h"
-        "pq-crypto/kyber_r2/*.h"
-        "pq-crypto/kyber_90s_r2/*.h"
-        "pq-crypto/kyber_r3/*.h"
-        "pq-crypto/sike_r3/*.h")
+        "pq-crypto/kyber_r3/*.h")
 
-    # The SIKE r1 code #includes .c files directly; including sike_r1/*.c
-    # here breaks the build due to duplicates. The SIKE r3 code does not have this issue.
     file(GLOB PQ_SRC
         "pq-crypto/*.c"
-        "pq-crypto/bike_r1/*.c"
-        "pq-crypto/bike_r2/*.c"
-        "pq-crypto/bike_r3/*.c"
-        "pq-crypto/sike_r1/fp_generic_r1.c"
-        "pq-crypto/sike_r1/P503_r1.c"
-        "pq-crypto/sike_r1/sike_r1_kem.c"
-        "pq-crypto/sike_r1/fips202_r1.c"
-        "pq-crypto/kyber_r2/*.c"
-        "pq-crypto/kyber_90s_r2/*.c"
-        "pq-crypto/kyber_r3/*.c"
-        "pq-crypto/sike_r3/*.c")
+        "pq-crypto/kyber_r3/*.c")
 endif()
 
 ##be nice to visual studio users
@@ -117,101 +98,10 @@ else()
     find_package(Threads REQUIRED)
 endif()
 
-# The PQ ASM try_compile has to come after we turn on pthread.
-# If S2N_NO_PQ_ASM is defined, all PQ assembly options will
-# remain turned off by default.
-set(SIKEP434R3_ASM_SUPPORTED false)
-set(ADX_SUPPORTED false)
-
 if(S2N_NO_PQ_ASM)
     message(STATUS "S2N_NO_PQ_ASM flag was detected - disabling PQ crypto assembly code")
 else()
     enable_language(ASM)
-
-    # sikep434r3
-    try_compile(
-            SIKEP434R3_ASM_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            SOURCES
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3.c"
-            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3_fp_x64_asm.S"
-    )
-
-    if(SIKEP434R3_ASM_SUPPORTED)
-        file(GLOB SIKEP434R3_ASM_SRC "pq-crypto/sike_r3/sikep434r3_fp_x64_asm.S")
-        list(APPEND PQ_SRC ${SIKEP434R3_ASM_SRC})
-
-        # The ADX instruction set is preferred for best performance, but not necessary.
-        try_compile(
-                ADX_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3_fp_x64_asm.S"
-                COMPILE_DEFINITIONS
-                "-DS2N_ADX"
-        )
-    endif()
-
-    # BIKE Round-3 code has several different optimizations which require
-    # specific compiler flags to be supported by the compiler.
-    # So for each needed instruction set extension we check if the compiler
-    # supports it and set proper compiler flags to be added later to the
-    # BIKE compilation units.
-    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
-        # First, check if the compiler supports the specific instruction set
-        # extensions. For example, gcc-4 doesn't fully support AVX-512, while
-        # gcc-7 doesn't support VPCLMUL extension.
-        set(BIKE_R3_AVX2_FLAGS "-mavx2")
-        try_compile(
-                BIKE_R3_AVX2_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_avx2.c"
-                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
-                COMPILE_DEFINITIONS "${BIKE_R3_AVX2_FLAGS} -DS2N_BIKE_R3_AVX2"
-        )
-
-        set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
-        try_compile(
-                BIKE_R3_AVX512_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_avx512.c"
-                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
-                COMPILE_DEFINITIONS "${BIKE_R3_AVX512_FLAGS} -DS2N_BIKE_R3_AVX512"
-        )
-
-        set(BIKE_R3_PCLMUL_FLAGS "-mpclmul -msse2")
-        try_compile(
-                BIKE_R3_PCLMUL_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_base_pclmul.c"
-                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
-                COMPILE_DEFINITIONS "${BIKE_R3_PCLMUL_FLAGS} -DS2N_BIKE_R3_PCLMUL"
-        )
-
-        set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
-        try_compile(
-                BIKE_R3_VPCLMUL_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/bike_r3/gf2x_mul_base_vpclmul.c"
-                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${CMAKE_SOURCE_DIR}"
-                COMPILE_DEFINITIONS "${BIKE_R3_VPCLMUL_FLAGS} -DS2N_BIKE_R3_VPCLMUL"
-        )
-
-        if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
-            set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
-        endif()
-    endif()
 
     # Kyber Round-3 code has several different optimizations which require
     # specific compiler flags to be supported by the compiler.
@@ -382,58 +272,12 @@ if(S2N_NO_PQ)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ)
 endif()
 
-if(SIKEP434R3_ASM_SUPPORTED)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKE_P434_R3_ASM)
-    message(STATUS "Enabling SIKEP434R3 assembly code")
-endif()
-
-if(BIKE_R3_X86_64_OPT_SUPPORTED)
-    # If any of the BIKE_R3 x86_64 optimizations is supported (this was checked
-    # earlier in the file), we add the required compile flags to files that
-    # contain the optimized code.
-
-    message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
-
-    if(BIKE_R3_AVX2_SUPPORTED)
-        message(STATUS "\t Enabling BIKE_R3_AVX2")
-        FILE(GLOB BIKE_R3_AVX2_SRCS "pq-crypto/bike_r3/*_avx2.c")
-        set_source_files_properties(${BIKE_R3_AVX2_SRCS} PROPERTIES COMPILE_FLAGS -mavx2)
-        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX2)
-    endif()
-
-    if(BIKE_R3_AVX512_SUPPORTED)
-        message(STATUS "\t Enabling BIKE_R3_AVX512")
-        FILE(GLOB BIKE_R3_AVX512_SRCS "pq-crypto/bike_r3/*_avx512.c")
-        set_source_files_properties(${BIKE_R3_AVX512_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_AVX512_FLAGS})
-        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX512)
-    endif()
-
-    if(BIKE_R3_PCLMUL_SUPPORTED)
-        message(STATUS "\t Enabling BIKE_R3_PCLMUL")
-        FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
-        set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_PCLMUL_FLAGS})
-        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_PCLMUL)
-    endif()
-
-    if(BIKE_R3_VPCLMUL_SUPPORTED)
-        message(STATUS "\t Enabling BIKE_R3_VPCLMUL")
-        FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
-        set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_VPCLMUL_FLAGS})
-        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_VPCLMUL)
-    endif()
-endif()
-
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
     FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*.c")
     set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
 
     message(STATUS "Enabling Kyber_R3 x86_64 optimizations")
-endif()
-
-if(ADX_SUPPORTED)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_ADX)
-    message(STATUS "Support for ADX assembly instructions detected")
 endif()
 
 if(S2N_HAVE_EXECINFO AND S2N_STACKTRACE)
