@@ -123,12 +123,12 @@ impl Connection {
         Ok(self)
     }
 
-    /// Reports the remaining nanoseconds before the connection may be safely closed.
+    /// Reports the remaining nanoseconds before the connection may be gracefully shutdown.
     ///
-    /// If [`poll_shutdown`] is called before this method reports "0", then an error will occur.
-    ///
-    /// This method is expected to succeed, but could fail if the underlying C call encounters errors.
-    /// If it fails, a graceful two-way shutdown of the connection will not be possible.
+    /// This method is expected to succeed, but could fail if the
+    /// [underlying C call](`s2n_connection_get_delay`) encounters errors.
+    /// Failure indicates that calls to [`Self::poll_shutdown`] will also fail and
+    /// that a graceful two-way shutdown of the connection will not be possible.
     pub fn remaining_blinding_delay(&self) -> Result<Duration, Error> {
         let nanos = unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }?;
         Ok(Duration::from_nanos(nanos))
@@ -395,7 +395,7 @@ impl Connection {
     }
 
     /// Encrypts and sends data on a connection where
-    /// [negotiate](`Self::negotiate`) has succeeded.
+    /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
@@ -406,7 +406,7 @@ impl Connection {
     }
 
     /// Reads and decrypts data from a connection where
-    /// [negotiate](`Self::negotiate`) has succeeded.
+    /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes read, and may indicate a partial read.
     /// 0 bytes returned indicates EOF due to connection closure.
@@ -417,7 +417,7 @@ impl Connection {
         unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
-    /// Attempts to flush any data previously buffered by a call to [send](`Self::negotiate`).
+    /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
         self.poll_send(&[0; 0]).map_ok(|_| self)
     }

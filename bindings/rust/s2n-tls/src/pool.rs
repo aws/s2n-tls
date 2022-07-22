@@ -7,7 +7,7 @@
 //! memory allocations (about 50-60 KB, according to some tests).
 //! Instead of allocating memory for a new connection, existing
 //! memory can be reused by calling
-//! [Connection::wipe()](`s2n_tls::connection::Connection::wipe()).
+//! [Connection::wipe()](`crate::connection::Connection::wipe()).
 //!
 //! The [`Pool`] trait allows applications to define an
 //! [Object pool](https://en.wikipedia.org/wiki/Object_pool_pattern) that
@@ -31,7 +31,7 @@ use std::{
 /// A connection produced by a [`Pool`].
 ///
 /// When dropped, returns ownership of the connection to
-/// the pool that produced it by calling [`Pool::reclaim()`].
+/// the pool that produced it by calling [`Pool::give`].
 #[derive(Debug)]
 pub struct PooledConnection<T: Pool = Arc<dyn Pool>> {
     pool: T,
@@ -71,7 +71,7 @@ impl<T: Pool + Clone> PooledConnection<T> {
 /// An object pool for wiping and reusing connection memory.
 ///
 /// Minimally, an implementation should call [`Connection::wipe()`]
-/// during [`reclaim()`].
+/// during [`Self::give`].
 pub trait Pool {
     fn mode(&self) -> Mode;
     fn take(&self) -> Result<Connection, Error>;
