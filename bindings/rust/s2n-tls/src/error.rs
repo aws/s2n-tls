@@ -229,19 +229,26 @@ impl Error {
     pub fn is_retryable(&self) -> bool {
         matches!(self.kind(), ErrorType::Blocked)
     }
+}
 
+#[cfg(feature = "quic")]
+impl Error {
+    /// s2n-tls does not send specific errors.
+    ///
+    /// However, we can attempt to map local errors into the alerts
+    /// that we would have sent if we sent alerts.
+    ///
+    /// This API is currently incomplete and should not be relied upon.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
             Context::InvalidInput => None,
-            Context::Code(_, _) => {
-                None
-                // TODO: We should use the new s2n-tls method
-                //       once it's available.
-                // let mut alert = 0;
-                // match call!(s2n_error_get_alert(*code, &mut alert)) {
-                //     Ok(_) => Some(alert),
-                //     Err(_) => None,
-                // }
+            Context::Code(code, _) => {
+                let mut alert = 0;
+                let r = unsafe { s2n_error_get_alert(code, &mut alert) };
+                match r.into_result() {
+                    Ok(_) => Some(alert),
+                    Err(_) => None,
+                }
             }
         }
     }
