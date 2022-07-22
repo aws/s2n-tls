@@ -28,7 +28,7 @@ macro_rules! static_const_str {
     ($c_chars:expr) => {
         unsafe { CStr::from_ptr($c_chars) }
             .to_str()
-            .map_err(|_| Error::InvalidInput)
+            .map_err(|_| Error::INVALID_INPUT)
     };
 }
 
@@ -275,7 +275,10 @@ impl Connection {
             s2n_connection_append_protocol_preference(
                 self.connection.as_ptr(),
                 protocol.as_ptr(),
-                protocol.len().try_into().map_err(|_| Error::InvalidInput)?,
+                protocol
+                    .len()
+                    .try_into()
+                    .map_err(|_| Error::INVALID_INPUT)?,
             )
             .into_result()
         }?;
@@ -400,7 +403,7 @@ impl Connection {
     /// Returns the number of bytes written, and may indicate a partial write.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
         unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
@@ -412,7 +415,7 @@ impl Connection {
     /// 0 bytes returned indicates EOF due to connection closure.
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
         unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
@@ -453,7 +456,7 @@ impl Connection {
 
     /// Sets the server name value for the connection
     pub fn set_server_name(&mut self, server_name: &str) -> Result<&mut Self, Error> {
-        let server_name = std::ffi::CString::new(server_name).map_err(|_| Error::InvalidInput)?;
+        let server_name = std::ffi::CString::new(server_name).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
             s2n_set_server_name(self.connection.as_ptr(), server_name.as_ptr()).into_result()
         }?;
@@ -603,7 +606,7 @@ impl Connection {
             s2n_connection_set_quic_transport_parameters(
                 self.connection.as_ptr(),
                 buffer.as_ptr(),
-                buffer.len().try_into().map_err(|_| Error::InvalidInput)?,
+                buffer.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
             )
             .into_result()
         }?;

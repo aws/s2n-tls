@@ -147,11 +147,7 @@ impl<T: Fallible> Pollable for T {
 }
 
 impl Error {
-    // Previously we referenced InvalidInput via Error::InvalidInput.
-    // Keep this naming.
-    // TODO: Update this + all references to all upper case.
-    #[allow(non_upper_case_globals)]
-    pub(crate) const InvalidInput: Error = Self(Context::InvalidInput);
+    pub(crate) const INVALID_INPUT: Error = Self(Context::InvalidInput);
 
     pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
         value.into_result()
@@ -267,11 +263,11 @@ unsafe fn cstr_to_str(v: *const c_char) -> &'static str {
 impl TryFrom<std::io::Error> for Error {
     type Error = Error;
     fn try_from(value: std::io::Error) -> Result<Self, Self::Error> {
-        let io_inner = value.into_inner().ok_or(Error::InvalidInput)?;
+        let io_inner = value.into_inner().ok_or(Error::INVALID_INPUT)?;
         io_inner
             .downcast::<Self>()
             .map(|error| *error)
-            .map_err(|_| Error::InvalidInput)
+            .map_err(|_| Error::INVALID_INPUT)
     }
 }
 
