@@ -26,7 +26,7 @@ impl Policy {
     }
 
     pub fn from_version(version: &str) -> Result<Policy, Error> {
-        let cstr = CString::new(version).map_err(|_| Error::InvalidInput)?;
+        let cstr = CString::new(version).map_err(|_| Error::INVALID_INPUT)?;
         let context = Context::Owned(cstr);
         Ok(Self(context))
     }
