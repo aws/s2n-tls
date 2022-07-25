@@ -214,7 +214,10 @@ impl Builder {
             s2n_config_append_protocol_preference(
                 self.as_mut_ptr(),
                 protocol.as_ptr(),
-                protocol.len().try_into().map_err(|_| Error::InvalidInput)?,
+                protocol
+                    .len()
+                    .try_into()
+                    .map_err(|_| Error::INVALID_INPUT)?,
             )
             .into_result()
         }?;
@@ -232,14 +235,14 @@ impl Builder {
     }
 
     pub fn add_dhparams(&mut self, pem: &[u8]) -> Result<&mut Self, Error> {
-        let cstring = CString::new(pem).map_err(|_| Error::InvalidInput)?;
+        let cstring = CString::new(pem).map_err(|_| Error::INVALID_INPUT)?;
         unsafe { s2n_config_add_dhparams(self.as_mut_ptr(), cstring.as_ptr()).into_result() }?;
         Ok(self)
     }
 
     pub fn load_pem(&mut self, certificate: &[u8], private_key: &[u8]) -> Result<&mut Self, Error> {
-        let certificate = CString::new(certificate).map_err(|_| Error::InvalidInput)?;
-        let private_key = CString::new(private_key).map_err(|_| Error::InvalidInput)?;
+        let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
+        let private_key = CString::new(private_key).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
             s2n_config_add_cert_chain_and_key(
                 self.as_mut_ptr(),
@@ -252,7 +255,7 @@ impl Builder {
     }
 
     pub fn trust_pem(&mut self, certificate: &[u8]) -> Result<&mut Self, Error> {
-        let certificate = CString::new(certificate).map_err(|_| Error::InvalidInput)?;
+        let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
             s2n_config_add_pem_to_trust_store(self.as_mut_ptr(), certificate.as_ptr()).into_result()
         }?;
@@ -267,8 +270,8 @@ impl Builder {
         fn to_cstr(input: Option<&Path>) -> Result<Option<CString>, Error> {
             Ok(match input {
                 Some(input) => {
-                    let string = input.to_str().ok_or(Error::InvalidInput)?;
-                    let cstring = CString::new(string).map_err(|_| Error::InvalidInput)?;
+                    let string = input.to_str().ok_or(Error::INVALID_INPUT)?;
+                    let cstring = CString::new(string).map_err(|_| Error::INVALID_INPUT)?;
                     Some(cstring)
                 }
                 None => None,
@@ -329,7 +332,7 @@ impl Builder {
     // which allows certificate chains to be shared across configs.
     // In that case, we'll need additional guard rails either in these bindings or in the underlying C.
     pub fn set_ocsp_data(&mut self, data: &[u8]) -> Result<&mut Self, Error> {
-        let size: u32 = data.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let size: u32 = data.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
             s2n_config_set_extension_data(
                 self.as_mut_ptr(),

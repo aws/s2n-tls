@@ -68,7 +68,7 @@ impl TryFrom<s2n_tls_version::Type> for Version {
             s2n_tls_version::TLS11 => Self::TLS11,
             s2n_tls_version::TLS12 => Self::TLS12,
             s2n_tls_version::TLS13 => Self::TLS13,
-            _ => return Err(Error::InvalidInput),
+            _ => return Err(Error::INVALID_INPUT),
         };
         Ok(version)
     }

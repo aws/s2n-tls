@@ -1,6 +1,7 @@
 import copy
 import os
 import pytest
+import re
 import time
 
 from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
@@ -78,7 +79,8 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, other_provide
     for results in server.get_results():
         results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
-        assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
+        # The "test_all" s2n security policy includes draft Hybrid PQ groups that Openssl server prints as hex values
+        assert re.search(b'Supported Elliptic Groups: [0x0-9A-F:]*X25519:P-256:P-384', results.stdout) is not None
         assert to_bytes("Shared Elliptic groups: {}".format(
             server_options.curve)) in results.stdout
         assert random_bytes in results.stdout
@@ -193,7 +195,8 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, other_prov
     for results in server.get_results():
         results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
-        assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
+        # The "test_all" s2n security policy includes draft Hybrid PQ groups that Openssl server prints as hex values
+        assert re.search(b'Supported Elliptic Groups: [0x0-9A-F:]*X25519:P-256:P-384', results.stdout) is not None
         assert to_bytes("Shared Elliptic groups: {}".format(
             server_options.curve)) in results.stdout
         assert random_bytes in results.stdout

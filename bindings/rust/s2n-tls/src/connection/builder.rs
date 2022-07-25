@@ -32,7 +32,7 @@ impl<T: Pool + Clone> Builder for T {
         if mode == self.mode() {
             Ok(PooledConnection::new(self)?)
         } else {
-            Err(Error::InvalidInput)
+            Err(Error::INVALID_INPUT)
         }
     }
 }

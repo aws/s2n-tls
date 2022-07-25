@@ -25,9 +25,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const char *pq_security_policy_versions[] = {
-            "KMS-PQ-TLS-1-0-2019-06",
-            "KMS-PQ-TLS-1-0-2020-02",
-            "KMS-PQ-TLS-1-0-2020-07",
+            "PQ-TLS-1-0-2021-05-24",
+            "PQ-TLS-1-0-2021-05-25",
+            "PQ-TLS-1-0-2021-05-26",
     };
 
     for (size_t policy_index = 0; policy_index < s2n_array_len(pq_security_policy_versions); policy_index++) {

@@ -57,14 +57,10 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
      * be garbage. Therefore, if recv_ciphertext() fails for these KEMs,
      * it should not have been due to S2N_ERR_PQ_CRYPTO.
      *
-     * The one exception is BIKE1L1R1, which does not guarantee this
-     * property. If provided an invalid ciphertext input, BIKE1L1R1
-     * will likely fail (return non-zero) and set S2N_ERR_PQ_CRYPTO.
-     *
      * If PQ is not enabled, then recv_ciphertext() should always fail. */
     int recv_ciphertext_ret = s2n_kem_recv_ciphertext(&ciphertext, kem_params);
 
-    if (s2n_pq_is_enabled() && recv_ciphertext_ret != S2N_SUCCESS && kem_params->kem != &s2n_bike1_l1_r1) {
+    if (s2n_pq_is_enabled() && recv_ciphertext_ret != S2N_SUCCESS) {
         POSIX_ENSURE_NE(s2n_errno, S2N_ERR_PQ_CRYPTO);
     }
 
