@@ -34,5 +34,6 @@ test-deps/*
 .idea/*
 CMakeCache.txt
 CMakeFiles/*
+.DS_Store
 .project
 ./codebuild/spec/buildspec_*_batch.yml
