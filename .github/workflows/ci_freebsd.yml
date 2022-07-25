@@ -4,25 +4,24 @@ on:
   pull_request:
     branches:
       - main
-      - master
 
 jobs:
   testfreebsd:
-    runs-on: macos-10.15
+    runs-on: macos-12
     name: CI FreeBSD
     steps:
-    - uses: actions/checkout@v2
-    - name: Build and test in FreeBSD
-      id: test
-      uses: vmactions/freebsd-vm@v0.1.5
-      with:
-        prepare: pkg install -y ninja cmake
-        run: |
-          freebsd-version
-          .github/s2n_freebsd.sh
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@master
-      with:
-        name: all_test_output
-        path: build/Testing/Temporary
+      - uses: actions/checkout@v2
+      - name: Build and test in FreeBSD
+        id: test
+        uses: vmactions/freebsd-vm@v0.1.5
+        with:
+          prepare: pkg install -y ninja cmake
+          run: |
+            freebsd-version
+            .github/s2n_freebsd.sh
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@master
+        with:
+          name: all_test_output
+          path: build/Testing/Temporary
