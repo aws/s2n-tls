@@ -181,7 +181,7 @@ async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error
     .await;
     let result = timeout?;
     assert!(result.is_err());
-    assert_eq!(result.unwrap_err().kind(), Some(ErrorType::ProtocolError));
+    assert_eq!(result.unwrap_err().kind(), ErrorType::ProtocolError);
 
     Ok(())
 }
