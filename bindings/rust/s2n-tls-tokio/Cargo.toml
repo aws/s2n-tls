@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-tokio"
 description = "An implementation of TLS streams for Tokio built on top of s2n-tls"
-version = "0.0.9"
+version = "0.0.10"
 authors = ["AWS s2n"]
 edition = "2021"
 repository = "https://github.com/aws/s2n-tls"
