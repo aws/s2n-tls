@@ -891,10 +891,11 @@ typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_l
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
  *
  * The default behavior is to require that the hostname match the server name set with s2n_set_server_name().
- * This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using client authentication.
+ * This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using
+ *  client authentication.
  *
- * This change will be inherited by s2n_connections using this config. If a separate callback for different connections using the same config is desired,
- * see s2n_connection_set_verify_host_callback().
+ * This change will be inherited by s2n_connections using this config. If a separate callback for different connections
+ * using the same config is desired, see s2n_connection_set_verify_host_callback().
  *
  * @param config The configuration object being updated
  * @param data A user supplied opaque context to pass back to the callback
@@ -1034,7 +1035,7 @@ extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_sup
  * - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n-tls will ignore all WARNING alerts and keep communicating with its peer. This setting is ignored in TLS1.3
  *
  * @note TLS1.3 terminates a connection for all alerts except user_canceled.
- * @warning S2N_ALERT_FAIL_ON_WARNINGS is the recommended behavior. Past attacks have exploited downgrading alerts to warnings.
+ * @warning S2N_ALERT_FAIL_ON_WARNINGS is the recommended behavior. Past TLS protocol vulnerabilities have involved downgrading alerts to warnings.
  */
 typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0, S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
 
