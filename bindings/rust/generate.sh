@@ -39,15 +39,16 @@ cargo run -- ../s2n-tls-sys
 popd 
 
 # make sure everything builds and passes sanity checks
-pushd s2n-tls-sys
-cargo test
-cargo test --features pq
-cargo test --features quic
-cargo test --features internal
-cargo test --release
-cargo publish --dry-run --allow-dirty 
-cargo publish --dry-run --allow-dirty --all-features
-popd
+crates=("s2n-tls-sys" "s2n-tls" "s2n-tls-tokio")
+for crate in ${crates[@]}; do
+  pushd $crate
+  cargo test
+  cargo test --all-features
+  cargo test --release
+  cargo test --release --all-features
+  cargo publish --dry-run --allow-dirty 
+  popd
+done
 
 pushd integration
 cargo run
