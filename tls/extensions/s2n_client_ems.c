@@ -60,7 +60,7 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
  *
  *  We added an exception here in order to prevent a drop in 
  *  session resumption rates during deployment. Eventually clients
- *  will be forced to do a full handshake and pick up EMS at that point.
+ *  will be forced to do a full handshake as sessions expire and pick up EMS at that point.
  **/
 static bool s2n_client_ems_should_send(struct s2n_connection *conn)
 {
