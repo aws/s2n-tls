@@ -38,6 +38,15 @@ pushd generate
 cargo run -- ../s2n-tls-sys
 popd 
 
+# copy pems used for testing into crate
+rm -rf s2n-tls/src/testing/pems
+mkdir -p s2n-tls/src/testing/pems
+
+cp \
+  ../../tests/pems/rsa_4096_sha512_client_cert.pem \
+  ../../tests/pems/rsa_4096_sha512_client_key.pem \
+  s2n-tls/src/testing/pems/
+
 # make sure everything builds and passes sanity checks
 crates=("s2n-tls-sys" "s2n-tls" "s2n-tls-tokio")
 for crate in ${crates[@]}; do
@@ -46,7 +55,8 @@ for crate in ${crates[@]}; do
   cargo test --all-features
   cargo test --release
   cargo test --release --all-features
-  cargo publish --dry-run --allow-dirty 
+  cargo publish --dry-run --allow-dirty
+  cargo publish --dry-run --allow-dirty --all-features
   popd
 done
 

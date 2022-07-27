@@ -7,3 +7,5 @@ s2n-tls-sys/lib
 s2n-tls-sys/src/api.rs
 s2n-tls-sys/src/quic.rs
 s2n-tls-sys/src/tests.rs
+s2n-tls/src/testing/pems
+

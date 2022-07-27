@@ -120,8 +120,8 @@ struct CertKeyPair {
 impl Default for CertKeyPair {
     fn default() -> Self {
         CertKeyPair {
-            cert: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_cert.pem")[..],
-            key: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_key.pem")[..],
+            cert: &include_bytes!("testing/pems/rsa_4096_sha512_client_cert.pem")[..],
+            key: &include_bytes!("testing/pems/rsa_4096_sha512_client_key.pem")[..],
         }
     }
 }
