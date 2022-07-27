@@ -307,6 +307,8 @@ int main(int argc, char **argv)
         const struct s2n_send_result results[] = {
                 PARTIAL_SEND_RESULT(partial_send),
                 BLOCK_SEND_RESULT,
+                PARTIAL_SEND_RESULT(partial_send),
+                BLOCK_SEND_RESULT,
                 OK_SEND_RESULT
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
@@ -320,7 +322,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
         EXPECT_EQUAL(context.bytes_sent, partial_send);
 
-        /* Second attempt completes */
+        /* Second attempt blocks */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, test_data, sizeof(test_data), &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        EXPECT_EQUAL(context.bytes_sent, partial_send * 2);
+
+        /* Third attempt completes */
         EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
         EXPECT_EQUAL(context.bytes_sent, test_data_bytes_sent);
@@ -396,6 +403,8 @@ int main(int argc, char **argv)
                 OK_SEND_RESULT,
                 PARTIAL_SEND_RESULT(partial_send),
                 BLOCK_SEND_RESULT,
+                PARTIAL_SEND_RESULT(partial_send),
+                BLOCK_SEND_RESULT,
                 OK_SEND_RESULT, OK_SEND_RESULT, OK_SEND_RESULT
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
@@ -414,7 +423,13 @@ int main(int argc, char **argv)
         /* Don't re-send the data already sent. */
         const uint32_t offset = S2N_DEFAULT_FRAGMENT_LENGTH;
 
-        /* Second attempt completes */
+        /* Second attempt blocks without writing another record */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data + offset, sizeof(large_test_data) - offset, &blocked),
+                S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        EXPECT_EQUAL(context.bytes_sent, record_size + partial_send + partial_send);
+
+        /* Third attempt completes */
         EXPECT_EQUAL(s2n_send(conn, large_test_data + offset, sizeof(large_test_data) - offset, &blocked),
                 sizeof(large_test_data) - S2N_DEFAULT_FRAGMENT_LENGTH);
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
