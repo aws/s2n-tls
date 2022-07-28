@@ -496,7 +496,7 @@ S2N_API
 extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data);
 
 /**
- * A function that will be called when s2n-tls is initialized.
+ * Called when `s2n_init` is executed.
  */
 typedef int (*s2n_mem_init_callback)(void);
 
@@ -506,8 +506,9 @@ typedef int (*s2n_mem_init_callback)(void);
 typedef int (*s2n_mem_cleanup_callback)(void);
 
 /**
- * A function that can allocate at least `requested` bytes of memory and
- * store the location of that memory in **\*ptr**, and the size of the allocated
+ * A function that can allocate at least `requested` bytes of memory.
+ *
+ * It stores the location of that memory in **\*ptr** and the size of the allocated
  * data in **\*allocated**. The function may choose to allocate more memory
  * than was requested. s2n-tls will consider all allocated memory available for
  * use, and will attempt to free all allocated memory when able.
@@ -515,12 +516,12 @@ typedef int (*s2n_mem_cleanup_callback)(void);
 typedef int (*s2n_mem_malloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
 
 /**
- * A function that can free memory.
+ * Frees memory allocated by s2n_mem_malloc_callback.
  */
 typedef int (*s2n_mem_free_callback)(void *ptr, uint32_t size);
 
 /**
- * Allows the caller to over-ride s2n-tls's internal memory handling functions.
+ * Allows the caller to override s2n-tls's internal memory handling functions.
  * 
  * @warning This function must be called before s2n_init().
  * 
@@ -557,7 +558,7 @@ typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
 typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
 
 /**
- * Allows the caller to over-ride s2n-tls's entropy functions.
+ * Allows the caller to override s2n-tls's entropy functions.
  * 
  * @warning This function must be called before s2n_init().
  * 
@@ -880,22 +881,21 @@ extern int s2n_config_wipe_trust_store(struct s2n_config *config);
  * of the X.509 validation will succeed.
  *
  * If no hostname results in a 1 being returned, the certificate will be untrusted and the
- * validation will terminate immediately. The default behavior is to reject all host names
- * found in a certificate if client mode or client authentication is being used.
+ * validation will terminate immediately.
  *
- * Data is a opaque user context set in s2n_config_set_verify_host_callback().
+ * Data is a opaque user context set in s2n_config_set_verify_host_callback() or s2n_connection_set_verify_host_callback().
  */
 typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
 
 /**
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
- * By default, no certificate will be trusted. To override this behavior, set this callback.
  *
- * This change will be inherited by s2n_connections using this config. If s2n_connection specifies
- * a callback, that callback will be used for that connection.
+ * The default behavior is to require that the hostname match the server name set with s2n_set_server_name().
+ * This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using
+ *  client authentication.
  *
- * If a separate callback for different connections using the same config is desired,
- * see s2n_connection_set_verify_host_callback().
+ * This change will be inherited by s2n_connections using this config. If a separate callback for different connections
+ * using the same config is desired, see s2n_connection_set_verify_host_callback().
  *
  * @param config The configuration object being updated
  * @param data A user supplied opaque context to pass back to the callback
@@ -1035,6 +1035,7 @@ extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_sup
  * - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n-tls will ignore all WARNING alerts and keep communicating with its peer. This setting is ignored in TLS1.3
  *
  * @note TLS1.3 terminates a connection for all alerts except user_canceled.
+ * @warning S2N_ALERT_FAIL_ON_WARNINGS is the recommended behavior. Past TLS protocol vulnerabilities have involved downgrading alerts to warnings.
  */
 typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0, S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
 
@@ -1071,6 +1072,8 @@ extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_exte
  * length overrides the preference set by the `s2n_connection_prefer_throughput` and
  * `s2n_connection_prefer_low_latency`.
  *
+ * @note Some TLS implementations do not respect their peer's max fragment length extension.
+ *
  * @param config The configuration object being updated
  * @param mfl_code The selected MFL size
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
@@ -1082,6 +1085,8 @@ extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_ma
  * Allows the server to opt-in to accept client's TLS maximum fragment length extension
  * requests. If this API is not called, and client requests the extension, server will ignore
  * the request and continue TLS handshake with default maximum fragment length of 8k bytes
+ *
+ * @note Some TLS implementations do not respect their peer's max fragment length extension.
  *
  * @param config The configuration object being updated
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
@@ -1618,21 +1623,20 @@ S2N_API
 extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 
 /** 
- * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted. By default, 
- * no certificate will be trusted. To override this behavior, set this callback. See s2n_verify_host_fn()
- * for details. This configuration will be inherited by default to new instances of `s2n_connection`. 
+ * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
  *
- * If a separate callback for different connections using the same config is desired, see s2n_connection_set_verify_host_callback()
+ * The default behavior is to require that the hostname match the server name set with s2n_set_server_name(). This will
+ * likely lead to all client certificates being rejected, so the callback will need to be overriden when using client authentication.
  *
- * @note If you don't want to use the configuration wide callback, you can set this per connection and it will be honored.
+ * If a single callback for different connections using the same config is desired, see s2n_config_set_verify_host_callback().
  *
- * @param config A pointer to a s2n_config object
+ * @param conn A pointer to a s2n_connection object
  * @param host_fn A pointer to a callback function that s2n will invoke in order to verify the hostname of an X.509 certificate
  * @param data Opaque pointer to data that the verify host function will be invoked with
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);
+extern int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn host_fn, void *data);
 
 /**
  * Used to opt-out of s2n-tls's built-in blinding. Blinding is a

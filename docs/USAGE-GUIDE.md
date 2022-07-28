@@ -325,11 +325,13 @@ Call `s2n_print_stacktrace()` to print your stacktrace.
 **Note:** Enabling stacktraces can significantly slow down unit tests, causing failures on tests (such as `s2n_cbc_verify`) that measure the timing of events.
 
 
-## Initialization and teardown
+## Initialization and Teardown
 
 The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` MUST NOT be called more than once, even when an application uses multiple threads or processes. To clean up, `s2n_cleanup()` must be called from every thread or process created after `s2n_init()` was called.
 
 Initialization can be modified by calling `s2n_crypto_disable_init()` or `s2n_disable_atexit()` before `s2n_init()`.
+
+An application can override s2n-tls’s internal memory management by calling `s2n_mem_set_callbacks` before calling s2n_init.
 
 If you are trying to use FIPS mode, you must enable FIPS in your libcrypto library (probably by calling `FIPS_mode_set(1)`) before calling `s2n_init()`.
 
@@ -454,7 +456,7 @@ A server must have a certificate and private key pair to prove its identity. s2n
 
 Create a new certificate and key pair by calling `s2n_cert_chain_and_key_new()`, then load the pem-encoded data with `s2n_cert_chain_and_key_load_pem_bytes()`.  Call `s2n_config_add_cert_chain_and_key_to_store()` to add the certificate and key pair to the config. When a certificate and key pair is no longer needed, it must be cleaned up with `s2n_cert_chain_and_key_free()`.
 
-A client can add restrictions on the certificate’s hostname by setting a custom `s2n_verify_host_fn` with  `s2n_config_set_verify_host_callback()`. The default behavior is to require that the hostname match the server name set with `s2n_set_server_name()`.
+A client can add restrictions on the certificate’s hostname by setting a custom `s2n_verify_host_fn` with `s2n_config_set_verify_host_callback()` or `s2n_connection_set_verify_host_callback()`. The default behavior is to require that the hostname match the server name set with `s2n_set_server_name()`.
 
 ### Client / Mutual Authentication
 
@@ -545,35 +547,6 @@ Indicates that connection properties were changed on the basis of server_name.
 Triggers a s2n-tls server to send the server_name extension. Must be called
 before s2n-tls finishes processing the ClientHello.
 
-### s2n\_config\_set\_alert\_behavior
-```c
-int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
-```
-Sets whether or not a connection should terminate on receiving a WARNING alert from its peer. `alert_behavior` can take the following values:
-- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n-tls will terminate the connection if its peer sends a WARNING alert.
-- `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n-tls will ignore all WARNING alerts and keep communicating with its peer.
-
-This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts except user_canceled.
-
-### s2n\_config\_set\_async\_pkey\_validation\_mode
-```c
-int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
-```
-Sets whether or not a connection should enforce strict signature validation during the `s2n_async_pkey_op_apply` call.
-`mode` can take the following values:
-- `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
-- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
-
-### Public Key API's
-```c
-int s2n_rsa_public_key_set_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
-int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
-int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
-int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa);
-```
-**s2n_rsa_public_key** and **s2n_cert_public_key** are opaque structs. These API's are intended to be used by Implementations of **verify_cert_trust_chain_fn** to
-set the public keys found in the Certificate into **public_key_out**.
-
 ## Session Caching related calls
 
 s2n-tls includes support for resuming from cached SSL/TLS session, provided
@@ -630,28 +603,6 @@ a pointer to abitrary data for use within the callback, a pointer to a key
 which can be used to delete the cached entry, and a 64 bit unsigned integer
 specifying the size of this key.
 
-### s2n\_config\_send\_max\_fragment\_length
-
-```c
-int s2n_config_send_max_fragment_length(struct s2n_config *config, uint8_t mfl_code);
-```
-
-**s2n_config_send_max_fragment_length** allows the caller to set a TLS Maximum
-Fragment Length extension that will be used to fragment outgoing messages.
-s2n-tls currently does not reject fragments larger than the configured maximum when
-in server mode. The TLS negotiated maximum fragment length overrides the preference set
-by the **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
-
-### s2n\_config\_accept\_max\_fragment\_length
-
-```c
-int s2n_config_accept_max_fragment_length(struct s2n_config *config);
-```
-
-**s2n_config_accept_max_fragment_length** allows the server to opt-in to accept
-client's TLS maximum fragment length extension requests.
-If this API is not called, and client requests the extension, server will ignore the
-request and continue TLS handshake with default maximum fragment length of 8k bytes
 ## Connection-oriented functions
 
 ### s2n\_connection\_new
@@ -703,25 +654,6 @@ If the read end of the pipe is closed unexpectedly, writing to the pipe will rai
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
 
-### s2n\_connection\_set\_blinding
-
-```c
-int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding);
-```
-
-**s2n_connection_set_blinding** can be used to configure s2n-tls to either use
-built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blinding
-(set blinding to S2N_SELF_SERVICE_BLINDING).
-
-### s2n\_connection\_get\_delay
-
-```c
-uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_delay** returns the number of nanoseconds an application
-using self-service blinding should pause before calling close() or shutdown().
-
 ### s2n\_connection\_prefer\_throughput(struct s2n_connection *conn)
 
 ```c
@@ -761,16 +693,6 @@ returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11**, **S2N_TLS12**, and **S2N_TLS13**.
-
-### s2n\_connection\_set\_verify\_host\_callback
-```c
-int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);
-```
-Every connection inherits the value of **s2n_verify_host_fn** from it's instance of **s2n_config**.
-Since a configuration can (and should) be used for multiple connections, it may be useful to override
-this value on a per connection basis. For example, this may be based on a host header from an http request. In that case,
-calling this function will override the value inherited from the configuration.
-See [s2n_verify_host_fn](#s2n_verify_host_fn) for details.
 
 ### s2n\_connection\_get\_client\_hello
 
@@ -1249,7 +1171,7 @@ ssize_t s2n_send(struct s2n_connection *conn
               s2n_blocked_status *blocked);
 ```
 
-**s2n_send** writes and encrypts **size* of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
+**s2n_send** writes and encrypts **size** of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
 
 ```c
 s2n_blocked_status blocked;
@@ -1386,32 +1308,6 @@ Once **s2n_shutdown** is complete:
 * The s2n_connection handle cannot be used for reading for writing.
 * The underlying transport can be closed. Most likely via `close()`.
 * The s2n_connection handle can be freed via [s2n_connection_free](#s2n\_connection\_free) or reused via [s2n_connection_wipe](#s2n\_connection\_wipe)
-
-
-### s2n_mem_set_callbacks
-
-```c
-typedef int (*s2n_mem_init_callback)(void);
-typedef int (*s2n_mem_cleanup_callback)(void);
-typedef int (*s2n_mem_malloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
-typedef int (*s2n_mem_free_callback)(void *ptr, uint32_t size);
-
-extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback, s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
-```
-
-
-**s2n_mem_set_callbacks** allows the caller to over-ride s2n-tls's internal memory
-handling functions. To work correctly, **s2n_mem_set_callbacks** must be called
-before **s2n_init**. **s2n_mem_init_callback** should be a function that will
-be called when s2n-tls is initialized.  **s2n_mem_cleanup_callback** will be called
-when **s2n_cleanup** is executed. **s2n_mem_malloc_callback** should be a
-function that can allocate at least **requested** bytes of memory and store the
-location of that memory in **\*ptr**, and the size of the allocated data in
-**\*allocated**. The function may choose to allocate more memory than was requested.
-s2n-tls will consider all allocated memory available for use, and will attempt to
-free all allocated memory when able. **s2n_mem_free_callback** should be a
-function that can free memory.
-
 
 ## Using Early Data / 0RTT
 
