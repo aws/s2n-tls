@@ -16,7 +16,7 @@
 from s2n_test_constants import NUM_EXPECTED_LINES_OUTPUT, ACTUAL_VERSION_STR, S2N_TLS12
 
 """
-PQ Handshake tests: s2nd and s2nc negotiate a handshake using BIKE or SIKE KEMs
+PQ Handshake tests: s2nd and s2nc negotiate a handshake using Kyber PQ KEM
 """
 
 import argparse
@@ -28,25 +28,25 @@ from s2n_test_constants import S2N_LIBCRYPTO_CHOICES
 
 pq_handshake_test_vectors = [
     # The first set of vectors specify client and server cipher preference versions that are compatible for a successful PQ handshake
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r2-Level1"},
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r2-Level1"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-07", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-07", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r2-Level1"},
-    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-07", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "expected_kem": "kyber512r2"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-07", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-07", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "KMS-PQ-TLS-1-0-2020-07", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "expected_kem": "kyber512r3"},
 
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r3-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r3-KEM"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 
     # The last set of vectors specify a "mismatch" between PQ cipher preferences - a classic handshake should be completed
     {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-TLS-1-0-2018-10", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},

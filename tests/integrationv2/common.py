@@ -351,9 +351,7 @@ class KemGroup(object):
 
 class KemGroups(object):
     # oqs_openssl does not support x25519 based KEM groups
-    P256_KYBER512R2 = KemGroup("p256_kyber512")
-    P256_BIKE1L1FOR2 = KemGroup("p256_bike1l1fo")
-    P256_SIKEP434R3 = KemGroup("p256_sikep434")
+    P256_KYBER512R3 = KemGroup("p256_kyber512")
 
 
 class Signature(object):

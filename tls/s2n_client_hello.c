@@ -405,11 +405,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
 
-    /* s2n_extension_list_process clears the parsed extensions as it processes them.
-     * To keep the version in client_hello intact for the extension retrieval APIs, process a copy instead.
-     */
-    s2n_parsed_extensions_list copy_of_parsed_extensions = conn->client_hello.extensions;
-    POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &copy_of_parsed_extensions));
+    POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &conn->client_hello.extensions));
 
     /* After parsing extensions, select a curve and corresponding keyshare to use */
     if (conn->actual_protocol_version >= S2N_TLS13) {

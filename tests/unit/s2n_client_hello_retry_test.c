@@ -43,6 +43,14 @@
 #define HELLO_RETRY_MSG_NO 1
 #define SERVER_HELLO_MSG_NO 5
 
+static int s2n_client_hello_cb_with_get_server_name(struct s2n_connection *conn, void *ctx)
+{
+    const char* expected_server_name = (const char*) ctx;
+    const char* actual_server_name = s2n_get_server_name(conn);
+    POSIX_ENSURE_EQ(strcmp(expected_server_name, actual_server_name), 0);
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -164,8 +172,10 @@ int main(int argc, char **argv)
 
         {
             const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r3,
-                &s2n_secp256r1_bike1_l1_r2,
+                &s2n_secp256r1_kyber_512_r3,
+#if EVP_APIS_SUPPORTED
+                &s2n_x25519_kyber_512_r3,
+#endif
             };
 
             const struct s2n_kem_preferences test_kem_prefs = {
@@ -242,7 +252,7 @@ int main(int argc, char **argv)
                     conn->actual_protocol_version = S2N_TLS13;
                     conn->security_policy_override = &test_security_policy;
 
-                    conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r3;
+                    conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r3;
                     conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
@@ -255,7 +265,8 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_connection_free(conn));
                 }
                 /* Test PQ KEM success case for s2n_server_hello_retry_recv. */
-                {
+                /* Need at least two KEM's to test fallback */
+                if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
                     struct s2n_config *config;
                     struct s2n_connection *conn;
 
@@ -273,18 +284,18 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
                     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
 
-                    /* Client sends ClientHello containing key share for p256+SIKE
-                     * (but indicates support for p256+BIKE in supported_groups) */
+                    /* Client sends ClientHello containing key share for p256+Kyber
+                     * (but indicates support for x25519+Kyber in supported_groups) */
                     EXPECT_SUCCESS(s2n_client_hello_send(conn));
 
                     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
                     conn->session_id_len = 0; /* Wipe the session id to match the HRR hex */
 
-                    /* Server responds with HRR indicating p256+BIKE as choice for negotiation;
-                     * the last 6 bytes (0033 0002 2F23) are the key share extension with p256+BIKE */
+                    /* Server responds with HRR indicating x25519+Kyber as choice for negotiation;
+                     * the last 6 bytes (0033 0002 2F39) are the key share extension with x25519+Kyber */
                     DEFER_CLEANUP(struct s2n_stuffer hrr = {0}, s2n_stuffer_free);
                     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&hrr,
-                            "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F23"));
+                            "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F39"));
 
                     EXPECT_SUCCESS(s2n_stuffer_copy(&hrr, &conn->handshake.io, s2n_stuffer_data_available(&hrr)));
                     conn->handshake.message_number = HELLO_RETRY_MSG_NO;
@@ -1000,6 +1011,68 @@ int main(int argc, char **argv)
 
             /* Expect successful retry */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        }
+
+        /* Processing an extension early does not affect the extension matching check.
+         *
+         * This test exists because of a previously released bug. Triggering the bug
+         * required a specific series of events:
+         * - The first ClientHello is received.
+         * - The extensions are parsed.
+         * - The ClientHello callback triggers.
+         * - The customer's ClientHello callback implementation calls the s2n_get_server_name API.
+         *   - To retrieve the server name, s2n_get_server_name processes the server name extension early.
+         *     - The server name extension is wiped. Before the "processed" flag, we wiped extensions
+         *       to mark that they had been processed.
+         * - The server sends a HelloRetryRequest, triggering a retry.
+         * - The second ClientHello is received.
+         * - The extensions are parsed.
+         * - The customer's ClientHello callback does NOT trigger this time. The callback only
+         *   triggers after the first ClientHello.
+         *   - Therefore, s2n_get_server_name is not called and the server name extension is not
+         *     processed early or wiped.
+         * - The first ClientHello is compared to the second ClientHello. The second ClientHello
+         *   appears to contain a server name extension not present in the first ClientHello.
+         * - The handshake fails because the ClientHellos must match.
+         */
+        {
+            char server_name[] = "test server name";
+
+            DEFER_CLEANUP(struct s2n_config *config_with_cb = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cb, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_cb, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config_with_cb));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cb));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cb));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Setup server name and client hello callback */
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, server_name));
+            EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_cb,
+                    s2n_client_hello_cb_with_get_server_name, server_name));
+
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+            /* Handshake should complete as expected */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(strcmp(s2n_get_server_name(server_conn), server_name), 0);
+            EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+            EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
         }
     }
 

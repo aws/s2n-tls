@@ -697,34 +697,6 @@ struct s2n_cipher_suite s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0
     .minimum_required_tls_version = S2N_TLS12,
 };
 
-struct s2n_cipher_suite s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x04 */ {
-    .available = 0,
-    .name = "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
-    .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
-    .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
-    .auth_method = S2N_AUTHENTICATION_RSA,
-    .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes256_gcm },
-    .num_record_algs = 1,
-    .sslv3_record_alg = NULL,
-    .prf_alg = S2N_HMAC_SHA384,
-    .minimum_required_tls_version = S2N_TLS12,
-};
-
-struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x08 */ {
-    .available = 0,
-    .name = "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
-    .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
-    .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
-    .auth_method = S2N_AUTHENTICATION_RSA,
-    .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes256_gcm },
-    .num_record_algs = 1,
-    .sslv3_record_alg = NULL,
-    .prf_alg = S2N_HMAC_SHA384,
-    .minimum_required_tls_version = S2N_TLS12,
-};
-
 struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
     .available = 0,
     .name = "TLS_AES_128_GCM_SHA256",
@@ -810,8 +782,6 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
-    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
 };
 
@@ -858,8 +828,6 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
-    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
 };
 

@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../tls/*/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../pq-crypto/*.o ../pq-crypto/bike_r1/*.o ../pq-crypto/bike_r2/*.o ../pq-crypto/bike_r3/*.o ../pq-crypto/sike_r1/*.o ../pq-crypto/kyber_r2/*.o ../pq-crypto/kyber_90s_r2/*.o ../pq-crypto/kyber_r3/*.o ../pq-crypto/sike_r3/*.o)
+OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../tls/*/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../pq-crypto/*.o  ../pq-crypto/kyber_r3/*.o)
 
 .PHONY : all
 all: libs2n.a libs2n.so libs2n.dylib

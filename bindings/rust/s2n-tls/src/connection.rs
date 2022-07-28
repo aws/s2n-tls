@@ -28,7 +28,7 @@ macro_rules! static_const_str {
     ($c_chars:expr) => {
         unsafe { CStr::from_ptr($c_chars) }
             .to_str()
-            .map_err(|_| Error::InvalidInput)
+            .map_err(|_| Error::INVALID_INPUT)
     };
 }
 
@@ -123,9 +123,12 @@ impl Connection {
         Ok(self)
     }
 
-    /// Reports the remaining nanoseconds before the connection may be safely closed.
+    /// Reports the remaining nanoseconds before the connection may be gracefully shutdown.
     ///
-    /// If [`shutdown`] is called before this method reports "0", then an error will occur.
+    /// This method is expected to succeed, but could fail if the
+    /// [underlying C call](`s2n_connection_get_delay`) encounters errors.
+    /// Failure indicates that calls to [`Self::poll_shutdown`] will also fail and
+    /// that a graceful two-way shutdown of the connection will not be possible.
     pub fn remaining_blinding_delay(&self) -> Result<Duration, Error> {
         let nanos = unsafe { s2n_connection_get_delay(self.connection.as_ptr()).into_result() }?;
         Ok(Duration::from_nanos(nanos))
@@ -272,7 +275,10 @@ impl Connection {
             s2n_connection_append_protocol_preference(
                 self.connection.as_ptr(),
                 protocol.as_ptr(),
-                protocol.len().try_into().map_err(|_| Error::InvalidInput)?,
+                protocol
+                    .len()
+                    .try_into()
+                    .map_err(|_| Error::INVALID_INPUT)?,
             )
             .into_result()
         }?;
@@ -357,7 +363,7 @@ impl Connection {
     /// Sets the currently executing async callback.
     ///
     /// Multiple callbacks can be configured for a connection and config, but
-    /// [`negotiate`] can only execute and block on one callback at a time.
+    /// [`poll_negotiate`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
     /// it encounters an async callback. It does not continue execution (and
     /// therefore can't call any other callbacks) until the blocking async callback
@@ -392,29 +398,29 @@ impl Connection {
     }
 
     /// Encrypts and sends data on a connection where
-    /// [negotiate](`Self::negotiate`) has succeeded.
+    /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
         unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
     /// Reads and decrypts data from a connection where
-    /// [negotiate](`Self::negotiate`) has succeeded.
+    /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes read, and may indicate a partial read.
     /// 0 bytes returned indicates EOF due to connection closure.
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::InvalidInput)?;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
         unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
-    /// Attempts to flush any data previously buffered by a call to [send](`Self::negotiate`).
+    /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
         self.poll_send(&[0; 0]).map_ok(|_| self)
     }
@@ -450,7 +456,7 @@ impl Connection {
 
     /// Sets the server name value for the connection
     pub fn set_server_name(&mut self, server_name: &str) -> Result<&mut Self, Error> {
-        let server_name = std::ffi::CString::new(server_name).map_err(|_| Error::InvalidInput)?;
+        let server_name = std::ffi::CString::new(server_name).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
             s2n_set_server_name(self.connection.as_ptr(), server_name.as_ptr()).into_result()
         }?;
@@ -600,7 +606,7 @@ impl Connection {
             s2n_connection_set_quic_transport_parameters(
                 self.connection.as_ptr(),
                 buffer.as_ptr(),
-                buffer.len().try_into().map_err(|_| Error::InvalidInput)?,
+                buffer.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
             )
             .into_result()
         }?;

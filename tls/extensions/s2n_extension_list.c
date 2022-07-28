@@ -24,8 +24,6 @@
 
 #define s2n_parsed_extension_is_empty(parsed_extension) ((parsed_extension)->extension.data == NULL)
 
-static const s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
-
 int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     s2n_extension_type_list *extension_type_list;
@@ -50,23 +48,27 @@ int s2n_extension_list_recv(s2n_extension_list_id list_type, struct s2n_connecti
     return S2N_SUCCESS;
 }
 
-static int s2n_extension_process_impl(const s2n_extension_type *extension_type, s2n_extension_type_id extension_id,
-        struct s2n_connection *conn, s2n_parsed_extension *parsed_extensions)
+static int s2n_extension_process_impl(const s2n_extension_type *extension_type,
+        struct s2n_connection *conn, s2n_parsed_extension *parsed_extension)
 {
     POSIX_ENSURE_REF(extension_type);
-    POSIX_ENSURE_REF(parsed_extensions);
+    POSIX_ENSURE_REF(parsed_extension);
 
-    if (s2n_parsed_extension_is_empty(&parsed_extensions[extension_id])) {
+    if (parsed_extension->processed) {
+        return S2N_SUCCESS;
+    }
+
+    if (s2n_parsed_extension_is_empty(parsed_extension)) {
         POSIX_GUARD(s2n_extension_is_missing(extension_type, conn));
         return S2N_SUCCESS;
     }
 
-    POSIX_ENSURE(parsed_extensions[extension_id].extension_type == extension_type->iana_value,
+    POSIX_ENSURE(parsed_extension->extension_type == extension_type->iana_value,
             S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
-    struct s2n_stuffer extension_stuffer;
-    POSIX_GUARD(s2n_stuffer_init(&extension_stuffer, &parsed_extensions[extension_id].extension));
-    POSIX_GUARD(s2n_stuffer_skip_write(&extension_stuffer, parsed_extensions[extension_id].extension.size));
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&extension_stuffer, &parsed_extension->extension));
+    POSIX_GUARD(s2n_stuffer_skip_write(&extension_stuffer, parsed_extension->extension.size));
 
     POSIX_GUARD(s2n_extension_recv(extension_type, conn, &extension_stuffer));
 
@@ -82,13 +84,10 @@ int s2n_extension_process(const s2n_extension_type *extension_type, struct s2n_c
     s2n_extension_type_id extension_id;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
-    int result = s2n_extension_process_impl(extension_type, extension_id, conn, parsed_extension_list->parsed_extensions);
-
-    /* Wipe parsed_extension.
-     * We can check for unprocessed extensions later by checking for non-blank parsed_extensions. */
-    parsed_extension_list->parsed_extensions[extension_id] = empty_parsed_extensions[0];
-
-    return result;
+    s2n_parsed_extension *parsed_extension = &parsed_extension_list->parsed_extensions[extension_id];
+    POSIX_GUARD(s2n_extension_process_impl(extension_type, conn, parsed_extension));
+    parsed_extension->processed = true;
+    return S2N_SUCCESS;
 }
 
 int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_connection *conn,
@@ -104,17 +103,17 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
                 conn, parsed_extension_list));
     }
 
-    /* If parsed_extension_list.parsed_extensions is not completely wiped at this point,
-     * then we have received an extension not allowed on this message type.
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+     *= type=exception
+     *= reason=Incorrect implementations exist in the wild. Ignoring instead.
+     *# If an implementation receives an extension
+     *# which it recognizes and which is not specified for the message in
+     *# which it appears, it MUST abort the handshake with an
+     *# "illegal_parameter" alert.
      *
-     * According to the RFC, we should alert and close the connection.
-     * From https://tools.ietf.org/html/rfc8446#section-4.2:
-     *    If an implementation receives an extension which it recognizes and which is not
-     *    specified for the message in which it appears, it MUST abort the handshake with an
-     *    "illegal_parameter" alert.
-     *
-     * However, to be more tolerant of non-compliant peers, we will just ignore and not
-     * process the illegal extensions, treating them as if they are unsupported.
+     * If we want to enforce this restriction in the future, we can verify
+     * that no parsed extensions exist without the "processed" flag set.
      */
 
     return S2N_SUCCESS;
