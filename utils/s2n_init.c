@@ -82,12 +82,10 @@ static bool s2n_cleanup_atexit_impl(void)
     /* the configs need to be wiped before resetting the memory callbacks */
     s2n_wipe_static_configs();
 
-    bool a = s2n_result_is_ok(s2n_locking_cleanup());
-    bool b = s2n_result_is_ok(s2n_rand_cleanup_thread());
-    bool c = s2n_result_is_ok(s2n_rand_cleanup());
-    bool d = s2n_mem_cleanup() == 0;
-
-    return a && b && c && d;
+    return s2n_result_is_ok(s2n_locking_cleanup()) &&
+           s2n_result_is_ok(s2n_rand_cleanup_thread()) &&
+           s2n_result_is_ok(s2n_rand_cleanup()) &&
+           (s2n_mem_cleanup() == S2N_SUCCESS);
 }
 
 int s2n_cleanup(void)

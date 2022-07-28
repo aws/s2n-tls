@@ -91,8 +91,8 @@ S2N_RESULT s2n_locking_cleanup(void)
 
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
     if (mutexes) {
-        for (int i = mutexes_count - 1; i >= 0; i--) {
-            RESULT_ENSURE_EQ(pthread_mutex_destroy(&(mutexes[i])), 0);
+        while(mutexes_count > 0) {
+            RESULT_ENSURE_EQ(pthread_mutex_destroy(&(mutexes[mutexes_count - 1])), 0);
             mutexes_count--;
         }
         RESULT_GUARD_POSIX(s2n_free(&mutexes_mem));

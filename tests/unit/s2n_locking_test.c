@@ -64,12 +64,12 @@ int main(int argc, char **argv)
         CRYPTO_lock(CRYPTO_UNLOCK, LOCK_N, NULL, 0);
 
         /* Expect the flag to be set because the new thread took the lock */
-        sleep(1);
+        void *retval = NULL;
+        EXPECT_EQUAL(pthread_join(thread, &retval), 0);
         EXPECT_TRUE(passed_lock);
     }
 
-    /* Test: basic lifecycle
-     */
+    /* Test: basic lifecycle */
     {
         EXPECT_OK(s2n_locking_cleanup());
         EXPECT_OK(s2n_locking_init());
@@ -77,7 +77,14 @@ int main(int argc, char **argv)
 
     /* Test: s2n-tls should not override locking configured by the application */
     {
-        /* Manually override the existing callback. */
+        /* The callback should have already been set by BEGIN_TEST()
+         * or a later call to s2n_locking_init().
+         */
+        EXPECT_NOT_EQUAL(CRYPTO_get_locking_callback(), NULL);
+
+        /* Manually override the existing callback.
+         * Applications might set their callback after calling s2n_init.
+         */
         CRYPTO_set_locking_callback((void (*)()) s2n_test_locking_cb);
         EXPECT_EQUAL(CRYPTO_get_locking_callback(), (void (*)()) s2n_test_locking_cb);
 
@@ -85,7 +92,9 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_locking_cleanup());
         EXPECT_EQUAL(CRYPTO_get_locking_callback(), (void (*)()) s2n_test_locking_cb);
 
-        /* Initializing again doesn't override the application-set callback */
+        /* Initializing again doesn't override the application-set callback.
+         * Applications might set their callback before calling s2n_init.
+         */
         EXPECT_OK(s2n_locking_init());
         EXPECT_EQUAL(CRYPTO_get_locking_callback(), (void (*)()) s2n_test_locking_cb);
         EXPECT_OK(s2n_locking_cleanup());
