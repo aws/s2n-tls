@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.18-2d5c122f</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.18-aafd731f</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -487,8 +487,8 @@ Functions</h2></td></tr>
 <tr class="separator:a9b4fafb7e9b8277f408af0ad17ab6e19"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add5f14855b2810a9857b1a41f2cc92f9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#add5f14855b2810a9857b1a41f2cc92f9">s2n_connection_set_dynamic_record_threshold</a> (struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)</td></tr>
 <tr class="separator:add5f14855b2810a9857b1a41f2cc92f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad9ca67cd9ebca132607037162d7d86a0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad9ca67cd9ebca132607037162d7d86a0">s2n_connection_set_verify_host_callback</a> (struct s2n_connection *config, <a class="el" href="s2n_8h.html#a8aa56850695a02753f726ea9860ec383">s2n_verify_host_fn</a> host_fn, void *data)</td></tr>
-<tr class="separator:ad9ca67cd9ebca132607037162d7d86a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad39f5c65f5c201d7af140baff29a02eb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad39f5c65f5c201d7af140baff29a02eb">s2n_connection_set_verify_host_callback</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#a8aa56850695a02753f726ea9860ec383">s2n_verify_host_fn</a> host_fn, void *data)</td></tr>
+<tr class="separator:ad39f5c65f5c201d7af140baff29a02eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a684b2e5c86c85f089392bd1a49d38e17"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a684b2e5c86c85f089392bd1a49d38e17">s2n_connection_set_blinding</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#a364ad496c9dd42fd3117a2f9d3289e62">s2n_blinding</a> blinding)</td></tr>
 <tr class="separator:a684b2e5c86c85f089392bd1a49d38e17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab8a2a372d2d13cef62357473b7fea568"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ab8a2a372d2d13cef62357473b7fea568">s2n_connection_get_delay</a> (struct s2n_connection *conn)</td></tr>
@@ -1173,7 +1173,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A function that can free memory. </p>
+<p >Frees memory allocated by s2n_mem_malloc_callback. </p>
 
 </div>
 </div>
@@ -1188,7 +1188,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A function that will be called when s2n-tls is initialized. </p>
+<p >Called when <code>s2n_init</code> is executed. </p>
 
 </div>
 </div>
@@ -1203,7 +1203,8 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >A function that can allocate at least <code>requested</code> bytes of memory and store the location of that memory in ***ptr**, and the size of the allocated data in ***allocated**. The function may choose to allocate more memory than was requested. s2n-tls will consider all allocated memory available for use, and will attempt to free all allocated memory when able. </p>
+<p >A function that can allocate at least <code>requested</code> bytes of memory.</p>
+<p >It stores the location of that memory in ***ptr** and the size of the allocated data in ***allocated**. The function may choose to allocate more memory than was requested. s2n-tls will consider all allocated memory available for use, and will attempt to free all allocated memory when able. </p>
 
 </div>
 </div>
@@ -1363,8 +1364,8 @@ Safety</h1>
 <p >A callback function invoked (usually multiple times) during X.509 validation for each name encountered in the leaf certificate.</p>
 <p >Return 1 to trust that hostname or 0 to not trust the hostname.</p>
 <p >If this function returns 1, then the certificate is considered trusted and that portion of the X.509 validation will succeed.</p>
-<p >If no hostname results in a 1 being returned, the certificate will be untrusted and the validation will terminate immediately. The default behavior is to reject all host names found in a certificate if client mode or client authentication is being used.</p>
-<p >Data is a opaque user context set in <a class="el" href="s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66">s2n_config_set_verify_host_callback()</a>. </p>
+<p >If no hostname results in a 1 being returned, the certificate will be untrusted and the validation will terminate immediately.</p>
+<p >Data is a opaque user context set in <a class="el" href="s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66">s2n_config_set_verify_host_callback()</a> or <a class="el" href="s2n_8h.html#ad39f5c65f5c201d7af140baff29a02eb">s2n_connection_set_verify_host_callback()</a>. </p>
 
 </div>
 </div>
@@ -1386,6 +1387,7 @@ Safety</h1>
 <li><code>S2N_ALERT_IGNORE_WARNINGS</code> - with the exception of <code>close_notify</code> s2n-tls will ignore all WARNING alerts and keep communicating with its peer. This setting is ignored in TLS1.3</li>
 </ul>
 <dl class="section note"><dt>Note</dt><dd>TLS1.3 terminates a connection for all alerts except user_canceled. </dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>S2N_ALERT_FAIL_ON_WARNINGS is the recommended behavior. Past TLS protocol vulnerabilities have involved downgrading alerts to warnings. </dd></dl>
 
 </div>
 </div>
@@ -3186,6 +3188,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Allows the server to opt-in to accept client's TLS maximum fragment length extension requests. If this API is not called, and client requests the extension, server will ignore the request and continue TLS handshake with default maximum fragment length of 8k bytes</p>
+<dl class="section note"><dt>Note</dt><dd>Some TLS implementations do not respect their peer's max fragment length extension.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -3711,6 +3714,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Allows the caller to set a TLS Maximum Fragment Length extension that will be used to fragment outgoing messages. s2n-tls currently does not reject fragments larger than the configured maximum when in server mode. The TLS negotiated maximum fragment length overrides the preference set by the <code>s2n_connection_prefer_throughput</code> and <code>s2n_connection_prefer_low_latency</code>.</p>
+<dl class="section note"><dt>Note</dt><dd>Some TLS implementations do not respect their peer's max fragment length extension.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -5078,9 +5082,9 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted. By default, no certificate will be trusted. To override this behavior, set this callback.</p>
-<p >This change will be inherited by s2n_connections using this config. If s2n_connection specifies a callback, that callback will be used for that connection.</p>
-<p >If a separate callback for different connections using the same config is desired, see <a class="el" href="s2n_8h.html#ad9ca67cd9ebca132607037162d7d86a0">s2n_connection_set_verify_host_callback()</a>.</p>
+<p >Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.</p>
+<p >The default behavior is to require that the hostname match the server name set with <a class="el" href="s2n_8h.html#af5c2488271997ea0b0b21d3937e612f6">s2n_set_server_name()</a>. This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using client authentication.</p>
+<p >This change will be inherited by s2n_connections using this config. If a separate callback for different connections using the same config is desired, see <a class="el" href="s2n_8h.html#ad39f5c65f5c201d7af140baff29a02eb">s2n_connection_set_verify_host_callback()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -7605,8 +7609,8 @@ The callback may send less than the requested length. The function should return
 
 </div>
 </div>
-<a id="ad9ca67cd9ebca132607037162d7d86a0" name="ad9ca67cd9ebca132607037162d7d86a0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad9ca67cd9ebca132607037162d7d86a0">&#9670;&nbsp;</a></span>s2n_connection_set_verify_host_callback()</h2>
+<a id="ad39f5c65f5c201d7af140baff29a02eb" name="ad39f5c65f5c201d7af140baff29a02eb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad39f5c65f5c201d7af140baff29a02eb">&#9670;&nbsp;</a></span>s2n_connection_set_verify_host_callback()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -7615,7 +7619,7 @@ The callback may send less than the requested length. The function should return
           <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_set_verify_host_callback </td>
           <td>(</td>
           <td class="paramtype">struct s2n_connection *&#160;</td>
-          <td class="paramname"><em>config</em>, </td>
+          <td class="paramname"><em>conn</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -7636,12 +7640,12 @@ The callback may send less than the requested length. The function should return
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted. By default, no certificate will be trusted. To override this behavior, set this callback. See <a class="el" href="s2n_8h.html#a8aa56850695a02753f726ea9860ec383">s2n_verify_host_fn()</a> for details. This configuration will be inherited by default to new instances of <code>s2n_connection</code>.</p>
-<p >If a separate callback for different connections using the same config is desired, see <a class="el" href="s2n_8h.html#ad9ca67cd9ebca132607037162d7d86a0">s2n_connection_set_verify_host_callback()</a></p>
-<dl class="section note"><dt>Note</dt><dd>If you don't want to use the configuration wide callback, you can set this per connection and it will be honored.</dd></dl>
+<p >Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.</p>
+<p >The default behavior is to require that the hostname match the server name set with <a class="el" href="s2n_8h.html#af5c2488271997ea0b0b21d3937e612f6">s2n_set_server_name()</a>. This will likely lead to all client certificates being rejected, so the callback will need to be overriden when using client authentication.</p>
+<p >If a single callback for different connections using the same config is desired, see <a class="el" href="s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66">s2n_config_set_verify_host_callback()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">config</td><td>A pointer to a s2n_config object </td></tr>
+    <tr><td class="paramname">conn</td><td>A pointer to a s2n_connection object </td></tr>
     <tr><td class="paramname">host_fn</td><td>A pointer to a callback function that s2n will invoke in order to verify the hostname of an X.509 certificate </td></tr>
     <tr><td class="paramname">data</td><td>Opaque pointer to data that the verify host function will be invoked with </td></tr>
   </table>
@@ -8034,7 +8038,7 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Allows the caller to over-ride s2n-tls's internal memory handling functions.</p>
+<p >Allows the caller to override s2n-tls's internal memory handling functions.</p>
 <dl class="section warning"><dt>Warning</dt><dd>This function must be called before <a class="el" href="s2n_8h.html#a41b65ad20272f232f12c8ae36578d372">s2n_init()</a>.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -8828,7 +8832,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Allows the caller to over-ride s2n-tls's entropy functions.</p>
+<p >Allows the caller to override s2n-tls's entropy functions.</p>
 <dl class="section warning"><dt>Warning</dt><dd>This function must be called before <a class="el" href="s2n_8h.html#a41b65ad20272f232f12c8ae36578d372">s2n_init()</a>.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -8892,7 +8896,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1769</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1773</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
