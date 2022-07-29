@@ -57,7 +57,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     uint8_t test_data[] = "test psk identity";
     struct s2n_blob test_blob   = { .data = test_data, .size = sizeof(test_data) };
 
-    /* Ignore the result of this function as it should never succeed */
+    /* Ignore the result of this function */
     s2n_result_ignore(s2n_deserialize_resumption_state(server_conn, &test_blob, &fuzzed_ticket));
 
     return S2N_SUCCESS;
