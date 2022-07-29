@@ -17,15 +17,17 @@
 
 #include "api/s2n.h"
 
-#include "tls/s2n_connection.h"
-#include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_ecc_evp.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 #include "utils/s2n_mem.h"
 
 #define ECDHE_PARAMS_LEGACY_FORM 4
-
+#define IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(curve) \
+            (s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) ? false : true
 /**
  * Small helper function that builds a client connection w/ specified version
  * @param version Requested version for a particular security policy
@@ -381,18 +383,18 @@ int main(int argc, char **argv) {
 
         EXPECT_SUCCESS(s2n_connection_get_security_policy(&conn, &security_policy));
 
-        // Ensure that the applied security policy uses the correct ecc preferences
+        /* Ensure that the applied security policy uses the correct ecc preferences */
         const uint8_t EXPECTED_ECC_PREF_COUNT = 2;
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
         EXPECT_EQUAL(security_policy->ecc_preferences->count, EXPECTED_ECC_PREF_COUNT);
 
-        // Setup & verify invalid curves, which will be selected by a malicious server
+        /* Setup & verify invalid curves, which will be selected by a malicious server */
         const struct s2n_ecc_named_curve* const unrequested_curves[] = {
                 &s2n_ecc_curve_x25519,
                 &s2n_ecc_curve_secp521r1,
         };
 
-        // Test that client's preferred ecc's do NOT include the curves selected by the server
+        /* Test that client's preferred ecc's do NOT include the curves selected by the server */
         for (uint8_t ix = 0; ix < EXPECTED_ECC_PREF_COUNT; ix++) {
             const struct s2n_ecc_named_curve* curve = security_policy->ecc_preferences->ecc_curves[ix];
             for (uint8_t iy = 0; iy < s2n_array_len(unrequested_curves); iy++) {
@@ -400,9 +402,12 @@ int main(int argc, char **argv) {
             }
         }
 
-        // Verify that the client broadcasts an error code when the server attempts to
-        // negotiate a curve that was never offered
+        /* Verify that the client broadcasts an error code when the server attempts to
+         negotiate a curve that was never offered */
         for (uint8_t i = 0; i < s2n_array_len(unrequested_curves); i++) {
+            if (IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(unrequested_curves[i])) {
+                continue;
+            }
             struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
             struct s2n_stuffer wire;
             struct s2n_blob ecdh_params_sent, ecdh_params_received;
@@ -424,7 +429,7 @@ int main(int argc, char **argv) {
             /* The client didn't agree on a curve*/
             EXPECT_NULL(client_params.negotiated_curve);
 
-            // Clean up
+            /* Clean up */
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
@@ -442,12 +447,12 @@ int main(int argc, char **argv) {
 
             EXPECT_SUCCESS(s2n_connection_get_security_policy(&conn, &security_policy));
 
-            // Ensure that the applied security policy uses the correct ecc preferences
+            /* Ensure that the applied security policy uses the correct ecc preferences */
             const uint8_t EXPECTED_ECC_PREF_COUNT = 3;
             EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
             EXPECT_EQUAL(security_policy->ecc_preferences->count, EXPECTED_ECC_PREF_COUNT);
 
-            // Setup & verify which curves the client can accept
+            /* Setup & verify which curves the client can accept */
             const struct s2n_ecc_named_curve* const acceptable_curves[] = {
                     &s2n_ecc_curve_x25519,
                     &s2n_ecc_curve_secp256r1,
@@ -458,10 +463,12 @@ int main(int argc, char **argv) {
             struct s2n_stuffer wire;
             struct s2n_blob ecdh_params_sent, ecdh_params_received;
 
-            // Iterate through the acceptable curves and ensure the client
-            // correctly accepts
+            /* Iterate through the acceptable curves and ensure the client correctly accepts */
             for (size_t i = 0; i < s2n_array_len(acceptable_curves); i++) {
                 const s2n_ecc_named_curve* acceptable_curve = acceptable_curves[i];
+                if (IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(acceptable_curve)) {
+                    continue;
+                }
 
                 /* Server chooses an acceptable curve */
                 server_params.negotiated_curve = acceptable_curve;
@@ -478,7 +485,7 @@ int main(int argc, char **argv) {
                 /* The client agrees on the curve*/
                 EXPECT_EQUAL(client_params.negotiated_curve, server_params.negotiated_curve);
 
-                // Clean up
+                /* Clean up */
                 EXPECT_SUCCESS(s2n_stuffer_free(&wire));
                 EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
                 EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));

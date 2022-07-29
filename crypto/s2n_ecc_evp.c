@@ -124,7 +124,6 @@ int s2n_is_evp_apis_supported()
 
 #if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL),
                   EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
@@ -132,13 +131,11 @@ static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *nam
     POSIX_GUARD_OSSL(EVP_PKEY_keygen_init(pctx), S2N_ERR_ECDHE_GEN_KEY);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(pctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
     return 0;
 }
 #endif
 
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
@@ -155,14 +152,12 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
     POSIX_GUARD_OSSL(EVP_PKEY_keygen_init(kctx), S2N_ERR_ECDHE_GEN_KEY);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(kctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
     return 0;
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
     POSIX_ENSURE_REF(named_curve);
     S2N_ERROR_IF(named_curve->generate_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
     return named_curve->generate_key(named_curve, evp_pkey);
 }
 
@@ -492,7 +487,7 @@ int s2n_ecc_evp_parse_params(struct s2n_connection* conn,
 
 int s2n_ecc_evp_find_supported_curve(struct s2n_connection* conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found) {
     const s2n_ecc_preferences* ecc_prefs;
-    s2n_connection_get_ecc_preferences(conn, &ecc_prefs);
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_prefs));
 
     struct s2n_stuffer iana_ids_in = {0};
 
