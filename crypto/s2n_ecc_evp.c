@@ -124,7 +124,7 @@ int s2n_is_evp_apis_supported()
 
 #if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-
+    printf("KEY START\n");
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL),
                   EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
@@ -132,13 +132,12 @@ static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *nam
     POSIX_GUARD_OSSL(EVP_PKEY_keygen_init(pctx), S2N_ERR_ECDHE_GEN_KEY);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(pctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
     return 0;
 }
 #endif
 
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-
+    printf("AAA\n");
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
@@ -155,14 +154,15 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
     POSIX_GUARD_OSSL(EVP_PKEY_keygen_init(kctx), S2N_ERR_ECDHE_GEN_KEY);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(kctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
+    printf("BBB\n");
     return 0;
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
+    printf("START 1 for %s.\n", named_curve->name);
     POSIX_ENSURE_REF(named_curve);
     S2N_ERROR_IF(named_curve->generate_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
+    printf("END 1\n");
     return named_curve->generate_key(named_curve, evp_pkey);
 }
 
@@ -206,8 +206,10 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params) {
     POSIX_ENSURE_REF(ecc_evp_params->negotiated_curve);
     S2N_ERROR_IF(ecc_evp_params->evp_pkey != NULL, S2N_ERR_ECDHE_GEN_KEY);
+    printf(">>> START\n");
     S2N_ERROR_IF(s2n_ecc_evp_generate_own_key(ecc_evp_params->negotiated_curve, &ecc_evp_params->evp_pkey) != 0,
                  S2N_ERR_ECDHE_GEN_KEY);
+    printf("<<< END\n");
     S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
     return 0;
 }
