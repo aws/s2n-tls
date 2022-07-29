@@ -492,7 +492,7 @@ int s2n_ecc_evp_parse_params(struct s2n_connection* conn,
 
 int s2n_ecc_evp_find_supported_curve(struct s2n_connection* conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found) {
     const s2n_ecc_preferences* ecc_prefs;
-    s2n_connection_get_ecc_preferences(conn, &ecc_prefs);
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_prefs));
 
     struct s2n_stuffer iana_ids_in = {0};
 
