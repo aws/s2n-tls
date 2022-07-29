@@ -24,14 +24,14 @@
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
 
-struct s2n_security_policy {
+typedef struct s2n_security_policy {
     uint8_t minimum_protocol_version;
     const struct s2n_cipher_preferences *cipher_preferences;
     const struct s2n_kem_preferences *kem_preferences;
     const struct s2n_signature_preferences *signature_preferences;
     const struct s2n_signature_preferences *certificate_signature_preferences;
     const struct s2n_ecc_preferences *ecc_preferences;
-};
+} s2n_security_policy;
 
 struct s2n_security_policy_selection {
     const char *version;

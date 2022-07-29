@@ -198,13 +198,11 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
         /* Ensure a new key share will be sent after a hello retry request */
         POSIX_ENSURE(server_curve != client_curve || server_group != client_group, S2N_ERR_BAD_KEY_SHARE);
     }
-
     struct s2n_stuffer_reservation shares_size = {0};
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
     POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
     POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
     POSIX_GUARD(s2n_stuffer_write_vector_size(&shares_size));
-
     /* We must have written at least one share */
     POSIX_ENSURE(s2n_stuffer_data_available(out) > shares_size.length, S2N_ERR_BAD_KEY_SHARE);
 
