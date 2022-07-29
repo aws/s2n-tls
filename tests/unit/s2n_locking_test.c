@@ -24,9 +24,9 @@
 
 static void* s2n_test_thread(void *arg)
 {
-    bool *passed_lock = (bool*) arg;
+    bool *lock_was_acquired = (bool*) arg;
     CRYPTO_lock(CRYPTO_LOCK, LOCK_N, NULL, 0);
-    *passed_lock = true;
+    *lock_was_acquired = true;
     CRYPTO_lock(CRYPTO_UNLOCK, LOCK_N, NULL, 0);
     return NULL;
 }
@@ -52,13 +52,13 @@ int main(int argc, char **argv)
         /* Create a new thread which will try to take the lock held by this thread
          * in order to set a flag.
          */
-        bool passed_lock = false;
+        bool lock_was_acquired = false;
         pthread_t thread = { 0 };
-        EXPECT_EQUAL(pthread_create(&thread, NULL, s2n_test_thread, &passed_lock), 0);
+        EXPECT_EQUAL(pthread_create(&thread, NULL, s2n_test_thread, &lock_was_acquired), 0);
 
         /* Expect the flag NOT to be set because we still hold the lock */
         sleep(1);
-        EXPECT_FALSE(passed_lock);
+        EXPECT_FALSE(lock_was_acquired);
 
         /* Release the libcrypto lock */
         CRYPTO_lock(CRYPTO_UNLOCK, LOCK_N, NULL, 0);
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
         /* Expect the flag to be set because the new thread took the lock */
         void *retval = NULL;
         EXPECT_EQUAL(pthread_join(thread, &retval), 0);
-        EXPECT_TRUE(passed_lock);
+        EXPECT_TRUE(lock_was_acquired);
     }
 
     /* Test: basic lifecycle */
