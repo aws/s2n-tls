@@ -62,59 +62,64 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
-    uint8_t aes128_key[] = "123456789012345";
-    struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
+
     uint8_t random_data[S2N_LARGE_RECORD_LENGTH + 1];
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
-
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_OK(s2n_get_public_random_data(&r));
 
-    /* Peer and we are in sync */
-    conn->server = &conn->secure;
-    conn->client = &conn->secure;
+    uint8_t aes128_key[] = "123456789012345";
+    struct s2n_blob aes128 = {.data = aes128_key, .size = sizeof(aes128_key) };
 
-    /* test the AES128 cipher with a SHA1 hash */
-    conn->secure.cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes128));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes128));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    conn->actual_protocol_version = S2N_TLS11;
+    /* Test record sizes with s2n_record_write */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
 
-    /* Test that different modes allows for different fragment/payload sizes.
-     * Record overheads (IV, HMAC, padding) do not count towards these size */
-    const int small_payload = S2N_SMALL_FRAGMENT_LENGTH;
-    const int large_payload = S2N_LARGE_FRAGMENT_LENGTH;
-    const int medium_payload = S2N_DEFAULT_FRAGMENT_LENGTH;
-    int bytes_written;
+        /* Peer and we are in sync */
+        conn->server = &conn->secure;
+        conn->client = &conn->secure;
 
-    /* Check the default: medium records */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-    EXPECT_EQUAL(bytes_written, medium_payload);
+        /* test the AES128 cipher with a SHA1 hash */
+        conn->secure.cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes128));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes128));
+        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        conn->actual_protocol_version = S2N_TLS11;
 
-    /* Check explicitly small records */
-    EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-    EXPECT_EQUAL(bytes_written, small_payload);
+        /* Test that different modes allows for different fragment/payload sizes.
+         * Record overheads (IV, HMAC, padding) do not count towards these size */
+        const int small_payload = S2N_SMALL_FRAGMENT_LENGTH;
+        const int large_payload = S2N_LARGE_FRAGMENT_LENGTH;
+        const int medium_payload = S2N_DEFAULT_FRAGMENT_LENGTH;
+        int bytes_written = 0;
 
-    /* Check explicitly large records */
-    EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-    EXPECT_EQUAL(bytes_written, large_payload);
+        /* Check the default: medium records */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
+        EXPECT_EQUAL(bytes_written, medium_payload);
 
-    /* Clean up */
-    conn->secure.cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* Check explicitly small records */
+        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
+        EXPECT_EQUAL(bytes_written, small_payload);
+
+        /* Check explicitly large records */
+        EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
+        EXPECT_EQUAL(bytes_written, large_payload);
+
+        /* Clean up */
+        conn->secure.cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
+    }
 
     /* Test s2n_record_max_write_payload_size() have proper checks in place */
     {
@@ -140,7 +145,7 @@ int main(int argc, char **argv)
 
         /* Test boundary cases */
 
-        /* This is the theorical maximum mfl allowed */
+        /* This is the theoretical maximum mfl allowed */
         server_conn->max_outgoing_fragment_length = S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
         EXPECT_OK(s2n_record_max_write_payload_size(server_conn, &size));
         EXPECT_EQUAL(size, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
@@ -158,6 +163,71 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(size, ONE_BLOCK); /* Verify size matches exactly specified max fragment length */
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test s2n_record_max_write_payload_size with custom send buffer size */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* Min buffer size */
+        {
+            const uint32_t buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(1);
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, buffer_size));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            uint16_t size = 0;
+            EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
+            EXPECT_EQUAL(size, 1);
+        }
+
+        /* Small buffer size */
+        {
+            const uint32_t frag_len = 1000;
+            const uint32_t buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(frag_len);
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, buffer_size));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            uint16_t size = 0;
+            EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
+            EXPECT_EQUAL(size, frag_len);
+        }
+
+        /* Buffer exactly fits one record */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            const uint32_t frag_len = conn->max_outgoing_fragment_length;
+            const uint32_t buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(frag_len);
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, buffer_size));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            uint16_t size = 0;
+            EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
+            EXPECT_EQUAL(size, frag_len);
+        }
+
+        /* Buffer larger than one record */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            const uint32_t frag_len = conn->max_outgoing_fragment_length + 10;
+            const uint32_t buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(frag_len);
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, buffer_size));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            uint16_t size = 0;
+            EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
+            EXPECT_EQUAL(size, conn->max_outgoing_fragment_length);
+        }
     }
 
     /* Test s2n_record_min_write_payload_size() */
@@ -197,6 +267,7 @@ int main(int argc, char **argv)
             const uint16_t HMAC_DIGEST = 20;
             EXPECT_EQUAL(size, after_overheads - HMAC_DIGEST - RECORD_IV_SIZE - PADDING_LENGTH_BYTE);
 
+            int bytes_written = 0;
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
@@ -219,6 +290,7 @@ int main(int argc, char **argv)
             const uint16_t TAG = 16;
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG);
 
+            int bytes_written = 0;
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
@@ -243,6 +315,7 @@ int main(int argc, char **argv)
             const uint16_t TAG = 16;
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - S2N_TLS_CONTENT_TYPE_LENGTH);
 
+            int bytes_written = 0;
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
@@ -268,6 +341,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN);
             r.size = size;
 
+            int bytes_written = 0;
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
@@ -295,6 +369,7 @@ int main(int argc, char **argv)
                     - S2N_TLS_GCM_TAG_LEN - S2N_TLS_CONTENT_TYPE_LENGTH);
             r.size = size;
 
+            int bytes_written = 0;
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
@@ -327,6 +402,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, size_after_overheads);
             r.size = size;
 
+            int bytes_written = 0;
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
@@ -426,7 +502,8 @@ int main(int argc, char **argv)
     /* s2n_record_max_write_size */
     {
         uint16_t result = 0;
-        conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
 
         EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(NULL, 1, &result), S2N_ERR_NULL);
@@ -453,8 +530,6 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - diff, &result));
         EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH - diff);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();

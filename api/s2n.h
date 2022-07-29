@@ -872,6 +872,31 @@ S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
 /** 
+ * Set a custom send buffer size.
+ *
+ * This buffer is used to stage records for sending. By default,
+ * enough memory is allocated to hold a single record of the maximum
+ * size configured for the connection. With the default fragment size,
+ * that is about 8K bytes.
+ *
+ * Less memory can be allocated for the send buffer, but this will result in
+ * smaller, more fragmented records and increased overhead. While the absolute
+ * minimum size required is 1025 bytes, at least 2K bytes is recommended for
+ * reasonable record sizes.
+ *
+ * More memory can be allocated for the send buffer. This will result in s2n-tls
+ * buffering multiple records before sending them, reducing system write calls.
+ * At least 17K bytes is recommended for this use case, or at least 35K bytes
+ * if larger fragment sizes are used via `s2n_connection_prefer_throughput()`.
+ *
+ * @param config The configuration object being updated
+ * @param size The desired custom buffer size.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API
+extern int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size);
+
+/**
  * A callback function invoked (usually multiple times) during X.509 validation for each
  * name encountered in the leaf certificate.
  *

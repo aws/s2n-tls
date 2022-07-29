@@ -439,6 +439,45 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
     }
 
+    /* s2n_send would block after sending multiple records.
+     * ALL flushed records must be reported to the caller.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+
+        struct s2n_send_result results[] = {
+                OK_SEND_RESULT, OK_SEND_RESULT, BLOCK_SEND_RESULT,
+                OK_SEND_RESULT,
+        };
+        struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+
+        s2n_blocked_status blocked = 0;
+        ssize_t record_size = max_frag_bytes_sent[S2N_MFL_DEFAULT];
+
+        /* First attempt blocks after writing two records */
+        ssize_t expected_send = S2N_DEFAULT_FRAGMENT_LENGTH * 2;
+        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), expected_send);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        EXPECT_EQUAL(context.bytes_sent, record_size * 2);
+
+        /* Don't re-send the data already sent. */
+        const uint32_t offset = expected_send;
+
+        /* Second attempt completes */
+        EXPECT_EQUAL(s2n_send(conn, large_test_data + offset, sizeof(large_test_data) - offset, &blocked),
+                sizeof(large_test_data) - offset);
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        EXPECT_EQUAL(context.bytes_sent, large_test_data_bytes_sent);
+
+        /* Verify output buffer */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
+    }
+
     /* Sending multiple records supports different maximum fragment lengths */
     for (size_t mfl = 0; mfl < S2N_MFL_COUNT; mfl++) {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
