@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+#include "tls/s2n_connection.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
@@ -478,21 +480,25 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     return 0;
 }
 
-int s2n_ecc_evp_parse_params(struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
-                             struct s2n_ecc_evp_params *ecc_evp_params) {
+int s2n_ecc_evp_parse_params(struct s2n_connection* conn,
+                                struct s2n_ecdhe_raw_server_params* raw_server_ecc_params,
+                                struct s2n_ecc_evp_params* ecc_evp_params) {
     S2N_ERROR_IF(
-        s2n_ecc_evp_find_supported_curve(&raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) != 0,
-        S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+            s2n_ecc_evp_find_supported_curve(conn, &raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) != 0,
+            S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     return s2n_ecc_evp_parse_params_point(&raw_server_ecc_params->point_blob, ecc_evp_params);
 }
 
-int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found) {
+int s2n_ecc_evp_find_supported_curve(struct s2n_connection* conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found) {
+    const struct s2n_ecc_preferences* ecc_prefs = NULL;
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_prefs));
+
     struct s2n_stuffer iana_ids_in = {0};
 
     POSIX_GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
     POSIX_GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));
-    for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
-        const struct s2n_ecc_named_curve *supported_curve = s2n_all_supported_curves_list[i];
+    for (size_t i = 0; i < ecc_prefs->count; i++) {
+        const struct s2n_ecc_named_curve *supported_curve = ecc_prefs->ecc_curves[i];
         for (uint32_t j = 0; j < iana_ids->size / 2; j++) {
             uint16_t iana_id;
             POSIX_GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
