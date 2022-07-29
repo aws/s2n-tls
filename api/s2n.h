@@ -1620,7 +1620,9 @@ S2N_API
 extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send);
 
 /**
- * Change the behavior of s2n-tls when sending data to prefer high throughput. Connections preferring throughput will use
+ * Change the behavior of s2n-tls when sending data to prefer high throughput.
+ *
+ * Connections preferring throughput will use
  * large record sizes that minimize overhead.
  *
  * @param conn The connection object being updated
@@ -1630,7 +1632,9 @@ S2N_API
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 
 /**
- * Change the behavior of s2n-tls when sending data to prefer low latency. Connections preferring low latency will be encrypted
+ * Change the behavior of s2n-tls when sending data to prefer low latency.
+ *
+ * Connections preferring low latency will be encrypted
  * using small record sizes that can be decrypted sooner by the recipient. 
  *
  * @param conn The connection object being updated
@@ -1654,10 +1658,15 @@ S2N_API
 extern int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool enabled);
 
 /**
- * Provides a smooth transition from s2n_connection_prefer_low_latency() to s2n_connection_prefer_throughput().
+ * Changes the behavior of s2n-tls when sending data to initially prefer records
+ * small enough to fit in single ethernet frames.
+ *
+ * The connection will send the first resize_threshold bytes in records small enough to
+ * fit in a single standard 1500 byte ethernet frame. Later, whenever timeout_threshold seconds
+ * pass without sending data, the connection will revert to this behavior and send small records again.
  *
  * @param conn The connection object being updated
- * @param resize_threshold The number of bytes to send before changing the record size
+ * @param resize_threshold The number of bytes to send before changing the record size. Maximum 8MiB.
  * @param timeout_threshold Reset record size back to a single segment after threshold seconds of inactivity
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -1689,7 +1698,7 @@ extern int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, 
  * Setting the S2N_SELF_SERVICE_BLINDING option with s2n_connection_set_blinding()
  * turns off this behavior. This is useful for applications that are handling many connections
  * in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error,
- * self-service applications should call *2n_connection_get_delay() and pause
+ * self-service applications should call s2n_connection_get_delay() and pause
  * activity on the connection  for the specified number of nanoseconds before calling
  * close() or shutdown().
  */
