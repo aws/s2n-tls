@@ -27,7 +27,7 @@
 
 #define ECDHE_PARAMS_LEGACY_FORM 4
 #define IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(curve) \
-            (s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) ? false : true
+            ((s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) ? false : true)
 /**
  * Small helper function that builds a client connection w/ specified version
  * @param version Requested version for a particular security policy
@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
         /* Verify that the client broadcasts an error code when the server attempts to
          negotiate a curve that was never offered */
         for (uint8_t i = 0; i < s2n_array_len(unrequested_curves); i++) {
-            if (IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(unrequested_curves[i])) {
+            if (!IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(unrequested_curves[i])) {
                 continue;
             }
             struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
@@ -432,8 +432,8 @@ int main(int argc, char **argv) {
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
-            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Batch test that the client selects a curve that was initially offered in EC preferences
@@ -466,7 +466,7 @@ int main(int argc, char **argv) {
             /* Iterate through the acceptable curves and ensure the client correctly accepts */
             for (size_t i = 0; i < s2n_array_len(acceptable_curves); i++) {
                 const s2n_ecc_named_curve* acceptable_curve = acceptable_curves[i];
-                if (IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(acceptable_curve)) {
+                if (!IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(acceptable_curve)) {
                     continue;
                 }
 
