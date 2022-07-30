@@ -28,7 +28,7 @@
 #define ECDHE_PARAMS_LEGACY_FORM 4
 #define IS_CURVE_TESTABLE_IN_CURR_ENV(curve) \
             (((s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) \
-            || (!S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && curve->iana_id == TLS_EC_CURVE_ECDH_X25519)) ? false : true)
+            || (!s2n_is_evp_apis_supported() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519)) ? false : true)
 /**
  * Small helper function that builds a client connection w/ specified version
  * @param version Requested version for a particular security policy
