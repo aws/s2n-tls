@@ -26,8 +26,9 @@
 #include "utils/s2n_mem.h"
 
 #define ECDHE_PARAMS_LEGACY_FORM 4
-#define IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(curve) \
-            ((s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) ? false : true)
+#define IS_CURVE_TESTABLE_IN_CURR_ENV(curve) \
+            (((s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) \
+            || (!S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && curve->iana_id == TLS_EC_CURVE_ECDH_X25519)) ? false : true)
 /**
  * Small helper function that builds a client connection w/ specified version
  * @param version Requested version for a particular security policy
@@ -238,7 +239,6 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(get_test_s2n_connection_with_version("test_all", conn));
         /* Test read/write/parse params for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
-
             struct s2n_ecc_evp_params write_params = {0};
             struct s2n_ecc_evp_params read_params = {0};
             struct s2n_stuffer wire;
@@ -278,7 +278,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params server_params = {0};
             struct s2n_ecc_evp_params read_params = {0};
-            struct s2n_ecc_evp_params client_params = {0}; 
+            struct s2n_ecc_evp_params client_params = {0};
             struct s2n_stuffer wire;
             struct s2n_blob ecdh_params_sent, ecdh_params_received;
             struct s2n_blob server_shared_secret, client_shared_secret;
@@ -307,11 +307,11 @@ int main(int argc, char **argv) {
             client_params.negotiated_curve =s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
             EXPECT_NOT_NULL(client_params.evp_pkey);
-        
+
             /* Compute shared secret for the server */
             EXPECT_SUCCESS(
                 s2n_ecc_evp_compute_shared_secret_from_params(&server_params, &client_params, &server_shared_secret));
-            
+
             /* Compute shared secret for the client */
             EXPECT_SUCCESS(
                 s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &read_params, &client_shared_secret));
@@ -323,7 +323,7 @@ int main(int argc, char **argv) {
             /* Clean up */
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
             EXPECT_SUCCESS(s2n_free(&server_shared_secret));
-            EXPECT_SUCCESS(s2n_free(&client_shared_secret)); 
+            EXPECT_SUCCESS(s2n_free(&client_shared_secret));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
@@ -376,10 +376,8 @@ int main(int argc, char **argv) {
      * offered in EC preferences */
     {
         const struct s2n_security_policy* security_policy = NULL;
-
         struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_SUCCESS(get_test_s2n_connection_with_version("20190802", conn));
-
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
 
         /* Ensure that the applied security policy uses the correct ecc preferences */
@@ -404,7 +402,7 @@ int main(int argc, char **argv) {
         /* Verify that the client broadcasts an error code when the server attempts to
          negotiate a curve that was never offered */
         for (uint8_t i = 0; i < s2n_array_len(unrequested_curves); i++) {
-            if (!IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(unrequested_curves[i])) {
+            if (!IS_CURVE_TESTABLE_IN_CURR_ENV(unrequested_curves[i])) {
                 continue;
             }
             struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
@@ -466,7 +464,7 @@ int main(int argc, char **argv) {
             /* Iterate through the acceptable curves and ensure the client correctly accepts */
             for (size_t i = 0; i < s2n_array_len(acceptable_curves); i++) {
                 const s2n_ecc_named_curve* acceptable_curve = acceptable_curves[i];
-                if (!IS_SUPPORTED_CURVE_FOR_TESTING_WITH_FIPS(acceptable_curve)) {
+                if (!IS_CURVE_TESTABLE_IN_CURR_ENV(acceptable_curve)) {
                     continue;
                 }
 
