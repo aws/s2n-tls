@@ -26,9 +26,7 @@
 #include "utils/s2n_mem.h"
 
 #define ECDHE_PARAMS_LEGACY_FORM 4
-#define IS_CURVE_TESTABLE_IN_CURR_ENV(curve) \
-            (((s2n_is_in_fips_mode() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519) \
-            || (!s2n_is_evp_apis_supported() && curve->iana_id == TLS_EC_CURVE_ECDH_X25519)) ? false : true)
+
 /**
  * Small helper function that builds a client connection w/ specified version
  * @param version Requested version for a particular security policy
@@ -387,7 +385,7 @@ int main(int argc, char **argv) {
 
         /* Setup & verify invalid curves, which will be selected by a malicious server */
         const struct s2n_ecc_named_curve* const unrequested_curves[] = {
-                &s2n_ecc_curve_x25519,
+                &s2n_unsupported_curve,
                 &s2n_ecc_curve_secp521r1,
         };
 
@@ -402,9 +400,6 @@ int main(int argc, char **argv) {
         /* Verify that the client broadcasts an error code when the server attempts to
          negotiate a curve that was never offered */
         for (uint8_t i = 0; i < s2n_array_len(unrequested_curves); i++) {
-            if (!IS_CURVE_TESTABLE_IN_CURR_ENV(unrequested_curves[i])) {
-                continue;
-            }
             struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
             struct s2n_stuffer wire;
             struct s2n_blob ecdh_params_sent, ecdh_params_received;
@@ -437,59 +432,56 @@ int main(int argc, char **argv) {
     /* Batch test that the client selects a curve that was initially offered in EC preferences
      * and correctly offered by the server*/
     {
-        if (s2n_is_evp_apis_supported()) {
-            const struct s2n_security_policy* security_policy = NULL;
+        const struct s2n_security_policy* security_policy = NULL;
 
-            struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_SUCCESS(get_test_s2n_connection_with_version("default_tls13", conn));
+        struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_SUCCESS(get_test_s2n_connection_with_version("default_tls13", conn));
 
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
 
-            /* Ensure that the applied security policy uses the correct ecc preferences */
-            const uint8_t EXPECTED_ECC_PREF_COUNT = 3;
-            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
-            EXPECT_EQUAL(security_policy->ecc_preferences->count, EXPECTED_ECC_PREF_COUNT);
+        /* Ensure that the applied security policy uses the correct ecc preferences */
+        const uint8_t EXPECTED_ECC_PREF_COUNT = 3;
+        EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+        EXPECT_EQUAL(security_policy->ecc_preferences->count, EXPECTED_ECC_PREF_COUNT);
 
-            /* Setup & verify which curves the client can accept */
-            const struct s2n_ecc_named_curve* const acceptable_curves[] = {
-                    &s2n_ecc_curve_x25519,
-                    &s2n_ecc_curve_secp256r1,
-                    &s2n_ecc_curve_secp384r1,
-            };
+        /* Setup & verify which curves the client can accept */
+        const struct s2n_ecc_named_curve* const acceptable_curves[] = {
+                #if EVP_APIS_SUPPORTED
+                &s2n_ecc_curve_x25519,
+                #endif
+                &s2n_ecc_curve_secp256r1,
+                &s2n_ecc_curve_secp384r1,
+        };
 
-            struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
-            struct s2n_stuffer wire;
-            struct s2n_blob ecdh_params_sent, ecdh_params_received;
+        struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
+        struct s2n_stuffer wire;
+        struct s2n_blob ecdh_params_sent, ecdh_params_received;
 
-            /* Iterate through the acceptable curves and ensure the client correctly accepts */
-            for (size_t i = 0; i < s2n_array_len(acceptable_curves); i++) {
-                const s2n_ecc_named_curve* acceptable_curve = acceptable_curves[i];
-                if (!IS_CURVE_TESTABLE_IN_CURR_ENV(acceptable_curve)) {
-                    continue;
-                }
+        /* Iterate through the acceptable curves and ensure the client correctly accepts */
+        for (size_t i = 0; i < s2n_array_len(acceptable_curves); i++) {
+            const s2n_ecc_named_curve* acceptable_curve = acceptable_curves[i];
 
-                /* Server chooses an acceptable curve */
-                server_params.negotiated_curve = acceptable_curve;
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
-                EXPECT_NOT_NULL(server_params.evp_pkey);
-                /* Server sends the public */
-                EXPECT_SUCCESS(s2n_ecc_evp_write_params(&server_params, &wire, &ecdh_params_sent));
-                /* Client reads the public */
-                struct s2n_ecdhe_raw_server_params ecdhe_data = {0};
-                EXPECT_SUCCESS(s2n_ecc_evp_read_params(&wire, &ecdh_params_received, &ecdhe_data));
-                EXPECT_SUCCESS(s2n_ecc_evp_parse_params(conn, &ecdhe_data, &client_params));
+            /* Server chooses an acceptable curve */
+            server_params.negotiated_curve = acceptable_curve;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+            EXPECT_NOT_NULL(server_params.evp_pkey);
+            /* Server sends the public */
+            EXPECT_SUCCESS(s2n_ecc_evp_write_params(&server_params, &wire, &ecdh_params_sent));
+            /* Client reads the public */
+            struct s2n_ecdhe_raw_server_params ecdhe_data = {0};
+            EXPECT_SUCCESS(s2n_ecc_evp_read_params(&wire, &ecdh_params_received, &ecdhe_data));
+            EXPECT_SUCCESS(s2n_ecc_evp_parse_params(conn, &ecdhe_data, &client_params));
 
-                /* The client agrees on the curve*/
-                EXPECT_EQUAL(client_params.negotiated_curve, server_params.negotiated_curve);
+            /* The client agrees on the curve*/
+            EXPECT_EQUAL(client_params.negotiated_curve, server_params.negotiated_curve);
 
-                /* Clean up */
-                EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-                EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
-                EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
-            }
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+            /* Clean up */
+            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();
