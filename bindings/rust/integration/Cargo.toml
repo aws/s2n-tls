@@ -9,7 +9,6 @@ publish = false
 s2n-tls = { path = "../s2n-tls", features = ["testing"] }
 s2n-tls-sys = { path = "../s2n-tls-sys" }
 criterion = { version = "0.3", features = ["html_reports"] }
-subprocess = "0.2.8"
 
 [[bench]]
 name = "handshake"
