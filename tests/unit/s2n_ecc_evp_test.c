@@ -380,7 +380,8 @@ int main(int argc, char **argv) {
         /* Verify that the client broadcasts an error code when the server attempts to
          * negotiate a curve that was never offered */
         for (size_t i = 0; i < s2n_array_len(unrequested_curves); i++) {
-            struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
+            struct s2n_ecc_evp_params server_params = {0};
+            struct s2n_ecc_evp_params client_params = {0};
             struct s2n_stuffer wire = {0};
             struct s2n_blob ecdh_params_sent = {0}, ecdh_params_received = {0};
 
