@@ -498,17 +498,17 @@ In stateless session resumption the server creates a 'session ticket' from some 
 
 Session resumption works differently in versions TLS1.3 and higher. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Because of this clients need to call s2n_recv after negotiating to receive session ticket messages, as these could arrive anytime post-handshake. Additionally, multiple session tickets may be issued for the same connection.
 
-The server should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption. Additionally the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
+Servers should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption. Additionally the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
-The client should `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption and set a session ticket callback function using `s2n_config_set_session_ticket_cb()`. Then `s2n_connection_set_session()` should be called when attempting to resume a new connection.
+Clients should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption and set a session ticket callback function using `s2n_config_set_session_ticket_cb()`. Then `s2n_connection_set_session()` should be called when attempting to resume a new connection.
 
 ### Stateful Session Resumption
 
 Stateful session resumption, also known as session caching, is the same as the stateless mechanism, however in this case the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2.
 
-The server should call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption, and set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()`. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
+Servers should call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption, and set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()`. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
-The client can call `s2n_client_hello_get_session_id()` to retrieve the session ID sent in the ClientHello message and use that session ID to inform the server which session to resume.
+Clients can call `s2n_client_hello_get_session_id()` to retrieve the session ID sent in the ClientHello message and use that session ID to inform the server which session to resume.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
