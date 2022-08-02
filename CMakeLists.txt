@@ -17,7 +17,7 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 # Version number
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 3)
-set(VERSION_PATCH 17)
+set(VERSION_PATCH 18)
 
 
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
