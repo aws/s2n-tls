@@ -92,18 +92,7 @@ benchmark: bin
 	$(MAKE) -C tests benchmark
 
 .PHONY : coverage
-coverage: run-gcov run-lcov run-genhtml
-
-.PHONY : run-gcov
-run-gcov:
-	$(MAKE) -C bin gcov
-	$(MAKE) -C crypto gcov
-	$(MAKE) -C error gcov
-	$(MAKE) -C pq-crypto run-gcov
-	$(MAKE) -C stuffer gcov
-	$(MAKE) -C tests gcov
-	$(MAKE) -C tls run-gcov
-	$(MAKE) -C utils gcov
+coverage: run-lcov run-genhtml
 
 .PHONY : run-lcov
 run-lcov:

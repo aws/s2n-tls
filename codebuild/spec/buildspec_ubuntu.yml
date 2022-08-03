@@ -62,5 +62,3 @@ phases:
   post_build:
     commands:
       - echo Build completed on `date`
-      - echo Uploading CodeCov.io artifacts
-      - $CB_BIN_DIR/s2n_after_codebuild.sh
