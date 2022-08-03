@@ -35,8 +35,6 @@ General flow of the CodeBuild Test Projects
         - codebuild/run_ctverif.sh
         - codebuild/run_sidetrail.sh
         - codebuild/grep_simple_mistakes.sh
-    - codebuild/s2n_after_codebuild.sh
-        - curl -s https://codecov.io/bash
 
 
 ### Usage to setup Projects
