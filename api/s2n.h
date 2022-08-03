@@ -2189,13 +2189,9 @@ extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t
 /**
  * Serializes the session state from connection and copies into the `session` buffer and returns the number of copied bytes
  *
- * The output of this function depends on whether session ids or session tickets are being used for resumption. If the first 
- * byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and
- * session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket
- * received will be used. Note that the size of the session tickets varies.
- * If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
- *
- * @note This not recommended for > TLS 1.2 session resumption.
+ * @note This function is not recommended for > TLS 1.2 because in TLS1.3
+ * servers can send multiple session tickets and this function will only
+ * return the most recently received ticket.
  *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `max_length`
