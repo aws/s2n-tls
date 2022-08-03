@@ -484,7 +484,7 @@ int s2n_ecc_evp_parse_params(struct s2n_connection* conn,
                              struct s2n_ecdhe_raw_server_params* raw_server_ecc_params,
                              struct s2n_ecc_evp_params* ecc_evp_params) {
     POSIX_ENSURE(
-            s2n_ecc_evp_find_supported_curve(conn, &raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) != 0,
+            s2n_ecc_evp_find_supported_curve(conn, &raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) == 0,
             S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     return s2n_ecc_evp_parse_params_point(&raw_server_ecc_params->point_blob, ecc_evp_params);
 }
