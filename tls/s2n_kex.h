@@ -50,7 +50,7 @@ extern S2N_RESULT s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, 
 extern S2N_RESULT s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign);
 extern S2N_RESULT s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 extern S2N_RESULT s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
-
+extern S2N_RESULT s2n_clear_unused_kex_params(struct s2n_connection *conn);
 extern S2N_RESULT s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 
 extern bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query);

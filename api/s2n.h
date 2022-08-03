@@ -2857,6 +2857,17 @@ extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 S2N_API
 extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
 
+
+/**
+ * Function to get the human readable negotiated group for a TLS connection. If only ECDHE was negotiated, this will
+ * return the same as s2n_connection_get_curve (Eg "secp256r1"), but if a hybrid group is negotiated, then this this API
+ * will contain the names of all the groups that were used (Eg "secp256r1_kyber-512-r3"). This API also handles
+ * differences between TLS 1.2 KEM's, and TLS 1.3 KemGroups for callers so that they do not need to know which TLS
+ * extension was used during the handshake.
+ */
+S2N_API
+extern const char* s2n_connection_get_negotiated_group_name(struct s2n_connection *conn);
+
 /**
  * Function to get the alert that caused a connection to close. s2n-tls considers all
  * TLS alerts fatal and shuts down a connection whenever one is received.

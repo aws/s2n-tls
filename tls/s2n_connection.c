@@ -1003,6 +1003,35 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
     return conn->kex_params.client_kem_group_params.kem_group->name;
 }
 
+const char* s2n_connection_get_negotiated_group_name(struct s2n_connection *conn){
+    PTR_ENSURE_REF(conn);
+
+    /* If we negotiated a TLS 1.3 Hybrid KEM Group, return it's name. */
+    if (conn->kex_params.client_kem_group_params.kem_group) {
+        return conn->kex_params.client_kem_group_params.kem_group->name;
+    }
+
+    const struct s2n_ecc_named_curve *negotiated_ecc_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
+    const struct s2n_kem *negotiated_pq_kem = conn->kex_params.kem_params.kem;
+
+    if (negotiated_ecc_curve == NULL){
+         return "NONE";
+    }
+
+    if (negotiated_pq_kem != NULL) {
+       /* If we negotiated a TLS 1.2 PQ KEM extension separately from the ECC SupportedGroup extension, look for
+        * a TLS 1.3 Hybrid KemGroup that matches both values, and return that hybrid group name if available. */
+        for(int i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++){
+            const struct s2n_kem_group* kem_group = ALL_SUPPORTED_KEM_GROUPS[i];
+            if (kem_group->curve == negotiated_ecc_curve && kem_group->kem == negotiated_pq_kem) {
+                return kem_group->name;
+            }
+        }
+    }
+
+    return negotiated_ecc_curve->name;
+}
+
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);

@@ -309,6 +309,32 @@ S2N_RESULT s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connect
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_clear_unused_kex_params(struct s2n_connection *conn) {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+    RESULT_ENSURE_REF(conn->secure.cipher_suite->key_exchange_alg);
+
+    const struct s2n_kex *negotiated_kex = conn->secure.cipher_suite->key_exchange_alg;
+
+    if (!s2n_kex_includes(negotiated_kex, &s2n_ecdhe)) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
+        conn->kex_params.client_ecc_evp_params.negotiated_curve = NULL;
+    }
+
+    if (!s2n_kex_includes(negotiated_kex, &s2n_hybrid_ecdhe_kem)) {
+        conn->kex_params.server_kem_group_params.kem_group = NULL;
+        conn->kex_params.client_kem_group_params.kem_group = NULL;
+        conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = NULL;
+        conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = NULL;
+    }
+
+    if (!s2n_kex_includes(negotiated_kex, &s2n_kem)) {
+        conn->kex_params.kem_params.kem = NULL;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     RESULT_ENSURE_REF(kex);
@@ -316,6 +342,7 @@ S2N_RESULT s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *con
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(premaster_secret);
 
+    RESULT_GUARD(s2n_clear_unused_kex_params(conn));
     RESULT_GUARD_POSIX(kex->prf(conn, premaster_secret));
 
     return S2N_RESULT_OK;
