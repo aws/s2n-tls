@@ -80,8 +80,8 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
 int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify,
                             struct s2n_ecdhe_raw_server_params *raw_server_ecc_params);
 int s2n_ecc_evp_parse_params(struct s2n_connection *conn,
-                                struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
-                                struct s2n_ecc_evp_params* ecc_evp_params);
+                             struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
+                             struct s2n_ecc_evp_params* ecc_evp_params);
 int s2n_ecc_evp_find_supported_curve(struct s2n_connection* conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_is_evp_apis_supported();

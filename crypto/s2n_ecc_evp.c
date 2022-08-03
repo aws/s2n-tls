@@ -481,9 +481,9 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
 }
 
 int s2n_ecc_evp_parse_params(struct s2n_connection* conn,
-                                struct s2n_ecdhe_raw_server_params* raw_server_ecc_params,
-                                struct s2n_ecc_evp_params* ecc_evp_params) {
-    S2N_ERROR_IF(
+                             struct s2n_ecdhe_raw_server_params* raw_server_ecc_params,
+                             struct s2n_ecc_evp_params* ecc_evp_params) {
+    POSIX_ENSURE(
             s2n_ecc_evp_find_supported_curve(conn, &raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) != 0,
             S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     return s2n_ecc_evp_parse_params_point(&raw_server_ecc_params->point_blob, ecc_evp_params);
@@ -492,6 +492,7 @@ int s2n_ecc_evp_parse_params(struct s2n_connection* conn,
 int s2n_ecc_evp_find_supported_curve(struct s2n_connection* conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found) {
     const struct s2n_ecc_preferences* ecc_prefs = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_prefs));
+    POSIX_ENSURE_REF(ecc_prefs);
 
     struct s2n_stuffer iana_ids_in = {0};
 

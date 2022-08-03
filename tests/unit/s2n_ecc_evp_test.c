@@ -365,9 +365,9 @@ int main(int argc, char **argv) {
      * offered in EC preferences */
     {
         const struct s2n_security_policy* security_policy = NULL;
-        DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT),
-        s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
+        /* Version does not include the unsupported curve and secp521r1, which will be used by a malicious server */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20190802"));
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
 
@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
                 &s2n_ecc_curve_secp521r1,
         };
 
-        /* Verify that the client broadcasts an error code when the server attempts to
+        /* Verify that the client errors when the server attempts to
          * negotiate a curve that was never offered */
         for (size_t i = 0; i < s2n_array_len(unrequested_curves); i++) {
             struct s2n_ecc_evp_params server_params = {0};
