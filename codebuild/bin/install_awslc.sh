@@ -38,10 +38,6 @@ if [ "$IS_FIPS" == "1" ]; then
   cd aws-lc
   git checkout -b fips-2021-10-20 origin/fips-2021-10-20
   cd ..
-else
-  cd aws-lc
-  git checkout a219726caf0c4585b80193570369627ed9a3a931
-  cd ..
 fi
 
 install_awslc() {
