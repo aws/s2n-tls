@@ -258,8 +258,7 @@ int main(int argc, char **argv) {
         }
     }
     {
-        DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT),
-        s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
         /* Test generate/read/write/parse and compute shared secrets for all supported curves */
@@ -318,8 +317,7 @@ int main(int argc, char **argv) {
         }
     }
     {
-        DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT),
-        s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
         /* Test generate->write->read->compute_shared with all supported curves */
