@@ -12,7 +12,7 @@ default = []
 
 [dependencies]
 errno = { version = "0.2" }
-libc = { version = "0.2" }
+libc = { version = "<= 0.2.126" }
 s2n-tls = { version = "=0.0.10", path = "../s2n-tls" }
 tokio = { version = "1", features = ["net", "time"] }
 
