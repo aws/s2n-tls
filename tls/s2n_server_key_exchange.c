@@ -100,7 +100,7 @@ int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_
 
 int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
-    POSIX_GUARD(s2n_ecc_evp_parse_params(&raw_server_data->ecdhe_data, &conn->kex_params.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_parse_params(conn, &raw_server_data->ecdhe_data, &conn->kex_params.server_ecc_evp_params));
 
     return 0;
 }

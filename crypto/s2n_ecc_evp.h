@@ -70,10 +70,7 @@ int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *pri
                                                   struct s2n_blob *shared_key);
 int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
 int s2n_ecc_evp_read_params_point(struct s2n_stuffer *in, int point_size, struct s2n_blob *point_blob);
-int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
-                                                  struct s2n_ecc_evp_params *public_ecc_evp_params,
-                                                  struct s2n_blob *shared_key);
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_ecc_evp_params, 
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_ecc_evp_params,
                                             struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key);
 int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *server_ecc_evp_params, 
                                             struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key); 
@@ -82,8 +79,9 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
                              struct s2n_blob *written);
 int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify,
                             struct s2n_ecdhe_raw_server_params *raw_server_ecc_params);
-int s2n_ecc_evp_parse_params(struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
-                             struct s2n_ecc_evp_params *ecc_evp_params);
-int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
+int s2n_ecc_evp_parse_params(struct s2n_connection *conn,
+                             struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
+                             struct s2n_ecc_evp_params* ecc_evp_params);
+int s2n_ecc_evp_find_supported_curve(struct s2n_connection* conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_is_evp_apis_supported();
