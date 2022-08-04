@@ -488,27 +488,35 @@ Call `s2n_connection_get_sct_list()` to retrieve the received certificate transp
 
 ## Session Resumption
 
-TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. Note that this session state is encrypted by the server, so a server will have to set up an external key in order to do session resumption.
+TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. We usually refer to the stored session state as a "session ticket". Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.
+
+### Session Ticket Key
+
+The key that encrypts and decrypts the session state is not related to the TLS key derivation process, and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()` and `s2n_config_set_ticket_decrypt_key_lifetime()`.
+
+The server will stop issuing session resumption tickets if a user doesn't set up a new key before the previous key passes through its encrypt-decrypt lifetime. Therefore it is recommended to add a new key when half of previous key's encrypt-decrypt lifetime has passed.
 
 ### Stateless Session Resumption
 
-In stateless session resumption the server creates a 'session ticket' from some state after a successful handshake. The server sends this ticket to a client, and the client can send that ticket back to the server during a new connection to skip the authentication step. This mechanism allows servers to avoid storing individual state for each client, and for that reason is the preferred method for resuming a session.
-
-#### A Note on TLS1.3 Session Resumption
-
-Session resumption works differently in versions TLS1.3 and higher. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Because of this clients need to call s2n_recv after negotiating to receive session ticket messages, as these could arrive anytime post-handshake. Additionally, multiple session tickets may be issued for the same connection.
+In stateless session resumption the server sends a session ticket to a client after a successful handshake, and the client can send that ticket back to the server during a new connection to skip the authentication step. This mechanism allows servers to avoid storing individual state for each client, and for that reason is the preferred method for resuming a session.
 
 Servers should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption. Additionally the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
-Clients should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption and set a session ticket callback function using `s2n_config_set_session_ticket_cb()`. Then `s2n_connection_set_session()` should be called when attempting to resume a new connection.
+Clients should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption and set a session ticket callback function using `s2n_config_set_session_ticket_cb()`, which will allow clients to receive a session ticket when it arrives. Then `s2n_connection_set_session()` should be called with that saved ticket when attempting to resume a new connection.
 
 ### Stateful Session Resumption
 
-Stateful session resumption, also known as session caching, is the same as the stateless mechanism, however in this case the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2.
+Stateful session resumption, also known as session caching, is the same as the stateless mechanism, however in this case the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.
 
-Servers should call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption, and set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()`. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
+Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
-Clients can call `s2n_client_hello_get_session_id()` to retrieve the session ID sent in the ClientHello message and use that session ID to inform the server which session to resume.
+Clients can call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
+
+### Session Resumption in TLS1.2 and TLS1.3
+
+In TLS1.2, session ticket messages are sent during the handshake and are automatically received as part of calling `s2n_negotiate()`. They will be available as soon as negotiation is complete.
+In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling `s2n_negotiate()`. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling `s2n_recv()` immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection. 
+Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
@@ -733,6 +741,19 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 
 **s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
 **s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
+
+### s2n\_client\_hello\_get\_session\_id
+
+```c
+int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
+int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
+```
+
+These functions retrieve the session id as sent by the client in the ClientHello message. The session id on the **s2n_connection** may change later when the server sends the ServerHello; see **s2n_connection_get_session_id** for how to get the final session id used for future session resumption.
+
+**s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
+
+**s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
 
 ### s2n\_connection\_get\_selected\_cert
 
