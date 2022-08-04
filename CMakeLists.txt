@@ -14,10 +14,10 @@ set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake fil
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
-# Version number
+# These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 3)
-set(VERSION_PATCH 18)
+set(VERSION_MINOR 0)
+set(VERSION_PATCH 0)
 
 
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
@@ -245,6 +245,7 @@ file(GLOB S2N_SRC
 add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
+# Version numbers are for major updates only- we won't track minor/patch updates here.
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
