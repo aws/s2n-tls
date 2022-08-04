@@ -1168,6 +1168,11 @@ extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             const uint8_t *name, uint32_t name_len,
                                             uint8_t *key, uint32_t key_len,
                                             uint64_t intro_time_in_seconds_from_epoch);
+
+S2N_API
+extern int s2n_config_generate_and_add_ticket_crypto_key(struct s2n_config *config,
+                                            uint64_t intro_time_in_seconds_from_epoch);
+
 /**
  * Sets user defined context on the `s2n_config` object.
  *

@@ -102,6 +102,7 @@ int main(int argc, char **argv)
 
     /* Testcases:
      * 1) Client sends empty ST extension. Server issues NST.
+     * 1a) Client sends empty ST extension. Server issues NST using an internally generated STEK.
      * 2) Client sends empty ST extension. Server does a full handshake, but is unable to issue NST due to absence of an encrypt-decrypt key.
      * 3) Client sends non-empty ST extension. Server does an abbreviated handshake without issuing NST.
      * 4) Client sends non-empty ST extension. Server does an abbreviated handshake and issues a NST because the key is in decrypt-only state.
@@ -185,6 +186,57 @@ int main(int argc, char **argv)
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
+
+        /* Verify the lifetime hint from the server */
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+    /* Client sends empty ST extension. Server issues NST using an internally generated session ticket key. */
+    {
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+
+        /* Add one ST key */
+        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
+        EXPECT_SUCCESS(s2n_config_generate_and_add_ticket_crypto_key(server_config, now/ONE_SEC_IN_NANOS));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* A newly created connection should not be considered resumed */
+        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+        EXPECT_FALSE(s2n_connection_is_session_resumed(client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the server did a full handshake and issued NST */
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+
+        /* Verify that the client received NST */
+        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
 
         /* Verify the lifetime hint from the server */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);

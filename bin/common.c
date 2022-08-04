@@ -30,11 +30,6 @@
 #include <sys/mman.h>
 uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
-uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
-                                  0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
-                                  0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
-                                  0xb3, 0xe5 };
-
 struct session_cache_entry session_cache[256];
 
 static char dhparams[] =
@@ -338,9 +333,6 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
 
     if (conn_settings.session_ticket || conn_settings.session_cache) {
         /* Key initialization */
-        uint8_t *st_key;
-        uint32_t st_key_length;
-
         if (session_ticket_key_file_path) {
             int fd = open(session_ticket_key_file_path, O_RDONLY);
             GUARD_EXIT(fd, "Error opening session ticket key file");
@@ -348,20 +340,25 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
             struct stat st;
             GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
 
+            uint8_t *st_key;
+            uint32_t st_key_length;
             st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
             POSIX_ENSURE(st_key != MAP_FAILED, S2N_ERR_MMAP);
 
             st_key_length = st.st_size;
 
             close(fd);
-        } else {
-            st_key = default_ticket_key;
-            st_key_length = sizeof(default_ticket_key);
-        }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), st_key, st_key_length, 0) != 0) {
-            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
+            if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), st_key, st_key_length, 0) != 0) {
+                fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                exit(1);
+            }
+        } else {
+            /* Securely generate a STEK key local to this s2n_config. */
+            if (s2n_config_generate_and_add_ticket_crypto_key(config, 0) != 0) {
+                fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                exit(1);
+            }
         }
     }
     return 0;
