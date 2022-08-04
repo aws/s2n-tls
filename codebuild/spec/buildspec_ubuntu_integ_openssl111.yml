@@ -51,10 +51,8 @@ phases:
     commands:
       - printenv
       - S2N_LIBCRYPTO=openssl-1.1.1 GCC_VERSION=4.8 $CB_BIN_DIR/s2n_codebuild.sh
-      - S2N_LIBCRYPTO=openssl-1.1.1 TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true $CB_BIN_DIR/s2n_codebuild.sh
+      - S2N_LIBCRYPTO=openssl-1.1.1 TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true $CB_BIN_DIR/s2n_codebuild.sh
       - S2N_LIBCRYPTO=openssl-1.1.1 TESTS=integration GCC_VERSION=6 S2N_CORKED_IO=true $CB_BIN_DIR/s2n_codebuild.sh
   post_build:
     commands:
       - echo Build completed on `date`
-      - echo Uploading CodeCov.io artifacts
-      - $CB_BIN_DIR/s2n_after_codebuild.sh

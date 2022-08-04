@@ -30,10 +30,6 @@ all: $(OBJS)
 	$(MAKE) -C kyber_r3
 endif
 
-.PHONY : run-gcov
-run-gcov: gcov
-	$(MAKE) -C kyber_r3 gcov
-
 .PHONY : run-lcov
 run-lcov: lcov
 	$(MAKE) -C kyber_r3 lcov
