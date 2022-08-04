@@ -113,8 +113,6 @@ batch:
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           BUILD_S2N: 'true'
           S2N_COVERAGE: 'true'
-          CODECOV_IO_UPLOAD: 'true'
-          CODECOV_TOKEN: 'e460b7c1-6019-4a50-b65d-555c4a8fbc22'
 
     - identifier: s2nAsanOpenssl102
       buildspec: codebuild/spec/buildspec_ubuntu.yml
@@ -187,20 +185,19 @@ batch:
         variables:
           GCC_VERSION: '6'
           TESTS: crt
-          
+
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         privileged-mode: true
         variables:
           BUILD_S2N: true
-          CODECOV_IO_UPLOAD: true
           GCC_VERSION: 6
           S2N_COVERAGE: true
           S2N_LIBCRYPTO: openssl-1.1.1
           TESTS: unit
       identifier: s2nUnitOpenSSL111Gcc6Coverage
-      
+
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
@@ -212,7 +209,7 @@ batch:
           S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitLibressl
-      
+
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
@@ -238,7 +235,6 @@ batch:
           TESTS: fuzz
           FUZZ_TIMEOUT_SEC: 60
           FUZZ_COVERAGE: true
-          CODECOV_IO_UPLOAD: true
 
     - identifier: s2nFuzzerOpenSSL102
       buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml

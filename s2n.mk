@@ -169,8 +169,6 @@ endif
 ifndef COV_TOOL
 	ifneq ("$(wildcard $(LLVM_GCOV_MARKER_FILE))","")
 		COV_TOOL=llvm-gcov.sh
-	else
-		COV_TOOL=gcov
 	endif
 endif
 
@@ -260,10 +258,6 @@ INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 .PHONY : indentsource
 indentsource:
 	( for source in ${SOURCES} ; do ${INDENT} ${INDENTOPTS} $$source; done )
-
-.PHONY : gcov
-gcov: 
-	( for source in ${SOURCES} ; do $(COV_TOOL) $$source;  done )
 
 .PHONY : lcov
 lcov: 
