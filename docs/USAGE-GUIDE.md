@@ -506,7 +506,7 @@ Clients should call `s2n_config_set_session_tickets_onoff()` to enable stateless
 
 ### Stateful Session Resumption
 
-Stateful session resumption, also known as session caching, is the same as the stateless mechanism, however in this case the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.
+In stateful session resumption, also known as session caching, the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.
 
 Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
