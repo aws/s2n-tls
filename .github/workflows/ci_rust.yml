@@ -9,7 +9,7 @@ on:
 env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
-  RUST_NIGHTLY_TOOLCHAIN: nightly-2022-04-05
+  RUST_NIGHTLY_TOOLCHAIN: nightly-2022-08-03
   MANIFEST_PATH: bindings/rust/Cargo.toml
 
 jobs:
