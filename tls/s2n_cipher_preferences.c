@@ -1768,4 +1768,20 @@ const struct s2n_cipher_preferences cipher_preferences_20210816_gcm = {
     .suites = cipher_suites_20210816_gcm,
 };
 
+struct s2n_cipher_suite *cipher_suites_20220805[] = {
+    /* TLS1.2 */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+
+    /* TLS1.3 */
+    &s2n_tls13_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20220805 = {
+    .count = s2n_array_len(cipher_suites_20220805),
+    .suites = cipher_suites_20220805,
+};
+
 /* clang-format on */

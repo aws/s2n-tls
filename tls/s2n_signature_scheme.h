@@ -77,6 +77,7 @@ extern const struct s2n_signature_preferences s2n_signature_preferences_20140601
 extern const struct s2n_signature_preferences s2n_signature_preferences_20200207;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20201021;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20210816;
+extern const struct s2n_signature_preferences s2n_signature_preferences_20220805;
 extern const struct s2n_signature_preferences s2n_signature_preferences_default_fips;
 extern const struct s2n_signature_preferences s2n_signature_preferences_null;
 
