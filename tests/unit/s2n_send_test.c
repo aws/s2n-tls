@@ -502,7 +502,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.size, out_size[mfl]);
     }
 
-    /* Test dynamic record threshold */
+    /* Test dynamic record threshold record fragmentation */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -547,6 +547,10 @@ int main(int argc, char **argv)
          */
         EXPECT_EQUAL(conn->active_application_bytes_consumed, single_mtu_mfl);
         EXPECT_TRUE(conn->active_application_bytes_consumed < resize_threshold);
+        /* Output buffer should be able to handle the default size, not the single MTU size.
+         * Otherwise, the output buffer would need to resize later.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
 
         /* The second call to s2n_send flushes the buffered first record,
          * but blocks before sending the second record.
@@ -561,6 +565,10 @@ int main(int argc, char **argv)
          * We have therefore hit the threshold.
          */
         EXPECT_EQUAL(conn->active_application_bytes_consumed, resize_threshold);
+        /* Output buffer should be able to handle the default size, not the single MTU size.
+         * Otherwise, the output buffer would need to resize later.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
 
         /* The third call to s2n_send flushes the second record. */
         result = s2n_send(conn, large_test_data, send_size - single_mtu_mfl, &blocked);
@@ -571,6 +579,10 @@ int main(int argc, char **argv)
          * since we did not construct any new records.
          */
         EXPECT_EQUAL(conn->active_application_bytes_consumed, resize_threshold);
+        /* Output buffer should be able to handle the default size, not the single MTU size.
+         * Otherwise, the output buffer would need to resize later.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
 
         /* The fourth call to s2n_send sends the third record. */
         result = s2n_send(conn, large_test_data, conn->max_outgoing_fragment_length * 2, &blocked);

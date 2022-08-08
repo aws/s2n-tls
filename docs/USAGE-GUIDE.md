@@ -611,9 +611,10 @@ and is set to 2^14 bytes by default. Regardless of the maximum record size that 
 uses when sending, it may receive records containing up to 2^14 bytes of plaintext.
 
 A client can request a lower maximum fragment length by calling **s2n_config_send_max_fragment_length**,
-reducing the size of TLS records and providing benefits similar to **s2n_connection_prefer_low_latency**.
+reducing the size of TLS records sent and providing benefits similar to **s2n_connection_prefer_low_latency**.
 However, many TLS servers either ignore these requests or handle them incorrectly, so a client should
-never assume that a lower maximum fragment length will be honored.
+never assume that a lower maximum fragment length will be honored. If a server accepts the requested
+maximum fragment length, the client will respect that maximum when sending.
 
 By default, an s2n-tls server will ignore a client's requested maximum fragment length.
 If **s2n_config_accept_max_fragment_length** is called, the server will respect the client's requested

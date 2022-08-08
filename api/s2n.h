@@ -1661,9 +1661,12 @@ extern int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool 
  * Changes the behavior of s2n-tls when sending data to initially prefer records
  * small enough to fit in single ethernet frames.
  *
- * The connection will send the first resize_threshold bytes in records small enough to
- * fit in a single standard 1500 byte ethernet frame. Later, whenever timeout_threshold seconds
- * pass without sending data, the connection will revert to this behavior and send small records again.
+ * When dynamic record sizing is active, the connection sends records small enough
+ * to fit in a single standard 1500 byte ethernet frame. Otherwise, the connection
+ * chooses record sizes according to the configured maximum fragment length.
+ *
+ * Dynamic record sizing is active for the first resize_threshold bytes of a connection,
+ * and is reactivated whenever timeout_threshold seconds pass without sending data.
  *
  * @param conn The connection object being updated
  * @param resize_threshold The number of bytes to send before changing the record size. Maximum 8MiB.
