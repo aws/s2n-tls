@@ -379,7 +379,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20210816 = {
 };
 
 /* Based on s2n_sig_scheme_pref_list_20140601 but with all hashes < SHA-384 removed */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20220805[] = {
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_rfc9151[] = {
         /* RSA PKCS1 */
         &s2n_rsa_pkcs1_sha384,
         &s2n_rsa_pkcs1_sha512,
@@ -398,7 +398,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20220805[] = {
         &s2n_ecdsa_secp384r1_sha384,
 };
 
-const struct s2n_signature_preferences s2n_signature_preferences_20220805 = {
-    .count = s2n_array_len(s2n_sig_scheme_pref_list_20220805),
-    .signature_schemes = s2n_sig_scheme_pref_list_20220805
+const struct s2n_signature_preferences s2n_signature_preferences_rfc9151 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_rfc9151),
+    .signature_schemes = s2n_sig_scheme_pref_list_rfc9151
 };
