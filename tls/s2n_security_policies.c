@@ -691,7 +691,7 @@ const struct s2n_security_policy security_policy_rfc9151 = {
     .cipher_preferences = &cipher_preferences_rfc9151,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_rfc9151,
-    .certificate_signature_preferences = &s2n_signature_preferences_rfc9151,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_rfc9151,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };
 
@@ -1098,7 +1098,10 @@ S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signa
         }
     }
 
-    /* The Openssl function used to parse signatures off certificates does not differentiate between any rsa pss
+    /*
+     * https://github.com/aws/s2n-tls/issues/3435
+     *
+     * The Openssl function used to parse signatures off certificates does not differentiate between any rsa pss
      * signature schemes. Therefore a security policy with a certificate signatures preference list must include
      * all rsa_pss signature schemes. */
     RESULT_ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
