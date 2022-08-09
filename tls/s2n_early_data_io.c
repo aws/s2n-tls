@@ -84,7 +84,7 @@ static bool s2n_is_early_data_io(struct s2n_connection *conn)
 S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data_len)
 {
     RESULT_ENSURE_REF(conn);
-    if (!s2n_is_early_data_io(conn)) {
+    if (data_len < 0 || !s2n_is_early_data_io(conn)) {
         return S2N_RESULT_OK;
     }
 

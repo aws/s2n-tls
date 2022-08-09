@@ -626,6 +626,53 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
+
+        /* s2n_send reports early data bytes on partial writes */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = NULL, s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = NULL, s2n_connection_ptr_free);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            /* Configure the connection to use stuffers instead of fds.
+             * This will let us block the send.
+             */
+            DEFER_CLEANUP(struct s2n_stuffer client_in = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer client_out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_in, 0));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_out, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_in, &client_out, client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_out, &client_in, server_conn));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            const uint8_t large_test_data[TEST_MAX_EARLY_DATA_SIZE] = "hello";
+
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                    END_OF_EARLY_DATA));
+
+            /* Only allocate space for one record to be written */
+            size_t fragment_len = 100;
+            EXPECT_TRUE(fragment_len < TEST_MAX_EARLY_DATA_SIZE);
+            client_conn->max_outgoing_fragment_length = fragment_len;
+            EXPECT_SUCCESS(s2n_stuffer_free(&client_out));
+            /* This is just an estimate: the record overhead means we need more
+             * than fragment_len space, but we need less than fragment_len * 2
+             * so that we only write one record. */
+            size_t out_size = fragment_len * 1.5;
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&client_out, out_size));
+
+            /* Try to send more than one record of data.
+             * s2n_send should block, but report the early data that was sent before it blocked.
+             */
+            size_t actual_send_size = s2n_send(client_conn, large_test_data, fragment_len * 2, &blocked);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+            EXPECT_EQUAL(actual_send_size, fragment_len);
+            EXPECT_EQUAL(client_conn->early_data_bytes, fragment_len);
+        }
     }
 
     /* Test s2n_recv with early data */
