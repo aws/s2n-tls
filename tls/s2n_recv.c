@@ -213,6 +213,17 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 }
 
 uint32_t s2n_peek(struct s2n_connection *conn) {
+    if (conn == NULL) {
+        return 0;
+    }
+
+    /* If we have partially buffered an encrypted record,
+     * we should not report those bytes as available to read.
+     */
+    if (conn->in_status != PLAINTEXT) {
+        return 0;
+    }
+
     return s2n_stuffer_data_available(&conn->in);
 }
 
