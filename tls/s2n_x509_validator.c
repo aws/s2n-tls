@@ -402,7 +402,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 
 #if !S2N_OCSP_STAPLING_SUPPORTED
     /* Default to safety */
-    return S2N_ERR_CERT_UNTRUSTED;
+    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 #else
 
     RESULT_GUARD_PTR(ocsp_response_raw);
