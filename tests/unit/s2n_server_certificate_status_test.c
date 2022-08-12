@@ -158,8 +158,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         EXPECT_SUCCESS(s2n_tls13_server_status_request_extension.send(conn, &stuffer));
+
+#if defined(OPENSSL_IS_BORINGSSL)
+        /* s2n_x509_validator_validate_cert_stapled_ocsp_response returns untrusted error if ocsp is not supported */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_server_status_request_extension.recv(conn, &stuffer),
+                S2N_ERR_CERT_UNTRUSTED);
+#else
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_server_status_request_extension.recv(conn, &stuffer),
                 S2N_ERR_INVALID_OCSP_RESPONSE);
+#endif
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
