@@ -375,7 +375,16 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         time_t current_time = (time_t)(current_sys_time / 1000000000);
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
 
-        RESULT_GUARD_OSSL(X509_verify_cert(validator->store_ctx), S2N_ERR_CERT_UNTRUSTED);
+        int verify_ret = X509_verify_cert(validator->store_ctx);
+        if (verify_ret <= 0) {
+            int ossl_error = X509_STORE_CTX_get_error(validator->store_ctx);
+            switch (ossl_error) {
+                case X509_V_ERR_CERT_HAS_EXPIRED:
+                    RESULT_BAIL(S2N_ERR_CERT_EXPIRED);
+                default:
+                    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+            }
+        }
 
         validator->state = VALIDATED;
     }

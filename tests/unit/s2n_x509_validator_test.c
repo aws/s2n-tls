@@ -472,7 +472,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                &pkey_type, &public_key_out), S2N_ERR_CERT_UNTRUSTED);
+                &pkey_type, &public_key_out), S2N_ERR_CERT_EXPIRED);
 
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
