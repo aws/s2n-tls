@@ -99,7 +99,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported") \
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
-    ERR_ENTRY(S2N_ERR_CERT_INTERNAL_ERROR, "An internal error has occurred while processing a certificate") \
     ERR_ENTRY(S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered") \
     ERR_ENTRY(S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client") \
     ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by configuration") \
@@ -275,7 +274,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_SECRET_SCHEDULE_STATE, "Correct inputs to secret calculation not available") \
     ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH, "The libcrypto major version number seen at compile-time is different from the major version number seen at run-time") \
     ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH, "The libcrypto major version name seen at compile-time is different from the major version name seen at run-time") \
-    ERR_ENTRY(S2N_ERR_CERT_OWNERSHIP, "The ownership of the certificate chain is incompatible with the operation")
+    ERR_ENTRY(S2N_ERR_CERT_OWNERSHIP, "The ownership of the certificate chain is incompatible with the operation") \
+    ERR_ENTRY(S2N_ERR_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API")
 /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
