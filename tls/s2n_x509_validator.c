@@ -308,8 +308,8 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         uint32_t certificate_size = 0;
 
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
-        RESULT_ENSURE(certificate_size > 0, S2N_ERR_CERT_UNTRUSTED);
-        RESULT_ENSURE(certificate_size <= s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_CERT_UNTRUSTED);
+        RESULT_ENSURE(certificate_size > 0, S2N_ERR_CERT_INVALID);
+        RESULT_ENSURE(certificate_size <= s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_CERT_INVALID);
 
         struct s2n_blob asn1cert = {0};
         asn1cert.size = certificate_size;
@@ -325,16 +325,17 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         /* add the cert to the chain. */
         if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
             X509_free(server_cert);
-            RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+            RESULT_BAIL(S2N_ERR_CERT_INTERNAL_ERROR);
         }
 
         if (!validator->skip_cert_validation) {
-            RESULT_GUARD(s2n_validate_certificate_signature(conn, server_cert));
+            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, server_cert), S2N_ERR_CERT_UNTRUSTED);
         }
 
         /* Pull the public key from the first certificate */
         if (sk_X509_num(validator->cert_chain_from_wire) == 1) {
-            RESULT_GUARD_POSIX(s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert));
+            RESULT_ENSURE(s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) == 0,
+                    S2N_ERR_CERT_UNTRUSTED);
         }
 
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
@@ -350,8 +351,9 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
     }
 
     /* if this occurred we exceeded validator->max_chain_depth */
-    RESULT_ENSURE(validator->skip_cert_validation || s2n_stuffer_data_available(&cert_chain_in_stuffer) == 0, S2N_ERR_CERT_UNTRUSTED);
-    RESULT_ENSURE(sk_X509_num(validator->cert_chain_from_wire) > 0, S2N_ERR_CERT_UNTRUSTED);
+    RESULT_ENSURE(validator->skip_cert_validation || s2n_stuffer_data_available(&cert_chain_in_stuffer) == 0,
+            S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED);
+    RESULT_ENSURE(sk_X509_num(validator->cert_chain_from_wire) > 0, S2N_ERR_NO_CERT_FOUND);
 
     if (!validator->skip_cert_validation) {
         X509 *leaf = sk_X509_value(validator->cert_chain_from_wire, 0);
@@ -361,7 +363,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         }
 
         RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
-                validator->cert_chain_from_wire), S2N_ERR_CERT_UNTRUSTED);
+                validator->cert_chain_from_wire), S2N_ERR_CERT_INTERNAL_ERROR);
 
         X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
         X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
@@ -409,13 +411,13 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 
     DEFER_CLEANUP(OCSP_RESPONSE *ocsp_response = d2i_OCSP_RESPONSE(NULL, &ocsp_response_raw, ocsp_response_length),
                   OCSP_RESPONSE_free_pointer);
-    RESULT_GUARD_PTR(ocsp_response);
+    RESULT_ENSURE(ocsp_response != NULL, S2N_ERR_INVALID_OCSP_RESPONSE);
 
     int ocsp_status = OCSP_response_status(ocsp_response);
     RESULT_ENSURE(ocsp_status == OCSP_RESPONSE_STATUS_SUCCESSFUL, S2N_ERR_CERT_UNTRUSTED);
 
     DEFER_CLEANUP(OCSP_BASICRESP *basic_response = OCSP_response_get1_basic(ocsp_response), OCSP_BASICRESP_free_pointer);
-    RESULT_GUARD_PTR(basic_response);
+    RESULT_ENSURE(basic_response != NULL, S2N_ERR_INVALID_OCSP_RESPONSE);
 
     /* X509_STORE_CTX_get0_chain() is better because it doesn't return a copy. But it's not available for Openssl 1.0.2.
      * Therefore, we call this variant and clean it up at the end of the function.
@@ -424,10 +426,10 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
      */
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain = X509_STORE_CTX_get1_chain(validator->store_ctx),
             s2n_openssl_x509_stack_pop_free);
-    RESULT_GUARD_PTR(cert_chain);
+    RESULT_ENSURE_REF(cert_chain);
 
     const int certs_in_chain = sk_X509_num(cert_chain);
-    RESULT_ENSURE(certs_in_chain > 0, S2N_ERR_CERT_UNTRUSTED);
+    RESULT_ENSURE(certs_in_chain > 0, S2N_ERR_NO_CERT_FOUND);
 
     /* leaf is the top: not the bottom. */
     X509 *subject = sk_X509_value(cert_chain, 0);
@@ -442,7 +444,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
             break;
         }
     }
-    RESULT_GUARD_PTR(issuer);
+    RESULT_ENSURE(issuer != NULL, S2N_ERR_CERT_UNTRUSTED);
 
     /* Important: this checks that the stapled ocsp response CAN be verified, not that it has been verified. */
     const int ocsp_verify_res = OCSP_basic_verify(basic_response, cert_chain, validator->trust_store->trust_store, 0);
@@ -478,12 +480,18 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     const int current_time_err = conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time);
     RESULT_GUARD_POSIX(current_time_err);
 
-    RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_UNTRUSTED);
-    RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_UNTRUSTED);
+    RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
+    RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
 
-    RESULT_ENSURE(status == V_OCSP_CERTSTATUS_GOOD, S2N_ERR_CERT_UNTRUSTED);
-
-    return S2N_RESULT_OK;
+    switch (status) {
+        case V_OCSP_CERTSTATUS_GOOD:
+            validator->state = OCSP_VALIDATED;
+            return S2N_RESULT_OK;
+        case V_OCSP_CERTSTATUS_REVOKED:
+            RESULT_BAIL(S2N_ERR_CERT_REVOKED);
+        default:
+            RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+    }
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
 }
 

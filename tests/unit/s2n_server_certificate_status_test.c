@@ -158,7 +158,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         EXPECT_SUCCESS(s2n_tls13_server_status_request_extension.send(conn, &stuffer));
-        EXPECT_FAILURE(s2n_tls13_server_status_request_extension.recv(conn, &stuffer));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_server_status_request_extension.recv(conn, &stuffer),
+                S2N_ERR_INVALID_OCSP_RESPONSE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

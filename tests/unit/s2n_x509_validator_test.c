@@ -429,7 +429,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED);
 
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(0, verify_data.callback_invoked);
@@ -990,7 +990,7 @@ int main(int argc, char **argv) {
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len), S2N_ERR_CERT_UNTRUSTED);
+                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len), S2N_ERR_CERT_EXPIRED);
 
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
         s2n_stuffer_free(&ocsp_data_stuffer);
@@ -1037,7 +1037,7 @@ int main(int argc, char **argv) {
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len), S2N_ERR_CERT_UNTRUSTED);
+                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len), S2N_ERR_CERT_INVALID);
 
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
 
@@ -1132,8 +1132,8 @@ int main(int argc, char **argv) {
 
         uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
 
-        EXPECT_ERROR(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                raw_data, ocsp_data_len));
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                raw_data, ocsp_data_len), S2N_ERR_CERT_UNTRUSTED);
 
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
@@ -1271,7 +1271,7 @@ int main(int argc, char **argv) {
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len), S2N_ERR_CERT_UNTRUSTED);
+                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len), S2N_ERR_CERT_REVOKED);
 
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
@@ -1468,8 +1468,8 @@ int main(int argc, char **argv) {
         s2n_pkey_type pkey_type;
 
         /* Expect to return S2N_CERT_ERR_UNTRUSTED */
-        EXPECT_ERROR(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                &pkey_type, &public_key_out));
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
+                &pkey_type, &public_key_out), S2N_ERR_CERT_UNTRUSTED);
 
         s2n_stuffer_free(&chain_stuffer);
         s2n_connection_free(connection);
