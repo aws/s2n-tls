@@ -289,7 +289,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
     RESULT_ENSURE(validator->skip_cert_validation || s2n_x509_trust_store_has_certs(validator->trust_store), S2N_ERR_CERT_UNTRUSTED);
-    RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_STATE);
+    RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {0}, s2n_stuffer_free);
