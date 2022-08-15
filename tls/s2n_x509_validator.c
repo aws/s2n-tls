@@ -30,7 +30,7 @@
 #include <openssl/asn1.h>
 #include <openssl/x509.h>
 
-#if !defined(OPENSSL_IS_BORINGSSL)
+#if defined(S2N_OCSP_STAPLING_SUPPORTED)
 #include <openssl/ocsp.h>
 DEFINE_POINTER_CLEANUP_FUNC(OCSP_RESPONSE*, OCSP_RESPONSE_free);
 DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP*, OCSP_BASICRESP_free);
