@@ -7,8 +7,9 @@ use libc::c_char;
 use s2n_tls_sys::*;
 use std::{convert::TryFrom, ffi::CStr};
 
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ErrorType {
     UnknownErrorType,
     NoError,
@@ -21,8 +22,9 @@ pub enum ErrorType {
     UsageError,
 }
 
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ErrorSource {
     Library,
     Bindings,
@@ -44,13 +46,15 @@ impl From<libc::c_int> for ErrorType {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq)]
 pub enum Context {
     InvalidInput,
     Code(s2n_status_code::Type, Errno),
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq)]
 pub struct Error(Context);
 
 pub trait Fallible {

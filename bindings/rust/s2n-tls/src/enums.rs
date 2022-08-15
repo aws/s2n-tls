@@ -7,7 +7,8 @@ use crate::error::Error;
 use core::convert::TryFrom;
 use s2n_tls_sys::*;
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CallbackResult {
     Success,
     Failure,
@@ -31,7 +32,8 @@ impl<T, E> From<Result<T, E>> for CallbackResult {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
     Server,
     Client,
@@ -46,8 +48,9 @@ impl From<Mode> for s2n_mode::Type {
     }
 }
 
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Version {
     SSLV2,
     SSLV3,
@@ -74,8 +77,9 @@ impl TryFrom<s2n_tls_version::Type> for Version {
     }
 }
 
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Blinding {
     SelfService,
     BuiltIn,
@@ -90,8 +94,9 @@ impl From<Blinding> for s2n_blinding::Type {
     }
 }
 
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ClientAuthType {
     Required,
     Optional,
@@ -108,8 +113,9 @@ impl From<ClientAuthType> for s2n_cert_auth_type::Type {
     }
 }
 
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum AlertBehavior {
     FailOnWarnings,
     IgnoreWarnings,

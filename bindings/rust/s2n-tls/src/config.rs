@@ -15,7 +15,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Debug, PartialEq)]
 pub struct Config(NonNull<s2n_config>);
 
 /// # Safety
