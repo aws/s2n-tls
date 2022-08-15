@@ -418,7 +418,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 #else
 
-    RESULT_GUARD_PTR(ocsp_response_raw);
+    RESULT_ENSURE_REF(ocsp_response_raw);
 
     DEFER_CLEANUP(OCSP_RESPONSE *ocsp_response = d2i_OCSP_RESPONSE(NULL, &ocsp_response_raw, ocsp_response_length),
                   OCSP_RESPONSE_free_pointer);
@@ -467,7 +467,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 
     /* sha1 is the only supported OCSP digest */
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
-    RESULT_GUARD_PTR(cert_id);
+    RESULT_ENSURE_REF(cert_id);
 
     ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
     /* Actual verification of the response */
