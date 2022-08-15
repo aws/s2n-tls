@@ -361,7 +361,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         X509 *leaf = sk_X509_value(validator->cert_chain_from_wire, 0);
         RESULT_ENSURE_REF(leaf);
         if (conn->verify_host_fn) {
-            RESULT_ENSURE(s2n_verify_host_information(validator, conn, leaf) == 1, S2N_ERR_CERT_UNTRUSTED);
+            RESULT_ENSURE(s2n_verify_host_information(validator, conn, leaf), S2N_ERR_CERT_UNTRUSTED);
         }
 
         RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
