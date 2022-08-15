@@ -316,7 +316,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_blob *psk_identity, struct s2n_stuffer *from)
+S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_blob *psk_identity, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
