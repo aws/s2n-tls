@@ -488,8 +488,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     }
 
     uint64_t current_time = 0;
-    const int current_time_err = conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time);
-    RESULT_GUARD_POSIX(current_time_err);
+    RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
 
     RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
     RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
