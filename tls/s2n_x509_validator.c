@@ -324,6 +324,8 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
 
         /* add the cert to the chain. */
         if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
+            /* After the cert is added to cert_chain_from_wire, it will be freed with the call to
+             * s2n_x509_validator_wipe. If adding the cert fails, free it now instead. */
             X509_free(server_cert);
             RESULT_BAIL(S2N_ERR_LIBCRYPTO_ERROR);
         }
