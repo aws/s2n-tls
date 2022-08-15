@@ -8,7 +8,7 @@ use s2n_tls_sys::*;
 use std::{convert::TryFrom, ffi::CStr};
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ErrorType {
     UnknownErrorType,
     NoError,
@@ -22,7 +22,7 @@ pub enum ErrorType {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ErrorSource {
     Library,
     Bindings,
@@ -44,13 +44,13 @@ impl From<libc::c_int> for ErrorType {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Context {
     InvalidInput,
     Code(s2n_status_code::Type, Errno),
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Error(Context);
 
 pub trait Fallible {
