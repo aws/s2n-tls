@@ -7,7 +7,6 @@ use crate::error::Error;
 use core::convert::TryFrom;
 use s2n_tls_sys::*;
 
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CallbackResult {
     Success,
@@ -32,7 +31,6 @@ impl<T, E> From<Result<T, E>> for CallbackResult {
     }
 }
 
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
     Server,
@@ -48,7 +46,6 @@ impl From<Mode> for s2n_mode::Type {
     }
 }
 
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Version {
@@ -77,7 +74,6 @@ impl TryFrom<s2n_tls_version::Type> for Version {
     }
 }
 
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Blinding {
@@ -94,7 +90,6 @@ impl From<Blinding> for s2n_blinding::Type {
     }
 }
 
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ClientAuthType {
@@ -113,7 +108,6 @@ impl From<ClientAuthType> for s2n_cert_auth_type::Type {
     }
 }
 
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum AlertBehavior {
