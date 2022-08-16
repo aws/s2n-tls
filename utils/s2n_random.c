@@ -357,7 +357,7 @@ static int s2n_rand_init_impl(void)
         if (errno == EINTR) {
             goto OPEN;
         }
-        POSIX_BAIL(S2N_ERR_OPEN_RANDOM);
+        POSIX_BAIL(S2N_ERR_OPEN_RANDOM1);
     }
 
     if (s2n_cpu_supports_rdrand()) {
@@ -377,21 +377,21 @@ S2N_RESULT s2n_rand_init(void)
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 
-    RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_id(e, S2N_RAND_ENGINE_ID), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_name(e, "s2n entropy generator"), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_init_function(e, s2n_openssl_compat_init), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_RAND(e, &s2n_openssl_rand_method), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_add(e), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_free(e) , S2N_ERR_OPEN_RANDOM);
+    RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM2);
+    RESULT_GUARD_OSSL(ENGINE_set_id(e, S2N_RAND_ENGINE_ID), S2N_ERR_OPEN_RANDOM3);
+    RESULT_GUARD_OSSL(ENGINE_set_name(e, "s2n entropy generator"), S2N_ERR_OPEN_RANDOM4);
+    RESULT_GUARD_OSSL(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL), S2N_ERR_OPEN_RANDOM5);
+    RESULT_GUARD_OSSL(ENGINE_set_init_function(e, s2n_openssl_compat_init), S2N_ERR_OPEN_RANDOM6);
+    RESULT_GUARD_OSSL(ENGINE_set_RAND(e, &s2n_openssl_rand_method), S2N_ERR_OPEN_RANDOM7);
+    RESULT_GUARD_OSSL(ENGINE_add(e), S2N_ERR_OPEN_RANDOM8);
+    RESULT_GUARD_OSSL(ENGINE_free(e) , S2N_ERR_OPEN_RANDOM9);
 
     /* Use that engine for rand() */
     e = ENGINE_by_id(S2N_RAND_ENGINE_ID);
-    RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_init(e), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_set_default(e, ENGINE_METHOD_RAND), S2N_ERR_OPEN_RANDOM);
-    RESULT_GUARD_OSSL(ENGINE_free(e), S2N_ERR_OPEN_RANDOM);
+    RESULT_ENSURE(e != NULL, S2N_ERR_OPEN_RANDOM10);
+    RESULT_GUARD_OSSL(ENGINE_init(e), S2N_ERR_OPEN_RANDOM11);
+    RESULT_GUARD_OSSL(ENGINE_set_default(e, ENGINE_METHOD_RAND), S2N_ERR_OPEN_RANDOM12);
+    RESULT_GUARD_OSSL(ENGINE_free(e), S2N_ERR_OPEN_RANDOM13);
 #endif
 
     return S2N_RESULT_OK;

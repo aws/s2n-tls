@@ -120,6 +120,21 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NOT_INITIALIZED, "s2n not initialized") \
     ERR_ENTRY(S2N_ERR_RANDOM_UNINITIALIZED, "s2n entropy not initialized") \
     ERR_ENTRY(S2N_ERR_OPEN_RANDOM, "error opening urandom") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM1, "error opening urandom1") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM2, "error opening urandom2") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM3, "error opening urandom3") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM4, "error opening urandom4") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM5, "error opening urandom5") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM6, "error opening urandom6") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM7, "error opening urandom7") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM8, "error opening urandom8") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM9, "error opening urandom9") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM10, "error opening urandom10") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM11, "error opening urandom11") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM12, "error opening urandom12") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM13, "error opening urandom13") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM14, "error opening urandom14") \
+    ERR_ENTRY(S2N_ERR_OPEN_RANDOM15, "error opening urandom15") \
     ERR_ENTRY(S2N_ERR_RESIZE_STATIC_STUFFER, "cannot resize a static stuffer") \
     ERR_ENTRY(S2N_ERR_RESIZE_TAINTED_STUFFER, "cannot resize a tainted stuffer") \
     ERR_ENTRY(S2N_ERR_STUFFER_OUT_OF_DATA, "stuffer is out of data") \
