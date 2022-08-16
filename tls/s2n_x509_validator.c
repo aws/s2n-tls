@@ -327,7 +327,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
             /* After the cert is added to cert_chain_from_wire, it will be freed with the call to
              * s2n_x509_validator_wipe. If adding the cert fails, free it now instead. */
             X509_free(server_cert);
-            RESULT_BAIL(S2N_ERR_LIBCRYPTO_ERROR);
+            RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
         }
 
         if (!validator->skip_cert_validation) {
@@ -365,7 +365,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         }
 
         RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
-                validator->cert_chain_from_wire), S2N_ERR_LIBCRYPTO_ERROR);
+                validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
         X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
         X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
