@@ -656,15 +656,7 @@ the process to terminate unless it is handled or ignored by the application.
 
 **WARNING (TLS v1.2 ONLY):** Enabling Nagle's algorithm can increase handshake latency
 * Enabling Nagle's algorithm can increase the handshake latency. To avoid this behaviour, please disable Nagle's at the socket level; this can be done with the snippet displayed below. Please note this is only applicable to TLS v1.2.
-* If enabling Nagle's is required, then an increase in handshake latency is expected. This behavior occurs because `s2nc` does not coalesce multiple handshake messages into a record. In effect, after the `s2nc` sends the client key exchange record to the server, it waits until it receives a server ack before continuing the handshake.
-```
-#include <netinet/tcp.h>
-
-/* Example snippet to disable Nagle's for sockfd */
-int flag = 1;
-int result = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &flag, sizeof(int));
-```
-
+* If enabling Nagle's is required, then an increase in handshake latency is expected. This behavior occurs because `s2n_negotiate` does not coalesce multiple handshake messages into a record. In effect, after `s2n_negotiate` sends the client key exchange record to the server, it waits until it receives a server ack before continuing the handshake.
 
 ### s2n\_connection\_prefer\_throughput(struct s2n_connection *conn)
 
