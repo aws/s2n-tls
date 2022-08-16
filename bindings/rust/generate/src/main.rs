@@ -75,7 +75,7 @@ use libc::{iovec, FILE};
 "#;
 
 fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
-    let builder = bindgen::Builder::default()
+    bindgen::Builder::default()
         .use_core()
         .layout_tests(true)
         .detect_include_paths(true)
@@ -99,8 +99,7 @@ fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bi
         .ctypes_prefix("::libc")
         .parse_callbacks(Box::new(functions))
         .clang_arg(format!("-I{}/api", s2n_dir.display()))
-        .clang_arg(format!("-I{}", s2n_dir.display()));
-    builder
+        .clang_arg(format!("-I{}", s2n_dir.display()))
 }
 
 fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
@@ -199,7 +198,8 @@ impl FunctionCallbacks {
         let mut o = io::BufWriter::new(&mut tests);
 
         writeln!(o, "{}", COPYRIGHT)?;
-        for (feature, function) in functions.iter() {
+        let iter = functions.iter();
+        for (feature, function) in iter {
             // don't generate tests for types
             if types.contains(function) {
                 continue;
