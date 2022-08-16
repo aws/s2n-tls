@@ -16,6 +16,8 @@
 
 set -ex
 
+source codebuild/bin/s2n_setup_env.sh
+
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
 
