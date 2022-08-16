@@ -88,9 +88,8 @@ int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_s
     POSIX_GUARD(s2n_realloc(&conn->status_response, status_size));
     POSIX_GUARD(s2n_stuffer_read_bytes(in, conn->status_response.data, status_size));
 
-    POSIX_ENSURE(s2n_x509_validator_validate_cert_stapled_ocsp_response(
-            &conn->x509_validator, conn, conn->status_response.data, conn->status_response.size) == S2N_CERT_OK,
-            S2N_ERR_CERT_UNTRUSTED);
+    POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_stapled_ocsp_response(&conn->x509_validator, conn,
+            conn->status_response.data, conn->status_response.size));
 
     return S2N_SUCCESS;
 }

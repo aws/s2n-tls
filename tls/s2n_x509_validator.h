@@ -30,17 +30,6 @@
 #endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 typedef enum {
-    S2N_CERT_OK = 0,
-    S2N_CERT_ERR_UNTRUSTED = -1,
-    S2N_CERT_ERR_REVOKED = -2,
-    S2N_CERT_ERR_EXPIRED = -3,
-    S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
-    S2N_CERT_ERR_INVALID = -5,
-    S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6,
-    S2N_CERT_ERR_INTERNAL_ERROR = -7
-} s2n_cert_validation_code;
-
-typedef enum {
     UNINIT,
     INIT,
     VALIDATED,
@@ -121,16 +110,16 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
  * This function can only be called once per instance of an s2n_x509_validator. If must be called prior to calling
  * s2n_x509_validator_validate_cert_stapled_ocsp_response().
  */
-s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
-                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type,
-                                                                struct s2n_pkey *public_key_out);
+S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+                                                  uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type,
+                                                  struct s2n_pkey *public_key_out);
 
 /**
  * Validates an ocsp response against the most recent certificate chain. Also verifies the timestamps on the response. This function can only be
  * called once per instance of an s2n_x509_validator and only after a successful call to s2n_x509_validator_validate_cert_chain().
  */
-s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
-                                                                                const uint8_t *ocsp_response, uint32_t size);
+S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
+                                                                  const uint8_t *ocsp_response, uint32_t size);
 
 /**
  * Checks whether the peer's certificate chain has been received and validated.
