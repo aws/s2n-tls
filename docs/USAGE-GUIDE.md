@@ -492,7 +492,9 @@ TLS handshake sessions are CPU-heavy due to the calculations involved in authent
 
 ### Session Ticket Key
 
-The key that encrypts and decrypts the session state is not related to the TLS key derivation process, and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()` and `s2n_config_set_ticket_decrypt_key_lifetime()`.
+The key that encrypts and decrypts the session state is not related to the TLS key derivation process and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. See [RFC5077](https://www.rfc-editor.org/rfc/rfc5077#section-5.5) for guidelines on securely generating keys.
+
+Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()` and `s2n_config_set_ticket_decrypt_key_lifetime()`.
 
 The server will stop issuing session resumption tickets if a user doesn't set up a new key before the previous key passes through its encrypt-decrypt lifetime. Therefore it is recommended to add a new key when half of previous key's encrypt-decrypt lifetime has passed.
 
@@ -510,7 +512,7 @@ In stateful session resumption, also known as session caching, the server caches
 
 Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
-Clients can call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
+Clients should call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
 
 ### Session Resumption in TLS1.2 and TLS1.3
 

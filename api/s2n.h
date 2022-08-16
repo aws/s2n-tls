@@ -2203,7 +2203,11 @@ S2N_API
 extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 
 /**
- * Get the lifetime hint for a session.
+ * Retrieves a hint from the server indicating how long this ticket's lifetime is.
+ * 
+ * @note This function is not recommended for > TLS 1.2 because in TLS1.3
+ * servers can send multiple session tickets and this function will only
+ * return the most recently received ticket lifetime hint.
  *
  * @param conn A pointer to the s2n_connection object
  *
