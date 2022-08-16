@@ -199,7 +199,6 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
         *blocked = S2N_NOT_BLOCKED;
     }
 
-    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, bytes_read));
     return bytes_read;
 }
 
@@ -208,11 +207,23 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
     conn->recv_in_use = true;
     ssize_t result = s2n_recv_impl(conn, buf, size, blocked);
+    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
     conn->recv_in_use = false;
     return result;
 }
 
 uint32_t s2n_peek(struct s2n_connection *conn) {
+    if (conn == NULL) {
+        return 0;
+    }
+
+    /* If we have partially buffered an encrypted record,
+     * we should not report those bytes as available to read.
+     */
+    if (conn->in_status != PLAINTEXT) {
+        return 0;
+    }
+
     return s2n_stuffer_data_available(&conn->in);
 }
 

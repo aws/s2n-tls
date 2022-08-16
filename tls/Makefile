@@ -31,10 +31,6 @@ all: $(OBJS)
 bc: $(BCS)
 	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) bc)
 
-.PHONY : run-gcov
-run-gcov: gcov
-	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) gcov)
-
 .PHONY : run-lcov
 run-lcov: lcov
 	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) lcov)

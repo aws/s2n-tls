@@ -1156,6 +1156,28 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
         }
 
+        /* Negative bytes are "recorded" */
+        {
+            conn->early_data_bytes = 0;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, -1));
+            EXPECT_EQUAL(conn->early_data_bytes, 0);
+
+            conn->early_data_bytes = limit / 2;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, -1));
+            EXPECT_EQUAL(conn->early_data_bytes, limit / 2);
+
+            conn->early_data_bytes = limit;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, -1));
+            EXPECT_EQUAL(conn->early_data_bytes, limit);
+
+            /* Unlike with other inputs, does not return an error and set S2N_ERR_MAX_EARLY_DATA_SIZE.
+             * That would overwrite whatever send error caused the -1 result.
+             */
+            conn->early_data_bytes = limit + 1;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, -1));
+            EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
+        }
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

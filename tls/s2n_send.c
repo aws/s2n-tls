@@ -240,8 +240,6 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
     conn->current_user_data_consumed = 0;
 
     *blocked = S2N_NOT_BLOCKED;
-
-    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, total_size));
     return total_size;
 }
 
@@ -250,6 +248,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
     POSIX_ENSURE(!conn->send_in_use, S2N_ERR_REENTRANCY);
     conn->send_in_use = true;
     ssize_t result = s2n_sendv_with_offset_impl(conn, bufs, count, offs, blocked);
+    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
     conn->send_in_use = false;
     return result;
 }

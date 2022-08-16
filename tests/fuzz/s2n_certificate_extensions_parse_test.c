@@ -117,7 +117,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
         POSIX_GUARD(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
 
-        POSIX_GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
+        POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
         POSIX_GUARD(s2n_stuffer_free(&chain_stuffer));
         POSIX_GUARD(s2n_pkey_free(&public_key_out));
     }

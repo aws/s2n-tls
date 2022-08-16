@@ -77,6 +77,26 @@ static int s2n_blocking_buffer_write(void *io_context, const uint8_t *buf, uint3
     return len;
 }
 
+static S2N_RESULT s2n_test_set_blocking_stuffer_io(
+        struct s2n_connection *client_conn, struct s2n_connection *server_conn,
+        struct s2n_stuffer *client_in, struct s2n_stuffer *server_in)
+{
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc(client_in, S2N_TLS_MAXIMUM_RECORD_LENGTH));
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc(server_in, S2N_TLS_MAXIMUM_RECORD_LENGTH));
+
+    RESULT_GUARD_POSIX(s2n_connection_set_recv_cb(client_conn, &s2n_blocking_buffer_read));
+    RESULT_GUARD_POSIX(s2n_connection_set_recv_ctx(client_conn, client_in));
+    RESULT_GUARD_POSIX(s2n_connection_set_recv_cb(server_conn, &s2n_blocking_buffer_read));
+    RESULT_GUARD_POSIX(s2n_connection_set_recv_ctx(server_conn, server_in));
+
+    RESULT_GUARD_POSIX(s2n_connection_set_send_cb(client_conn, &s2n_blocking_buffer_write));
+    RESULT_GUARD_POSIX(s2n_connection_set_send_ctx(client_conn, server_in));
+    RESULT_GUARD_POSIX(s2n_connection_set_send_cb(server_conn, &s2n_blocking_buffer_write));
+    RESULT_GUARD_POSIX(s2n_connection_set_send_ctx(server_conn, client_in));
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -553,18 +573,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer client_in = { 0 }, s2n_stuffer_free);
         DEFER_CLEANUP(struct s2n_stuffer server_in = { 0 }, s2n_stuffer_free);
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&client_in, S2N_DEFAULT_RECORD_LENGTH));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&server_in, S2N_DEFAULT_RECORD_LENGTH));
-
-        POSIX_GUARD(s2n_connection_set_recv_cb(client_conn, &s2n_blocking_buffer_read));
-        POSIX_GUARD(s2n_connection_set_recv_ctx(client_conn, &client_in));
-        POSIX_GUARD(s2n_connection_set_recv_cb(server_conn, &s2n_blocking_buffer_read));
-        POSIX_GUARD(s2n_connection_set_recv_ctx(server_conn, &server_in));
-
-        POSIX_GUARD(s2n_connection_set_send_cb(client_conn, &s2n_blocking_buffer_write));
-        POSIX_GUARD(s2n_connection_set_send_ctx(client_conn, &server_in));
-        POSIX_GUARD(s2n_connection_set_send_cb(server_conn, &s2n_blocking_buffer_write));
-        POSIX_GUARD(s2n_connection_set_send_ctx(server_conn, &client_in));
+        EXPECT_OK(s2n_test_set_blocking_stuffer_io(client_conn, server_conn, &client_in, &server_in));
 
         uint8_t actual_payload[BUFFER_SIZE] = { 0 };
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -645,6 +654,80 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test blocking behavior with partial successes when sending early data.
+     *
+     * Parital successes should be reported to the application.
+     * Partial successes should count towards the early data limit.
+     */
+    {
+        const uint32_t max_early_data = UINT16_MAX;
+        DEFER_CLEANUP(struct s2n_psk *psk_with_early_data_limit = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_identity(psk_with_early_data_limit, test_data, sizeof(test_data)));
+        EXPECT_SUCCESS(s2n_psk_set_secret(psk_with_early_data_limit, test_data, sizeof(test_data)));
+        EXPECT_SUCCESS(s2n_psk_configure_early_data(psk_with_early_data_limit, max_early_data, 0x13, 0x01));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, psk_with_early_data_limit));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, psk_with_early_data_limit));
+
+        DEFER_CLEANUP(struct s2n_stuffer client_in = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_in = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_set_blocking_stuffer_io(client_conn, server_conn, &client_in, &server_in));
+
+        /* We will send more than one record worth of data,
+         * so that we can block after one record worth.
+         */
+        uint8_t large_data[S2N_DEFAULT_FRAGMENT_LENGTH * 2] = "hello world";
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        ssize_t data_size = 0;
+
+        /* Block after each record write.
+         * Eventually, we expect a partial success when we write one record of early data.
+         * That partial success should correctly report the number of bytes written,
+         * and record the correct number of early data bytes consumed.
+         */
+        size_t max_attempts = 100;
+        size_t attempts = 0;
+        while(true) {
+            s2n_allowed_writes = 1;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, large_data, sizeof(large_data),
+                    &data_size, &blocked), S2N_ERR_IO_BLOCKED);
+
+            if (data_size != 0) {
+                /* We blocked on both reading the next handshake message (S2N_BLOCKED_ON_READ)
+                 * and writing the early data (S2N_BLOCKED_ON_WRITE).
+                 * We prefer the negotiate result.
+                 */
+                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+
+                /* Part of the early data sent */
+                EXPECT_EQUAL(data_size, S2N_DEFAULT_FRAGMENT_LENGTH);
+                EXPECT_EQUAL(client_conn->early_data_bytes, S2N_DEFAULT_FRAGMENT_LENGTH);
+                break;
+            } else {
+                /* We blocked sending a handshake message,
+                 * since we haven't gotten to early data yet.
+                 */
+                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+
+                /* No early data sent yet */
+                EXPECT_EQUAL(client_conn->early_data_bytes, 0);
+            }
+
+            attempts++;
+            EXPECT_TRUE(attempts < max_attempts);
+        }
     }
 
     /* Known-value early data tests.
