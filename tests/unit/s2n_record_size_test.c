@@ -77,7 +77,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
 
-        /* Peer and we are in sync */
+        /* Client and server are in sync */
         conn->server = &conn->secure;
         conn->client = &conn->secure;
 
