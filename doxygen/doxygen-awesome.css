@@ -36,7 +36,7 @@ html {
     /* page base colors */
     --page-background-color: white;
     --page-foreground-color: #2f4153;
-    --page-secondary-foreground-color: #637485;
+    --page-secondary-foreground-color: #6f7e8e;
 
     /* color for all separators on the website: hr, borders, ... */
     --separator-color: #dedede;
@@ -66,13 +66,17 @@ html {
     /* font sizes */
     --page-font-size: 15.6px;
     --navigation-font-size: 14.4px;
+    --toc-font-size: 13.4px;
     --code-font-size: 14px; /* affects code, fragment */
     --title-font-size: 22px;
 
     /* content text properties. These only affect the page content, not the navigation or any other ui elements */
     --content-line-height: 27px;
     /* The content is centered and constraint in it's width. To make the content fill the whole page, set the variable to auto.*/
-    --content-maxwidth: 1000px;
+    --content-maxwidth: 1050px;
+    --toc-sticky-top: var(--spacing-medium);
+    --toc-width: 200px;
+    --toc-max-height: calc(100vh - 2 * var(--spacing-medium) - 85px);
 
     /* colors for various content boxes: @warning, @note, @deprecated @bug */
     --warning-color: #f8d1cc;
@@ -170,6 +174,7 @@ html {
     html {
         --page-font-size: 16px;
         --navigation-font-size: 16px;
+        --toc-font-size: 15px;
         --code-font-size: 15px; /* affects code, fragment */
         --title-font-size: 22px;
     }
@@ -839,6 +844,20 @@ div.header {
     background-image: none;
 }
 
+@media screen and (min-width: 1000px) {
+    #doc-content > div > div.contents {
+        display: flex;
+        flex-direction: row-reverse;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+    
+    div.contents .textblock {
+        min-width: 200px;
+        flex-grow: 1;
+    }
+}
+
 div.contents, div.header .title, div.header .summary {
     max-width: var(--content-maxwidth);
 }
@@ -1003,37 +1022,49 @@ table.params .paramname {
  Table of Contents
  */
 
-div.toc {
-    z-index: 10;
-    position: relative;
-    background-color: var(--toc-background);
-    border: 1px solid var(--separator-color);
-    border-radius: var(--border-radius-medium);
-    box-shadow: var(--box-shadow);
+div.contents .toc {
+    max-height: var(--toc-max-height);
+    min-width: var(--toc-width);
+    border: 0;
+    border-left: 1px solid var(--separator-color);
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    position: sticky;
+    top: var(--toc-sticky-top);
     padding: 0 var(--spacing-large);
-    margin: 0 0 var(--spacing-medium) var(--spacing-medium);
+    margin: var(--spacing-small) 0 var(--spacing-large) var(--spacing-large);
 }
 
 div.toc h3 {
     color: var(--toc-foreground);
     font-size: var(--navigation-font-size);
-    margin: var(--spacing-large) 0;
+    margin: var(--spacing-large) 0 var(--spacing-medium) 0;
 }
 
 div.toc li {
-    font-size: var(--navigation-font-size);
     padding: 0;
     background: none;
 }
 
-div.toc li:before {
-    content: '↓';
-    font-weight: 800;
-    font-family: var(--font-family);
-    margin-right: var(--spacing-small);
-    color: var(--toc-foreground);
-    opacity: .4;
+div.toc ul {
+    margin-top: 0
 }
+
+div.toc li a {
+    font-size: var(--toc-font-size);
+    color: var(--page-foreground-color) !important;
+    text-decoration: none;
+}
+
+div.toc li a:hover, div.toc li a.active {
+    color: var(--primary-color) !important;
+}
+
+div.toc li a.aboveActive {
+    color: var(--page-secondary-foreground-color) !important;
+}
+
 
 div.toc ul li.level1 {
     margin: 0;
@@ -1044,11 +1075,67 @@ div.toc ul li.level2, div.toc ul li.level3 {
 }
 
 
-@media screen and (max-width: 767px) {
-    div.toc {
+@media screen and (max-width: 999px) {
+    div.contents .toc {
+        max-height: 45vh;
         float: none;
         width: auto;
         margin: 0 0 var(--spacing-medium) 0;
+        position: relative;
+        top: 0;
+        position: relative;
+        border: 1px solid var(--separator-color);
+        border-radius: var(--border-radius-medium);
+        background-color: var(--toc-background);
+        box-shadow: var(--box-shadow);
+    }
+
+    div.contents .toc.interactive {
+        max-height: calc(var(--navigation-font-size) + 2 * var(--spacing-large));
+        overflow: hidden;
+    }
+
+    div.contents .toc > h3 {
+        -webkit-tap-highlight-color: transparent;
+        cursor: pointer;
+        position: sticky;
+        top: 0;
+        background-color: var(--toc-background);
+        margin: 0;
+        padding: var(--spacing-large) 0;
+    }
+
+    div.contents .toc.interactive > h3::before {
+        content: "";
+        width: 0; 
+        height: 0; 
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 7px solid var(--primary-color);
+        margin-top: 5px;
+        display: block;
+        float: left;
+        margin-right: var(--spacing-small);
+        transform: rotate(-90deg);
+        transition: transform 0.25s ease-out;
+    }
+
+    div.contents .toc.interactive.open > h3::before {
+        transform: rotate(0deg);
+    }
+
+    div.contents .toc.interactive.open {
+        max-height: 45vh;
+        overflow: auto;
+        transition: max-height 0.2s ease-in-out;
+    }
+
+    div.contents .toc a, div.contents .toc a.active {
+        color: var(--primary-color) !important;
+    }
+
+    div.contents .toc a:hover {
+        text-decoration: underline;
     }
 }
 
@@ -1933,7 +2020,8 @@ pre.fragment::-webkit-scrollbar,
 div.memproto::-webkit-scrollbar,
 .contents center::-webkit-scrollbar,
 .contents .center::-webkit-scrollbar,
-.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname)::-webkit-scrollbar {
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname)::-webkit-scrollbar,
+div.contents .toc::-webkit-scrollbar {
     width: calc(var(--webkit-scrollbar-size) + var(--webkit-scrollbar-padding) + var(--webkit-scrollbar-padding));
     height: calc(var(--webkit-scrollbar-size) + var(--webkit-scrollbar-padding) + var(--webkit-scrollbar-padding));
 }
@@ -1944,7 +2032,8 @@ pre.fragment::-webkit-scrollbar-thumb,
 div.memproto::-webkit-scrollbar-thumb,
 .contents center::-webkit-scrollbar-thumb,
 .contents .center::-webkit-scrollbar-thumb,
-.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname)::-webkit-scrollbar-thumb {
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname)::-webkit-scrollbar-thumb,
+div.contents .toc::-webkit-scrollbar-thumb {
     background-color: transparent;
     border: var(--webkit-scrollbar-padding) solid transparent;
     border-radius: calc(var(--webkit-scrollbar-padding) + var(--webkit-scrollbar-padding));
@@ -1957,7 +2046,8 @@ pre.fragment:hover::-webkit-scrollbar-thumb,
 div.memproto:hover::-webkit-scrollbar-thumb,
 .contents center:hover::-webkit-scrollbar-thumb,
 .contents .center:hover::-webkit-scrollbar-thumb,
-.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname):hover::-webkit-scrollbar-thumb {
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname):hover::-webkit-scrollbar-thumb,
+div.contents .toc:hover::-webkit-scrollbar-thumb {
     background-color: var(--webkit-scrollbar-color);
 }
 
@@ -1967,7 +2057,8 @@ pre.fragment::-webkit-scrollbar-track,
 div.memproto::-webkit-scrollbar-track,
 .contents center::-webkit-scrollbar-track,
 .contents .center::-webkit-scrollbar-track,
-.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname)::-webkit-scrollbar-track {
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname)::-webkit-scrollbar-track,
+div.contents .toc::-webkit-scrollbar-track {
     background: transparent;
 }
 
@@ -1981,7 +2072,8 @@ pre.fragment,
 div.memproto,
 .contents center,
 .contents .center,
-.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) {
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname),
+div.contents .toc {
     overflow-x: auto;
     overflow-x: overlay;
 }
@@ -2002,7 +2094,8 @@ pre.fragment,
 div.memproto,
 .contents center,
 .contents .center,
-.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) {
+.contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname),
+div.contents .toc {
     scrollbar-width: thin;
 }
 
