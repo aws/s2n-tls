@@ -123,6 +123,10 @@ struct s2n_connection {
     /* Connection successfully set a ticket on the connection */
     unsigned set_session:1;
 
+    /* Buffer multiple records before flushing them.
+     * This allows multiple records to be written with one socket send. */
+    unsigned multirecord_send:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
@@ -277,7 +281,8 @@ struct s2n_connection {
     /* Reset record size back to a single segment after threshold seconds of inactivity */
     uint16_t dynamic_record_timeout_threshold;
 
-    /* number of bytes consumed during application activity */
+    /* The number of bytes consumed during a period of application activity.
+     * Used for dynamic record sizing. */
     uint64_t active_application_bytes_consumed;
 
     /* Negotiated TLS extension Maximum Fragment Length code.
