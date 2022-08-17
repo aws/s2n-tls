@@ -384,18 +384,14 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_rfc9151[] = {
 
         /* RSA PSS - TLS 1.3 */
         &s2n_rsa_pss_pss_sha384,
-        &s2n_rsa_pss_pss_sha512,
 
         /* ECDSA - TLS 1.2 */
         &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
-        &s2n_ecdsa_sha512,
 
         /* RSA */
         &s2n_rsa_pss_rsae_sha384,
-        &s2n_rsa_pss_rsae_sha512,
 
         &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
 };
 
 const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_rfc9151[] = {
@@ -409,17 +405,15 @@ const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_rfc9151[]
          * between any rsa pss signature schemes. Therefore a security policy with a certificate
          * signatures preference list must include all rsa_pss signature schemes.
          *
-         * Since only >= sha384 is allowed by rfc9151, this certificate signing policy does not
+         * Since only sha384 is allowed by rfc9151, this certificate signing policy does not
          * support rsa_pss.
          */
 
         /* ECDSA - TLS 1.2 */
         &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
-        &s2n_ecdsa_sha512,
 
         /* RSA */
         &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
 };
 
 
