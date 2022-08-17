@@ -39,12 +39,15 @@ base_packages() {
   apt install -y software-properties-common
   add-apt-repository ppa:ubuntu-toolchain-r/test -y
   add-apt-repository ppa:longsleep/golang-backports -y
-  add-apt-repository ppa:deadsnakes/ppa -y # needed for python3.9 and python3.9-distutils
   apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools  tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl shellcheck git tox cmake libtool ninja-build golang-go quilt jq python3.9 python3.9-distutils"
+  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools  tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl shellcheck git tox cmake libtool ninja-build golang-go quilt jq"
   if [[ -n "${GCC_VERSION:-}" ]] && [[ "${GCC_VERSION:-}" != "NONE" ]]; then
     DEPENDENCIES+=" gcc-$GCC_VERSION g++-$GCC_VERSION";
+  fi
+  if ! command -v python3.9 &> /dev/null; then
+    add-apt-repository ppa:deadsnakes/ppa -y
+    DEPENDENCIES+=" python3.9 python3.9-distutils";
   fi
 
   apt-get -y install --no-install-recommends ${DEPENDENCIES}
