@@ -56,7 +56,7 @@ static int s2n_x509_validator_validate_cert_chain_test(struct s2n_connection *co
     uint8_t *cert_chain_data;
     POSIX_ENSURE_REF(cert_chain_data = s2n_stuffer_raw_read(stuffer, cert_chain_size));
 
-    POSIX_GUARD(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn,
+    POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn,
             cert_chain_data, cert_chain_size, &actual_cert_pkey_type, &public_key));
 
     POSIX_GUARD(s2n_pkey_free(&public_key));

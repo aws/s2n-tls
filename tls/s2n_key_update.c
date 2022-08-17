@@ -65,6 +65,15 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
     POSIX_GUARD(s2n_check_record_limit(conn, &sequence_number));
 
     if (conn->key_update_pending) {
+        /* Flush any buffered records to ensure an empty output buffer.
+         *
+         * This is important when buffering multiple records because we don't:
+         * 1) Respect max fragment length for handshake messages
+         * 2) Check if there is sufficient space in the output buffer for
+         *    post-handshake messages.
+         */
+        POSIX_GUARD(s2n_flush(conn, blocked));
+
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
         struct s2n_blob key_update_blob = {0};
         POSIX_GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));

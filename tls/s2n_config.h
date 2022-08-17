@@ -149,6 +149,9 @@ struct s2n_config {
     void *context;
 
     s2n_cert_ownership cert_ownership;
+
+    /* Used to override the stuffer size for a connection's `out` stuffer. */
+    uint32_t send_buffer_size_override;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
