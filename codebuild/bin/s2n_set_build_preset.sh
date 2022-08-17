@@ -67,5 +67,9 @@ case "${S2N_BUILD_PRESET-default}" in
         : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
         : "${GCC_VERSION:=9}"
         ;;
+    "openssl-3.0")
+        : "${S2N_LIBCRYPTO:=openssl-3.0}"
+        : "${GCC_VERSION:=9}"
+        ;;
 esac
 

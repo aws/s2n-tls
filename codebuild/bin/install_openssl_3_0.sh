@@ -17,7 +17,7 @@ set -ex
 pushd "$(pwd)"
 
 usage() {
-    echo "install_openssl_3.sh build_dir install_dir os_name"
+    echo "install_openssl_3_0.sh build_dir install_dir os_name"
     exit 1
 }
 

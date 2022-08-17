@@ -41,7 +41,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${SCAN_BUILD_INSTALL_DIR:=$TEST_DEPS_DIR/scan-build}"
 : "${OPENSSL_0_9_8_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-0.9.8}"
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.1.1}"
-: "${OPENSSL_3_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3}"
+: "${OPENSSL_3_0_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2}"
 : "${OQS_OPENSSL_1_1_1_INSTALL_DIR:=$TEST_DEPS_DIR/oqs_openssl-1.1.1}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2-fips}"
@@ -98,7 +98,7 @@ export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
 export OPENSSL_0_9_8_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
-export OPENSSL_3_INSTALL_DIR
+export OPENSSL_3_0_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR
 export OQS_OPENSSL_1_1_1_INSTALL_DIR
@@ -124,7 +124,7 @@ fi
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "openssl-3" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then
     export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ;
