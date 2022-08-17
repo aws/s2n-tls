@@ -39,10 +39,8 @@ fi
 
 # Download and Install Openssl 3.0
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" && ! -d "$OPENSSL_3_0_INSTALL_DIR" ]]; then
-    if [[ ! -x "$OPENSSL_3_0_INSTALL_DIR/bin/openssl" ]]; then
-      mkdir -p "$OPENSSL_3_0_INSTALL_DIR"||true
-      codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_0_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-    fi
+    mkdir -p "$OPENSSL_3_0_INSTALL_DIR"
+    codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_0_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
 
 # Download and Install Openssl 1.0.2
