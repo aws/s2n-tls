@@ -142,10 +142,12 @@ S2N_RESULT s2n_libcrypto_init(void)
 {
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
     RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "default") != NULL, S2N_ERR_OSSL_LOAD_PROVIDER);
+    #ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
     /* needed to support RC4 algorithm
      * https://www.openssl.org/docs/man3.0/man7/OSSL_PROVIDER-legacy.html
      */
     RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "legacy") != NULL, S2N_ERR_OSSL_LOAD_PROVIDER);
+    #endif
 #endif
 
     return S2N_RESULT_OK;
