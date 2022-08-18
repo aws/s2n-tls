@@ -45,6 +45,10 @@ base_packages() {
   if [[ -n "${GCC_VERSION:-}" ]] && [[ "${GCC_VERSION:-}" != "NONE" ]]; then
     DEPENDENCIES+=" gcc-$GCC_VERSION g++-$GCC_VERSION";
   fi
+  if ! command -v python3.9 &> /dev/null; then
+    add-apt-repository ppa:deadsnakes/ppa -y
+    DEPENDENCIES+=" python3.9 python3.9-distutils";
+  fi
 
   apt-get -y install --no-install-recommends ${DEPENDENCIES}
 }
