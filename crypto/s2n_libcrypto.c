@@ -141,11 +141,11 @@ bool s2n_libcrypto_is_boringssl()
 S2N_RESULT s2n_libcrypto_init(void)
 {
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-    RESULT_ENSURE_NE(OSSL_PROVIDER_load(NULL, "default"), NULL);
+    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "default") != NULL, S2N_ERR_OSSL_LOAD_PROVIDER);
     /* needed to support RC4 algorithm
      * https://www.openssl.org/docs/man3.0/man7/OSSL_PROVIDER-legacy.html
      */
-    RESULT_ENSURE_NE(OSSL_PROVIDER_load(NULL, "legacy"), NULL);
+    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "legacy") != NULL, S2N_ERR_OSSL_LOAD_PROVIDER);
 #endif
 
     return S2N_RESULT_OK;
