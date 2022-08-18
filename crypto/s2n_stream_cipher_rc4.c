@@ -14,7 +14,6 @@
  */
 
 #include <openssl/rc4.h>
-#include <openssl/provider.h>
 
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_fips.h"
@@ -79,7 +78,6 @@ static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key,
 
 static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
 {
-    OSSL_PROVIDER_load(NULL, "legacy");
     s2n_evp_ctx_init(key->evp_cipher_ctx);
 
     return 0;
