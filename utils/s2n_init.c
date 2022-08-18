@@ -58,6 +58,7 @@ int s2n_init(void)
     POSIX_GUARD(s2n_mem_init());
     /* Must run before any init method that calls libcrypto methods. */
     POSIX_GUARD_RESULT(s2n_locking_init());
+    POSIX_GUARD_RESULT(s2n_libcrypto_init());
     POSIX_GUARD(s2n_fips_init());
     POSIX_GUARD_RESULT(s2n_rand_init());
     POSIX_GUARD(s2n_cipher_suites_init());
