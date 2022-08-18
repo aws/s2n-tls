@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.19-0db1a2b7</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.19-fdd35b90</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -81,8 +81,7 @@ Quickstart for Ubuntu</h2>
 <div class="line"># Pick an &quot;env&quot; line from the codebuild/codebuild.config file and run it, in this case choose the openssl-1.1.1 with GCC 9 build</div>
 <div class="line">S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9</div>
 <div class="line"> </div>
-<div class="line">source codebuild/bin/s2n_setup_env.sh</div>
-<div class="line">codebuild/bin/s2n_install_test_dependencies.sh</div>
+<div class="line">sudo codebuild/bin/s2n_install_test_dependencies.sh</div>
 <div class="line">codebuild/bin/s2n_codebuild.sh</div>
 </div><!-- fragment --></li>
 </ol>
@@ -141,7 +140,7 @@ Using s2n-tls</h2>
 <div class="line"><span class="keywordflow">if</span> (<a class="code hl_function" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate</a>(conn, &amp;blocked) &lt; 0) {</div>
 <div class="line">    ... error ...</div>
 <div class="line">}</div>
-<div class="line">    </div>
+<div class="line"> </div>
 <div class="line"><span class="comment">/* Write data to the connection */</span></div>
 <div class="line"><span class="keywordtype">int</span> bytes_written;</div>
 <div class="line">bytes_written = <a class="code hl_function" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send</a>(conn, <span class="stringliteral">&quot;Hello World&quot;</span>, <span class="keyword">sizeof</span>(<span class="stringliteral">&quot;Hello World&quot;</span>), &amp;blocked);</div>
@@ -168,8 +167,7 @@ s2n-tls safety mechanisms</h2>
 <p >Ignoring tests, blank lines and comments, s2n-tls is about 6,000 lines of code. s2n's code is also structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.</p>
 <p >To date there have been two external code-level reviews of s2n-tls, including one by a commercial security vendor. s2n-tls has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n-tls issue tracker.</p>
 <p ><a class="anchor" id="autotoc_md29"></a> </p><h5>Static analysis, fuzz-testing and penetration testing</h5>
-<p >In addition to code reviews, s2n-tls is subject to regular static analysis, fuzz-testing, and penetration testing. Several penetration tests have occurred, including two by commercial vendors. <br  />
-</p>
+<p >In addition to code reviews, s2n-tls is subject to regular static analysis, fuzz-testing, and penetration testing. Several penetration tests have occurred, including two by commercial vendors.</p>
 <p ><a class="anchor" id="autotoc_md30"></a> </p><h5>Unit tests and end-to-end testing</h5>
 <p >s2n-tls includes positive and negative unit tests and end-to-end test cases.</p>
 <p ><a class="anchor" id="autotoc_md31"></a> </p><h5>Erase on read</h5>
@@ -191,8 +189,7 @@ s2n-tls safety mechanisms</h2>
 <h2><a class="anchor" id="autotoc_md39"></a>
 Security issue notifications</h2>
 <p >If you discover a potential security issue in s2n-tls we ask that you notify AWS Security via our <a href="http://aws.amazon.com/security/vulnerability-reporting/">vulnerability reporting page</a>. Please do <b>not</b> create a public github issue.</p>
-<p >If you package or distribute s2n-tls, or use s2n-tls as part of a large multi-user service, you may be eligible for pre-notification of future s2n-tls releases. Please contact <a href="#" onclick="location.href='mai'+'lto:'+'s2n'+'-p'+'re-'+'no'+'tif'+'ic'+'ati'+'on'+'@am'+'az'+'on.'+'co'+'m'; return false;">s2n-p<span class="obfuscator">.nosp@m.</span>re-n<span class="obfuscator">.nosp@m.</span>otifi<span class="obfuscator">.nosp@m.</span>cati<span class="obfuscator">.nosp@m.</span>on@am<span class="obfuscator">.nosp@m.</span>azon<span class="obfuscator">.nosp@m.</span>.com</a>. <br  />
-</p>
+<p >If you package or distribute s2n-tls, or use s2n-tls as part of a large multi-user service, you may be eligible for pre-notification of future s2n-tls releases. Please contact <a href="#" onclick="location.href='mai'+'lto:'+'s2n'+'-p'+'re-'+'no'+'tif'+'ic'+'ati'+'on'+'@am'+'az'+'on.'+'co'+'m'; return false;">s2n-p<span class="obfuscator">.nosp@m.</span>re-n<span class="obfuscator">.nosp@m.</span>otifi<span class="obfuscator">.nosp@m.</span>cati<span class="obfuscator">.nosp@m.</span>on@am<span class="obfuscator">.nosp@m.</span>azon<span class="obfuscator">.nosp@m.</span>.com</a>.</p>
 <h2><a class="anchor" id="autotoc_md40"></a>
 Contributing to s2n-tls</h2>
 <p >If you are interested in contributing to s2n-tls, please see our <a href="https://github.com/aws/s2n-tls/blob/main/docs/DEVELOPMENT-GUIDE.md">development guide</a>.</p>
