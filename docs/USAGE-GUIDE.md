@@ -625,7 +625,10 @@ configured by **s2n_connection_prefer_throughput** and **s2n_connection_prefer_l
 
 ### Dynamic Record Sizing
 
-**s2n_connection_set_dynamic_record_threshold** can be called to change the record size dynamically.
+Sending smaller records at the beginning of a connection can decrease first byte latency,
+particularly if TCP slow start is used.
+
+**s2n_connection_set_dynamic_record_threshold** can be called to to initially send smaller records.
 The connection will send the first **resize_threshold** bytes in records small enough to
 fit in a single standard 1500 byte ethernet frame. Whenever **timeout_threshold** seconds
 pass without sending data, the connection will revert to this behavior and send small records again.
