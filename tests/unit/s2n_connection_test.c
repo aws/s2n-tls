@@ -661,6 +661,61 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
     }
 
+    /* Test post-handshake buffer lifecycle */
+    {
+        const uint32_t size = 10;
+
+        /* Reusable after wipe */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            for (size_t i = 0; i < 3; i++) {
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+                EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
+                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, size));
+                EXPECT_EQUAL(conn->post_handshake.in.blob.size, size);
+            }
+        }
+
+        /* s2n_connection_release_buffers */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            for (size_t i = 0; i < 3; i++) {
+                EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
+                EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
+                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, size));
+                EXPECT_EQUAL(conn->post_handshake.in.blob.size, size);
+            }
+
+            /* Fails to release if in use */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->post_handshake.in, 1));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_release_buffers(conn),
+                    S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
+            EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
+        }
+
+        /* s2n_connection_free_handshake */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            for (size_t i = 0; i < 3; i++) {
+                EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+                EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
+                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, size));
+                EXPECT_EQUAL(conn->post_handshake.in.blob.size, size);
+            }
+
+            /* Fails to release if in use */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->post_handshake.in, 1));
+            EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
+            EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
+        }
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));
     END_TEST();

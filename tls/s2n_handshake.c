@@ -57,15 +57,15 @@ int s2n_handshake_finish_header(struct s2n_stuffer *out)
     return S2N_SUCCESS;
 }
 
-int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_type, uint32_t * length)
+S2N_RESULT s2n_handshake_parse_header(struct s2n_connection *conn, struct s2n_stuffer *io, uint8_t * message_type, uint32_t * length)
 {
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->handshake.io) < TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
+    RESULT_ENSURE(s2n_stuffer_data_available(io) >= TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 
     /* read the message header */
-    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, message_type));
-    POSIX_GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, length));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(io, message_type));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint24(io, length));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state **hash_state)
