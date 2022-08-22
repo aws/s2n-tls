@@ -488,7 +488,7 @@ Call `s2n_connection_get_sct_list()` to retrieve the received certificate transp
 
 ## Session Resumption
 
-TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. We usually refer to the stored session state as a "session ticket". Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.
+TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. The authentication step can be skipped because both the server and client will use their possession of the key from the previous session to prove who they are. We usually refer to the stored session state as a "session ticket". Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.
 
 ### Session Ticket Key
 
@@ -510,7 +510,7 @@ Clients should call `s2n_config_set_session_tickets_onoff()` to enable stateless
 
 In stateful session resumption, also known as session caching, the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.
 
-Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
+Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Session caching will not be turned on unless all three session cache callbacks are set prior to calling `s2n_config_set_session_cache_onoff()`. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
 
 Clients should call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
 
