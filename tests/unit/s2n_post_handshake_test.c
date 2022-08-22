@@ -34,11 +34,68 @@
                                 SIZEOF_UINT24   + /* message len */ \
                                 sizeof(uint8_t)   /* message */
 
+bool s2n_post_handshake_is_known(uint8_t message_type);
+bool s2n_post_handshake_is_valid_to_recv(s2n_mode mode, uint8_t message_type);
 int s2n_key_update_write(struct s2n_blob *out);
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    /* Test: s2n_post_handshake_is_known
+     *
+     * Unfortunately, s2n_post_handshake_is_known relies on a hardcoded list
+     * to identify known handshake messages not allowed post-handshake.
+     *
+     * This test verifies that list is correct and enforces that we keep it up to date.
+     */
+    {
+        /* We rely on record type being set to identify invalid state machine entries.
+         * Verify that assumption.
+         */
+        EXPECT_NOT_EQUAL(TLS_HANDSHAKE, 0);
+
+        for (size_t i = 0; i < UINT8_MAX; i++) {
+            bool is_handshake_message = false;
+            for (size_t j = 0; j < s2n_array_len(state_machine); j++) {
+                if (state_machine[j].record_type != TLS_HANDSHAKE) {
+                    continue;
+                }
+                if (state_machine[j].message_type != i) {
+                    continue;
+                }
+                is_handshake_message = true;
+                break;
+            }
+            for (size_t j = 0; j < s2n_array_len(tls13_state_machine); j++) {
+                if (tls13_state_machine[j].record_type != TLS_HANDSHAKE) {
+                    continue;
+                }
+                if (tls13_state_machine[j].message_type != i) {
+                    continue;
+                }
+                is_handshake_message = true;
+                break;
+            }
+
+            bool is_valid_to_receive = s2n_post_handshake_is_valid_to_recv(S2N_CLIENT, i)
+                    || s2n_post_handshake_is_valid_to_recv(S2N_SERVER, i);
+            bool is_post_handshake_message = is_valid_to_receive && s2n_post_handshake_is_known(i);
+
+            /* We should have no overlap between handshake and post-handshake messages.
+             *
+             * The only exception is TLS_SERVER_NEW_SESSION_TICKET, which is a handshake
+             * message in TLS1.2 and a post-handshake message in TLS1.3.
+             */
+            if (i != TLS_SERVER_NEW_SESSION_TICKET) {
+                EXPECT_FALSE(is_handshake_message && is_post_handshake_message);
+            }
+
+            /* All handshake messages must be included in the list in s2n_post_handshake_is_known */
+            bool is_known = is_handshake_message || is_post_handshake_message;
+            EXPECT_EQUAL(is_known, s2n_post_handshake_is_known(i));
+        }
+    }
 
     /* s2n_post_handshake_recv */
     {   
@@ -55,7 +112,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, S2N_KEY_UPDATE_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
             EXPECT_TRUE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
@@ -74,7 +131,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, S2N_KEY_UPDATE_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
@@ -92,7 +149,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_KEY_UPDATE));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_LENGTH));
 
-            EXPECT_FAILURE(s2n_post_handshake_recv(conn));
+            EXPECT_ERROR(s2n_post_handshake_recv(conn));
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
@@ -116,7 +173,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, key_update_message.data, key_update_message.size));
             }
 
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
 
             /* All three key update messages have been read */
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), 0);
@@ -132,7 +189,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_HELLO_REQUEST));
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -154,7 +211,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+                EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -171,12 +228,11 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, tls13_state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+                EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
         }
-
     }
 
     /* post_handshake_send */
