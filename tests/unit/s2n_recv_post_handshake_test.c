@@ -271,6 +271,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(tickets_count, 0);
 
         /* Restore the full input to unblock the connection */
+        // cppcheck-suppress redundantAssignment
         client_in.write_cursor = write_cursor;
 
         EXPECT_EQUAL(s2n_recv(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
