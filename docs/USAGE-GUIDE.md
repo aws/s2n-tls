@@ -366,7 +366,7 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
-|   "rfc9151"    |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |     |   X   |
+|   "rfc9151"    |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |
 
 The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 
