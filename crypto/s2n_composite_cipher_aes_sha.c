@@ -167,7 +167,10 @@ static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, str
     POSIX_ENSURE_EQ(out->size, in->size);
 
     POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
-    POSIX_GUARD_OSSL(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size), S2N_ERR_ENCRYPT);
+
+    int len = out->size;
+    POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
+    S2N_ERROR_IF(len != in->size, S2N_ERR_ENCRYPT);
 
     return 0;
 }
@@ -175,9 +178,10 @@ static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, str
 static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
     POSIX_ENSURE_EQ(out->size, in->size);
-
     POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
-    POSIX_GUARD_OSSL(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size), S2N_ERR_DECRYPT);
+
+    int len = out->size;
+    POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_DECRYPT);
 
     return 0;
 }
