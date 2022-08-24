@@ -26,6 +26,7 @@
 #include "crypto/s2n_pkey.h"
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_compiler.h"
 #include "utils/s2n_safety.h"
 
 static int s2n_hash_alg_to_NID[] = {
@@ -67,7 +68,14 @@ int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
 
     unsigned int signature_size = signature->size;
-    POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size, (RSA *) key->rsa), S2N_ERR_SIGN);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -105,7 +113,14 @@ int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa), S2N_ERR_VERIFY_SIGNATURE);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size, (RSA *) key->rsa), S2N_ERR_VERIFY_SIGNATURE);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
 
     return 0;
 }

@@ -26,12 +26,14 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+
 #include "utils/s2n_blob.h"
+#include "utils/s2n_compiler.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-static S2N_RESULT s2n_rsa_modulus_check(RSA *rsa)
+static S2N_RESULT s2n_rsa_modulus_check(const RSA *rsa)
 {
 /* RSA was made opaque starting in Openssl 1.1.0 */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
@@ -98,8 +100,15 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     S2N_ERROR_IF(out->size < size, S2N_ERR_NOMEM);
 
     const s2n_rsa_public_key *key = &pub->key.rsa_key;
-    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data, key->rsa,
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data, (RSA *) key->rsa,
                                RSA_PKCS1_PADDING);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
     S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
@@ -118,7 +127,14 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     POSIX_GUARD_RESULT(s2n_get_public_random_data(out));
 
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
-    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate, key->rsa, RSA_NO_PADDING);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate, (RSA *) key->rsa, RSA_NO_PADDING);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
     S2N_ERROR_IF(r != expected_size, S2N_ERR_SIZE_MISMATCH);
 
     s2n_constant_time_pkcs1_unpad_or_dont(out->data, intermediate, r, out->size);
@@ -153,7 +169,14 @@ static int s2n_rsa_key_free(struct s2n_pkey *pkey)
     struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
     if (rsa_key->rsa == NULL) { return 0; }
 
-    RSA_free(rsa_key->rsa);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    RSA_free((RSA *) rsa_key->rsa);
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
     rsa_key->rsa = NULL;
 
     return 0;

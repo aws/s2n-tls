@@ -285,12 +285,17 @@ int main(int argc, char **argv)
                 &rsa_cert_chain->cert_chain->head->raw));
         EXPECT_EQUAL(rsa_pkey_type, S2N_PKEY_TYPE_RSA);
 
-        RSA *rsa_key = EVP_PKEY_get0_RSA(rsa_public_key.pkey);
+        RSA *rsa_key = EVP_PKEY_get1_RSA(rsa_public_key.pkey);
         BIGNUM *n = BN_new(), *e = BN_new(), *d = BN_new();
         EXPECT_SUCCESS(BN_hex2bn(&n, test_case.key_param_n));
         EXPECT_SUCCESS(BN_hex2bn(&e, test_case.key_param_e));
         EXPECT_SUCCESS(BN_hex2bn(&d, test_case.key_param_d));
         EXPECT_SUCCESS(RSA_set0_key(rsa_key, n, e, d));
+
+        /* In openssl 3 the function `EVP_PKEY_get1_RSA` returns a cached copy of PKEY
+         * rather than the original copy. Therefore to modify the value of
+         * rsa_public_key, `EVP_PKEY_set1_RSA` must be called. */
+        EVP_PKEY_set1_RSA(rsa_public_key.pkey, rsa_key);
 
         struct s2n_stuffer message_stuffer = { 0 }, signature_stuffer = { 0 };
         s2n_stuffer_alloc_ro_from_hex_string(&message_stuffer, test_case.message);
