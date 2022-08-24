@@ -72,7 +72,14 @@ int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
-    POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size, (RSA *) key->rsa), S2N_ERR_SIGN);
+    /**
+     * # Safety
+     *
+     * The function `RSA_sign` does not modify the RSA key so its is safe to
+     * cast the const RSA key to a non-const RSA key.
+     */
+    POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size,
+                (RSA *) key->rsa), S2N_ERR_SIGN);
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
 #endif
@@ -117,7 +124,14 @@ int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
-    POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size, (RSA *) key->rsa), S2N_ERR_VERIFY_SIGNATURE);
+    /**
+     * # Safety
+     *
+     * The function `RSA_verify` does not modify the RSA key so its is safe to
+     * cast the const RSA key to a non-const RSA key.
+     */
+    POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size,
+                (RSA *) key->rsa), S2N_ERR_VERIFY_SIGNATURE);
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
 #endif

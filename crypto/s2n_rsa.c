@@ -104,6 +104,12 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
+    /**
+     * # Safety
+     *
+     * The function `RSA_public_encrypt` does not modify the RSA key so its is
+     * safe to cast the const RSA key to a non-const RSA key.
+     */
     int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data, (RSA *) key->rsa,
                                RSA_PKCS1_PADDING);
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
@@ -131,6 +137,12 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
+    /**
+     * # Safety
+     *
+     * The function `RSA_private_decrypt` does not modify the RSA key so its is
+     * safe to cast the const RSA key to a non-const RSA key.
+     */
     int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate, (RSA *) key->rsa, RSA_NO_PADDING);
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
