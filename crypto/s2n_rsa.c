@@ -185,6 +185,12 @@ static int s2n_rsa_key_free(struct s2n_pkey *pkey)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
+    /**
+     * # !Safety
+     *
+     * THIS IS NOT SAFE
+     *
+     */
     RSA_free((RSA *) rsa_key->rsa);
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
