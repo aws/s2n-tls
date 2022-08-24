@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.20-be218c65</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.20-1590357d</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -1338,6 +1338,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Callback function for receiving a session ticket.</p>
+<p >This function will be called each time a session ticket is received, which may be multiple times for TLS1.3.</p>
 <h1><a class="anchor" id="autotoc_md0"></a>
 Safety</h1>
 <p ><code>ctx</code> is a void pointer and the caller is responsible for ensuring it is cast to the correct type. <code>ticket</code> is valid only within the scope of this callback.</p>
@@ -4804,6 +4805,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Enable or disable session caching.</p>
+<dl class="section note"><dt>Note</dt><dd>Session caching will not be turned on unless all three session cache callbacks are set prior to calling this function.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -6454,8 +6456,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Serializes the session state from connection and copies into the <code>session</code> buffer and returns the number of copied bytes</p>
-<p >The output of this function depends on whether session ids or session tickets are being used for resumption.</p>
-<dl class="section note"><dt>Note</dt><dd>This is for &lt; TLS 1.3 session resumption.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This function is not recommended for &gt; TLS 1.2 because in TLS1.3 servers can send multiple session tickets and this function will only return the most recently received ticket.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
@@ -6582,7 +6583,8 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Get the lifetime hint for a session.</p>
+<p >Retrieves a hint from the server indicating how long this ticket's lifetime is.</p>
+<dl class="section note"><dt>Note</dt><dd>This function is not recommended for &gt; TLS 1.2 because in TLS1.3 servers can send multiple session tickets and this function will only return the most recently received ticket lifetime hint.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object</td></tr>
@@ -8938,7 +8940,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1798</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1801</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
