@@ -108,6 +108,8 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
 int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     const struct s2n_signature_preferences *signature_preferences = NULL;
     POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     POSIX_ENSURE_REF(signature_preferences);
