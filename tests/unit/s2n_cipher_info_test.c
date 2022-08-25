@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     /* Verify the cipher info functions work for every cipher suite */
     for (size_t cipher_idx = 0; cipher_idx < cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_suite *expected_cipher = cipher_preferences->suites[cipher_idx];
-        conn->secure.cipher_suite = expected_cipher;
+        conn->secure->cipher_suite = expected_cipher;
 
         EXPECT_STRING_EQUAL(s2n_connection_get_cipher(conn), expected_cipher->name);
         EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(conn, &iana_value[0], &iana_value[1]));

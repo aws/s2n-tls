@@ -372,21 +372,21 @@ int main(int argc, char **argv)
                 {
                     /* Choose RSA for an RSA cipher suite. */
                     {
-                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
                     }
 
                     /* Choose ECDSA for a ECDSA cipher suite. */
                     {
-                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
                     }
 
                     /* Ignore the type of the client certificate. */
                     {
-                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
 
                     /* When in doubt, choose RSA. */
                     {
-                        conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                        conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
                     }
@@ -418,7 +418,7 @@ int main(int argc, char **argv)
 
                     /* Ignore the auth type of the cipher suite */
                     {
-                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
                         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
@@ -436,21 +436,21 @@ int main(int argc, char **argv)
                 {
                     /* Choose RSA for an RSA cipher suite. */
                     {
-                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
                     }
 
                     /* Choose ECDSA for a ECDSA cipher suite. */
                     {
-                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
                     }
 
                     /* Ignore the type of the client certificate. */
                     {
-                        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
                     /* When in doubt, choose RSA. */
                     {
-                        conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                        conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
                         EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
                     }
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
 
                     /* Ignore the auth type of the cipher suite */
                     {
-                        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                        conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
                         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
@@ -522,7 +522,7 @@ int main(int argc, char **argv)
 
         /* Test: no peer list */
         {
-            conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+            conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS10;
             struct s2n_signature_scheme default_scheme = s2n_ecdsa_sha1;
 
@@ -539,14 +539,14 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
 
             /* If we cannot find a match in TLS1.3, allow defaults for success */
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
         }
 
         /* Test: no shared valid signature schemes, using TLS1.3. Server picks preferred */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
 
         /* Test: no shared valid signature schemes, using TLS1.2 */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
             /* Peer list contains no signature schemes that we support */
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
 
         /* Test: choose valid signature from peer list */
         {
-            conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+            conn->secure->cipher_suite = RSA_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -606,7 +606,7 @@ int main(int argc, char **argv)
 
         /* Test: invalid scheme, because wrong protocol version */
         {
-            conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+            conn->secure->cipher_suite = RSA_CIPHER_SUITE;
 
             struct s2n_sig_scheme_list peer_list = {
                     .len = 1, .iana_list = { s2n_rsa_pkcs1_sha224.iana_value },
@@ -680,7 +680,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+        conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
 
         /* Test: no shared valid signature schemes, using TLS1.3. Server cant pick preferred */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -814,7 +814,7 @@ int main(int argc, char **argv)
 
         /* Test: no shared valid signature schemes, using TLS1.3. Server picks a preferred */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_sig_scheme_list peer_list = {

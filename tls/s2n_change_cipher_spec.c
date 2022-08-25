@@ -40,17 +40,20 @@ int s2n_basic_ccs_recv(struct s2n_connection *conn)
 
 int s2n_client_ccs_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     POSIX_GUARD(s2n_basic_ccs_recv(conn));
 
     /* Zero the sequence number */
-    struct s2n_blob seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
+    struct s2n_blob seq = {.data = conn->secure->client_sequence_number,.size = sizeof(conn->secure->client_sequence_number) };
     POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */
     POSIX_GUARD(s2n_prf_client_finished(conn));
 
     /* Update the client to use the cipher-suite */
-    conn->client = &conn->secure;
+    conn->client = conn->secure;
 
     /* Flush any partial alert messages that were pending.
      * If we don't do this, an attacker can inject a 1-byte alert message into the handshake
@@ -62,17 +65,20 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
 
 int s2n_server_ccs_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     POSIX_GUARD(s2n_basic_ccs_recv(conn));
 
     /* Zero the sequence number */
-    struct s2n_blob seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
+    struct s2n_blob seq = {.data = conn->secure->server_sequence_number,.size = sizeof(conn->secure->server_sequence_number) };
     POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */
     POSIX_GUARD(s2n_prf_server_finished(conn));
 
     /* Update the secure state to active, and point the client at the active state */
-    conn->server = &conn->secure;
+    conn->server = conn->secure;
 
     /* Flush any partial alert messages that were pending.
      * If we don't do this, an attacker can inject a 1-byte alert message into the handshake

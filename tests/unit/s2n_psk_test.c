@@ -388,7 +388,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
@@ -399,13 +399,13 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &other_psk));
             EXPECT_OK(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_set_secret(other_psk, test_value, sizeof(test_value)));
-            other_psk->hmac_alg = conn->secure.cipher_suite->prf_alg - 1;
+            other_psk->hmac_alg = conn->secure->cipher_suite->prf_alg - 1;
 
             struct s2n_psk *matching_psk = NULL;
             EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &matching_psk));
             EXPECT_OK(s2n_psk_init(matching_psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_set_secret(matching_psk, test_value, sizeof(test_value)));
-            matching_psk->hmac_alg = conn->secure.cipher_suite->prf_alg;
+            matching_psk->hmac_alg = conn->secure->cipher_suite->prf_alg;
 
             EXPECT_OK(s2n_psk_write_binder_list(conn, &client_hello_prefix, &out));
 

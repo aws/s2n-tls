@@ -153,7 +153,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS12;
 
         /* This cipher is not in the client's default selection */
-        server_conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+        server_conn->secure->cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
         /* Create session ID for server */
         for (int i = 0; i < 32; i++) {
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
         /* the client only support TLS1.2 */
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
 
-        server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
         /* Copy server stuffer to client stuffer */
@@ -494,7 +494,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         server_conn->actual_protocol_version = S2N_TLS12;
 
-        server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 

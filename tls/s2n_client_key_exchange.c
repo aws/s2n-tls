@@ -46,11 +46,14 @@ static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rs
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
         s2n_kex_client_key_method kex_method, uint32_t *cursor, s2n_stuffer_action stuffer_action)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(kex_method);
     POSIX_ENSURE_REF(stuffer_action);
+
     struct s2n_stuffer *io = &conn->handshake.io;
-    const struct s2n_kex *hybrid_kex_0 = conn->secure.cipher_suite->key_exchange_alg->hybrid[0];
-    const struct s2n_kex *hybrid_kex_1 = conn->secure.cipher_suite->key_exchange_alg->hybrid[1];
+    const struct s2n_kex *hybrid_kex_0 = conn->secure->cipher_suite->key_exchange_alg->hybrid[0];
+    const struct s2n_kex *hybrid_kex_1 = conn->secure->cipher_suite->key_exchange_alg->hybrid[1];
 
     /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
     struct s2n_blob *client_key_exchange_message = &conn->kex_params.client_key_exchange_message;
@@ -81,8 +84,12 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
 
 static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+
     /* Turn the pre-master secret into a master secret */
-    POSIX_GUARD_RESULT(s2n_kex_tls_prf(conn->secure.cipher_suite->key_exchange_alg, conn, shared_key));
+    POSIX_GUARD_RESULT(s2n_kex_tls_prf(conn->secure->cipher_suite->key_exchange_alg, conn, shared_key));
 
     /* Expand the keys */
     POSIX_GUARD(s2n_prf_key_expansion(conn));
@@ -214,7 +221,11 @@ int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *com
 
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
-    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+
+    const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
     DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
     POSIX_GUARD_RESULT(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
@@ -309,7 +320,11 @@ int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *com
 
 int s2n_client_key_send(struct s2n_connection *conn)
 {
-    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+
+    const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
     DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
 
     POSIX_GUARD_RESULT(s2n_kex_client_key_send(key_exchange, conn, &shared_key));

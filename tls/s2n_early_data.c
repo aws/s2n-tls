@@ -61,6 +61,7 @@ int s2n_connection_set_end_of_early_data(struct s2n_connection *conn)
 static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
@@ -87,7 +88,7 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
      *# -  The selected cipher suite
      **/
-    RESULT_ENSURE_EQ(config->cipher_suite, conn->secure.cipher_suite);
+    RESULT_ENSURE_EQ(config->cipher_suite, conn->secure->cipher_suite);
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
      *# -  The selected ALPN [RFC7301] protocol, if any

@@ -238,7 +238,7 @@ int main(int argc, char **argv) {
              * the client & server traffic secrets */
             DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
             EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, test_vector->cipher_suite->prf_alg));
-            client_conn->secure.cipher_suite = test_vector->cipher_suite;
+            client_conn->secure->cipher_suite = test_vector->cipher_suite;
 
             DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
             EXPECT_SUCCESS(s2n_hash_new(&hash_state));

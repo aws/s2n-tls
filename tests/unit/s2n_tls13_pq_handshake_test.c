@@ -167,8 +167,8 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* Verify basic properties of secrets */
     s2n_tls13_connection_keys(server_secret_info, server_conn);
     s2n_tls13_connection_keys(client_secret_info, client_conn);
-    POSIX_ENSURE_EQ(server_conn->secure.cipher_suite, client_conn->secure.cipher_suite);
-    if (server_conn->secure.cipher_suite == &s2n_tls13_aes_256_gcm_sha384) {
+    POSIX_ENSURE_EQ(server_conn->secure->cipher_suite, client_conn->secure->cipher_suite);
+    if (server_conn->secure->cipher_suite == &s2n_tls13_aes_256_gcm_sha384) {
         POSIX_ENSURE_EQ(server_secret_info.size, 48);
         POSIX_ENSURE_EQ(client_secret_info.size, 48);
     } else {

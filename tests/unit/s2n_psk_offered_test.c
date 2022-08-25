@@ -476,7 +476,7 @@ int main(int argc, char **argv)
 
             server_conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
@@ -515,7 +515,7 @@ int main(int argc, char **argv)
 
             server_conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
@@ -548,7 +548,7 @@ int main(int argc, char **argv)
 
             server_conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             struct s2n_offered_psk_list identity_list = { .conn = server_conn };
             struct s2n_offered_psk client_psk = { .identity = wire_identity, .wire_index = wire_index };

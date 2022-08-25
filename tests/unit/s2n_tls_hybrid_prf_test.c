@@ -62,7 +62,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS12;
         /* Really only need for the hash function in the PRF */
-        conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+        conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
         /* Read test vector from KAT file */
         uint32_t premaster_kem_secret_length = 0;

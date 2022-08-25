@@ -1028,7 +1028,8 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(version);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
 
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
@@ -1039,7 +1040,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
         return 0;
     }
 
-    struct s2n_cipher_suite *cipher = conn->secure.cipher_suite;
+    struct s2n_cipher_suite *cipher = conn->secure->cipher_suite;
     POSIX_ENSURE_REF(cipher);
     for (int i = 0; i < security_policy->cipher_preferences->count; ++i) {
         if (0 == memcmp(security_policy->cipher_preferences->suites[i]->iana_value, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {

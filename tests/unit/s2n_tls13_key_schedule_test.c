@@ -59,8 +59,8 @@ static S2N_RESULT s2n_connection_verify_secrets(struct s2n_connection *conn, str
         bool expect_early_data_traffic_secret)
 {
     /* Test: All handshake and master traffic secrets calculated */
-    RESULT_ENSURE_EQ(conn->server, &conn->secure);
-    RESULT_ENSURE_EQ(conn->client, &conn->secure);
+    RESULT_ENSURE_EQ(conn->server, conn->secure);
+    RESULT_ENSURE_EQ(conn->client, conn->secure);
     RESULT_ENSURE_GT(secrets->blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size, 0);
     RESULT_ENSURE_GT(secrets->blobs[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET].size, 0);
     RESULT_ENSURE_GT(secrets->blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size, 0);
@@ -84,7 +84,7 @@ static S2N_RESULT s2n_mock_extract_method(struct s2n_connection *conn)
 static S2N_RESULT s2n_mock_derive_method(struct s2n_connection *conn, struct s2n_blob *secret)
 {
     uint8_t size = 0;
-    s2n_hmac_algorithm hmac_alg = conn->secure.cipher_suite->prf_alg;
+    s2n_hmac_algorithm hmac_alg = conn->secure->cipher_suite->prf_alg;
     RESULT_GUARD_POSIX(s2n_hmac_digest_size(hmac_alg, &size));
     RESULT_GUARD_POSIX(s2n_blob_init(secret, empty_secret, size));
     return S2N_RESULT_OK;
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->handshake.handshake_type = test_cases[i].handshake_type;
-                conn->secure.cipher_suite = test_cases[i].cipher_suite;
+                conn->secure->cipher_suite = test_cases[i].cipher_suite;
                 if (test_cases[i].is_early_data_requested) {
                     conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
                 }
@@ -214,16 +214,16 @@ int main(int argc, char **argv)
                     switch(s2n_conn_get_current_message_type(conn)) {
                         case CLIENT_HELLO:
                             /* Expect not encrypted */
-                            EXPECT_EQUAL(conn->client, &conn->initial);
+                            EXPECT_EQUAL(conn->client, conn->initial);
                             break;
                         case HELLO_RETRY_MSG:
                         case SERVER_HELLO:
                             /* Expect not encrypted  */
-                            EXPECT_EQUAL(conn->server, &conn->initial);
+                            EXPECT_EQUAL(conn->server, conn->initial);
                             break;
                         case END_OF_EARLY_DATA:
                             /* Expect encrypted */
-                            EXPECT_EQUAL(conn->client, &conn->secure);
+                            EXPECT_EQUAL(conn->client, conn->secure);
                             /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_EARLY_TRAFFIC_SECRET].size > 0);
                             break;
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
                         case SERVER_FINISHED:
                         case SERVER_CERT_REQ:
                             /* Expect encrypted */
-                            EXPECT_EQUAL(conn->server, &conn->secure);
+                            EXPECT_EQUAL(conn->server, conn->secure);
                             /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET].size > 0);
                             break;
@@ -241,14 +241,14 @@ int main(int argc, char **argv)
                         case CLIENT_CERT_VERIFY:
                         case CLIENT_FINISHED:
                             /* Expect encrypted */
-                            EXPECT_EQUAL(conn->client, &conn->secure);
+                            EXPECT_EQUAL(conn->client, conn->secure);
                             /* Expect correct secret available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET].size > 0);
                             break;
                         case APPLICATION_DATA:
                             /* Expect encrypted */
-                            EXPECT_EQUAL(conn->client, &conn->secure);
-                            EXPECT_EQUAL(conn->server, &conn->secure);
+                            EXPECT_EQUAL(conn->client, conn->secure);
+                            EXPECT_EQUAL(conn->server, conn->secure);
                             /* Expect correct secrets available */
                             EXPECT_TRUE(secrets.blobs[S2N_CLIENT_APPLICATION_TRAFFIC_SECRET].size > 0);
                             EXPECT_TRUE(secrets.blobs[S2N_SERVER_APPLICATION_TRAFFIC_SECRET].size > 0);

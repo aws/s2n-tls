@@ -39,15 +39,18 @@ int s2n_client_finished_recv(struct s2n_connection *conn)
 
 int s2n_client_finished_send(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     uint8_t *our_version;
     POSIX_GUARD(s2n_prf_client_finished(conn));
 
-    struct s2n_blob seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
+    struct s2n_blob seq = {.data = conn->secure->client_sequence_number,.size = sizeof(conn->secure->client_sequence_number) };
     POSIX_GUARD(s2n_blob_zero(&seq));
     our_version = conn->handshake.client_finished;
 
     /* Update the server to use the cipher suite */
-    conn->client = &conn->secure;
+    conn->client = conn->secure;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_SSL_FINISHED_LEN));

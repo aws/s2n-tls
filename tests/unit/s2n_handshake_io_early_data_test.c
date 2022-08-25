@@ -65,10 +65,10 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
-            server_conn->secure.cipher_suite = test_cipher_suite;
-            POSIX_GUARD(server_conn->secure.cipher_suite->record_alg->cipher->init(&server_conn->secure.client_key));
-            POSIX_GUARD(server_conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure.client_key, &test_key));
-            server_conn->client = &server_conn->secure;
+            server_conn->secure->cipher_suite = test_cipher_suite;
+            POSIX_GUARD(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->client_key));
+            POSIX_GUARD(server_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure->client_key, &test_key));
+            server_conn->client = server_conn->secure;
 
             DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, S2N_DEFAULT_RECORD_LENGTH));
@@ -111,10 +111,10 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(client_conn);
                 EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
-                client_conn->secure.cipher_suite = test_cipher_suite;
-                POSIX_GUARD(client_conn->secure.cipher_suite->record_alg->cipher->init(&client_conn->secure.server_key));
-                POSIX_GUARD(client_conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&client_conn->secure.server_key, &test_key));
-                client_conn->server = &client_conn->secure;
+                client_conn->secure->cipher_suite = test_cipher_suite;
+                POSIX_GUARD(client_conn->secure->cipher_suite->record_alg->cipher->init(&client_conn->secure->server_key));
+                POSIX_GUARD(client_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&client_conn->secure->server_key, &test_key));
+                client_conn->server = client_conn->secure;
 
                 DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, S2N_DEFAULT_RECORD_LENGTH));

@@ -517,7 +517,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
 
@@ -764,7 +764,7 @@ int main(int argc, char **argv)
         conn->config->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
 
         /* Ensure TLS12_PERFECT_FORWARD_SECRECY is set by choosing a cipher suite with is_ephemeral=1 on the kex */
-        conn->secure.cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256;
+        conn->secure->cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256;
 
         /* Ensure OCSP_STATUS is set by setting the connection status_type */
         conn->status_type = S2N_STATUS_REQUEST_OCSP;

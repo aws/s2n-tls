@@ -62,10 +62,10 @@
 static int s2n_connection_new_hmacs(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's HMAC states */
-    POSIX_GUARD(s2n_hmac_new(&conn->initial.client_record_mac));
-    POSIX_GUARD(s2n_hmac_new(&conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_new(&conn->secure.client_record_mac));
-    POSIX_GUARD(s2n_hmac_new(&conn->secure.server_record_mac));
+    POSIX_GUARD(s2n_hmac_new(&conn->initial->client_record_mac));
+    POSIX_GUARD(s2n_hmac_new(&conn->initial->server_record_mac));
+    POSIX_GUARD(s2n_hmac_new(&conn->secure->client_record_mac));
+    POSIX_GUARD(s2n_hmac_new(&conn->secure->server_record_mac));
 
     return 0;
 }
@@ -73,10 +73,10 @@ static int s2n_connection_new_hmacs(struct s2n_connection *conn)
 static int s2n_connection_init_hmacs(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's HMAC states */
-    POSIX_GUARD(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    POSIX_GUARD(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_NONE, NULL, 0));
-    POSIX_GUARD(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    POSIX_GUARD(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    POSIX_GUARD(s2n_hmac_init(&conn->initial->client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    POSIX_GUARD(s2n_hmac_init(&conn->initial->server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    POSIX_GUARD(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    POSIX_GUARD(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_NONE, NULL, 0));
 
     return 0;
 }
@@ -119,10 +119,10 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
     /* Allocate long term key memory */
-    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->secure.client_key));
-    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->secure.server_key));
-    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->initial.client_key));
-    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->initial.server_key));
+    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->secure->client_key));
+    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->secure->server_key));
+    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->initial->client_key));
+    PTR_GUARD_POSIX(s2n_session_key_alloc(&conn->initial->server_key));
 
     /* Allocate long term hash and HMAC memory */
     PTR_GUARD_RESULT(s2n_prf_new(conn));
@@ -154,10 +154,10 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
 static int s2n_connection_free_keys(struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_session_key_free(&conn->secure.client_key));
-    POSIX_GUARD(s2n_session_key_free(&conn->secure.server_key));
-    POSIX_GUARD(s2n_session_key_free(&conn->initial.client_key));
-    POSIX_GUARD(s2n_session_key_free(&conn->initial.server_key));
+    POSIX_GUARD(s2n_session_key_free(&conn->secure->client_key));
+    POSIX_GUARD(s2n_session_key_free(&conn->secure->server_key));
+    POSIX_GUARD(s2n_session_key_free(&conn->initial->client_key));
+    POSIX_GUARD(s2n_session_key_free(&conn->initial->server_key));
 
     return 0;
 }
@@ -168,10 +168,10 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     POSIX_CHECKED_MEMSET(conn, 0, sizeof(struct s2n_connection));
 
     conn->mode = mode;
-    conn->initial.cipher_suite = &s2n_null_cipher_suite;
-    conn->secure.cipher_suite = &s2n_null_cipher_suite;
-    conn->server = &conn->initial;
-    conn->client = &conn->initial;
+    conn->initial->cipher_suite = &s2n_null_cipher_suite;
+    conn->secure->cipher_suite = &s2n_null_cipher_suite;
+    conn->server = conn->initial;
+    conn->client = conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
     conn->handshake.end_of_messages = APPLICATION_DATA;
     s2n_connection_set_config(conn, config);
@@ -196,12 +196,12 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
     /* Destroy any keys - we call destroy on the object as that is where
      * keys are allocated. */
-    if (conn->secure.cipher_suite
-            && conn->secure.cipher_suite->record_alg
-            && conn->secure.cipher_suite->record_alg->cipher
-            && conn->secure.cipher_suite->record_alg->cipher->destroy_key) {
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
+    if (conn->secure->cipher_suite
+            && conn->secure->cipher_suite->record_alg
+            && conn->secure->cipher_suite->record_alg->cipher
+            && conn->secure->cipher_suite->record_alg->cipher->destroy_key) {
+        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
+        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
     }
 
     /* Free any server key received (we may not have completed a
@@ -223,10 +223,10 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
 {
     /* Reset all of the Connection's HMAC states */
-    POSIX_GUARD(s2n_hmac_reset(&conn->initial.client_record_mac));
-    POSIX_GUARD(s2n_hmac_reset(&conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_reset(&conn->secure.client_record_mac));
-    POSIX_GUARD(s2n_hmac_reset(&conn->secure.server_record_mac));
+    POSIX_GUARD(s2n_hmac_reset(&conn->initial->client_record_mac));
+    POSIX_GUARD(s2n_hmac_reset(&conn->initial->server_record_mac));
+    POSIX_GUARD(s2n_hmac_reset(&conn->secure->client_record_mac));
+    POSIX_GUARD(s2n_hmac_reset(&conn->secure->server_record_mac));
 
     return 0;
 }
@@ -280,10 +280,10 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
 static int s2n_connection_free_hmacs(struct s2n_connection *conn)
 {
     /* Free all of the Connection's HMAC states */
-    POSIX_GUARD(s2n_hmac_free(&conn->initial.client_record_mac));
-    POSIX_GUARD(s2n_hmac_free(&conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_free(&conn->secure.client_record_mac));
-    POSIX_GUARD(s2n_hmac_free(&conn->secure.server_record_mac));
+    POSIX_GUARD(s2n_hmac_free(&conn->initial->client_record_mac));
+    POSIX_GUARD(s2n_hmac_free(&conn->initial->server_record_mac));
+    POSIX_GUARD(s2n_hmac_free(&conn->secure->client_record_mac));
+    POSIX_GUARD(s2n_hmac_free(&conn->secure->server_record_mac));
 
     return 0;
 }
@@ -603,10 +603,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&in, &conn->in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&out, &conn->out, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&initial_client_key, &conn->initial.client_key, sizeof(struct s2n_session_key));
-    POSIX_CHECKED_MEMCPY(&initial_server_key, &conn->initial.server_key, sizeof(struct s2n_session_key));
-    POSIX_CHECKED_MEMCPY(&secure_client_key, &conn->secure.client_key, sizeof(struct s2n_session_key));
-    POSIX_CHECKED_MEMCPY(&secure_server_key, &conn->secure.server_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&initial_client_key, &conn->initial->client_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&initial_server_key, &conn->initial->server_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&secure_client_key, &conn->secure->client_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&secure_server_key, &conn->secure->server_key, sizeof(struct s2n_session_key));
     POSIX_GUARD(s2n_connection_save_hmac_state(&hmac_handles, conn));
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
@@ -622,10 +622,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&conn->header_in, &header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->in, &in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->out, &out, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&conn->initial.client_key, &initial_client_key, sizeof(struct s2n_session_key));
-    POSIX_CHECKED_MEMCPY(&conn->initial.server_key, &initial_server_key, sizeof(struct s2n_session_key));
-    POSIX_CHECKED_MEMCPY(&conn->secure.client_key, &secure_client_key, sizeof(struct s2n_session_key));
-    POSIX_CHECKED_MEMCPY(&conn->secure.server_key, &secure_server_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&conn->initial->client_key, &initial_client_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&conn->initial->server_key, &initial_server_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&conn->secure->client_key, &secure_client_key, sizeof(struct s2n_session_key));
+    POSIX_CHECKED_MEMCPY(&conn->secure->server_key, &secure_server_key, sizeof(struct s2n_session_key));
     POSIX_GUARD(s2n_connection_restore_hmac_state(conn, &hmac_handles));
     conn->handshake.hashes = handshake_hashes;
     conn->prf_space = prf_workspace;
@@ -942,29 +942,31 @@ uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 const char *s2n_connection_get_cipher(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
-    PTR_ENSURE_REF(conn->secure.cipher_suite);
+    PTR_ENSURE_REF(conn->secure);
+    PTR_ENSURE_REF(conn->secure->cipher_suite);
 
-    return conn->secure.cipher_suite->name;
+    return conn->secure->cipher_suite->name;
 }
 
 int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *first, uint8_t *second)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
     POSIX_ENSURE_MUT(first);
     POSIX_ENSURE_MUT(second);
 
     /* ensure we've negotiated a cipher suite */
     POSIX_ENSURE(
         memcmp(
-            conn->secure.cipher_suite->iana_value,
+            conn->secure->cipher_suite->iana_value,
             s2n_null_cipher_suite.iana_value,
             sizeof(s2n_null_cipher_suite.iana_value)
         ) != 0,
         S2N_ERR_INVALID_STATE
     );
 
-    const uint8_t *iana_value = conn->secure.cipher_suite->iana_value;
+    const uint8_t *iana_value = conn->secure->cipher_suite->iana_value;
     *first = iana_value[0];
     *second = iana_value[1];
 
@@ -974,10 +976,12 @@ int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *f
 const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
+    PTR_ENSURE_REF(conn->secure);
+    PTR_ENSURE_REF(conn->secure->cipher_suite);
 
     if (conn->kex_params.server_ecc_evp_params.negotiated_curve) {
         /* TLS1.3 currently only uses ECC groups. */
-        if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
+        if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
             return conn->kex_params.server_ecc_evp_params.negotiated_curve->name;
         }
     }

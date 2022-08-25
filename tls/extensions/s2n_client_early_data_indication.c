@@ -145,6 +145,9 @@ static int s2n_client_early_data_indication_is_missing(struct s2n_connection *co
 
 static int s2n_client_early_data_indication_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     POSIX_GUARD_RESULT(s2n_setup_middlebox_compat_for_early_data(conn));
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
 
@@ -152,7 +155,7 @@ static int s2n_client_early_data_indication_send(struct s2n_connection *conn, st
     struct s2n_psk *first_psk = NULL;
     POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
     POSIX_ENSURE_REF(first_psk);
-    conn->secure.cipher_suite = first_psk->early_data_config.cipher_suite;
+    conn->secure->cipher_suite = first_psk->early_data_config.cipher_suite;
 
     return S2N_SUCCESS;
 }
