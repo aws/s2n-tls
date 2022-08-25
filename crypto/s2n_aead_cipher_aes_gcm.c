@@ -222,7 +222,7 @@ static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s
     int in_len = in->size - S2N_TLS_GCM_TAG_LEN;
     uint8_t *tag_data = out->data + out->size - S2N_TLS_GCM_TAG_LEN;
 
-    int out_len;
+    int out_len = 0;
     /* Specify the AAD */
     POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, NULL, &out_len, aad->data, aad->size), S2N_ERR_ENCRYPT);
 
@@ -260,7 +260,7 @@ static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s
     /* Set the TAG */
     POSIX_GUARD_OSSL(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_TAG, S2N_TLS_GCM_TAG_LEN, tag_data), S2N_ERR_DECRYPT);
 
-    int out_len;
+    int out_len = 0;
     /* Specify the AAD */
     POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, NULL, &out_len, aad->data, aad->size), S2N_ERR_DECRYPT);
 

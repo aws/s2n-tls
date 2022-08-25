@@ -34,7 +34,7 @@ static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_b
 
     POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
-    int len = out->size;
+    int len = 0;
     POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
     S2N_ERROR_IF(len != in->size, S2N_ERR_ENCRYPT);
 
@@ -47,7 +47,7 @@ static int s2n_cbc_cipher_3des_decrypt(struct s2n_session_key *key, struct s2n_b
 
     POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
-    int len = out->size;
+    int len = 0;
     POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_DECRYPT);
 
     return 0;
