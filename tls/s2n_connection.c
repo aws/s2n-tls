@@ -101,6 +101,10 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     /* `mode` is initialized here since its passed in as a parameter. */
     conn->mode = mode;
 
+    /* TODO: swap this to a real heap allocation */
+    conn->initial = &conn->initial_mem;
+    conn->secure = &conn->secure_mem;
+
     /* Allocate the fixed-size stuffers */
     blob = (struct s2n_blob) {0};
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->alert_in_data, S2N_ALERT_LENGTH));
@@ -166,6 +170,10 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
 {
     /* Zero the whole connection structure */
     POSIX_CHECKED_MEMSET(conn, 0, sizeof(struct s2n_connection));
+
+    /* TODO: swap this to a real heap allocation */
+    conn->initial = &conn->initial_mem;
+    conn->secure = &conn->secure_mem;
 
     conn->mode = mode;
     conn->initial->cipher_suite = &s2n_null_cipher_suite;
