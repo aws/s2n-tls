@@ -507,11 +507,6 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
 
-    /* We can free any post handshake buffers, if not currently in use */
-    if (s2n_stuffer_is_consumed(&conn->post_handshake.in)) {
-        POSIX_GUARD(s2n_stuffer_resize(&conn->post_handshake.in, 0));
-    }
-
     return 0;
 }
 

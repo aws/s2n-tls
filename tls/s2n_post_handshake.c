@@ -20,6 +20,28 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+/* The longest post-handshake message we currently support is NewSessionTicket.
+ * The only upper bound on session ticket sizes is UINT16_MAX.
+ * However, both s2n-tls and openssl tickets are generally on the order of a few hundred bytes.
+ * Therefore, let's use a reasonably small buffer and resize later if necessary.
+ */
+#define S2N_POST_HANDSHAKE_MESSAGE_LEN_ESTIMATE 2000
+
+static S2N_RESULT s2n_post_handshake_buffer_size(uint32_t message_len, uint32_t *buffer_size)
+{
+    if (message_len > 0) {
+        /* Allocate a little extra to account for the message header
+         * and to avoid reallocating if the next handshake message is slightly longer.
+         */
+        uint32_t extra = 100;
+
+        RESULT_GUARD_POSIX(s2n_add_overflow(message_len, extra, buffer_size));
+    } else {
+        *buffer_size = S2N_POST_HANDSHAKE_MESSAGE_LEN_ESTIMATE;
+    }
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
 {
     RESULT_ENSURE_REF(conn);
@@ -70,7 +92,7 @@ static S2N_RESULT s2n_try_read_full_handshake_message(struct s2n_connection *con
 
     struct s2n_stuffer in_copy = conn->in;
     if (s2n_stuffer_data_available(&in_copy) >= TLS_HANDSHAKE_HEADER_LENGTH) {
-       RESULT_GUARD(s2n_handshake_parse_header(conn, &in_copy, message_type, message_len));
+       RESULT_GUARD(s2n_handshake_parse_header(&in_copy, message_type, message_len));
        if (s2n_stuffer_data_available(&in_copy) >= *message_len) {
            conn->in = in_copy;
            return S2N_RESULT_OK;
@@ -121,10 +143,13 @@ S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn)
          * so that we can read a new record.
          */
         else {
+            uint32_t buffer_size = 0;
+            RESULT_GUARD(s2n_post_handshake_buffer_size(message_len, &buffer_size));
+            RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, buffer_size));
+
             uint32_t remaining = s2n_stuffer_data_available(&conn->in);
-            RESULT_ENSURE_LTE(remaining, S2N_LARGE_RECORD_LENGTH);
-            RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, S2N_LARGE_RECORD_LENGTH));
             RESULT_GUARD_POSIX(s2n_stuffer_copy(&conn->in, &conn->post_handshake.in, remaining));
+
             RESULT_BAIL(S2N_ERR_IO_BLOCKED);
         }
     }

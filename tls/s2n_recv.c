@@ -167,7 +167,8 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
             POSIX_ENSURE(s2n_stuffer_is_wiped(&conn->post_handshake.in), S2N_ERR_BAD_MESSAGE);
 
             /* If not handling a handshake message, free the post-handshake memory.
-             * If this causes too much churn, we could consider hanging onto the memory longer.
+             * Post-handshake messages are infrequent enough that we don't want to
+             * keep a potentially large buffer around unnecessarily.
              */
             if (!s2n_stuffer_is_freed(&conn->post_handshake.in)) {
                 POSIX_GUARD(s2n_stuffer_resize(&conn->post_handshake.in, 0));

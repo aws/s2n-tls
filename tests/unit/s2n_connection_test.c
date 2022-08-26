@@ -696,24 +696,6 @@ int main(int argc, char **argv)
                     S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
             EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
         }
-
-        /* s2n_connection_free_handshake */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            for (size_t i = 0; i < 3; i++) {
-                EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
-                EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
-                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, size));
-                EXPECT_EQUAL(conn->post_handshake.in.blob.size, size);
-            }
-
-            /* Fails to release if in use */
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->post_handshake.in, 1));
-            EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
-            EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
-        }
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));

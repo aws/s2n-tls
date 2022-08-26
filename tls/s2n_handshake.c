@@ -57,7 +57,7 @@ int s2n_handshake_finish_header(struct s2n_stuffer *out)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_handshake_parse_header(struct s2n_connection *conn, struct s2n_stuffer *io, uint8_t * message_type, uint32_t * length)
+S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t * message_type, uint32_t * length)
 {
     RESULT_ENSURE(s2n_stuffer_data_available(io) >= TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 

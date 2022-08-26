@@ -24,6 +24,8 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+#define S2N_TEST_DEFAULT_BUFFER_SIZE 2000
+
 int s2n_ticket_count_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     uint8_t *count = (uint8_t *) ctx;
@@ -304,16 +306,24 @@ int main(int argc, char **argv)
         uint64_t seq_num = 0;
 
         /* Allocated for fragmented handshake message */
+        uint32_t buffer_size = 0;
         {
             DEFER_CLEANUP(struct s2n_stuffer messages = { 0 }, s2n_stuffer_free);
             EXPECT_OK(s2n_test_write_nst_messages(server_conn, &messages, expected_messages));
             EXPECT_OK(s2n_test_send_nst_records(server_conn, &messages, expected_records));
 
+            uint8_t message_type = 0;
+            uint32_t message_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_reread(&messages));
+            EXPECT_OK(s2n_handshake_parse_header(&messages, &message_type, &message_len));
+
             EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, app_data, sizeof(app_data), &blocked), S2N_ERR_IO_BLOCKED);
             EXPECT_OK(s2n_get_seq_num(client_conn->secure.server_sequence_number, &seq_num));
             EXPECT_EQUAL(seq_num, expected_records);
 
-            EXPECT_NOT_EQUAL(client_conn->post_handshake.in.blob.size, 0);
+            buffer_size = client_conn->post_handshake.in.blob.size;
+            EXPECT_TRUE(buffer_size > message_len + TLS_HANDSHAKE_HEADER_LENGTH);
+            EXPECT_TRUE(buffer_size < S2N_TEST_DEFAULT_BUFFER_SIZE);
         }
 
         /* Kept after handshake message / reused for multiple handshake messages */
@@ -328,7 +338,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_get_seq_num(client_conn->secure.server_sequence_number, &seq_num));
             EXPECT_EQUAL(seq_num, expected_records * 2);
 
-            EXPECT_NOT_EQUAL(client_conn->post_handshake.in.blob.size, 0);
+            EXPECT_EQUAL(client_conn->post_handshake.in.blob.size, buffer_size);
             EXPECT_EQUAL(old_mem, client_conn->post_handshake.in.blob.data);
         }
 
@@ -337,6 +347,17 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_send(server_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             EXPECT_EQUAL(s2n_recv(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             EXPECT_EQUAL(client_conn->post_handshake.in.blob.size, 0);
+        }
+
+        /* Max allocated for fragment without length */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer messages = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_write_nst_messages(server_conn, &messages, 1));
+            /* Send 1 byte records */
+            EXPECT_OK(s2n_test_send_nst_records(server_conn, &messages, s2n_stuffer_data_available(&messages)));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, app_data, sizeof(app_data), &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(client_conn->post_handshake.in.blob.size, S2N_TEST_DEFAULT_BUFFER_SIZE);
         }
     }
 
