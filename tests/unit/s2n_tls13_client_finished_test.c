@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
             client_conn->actual_protocol_version = S2N_TLS13;
-            client_conn->secure.cipher_suite = &cipher_suites[i];
+            client_conn->secure->cipher_suite = &cipher_suites[i];
 
             int hash_size = hash_sizes[i];
 
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
             struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &cipher_suites[i];
+            server_conn->secure->cipher_suite = &cipher_suites[i];
 
             EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, hash_size));
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        client_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         EXPECT_FAILURE(s2n_tls13_client_finished_send(client_conn));
 
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
 
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, 48));
         EXPECT_FAILURE(s2n_tls13_client_finished_recv(server_conn));
 
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         client_conn->actual_protocol_version = S2N_TLS13;
-        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_tls13_client_finished_send(client_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 32);
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
         server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, 32));
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         client_conn->actual_protocol_version = S2N_TLS13;
-        client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        client_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         EXPECT_SUCCESS(s2n_tls13_client_finished_send(client_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 48);
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
         server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         for (int i = 0; i < 48; i++) {
             EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));

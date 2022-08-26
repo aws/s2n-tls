@@ -54,7 +54,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        server_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         /* get tls13 key context */
         s2n_tls13_connection_keys(keys, server_conn);

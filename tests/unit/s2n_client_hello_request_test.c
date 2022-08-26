@@ -99,7 +99,7 @@ int main(int argc, char **argv)
          * We should be able to receive the hello request in the middle of the handshake. */
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                 SERVER_HELLO_DONE));
-        EXPECT_EQUAL(server_conn->server, &server_conn->initial);
+        EXPECT_EQUAL(server_conn->server, server_conn->initial);
 
         /* Send a hello request */
         EXPECT_OK(s2n_send_client_hello_request(server_conn));

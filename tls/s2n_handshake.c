@@ -143,6 +143,9 @@ uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash
  */
 int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     /* Clear all of the required hashes */
     memset(conn->handshake.required_hash_algs, 0, sizeof(conn->handshake.required_hash_algs));
 
@@ -170,7 +173,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
     case S2N_TLS13:
     {
         /* For TLS 1.2 and TLS 1.3, the cipher suite defines the PRF hash alg */
-        s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
+        s2n_hmac_algorithm prf_alg = conn->secure->cipher_suite->prf_alg;
         s2n_hash_algorithm hash_alg;
         POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
         POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));

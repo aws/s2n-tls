@@ -53,7 +53,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             /* Original connection negotiated an EMS */
             conn->ems_negotiated = true;
 
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             conn->session_ticket_status = S2N_DECRYPT_TICKET;
             EXPECT_SUCCESS(s2n_stuffer_copy(&ticket, &conn->client_ticket_to_decrypt, S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             /* Original connection did not negotiate an EMS */
             conn->ems_negotiated = false;
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             conn->session_ticket_status = S2N_DECRYPT_TICKET;
             EXPECT_SUCCESS(s2n_stuffer_copy(&ticket, &conn->client_ticket_to_decrypt, S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             /* Original connection negotiated an EMS */
             conn->ems_negotiated = true;
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             conn->session_ticket_status = S2N_DECRYPT_TICKET;
             EXPECT_SUCCESS(s2n_stuffer_copy(&ticket, &conn->client_ticket_to_decrypt, S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
