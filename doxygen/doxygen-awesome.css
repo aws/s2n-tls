@@ -74,6 +74,7 @@ html {
     --content-line-height: 27px;
     /* The content is centered and constraint in it's width. To make the content fill the whole page, set the variable to auto.*/
     --content-maxwidth: 1050px;
+    --table-line-height: 24px;
     --toc-sticky-top: var(--spacing-medium);
     --toc-width: 200px;
     --toc-max-height: calc(100vh - 2 * var(--spacing-medium) - 85px);
@@ -307,7 +308,10 @@ body {
     font-size: var(--page-font-size);
 }
 
-body, table, div, p, dl, #nav-tree .label, .title, .sm-dox a, .sm-dox a:hover, .sm-dox a:focus, #projectname, .SelectItem, #MSearchField, .navpath li.navelem a, .navpath li.navelem a:hover {
+body, table, div, p, dl, #nav-tree .label, .title,
+.sm-dox a, .sm-dox a:hover, .sm-dox a:focus, #projectname,
+.SelectItem, #MSearchField, .navpath li.navelem a,
+.navpath li.navelem a:hover, p.reference, p.definition {
     font-family: var(--font-family);
 }
 
@@ -317,8 +321,12 @@ h1, h2, h3, h4, h5 {
     line-height: initial;
 }
 
-p, div, table, dl {
+p, div, table, dl, p.reference, p.definition {
     font-size: var(--page-font-size);
+}
+
+p.reference, p.definition {
+    color: var(--page-secondary-foreground-color);
 }
 
 a:link, a:visited, a:hover, a:focus, a:active {
@@ -404,6 +412,10 @@ a.anchor {
 .tabs, .tabs2, .tabs3 {
     border-bottom: 1px solid var(--separator-color);
     margin-bottom: -1px;
+}
+
+.main-menu-btn-icon, .main-menu-btn-icon:before, .main-menu-btn-icon:after {
+    background: var(--page-secondary-foreground-color);
 }
 
 @media screen and (max-width: 767px) {
@@ -540,10 +552,19 @@ a.anchor {
     margin-top: 0;
 }
 
-.left #MSearchSelect {
+/* until Doxygen 1.9.4 */
+.left img#MSearchSelect {
     left: 0;
     user-select: none;
     padding-left: 8px;
+}
+
+/* Doxygen 1.9.5 */
+.left span#MSearchSelect {
+    left: 0;
+    user-select: none;
+    margin-left: 8px;
+    padding: 0;
 }
 
 .left #MSearchSelect[src$=".png"] {
@@ -662,6 +683,15 @@ html.dark-mode iframe#MSearchResults {
     filter: invert() hue-rotate(180deg);
 }
 
+#MSearchResults .SRPage {
+    background-color: transparent;
+}
+
+#MSearchResults .SRPage .SREntry {
+    font-size: 10pt;
+    padding: var(--spacing-small) var(--spacing-medium);
+}
+
 #MSearchSelectWindow {
     border: 1px solid var(--separator-color);
     border-radius: var(--border-radius-medium);
@@ -718,6 +748,7 @@ html.dark-mode iframe#MSearchResults {
         overflow: auto;
         transform: translate(0, 20px);
         animation: ease-out 280ms slideInSearchResultsMobile;
+        width: auto !important;
     }
 
     /*
@@ -846,7 +877,8 @@ div.header {
 }
 
 @media screen and (min-width: 1000px) {
-    #doc-content > div > div.contents {
+    #doc-content > div > div.contents,
+    .PageDoc > div.contents {
         display: flex;
         flex-direction: row-reverse;
         flex-wrap: nowrap;
@@ -878,7 +910,7 @@ div.headertitle {
 
 div.header .title {
     font-weight: 600;
-    font-size: 210%;
+    font-size: 225%;
     padding: var(--spacing-medium) var(--spacing-large);
     word-break: break-word;
 }
@@ -950,14 +982,18 @@ h2.groupheader {
         -500px 0 var(--page-background-color),
         500px 0.75px var(--separator-color),
         -500px 0.75px var(--separator-color),
-        1500px 0 var(--page-background-color),
-        -1500px 0 var(--page-background-color), 
-        1500px 0.75px var(--separator-color),
-        -1500px 0.75px var(--separator-color),
-        2000px 0 var(--page-background-color),
-        -2000px 0 var(--page-background-color),
-        2000px 0.75px var(--separator-color),
-        -2000px 0.75px var(--separator-color);
+        900px 0 var(--page-background-color), 
+        -900px 0 var(--page-background-color),
+        900px 0.75px var(--separator-color),
+        -900px 0.75px var(--separator-color),
+        1400px 0 var(--page-background-color),
+        -1400px 0 var(--page-background-color), 
+        1400px 0.75px var(--separator-color),
+        -1400px 0.75px var(--separator-color),
+        1900px 0 var(--page-background-color),
+        -1900px 0 var(--page-background-color),
+        1900px 0.75px var(--separator-color),
+        -1900px 0.75px var(--separator-color);
 }
 
 blockquote {
@@ -1009,10 +1045,11 @@ table.params .paramname {
     font-family: var(--font-family-monospace);
     font-size: var(--code-font-size);
     padding-right: var(--spacing-small);
+    line-height: var(--table-line-height);
 }
 
-.glow {
-    text-shadow: 0 0 15px var(--primary-light-color) !important;
+h1.glow, h2.glow, h3.glow, h4.glow, h5.glow, h6.glow {
+    text-shadow: 0 0 15px var(--primary-light-color);
 }
 
 .alphachar a {
@@ -1046,6 +1083,12 @@ div.toc h3 {
 div.toc li {
     padding: 0;
     background: none;
+    line-height: var(--toc-font-size);
+    margin: var(--toc-font-size) 0 0 0;
+}
+
+div.toc li::before {
+    display: none;
 }
 
 div.toc ul {
@@ -1064,15 +1107,6 @@ div.toc li a:hover, div.toc li a.active {
 
 div.toc li a.aboveActive {
     color: var(--page-secondary-foreground-color) !important;
-}
-
-
-div.toc ul li.level1 {
-    margin: 0;
-}
-
-div.toc ul li.level2, div.toc ul li.level3 {
-    margin-top: 0;
 }
 
 
@@ -1104,6 +1138,7 @@ div.toc ul li.level2, div.toc ul li.level3 {
         background-color: var(--toc-background);
         margin: 0;
         padding: var(--spacing-large) 0;
+        display: block;
     }
 
     div.contents .toc.interactive > h3::before {
@@ -1112,11 +1147,10 @@ div.toc ul li.level2, div.toc ul li.level3 {
         height: 0; 
         border-left: 4px solid transparent;
         border-right: 4px solid transparent;
-        border-top: 7px solid var(--primary-color);
-        margin-top: 5px;
-        display: block;
-        float: left;
+        border-top: 5px solid var(--primary-color);
+        display: inline-block;
         margin-right: var(--spacing-small);
+        margin-bottom: calc(var(--navigation-font-size) / 4);
         transform: rotate(-90deg);
         transition: transform 0.25s ease-out;
     }
@@ -1271,6 +1305,15 @@ div.fragment .line:first-child .lineno {
     box-shadow: -999999px 0px 0 999999px var(--fragment-linenumber-background), -999998px 0px 0 999999px var(--fragment-linenumber-border);
 }
 
+div.line {
+    border-radius: var(--border-radius-small);
+}
+
+div.line.glow {
+    background-color: var(--primary-light-color);
+    box-shadow: none;
+}
+
 /*
  dl warning, attention, note, deprecated, bug, ...
  */
@@ -1390,7 +1433,6 @@ div.memitem {
 
 div.memproto, h2.memtitle {
     background: var(--fragment-background);
-    text-shadow: none;
 }
 
 h2.memtitle {
@@ -1466,6 +1508,7 @@ div.memproto table.memname {
     font-family: var(--font-family-monospace);
     color: var(--page-foreground-color);
     font-size: var(--memname-font-size);
+    text-shadow: none;
 }
 
 div.memproto div.memtemplate {
@@ -1473,6 +1516,7 @@ div.memproto div.memtemplate {
     color: var(--primary-dark-color);
     font-size: var(--memname-font-size);
     margin-left: 2px;
+    text-shadow: none;
 }
 
 table.mlabels, table.mlabels > tbody {
@@ -1689,6 +1733,7 @@ table.memberdecls tr[class^='memitem'] .memTemplParams {
     font-family: var(--font-family-monospace);
     font-size: var(--code-font-size);
     color: var(--primary-dark-color);
+    white-space: normal;
 }
 
 table.memberdecls .memItemLeft,
@@ -1714,7 +1759,7 @@ table.memberdecls .memTemplParams {
     border-left: 1px solid var(--separator-color);
     border-right: 1px solid var(--separator-color);
     border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
-    padding-bottom: 0;
+    padding-bottom: var(--spacing-small);
 }
 
 table.memberdecls .memTemplItemLeft {
@@ -1726,6 +1771,7 @@ table.memberdecls .memTemplItemLeft {
 table.memberdecls .memTemplItemRight {
     border-radius: 0 0 var(--border-radius-small) 0;
     border-right: 1px solid var(--separator-color);
+    padding-left: 0;
     border-top: 0;
 }
 
@@ -1750,6 +1796,11 @@ table.memberdecls .mdescLeft, table.memberdecls .mdescRight {
     padding: var(--spacing-small) 0;
 }
 
+table.memberdecls .memItemLeft,
+table.memberdecls .memTemplItemLeft {
+    padding-right: var(--spacing-medium);
+}
+
 table.memberdecls .memSeparator {
     background: var(--page-background-color);
     height: var(--spacing-large);
@@ -1764,28 +1815,39 @@ table.memberdecls .groupheader {
 table.memberdecls .inherit_header td {
     padding: 0 0 var(--spacing-medium) 0;
     text-indent: -12px;
-    line-height: 1.5em;
     color: var(--page-secondary-foreground-color);
 }
 
-table.memberdecls img[src="closed.png"], table.memberdecls img[src="open.png"] {
+table.memberdecls img[src="closed.png"],
+table.memberdecls img[src="open.png"],
+div.dynheader img[src="open.png"],
+div.dynheader img[src="closed.png"] {
     width: 0; 
     height: 0; 
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
-    border-top: 7px solid var(--primary-color);
+    border-top: 5px solid var(--primary-color);
     margin-top: 8px;
     display: block;
     float: left;
-    margin-right: var(--spacing-small);
     margin-left: -10px;
-    margin-right: 10px;
     transition: transform 0.25s ease-out;
 }
 
-table.memberdecls img[src="closed.png"] {
+table.memberdecls img {
+    margin-right: 10px;
+}
+
+table.memberdecls img[src="closed.png"],
+div.dynheader img[src="closed.png"] {
     transform: rotate(-90deg);
     
+}
+
+.compoundTemplParams {
+    font-family: var(--font-family-monospace);
+    color: var(--primary-dark-color);
+    font-size: var(--code-font-size);
 }
 
 @media screen and (max-width: 767px) {
@@ -1804,6 +1866,7 @@ table.memberdecls img[src="closed.png"] {
         border-right: none;
         border-left: none;
         border-radius: 0;
+        white-space: normal;
     }
 
     table.memberdecls .memItemLeft,
@@ -1818,7 +1881,7 @@ table.memberdecls img[src="closed.png"] {
     }
 
     table.memberdecls .mdescLeft {
-        margin-top: calc(0px - var(--page-font-size));
+        margin-bottom: calc(0px - var(--page-font-size));
     }
 
     table.memberdecls .memItemRight, 
@@ -1916,8 +1979,25 @@ table.directory {
     width: 100%;
 }
 
-table.directory td.entry {
-    padding: var(--spacing-small);
+table.directory td.entry, table.directory td.desc {
+    padding: calc(var(--spacing-small) / 2) var(--spacing-small);
+    line-height: var(--table-line-height);
+}
+
+table.directory tr.even td:last-child {
+    border-radius: 0 var(--border-radius-small) var(--border-radius-small) 0;
+}
+
+table.directory tr.even td:first-child {
+    border-radius: var(--border-radius-small) 0 0 var(--border-radius-small);
+}
+
+table.directory tr.even:last-child td:last-child {
+    border-radius: 0 var(--border-radius-small) 0 0;
+}
+
+table.directory tr.even:last-child td:first-child {
+    border-radius: var(--border-radius-small) 0 0 0;
 }
 
 table.directory td.desc {
@@ -1928,6 +2008,10 @@ table.directory tr.even {
     background-color: var(--odd-color);
 }
 
+table.directory tr.odd {
+    background-color: transparent;
+}
+
 .icona {
     width: auto;
     height: auto;
@@ -1936,14 +2020,20 @@ table.directory tr.even {
 
 .icon {
     background: var(--primary-color);
-    width: 18px;
-    height: 18px;
-    line-height: 18px;
+    border-radius: var(--border-radius-small);
+    font-size: var(--page-font-size);
+    padding: calc(var(--page-font-size) / 5);
+    line-height: var(--page-font-size);
+    transform: scale(0.8);
+    height: auto;
+    width: var(--page-font-size);
+    user-select: none;
 }
 
 .iconfopen, .icondoc, .iconfclosed {
     background-position: center;
     margin-bottom: 0;
+    height: var(--table-line-height);
 }
 
 .icondoc {
@@ -1974,6 +2064,10 @@ html.dark-mode .iconfopen, html.dark-mode .iconfclosed {
 .classindex dl.odd {
     background: var(--odd-color);
     border-radius: var(--border-radius-small);
+}
+
+.classindex dl.even {
+    background-color: transparent;
 }
 
 /* 
@@ -2102,6 +2196,7 @@ div.memproto::-webkit-scrollbar,
 .contents .center::-webkit-scrollbar,
 .contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) tbody::-webkit-scrollbar,
 div.contents .toc::-webkit-scrollbar {
+    background: transparent;
     width: calc(var(--webkit-scrollbar-size) + var(--webkit-scrollbar-padding) + var(--webkit-scrollbar-padding));
     height: calc(var(--webkit-scrollbar-size) + var(--webkit-scrollbar-padding) + var(--webkit-scrollbar-padding));
 }
