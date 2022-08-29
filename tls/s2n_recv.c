@@ -206,8 +206,19 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 {
     POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
     conn->recv_in_use = true;
+
     ssize_t result = s2n_recv_impl(conn, buf, size, blocked);
     POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
+
+    /* free the `in` buffer if we're in dynamic mode and it's completely flushed */
+    if (conn->dynamic_buffers && s2n_stuffer_is_consumed(&conn->in)) {
+        /* when copying the buffer into the application, we use `s2n_stuffer_erase_and_read`, which already zeroes the memory */
+        POSIX_GUARD(s2n_stuffer_free_non_zeroed(&conn->in));
+
+        /* reset the stuffer to its initial state */
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->in, 0));
+    }
+
     conn->recv_in_use = false;
     return result;
 }

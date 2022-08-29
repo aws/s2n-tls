@@ -127,6 +127,10 @@ struct s2n_connection {
      * This allows multiple records to be written with one socket send. */
     unsigned multirecord_send:1;
 
+    /* If enabled, this connection will free each of its IO buffers after all data
+     * has been flushed */
+    unsigned dynamic_buffers:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 

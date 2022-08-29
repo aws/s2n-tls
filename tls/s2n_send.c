@@ -209,7 +209,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         }
 
         POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
-    
+
         /* Write and encrypt the record */
         int written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
                     conn->current_user_data_consumed + offs, to_write);
@@ -247,8 +247,19 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
 {
     POSIX_ENSURE(!conn->send_in_use, S2N_ERR_REENTRANCY);
     conn->send_in_use = true;
+
     ssize_t result = s2n_sendv_with_offset_impl(conn, bufs, count, offs, blocked);
     POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
+
+    /* free the out buffer if we're in dynamic mode and it's completely flushed */
+    if (conn->dynamic_buffers && s2n_stuffer_is_consumed(&conn->out)) {
+        /* since outgoing buffers are already encrypted, the buffers don't need to be zeroed, which saves some overhead */
+        POSIX_GUARD(s2n_stuffer_free_non_zeroed(&conn->out));
+
+        /* reset the stuffer to its initial state */
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, 0));
+    }
+
     conn->send_in_use = false;
     return result;
 }

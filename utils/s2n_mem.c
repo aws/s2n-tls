@@ -273,13 +273,13 @@ int s2n_mem_cleanup(void)
     return S2N_SUCCESS;
 }
 
-int s2n_free(struct s2n_blob *b)
+static int s2n_free_impl(struct s2n_blob *b, bool zeroed)
 {
     POSIX_PRECONDITION(s2n_blob_validate(b));
 
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */
-    int zero_rc = s2n_blob_zero(b);
+    int zero_rc = zeroed ? s2n_blob_zero(b) : S2N_SUCCESS;
 
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
@@ -291,6 +291,16 @@ int s2n_free(struct s2n_blob *b)
     POSIX_GUARD(zero_rc);
 
     return S2N_SUCCESS;
+}
+
+int s2n_free(struct s2n_blob *b)
+{
+    return s2n_free_impl(b, true);
+}
+
+int s2n_free_non_zeroed(struct s2n_blob *b)
+{
+    return s2n_free_impl(b, false);
 }
 
 int s2n_blob_zeroize_free(struct s2n_blob *b) {

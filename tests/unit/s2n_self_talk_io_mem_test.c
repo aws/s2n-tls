@@ -17,6 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <sys/param.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
@@ -214,6 +215,68 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->in.blob.size, 0);
         EXPECT_EQUAL(client_conn->out.blob.size, 0);
         EXPECT_EQUAL(server_conn->out.blob.size, 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test that dynamic buffers work correctly */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Enable the dynamic buffers setting */
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_buffers(client_conn, true));
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_buffers(server_conn, true));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Do handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        s2n_blocked_status blocked = 0;
+        uint8_t buf[4096] = { 42 };
+
+        size_t sent_amount = 0;
+
+        while (sent_amount < s2n_array_len(buf)) {
+            int send_status = s2n_send(server_conn, &buf, s2n_array_len(buf) - sent_amount, &blocked);
+            EXPECT_SUCCESS(send_status);
+            sent_amount += s2n_array_len(buf);
+        }
+
+        /* make sure the `out` buffer was freed after sending */
+        EXPECT_EQUAL(server_conn->out.blob.size, 0);
+
+        size_t recv_amount = 0;
+        size_t recv_size = 1;
+        while (true) {
+            int recv_status = s2n_recv(client_conn, &buf, recv_size, &blocked);
+            EXPECT_SUCCESS(recv_status);
+            recv_amount += recv_status;
+
+            if (recv_amount >= s2n_array_len(buf)) {
+                break;
+            }
+
+            /* the `in` buffer should not be freed until it's completely flushed to the application */
+            EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
+
+            /* increase the receive size exponentially */
+            recv_size = MIN(recv_size * 2, s2n_array_len(buf));
+        }
+
+        /* make sure the `in` buffer was freed after receiving the full message */
+        EXPECT_EQUAL(client_conn->in.blob.size, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

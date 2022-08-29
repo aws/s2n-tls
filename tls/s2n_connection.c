@@ -1208,6 +1208,13 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool enabled)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->dynamic_buffers = enabled;
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
 {
     POSIX_ENSURE_REF(conn);

@@ -68,6 +68,13 @@ extern int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);
 extern int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_free(struct s2n_stuffer *stuffer);
+/**
+ * Frees the stuffer without zeroizing the contained data.
+ *
+ * This should only be used in scenarios where the data is encrypted or has been
+ * cleared with `s2n_stuffer_erase_and_read`. In most cases, prefer `s2n_stuffer_free`.
+ */
+extern int s2n_stuffer_free_non_zeroed(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
