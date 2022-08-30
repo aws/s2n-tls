@@ -48,7 +48,8 @@ static S2N_RESULT s2n_drbg_block_encrypt(EVP_CIPHER_CTX *ctx, uint8_t in[S2N_DRB
 {
     RESULT_ENSURE_REF(ctx);
 
-    int len = 0;
+    /* len is set by EVP_EncryptUpdate and checked post operation */
+    int len = S2N_DRBG_BLOCK_SIZE;
     RESULT_GUARD_OSSL(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE), S2N_ERR_DRBG);
     RESULT_ENSURE_EQ(len, S2N_DRBG_BLOCK_SIZE);
 

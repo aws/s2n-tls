@@ -40,6 +40,7 @@ static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n
 {
     POSIX_ENSURE_GTE(out->size, in->size);
 
+    /* len is set by EVP_EncryptUpdate and checked post operation */
     int len = 0;
     POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
 
@@ -52,10 +53,11 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
 {
     POSIX_ENSURE_GTE(out->size, in->size);
 
+    /* len is set by EVP_DecryptUpdate and checked post operation */
     int len = 0;
-    POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
+    POSIX_GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_DECRYPT);
 
-    S2N_ERROR_IF(len != in->size, S2N_ERR_ENCRYPT);
+    S2N_ERROR_IF(len != in->size, S2N_ERR_DECRYPT);
 
     return 0;
 }
