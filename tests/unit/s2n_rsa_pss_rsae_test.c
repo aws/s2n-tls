@@ -16,6 +16,7 @@
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 
+#include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
@@ -25,6 +26,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
+#include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
 #define HASH_ALG S2N_HASH_SHA256
@@ -195,7 +197,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
     }
 
-    #if RSA_PSS_CERTS_SUPPORTED
+#if RSA_PSS_CERTS_SUPPORTED
 
     struct s2n_cert_chain_and_key *rsa_pss_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
@@ -245,11 +247,17 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&rsa_pss_public_key, &rsa_pss_pkey_type, &rsa_pss_cert_chain->cert_chain->head->raw));
             EXPECT_EQUAL(rsa_pss_pkey_type, S2N_PKEY_TYPE_RSA_PSS);
 
-            /* Set the keys equal */
+            /* In openssl 3 the function `EVP_PKEY_get1_RSA` returns a cached copy of PKEY
+             * rather than the original copy. Therefore to modify the value of
+             * rsa_pss_public_key, `EVP_PKEY_set1_RSA` must be called and rsa_key_copy
+             * must be freed.
+             *
+             * Set the keys equal */
+            RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_public_key.pkey);
             const BIGNUM *n, *e, *d;
-            RSA_get0_key(EVP_PKEY_get0_RSA(rsa_public_key.pkey), &n, &e, &d);
-            EXPECT_SUCCESS(RSA_set0_key(EVP_PKEY_get0_RSA(rsa_pss_public_key.pkey),
-                    BN_dup(n), BN_dup(e), BN_dup(d)));
+            RSA_get0_key(rsa_key_copy, &n, &e, &d);
+            POSIX_GUARD_OSSL(EVP_PKEY_set1_RSA(rsa_pss_public_key.pkey, rsa_key_copy), S2N_ERR_KEY_INIT);
+            RSA_free(rsa_key_copy);
 
             /* RSA signed with PSS, RSA_PSS verified with PSS */
             {
@@ -285,12 +293,20 @@ int main(int argc, char **argv)
                 &rsa_cert_chain->cert_chain->head->raw));
         EXPECT_EQUAL(rsa_pkey_type, S2N_PKEY_TYPE_RSA);
 
-        RSA *rsa_key = EVP_PKEY_get0_RSA(rsa_public_key.pkey);
+        /* In openssl 3 the function `EVP_PKEY_get1_RSA` returns a cached copy of PKEY
+         * rather than the original copy. Therefore to modify the value of
+         * rsa_public_key, `EVP_PKEY_set1_RSA` must be called and rsa_key_copy
+         * must be freed.
+         *
+         * Modify the rsa_public_key for the new test_case */
+        RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_public_key.pkey);
         BIGNUM *n = BN_new(), *e = BN_new(), *d = BN_new();
         EXPECT_SUCCESS(BN_hex2bn(&n, test_case.key_param_n));
         EXPECT_SUCCESS(BN_hex2bn(&e, test_case.key_param_e));
         EXPECT_SUCCESS(BN_hex2bn(&d, test_case.key_param_d));
-        EXPECT_SUCCESS(RSA_set0_key(rsa_key, n, e, d));
+        EXPECT_SUCCESS(RSA_set0_key(rsa_key_copy, n, e, d));
+        POSIX_GUARD_OSSL(EVP_PKEY_set1_RSA(rsa_public_key.pkey, rsa_key_copy), S2N_ERR_KEY_INIT);
+        RSA_free(rsa_key_copy);
 
         struct s2n_stuffer message_stuffer = { 0 }, signature_stuffer = { 0 };
         s2n_stuffer_alloc_ro_from_hex_string(&message_stuffer, test_case.message);
@@ -311,7 +327,8 @@ int main(int argc, char **argv)
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_pss_cert_chain));
-    #endif
+#endif
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     END_TEST();
 }

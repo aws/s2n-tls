@@ -144,7 +144,7 @@ static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struc
     POSIX_ENSURE_REF(priv);
 
     /* OpenSSL Documentation Links:
-     *  - https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_get0_RSA.html
+     *  - https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_get1_RSA.html
      *  - https://www.openssl.org/docs/manmaster/man3/RSA_get0_key.html
      */
     RSA *pub_rsa_key = pub->key.rsa_key.rsa;
@@ -176,14 +176,18 @@ static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_p
 
 static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
 {
-    /* This object does not own the reference to the key --
-     * s2n_pkey handles it. */
+    struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
+    if (rsa_key->rsa == NULL) { return 0; }
+
+    RSA_free(rsa_key->rsa);
+    rsa_key->rsa = NULL;
 
     return 0;
 }
 
 int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey) {
-    RSA *pub_rsa_key = EVP_PKEY_get0_RSA(pkey);
+    RSA *pub_rsa_key = EVP_PKEY_get1_RSA(pkey);
+    POSIX_ENSURE_REF(pub_rsa_key);
 
     S2N_ERROR_IF(s2n_rsa_is_private_key(pub_rsa_key), S2N_ERR_KEY_MISMATCH);
 
@@ -193,7 +197,7 @@ int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pk
 
 int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
 {
-    RSA *priv_rsa_key = EVP_PKEY_get0_RSA(pkey);
+    RSA *priv_rsa_key = EVP_PKEY_get1_RSA(pkey);
     POSIX_ENSURE_REF(priv_rsa_key);
 
     /* Documentation: https://www.openssl.org/docs/man1.1.1/man3/RSA_check_key.html */
