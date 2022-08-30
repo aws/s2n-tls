@@ -1,7 +1,19 @@
 #!/bin/bash
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#  http://aws.amazon.com/apache2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+#
 
-set -o xtrace
-
+install_dir="$(pwd)"
 openssl_conf_path="$(pwd)/openssl.conf"
 
 get_subj() {
@@ -99,25 +111,125 @@ sign_cert() {
   fi
 }
 
-#base_dir=$(mktemp -d)
-mkdir test_dir
-base_dir="test_dir"
+generate_crl() {
+  path="$1"
+
+  pushd "${path}" || exit
+  ca_dir="." \
+  openssl ca -config "${openssl_conf_path}" -gencrl \
+    -out crl.pem \
+      || exit
+  popd || exit
+}
+
+revoke_certificate() {
+  ca_path="$1"
+  cert_path="$2"
+
+  ca_dir="${ca_path}" \
+  openssl ca -config "${openssl_conf_path}" \
+      -revoke "${cert_path}/cert.pem" \
+      || exit
+  generate_crl "${ca_path}"
+}
+
+base_dir=$(mktemp -d)
 pushd "${base_dir}" || exit
 
+#
+# Generate certificate chains of valid and revoked certificates with 1 intermediate CA.
+#
+# root -> valid intermediate   -> valid leaf
+#                              -> revoked leaf
+#      -> revoked intermediate -> valid leaf
+#                              -> revoked leaf
+#
+
+# Generate root certificate
 init_ca_dir root
 generate_key_cert root ca
 
+# Generate intermediate certificates
 init_ca_dir root/intermediate
 generate_key_cert root/intermediate intermediate
 sign_cert root root/intermediate ca
 
+init_ca_dir root/intermediate_revoked
+generate_key_cert root/intermediate_revoked intermediate
+sign_cert root root/intermediate_revoked ca
+
+# Generate leaf certificates
 mkdir root/intermediate/leaf
 generate_key_cert root/intermediate/leaf leaf
 sign_cert root/intermediate root/intermediate/leaf intermediate
 
-cat root/intermediate/leaf/cert.pem root/intermediate/cert.pem > test_cert_chain.pem
-cp root/cert.pem test_root.pem
-cp root/intermediate/leaf/key.pem test_key.pem
+mkdir root/intermediate/leaf_revoked
+generate_key_cert root/intermediate/leaf_revoked leaf
+sign_cert root/intermediate root/intermediate/leaf_revoked intermediate
+
+mkdir root/intermediate_revoked/leaf
+generate_key_cert root/intermediate_revoked/leaf leaf
+sign_cert root/intermediate_revoked root/intermediate_revoked/leaf intermediate
+
+mkdir root/intermediate_revoked/leaf_revoked
+generate_key_cert root/intermediate_revoked/leaf_revoked leaf
+sign_cert root/intermediate_revoked root/intermediate_revoked/leaf_revoked intermediate
+
+# Generate CRLs and revoke the revoked certificates
+generate_crl root
+revoke_certificate root root/intermediate_revoked
+
+generate_crl root/intermediate
+revoke_certificate root/intermediate root/intermediate/leaf_revoked
+
+generate_crl root/intermediate_revoked
+revoke_certificate root/intermediate_revoked root/intermediate/leaf_revoked
+
+# Generate CRLs with invalid timestamps. Requires Openssl 3.0.
+ca_dir="root/intermediate" \
+openssl ca -config "${openssl_conf_path}" -gencrl \
+    -crl_lastupdate 21220101000000Z \
+    -out "${install_dir}/intermediate_invalid_last_update_crl.pem" \
+    || exit
+
+ca_dir="root/intermediate" \
+openssl ca -config "${openssl_conf_path}" -gencrl \
+    -crl_nextupdate 19220101000000Z \
+    -out "${install_dir}/intermediate_invalid_next_update_crl.pem" \
+    || exit
+
+#
+# Create certificate chain pems and copy CRLs and keys
+#
+
+cp root/cert.pem "${install_dir}/root_cert.pem"
+
+cat root/intermediate/leaf/cert.pem \
+    root/intermediate/cert.pem \
+    > "${install_dir}/valid_valid_cert_chain.pem"
+cp root/intermediate/leaf/key.pem "${install_dir}/valid_valid_key.pem"
+
+cat root/intermediate/leaf_revoked/cert.pem \
+    root/intermediate/cert.pem \
+    > "${install_dir}/valid_revoked_cert_chain.pem"
+cp root/intermediate/leaf_revoked/key.pem "${install_dir}/valid_revoked_key.pem"
+
+cat root/intermediate_revoked/leaf/cert.pem \
+    root/intermediate_revoked/cert.pem \
+    > "${install_dir}/revoked_valid_cert_chain.pem"
+cp root/intermediate_revoked/leaf/key.pem "${install_dir}/revoked_valid_key.pem"
+
+cat root/intermediate_revoked/leaf_revoked/cert.pem \
+    root/intermediate_revoked/cert.pem \
+    > "${install_dir}/revoked_revoked_cert_chain.pem"
+cp root/intermediate_revoked/leaf_revoked/key.pem "${install_dir}/revoked_revoked_key.pem"
+
+cp root/crl.pem "${install_dir}/root_crl.pem"
+cp root/intermediate/crl.pem "${install_dir}/intermediate_crl.pem"
+cp root/intermediate_revoked/crl.pem "${install_dir}/intermediate_revoked_crl.pem"
 
 popd || exit
+
+# Cleanup
+rm -rf "${base_dir}"
 
