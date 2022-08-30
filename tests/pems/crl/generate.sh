@@ -75,6 +75,43 @@ generate_key_cert() {
   popd || exit
 }
 
+verify_cert() {
+  ca_file_path="$1"
+  cert_file_path="$2"
+  crl_file_path="$3"
+
+  opts=()
+  if [ -n "${crl_file_path}" ]; then
+      is_revoked=$4
+      if [ -z "${is_revoked}" ]; then
+        exit
+      fi
+
+      opts=("-CRLfile" "${crl_file_path}" "-crl_check")
+  fi
+
+  verify_stderr=$(
+    openssl verify \
+        -CAfile "${ca_file_path}" \
+        "${opts[@]}" \
+        "${cert_file_path}" \
+        2>&1
+  )
+  verify_ret=$?
+
+  if [ -n "${crl_file_path}" ] && [ ${is_revoked} -eq 1 ]; then
+    # Ensure openssl verify failed due to certificate revocation
+    if ! [[ "${verify_stderr}" =~ .*"certificate revoked".* ]]; then
+      exit
+    fi
+  else
+    # Ensure openssl verify succeeded
+    if [ ${verify_ret} -ne 0 ]; then
+      exit
+    fi
+  fi
+}
+
 sign_cert() {
   signer_path="$1"
   to_sign_path="$2"
@@ -102,7 +139,7 @@ sign_cert() {
       || exit
 
   # Ensure openssl can validate the signed certificate
-  openssl verify -CAfile "${signer_path}"/chain.pem "${to_sign_path}"/cert.pem || exit
+  verify_cert "${signer_path}/chain.pem" "${to_sign_path}/cert.pem"
 
   # Create a chain that includes the newly signed certificate and all parent certificates
   # for validating future child certificates
@@ -184,6 +221,16 @@ revoke_cert root/intermediate root/intermediate/leaf_revoked
 
 generate_crl root/intermediate_revoked
 revoke_cert root/intermediate_revoked root/intermediate/leaf_revoked
+
+# Ensure openssl verify reads generated CRLs and properly rejects certificates
+verify_cert root/chain.pem root/intermediate/cert.pem root/crl.pem 0
+verify_cert root/chain.pem root/intermediate_revoked/cert.pem root/crl.pem 1
+
+verify_cert root/intermediate/chain.pem root/intermediate/leaf/cert.pem root/intermediate/crl.pem 0
+verify_cert root/intermediate/chain.pem root/intermediate/leaf_revoked/cert.pem root/intermediate/crl.pem 1
+
+verify_cert root/intermediate_revoked/chain.pem root/intermediate_revoked/leaf/cert.pem root/intermediate_revoked/crl.pem 0
+verify_cert root/intermediate_revoked/chain.pem root/intermediate_revoked/leaf_revoked/cert.pem root/intermediate_revoked/crl.pem 1
 
 # Generate CRLs with invalid timestamps. Requires Openssl 3.0.
 ca_dir="root/intermediate" \
