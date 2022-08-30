@@ -122,7 +122,7 @@ generate_crl() {
   popd || exit
 }
 
-revoke_certificate() {
+revoke_cert() {
   ca_path="$1"
   cert_path="$2"
 
@@ -177,13 +177,13 @@ sign_cert root/intermediate_revoked root/intermediate_revoked/leaf_revoked inter
 
 # Generate CRLs and revoke the revoked certificates
 generate_crl root
-revoke_certificate root root/intermediate_revoked
+revoke_cert root root/intermediate_revoked
 
 generate_crl root/intermediate
-revoke_certificate root/intermediate root/intermediate/leaf_revoked
+revoke_cert root/intermediate root/intermediate/leaf_revoked
 
 generate_crl root/intermediate_revoked
-revoke_certificate root/intermediate_revoked root/intermediate/leaf_revoked
+revoke_cert root/intermediate_revoked root/intermediate/leaf_revoked
 
 # Generate CRLs with invalid timestamps. Requires Openssl 3.0.
 ca_dir="root/intermediate" \
