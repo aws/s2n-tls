@@ -176,6 +176,7 @@ static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_p
 
 static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
 {
+    POSIX_ENSURE_REF(pkey);
     struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
     if (rsa_key->rsa == NULL) { return 0; }
 

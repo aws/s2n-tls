@@ -247,15 +247,16 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&rsa_pss_public_key, &rsa_pss_pkey_type, &rsa_pss_cert_chain->cert_chain->head->raw));
             EXPECT_EQUAL(rsa_pss_pkey_type, S2N_PKEY_TYPE_RSA_PSS);
 
-            /* In openssl 3 the function `EVP_PKEY_get1_RSA` returns a cached copy of PKEY
-             * rather than the original copy. Therefore to modify the value of
-             * rsa_pss_public_key, `EVP_PKEY_set1_RSA` must be called and rsa_key_copy
-             * must be freed.
+            /* Set the keys equal.
              *
-             * Set the keys equal */
+             * In openssl 3 the function `EVP_PKEY_get1_RSA` returns a pre-cached copy of PKEY
+             * rather than the original copy. For this reason it is not possible to modify the
+             * original underlying RSA key.
+             *
+             * As a workaround, `rsa_key_copy` is modified, `rsa_pss_public_key` is set using
+             * `EVP_PKEY_set1_RSA` and finally rsa_key_copy is freed. This change is also
+             * backwards compatible with other ossl impl down to 1.0.2. */
             RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_public_key.pkey);
-            const BIGNUM *n, *e, *d;
-            RSA_get0_key(rsa_key_copy, &n, &e, &d);
             POSIX_GUARD_OSSL(EVP_PKEY_set1_RSA(rsa_pss_public_key.pkey, rsa_key_copy), S2N_ERR_KEY_INIT);
             RSA_free(rsa_key_copy);
 
@@ -293,12 +294,15 @@ int main(int argc, char **argv)
                 &rsa_cert_chain->cert_chain->head->raw));
         EXPECT_EQUAL(rsa_pkey_type, S2N_PKEY_TYPE_RSA);
 
-        /* In openssl 3 the function `EVP_PKEY_get1_RSA` returns a cached copy of PKEY
-         * rather than the original copy. Therefore to modify the value of
-         * rsa_public_key, `EVP_PKEY_set1_RSA` must be called and rsa_key_copy
-         * must be freed.
+        /* Modify the rsa_public_key for the new test_case.
          *
-         * Modify the rsa_public_key for the new test_case */
+         * In openssl 3 the function `EVP_PKEY_get1_RSA` returns a pre-cached copy of PKEY
+         * rather than the original copy. For this reason it is not possible to modify the
+         * original underlying RSA key.
+         *
+         * As a workaround, `rsa_key_copy` is modified, `rsa_pss_public_key` is set using
+         * `EVP_PKEY_set1_RSA` and finally rsa_key_copy is freed. This change is also
+         * backwards compatible with other ossl impl down to 1.0.2. */
         RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_public_key.pkey);
         BIGNUM *n = BN_new(), *e = BN_new(), *d = BN_new();
         EXPECT_SUCCESS(BN_hex2bn(&n, test_case.key_param_n));
