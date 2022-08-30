@@ -279,4 +279,3 @@ popd || exit
 
 # Cleanup
 rm -rf "${base_dir}"
-
