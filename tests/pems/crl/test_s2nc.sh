@@ -25,7 +25,7 @@ for cert_chain in "${cert_chains[@]}"; do
       --self-service-blinding \
       --negotiate \
       --cert "${cert_chain}_cert_chain.pem" \
-      --key "${cert_chain}_key.pem" \
+      --key "${cert_chain}_leaf_key.pem" \
       localhost 8888 &
   s2nd_pid=$!
 

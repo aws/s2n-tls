@@ -254,22 +254,22 @@ cp root/cert.pem "${install_dir}/root_cert.pem"
 cat root/intermediate/leaf/cert.pem \
     root/intermediate/cert.pem \
     > "${install_dir}/valid_valid_cert_chain.pem"
-cp root/intermediate/leaf/key.pem "${install_dir}/valid_valid_key.pem"
+cp root/intermediate/leaf/key.pem "${install_dir}/valid_valid_leaf_key.pem"
 
 cat root/intermediate/leaf_revoked/cert.pem \
     root/intermediate/cert.pem \
     > "${install_dir}/valid_revoked_cert_chain.pem"
-cp root/intermediate/leaf_revoked/key.pem "${install_dir}/valid_revoked_key.pem"
+cp root/intermediate/leaf_revoked/key.pem "${install_dir}/valid_revoked_leaf_key.pem"
 
 cat root/intermediate_revoked/leaf/cert.pem \
     root/intermediate_revoked/cert.pem \
     > "${install_dir}/revoked_valid_cert_chain.pem"
-cp root/intermediate_revoked/leaf/key.pem "${install_dir}/revoked_valid_key.pem"
+cp root/intermediate_revoked/leaf/key.pem "${install_dir}/revoked_valid_leaf_key.pem"
 
 cat root/intermediate_revoked/leaf_revoked/cert.pem \
     root/intermediate_revoked/cert.pem \
     > "${install_dir}/revoked_revoked_cert_chain.pem"
-cp root/intermediate_revoked/leaf_revoked/key.pem "${install_dir}/revoked_revoked_key.pem"
+cp root/intermediate_revoked/leaf_revoked/key.pem "${install_dir}/revoked_revoked_leaf_key.pem"
 
 cp root/crl.pem "${install_dir}/root_crl.pem"
 cp root/intermediate/crl.pem "${install_dir}/intermediate_crl.pem"
