@@ -16,13 +16,13 @@
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 
-#include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_pss.h"
+#include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"

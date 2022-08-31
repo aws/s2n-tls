@@ -17,10 +17,6 @@
 #include <openssl/rsa.h>
 #include <stdint.h>
 
-#include "error/s2n_errno.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
@@ -28,7 +24,8 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "crypto/s2n_pkey.h"
-
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -177,9 +174,10 @@ static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_p
 static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
 {
     POSIX_ENSURE_REF(pkey);
-    POSIX_ENSURE_REF(&pkey->key.rsa_key);
     struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
-    if (rsa_key->rsa == NULL) { return 0; }
+    if (rsa_key->rsa == NULL) {
+        return 0;
+    }
 
     RSA_free(rsa_key->rsa);
     rsa_key->rsa = NULL;
