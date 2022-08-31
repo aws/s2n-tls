@@ -74,7 +74,7 @@ extern int s2n_stuffer_free(struct s2n_stuffer *stuffer);
  * This should only be used in scenarios where the data is encrypted or has been
  * cleared with `s2n_stuffer_erase_and_read`. In most cases, prefer `s2n_stuffer_free`.
  */
-extern int s2n_stuffer_free_non_zeroed(struct s2n_stuffer *stuffer);
+extern int s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);

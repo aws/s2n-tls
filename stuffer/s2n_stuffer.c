@@ -102,30 +102,24 @@ int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
     return S2N_SUCCESS;
 }
 
-static int s2n_stuffer_free_impl(struct s2n_stuffer *stuffer, bool zeroed)
+int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
-    if (stuffer != NULL) {
-        if (stuffer->alloced) {
-            if (zeroed) {
-                POSIX_GUARD(s2n_free(&stuffer->blob));
-            } else {
-                POSIX_GUARD(s2n_free_non_zeroed(&stuffer->blob));
-            }
-        }
-        *stuffer = (struct s2n_stuffer) {0};
+    if (stuffer->alloced) {
+        POSIX_GUARD(s2n_free(&stuffer->blob));
     }
+    *stuffer = (struct s2n_stuffer) {0};
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_free(struct s2n_stuffer *stuffer)
+int s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer)
 {
-    return s2n_stuffer_free_impl(stuffer, true);
-}
-
-int s2n_stuffer_free_non_zeroed(struct s2n_stuffer *stuffer)
-{
-    return s2n_stuffer_free_impl(stuffer, false);
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    if (stuffer->alloced) {
+        POSIX_GUARD(s2n_free_without_wipe(&stuffer->blob));
+    }
+    *stuffer = (struct s2n_stuffer) {0};
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)

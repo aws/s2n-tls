@@ -1640,7 +1640,7 @@ S2N_API
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
- * Configure the connection to free IO buffers after they are no longer used.
+ * Configure the connection to free IO buffers when they are not currently in use.
  *
  * This configuration can be used to minimize connection memory footprint size, at the cost
  * of more calls to alloc and free. Some of these costs can be mitigated by configuring s2n-tls

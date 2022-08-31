@@ -1489,3 +1489,35 @@ int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **c
 
     return S2N_SUCCESS;
 }
+
+S2N_RESULT s2n_connection_complete_send(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* free the out buffer if we're in dynamic mode and it's completely flushed */
+    if (conn->dynamic_buffers && s2n_stuffer_is_consumed(&conn->out)) {
+        /* since outgoing buffers are already encrypted, the buffers don't need to be zeroed, which saves some overhead */
+        RESULT_GUARD_POSIX(s2n_stuffer_free_without_wipe(&conn->out));
+
+        /* reset the stuffer to its initial state */
+        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->out, 0));
+    }
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_connection_complete_recv(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* free the `in` buffer if we're in dynamic mode and it's completely flushed */
+    if (conn->dynamic_buffers && s2n_stuffer_is_consumed(&conn->in)) {
+        /* when copying the buffer into the application, we use `s2n_stuffer_erase_and_read`, which already zeroes the memory */
+        RESULT_GUARD_POSIX(s2n_stuffer_free_without_wipe(&conn->in));
+
+        /* reset the stuffer to its initial state */
+        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->in, 0));
+    }
+
+    return S2N_RESULT_OK;
+}
