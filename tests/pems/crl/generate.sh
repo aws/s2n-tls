@@ -279,3 +279,8 @@ popd || exit
 
 # Cleanup
 rm -rf "${base_dir}"
+
+# Ensure that s2nc accepts all generated certificates
+./test_s2nc.sh || exit
+
+echo "Generation successful."
