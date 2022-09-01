@@ -127,6 +127,10 @@ struct s2n_connection {
      * This allows multiple records to be written with one socket send. */
     unsigned multirecord_send:1;
 
+    /* If enabled, this connection will free each of its IO buffers after all data
+     * has been flushed */
+    unsigned dynamic_buffers:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
@@ -389,6 +393,10 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 
 S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn);
+
+/* If dynamic buffers are enabled, the IO buffers may be freed if they are completely consumed */
+S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_dynamic_free_out_buffer(struct s2n_connection *conn);
 
 int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences);
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy);

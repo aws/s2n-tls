@@ -219,6 +219,82 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+    /* Test that dynamic buffers work correctly */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Enable the dynamic buffers setting */
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_buffers(client_conn, true));
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_buffers(server_conn, true));
+
+        /* Configure the connection to use stuffers instead of fds.
+         * This will let us block the send.
+         */
+        DEFER_CLEANUP(struct s2n_stuffer client_in = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer client_out = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_in, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_out, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_in, &client_out, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_out, &client_in, server_conn));
+
+        /* Do handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* all IO buffers should be empty after the handshake */
+        EXPECT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->out.blob.size, 0);
+        EXPECT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_EQUAL(server_conn->out.blob.size, 0);
+
+        /* block the server from sending */
+        EXPECT_SUCCESS(s2n_stuffer_free(&client_in));
+
+        s2n_blocked_status blocked = 0;
+        int send_status = S2N_SUCCESS;
+
+        /* choose a large enough payload to send a full record, 4k is a common page size so we'll go with that */
+        uint8_t buf[4096] = { 42 };
+
+        send_status = s2n_send(server_conn, &buf, s2n_array_len(buf), &blocked);
+
+        /* the first send call should block */
+        EXPECT_FAILURE(send_status);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+
+        /* the `out` buffer should not be freed until it's completely flushed to the socket */
+        EXPECT_NOT_EQUAL(server_conn->out.blob.size, 0);
+
+        /* unblock the send call by letting the stuffer grow */
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_in, 0));
+
+        send_status = s2n_send(server_conn, &buf, s2n_array_len(buf), &blocked);
+        EXPECT_SUCCESS(send_status);
+
+        /* the entire payload should have been sent */
+        EXPECT_EQUAL(send_status, s2n_array_len(buf));
+
+        /* make sure the `out` buffer was freed after sending */
+        EXPECT_EQUAL(server_conn->out.blob.size, 0);
+
+        /* Receive half of the payload on the first call */
+        EXPECT_EQUAL(s2n_recv(client_conn, &buf, s2n_array_len(buf) / 2, &blocked), s2n_array_len(buf) / 2);
+
+        /* the `in` buffer should not be freed until it's completely flushed to the application */
+        EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
+
+        /* Receive the second half of the payload on the second call */
+        EXPECT_EQUAL(s2n_recv(client_conn, &buf, s2n_array_len(buf) / 2, &blocked), s2n_array_len(buf) / 2);
+
+        /* at this point the application has received the full message and the `in` buffer should be freed */
+        EXPECT_EQUAL(client_conn->in.blob.size, 0);
+    }
+
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     END_TEST();
