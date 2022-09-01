@@ -1141,6 +1141,9 @@ extern int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8
 
 /**
  * Enable or disable session caching.
+ * 
+ * @note Session caching will not be turned on unless all three session cache callbacks are set
+ * prior to calling this function.
  *
  * @param config The configuration object being updated
  * @param enabled The configuration object being updated. Set to 1 to enable. Set to 0 to disable.
@@ -1637,6 +1640,20 @@ S2N_API
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
+ * Configure the connection to free IO buffers when they are not currently in use.
+ *
+ * This configuration can be used to minimize connection memory footprint size, at the cost
+ * of more calls to alloc and free. Some of these costs can be mitigated by configuring s2n-tls
+ * to use an allocator that includes thread-local caches or lock-free allocation patterns.
+ *
+ * @param conn The connection object being update
+ * @param enabled Set to `true` if dynamic buffers are enabled; `false` if disabled
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API
+extern int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool enabled);
+
+/**
  * Provides a smooth transition from s2n_connection_prefer_low_latency() to s2n_connection_prefer_throughput().
  *
  * @param conn The connection object being updated
@@ -2114,6 +2131,8 @@ struct s2n_session_ticket;
 /**
  * Callback function for receiving a session ticket.
  *
+ * This function will be called each time a session ticket is received, which may be multiple times for TLS1.3.
+ *
  * # Safety
  *
  * `ctx` is a void pointer and the caller is responsible for ensuring it is cast to the correct type.
@@ -2187,9 +2206,9 @@ extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t
 /**
  * Serializes the session state from connection and copies into the `session` buffer and returns the number of copied bytes
  *
- * The output of this function depends on whether session ids or session tickets are being used for resumption.
- *
- * @note This is for < TLS 1.3 session resumption.
+ * @note This function is not recommended for > TLS 1.2 because in TLS1.3
+ * servers can send multiple session tickets and this function will only
+ * return the most recently received ticket.
  *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `max_length`
@@ -2201,7 +2220,11 @@ S2N_API
 extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 
 /**
- * Get the lifetime hint for a session.
+ * Retrieves a hint from the server indicating how long this ticket's lifetime is.
+ * 
+ * @note This function is not recommended for > TLS 1.2 because in TLS1.3
+ * servers can send multiple session tickets and this function will only
+ * return the most recently received ticket lifetime hint.
  *
  * @param conn A pointer to the s2n_connection object
  *

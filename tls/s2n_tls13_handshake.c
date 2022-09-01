@@ -21,11 +21,12 @@
 static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
     struct s2n_blob sequence_number;
     if (mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number, sizeof(conn->secure.client_sequence_number)));
+        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));
     } else {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, sizeof(conn->secure.server_sequence_number)));
+        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->server_sequence_number, sizeof(conn->secure->server_sequence_number)));
     }
     POSIX_GUARD(s2n_blob_zero(&sequence_number));
     return S2N_SUCCESS;
@@ -43,7 +44,7 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
 
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_tls13_keys_init(keys, conn->secure.cipher_suite->prf_alg));
+    POSIX_GUARD(s2n_tls13_keys_init(keys, conn->secure->cipher_suite->prf_alg));
     return S2N_SUCCESS;
 }
 
@@ -152,6 +153,7 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
 int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, keyupdate_status status)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
     
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
@@ -161,13 +163,13 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     struct s2n_blob app_iv;
 
     if (mode == S2N_CLIENT) {
-        old_key = &conn->secure.client_key;
+        old_key = &conn->secure->client_key;
         POSIX_GUARD(s2n_blob_init(&old_app_secret, conn->secrets.tls13.client_app_secret, keys.size));
-        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure.client_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
+        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->client_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     } else {
-        old_key = &conn->secure.server_key;
+        old_key = &conn->secure->server_key;
         POSIX_GUARD(s2n_blob_init(&old_app_secret, conn->secrets.tls13.server_app_secret, keys.size));
-        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure.server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
+        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
     }
 
     /* Produce new application secret */
@@ -176,14 +178,14 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     /* Derives next generation of traffic secret */
     POSIX_GUARD(s2n_tls13_update_application_traffic_secret(&keys, &old_app_secret, &app_secret_update));
 
-    s2n_tls13_key_blob(app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    s2n_tls13_key_blob(app_key, conn->secure->cipher_suite->record_alg->cipher->key_material_size);
 
     /* Derives next generation of traffic key */
     POSIX_GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
     if (status == RECEIVING) {
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
+        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
     } else {
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
+        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
     }
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:

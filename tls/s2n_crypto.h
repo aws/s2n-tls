@@ -65,3 +65,7 @@ struct s2n_crypto_parameters {
     uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
     uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
 };
+
+S2N_RESULT s2n_crypto_parameters_new(struct s2n_crypto_parameters **params);
+S2N_RESULT s2n_crypto_parameters_wipe(struct s2n_crypto_parameters *params);
+S2N_CLEANUP_RESULT s2n_crypto_parameters_free(struct s2n_crypto_parameters **params);

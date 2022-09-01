@@ -277,7 +277,7 @@ int main()
             EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &psk));
             psk->hmac_alg = S2N_HMAC_SHA256;
             EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, max_early_data, 0x13, 0x01));
-            client_conn->secure.cipher_suite = psk->early_data_config.cipher_suite;
+            client_conn->secure->cipher_suite = psk->early_data_config.cipher_suite;
 
             /* Rewrite early secret with known early secret. */
             EXPECT_SUCCESS(s2n_dup(&early_secret, &psk->early_secret));
@@ -293,7 +293,7 @@ int main()
             EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.extract_secret, early_secret.data, early_secret.size);
 
             /* Check IV calculated correctly */
-            EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_implicit_iv, iv.data, iv.size);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_implicit_iv, iv.data, iv.size);
 
             /* Check payload encrypted correctly */
             EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &payload));

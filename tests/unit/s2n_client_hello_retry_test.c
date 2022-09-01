@@ -668,14 +668,14 @@ int main(int argc, char **argv)
 
         /* A Hello Retry Request has been processed */
         EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
-        client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        client_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
         client_conn->server_protocol_version = S2N_TLS13;
         client_conn->handshake.handshake_type |= NEGOTIATED;
         client_conn->handshake.handshake_type |= FULL_HANDSHAKE;
         client_conn->handshake.message_number = SERVER_HELLO_MSG_NO;
 
         /* Server Hello with cipher suite that does not match Hello Retry Request cipher suite */
-        server_conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+        server_conn->secure->cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
@@ -1255,7 +1255,7 @@ int main(int argc, char **argv)
              * Pick a cipher that wasn't offered in the CH, and should cause the
              * handshake to abort.
              */
-            server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
+            server_conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
 
             /* Finish handshake */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),

@@ -121,8 +121,9 @@ int s2n_record_parse(struct s2n_connection *conn)
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
     if (s2n_is_tls13_plaintext_content(conn, content_type)) {
-        conn->client = &conn->initial;
-        conn->server = &conn->initial;
+        POSIX_ENSURE_REF(conn->initial);
+        conn->client = conn->initial;
+        conn->server = conn->initial;
     }
 
     const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;

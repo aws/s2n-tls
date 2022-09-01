@@ -46,8 +46,9 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 
 static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
 {
-    POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(to);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
 
     uint64_t now;
 
@@ -59,7 +60,7 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     /* Write the entry */
     POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V3));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
-    POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->ems_negotiated));
@@ -90,8 +91,9 @@ static S2N_RESULT s2n_tls13_serialize_keying_material_expiration(struct s2n_conn
 
 static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(out);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
 
     uint64_t current_time = 0;
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
@@ -101,7 +103,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_SERIALIZED_FORMAT_TLS13_V1));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, current_time));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(out, ticket_fields->ticket_age_add));
     RESULT_ENSURE_LTE(ticket_fields->session_secret.size, UINT8_MAX);
@@ -135,6 +137,9 @@ static S2N_RESULT s2n_serialize_resumption_state(struct s2n_connection *conn, st
 
 static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     uint8_t protocol_version = 0;
     uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
 
@@ -144,7 +149,7 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     S2N_ERROR_IF(protocol_version != conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     POSIX_GUARD(s2n_stuffer_read_bytes(from, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
-    S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    S2N_ERROR_IF(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     uint64_t now;
     POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
@@ -497,6 +502,7 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
 S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, size_t *state_size)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(state_size);
 
     if (conn->actual_protocol_version < S2N_TLS13) {
@@ -507,8 +513,8 @@ S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, si
     *state_size = S2N_TLS13_FIXED_STATE_SIZE;
 
     uint8_t secret_size = 0;
-    RESULT_ENSURE_REF(conn->secure.cipher_suite);
-    RESULT_GUARD_POSIX(s2n_hmac_digest_size(conn->secure.cipher_suite->prf_alg, &secret_size));
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_GUARD_POSIX(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
     *state_size += secret_size;
 
     uint32_t server_max_early_data = 0;

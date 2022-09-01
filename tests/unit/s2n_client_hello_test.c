@@ -1307,8 +1307,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        EXPECT_EQUAL(server_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
-        EXPECT_EQUAL(client_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(server_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(client_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
         EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
         EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
         EXPECT_EQUAL(client_conn->handshake_params.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
