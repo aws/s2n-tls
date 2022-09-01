@@ -251,8 +251,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
     ssize_t result = s2n_sendv_with_offset_impl(conn, bufs, count, offs, blocked);
     POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
 
-    /* finish the send call */
-    POSIX_GUARD_RESULT(s2n_connection_complete_send(conn));
+    POSIX_GUARD_RESULT(s2n_connection_dynamic_free_out_buffer(conn));
 
     conn->send_in_use = false;
     return result;

@@ -394,12 +394,9 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 
 S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn);
 
-/* Completes the send/recv processing on the connection
- *
- * If dynamic buffers are enabled, the IO buffers may be freed if it is completely consumed
- */
-S2N_RESULT s2n_connection_complete_send(struct s2n_connection *conn);
-S2N_RESULT s2n_connection_complete_recv(struct s2n_connection *conn);
+/* If dynamic buffers are enabled, the IO buffers may be freed if they are completely consumed */
+S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_dynamic_free_out_buffer(struct s2n_connection *conn);
 
 int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences);
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy);

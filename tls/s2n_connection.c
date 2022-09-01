@@ -1490,7 +1490,7 @@ int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **c
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_connection_complete_send(struct s2n_connection *conn)
+S2N_RESULT s2n_connection_dynamic_free_out_buffer(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -1506,7 +1506,7 @@ S2N_RESULT s2n_connection_complete_send(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_connection_complete_recv(struct s2n_connection *conn)
+S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 

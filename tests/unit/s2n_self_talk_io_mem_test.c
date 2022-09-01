@@ -17,7 +17,6 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <sys/param.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
@@ -283,25 +282,16 @@ int main(int argc, char **argv)
         /* make sure the `out` buffer was freed after sending */
         EXPECT_EQUAL(server_conn->out.blob.size, 0);
 
-        size_t recv_amount = 0;
-        size_t recv_size = 1;
-        while (true) {
-            int recv_status = s2n_recv(client_conn, &buf, recv_size, &blocked);
-            EXPECT_SUCCESS(recv_status);
-            recv_amount += recv_status;
+        /* Receive half of the payload on the first call */
+        EXPECT_EQUAL(s2n_recv(client_conn, &buf, s2n_array_len(buf) / 2, &blocked), s2n_array_len(buf) / 2);
 
-            if (recv_amount >= s2n_array_len(buf)) {
-                break;
-            }
+        /* the `in` buffer should not be freed until it's completely flushed to the application */
+        EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
 
-            /* the `in` buffer should not be freed until it's completely flushed to the application */
-            EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
+        /* Receive the second half of the payload on the second call */
+        EXPECT_EQUAL(s2n_recv(client_conn, &buf, s2n_array_len(buf) / 2, &blocked), s2n_array_len(buf) / 2);
 
-            /* increase the receive size exponentially */
-            recv_size = MIN(recv_size * 2, s2n_array_len(buf));
-        }
-
-        /* make sure the `in` buffer was freed after receiving the full message */
+        /* at this point the application has received the full message and the `in` buffer should be freed */
         EXPECT_EQUAL(client_conn->in.blob.size, 0);
     }
 

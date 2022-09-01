@@ -1459,8 +1459,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     int result = s2n_negotiate_impl(conn, blocked);
 
     /* finish up sending and receiving */
-    POSIX_GUARD_RESULT(s2n_connection_complete_recv(conn));
-    POSIX_GUARD_RESULT(s2n_connection_complete_send(conn));
+    POSIX_GUARD_RESULT(s2n_connection_dynamic_free_in_buffer(conn));
+    POSIX_GUARD_RESULT(s2n_connection_dynamic_free_out_buffer(conn));
 
     conn->negotiate_in_use = false;
     return result;
