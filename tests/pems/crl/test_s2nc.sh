@@ -18,14 +18,14 @@
 s2nc_path="../../../bin/s2nc"
 s2nd_path="../../../bin/s2nd"
 
-cert_chains=("valid_valid" "valid_revoked" "revoked_valid" "revoked_revoked")
+cert_chains=("none_revoked" "leaf_revoked" "intermediate_revoked" "all_revoked")
 
 for cert_chain in "${cert_chains[@]}"; do
   "${s2nd_path}" \
       --self-service-blinding \
       --negotiate \
       --cert "${cert_chain}_cert_chain.pem" \
-      --key "${cert_chain}_leaf_key.pem" \
+      --key "${cert_chain}_key.pem" \
       localhost 8888 &
   s2nd_pid=$!
 
