@@ -193,8 +193,8 @@ struct s2n_connection {
     uint8_t actual_protocol_version_established;
 
     /* Our crypto parameters */
-    struct s2n_crypto_parameters initial;
-    struct s2n_crypto_parameters secure;
+    struct s2n_crypto_parameters *initial;
+    struct s2n_crypto_parameters *secure;
     union s2n_secrets secrets;
 
     /* Which set is the client/server actually using? */

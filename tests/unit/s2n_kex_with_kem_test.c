@@ -52,11 +52,11 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     POSIX_GUARD_PTR(security_policy);
 
     client_conn->kex_params.kem_params.kem = negotiated_kem;
-    client_conn->secure.cipher_suite = cipher_suite;
+    client_conn->secure->cipher_suite = cipher_suite;
     client_conn->security_policy_override = security_policy;
 
     server_conn->kex_params.kem_params.kem = negotiated_kem;
-    server_conn->secure.cipher_suite = cipher_suite;
+    server_conn->secure->cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 
     /* Part 1: Server calls send_key */
@@ -124,7 +124,7 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
     POSIX_GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
     POSIX_GUARD_PTR(security_policy);
     server_conn->kex_params.kem_params.kem = negotiated_kem;
-    server_conn->secure.cipher_suite = cipher_suite;
+    server_conn->secure->cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 
     /* If PQ is disabled:

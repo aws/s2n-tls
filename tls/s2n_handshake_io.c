@@ -811,6 +811,9 @@ static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     if (IS_TLS13_HANDSHAKE(conn)) {
         POSIX_GUARD_RESULT(s2n_conn_set_tls13_handshake_type(conn));
         return S2N_SUCCESS;
@@ -876,7 +879,7 @@ skip_cache_lookup:
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, FULL_HANDSHAKE));
 
     bool is_ephemeral = false;
-    POSIX_GUARD_RESULT(s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg, &is_ephemeral));
+    POSIX_GUARD_RESULT(s2n_kex_is_ephemeral(conn->secure->cipher_suite->key_exchange_alg, &is_ephemeral));
     if (is_ephemeral) {
         POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, TLS12_PERFECT_FORWARD_SECRECY));
     }

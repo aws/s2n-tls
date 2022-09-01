@@ -33,17 +33,17 @@
 
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
     return 0;
 }
 
 static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
 {
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.client_key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->server_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->client_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, key));
 
     return 0;
 }
@@ -65,11 +65,11 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_get_public_random_data(&r));
 
     /* Peer and we are in sync */
-    conn->server = &conn->initial;
-    conn->client = &conn->initial;
+    conn->server = conn->initial;
+    conn->client = conn->initial;
 
     /* test the AES128 cipher */
-    conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+    conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
     EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
@@ -93,9 +93,9 @@ int main(int argc, char **argv)
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
-        conn->server = &conn->initial;
-        conn->client = &conn->initial;
-        conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+        conn->server = conn->initial;
+        conn->client = conn->initial;
+        conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -108,8 +108,8 @@ int main(int argc, char **argv)
         }
 
         uint16_t predicted_length = bytes_written;
-        predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
-        predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.tag_size;
+        predicted_length += conn->initial->cipher_suite->record_alg->cipher->io.aead.record_iv_size;
+        predicted_length += conn->initial->cipher_suite->record_alg->cipher->io.aead.tag_size;
 
         const int overhead = S2N_TLS_GCM_EXPLICIT_IV_LEN /* Explicit IV */
             + S2N_TLS_GCM_TAG_LEN /* TAG */;
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
-        conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+        conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
-            conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
-            conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
-            conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
 
     /* test the AES256 cipher */
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+    conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
     EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
     conn->actual_protocol_version = S2N_TLS12;
 
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
-        conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+        conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         conn->actual_protocol_version = S2N_TLS12;
@@ -294,8 +294,8 @@ int main(int argc, char **argv)
         }
 
         uint16_t predicted_length = bytes_written;
-        predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
-        predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.tag_size;
+        predicted_length += conn->initial->cipher_suite->record_alg->cipher->io.aead.record_iv_size;
+        predicted_length += conn->initial->cipher_suite->record_alg->cipher->io.aead.tag_size;
 
         const int overhead = S2N_TLS_GCM_EXPLICIT_IV_LEN /* Explicit IV */
             + S2N_TLS_GCM_TAG_LEN /* TAG */;
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
-        conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+        conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         conn->actual_protocol_version = S2N_TLS12;
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
-            conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+            conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
-            conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+            conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
-            conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+            conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;

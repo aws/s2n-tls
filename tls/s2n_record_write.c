@@ -238,8 +238,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
     if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
-        conn->client = &conn->initial;
-        conn->server = &conn->initial;
+        POSIX_ENSURE_REF(conn->initial);
+        conn->client = conn->initial;
+        conn->server = conn->initial;
     }
 
     uint8_t *sequence_number = conn->server->server_sequence_number;

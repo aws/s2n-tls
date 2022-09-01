@@ -41,18 +41,18 @@
 
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
 
     return S2N_SUCCESS;
 }
 
 static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
 {
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.client_key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, key));
-    POSIX_GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->server_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->client_key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, key));
+    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, key));
 
     return S2N_SUCCESS;
 }
@@ -78,17 +78,17 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         /* Client and server are in sync */
-        conn->server = &conn->secure;
-        conn->client = &conn->secure;
+        conn->server = conn->secure;
+        conn->client = conn->secure;
 
         /* test the AES128 cipher with a SHA1 hash */
-        conn->secure.cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes128));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes128));
-        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        conn->secure->cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes128));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes128));
+        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
         conn->actual_protocol_version = S2N_TLS11;
 
         /* Test that different modes allows for different fragment/payload sizes.
@@ -116,9 +116,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(bytes_written, large_payload);
 
         /* Clean up */
-        conn->secure.cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
+        conn->secure->cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
     }
 
     /* Test s2n_record_max_write_payload_size() have proper checks in place */
@@ -248,16 +248,16 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
             server_conn->actual_protocol_version = S2N_TLS11;
-            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_3des_sha;
+            server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_3des_sha;
             uint8_t des3_key[] = "12345678901234567890123";
             struct s2n_blob des3 = {0};
             EXPECT_SUCCESS(s2n_blob_init(&des3, des3_key, sizeof(des3_key)));
-            server_conn->server = &server_conn->secure;
-            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->init(&server_conn->secure.server_key));
-            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->init(&server_conn->secure.client_key));
-            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->secure.server_key, &des3));
-            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure.client_key, &des3));
-            EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+            server_conn->server = server_conn->secure;
+            EXPECT_SUCCESS(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->server_key));
+            EXPECT_SUCCESS(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->client_key));
+            EXPECT_SUCCESS(server_conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->secure->server_key, &des3));
+            EXPECT_SUCCESS(server_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure->client_key, &des3));
+            EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
@@ -281,7 +281,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
-            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(setup_server_keys(server_conn, &aes128));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
@@ -306,7 +306,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->initial.cipher_suite->record_alg = &s2n_tls13_record_alg_aes128_gcm;
+            server_conn->initial->cipher_suite->record_alg = &s2n_tls13_record_alg_aes128_gcm;
             EXPECT_SUCCESS(setup_server_keys(server_conn, &aes128));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(destroy_server_keys(server_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
-            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
+            server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
             uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
             struct s2n_blob chacha20_poly1305_key = {0};
             EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->initial.cipher_suite->record_alg = &s2n_tls13_record_alg_chacha20_poly1305;
+            server_conn->initial->cipher_suite->record_alg = &s2n_tls13_record_alg_chacha20_poly1305;
             uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
             struct s2n_blob chacha20_poly1305_key = {0};
             EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
@@ -384,13 +384,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
-            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
+            server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
             server_conn->actual_protocol_version = S2N_TLS11;
             uint8_t mac_key_sha[20] = "server key shaserve";
-            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, &aes128));
-            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, &aes128));
-            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, &aes128));
+            EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, &aes128));
+            EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial->server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial->client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             const uint16_t COMPOSITE_BLOCK_SIZE = 16;

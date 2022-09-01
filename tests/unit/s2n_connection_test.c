@@ -126,8 +126,8 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const uint16_t max_connection_size = 9050;
-        const uint16_t min_connection_size = max_connection_size * 0.75;
+        const uint16_t max_connection_size = 4150;
+        const uint16_t min_connection_size = max_connection_size * 0.9;
 
         size_t connection_size = sizeof(struct s2n_connection);
 
@@ -659,6 +659,55 @@ int main(int argc, char **argv)
         uint64_t magic_number = 123456;
         conn->wire_bytes_out = magic_number;
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
+    }
+
+    /* Test connection reuse when memory freed */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        uint8_t app_data[100] = "hello world";
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        for (size_t i = 0; i < 10; i ++) {
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Handshake */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Free handshake memory */
+            EXPECT_SUCCESS(s2n_connection_free_handshake(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
+
+            /* Send and recv data */
+            EXPECT_EQUAL(s2n_send(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_EQUAL(s2n_recv(server_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_EQUAL(s2n_send(server_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
+            EXPECT_EQUAL(s2n_recv(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
+
+            /* Free io buffers */
+            EXPECT_SUCCESS(s2n_connection_release_buffers(client_conn));
+            EXPECT_SUCCESS(s2n_connection_release_buffers(server_conn));
+
+            /* Reuse connections */
+            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        }
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));

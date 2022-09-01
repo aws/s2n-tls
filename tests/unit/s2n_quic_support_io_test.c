@@ -54,7 +54,7 @@ static S2N_RESULT s2n_setup_conn_for_server_hello(struct s2n_connection *conn)
     RESULT_GUARD(s2n_setup_conn(conn));
 
     /* Use arbitrary cipher suite */
-    conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+    conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     /* Setup secrets */
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
