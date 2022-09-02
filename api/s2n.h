@@ -1640,6 +1640,20 @@ S2N_API
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
+ * Configure the connection to free IO buffers when they are not currently in use.
+ *
+ * This configuration can be used to minimize connection memory footprint size, at the cost
+ * of more calls to alloc and free. Some of these costs can be mitigated by configuring s2n-tls
+ * to use an allocator that includes thread-local caches or lock-free allocation patterns.
+ *
+ * @param conn The connection object being update
+ * @param enabled Set to `true` if dynamic buffers are enabled; `false` if disabled
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API
+extern int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool enabled);
+
+/**
  * Provides a smooth transition from s2n_connection_prefer_low_latency() to s2n_connection_prefer_throughput().
  *
  * @param conn The connection object being updated

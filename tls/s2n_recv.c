@@ -206,8 +206,13 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 {
     POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
     conn->recv_in_use = true;
+
     ssize_t result = s2n_recv_impl(conn, buf, size, blocked);
     POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
+
+    /* finish the recv call */
+    POSIX_GUARD_RESULT(s2n_connection_dynamic_free_in_buffer(conn));
+
     conn->recv_in_use = false;
     return result;
 }
