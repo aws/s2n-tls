@@ -1211,7 +1211,14 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
          * due to a peer operating in middlebox compatibility mode.
          * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
-         * including these unexpected ones.*/
+         * including these unexpected ones.
+         *= https://tools.ietf.org/rfc/rfc8446#5
+         *# An implementation may receive an unencrypted record of type
+         *# change_cipher_spec consisting of the single byte value 0x01 at any
+         *# time after the first ClientHello message has been sent or received
+         *# and before the peer's Finished message has been received and MUST
+         *# simply drop it without further processing.
+         */
         if (!IS_TLS13_HANDSHAKE(conn) || s2n_connection_is_quic_enabled(conn)) {
             POSIX_ENSURE(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);

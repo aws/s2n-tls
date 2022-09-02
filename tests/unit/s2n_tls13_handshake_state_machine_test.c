@@ -122,6 +122,13 @@ int main(int argc, char **argv)
     /* Test: A WITH_EARLY_DATA form of every non-full, non-retry handshake exists
      *       and matches the non-WITH_EARLY_DATA form EXCEPT for the END_OF_EARLY_DATA
      *       message and client CCS messages.
+     *= https://tools.ietf.org/rfc/rfc8446#5
+     *= type=test
+     *# An implementation may receive an unencrypted record of type
+     *# change_cipher_spec consisting of the single byte value 0x01 at any
+     *# time after the first ClientHello message has been sent or received
+     *# and before the peer's Finished message has been received and MUST
+     *# simply drop it without further processing.
      */
     {
         uint32_t original_handshake_type, early_data_handshake_type;
@@ -183,7 +190,15 @@ int main(int argc, char **argv)
     }
 
     /* Test: A MIDDLEBOX_COMPAT form of every valid, negotiated handshake exists
-     *       and matches the non-MIDDLEBOX_COMPAT form EXCEPT for CCS messages */
+     *       and matches the non-MIDDLEBOX_COMPAT form EXCEPT for CCS messages
+     *= https://tools.ietf.org/rfc/rfc8446#5
+     *= type=test
+     *# An implementation may receive an unencrypted record of type
+     *# change_cipher_spec consisting of the single byte value 0x01 at any
+     *# time after the first ClientHello message has been sent or received
+     *# and before the peer's Finished message has been received and MUST
+     *# simply drop it without further processing.
+     */
     {
         uint32_t handshake_type_original, handshake_type_mc;
         message_type_t *messages_original, *messages_mc;
@@ -314,7 +329,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 server does not wait for client cipher change requests */
+    /* Test: TLS1.3 server does not wait for client cipher change requests.
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *= type=test
+    *# An implementation may receive an unencrypted record of type
+    *# change_cipher_spec consisting of the single byte value 0x01 at any
+    *# time after the first ClientHello message has been sent or received
+    *# and before the peer's Finished message has been received and MUST
+    *# simply drop it without further processing.
+    */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
@@ -368,7 +391,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 client does not wait for server cipher change requests */
+    /* Test: TLS1.3 client does not wait for server cipher change requests
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *= type=test
+    *# An implementation may receive an unencrypted record of type
+    *# change_cipher_spec consisting of the single byte value 0x01 at any
+    *# time after the first ClientHello message has been sent or received
+    *# and before the peer's Finished message has been received and MUST
+    *# simply drop it without further processing.
+    */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
@@ -421,8 +452,16 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
-
-    /* Test: TLS1.3 client can receive a server cipher change spec at any time. */
+    
+    /* Test: TLS1.3 client can receive a server cipher change spec at any time.
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *= type=test
+    *# An implementation may receive an unencrypted record of type
+    *# change_cipher_spec consisting of the single byte value 0x01 at any
+    *# time after the first ClientHello message has been sent or received
+    *# and before the peer's Finished message has been received and MUST
+    *# simply drop it without further processing.
+    */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
@@ -463,7 +502,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 server can receive a client cipher change request at any time. */
+    /* Test: TLS1.3 server can receive a client cipher change request at any time.
+     *= https://tools.ietf.org/rfc/rfc8446#5
+     *= type=test
+     *# An implementation may receive an unencrypted record of type
+     *# change_cipher_spec consisting of the single byte value 0x01 at any
+     *# time after the first ClientHello message has been sent or received
+     *# and before the peer's Finished message has been received and MUST
+     *# simply drop it without further processing.
+     */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
