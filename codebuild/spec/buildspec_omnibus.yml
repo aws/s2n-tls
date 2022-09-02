@@ -186,6 +186,14 @@ batch:
           GCC_VERSION: '6'
           TESTS: crt
 
+    - identifier: s2nUnitInstallSharedAndStatic
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        privileged-mode: true
+        variables:
+          TESTS: sharedandstatic
+
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
