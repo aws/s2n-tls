@@ -64,10 +64,15 @@ int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm
     int NID_type = 0;
     POSIX_GUARD(s2n_hash_NID_type(hash_alg, &NID_type));
 
-    const s2n_rsa_private_key *key = &priv->key.rsa_key;
+    const s2n_rsa_private_key *rsa_key = &priv->key.rsa_key;
 
     unsigned int signature_size = signature->size;
-    POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
+
+    /* Safety: RSA_sign does not mutate the key */
+    RSA *key = NULL;
+    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(rsa_key, &key));
+
+    POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size, key), S2N_ERR_SIGN);
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -100,12 +105,16 @@ int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
     POSIX_GUARD(s2n_hash_NID_type(digest->alg, &digest_NID_type));
     POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
 
-    const s2n_rsa_public_key *key = &pub->key.rsa_key;
+    const s2n_rsa_public_key *rsa_key = &pub->key.rsa_key;
 
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa), S2N_ERR_VERIFY_SIGNATURE);
+    /* Safety: RSA_verify does not mutate the key */
+    RSA *key = NULL;
+    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(rsa_key, &key));
+
+    POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size, key), S2N_ERR_VERIFY_SIGNATURE);
 
     return 0;
 }

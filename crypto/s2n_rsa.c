@@ -13,25 +13,47 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_rsa.h"
-
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 #include <stdint.h>
 
-#include "crypto/s2n_drbg.h"
-#include "crypto/s2n_hash.h"
-#include "crypto/s2n_pkey.h"
-#include "crypto/s2n_evp_signing.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+
+#include "crypto/s2n_drbg.h"
+#include "crypto/s2n_evp_signing.h"
+#include "crypto/s2n_hash.h"
+#include "crypto/s2n_pkey.h"
+#include "crypto/s2n_rsa.h"
+#include "crypto/s2n_rsa_signing.h"
+
 #include "utils/s2n_blob.h"
+#include "utils/s2n_compiler.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-static S2N_RESULT s2n_rsa_modulus_check(RSA *rsa)
+S2N_RESULT s2n_unsafe_rsa_get_mut(const struct s2n_rsa_key *rsa_key, RSA **out_rsa_key) {
+    RESULT_ENSURE_REF(rsa_key);
+    RESULT_ENSURE_REF(rsa_key->rsa);
+    RESULT_ENSURE_EQ(*out_rsa_key, NULL);
+
+    /* pragma gcc diagnostic was added in gcc 4.6 */
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    *out_rsa_key = (RSA *) rsa_key->rsa;
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
+
+    RESULT_ENSURE_REF(*out_rsa_key);
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_rsa_modulus_check(const RSA *rsa)
 {
 /* RSA was made opaque starting in Openssl 1.1.0 */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
@@ -45,13 +67,14 @@ static S2N_RESULT s2n_rsa_modulus_check(RSA *rsa)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_rsa_encrypted_size(const struct s2n_pkey *key, uint32_t *size_out)
+static S2N_RESULT s2n_rsa_encrypted_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
-    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(pkey);
     RESULT_ENSURE_REF(size_out);
 
-    const struct s2n_rsa_key *rsa_key = &key->key.rsa_key;
+    const struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
     RESULT_ENSURE_REF(rsa_key->rsa);
+
     RESULT_GUARD(s2n_rsa_modulus_check(rsa_key->rsa));
 
     const int size = RSA_size(rsa_key->rsa);
@@ -97,8 +120,13 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     POSIX_GUARD_RESULT(s2n_rsa_encrypted_size(pub, &size));
     S2N_ERROR_IF(out->size < size, S2N_ERR_NOMEM);
 
-    const s2n_rsa_public_key *key = &pub->key.rsa_key;
-    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data, key->rsa,
+    const s2n_rsa_public_key *pub_key = &pub->key.rsa_key;
+
+    /* Safety: RSA_public_encrypt does not mutate the key */
+    RSA *key = NULL;
+    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(pub_key, &key));
+
+    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data, key,
                                RSA_PKCS1_PADDING);
     S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
 
@@ -117,8 +145,13 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 
     POSIX_GUARD_RESULT(s2n_get_public_random_data(out));
 
-    const s2n_rsa_private_key *key = &priv->key.rsa_key;
-    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate, key->rsa, RSA_NO_PADDING);
+    const s2n_rsa_private_key *priv_key = &priv->key.rsa_key;
+
+    /* Safety: RSA_private_decrypt does not mutate the key */
+    RSA *key = NULL;
+    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(priv_key, &key));
+
+    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate, key, RSA_NO_PADDING);
     S2N_ERROR_IF(r != expected_size, S2N_ERR_SIZE_MISMATCH);
 
     s2n_constant_time_pkcs1_unpad_or_dont(out->data, intermediate, r, out->size);
@@ -150,13 +183,20 @@ static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey 
 
 static int s2n_rsa_key_free(struct s2n_pkey *pkey)
 {
+    POSIX_ENSURE_REF(pkey);
     struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
-    if (rsa_key->rsa == NULL) { return 0; }
+    if (rsa_key->rsa == NULL) {
+        return S2N_SUCCESS;
+    }
 
-    RSA_free(rsa_key->rsa);
+    /* Safety: freeing the key owned by this object */
+    RSA *rsa = NULL;
+    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(rsa_key, &rsa));
+
+    RSA_free(rsa);
     rsa_key->rsa = NULL;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_rsa_check_key_exists(const struct s2n_pkey *pkey)
@@ -168,7 +208,7 @@ static int s2n_rsa_check_key_exists(const struct s2n_pkey *pkey)
 
 int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
 {
-    RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
+    const RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
     rsa_key->rsa = rsa;
@@ -177,7 +217,7 @@ int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_pu
 
 int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
 {
-    RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
+    const RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
 
     rsa_key->rsa = rsa;

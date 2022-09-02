@@ -30,7 +30,7 @@
 struct s2n_pkey;
 
 struct s2n_ecdsa_key {
-    EC_KEY *ec_key;
+    const EC_KEY *ec_key;
 };
 
 typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;

@@ -28,8 +28,10 @@
 struct s2n_pkey;
 
 struct s2n_rsa_key {
-    RSA *rsa;
+    const RSA *rsa;
 };
+
+S2N_RESULT s2n_unsafe_rsa_get_mut(const struct s2n_rsa_key *rsa_key, RSA **out_rsa_key);
 
 typedef struct s2n_rsa_key s2n_rsa_public_key;
 typedef struct s2n_rsa_key s2n_rsa_private_key;

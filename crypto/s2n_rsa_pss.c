@@ -18,7 +18,6 @@
 #include <stdint.h>
 
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_evp_signing.h"
@@ -55,7 +54,7 @@ static S2N_RESULT s2n_rsa_pss_size(const struct s2n_pkey *key, uint32_t *size_ou
     return S2N_RESULT_OK;
 }
 
-static int s2n_rsa_is_private_key(RSA *rsa_key)
+static int s2n_rsa_is_private_key(const RSA *rsa_key)
 {
     const BIGNUM *d = NULL;
     RSA_get0_key(rsa_key, NULL, NULL, &d);
@@ -73,7 +72,8 @@ int s2n_rsa_pss_key_sign(const struct s2n_pkey *priv, s2n_signature_algorithm si
     sig_alg_check(sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
 
     /* Not Possible to Sign with Public Key */
-    S2N_ERROR_IF(!s2n_rsa_is_private_key(priv->key.rsa_key.rsa), S2N_ERR_KEY_MISMATCH);
+    const RSA *key = priv->key.rsa_key.rsa;
+    S2N_ERROR_IF(!s2n_rsa_is_private_key(key), S2N_ERR_KEY_MISMATCH);
 
     return s2n_rsa_pss_sign(priv, digest, signature_out);
 }
@@ -85,7 +85,8 @@ int s2n_rsa_pss_key_verify(const struct s2n_pkey *pub, s2n_signature_algorithm s
     sig_alg_check(sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
 
     /* Using Private Key to Verify means the public/private keys were likely swapped, and likely indicates a bug. */
-    S2N_ERROR_IF(s2n_rsa_is_private_key(pub->key.rsa_key.rsa), S2N_ERR_KEY_MISMATCH);
+    const RSA *key = pub->key.rsa_key.rsa;
+    S2N_ERROR_IF(s2n_rsa_is_private_key(key), S2N_ERR_KEY_MISMATCH);
 
     return s2n_rsa_pss_verify(pub, digest, signature_in);
 }
@@ -144,11 +145,11 @@ static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struc
     POSIX_ENSURE_REF(priv);
 
     /* OpenSSL Documentation Links:
-     *  - https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_get0_RSA.html
+     *  - https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_get1_RSA.html
      *  - https://www.openssl.org/docs/manmaster/man3/RSA_get0_key.html
      */
-    RSA *pub_rsa_key = pub->key.rsa_key.rsa;
-    RSA *priv_rsa_key = priv->key.rsa_key.rsa;
+    const RSA *pub_rsa_key = pub->key.rsa_key.rsa;
+    const RSA *priv_rsa_key = priv->key.rsa_key.rsa;
 
     POSIX_ENSURE_REF(pub_rsa_key);
     POSIX_ENSURE_REF(priv_rsa_key);
@@ -176,14 +177,25 @@ static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_p
 
 static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
 {
-    /* This object does not own the reference to the key --
-     * s2n_pkey handles it. */
+    POSIX_ENSURE_REF(pkey);
+    struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
+    if (rsa_key->rsa == NULL) {
+        return S2N_SUCCESS;
+    }
 
-    return 0;
+    /* Safety: freeing the key owned by this object */
+    RSA *rsa = NULL;
+    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(rsa_key, &rsa));
+
+    RSA_free(rsa);
+    rsa_key->rsa = NULL;
+
+    return S2N_SUCCESS;
 }
 
 int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey) {
-    RSA *pub_rsa_key = EVP_PKEY_get0_RSA(pkey);
+    const RSA *pub_rsa_key = EVP_PKEY_get1_RSA(pkey);
+    POSIX_ENSURE_REF(pub_rsa_key);
 
     S2N_ERROR_IF(s2n_rsa_is_private_key(pub_rsa_key), S2N_ERR_KEY_MISMATCH);
 
@@ -193,7 +205,7 @@ int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pk
 
 int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
 {
-    RSA *priv_rsa_key = EVP_PKEY_get0_RSA(pkey);
+    const RSA *priv_rsa_key = EVP_PKEY_get1_RSA(pkey);
     POSIX_ENSURE_REF(priv_rsa_key);
 
     /* Documentation: https://www.openssl.org/docs/man1.1.1/man3/RSA_check_key.html */
