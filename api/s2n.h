@@ -2985,7 +2985,7 @@ extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_asy
  *
  * @param op An opaque object representing the private key operation
  * @param key The private key used for the operation. It can be extracted from
- * `conn` through the `s2n_connection_get_selected_cert` and `s2n_cert_chain_and_key_get_key` calls
+ * `conn` through the `s2n_connection_get_selected_cert` and `s2n_cert_chain_and_key_get_private_key` calls
  */
 S2N_API
 extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
