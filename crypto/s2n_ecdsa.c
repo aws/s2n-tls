@@ -44,7 +44,7 @@ S2N_RESULT s2n_unsafe_ecdsa_get_mut(const struct s2n_ecdsa_key *ecdsa_key, EC_KE
     RESULT_ENSURE_EQ(*out_ec_key, NULL);
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#if S2N_GCC_VERSION_AT_LEAST_OR_CLANG(4,6,0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif

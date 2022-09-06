@@ -22,3 +22,11 @@
 #define S2N_GCC_VERSION_AT_LEAST(major, minor, patch_level) \
     ((S2N_GCC_VERSION) >= ((major) * 10000 + (minor) * 100 + (patch_level)))
 
+#if defined (__clang__)
+    #define S2N_GCC_VERSION_AT_LEAST_OR_CLANG(major, minor, patch_level) \
+        true
+#else
+    #define S2N_GCC_VERSION_AT_LEAST_OR_CLANG(major, minor, patch_level) \
+        ((S2N_GCC_VERSION) >= ((major) * 10000 + (minor) * 100 + (patch_level)))
+#endif
+

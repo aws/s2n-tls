@@ -39,7 +39,7 @@ S2N_RESULT s2n_unsafe_rsa_get_mut(const struct s2n_rsa_key *rsa_key, RSA **out_r
     RESULT_ENSURE_EQ(*out_rsa_key, NULL);
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#if S2N_GCC_VERSION_AT_LEAST_OR_CLANG(4,6,0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
