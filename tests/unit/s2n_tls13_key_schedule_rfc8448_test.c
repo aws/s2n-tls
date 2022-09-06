@@ -46,9 +46,9 @@ static int s2n_test_set_recv_key(struct s2n_session_key *key, struct s2n_blob *i
 
 #define EXPECT_IVS_EQUAL(conn, iv, iv_mode) \
     if ((iv_mode) == S2N_CLIENT) { \
-        EXPECT_BYTEARRAY_EQUAL((conn)->secure.client_implicit_iv, (iv).data, (iv).size); \
+        EXPECT_BYTEARRAY_EQUAL((conn)->secure->client_implicit_iv, (iv).data, (iv).size); \
     } else { \
-        EXPECT_BYTEARRAY_EQUAL((conn)->secure.server_implicit_iv, (iv).data, (iv).size); \
+        EXPECT_BYTEARRAY_EQUAL((conn)->secure->server_implicit_iv, (iv).data, (iv).size); \
     }
 
 #define EXPECT_KEYS_EQUAL(conn, key, key_mode) \
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.server_handshake_secret, secret));
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_handshake_secret, secret));
 
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 message_type_t trigger_message = trigger_messages[modes[i]];
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.server_app_secret, secret));
 
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_app_secret, secret));
 
@@ -343,7 +343,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 message_type_t trigger_message = trigger_messages[modes[i]];
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_early_secret, secret));

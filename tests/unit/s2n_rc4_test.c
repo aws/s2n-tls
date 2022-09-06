@@ -53,18 +53,18 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_get_public_random_data(&r));
 
     /* Peer and we are in sync */
-    conn->server = &conn->secure;
-    conn->client = &conn->secure;
+    conn->server = conn->secure;
+    conn->client = conn->secure;
 
     /* test the RC4 cipher with a SHA1 hash */
-    conn->secure.cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
-    if (conn->secure.cipher_suite->record_alg->cipher->is_available()) {
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key_iv));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &key_iv));
-        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    conn->secure->cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
+    if (conn->secure->cipher_suite->record_alg->cipher->is_available()) {
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv));
+        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
         conn->actual_protocol_version = S2N_TLS11;
 
         for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
@@ -114,14 +114,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         }
 
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
+        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     } else {
-        EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_FAILURE_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_FAILURE_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_FAILURE_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_FAILURE_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
     }
 
     END_TEST();

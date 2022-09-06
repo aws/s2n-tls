@@ -123,7 +123,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             uint16_t test_tickets_sent = 10;
             conn->tickets_sent = test_tickets_sent;
 
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->tickets_sent = UINT16_MAX;
 
             /* Set up output stuffer */
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             /* Set up output stuffer */
             struct s2n_stuffer output = { 0 };
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, expected_max_early_data_size));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, 10));
 
             /* Set context to be UINT16_MAX */
@@ -437,7 +437,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
 
-        conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         EXPECT_SUCCESS(s2n_setup_test_resumption_secret(conn));
 
         uint8_t nonce_data[sizeof(uint16_t)] = { 0 };
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Set up input stuffer */
             struct s2n_stuffer input = { 0 };
@@ -628,7 +628,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Set up input stuffer */
             struct s2n_stuffer input = { 0 };
@@ -662,8 +662,8 @@ int main(int argc, char **argv)
 
             client_conn->actual_protocol_version = S2N_TLS13;
             server_conn->actual_protocol_version = S2N_TLS13;
-            client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -692,13 +692,13 @@ int main(int argc, char **argv)
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
             client_conn->actual_protocol_version = S2N_TLS13;
-            client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, expected_max_early_data_size));
 
@@ -730,13 +730,13 @@ int main(int argc, char **argv)
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
             client_conn->actual_protocol_version = S2N_TLS13;
-            client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -913,7 +913,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->tickets_to_send = 1;
             EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
@@ -1024,7 +1024,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Setup io */
             struct s2n_stuffer stuffer;
@@ -1074,7 +1074,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Setup io */
             struct s2n_stuffer stuffer;
@@ -1102,7 +1102,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             uint16_t tickets_to_send = 5;
             conn->tickets_to_send = tickets_to_send;
 
@@ -1148,7 +1148,7 @@ int main(int argc, char **argv)
             /* TLS1.3 tickets contain extra fields */
             conn->actual_protocol_version = S2N_TLS13;
             /* Largest possible TLS1.3 secret size */
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             /* Necessary for extensions, which contribute to size */
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 10));
 

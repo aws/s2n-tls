@@ -84,7 +84,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS12;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
             /* Result matches constant */
             size_t actual_size = 0;
@@ -133,11 +133,11 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
-            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure.cipher_suite->prf_alg, &secret_size));
+            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
             EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, secret_size));
 
             /* Result matches constant */
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
-            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure.cipher_suite->prf_alg, &secret_size));
+            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
             EXPECT_SUCCESS(s2n_alloc(&conn->tls13_ticket_fields.session_secret, secret_size));
 
             /* Set early data fields */
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
-        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
         uint8_t ems_state[] = { false, true };
         for (size_t i = 0; i < sizeof(ems_state); i++) {
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 
             uint8_t iana_value[2] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, iana_value, S2N_TLS_CIPHER_SUITE_LEN));
-            EXPECT_BYTEARRAY_EQUAL(conn->secure.cipher_suite->iana_value, &iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+            EXPECT_BYTEARRAY_EQUAL(conn->secure->cipher_suite->iana_value, &iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
             /* Current time */
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, sizeof(uint64_t)));
@@ -380,7 +380,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
 
             uint8_t iana_value[2] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, iana_value, S2N_TLS_CIPHER_SUITE_LEN));
-            EXPECT_BYTEARRAY_EQUAL(conn->secure.cipher_suite->iana_value, &iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+            EXPECT_BYTEARRAY_EQUAL(conn->secure->cipher_suite->iana_value, &iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
             uint64_t actual_ticket_issue_time = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_ticket_issue_time));
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 1));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -517,7 +517,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, test_max_early_data_size));
             EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -691,7 +691,7 @@ int main(int argc, char **argv)
             
             EXPECT_TRUE(conn->ems_negotiated);
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
+            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
 
             EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
@@ -711,7 +711,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
-            conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
             conn->ems_negotiated = true;
 
             uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
@@ -725,7 +725,7 @@ int main(int argc, char **argv)
 
             EXPECT_TRUE(conn->ems_negotiated);
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
+            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
 
             EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
@@ -743,7 +743,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&blob, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
-            conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
             conn->ems_negotiated = true;
 
             uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
@@ -1063,7 +1063,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
                 conn->actual_protocol_version = S2N_TLS13;
-                conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+                conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -1089,7 +1089,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(psk->secret.size, test_session_secret.size);
                 EXPECT_BYTEARRAY_EQUAL(psk->secret.data, test_session_secret.data, test_session_secret.size);
 
-                EXPECT_EQUAL(psk->hmac_alg, conn->secure.cipher_suite->prf_alg);
+                EXPECT_EQUAL(psk->hmac_alg, conn->secure->cipher_suite->prf_alg);
 
                 EXPECT_EQUAL(psk->ticket_age_add, TICKET_AGE_ADD);
                 EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
@@ -1118,7 +1118,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -1160,7 +1160,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn = s2n_connection_new(mode);
                 EXPECT_NOT_NULL(conn);
                 conn->actual_protocol_version = S2N_TLS12;
-                conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+                conn->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
                 /* Security policy must allow chosen cipher suite */
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
@@ -1239,7 +1239,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
-            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
             EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
@@ -1274,7 +1274,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -1316,7 +1316,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -1362,7 +1362,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_proto, sizeof(test_app_proto));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));

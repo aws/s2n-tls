@@ -66,7 +66,7 @@ int s2n_client_psk_is_missing(struct s2n_connection *conn)
 
 bool s2n_client_psk_should_send(struct s2n_connection *conn)
 {
-    if (conn == NULL) {
+    if (!conn || !conn->secure) {
         return false;
     }
 
@@ -84,7 +84,7 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
         struct s2n_psk *psk = NULL;
         if (s2n_result_is_ok(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &psk))
                 && psk != NULL
-                && conn->secure.cipher_suite->prf_alg == psk->hmac_alg) {
+                && conn->secure->cipher_suite->prf_alg == psk->hmac_alg) {
             return true;
         }
     }
@@ -134,6 +134,7 @@ static S2N_RESULT s2n_generate_obfuscated_ticket_age(struct s2n_psk *psk, uint64
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
 
     struct s2n_psk_parameters *psk_params = &conn->psk_params;
     struct s2n_array *psk_list = &psk_params->psk_list;
@@ -154,7 +155,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
          *# any pre-shared keys associated with a hash other than that of the
          *# selected cipher suite.
          */
-        if (s2n_is_hello_retry_handshake(conn) && conn->secure.cipher_suite->prf_alg != psk->hmac_alg) {
+        if (s2n_is_hello_retry_handshake(conn) && conn->secure->cipher_suite->prf_alg != psk->hmac_alg) {
             continue;
         }
 

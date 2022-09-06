@@ -47,8 +47,8 @@ const s2n_extension_type s2n_server_ec_point_format_extension = {
 
 static bool s2n_server_ec_point_format_should_send(struct s2n_connection *conn)
 {
-    return conn && conn->secure.cipher_suite
-            && s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_ecdhe);
+    return conn && conn->secure && conn->secure->cipher_suite
+            && s2n_kex_includes(conn->secure->cipher_suite->key_exchange_alg, &s2n_ecdhe);
 }
 
 static int s2n_ec_point_format_send(struct s2n_connection *conn, struct s2n_stuffer *out)

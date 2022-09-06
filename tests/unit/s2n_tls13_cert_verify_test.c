@@ -81,10 +81,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         sending_conn->handshake_params.our_chain_and_key = cert_chain;
         sending_conn->handshake_params.conn_sig_scheme = sig_scheme;
         sending_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
-        sending_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        sending_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
-        verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
@@ -120,7 +120,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_tls13_cert_verify_recv(verifying_conn));
 
         /* Test fails if cipher suites hash is configured incorrectly */
-        verifying_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        verifying_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
         EXPECT_SUCCESS(s2n_tls13_cert_verify_send(sending_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&sending_conn->handshake.io, &verifying_conn->handshake.io, s2n_stuffer_data_available(&sending_conn->handshake.io)));
         EXPECT_FAILURE(s2n_tls13_cert_verify_recv(verifying_conn));
@@ -162,7 +162,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
         verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
         verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
-        verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
@@ -230,7 +230,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
         verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
         verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
-        verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
@@ -300,7 +300,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
         verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
         verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
-        verifying_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));

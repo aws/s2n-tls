@@ -22,7 +22,7 @@
 
 #define S2N_MAX_HASHLEN SHA384_DIGEST_LENGTH
 
-#define CONN_HMAC_ALG(conn) ((conn)->secure.cipher_suite->prf_alg)
+#define CONN_HMAC_ALG(conn) ((conn)->secure->cipher_suite->prf_alg)
 #define CONN_SECRETS(conn)  ((conn)->secrets.tls13)
 #define CONN_HASHES(conn)   ((conn)->handshake.hashes)
 
@@ -103,11 +103,12 @@ S2N_RESULT s2n_tls13_empty_transcripts_init()
 static S2N_RESULT s2n_calculate_transcript_digest(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->handshake.hashes);
 
     s2n_hash_algorithm hash_algorithm = S2N_HASH_NONE;
-    RESULT_ENSURE_REF(conn->secure.cipher_suite);
-    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure.cipher_suite->prf_alg, &hash_algorithm));
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure->cipher_suite->prf_alg, &hash_algorithm));
 
     uint8_t digest_size = 0;
     RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
@@ -494,7 +495,8 @@ static s2n_result (*extract_methods[])(struct s2n_connection *conn) = {
 S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->handshake.hashes);
     RESULT_ENSURE_NE(secret_type, S2N_NONE_SECRET);
 
@@ -522,7 +524,8 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(secret);
-    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->handshake.hashes);
     RESULT_ENSURE_NE(secret_type, S2N_NONE_SECRET);
 
@@ -567,7 +570,8 @@ S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
-    RESULT_ENSURE_REF(conn->secure.cipher_suite);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
     switch(message_type) {

@@ -54,4 +54,9 @@ make -j $JOBS install
 
 popd
 
+# sym-link lib -> lib64 since codebuild assumes /lib path
+pushd $INSTALL_DIR
+ln -s lib64 lib
+popd
+
 exit 0

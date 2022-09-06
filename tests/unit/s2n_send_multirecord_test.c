@@ -417,13 +417,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
 
         /* Find record limit */
-        uint64_t limit = conn->secure.cipher_suite->record_alg->encryption_limit;
+        uint64_t limit = conn->secure->cipher_suite->record_alg->encryption_limit;
         EXPECT_TRUE(limit > 0);
 
         /* Initialize sequence number */
         struct s2n_blob seq_num_blob = { 0 };
         struct s2n_stuffer seq_num_stuffer = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure.client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         EXPECT_SUCCESS(s2n_stuffer_init(&seq_num_stuffer, &seq_num_blob));
 
         /* Set the sequence number so that a KeyUpdate triggers after one more record. */

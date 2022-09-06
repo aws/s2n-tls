@@ -87,11 +87,11 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Peer and we are in sync */
-    conn->server = &conn->initial;
-    conn->client = &conn->initial;
+    conn->server = conn->initial;
+    conn->client = conn->initial;
 
     /* test the null cipher. */
-    conn->initial.cipher_suite = &s2n_null_cipher_suite;
+    conn->initial->cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
@@ -130,10 +130,10 @@ int main(int argc, char **argv)
     }
 
     /* test a fake streaming cipher with a MAC */
-    conn->initial.cipher_suite->record_alg = &mock_null_sha1_record_alg;
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    conn->initial.cipher_suite = &s2n_null_cipher_suite;
+    conn->initial->cipher_suite->record_alg = &mock_null_sha1_record_alg;
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    conn->initial->cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.server_sequence_number, 8));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial->server_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &in));
@@ -213,17 +213,17 @@ int main(int argc, char **argv)
     }
 
     /* Test a mock block cipher with a mac - in TLS1.0 mode */
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS10;
-    conn->initial.cipher_suite = &mock_block_cipher_suite;
+    conn->initial->cipher_suite = &mock_block_cipher_suite;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.client_sequence_number, 8));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial->client_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -280,17 +280,17 @@ int main(int argc, char **argv)
     }
 
     /* Test a mock block cipher with a mac - in TLS1.1+ mode */
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->initial->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
-    conn->initial.cipher_suite = &mock_block_cipher_suite;
+    conn->initial->cipher_suite = &mock_block_cipher_suite;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.client_sequence_number, 8));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial->client_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -347,11 +347,11 @@ int main(int argc, char **argv)
 
     /* Test TLS record limit */
     struct s2n_blob empty_blob = { .data = NULL, .size = 0 };
-    conn->initial.cipher_suite = &s2n_null_cipher_suite;
+    conn->initial->cipher_suite = &s2n_null_cipher_suite;
 
     /* Fast forward the sequence number */
     uint8_t max_num_records[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-    EXPECT_MEMCPY_SUCCESS(conn->initial.server_sequence_number, max_num_records, sizeof(max_num_records));
+    EXPECT_MEMCPY_SUCCESS(conn->initial->server_sequence_number, max_num_records, sizeof(max_num_records));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     /* Sequence number should wrap around */
     EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(conn, TLS_ALERT, &empty_blob), S2N_ERR_RECORD_LIMIT);

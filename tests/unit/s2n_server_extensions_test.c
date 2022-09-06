@@ -491,7 +491,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_server_psk_extension.should_send(conn));
 
                 /* Setup required for other server extensions */
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+                conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
                 conn->kex_params.client_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
@@ -520,7 +520,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
+        conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
 
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));

@@ -62,7 +62,7 @@ static int s2n_always_fail_recv(struct s2n_connection *conn)
     POSIX_BAIL(S2N_ERR_HANDSHAKE_UNREACHABLE);
 }
 
-/* Client and Server handlers for each message type we support.  
+/* Client and Server handlers for each message type we support.
  * See http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-7 for the list of handshake message types
  */
 static struct s2n_handshake_action state_machine[] = {
@@ -811,6 +811,9 @@ static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     if (IS_TLS13_HANDSHAKE(conn)) {
         POSIX_GUARD_RESULT(s2n_conn_set_tls13_handshake_type(conn));
         return S2N_SUCCESS;
@@ -876,7 +879,7 @@ skip_cache_lookup:
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, FULL_HANDSHAKE));
 
     bool is_ephemeral = false;
-    POSIX_GUARD_RESULT(s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg, &is_ephemeral));
+    POSIX_GUARD_RESULT(s2n_kex_is_ephemeral(conn->secure->cipher_suite->key_exchange_alg, &is_ephemeral));
     if (is_ephemeral) {
         POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, TLS12_PERFECT_FORWARD_SECRECY));
     }
@@ -1452,7 +1455,13 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(!conn->negotiate_in_use, S2N_ERR_REENTRANCY);
     conn->negotiate_in_use = true;
+
     int result = s2n_negotiate_impl(conn, blocked);
+
+    /* finish up sending and receiving */
+    POSIX_GUARD_RESULT(s2n_connection_dynamic_free_in_buffer(conn));
+    POSIX_GUARD_RESULT(s2n_connection_dynamic_free_out_buffer(conn));
+
     conn->negotiate_in_use = false;
     return result;
 }

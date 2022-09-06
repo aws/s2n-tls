@@ -35,7 +35,7 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
     struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     conn->server->cipher_suite = cipher_suite;
     conn->client->cipher_suite = cipher_suite;
-    conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+    conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
  
     /* Just some data that's the right length */
     S2N_BLOB_FROM_HEX(key, "0123456789abcdef0123456789abcdef");
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         
         /* Mimic key update send conditions */
         for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
-            server_conn->secure.server_sequence_number[i] = max_record_limit[i];
+            server_conn->secure->server_sequence_number[i] = max_record_limit[i];
         }
 
         /* Next message to send will trigger key update message*/
@@ -110,14 +110,14 @@ int main(int argc, char **argv)
         
         /* Verify key update happened */
         EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secrets.tls13.server_app_secret, client_conn->secrets.tls13.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
-        EXPECT_BYTEARRAY_EQUAL(server_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+        EXPECT_BYTEARRAY_EQUAL(server_conn->secure->server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         /* Receive keyupdate message */
         uint8_t data[100];
         EXPECT_SUCCESS(s2n_recv(client_conn, data, sizeof(message), &blocked));
         EXPECT_BYTEARRAY_EQUAL(data, message, sizeof(message));
         EXPECT_BYTEARRAY_EQUAL(client_conn->secrets.tls13.server_app_secret, server_conn->secrets.tls13.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
-        EXPECT_BYTEARRAY_EQUAL(client_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+        EXPECT_BYTEARRAY_EQUAL(client_conn->secure->server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

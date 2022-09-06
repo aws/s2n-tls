@@ -62,7 +62,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
             conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
             conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,.size = sizeof(server_conn->secure.server_sequence_number) };
+        struct s2n_blob server_seq = { .data = server_conn->secure->server_sequence_number,.size = sizeof(server_conn->secure->server_sequence_number) };
         S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
         S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
 

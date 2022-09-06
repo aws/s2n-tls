@@ -39,12 +39,13 @@ static int s2n_server_key_send_write_signature(struct s2n_connection *conn, stru
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite->key_exchange_alg);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite->key_exchange_alg);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
     struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
-    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = {0};
 
@@ -183,6 +184,9 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 
 int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
 
     /* Check that the server's requested kem is supported by the client */
@@ -190,7 +194,7 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     POSIX_ENSURE_REF(kem_preferences);
 
-    const struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    const struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
     const struct s2n_kem *match = NULL;
     S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, kem_preferences->kems,
                                                     kem_preferences->kem_count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
@@ -204,8 +208,9 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
 int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *total_data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    const struct s2n_kex *kex = conn->secure->cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
     const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
 
@@ -226,8 +231,9 @@ int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n
 int s2n_hybrid_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    const struct s2n_kex *kex = conn->secure->cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
     const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
 
@@ -244,7 +250,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     S2N_ASYNC_PKEY_GUARD(conn);
 
     struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
-    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob data_to_sign = {0};
 
@@ -318,8 +324,9 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
 int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *total_data_to_sign)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    const struct s2n_kex *kex = conn->secure->cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
     const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
 

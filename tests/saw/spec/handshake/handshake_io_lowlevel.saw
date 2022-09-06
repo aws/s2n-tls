@@ -48,9 +48,10 @@ print "Loaded bitcode via Crucible";
 //conn->mode
 let conn_mode pconn = crucible_field pconn "mode";
 
-//conn->secure.cipher_suite->key_exchange_alg->flags
-let conn_secure_cipher_suite pconn =
-    (crucible_field (crucible_field pconn "secure") "cipher_suite");
+let secure_crypto_params pconn = crucible_field pconn "secure";
+
+//conn->secure->cipher_suite->key_exchange_alg->flags
+let conn_secure_cipher_suite crypto_params = crucible_field crypto_params "cipher_suite";
 
 //let key_exchange_algorithm csuite = crucible_elem csuite 3;
 let key_exchange_algorithm csuite = crucible_field csuite "key_exchange_alg";
@@ -151,8 +152,11 @@ let setup_connection_common chosen_psk_null = do {
    cca <- crucible_fresh_var "cca" (llvm_int 32);
    crucible_points_to (cca_type pconn) (crucible_term cca);
 
+   secure <- crucible_alloc (llvm_struct "struct.s2n_crypto_parameters");
+   crucible_points_to (secure_crypto_params pconn) secure;
+
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
-   crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
+   crucible_points_to (conn_secure_cipher_suite secure) cipher_suite;
 
    kea <- crucible_alloc (llvm_struct "struct.s2n_kex");
    crucible_points_to (key_exchange_algorithm cipher_suite) kea;

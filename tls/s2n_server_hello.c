@@ -98,6 +98,7 @@ static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
 static int s2n_server_hello_parse(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
 
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method;
@@ -232,7 +233,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         if (session_ids_match) {
             /* check if the resumed session state is valid */
             S2N_ERROR_IF(conn->actual_protocol_version != actual_protocol_version, S2N_ERR_BAD_MESSAGE);
-            S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
 
             /* Session is resumed */
             conn->client_session_resumed = 1;
@@ -296,6 +297,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 int s2n_server_hello_write_message(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
 
     /* The actual_protocol_version is set while processing the CLIENT_HELLO message, so
      * it could be S2N_TLS13. SERVER_HELLO should always respond with the legacy version.
@@ -309,7 +311,7 @@ int s2n_server_hello_write_message(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, conn->session_id_len));
     POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->session_id, conn->session_id_len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, S2N_TLS_COMPRESSION_METHOD_NULL));
 
     return 0;
