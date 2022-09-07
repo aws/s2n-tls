@@ -53,7 +53,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test that s2n_basic_ccs_recv errors on wrong change cipher spec types */
+    /* Test that s2n_basic_ccs_recv errors on wrong change cipher spec types
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *= type=test
+    *# An
+    *# implementation which receives any other change_cipher_spec value or
+    *# which receives a protected change_cipher_spec record MUST abort the
+    *# handshake with an "unexpected_message" alert.
+    */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -64,7 +71,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test that s2n_client_ccs_recv errors on wrong change cipher spec types */
+    /* Test that s2n_client_ccs_recv errors on wrong change cipher spec types
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *= type=test
+    *# An
+    *# implementation which receives any other change_cipher_spec value or
+    *# which receives a protected change_cipher_spec record MUST abort the
+    *# handshake with an "unexpected_message" alert.
+    */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -75,7 +89,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test that s2n_server_ccs_recv errors on wrong change cipher spec types */
+    /* Test that s2n_server_ccs_recv errors on wrong change cipher spec types
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *= type=test
+    *# An
+    *# implementation which receives any other change_cipher_spec value or
+    *# which receives a protected change_cipher_spec record MUST abort the
+    *# handshake with an "unexpected_message" alert.
+    */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));

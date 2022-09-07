@@ -33,6 +33,13 @@ int s2n_basic_ccs_recv(struct s2n_connection *conn)
     uint8_t type;
 
     POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
+    /*
+    *= https://tools.ietf.org/rfc/rfc8446#5
+    *# An
+    *# implementation which receives any other change_cipher_spec value or
+    *# which receives a protected change_cipher_spec record MUST abort the
+    *# handshake with an "unexpected_message" alert.
+    */
     S2N_ERROR_IF(type != CHANGE_CIPHER_SPEC_TYPE, S2N_ERR_BAD_MESSAGE);
 
     return 0;
