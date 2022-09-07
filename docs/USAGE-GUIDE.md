@@ -471,6 +471,12 @@ Client authentication can be configured by calling `s2n_config_set_client_auth_t
 
 When using client authentication, the server MUST implement the `s2n_verify_host_fn`, because the default behavior will likely reject all client certificates.
 
+### Certificate Inspection
+
+Applications may want to know which certificate was used by a server for authentication during a connection (servers can set multiple certificates). `s2n_connection_get_selected_cert()` will return the certificate chain object used to authenticate. `s2n_connection_get_peer_cert_chain()` will provide the peer's certificate chain, if they sent one. Use `s2n_cert_chain_get_length()` and `s2n_cert_chain_get_cert()` to parse the certificate chain object and get a single certificate from the chain. Use `s2n_cert_get_der()` to get the DER encoded certificate if desired.
+
+Additionally s2n-tls has methods for parsing the certificate extensions on a certificate. Use `s2n_cert_get_x509_extension_value_length()` and `s2n_cert_get_x509_extension_value()` to obtain a specific DER encoded certificate extension from a certificate. `s2n_cert_get_utf8_string_from_extension_data_length()` and `s2n_cert_get_utf8_string_from_extension_data()` can be used to obtain a specific UTF8 string representation of a certificate extension instead.
+
 ### OCSP Stapling
 
 Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.
@@ -793,31 +799,6 @@ These functions retrieve the session id as sent by the client in the ClientHello
 **s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
 
 **s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
-
-### s2n\_connection\_get\_selected\_cert
-
-```c
-struct s2n_cert_chain_and_key s2n_connection_get_selected_cert(struct s2n_connection *conn);
-```
-
-Return the certificate that was used during the TLS handshake.
-
-- If **conn** is a server connection, the certificate selected will depend on the
-  ServerName sent by the client and supported ciphers.
-- If **conn** is a client connection, the certificate sent in response to a CertificateRequest
-  message is returned. Currently s2n-tls supports loading only one certificate in client mode. Note that
-  not all TLS endpoints will request a certificate.
-
-This function returns NULL if the certificate selection phase of the handshake has not completed
- or if a certificate was not requested by the peer.
-
-### s2n\_cert\_chain\_get\_cert
-
-```c
-int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
-```
-
-**s2n_cert_chain_get_cert** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
 
 ### s2n\_connection\_free\_handshake
 
