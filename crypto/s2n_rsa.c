@@ -44,7 +44,7 @@ RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key) {
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
     RSA *out_rsa_key = (RSA *) rsa_key->rsa;
-#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
 #endif
 
