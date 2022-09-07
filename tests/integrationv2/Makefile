@@ -28,7 +28,7 @@ endif
 define run_tox
 	( \
 	DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:"$(S2N_ROOT)/test-deps/gnutls37/nettle/lib":$$LD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:"$(S2N_ROOT)/test-deps/openssl-1.1.1/lib":"$(S2N_ROOT)/test-deps/gnutls37/nettle/lib":$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	PATH="$(S2N_ROOT)/bin":"$(S2N_ROOT)/test-deps/openssl-1.1.1/bin":"$(S2N_ROOT)/test-deps/gnutls37/bin":$(PATH) \
 	PYTHONNOUSERSITE=1 \
