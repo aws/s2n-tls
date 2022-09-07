@@ -502,5 +502,100 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.size, out_size[mfl]);
     }
 
+    /* Test dynamic record threshold record fragmentation */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+
+        /* Retrieve the fragment size to expect */
+        uint16_t single_mtu_mfl = 0;
+        EXPECT_OK(s2n_record_min_write_payload_size(conn, &single_mtu_mfl));
+
+        /* Set the dynamic record threshold large enough for two small records */
+        const uint32_t resize_threshold = single_mtu_mfl * 2;
+        EXPECT_SUCCESS(s2n_connection_set_dynamic_record_threshold(conn, resize_threshold, UINT16_MAX));
+
+        struct s2n_send_result results[] = {
+                /* Block before sending the first record so that we can examine
+                 * the connection state after buffering the first record.
+                 */
+                BLOCK_SEND_RESULT, OK_SEND_RESULT,
+                /* Send the second record */
+                BLOCK_SEND_RESULT, OK_SEND_RESULT,
+                /* Send the third record */
+                OK_SEND_RESULT,
+                BLOCK_SEND_RESULT
+        };
+        struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+
+        s2n_blocked_status blocked = 0;
+        const size_t send_size = single_mtu_mfl * 2;
+
+        /* The first call to s2n_send blocks before sending the first record. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, send_size, &blocked),
+                S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        /* No records have been sent yet. */
+        EXPECT_EQUAL(context.bytes_sent, 0);
+        /* The first record is buffered,
+         * so its bytes still count towards the resize_threshold.
+         * We have NOT passed the threshold.
+         */
+        EXPECT_EQUAL(conn->active_application_bytes_consumed, single_mtu_mfl);
+        EXPECT_TRUE(conn->active_application_bytes_consumed < resize_threshold);
+        /* Output buffer should be able to handle the default size, not the single MTU size.
+         * Otherwise, the output buffer would need to resize later.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
+
+        /* The second call to s2n_send flushes the buffered first record,
+         * but blocks before sending the second record.
+         */
+        ssize_t result = s2n_send(conn, large_test_data, send_size, &blocked);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        /* First small, single-MTU record was sent. */
+        EXPECT_EQUAL(result, single_mtu_mfl);
+        EXPECT_TRUE(context.bytes_sent < ETH_MTU);
+        /* The second record is buffered,
+         * so its bytes count towards the resize_threshold.
+         * We have therefore hit the threshold.
+         */
+        EXPECT_EQUAL(conn->active_application_bytes_consumed, resize_threshold);
+        /* Output buffer should be able to handle the default size, not the single MTU size.
+         * Otherwise, the output buffer would need to resize later.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
+
+        /* The third call to s2n_send flushes the second record. */
+        result = s2n_send(conn, large_test_data, send_size - single_mtu_mfl, &blocked);
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        /* Second small, single-MTU record was sent. */
+        EXPECT_EQUAL(result, single_mtu_mfl);
+        /* There should be no change regarding the resize_threshold,
+         * since we did not construct any new records.
+         */
+        EXPECT_EQUAL(conn->active_application_bytes_consumed, resize_threshold);
+        /* Output buffer should be able to handle the default size, not the single MTU size.
+         * Otherwise, the output buffer would need to resize later.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
+
+        /* The fourth call to s2n_send sends the third record. */
+        result = s2n_send(conn, large_test_data, conn->max_outgoing_fragment_length * 2, &blocked);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        /* We have passed the resize_threshold, so records are no longer small.
+         * Instead they use the standard connection fragment length.
+         */
+        EXPECT_TRUE(result > single_mtu_mfl);
+        EXPECT_EQUAL(result, conn->max_outgoing_fragment_length);
+
+        /* Verify output buffer */
+        EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
+    }
+
     END_TEST();
 }
