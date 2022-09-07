@@ -853,7 +853,7 @@ always eventually be freed by calling **s2n_async_pkey_op_free**.
 
 The private key operation can be performed by calling **s2n_async_pkey_op_perform**
 (or **s2n_async_pkey_op_set_output**: see [Offloading private key operations](#Offloading-private-key-operations)).
-The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
+The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_private_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
 
 ### Asynchronous Private Key Operations
 
