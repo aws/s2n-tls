@@ -73,7 +73,7 @@ int s2n_rsa_pss_key_sign(const struct s2n_pkey *priv, s2n_signature_algorithm si
 
     /* Not Possible to Sign with Public Key */
     const RSA *key = priv->key.rsa_key.rsa;
-    S2N_ERROR_IF(!s2n_rsa_is_private_key(key), S2N_ERR_KEY_MISMATCH);
+    POSIX_ENSURE(s2n_rsa_is_private_key(key), S2N_ERR_KEY_MISMATCH);
 
     return s2n_rsa_pss_sign(priv, digest, signature_out);
 }
@@ -86,7 +86,7 @@ int s2n_rsa_pss_key_verify(const struct s2n_pkey *pub, s2n_signature_algorithm s
 
     /* Using Private Key to Verify means the public/private keys were likely swapped, and likely indicates a bug. */
     const RSA *key = pub->key.rsa_key.rsa;
-    S2N_ERROR_IF(s2n_rsa_is_private_key(key), S2N_ERR_KEY_MISMATCH);
+    POSIX_ENSURE(!s2n_rsa_is_private_key(key), S2N_ERR_KEY_MISMATCH);
 
     return s2n_rsa_pss_verify(pub, digest, signature_in);
 }
@@ -184,10 +184,7 @@ static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
     }
 
     /* Safety: freeing the key owned by this object */
-    RSA *rsa = NULL;
-    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(rsa_key, &rsa));
-
-    RSA_free(rsa);
+    RSA_free(s2n_unsafe_rsa_get_non_const(rsa_key));
     rsa_key->rsa = NULL;
 
     return S2N_SUCCESS;

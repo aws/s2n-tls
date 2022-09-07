@@ -33,24 +33,22 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-S2N_RESULT s2n_unsafe_rsa_get_mut(const struct s2n_rsa_key *rsa_key, RSA **out_rsa_key) {
-    RESULT_ENSURE_REF(rsa_key);
-    RESULT_ENSURE_REF(rsa_key->rsa);
-    RESULT_ENSURE_EQ(*out_rsa_key, NULL);
+RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key) {
+    if(rsa_key == NULL) {
+        return NULL;
+    }
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if S2N_GCC_VERSION_AT_LEAST_OR_CLANG(4,6,0)
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
-    *out_rsa_key = (RSA *) rsa_key->rsa;
+    RSA *out_rsa_key = (RSA *) rsa_key->rsa;
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
 #endif
 
-    RESULT_ENSURE_REF(*out_rsa_key);
-
-    return S2N_RESULT_OK;
+    return out_rsa_key;
 }
 
 static S2N_RESULT s2n_rsa_modulus_check(const RSA *rsa)
@@ -123,11 +121,8 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     const s2n_rsa_public_key *pub_key = &pub->key.rsa_key;
 
     /* Safety: RSA_public_encrypt does not mutate the key */
-    RSA *key = NULL;
-    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(pub_key, &key));
-
-    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data, key,
-                               RSA_PKCS1_PADDING);
+    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data,
+            s2n_unsafe_rsa_get_non_const(pub_key), RSA_PKCS1_PADDING);
     S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
@@ -148,10 +143,8 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     const s2n_rsa_private_key *priv_key = &priv->key.rsa_key;
 
     /* Safety: RSA_private_decrypt does not mutate the key */
-    RSA *key = NULL;
-    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(priv_key, &key));
-
-    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate, key, RSA_NO_PADDING);
+    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate,
+            s2n_unsafe_rsa_get_non_const(priv_key), RSA_NO_PADDING);
     S2N_ERROR_IF(r != expected_size, S2N_ERR_SIZE_MISMATCH);
 
     s2n_constant_time_pkcs1_unpad_or_dont(out->data, intermediate, r, out->size);
@@ -190,10 +183,7 @@ static int s2n_rsa_key_free(struct s2n_pkey *pkey)
     }
 
     /* Safety: freeing the key owned by this object */
-    RSA *rsa = NULL;
-    POSIX_GUARD_RESULT(s2n_unsafe_rsa_get_mut(rsa_key, &rsa));
-
-    RSA_free(rsa);
+    RSA_free(s2n_unsafe_rsa_get_non_const(rsa_key));
     rsa_key->rsa = NULL;
 
     return S2N_SUCCESS;
