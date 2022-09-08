@@ -34,9 +34,7 @@
 #include "utils/s2n_safety.h"
 
 RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key) {
-    if(rsa_key == NULL) {
-        return NULL;
-    }
+    PTR_ENSURE_REF(rsa_key);
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
 #if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)

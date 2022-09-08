@@ -39,9 +39,7 @@
 #define S2N_ECDSA_TYPE 0
 
 EC_KEY *s2n_unsafe_ecdsa_get_non_const(const struct s2n_ecdsa_key *ecdsa_key) {
-    if(ecdsa_key == NULL) {
-        return NULL;
-    }
+    PTR_ENSURE_REF(ecdsa_key);
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
 #if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
