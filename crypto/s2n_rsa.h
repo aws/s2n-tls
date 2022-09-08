@@ -28,8 +28,19 @@
 struct s2n_pkey;
 
 struct s2n_rsa_key {
-    RSA *rsa;
+    /*
+     * Starting in openssl_3, `EVP_PKEY_get1_RSA` and `EVP_PKEY_get0_RSA` functions
+     * return a pre-cached copy of the underlying key. This means that any mutations
+     * are not reflected back onto the underlying key.
+     *
+     * The `const` identifier is present to help ensure that the key is not mutated.
+     * Usecases which require a non-const RSA key (some openssl functions), should
+     * use `s2n_unsafe_rsa_get_non_const` while ensuring that the usage is safe.
+     */
+    const RSA *rsa;
 };
+
+RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key);
 
 typedef struct s2n_rsa_key s2n_rsa_public_key;
 typedef struct s2n_rsa_key s2n_rsa_private_key;

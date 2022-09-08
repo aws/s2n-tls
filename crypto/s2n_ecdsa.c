@@ -16,10 +16,13 @@
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/x509.h>
-#include "stuffer/s2n_stuffer.h"
 
 #include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
+
+#include "utils/s2n_safety_macros.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_compiler.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
@@ -32,7 +35,24 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 
+
 #define S2N_ECDSA_TYPE 0
+
+EC_KEY *s2n_unsafe_ecdsa_get_non_const(const struct s2n_ecdsa_key *ecdsa_key) {
+    PTR_ENSURE_REF(ecdsa_key);
+
+    /* pragma gcc diagnostic was added in gcc 4.6 */
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+    EC_KEY *out_ec_key = (EC_KEY *) ecdsa_key->ec_key;
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
+#pragma GCC diagnostic pop
+#endif
+
+    return out_ec_key;
+}
 
 S2N_RESULT s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
@@ -59,7 +79,10 @@ int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, 
     POSIX_ENSURE_REF(key->ec_key);
 
     unsigned int signature_size = signature->size;
-    POSIX_GUARD_OSSL(ECDSA_sign(S2N_ECDSA_TYPE, digest->data, digest->size, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
+
+    /* Safety: ECDSA_sign does not mutate the key */
+    POSIX_GUARD_OSSL(ECDSA_sign(S2N_ECDSA_TYPE, digest->data, digest->size, signature->data, &signature_size,
+                s2n_unsafe_ecdsa_get_non_const(key)), S2N_ERR_SIGN);
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -84,7 +107,7 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm s
     POSIX_GUARD(s2n_ecdsa_sign_digest(priv, &digest_blob, signature));
 
     POSIX_GUARD(s2n_hash_reset(digest));
-    
+
     return S2N_SUCCESS;
 }
 
@@ -102,16 +125,18 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm 
 
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
-    
+
+    /* Safety: ECDSA_verify does not mutate the key */
     /* ECDSA_verify ignores the first parameter */
-    POSIX_GUARD_OSSL(ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key->ec_key), S2N_ERR_VERIFY_SIGNATURE);
+    POSIX_GUARD_OSSL(ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size,
+                s2n_unsafe_ecdsa_get_non_const(key)), S2N_ERR_VERIFY_SIGNATURE);
 
     POSIX_GUARD(s2n_hash_reset(digest));
-    
+
     return 0;
 }
 
-static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) 
+static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
     uint8_t input[16] = { 1 };
     DEFER_CLEANUP(struct s2n_blob signature = { 0 }, s2n_free);
@@ -139,15 +164,17 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
 
 static int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
 {
+    POSIX_ENSURE_REF(pkey);
     struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
     if (ecdsa_key->ec_key == NULL) {
-        return 0;
+        return S2N_SUCCESS;
     }
-    
-    EC_KEY_free(ecdsa_key->ec_key);
+
+    /* Safety: freeing the key owned by this object */
+    EC_KEY_free(s2n_unsafe_ecdsa_get_non_const(ecdsa_key));
     ecdsa_key->ec_key = NULL;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_ecdsa_check_key_exists(const struct s2n_pkey *pkey)
@@ -159,18 +186,18 @@ static int s2n_ecdsa_check_key_exists(const struct s2n_pkey *pkey)
 
 int s2n_evp_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *evp_private_key)
 {
-    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_private_key);
+    const EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_private_key);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
-    
+
     ecdsa_key->ec_key = ec_key;
     return 0;
 }
 
 int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *evp_public_key)
 {
-    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_public_key);
+    const EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_public_key);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_DECODE_CERTIFICATE);
-    
+
     ecdsa_key->ec_key = ec_key;
     return 0;
 }
@@ -194,7 +221,8 @@ int s2n_ecdsa_pkey_matches_curve(const struct s2n_ecdsa_key *ecdsa_key, const st
     POSIX_ENSURE_REF(ecdsa_key->ec_key);
     POSIX_ENSURE_REF(curve);
 
-    int curve_id = EC_GROUP_get_curve_name(EC_KEY_get0_group(ecdsa_key->ec_key));
+    const EC_KEY *key = ecdsa_key->ec_key;
+    int curve_id = EC_GROUP_get_curve_name(EC_KEY_get0_group(key));
     POSIX_ENSURE_EQ(curve_id, curve->libcrypto_nid);
 
     return 0;
