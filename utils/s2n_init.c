@@ -89,6 +89,7 @@ static bool s2n_cleanup_atexit_impl(void)
     /* the configs need to be wiped before resetting the memory callbacks */
     s2n_wipe_static_configs();
 
+    s2n_libcrypto_cleanup();
     return s2n_result_is_ok(s2n_rand_cleanup_thread()) &&
            s2n_result_is_ok(s2n_rand_cleanup()) &&
            s2n_result_is_ok(s2n_locking_cleanup()) &&
