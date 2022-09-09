@@ -64,6 +64,8 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
     return 0;
 }
 
+#define TLS_INVALID_RECORD_TYPE 25
+
 static int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type, uint8_t message_type)
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(output, record_type));
@@ -89,6 +91,15 @@ static int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type
 
         /* change spec is always just 0x01 */
         POSIX_GUARD(s2n_stuffer_write_uint8(output, 1));
+        return 0;
+    }
+
+    if (record_type == TLS_INVALID_RECORD_TYPE) {
+        /* A message size */
+        POSIX_GUARD(s2n_stuffer_write_uint16(output, 1));
+
+        /* Some message content */
+        POSIX_GUARD(s2n_stuffer_write_uint8(output, 2));
         return 0;
     }
 
@@ -478,7 +489,8 @@ int main(int argc, char **argv)
             conn->handshake.handshake_type = handshake;
             conn->in_status = ENCRYPTED;
 
-            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+            /* Don't loop over all 32 potential messages just up until the last one. */
+            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH && (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0); j++) {
                 conn->handshake.message_number = j;
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
@@ -527,7 +539,7 @@ int main(int argc, char **argv)
             conn->handshake.handshake_type = handshake;
             conn->in_status = ENCRYPTED;
 
-            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH && (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0); j++) {
                 conn->handshake.message_number = j;
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
@@ -579,6 +591,104 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
+        /* TLS1.3 server should error for TLS_CHANGE_CIPHER_SPEC message before client_hello
+        *= https://tools.ietf.org/rfc/rfc8446#5
+        *= type=test
+        *# If an implementation
+        *# detects a change_cipher_spec record received before the first
+        *# ClientHello message or after the peer's Finished message, it MUST be
+        *# treated as an unexpected record type (though stateless servers may
+        *# not be able to distinguish these cases from allowed cases).
+        */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            conn->actual_protocol_version = S2N_TLS13;
+
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+            conn->handshake.handshake_type = 0;
+            conn->handshake.message_number = 0;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
+            EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
+
+            EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_EQUAL(conn->handshake.message_number, 0);
+            EXPECT_FALSE(unexpected_handler_called);
+            EXPECT_FALSE(expected_handler_called);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* TLS1.3 server should error for TLS_CHANGE_CIPHER_SPEC message after client finish
+        *= https://tools.ietf.org/rfc/rfc8446#5
+        *= type=test
+        *# If an implementation
+        *# detects a change_cipher_spec record received before the first
+        *# ClientHello message or after the peer's Finished message, it MUST be
+        *# treated as an unexpected record type (though stateless servers may
+        *# not be able to distinguish these cases from allowed cases).
+        */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            conn->actual_protocol_version = S2N_TLS13;
+
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+            conn->handshake.handshake_type = NEGOTIATED;
+            conn->handshake.message_number = 5;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), APPLICATION_DATA);
+            EXPECT_SUCCESS(s2n_setup_handler_to_expect(APPLICATION_DATA, S2N_SERVER));
+
+            EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_EQUAL(conn->handshake.message_number, 5);
+            EXPECT_FALSE(unexpected_handler_called);
+            EXPECT_FALSE(expected_handler_called);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* TLS1.3 server should error if it recieves an unexpected message type.
+        *= https://tools.ietf.org/rfc/rfc8446#5
+        *= type=test
+        *# If a TLS
+        *# implementation receives an unexpected record type, it MUST terminate
+        *# the connection with an "unexpected_message" alert.
+        */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            conn->actual_protocol_version = S2N_TLS13;
+
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+            conn->handshake.handshake_type = 0;
+            conn->handshake.message_number = 0;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
+            EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
+
+            EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_INVALID_RECORD_TYPE, 0));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_EQUAL(conn->handshake.message_number, 0);
+            EXPECT_FALSE(unexpected_handler_called);
+            EXPECT_FALSE(expected_handler_called);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+
         /* TLS1.3 should error for an unexpected message */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -602,6 +712,33 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test that all states in the tls13 state machine expect a valid record type as
+         * this will be the record type used when writing the record out.
+         *= https://tools.ietf.org/rfc/rfc8446#5
+         *= type=test
+         *# Implementations MUST NOT send record types not defined in this
+         *# document unless negotiated by some extension.
+         */
+        {
+            #define IS_VALID_RECORD_TYPE(r) ((r) == TLS_APPLICATION_DATA || (r) == TLS_HANDSHAKE || (r) == TLS_CHANGE_CIPHER_SPEC || (r) == TLS_ALERT)
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[CLIENT_HELLO].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[SERVER_HELLO].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[HELLO_RETRY_MSG].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[ENCRYPTED_EXTENSIONS].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[SERVER_CERT_REQ].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[SERVER_CERT].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[SERVER_CERT_VERIFY].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[SERVER_FINISHED].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[CLIENT_CERT].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[CLIENT_CERT_VERIFY].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[CLIENT_FINISHED].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[END_OF_EARLY_DATA].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[CLIENT_CHANGE_CIPHER_SPEC].record_type));
+            EXPECT_TRUE(IS_VALID_RECORD_TYPE(tls13_state_machine[SERVER_CHANGE_CIPHER_SPEC].record_type));
+            /* Skip APPLICATION_DATA -- Not part of handshake so we don't use state machine to determine record type to send. */
+            #undef IS_VALID_RECORD_TYPE
         }
 
         /* TLS1.3 should error for an expected message from the wrong writer */

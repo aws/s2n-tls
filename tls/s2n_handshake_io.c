@@ -1223,6 +1223,19 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             POSIX_ENSURE(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }
+        /*
+         *= https://tools.ietf.org/rfc/rfc8446#5
+         *# If an implementation
+         *# detects a change_cipher_spec record received before the first
+         *# ClientHello message or after the peer's Finished message, it MUST be
+         *# treated as an unexpected record type (though stateless servers may
+         *# not be able to distinguish these cases from allowed cases).
+         */
+        if (IS_TLS13_HANDSHAKE(conn)) {
+            S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(ACTIVE_MESSAGE(conn) == CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(ACTIVE_MESSAGE(conn) == APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+        }
 
         S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
 
@@ -1239,16 +1252,22 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
 
         return S2N_SUCCESS;
-    } else if (record_type != TLS_HANDSHAKE) {
-        if (record_type == TLS_ALERT) {
+    } else if (record_type == TLS_ALERT) {
             POSIX_GUARD(s2n_process_alert_fragment(conn));
-        }
-
-        /* Ignore record types that we don't support */
 
         /* We're done with the record, wipe it */
         POSIX_GUARD_RESULT(s2n_wipe_record(conn));
         return S2N_SUCCESS;
+    } else if (record_type != TLS_HANDSHAKE) {
+        /* TLS1.3 should reject unexpected record types.
+         *= https://tools.ietf.org/rfc/rfc8446#5
+         *# If a TLS
+         *# implementation receives an unexpected record type, it MUST terminate
+         *# the connection with an "unexpected_message" alert.
+         */
+        if (IS_TLS13_HANDSHAKE(conn)) {
+            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+        }
     }
 
     /* Record is a handshake message */

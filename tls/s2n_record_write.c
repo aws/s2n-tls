@@ -234,6 +234,18 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     uint16_t block_size = 0;
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
+    /* Content_type cannot be anything other than the defined values for TLS1.3.
+     * This should never trigger since we control calls to this function.
+     *= https://tools.ietf.org/rfc/rfc8446#5
+     *# Implementations MUST NOT send record types not defined in this
+     *# document unless negotiated by some extension.
+     */
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        POSIX_ENSURE(content_type == TLS_APPLICATION_DATA || content_type == TLS_HANDSHAKE ||
+                     content_type == TLS_CHANGE_CIPHER_SPEC || content_type == TLS_ALERT,
+                     S2N_ERR_SHUTDOWN_RECORD_TYPE);
+    }
+
     /* In TLS 1.3, handle CCS message as unprotected records */
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;

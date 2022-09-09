@@ -387,6 +387,19 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_header_parse(conn, &content_type, &fragment_length), S2N_ERR_BAD_MESSAGE);
     }
 
+    /* Test TLS 1.3 Record can't have an unknown content type 
+     *= https://tools.ietf.org/rfc/rfc8446#5
+     *= type=test
+     *# Implementations MUST NOT send record types not defined in this
+     *# document unless negotiated by some extension.
+     */
+    {
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_FAILURE(s2n_record_write(conn, 255, &empty_blob));
+    }
+
     /* Test: ApplicationData MUST be encrypted */
     {
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
