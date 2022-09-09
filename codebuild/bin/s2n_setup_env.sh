@@ -24,7 +24,6 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${LATEST_CLANG:=false}"
 : "${TESTS:=integration}"
 : "${S2N_COVERAGE:=false}"
-: "${LD_LIBRARY_PATH:=NONE}"
 
 # Setup the cache directory paths.
 # Set Env Variables with defaults if they aren't already set
@@ -143,6 +142,16 @@ if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_IN
 # Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
 # have the "libcrypto-root" directory path hardcoded.
 rm -rf libcrypto-root && ln -s "$LIBCRYPTO_ROOT" libcrypto-root
+
+# Add $LIBCRYPTO_ROOT/lib to LD_LIBRARY_PATH ("lib" could also be "lib64" or "lib32").
+# This fixes tests that INSTALL (not simply build) s2n.
+# When s2n is built, if libcrypto.so isn't in an official system lib dir,
+# its path is stored in the RPATH/RUNPATH of libs2n.so. But many tools (CMake, Ninja)
+# strip the RPATH/RUNPATH during installation. Setting LD_LIBRARY_PATH ensures
+# the desired libcrypto.so is found.
+for LIBDIR in $LIBCRYPTO_ROOT/lib*; do
+  export LD_LIBRARY_PATH=$LIBDIR${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+done
 
 # Set the libfuzzer to use for fuzz tests
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
