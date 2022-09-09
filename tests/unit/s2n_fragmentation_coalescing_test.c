@@ -472,6 +472,7 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->handshake.client_hello_received = 1;
 
     /* Create a child process */
     pid = fork();
@@ -518,6 +519,7 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->handshake.client_hello_received = 1;
 
     /* Create a child process */
     pid = fork();

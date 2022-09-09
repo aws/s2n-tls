@@ -964,6 +964,11 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
  */
 static int s2n_handshake_write_io(struct s2n_connection *conn)
 {
+    /* The only possible values for record type come from the handshake table
+     *= https://tools.ietf.org/rfc/rfc8446#5
+     *# Implementations MUST NOT send record types not defined in this
+     *# document unless negotiated by some extension.
+     */
     uint8_t record_type = EXPECTED_RECORD_TYPE(conn);
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
@@ -1233,7 +1238,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          */
         if (IS_TLS13_HANDSHAKE(conn)) {
             S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
-            S2N_ERROR_IF(ACTIVE_MESSAGE(conn) == CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(!(conn->handshake.client_hello_received), S2N_ERR_BAD_MESSAGE);
             S2N_ERROR_IF(ACTIVE_MESSAGE(conn) == APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
         }
 
@@ -1268,6 +1273,10 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         if (IS_TLS13_HANDSHAKE(conn)) {
             POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
         }
+        
+        /* We're done with the record, wipe it */
+        POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+        return S2N_SUCCESS;
     }
 
     /* Record is a handshake message */
