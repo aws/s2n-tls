@@ -491,7 +491,9 @@ int main(int argc, char **argv)
             conn->handshake.client_hello_seen = 1;
 
             /* Don't loop over all 32 potential messages just up until the last one. */
-            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH && (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0); j++) {
+            for (int j = 1; (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0) ||
+                            (j+1 == S2N_MAX_HANDSHAKE_LENGTH);
+                j++) {
                 conn->handshake.message_number = j;
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
@@ -541,7 +543,9 @@ int main(int argc, char **argv)
             conn->in_status = ENCRYPTED;
             conn->handshake.client_hello_seen = 1;
 
-            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH && (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0); j++) {
+            for (int j = 1; (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0) || 
+                            (j+1 == S2N_MAX_HANDSHAKE_LENGTH);
+                j++) {
                 conn->handshake.message_number = j;
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
