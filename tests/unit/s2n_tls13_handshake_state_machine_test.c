@@ -488,7 +488,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = handshake;
             conn->in_status = ENCRYPTED;
-            conn->handshake.client_hello_received = 1;
+            conn->handshake.client_hello_seen = 1;
 
             /* Don't loop over all 32 potential messages just up until the last one. */
             for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH && (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0); j++) {
@@ -539,7 +539,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = handshake;
             conn->in_status = ENCRYPTED;
-            conn->handshake.client_hello_received = 1;
+            conn->handshake.client_hello_seen = 1;
 
             for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH && (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0); j++) {
                 conn->handshake.message_number = j;
@@ -613,6 +613,7 @@ int main(int argc, char **argv)
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
             conn->handshake.client_hello_received = 0;
+            conn->handshake.client_hello_seen = 0;
             EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
 
@@ -646,7 +647,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = NEGOTIATED;
             conn->handshake.message_number = 5;
-            conn->handshake.client_hello_received = 1;
+            conn->handshake.client_hello_seen = 1;
             EXPECT_EQUAL(ACTIVE_MESSAGE(conn), APPLICATION_DATA);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(APPLICATION_DATA, S2N_SERVER));
 

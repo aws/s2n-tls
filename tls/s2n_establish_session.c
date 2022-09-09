@@ -36,6 +36,7 @@ int s2n_establish_session(struct s2n_connection *conn)
     if (!conn->handshake.client_hello_received) {
         POSIX_GUARD(s2n_client_hello_recv(conn));
         conn->handshake.client_hello_received = 1;
+        conn->handshake.client_hello_seen = 1;
     }
 
     POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));

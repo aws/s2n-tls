@@ -1228,7 +1228,10 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             POSIX_ENSURE(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }
-        /*
+        /* Check if we are after the handshake's finished message.
+         * Technicly we should also check that this isn't the very first message we
+         * recv as the server. Since we allow multiple CLIENT_HELLO's due to the
+         * retry request it is not obvious how to check this properly.
          *= https://tools.ietf.org/rfc/rfc8446#5
          *# If an implementation
          *# detects a change_cipher_spec record received before the first
@@ -1238,6 +1241,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          */
         if (IS_TLS13_HANDSHAKE(conn)) {
             S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(CONNECTION_WRITER(conn) == 'S' && !(conn->handshake.client_hello_seen), S2N_ERR_BAD_MESSAGE);
             S2N_ERROR_IF(ACTIVE_MESSAGE(conn) == APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
         }
 

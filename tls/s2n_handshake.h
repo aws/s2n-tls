@@ -165,6 +165,9 @@ struct s2n_handshake {
     /* Indicates the CLIENT_HELLO message has been completely received */
     unsigned client_hello_received:1;
 
+    /* Indicates the CLIENT_HELLO message has been seen previously */
+    unsigned client_hello_seen:1;
+
     /* Indicates the handshake blocked while trying to read or write data, and has been paused */
     unsigned paused:1;
 
