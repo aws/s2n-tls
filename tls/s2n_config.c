@@ -993,3 +993,10 @@ int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size) {
     config->send_buffer_size_override = size;
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_verify_signature_mode(struct s2n_config *config, s2n_verify_signature_mode mode)
+{
+    POSIX_ENSURE_REF(config);
+    config->verify_sig_mode = mode;
+    return S2N_SUCCESS;
+}

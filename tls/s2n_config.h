@@ -144,6 +144,7 @@ struct s2n_config {
     s2n_psk_mode psk_mode;
 
     s2n_async_pkey_validation_mode async_pkey_validation_mode;
+    s2n_verify_signature_mode verify_sig_mode;
 
     /* The user defined context associated with config */
     void *context;
