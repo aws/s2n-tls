@@ -1238,7 +1238,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          */
         if (IS_TLS13_HANDSHAKE(conn)) {
             S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
-            S2N_ERROR_IF(!(conn->handshake.client_hello_received), S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(CONNECTION_WRITER(conn) == 'S' && !(conn->handshake.client_hello_received), S2N_ERR_BAD_MESSAGE);
             S2N_ERROR_IF(ACTIVE_MESSAGE(conn) == APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
         }
 
