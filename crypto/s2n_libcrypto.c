@@ -159,10 +159,12 @@ int s2n_libcrypto_cleanup_cb(OSSL_PROVIDER *provider, void *cbdata) {
 }
 #endif
 
-void s2n_libcrypto_cleanup(void) {
+S2N_RESULT s2n_libcrypto_cleanup(void) {
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-    OSSL_PROVIDER_do_all(NULL, *s2n_libcrypto_cleanup_cb, NULL);
+    RESULT_GUARD_OSSL(OSSL_PROVIDER_do_all(NULL, *s2n_libcrypto_cleanup_cb, NULL), S2N_ERR_ATEXIT);
 #endif
+
+    return S2N_RESULT_OK;
 }
 
 /* Performs various checks to validate that the libcrypto used at compile-time
