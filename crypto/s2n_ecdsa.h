@@ -30,7 +30,16 @@
 struct s2n_pkey;
 
 struct s2n_ecdsa_key {
-    EC_KEY *ec_key;
+    /*
+     * Starting in openssl_3, `EVP_PKEY_get1_EC_KEY` and `EVP_PKEY_get0_EC_KEY`
+     * functions return a pre-cached copy of the underlying key. This means that any
+     * mutations are not reflected back onto the underlying key.
+     *
+     * The `const` identifier is present to help ensure that the key is not mutated.
+     * Usecases which require a non-const EC_KEY (some openssl functions), should
+     * use `s2n_unsafe_ecdsa_get_non_const` while ensuring that the usage is safe.
+     */
+    const EC_KEY *ec_key;
 };
 
 typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
