@@ -91,9 +91,9 @@ static bool s2n_cleanup_atexit_impl(void)
 
     return s2n_result_is_ok(s2n_libcrypto_cleanup()) &&
         s2n_result_is_ok(s2n_rand_cleanup_thread()) &&
-           s2n_result_is_ok(s2n_rand_cleanup()) &&
-           s2n_result_is_ok(s2n_locking_cleanup()) &&
-           (s2n_mem_cleanup() == S2N_SUCCESS);
+        s2n_result_is_ok(s2n_rand_cleanup()) &&
+        s2n_result_is_ok(s2n_locking_cleanup()) &&
+        (s2n_mem_cleanup() == S2N_SUCCESS);
 }
 
 int s2n_cleanup(void)

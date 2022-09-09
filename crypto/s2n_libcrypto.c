@@ -141,12 +141,12 @@ bool s2n_libcrypto_is_boringssl()
 S2N_RESULT s2n_libcrypto_init(void)
 {
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "default") != NULL, S2N_ERR_OSSL_LOAD_PROVIDER);
+    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "default") != NULL, S2N_ERR_OSSL_PROVIDER);
     #ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
     /* needed to support RC4 algorithm
      * https://www.openssl.org/docs/man3.0/man7/OSSL_PROVIDER-legacy.html
      */
-    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "legacy") != NULL, S2N_ERR_OSSL_LOAD_PROVIDER);
+    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "legacy") != NULL, S2N_ERR_OSSL_PROVIDER);
     #endif
 #endif
 
@@ -157,15 +157,17 @@ S2N_RESULT s2n_libcrypto_init(void)
 int s2n_libcrypto_cleanup_cb(OSSL_PROVIDER *provider, void *cbdata) {
     return OSSL_PROVIDER_unload(provider);
 }
-#endif
 
 S2N_RESULT s2n_libcrypto_cleanup(void) {
-#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
     RESULT_GUARD_OSSL(OSSL_PROVIDER_do_all(NULL, *s2n_libcrypto_cleanup_cb, NULL), S2N_ERR_ATEXIT);
-#endif
 
     return S2N_RESULT_OK;
 }
+#else
+S2N_RESULT s2n_libcrypto_cleanup(void) {
+    return S2N_RESULT_OK;
+}
+#endif
 
 /* Performs various checks to validate that the libcrypto used at compile-time
  * is the same libcrypto being used at run-time.
