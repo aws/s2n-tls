@@ -871,13 +871,8 @@ extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const ch
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
-typedef enum {
-    S2N_VERIFY_SIG_NEVER = 0,
-    S2N_VERIFY_SIG_ALWAYS,
-} s2n_verify_signature_mode;
-
 /**
- * Turn on signature verification.
+ * Toggle signature verification.
  *
  * Although signatures produced by the underlying libcrypto should always be valid,
  * hardware faults, bugs in the signing implementation, or other uncommon factors
@@ -889,7 +884,7 @@ typedef enum {
  * Additionally, most libcrypto implementations already check for common errors in signatures.
  */
 S2N_API
-extern int s2n_config_set_verify_signature_mode(struct s2n_config *config, s2n_verify_signature_mode mode);
+extern int s2n_config_set_signature_verification(struct s2n_config *config, bool enable);
 
 /** 
  * Set a custom send buffer size.

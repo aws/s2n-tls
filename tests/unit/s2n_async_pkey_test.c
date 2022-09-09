@@ -588,7 +588,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             /* Enable signature validation */
-            EXPECT_SUCCESS(s2n_config_set_verify_signature_mode(server_config, S2N_VERIFY_SIG_ALWAYS));
+            EXPECT_SUCCESS(s2n_config_set_signature_verification(server_config, true));
             EXPECT_SUCCESS(try_handshake(server_conn, client_conn, async_handler_sign_with_different_pkey_and_apply));
         }
     }

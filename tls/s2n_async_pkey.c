@@ -253,7 +253,7 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
     op->type = S2N_ASYNC_SIGN;
     op->conn = conn;
     op->validation_mode = conn->config->async_pkey_validation_mode;
-    if (conn->config->verify_sig_mode == S2N_VERIFY_SIG_ALWAYS) {
+    if (conn->config->verify_signatures) {
         op->validation_mode = S2N_ASYNC_PKEY_VALIDATION_STRICT;
     }
 
@@ -283,7 +283,7 @@ S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_a
     RESULT_GUARD_POSIX(s2n_alloc(&signed_content, maximum_signature_length));
 
     RESULT_ENSURE_REF(conn->config);
-    if (conn->config->verify_sig_mode == S2N_VERIFY_SIG_ALWAYS) {
+    if (conn->config->verify_signatures) {
         DEFER_CLEANUP(struct s2n_hash_state digest_for_verify, s2n_hash_free);
         RESULT_GUARD_POSIX(s2n_hash_new(&digest_for_verify));
         RESULT_GUARD_POSIX(s2n_hash_copy(&digest_for_verify, digest));

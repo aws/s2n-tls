@@ -256,7 +256,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             /* Enable signature validation */
-            EXPECT_SUCCESS(s2n_config_set_verify_signature_mode(server_config, S2N_VERIFY_SIG_ALWAYS));
+            EXPECT_SUCCESS(s2n_config_set_signature_verification(server_config, true));
             if (test_type == TEST_TYPE_ASYNC) {
                 EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
             }
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_rsa_kex"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
                 /* Enable signature validation */
-                EXPECT_SUCCESS(s2n_config_set_verify_signature_mode(server_config, S2N_VERIFY_SIG_ALWAYS));
+                EXPECT_SUCCESS(s2n_config_set_signature_verification(server_config, true));
                 if (test_type == TEST_TYPE_ASYNC) {
                     EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
                 }
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             /* Enable signature validation */
-            EXPECT_SUCCESS(s2n_config_set_verify_signature_mode(server_config, S2N_VERIFY_SIG_ALWAYS));
+            EXPECT_SUCCESS(s2n_config_set_signature_verification(server_config, true));
             if (test_type == TEST_TYPE_ASYNC) {
                 EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
             }
@@ -415,7 +415,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20200207"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             /* Enable signature validation */
-            EXPECT_SUCCESS(s2n_config_set_verify_signature_mode(server_config, S2N_VERIFY_SIG_ALWAYS));
+            EXPECT_SUCCESS(s2n_config_set_signature_verification(server_config, true));
             if (test_type == TEST_TYPE_ASYNC) {
                 EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
             }

@@ -67,6 +67,8 @@ struct s2n_config {
      */
     unsigned client_hello_cb_enable_poll:1;
 
+    unsigned verify_signatures:1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
@@ -144,7 +146,6 @@ struct s2n_config {
     s2n_psk_mode psk_mode;
 
     s2n_async_pkey_validation_mode async_pkey_validation_mode;
-    s2n_verify_signature_mode verify_sig_mode;
 
     /* The user defined context associated with config */
     void *context;

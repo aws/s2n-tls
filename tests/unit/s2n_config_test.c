@@ -486,5 +486,19 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_config_set_signature_verification */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_signature_verification(NULL, true), S2N_ERR_NULL);
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_FALSE(config->verify_signatures);
+        EXPECT_SUCCESS(s2n_config_set_signature_verification(config, true));
+        EXPECT_TRUE(config->verify_signatures);
+        EXPECT_SUCCESS(s2n_config_set_signature_verification(config, false));
+        EXPECT_FALSE(config->verify_signatures);
+    }
+
     END_TEST();
 }
