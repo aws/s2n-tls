@@ -1,0 +1,80 @@
+target = "https://tools.ietf.org/rfc/rfc5746#3.7"
+
+# 3.7.  Server Behavior: Secure Renegotiation
+#
+# This text applies if the connection's "secure_renegotiation" flag is
+# set to TRUE (if it is set to FALSE, see Section 4.4).
+# 
+# o  When a ClientHello is received, the server MUST verify that it
+#    does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If
+#    the SCSV is present, the server MUST abort the handshake.
+# 
+# o  The server MUST verify that the "renegotiation_info" extension is
+#    present; if it is not, the server MUST abort the handshake.
+# 
+# o  The server MUST verify that the value of the
+#    "renegotiated_connection" field is equal to the saved
+#    client_verify_data value; if it is not, the server MUST abort the
+#    handshake.
+# 
+# o  The server MUST include a "renegotiation_info" extension
+#    containing the saved client_verify_data and server_verify_data in
+#    the ServerHello.
+# 
+# o  When the handshake has completed, the server needs to save the new
+#    client_verify_data and server_verify_data values.
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  When a ClientHello is received, the server MUST verify that it
+does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If
+the SCSV is present, the server MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The server MUST verify that the "renegotiation_info" extension is
+present; if it is not, the server MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The server MUST verify that the "renegotiation_info" extension is
+present; if it is not, the server MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The server MUST verify that the value of the
+"renegotiated_connection" field is equal to the saved
+client_verify_data value; if it is not, the server MUST abort the
+handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The server MUST verify that the value of the
+"renegotiated_connection" field is equal to the saved
+client_verify_data value; if it is not, the server MUST abort the
+handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The server MUST include a "renegotiation_info" extension
+containing the saved client_verify_data and server_verify_data in
+the ServerHello.
+'''
+

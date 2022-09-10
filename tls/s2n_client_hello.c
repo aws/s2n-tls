@@ -604,8 +604,17 @@ int s2n_client_hello_send(struct s2n_connection *conn)
         POSIX_GUARD(s2n_stuffer_write_bytes(out, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     }
 
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *# o  The client MUST include either an empty "renegotiation_info"
+     *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
+     *#    cipher suite value in the ClientHello.  Including both is NOT
+     *#    RECOMMENDED.
+     *
+     * For maximum backwards compatibility, we choose to use the TLS_EMPTY_RENEGOTIATION_INFO_SCSV cipher suite
+     * to signal support for secure renegotiation rather than the "renegotiation_info" extension.
+     */
     if (legacy_renegotiation_signal_required) {
-        /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
         uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
         POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
     }
