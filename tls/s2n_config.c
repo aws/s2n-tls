@@ -994,9 +994,9 @@ int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size) {
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_signature_verification(struct s2n_config *config, bool enable)
+int s2n_config_set_verify_after_sign(struct s2n_config *config, bool enable)
 {
     POSIX_ENSURE_REF(config);
-    config->verify_signatures = enable;
+    config->verify_after_sign = enable;
     return S2N_SUCCESS;
 }

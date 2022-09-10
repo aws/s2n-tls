@@ -884,7 +884,7 @@ extern int s2n_config_wipe_trust_store(struct s2n_config *config);
  * Additionally, most libcrypto implementations already check for common errors in signatures.
  */
 S2N_API
-extern int s2n_config_set_signature_verification(struct s2n_config *config, bool enable);
+extern int s2n_config_set_verify_after_sign(struct s2n_config *config, bool enable);
 
 /** 
  * Set a custom send buffer size.
