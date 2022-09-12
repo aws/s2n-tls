@@ -489,14 +489,14 @@ int main(int argc, char **argv)
     /* Test s2n_config_set_verify_after_sign */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(NULL, true), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(NULL, S2N_VERIFY_AFTER_SIGN_ENABLED), S2N_ERR_NULL);
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_FALSE(config->verify_after_sign);
-        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, true));
+        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_ENABLED));
         EXPECT_TRUE(config->verify_after_sign);
-        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, false));
+        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_DISABLED));
         EXPECT_FALSE(config->verify_after_sign);
     }
 
