@@ -66,7 +66,7 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
 }
 
 static bool s2n_tls13_handshake_message_is_uninit_or_client_hello(size_t handshake, size_t message_number) {
-    if (S2N_MAX_HANDSHAKE_LENGTH > message_number && message_number >= 0) {
+    if (message_number < S2N_MAX_HANDSHAKE_LENGTH) {
         return tls13_handshakes[handshake][message_number] == 0;
     } else {
         return true;
@@ -74,7 +74,7 @@ static bool s2n_tls13_handshake_message_is_uninit_or_client_hello(size_t handsha
 }
 
 static bool s2n_tls13_handshake_message_is_application_data(size_t handshake, size_t message_number) {
-    if (S2N_MAX_HANDSHAKE_LENGTH > message_number && message_number >= 0) {
+    if (message_number < S2N_MAX_HANDSHAKE_LENGTH) {
         return tls13_handshakes[handshake][message_number] == APPLICATION_DATA;
     } else {
         return false;
