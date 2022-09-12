@@ -85,7 +85,7 @@ static bool s2n_is_end_of_tls13_handshake(size_t handshake, size_t message_numbe
     EXPECT_TRUE(handshake < S2N_HANDSHAKES_COUNT);
     EXPECT_TRUE(message_number < S2N_MAX_HANDSHAKE_LENGTH);
 
-    bool is_app_data = s2n_tls13_handshake_message_is_application_data(handshake, message_number);
+    bool is_app_data = s2n_tls13_handshake_message_is_application_data(handshake, message_number + 1);
     
     bool plus_one_is_uninit_or_client_hello = s2n_tls13_handshake_message_is_uninit_or_client_hello(handshake, message_number + 1);
     bool plus_two_is_uninit_or_client_hello = s2n_tls13_handshake_message_is_uninit_or_client_hello(handshake, message_number + 2);
