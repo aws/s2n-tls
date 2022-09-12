@@ -874,7 +874,7 @@ extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED, S2N_VERIFY_AFTER_SIGN_ENABLED } s2n_verify_after_sign;
 
 /**
- * Toggle signature verification.
+ * Toggle whether generated signatures are verified before being sent.
  *
  * Although signatures produced by the underlying libcrypto should always be valid,
  * hardware faults, bugs in the signing implementation, or other uncommon factors
