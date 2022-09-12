@@ -18,6 +18,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "api/s2n.h"
@@ -62,6 +63,43 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
     unexpected_handler_called = 0;
 
     return 0;
+}
+
+static bool s2n_tls13_handshake_message_is_uninit_or_client_hello(size_t handshake, size_t message_number) {
+    if (S2N_MAX_HANDSHAKE_LENGTH > message_number && message_number >= 0) {
+        return tls13_handshakes[handshake][message_number] == 0;
+    } else {
+        return true;
+    }
+}
+
+static bool s2n_tls13_handshake_message_is_application_data(size_t handshake, size_t message_number) {
+    if (S2N_MAX_HANDSHAKE_LENGTH > message_number && message_number >= 0) {
+        return tls13_handshakes[handshake][message_number] == APPLICATION_DATA;
+    } else {
+        return false;
+    }
+}
+
+static bool s2n_is_end_of_tls13_handshake(size_t handshake, size_t message_number) {
+    EXPECT_TRUE(handshake < S2N_HANDSHAKES_COUNT);
+    EXPECT_TRUE(message_number < S2N_MAX_HANDSHAKE_LENGTH);
+
+    bool is_app_data = s2n_tls13_handshake_message_is_application_data(handshake, message_number);
+    
+    bool plus_one_is_uninit_or_client_hello = s2n_tls13_handshake_message_is_uninit_or_client_hello(handshake, message_number + 1);
+    bool plus_two_is_uninit_or_client_hello = s2n_tls13_handshake_message_is_uninit_or_client_hello(handshake, message_number + 2);
+
+    /*
+     * We are looking for the final handshake message in the array. Since the CLIENT_HELLO message type is zero, and the
+     * uninitalized elements of the array are also 0 we don't have clear sentinel element to show the final message. Therefore
+     * we look for two uninitialized (or out of bounds) elements in a row. Implicitly relying on the fact that CLIENT_HELLO
+     * doesn't occur twice in a row.
+     * 
+     * We are also finished the handshake if the current message is application data.
+     */
+    
+    return is_app_data || (plus_one_is_uninit_or_client_hello && plus_two_is_uninit_or_client_hello);
 }
 
 #define TLS_INVALID_RECORD_TYPE 25
@@ -491,13 +529,11 @@ int main(int argc, char **argv)
             conn->handshake.client_hello_seen = 1;
 
             /* Don't loop over all 32 potential messages just up until the last one. */
-            for (int j = 1; (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0) ||
-                            (j+1 == S2N_MAX_HANDSHAKE_LENGTH);
-                j++) {
+            for (int j = 1; !s2n_is_end_of_tls13_handshake(i, j); j++) {
                 conn->handshake.message_number = j;
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
-                
+
                 EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
                 if (tls13_handshakes[handshake][j] == SERVER_CHANGE_CIPHER_SPEC) {
@@ -543,9 +579,7 @@ int main(int argc, char **argv)
             conn->in_status = ENCRYPTED;
             conn->handshake.client_hello_seen = 1;
 
-            for (int j = 1; (j+1 < S2N_MAX_HANDSHAKE_LENGTH && tls13_handshakes[handshake][j+1] != 0) || 
-                            (j+1 == S2N_MAX_HANDSHAKE_LENGTH);
-                j++) {
+            for (int j = 1; !s2n_is_end_of_tls13_handshake(i, j); j++) {
                 conn->handshake.message_number = j;
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
