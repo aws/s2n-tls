@@ -77,35 +77,57 @@ And when invoking CMake for your project, do one of two things:
  1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
  2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
 
-## Building s2n-tls with OpenSSL-1.1.1
+## Building s2n-tls with Openssl
 
-To build s2n-tls with OpenSSL-1.1.1, do the following:
-
+We keep the build artifacts in the -build directory:
 ```shell
-# We keep the build artifacts in the -build directory
 cd libcrypto-build
+```
 
-# Download the latest version of OpenSSL
-curl -LO https://www.openssl.org/source/openssl-1.1.1-latest.tar.gz
-tar -xzvf openssl-1.1.1-latest.tar.gz
+Download the desired Openssl version:
+```shell
+# Download Openssl 3.0.5
+curl -L -o openssl.tar.gz https://github.com/openssl/openssl/archive/refs/tags/openssl-3.0.5.tar.gz
+tar -xzvf openssl-3.0.5.tar.gz
+cd `tar ztf openssl-3.0.5.tar.gz | head -n1 | cut -f1 -d/`
 
-# Build openssl libcrypto
-cd `tar ztf openssl-1.1.1-latest.tar.gz | head -n1 | cut -f1 -d/`
+# Download OpenSSL-1.1.1
+curl -LO https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1.tar.gz
+tar -xzvf OpenSSL_1_1_1.tar.gz
+cd `tar ztf OpenSSL_1_1_1.tar.gz | head -n1 | cut -f1 -d/`
+
+# Download OpenSSL-1.0.2
+curl -LO https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_0_2.tar.gz
+tar -xzvf OpenSSL_1_0_2.tar.gz
+cd `tar ztf OpenSSL_1_0_2.tar.gz | head -n1 | cut -f1 -d/`
+```
+
+Build Openssl. The following config command disables numerous Openssl features and algorithms which
+are not used by s2n-tls. A minimal feature-set can help prevent exposure to security vulnerabilities.
+```shell
+# When build openssl 1.0.2 libcrypto also include the following flags
+./config ... no-libunbound no-gmp no-jpake no-krb5 no-store ...
+
+# Build Openssl libcrypto
 ./config -fPIC no-shared              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
          no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
          -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
          --prefix=`pwd`/../../libcrypto-root/
+
+make depend
 make
 make install
+```
 
-# Build s2n-tls
-cd ../../
+Build s2n-tls
+```shell
+cd ../../ # root of project
 make
 ```
-# Note for 32-bit builds.
-The previous instructions work fine with only a few tweaks to your config command. Example:
+
+**OpenSSL_1_1_1 32-bit builds** should use the following config command
 ```shell
 setarch i386 ./config -fPIC no-shared     \
         -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
@@ -115,36 +137,7 @@ setarch i386 ./config -fPIC no-shared     \
         --prefix=`pwd`/../../libcrypto-root/
 ```
 
-## Building s2n-tls with OpenSSL-1.0.2
-
-To build s2n-tls with OpenSSL-1.0.2, do the following:
-
-```shell
-# We keep the build artifacts in the -build directory
-cd libcrypto-build
-
-# Download the latest version of OpenSSL
-curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
-tar -xzvf openssl-1.0.2-latest.tar.gz
-
-# Build openssl libcrypto
-cd `tar ztf openssl-1.0.2-latest.tar.gz | head -n1 | cut -f1 -d/`
-./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
-         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
-         no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
-         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
-         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-         --prefix=`pwd`/../../libcrypto-root/
-make depend
-make
-make install
-
-# Build s2n-tls
-cd ../../
-make
-```
-
-**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
+**Openssl 1.0.2 Mac Users:** replace "./config" with "./Configure darwin64-x86_64-cc".
 
 ## Building s2n-tls with LibreSSL
 
@@ -529,7 +522,7 @@ Clients should call `s2n_connection_get_session()` to retrieve some serialized s
 
 In TLS1.2, session ticket messages are sent during the handshake and are automatically received as part of calling `s2n_negotiate()`. They will be available as soon as negotiation is complete.
 
-In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling `s2n_negotiate()`. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling `s2n_recv()` immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection. 
+In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling `s2n_negotiate()`. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling `s2n_recv()` immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection.
 
 Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
 

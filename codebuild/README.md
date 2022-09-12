@@ -21,6 +21,7 @@ General flow of the CodeBuild Test Projects
         - codebuild/install_openssl_1_1_1.sh
         - codebuild/install_openssl_1_0_2.sh
         - codebuild/install_openssl_1_0_2_fips.sh
+        - codebuild/install_openssl_3_0.sh
         - codebuild/install_libressl.sh
         - codebuild/install_python.sh
         - codebuild/install_gnutls.sh
