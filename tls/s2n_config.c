@@ -1006,7 +1006,6 @@ int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after
             break;
         default:
             POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
-            break;
     }
     return S2N_SUCCESS;
 }

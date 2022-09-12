@@ -488,12 +488,22 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_set_verify_after_sign */
     {
-        /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(NULL, S2N_VERIFY_AFTER_SIGN_ENABLED), S2N_ERR_NULL);
-
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_FALSE(config->verify_after_sign);
+
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(NULL, S2N_VERIFY_AFTER_SIGN_ENABLED), S2N_ERR_NULL);
+
+        /* Invalid mode */
+        config->verify_after_sign = true;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(config, UINT8_MAX), S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_TRUE(config->verify_after_sign);
+        config->verify_after_sign = false;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(config, UINT8_MAX), S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_FALSE(config->verify_after_sign);
+
+        /* Set and unset */
         EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_ENABLED));
         EXPECT_TRUE(config->verify_after_sign);
         EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_DISABLED));
