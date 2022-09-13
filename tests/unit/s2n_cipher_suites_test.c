@@ -17,6 +17,21 @@
 
 #include "tls/s2n_cipher_suites.h"
 
+static bool is_placeholder_cipher(struct s2n_cipher_suite* cipher_suite) {
+    /* The null cipher suite is just a placeholder, and is not included */
+    if (cipher_suite == &s2n_null_cipher_suite) {
+        return true;
+    }
+    /* Ignore all equal preference group delimiters */
+    if (cipher_suite == &s2n_equal_preference_group_start) {
+        return true;
+    }
+    if (cipher_suite == &s2n_equal_preference_group_end) {
+        return true;
+    }
+    return false;
+}
+
 int main()
 {
     BEGIN_TEST();
@@ -50,11 +65,9 @@ int main()
                 security_policy = security_policy_selection[policy_index].security_policy;
                 cipher_preferences = security_policy->cipher_preferences;
                 for (size_t cipher_index = 0; cipher_index < cipher_preferences->count; cipher_index++) {
-                    /* The null cipher suite is just a placeholder, and is not included */
-                    if (cipher_preferences->suites[cipher_index] == &s2n_null_cipher_suite) {
+                    if (is_placeholder_cipher(cipher_preferences->suites[cipher_index])) {
                         continue;
                     }
-
                     const struct s2n_cipher_suite *match = NULL;
                     for (size_t all_index = 0; all_index < cipher_preferences_test_all.count; all_index++) {
                         if (0 == memcmp(cipher_preferences->suites[cipher_index]->iana_value,

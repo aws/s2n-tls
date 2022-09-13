@@ -219,6 +219,24 @@ struct s2n_cipher_suite s2n_null_cipher_suite = {
     .record_alg = &s2n_record_alg_null,
 };
 
+struct s2n_cipher_suite s2n_equal_preference_group_start = {
+    .available = 1,
+    .name = "EQUAL_PREFERENCE_GROUP_START",
+    .iana_value = { TLS_NULL_WITH_NULL_NULL },
+    .key_exchange_alg = &s2n_rsa,
+    .auth_method = S2N_AUTHENTICATION_RSA,
+    .record_alg = &s2n_record_alg_null,
+};
+
+struct s2n_cipher_suite s2n_equal_preference_group_end = {
+    .available = 1,
+    .name = "EQUAL_PREFERENCE_GROUP_END",
+    .iana_value = { TLS_NULL_WITH_NULL_NULL },
+    .key_exchange_alg = &s2n_rsa,
+    .auth_method = S2N_AUTHENTICATION_RSA,
+    .record_alg = &s2n_record_alg_null,
+};
+
 struct s2n_cipher_suite s2n_rsa_with_rc4_128_md5 = /* 0x00,0x04 */ {
     .available = 0,
     .name = "RC4-MD5",
@@ -962,6 +980,36 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
     .suites = s2n_all_tls13_cipher_suites,
 };
 
+static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites_equal_preference[] = {
+    &s2n_equal_preference_group_start,              /* start group */
+    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+    &s2n_equal_preference_group_end,                /* end group */
+};
+
+const struct s2n_cipher_preferences cipher_preferences_test_all_equal_preference_tls13 = {
+    .count = s2n_array_len(s2n_all_tls13_cipher_suites_equal_preference),
+    .suites = s2n_all_tls13_cipher_suites_equal_preference,
+};
+
+/* An arbitrarily complex cipher suite w/ equal preferncing for testing purposes only */
+static struct s2n_cipher_suite *s2n_test_arbitrary_equal_preference[] = {
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
+    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+    &s2n_equal_preference_group_start,              /* start group */
+    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
+    &s2n_equal_preference_group_end,                /* end group */
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
+};
+
+const struct s2n_cipher_preferences cipher_preferences_test_arbitrary_equal_preferences_tls13 = {
+    .count = s2n_array_len(s2n_test_arbitrary_equal_preference),
+    .suites = s2n_test_arbitrary_equal_preference,
+};
+
 static bool should_init_crypto = true;
 static bool crypto_initialized = false;
 int s2n_crypto_disable_init(void) {
@@ -1168,13 +1216,145 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
     return 0;
 }
 
+static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct s2n_cipher_suite* potential_match) {
+        /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
+        if ((conn->actual_protocol_version >= S2N_TLS13) != (potential_match->minimum_required_tls_version >= S2N_TLS13)) {
+            return false;
+        }
+
+        /* Skip the suite if we don't have an available implementation */
+        if (!potential_match->available) {
+            return false;
+        }
+
+        /* Make sure the cipher is valid for available certs */
+        if (s2n_is_cipher_suite_valid_for_auth(conn, potential_match) != S2N_SUCCESS) {
+            return false;
+        }
+
+        /* TLS 1.3 does not include key exchange in cipher suites */
+        if (potential_match->minimum_required_tls_version < S2N_TLS13) {
+            /* If the kex is not supported continue to the next candidate */
+            bool kex_supported = false;
+            POSIX_GUARD_RESULT(s2n_kex_supported(potential_match, conn, &kex_supported));
+            if (!kex_supported) {
+                return false;
+            }
+
+            /* If the kex is not configured correctly continue to the next candidate */
+            if (s2n_result_is_error(s2n_configure_kex(potential_match, conn))) {
+                return false;
+            }
+        }
+
+        /**
+        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+        *# The server MUST ensure that it selects a compatible PSK
+        *# (if any) and cipher suite.
+        **/
+        if (conn->psk_params.chosen_psk != NULL) {
+            if (potential_match->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
+                return false;
+            }
+        }
+
+        return true;
+}
+
+/* Same as s2n_wire_ciphers_contain except it returns the index of the wire*/
+static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+{
+    for (uint32_t i = 0; i < count; i++) {
+        const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
+
+        if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+
+static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
+                                           const uint8_t* wire,
+                                           uint32_t count,
+                                           uint32_t cipher_suite_len) {
+    POSIX_ENSURE_REF(wire);
+    POSIX_ENSURE_REF(conn);
+
+    const struct s2n_security_policy *security_policy;
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+
+    bool in_group = false;
+    const struct s2n_cipher_preferences* cipher_preferences = security_policy->cipher_preferences;
+    int negotiated_client_index = count;
+    int negotiated_server_index = -1;
+    int negotiated_server_highest_vers_match_index = -1;
+
+    for (int i = 0; i < cipher_preferences->count; i++) {
+        const struct s2n_cipher_suite* ours = cipher_preferences->suites[i];
+        /* Check if the cipher suite is an equal-preference grouping delimiter */
+        if (ours == &s2n_equal_preference_group_start) {
+            in_group = true;
+            continue;
+        } 
+        if (ours == &s2n_equal_preference_group_end) {
+            in_group = false;
+            /* Exiting a group and a negotiated cipher has already been found. */
+            if (negotiated_server_index != -1) {
+                return negotiated_server_index;
+            }
+            continue;
+        }
+
+        /* Cipher suite is NOT a delimiter */
+        int client_index = s2n_wire_ciphers_has_server_cipher_at(ours->iana_value, wire, count, cipher_suite_len);
+
+        /* Client does not support this cipher. Skip. */
+        if (client_index < 0) {
+            continue;
+        }
+
+        struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[i];
+        if (!s2n_cipher_suite_match_is_valid(conn, match)) {
+            continue;
+        }
+
+        /* Don't immediately choose a cipher the connection shouldn't be able to support */
+        if (conn->actual_protocol_version < match->minimum_required_tls_version) {
+            if (negotiated_server_highest_vers_match_index == -1) {
+                negotiated_server_highest_vers_match_index = i;
+            }
+            continue;
+        }
+        if (in_group) {
+            /* Both client and server support a grouped-cipher */
+            if (client_index < negotiated_client_index) {
+                negotiated_client_index = client_index;
+                negotiated_server_index = i;
+            }
+        } else {
+            /* Else, the client and server both support a non-grouped cipher. */
+            negotiated_server_index = i;
+            break;
+        }
+    }
+
+    /* Settle for a cipher with a higher required proto version, if it was set */
+    if (negotiated_server_index == -1 && negotiated_server_highest_vers_match_index != -1) {
+        return negotiated_server_highest_vers_match_index;
+    }
+
+    return negotiated_server_index;
+}
+
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
-    struct s2n_cipher_suite *higher_vers_match = NULL;
 
     /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
@@ -1196,80 +1376,15 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    /* s2n supports only server order */
-    for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
-        const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
-
-        if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
-            /* We have a match */
-            struct s2n_cipher_suite *match = security_policy->cipher_preferences->suites[i];
-
-            /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
-            if ((conn->actual_protocol_version >= S2N_TLS13) != (match->minimum_required_tls_version >= S2N_TLS13)) {
-                continue;
-            }
-
-            /* If connection is for SSLv3, use SSLv3 version of suites */
-            if (conn->client_protocol_version == S2N_SSLv3) {
-                match = match->sslv3_cipher_suite;
-            }
-
-            /* Skip the suite if we don't have an available implementation */
-            if (!match->available) {
-                continue;
-            }
-
-            /* Make sure the cipher is valid for available certs */
-            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
-                continue;
-            }
-
-            /* TLS 1.3 does not include key exchange in cipher suites */
-            if (match->minimum_required_tls_version < S2N_TLS13) {
-                /* If the kex is not supported continue to the next candidate */
-                bool kex_supported = false;
-                POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
-                if (!kex_supported) {
-                    continue;
-                }
-
-                /* If the kex is not configured correctly continue to the next candidate */
-                if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
-                    continue;
-                }
-            }
-
-            /**
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
-             *# The server MUST ensure that it selects a compatible PSK
-             *# (if any) and cipher suite.
-             **/
-            if (conn->psk_params.chosen_psk != NULL) {
-                if (match->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
-                    continue;
-                }
-            }
-
-            /* Don't immediately choose a cipher the connection shouldn't be able to support */
-            if (conn->actual_protocol_version < match->minimum_required_tls_version) {
-                if (!higher_vers_match) {
-                    higher_vers_match = match;
-                }
-                continue;
-            }
-
-            conn->secure->cipher_suite = match;
-            return S2N_SUCCESS;
-        }
+    int negotiated_index = s2n_get_negotiated_server_index(conn, wire, count, cipher_suite_len);
+    if (negotiated_index < 0) {
+        POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
-    /* Settle for a cipher with a higher required proto version, if it was set */
-    if (higher_vers_match) {
-        conn->secure->cipher_suite = higher_vers_match;
-        return S2N_SUCCESS;
-    }
-
-    POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[negotiated_index];
+    POSIX_ENSURE_REF(match);
+    conn->secure->cipher_suite = match;
+    return S2N_SUCCESS;
 }
 
 int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)

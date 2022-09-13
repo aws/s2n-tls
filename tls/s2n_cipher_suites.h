@@ -120,6 +120,10 @@ struct s2n_cipher_suite {
 /* Never negotiated */
 extern struct s2n_cipher_suite s2n_null_cipher_suite;
 
+/* Also never negotiated and used as delimiters for equal preference grouping. */
+extern struct s2n_cipher_suite s2n_equal_preference_group_start;
+extern struct s2n_cipher_suite s2n_equal_preference_group_end;
+
 extern struct s2n_cipher_suite s2n_rsa_with_rc4_128_md5;
 extern struct s2n_cipher_suite s2n_rsa_with_rc4_128_sha;
 extern struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha;
