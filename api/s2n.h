@@ -871,6 +871,23 @@ extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const ch
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
+typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED, S2N_VERIFY_AFTER_SIGN_ENABLED } s2n_verify_after_sign;
+
+/**
+ * Toggle whether generated signatures are verified before being sent.
+ *
+ * Although signatures produced by the underlying libcrypto should always be valid,
+ * hardware faults, bugs in the signing implementation, or other uncommon factors
+ * can cause unexpected mistakes in the final signatures. Because these mistakes
+ * can leak information about the private key, applications with low trust in their
+ * hardware or libcrypto may want to verify signatures before sending them.
+ *
+ * However, this feature will significantly impact handshake latency.
+ * Additionally, most libcrypto implementations already check for common errors in signatures.
+ */
+S2N_API
+extern int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after_sign mode);
+
 /** 
  * Set a custom send buffer size.
  *
