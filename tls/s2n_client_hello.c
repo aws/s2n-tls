@@ -612,7 +612,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
      *#    RECOMMENDED.
      *
      * For maximum backwards compatibility, we choose to use the TLS_EMPTY_RENEGOTIATION_INFO_SCSV cipher suite
-     * to signal support for secure renegotiation rather than the "renegotiation_info" extension.
+     * rather than the "renegotiation_info" extension.
      */
     if (legacy_renegotiation_signal_required) {
         uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
