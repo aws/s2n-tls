@@ -808,6 +808,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes128_boosted_wire, count));
             EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
+            uint8_t unsupported_wire[] = {
+                TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384
+            };
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, unsupported_wire, 1),
+                    S2N_ERR_CIPHER_NOT_SUPPORTED);
+
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
