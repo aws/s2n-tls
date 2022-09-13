@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.20-2bb5ae7a</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.20-e813e99a</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -202,6 +202,10 @@ Enumerations</h2></td></tr>
 , <b>S2N_TLS_MAX_FRAG_LEN_4096</b> = 4
  }</td></tr>
 <tr class="separator:a1976b2365808c341247e03131c2423ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a798ae75eec4c2c7c27289195cd7c15ef"><td class="memItemLeft" align="right" valign="top"><a id="a798ae75eec4c2c7c27289195cd7c15ef" name="a798ae75eec4c2c7c27289195cd7c15ef"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><b>s2n_verify_after_sign</b> { <b>S2N_VERIFY_AFTER_SIGN_DISABLED</b>
+, <b>S2N_VERIFY_AFTER_SIGN_ENABLED</b>
+ }</td></tr>
+<tr class="separator:a798ae75eec4c2c7c27289195cd7c15ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d38e45340d223d0100a2d4bc0526635"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a7d38e45340d223d0100a2d4bc0526635">s2n_status_request_type</a> { <b>S2N_STATUS_REQUEST_NONE</b> = 0
 , <b>S2N_STATUS_REQUEST_OCSP</b> = 1
  }</td></tr>
@@ -377,6 +381,8 @@ Functions</h2></td></tr>
 <tr class="separator:a1de5c0b7a1029ee248947835d4e170bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af7e2759066521827269d56d4da063f7b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store</a> (struct s2n_config *config)</td></tr>
 <tr class="separator:af7e2759066521827269d56d4da063f7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa0729c67323dbe0604e6b55f82afb6f6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa0729c67323dbe0604e6b55f82afb6f6">s2n_config_set_verify_after_sign</a> (struct s2n_config *config, s2n_verify_after_sign mode)</td></tr>
+<tr class="separator:aa0729c67323dbe0604e6b55f82afb6f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6de9d794c410474e9851880bd4914025"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a6de9d794c410474e9851880bd4914025">s2n_config_set_send_buffer_size</a> (struct s2n_config *config, uint32_t size)</td></tr>
 <tr class="separator:a6de9d794c410474e9851880bd4914025"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a079022d5c18f4ffd64c1c6dedb3bbc66"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66">s2n_config_set_verify_host_callback</a> (struct s2n_config *config, <a class="el" href="s2n_8h.html#a8aa56850695a02753f726ea9860ec383">s2n_verify_host_fn</a>, void *data)</td></tr>
@@ -5097,6 +5103,37 @@ Safety</h1>
 
 </div>
 </div>
+<a id="aa0729c67323dbe0604e6b55f82afb6f6" name="aa0729c67323dbe0604e6b55f82afb6f6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa0729c67323dbe0604e6b55f82afb6f6">&#9670;&nbsp;</a></span>s2n_config_set_verify_after_sign()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_set_verify_after_sign </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">s2n_verify_after_sign&#160;</td>
+          <td class="paramname"><em>mode</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Toggle whether generated signatures are verified before being sent.</p>
+<p >Although signatures produced by the underlying libcrypto should always be valid, hardware faults, bugs in the signing implementation, or other uncommon factors can cause unexpected mistakes in the final signatures. Because these mistakes can leak information about the private key, applications with low trust in their hardware or libcrypto may want to verify signatures before sending them.</p>
+<p >However, this feature will significantly impact handshake latency. Additionally, most libcrypto implementations already check for common errors in signatures. </p>
+
+</div>
+</div>
 <a id="a079022d5c18f4ffd64c1c6dedb3bbc66" name="a079022d5c18f4ffd64c1c6dedb3bbc66"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a079022d5c18f4ffd64c1c6dedb3bbc66">&#9670;&nbsp;</a></span>s2n_config_set_verify_host_callback()</h2>
 
@@ -8984,7 +9021,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1827</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1844</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
