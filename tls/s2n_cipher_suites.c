@@ -220,7 +220,7 @@ struct s2n_cipher_suite s2n_null_cipher_suite = {
 };
 
 struct s2n_cipher_suite s2n_equal_preference_group_start = {
-    .available = 1,
+    .available = 0,
     .name = "EQUAL_PREFERENCE_GROUP_START",
     .iana_value = { TLS_NULL_WITH_NULL_NULL },
     .key_exchange_alg = &s2n_rsa,
@@ -229,7 +229,7 @@ struct s2n_cipher_suite s2n_equal_preference_group_start = {
 };
 
 struct s2n_cipher_suite s2n_equal_preference_group_end = {
-    .available = 1,
+    .available = 0,
     .name = "EQUAL_PREFERENCE_GROUP_END",
     .iana_value = { TLS_NULL_WITH_NULL_NULL },
     .key_exchange_alg = &s2n_rsa,
