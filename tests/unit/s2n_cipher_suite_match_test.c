@@ -774,89 +774,96 @@ int main(int argc, char **argv)
             }
         }
 
-        /* Test server cipher preference negotiation for client-preferenced equal preference group */
+        /* Test equal preference grouping */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            s2n_connection_set_cipher_preferences(conn, "test_all_equal_preference_tls13");
+            /* Test server cipher preference negotiation for client-preferenced equal preference group */
+            {
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+                s2n_connection_set_cipher_preferences(conn, "test_all_equal_preference_tls13");
 
-            conn->actual_protocol_version = S2N_TLS13;
-            uint8_t chacha20_boosted_wire[] = {
-                TLS_CHACHA20_POLY1305_SHA256,
-                TLS_AES_128_GCM_SHA256,
-                TLS_AES_256_GCM_SHA384,
-            };
+                conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->actual_protocol_version = S2N_TLS13;
 
-            uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
-            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+                uint8_t chacha20_boosted_wire[] = {
+                    TLS_CHACHA20_POLY1305_SHA256,
+                    TLS_AES_128_GCM_SHA256,
+                    TLS_AES_256_GCM_SHA384,
+                };
 
-            uint8_t aes256_boosted_wire[] = {
-                TLS_AES_256_GCM_SHA384,
-                TLS_CHACHA20_POLY1305_SHA256,
-                TLS_AES_128_GCM_SHA256,
-            };
+                uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
+                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
 
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes256_boosted_wire, count));
-            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+                uint8_t aes256_boosted_wire[] = {
+                    TLS_AES_256_GCM_SHA384,
+                    TLS_CHACHA20_POLY1305_SHA256,
+                    TLS_AES_128_GCM_SHA256,
+                };
 
-            uint8_t aes128_boosted_wire[] = {
-                TLS_AES_128_GCM_SHA256,
-                TLS_AES_256_GCM_SHA384,
-                TLS_CHACHA20_POLY1305_SHA256,
-            };
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes256_boosted_wire, count));
+                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
 
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes128_boosted_wire, count));
-            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+                uint8_t aes128_boosted_wire[] = {
+                    TLS_AES_128_GCM_SHA256,
+                    TLS_AES_256_GCM_SHA384,
+                    TLS_CHACHA20_POLY1305_SHA256,
+                };
 
-            uint8_t unsupported_wire[] = {
-                TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384
-            };
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes128_boosted_wire, count));
+                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, unsupported_wire, 1),
-                    S2N_ERR_CIPHER_NOT_SUPPORTED);
+                uint8_t unsupported_wire[] = {
+                    TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384
+                };
 
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, unsupported_wire, 1),
+                        S2N_ERR_CIPHER_NOT_SUPPORTED);
 
-        /* Test server cipher preference negotiation for an arbitary equal preference grouping
-         * with invalid ciphers.
-         */
-        {
-            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            s2n_connection_set_cipher_preferences(conn, "test_arbitrary_equal_preference");
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+            }
 
-            conn->actual_protocol_version = S2N_TLS13;
-            uint8_t aes_128_wire[] = {
-                TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,        /* Least preferred by server */
-                TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,                /* Not offered by server */
-                TLS_AES_128_GCM_SHA256                              /* Tied in 3rd most preferred */
-            };
-            uint8_t count = sizeof(aes_128_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes_128_wire, count));
-            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+            /* Test server cipher preference negotiation for an arbitary equal preference grouping
+             * with invalid ciphers.
+             */
+            {
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+                s2n_connection_set_cipher_preferences(conn, "test_arbitrary_equal_preference");
 
-            uint8_t chacha20_wire[] = {
-                TLS_AES_256_GCM_SHA384,                             /* Tied in 3rd most preferred */
-                TLS_CHACHA20_POLY1305_SHA256                        /* Second most preferred by server */
-            };
-            count = sizeof(chacha20_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_wire, count));
-            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+                conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->actual_protocol_version = S2N_TLS13;
 
-            uint8_t aes_256_wire[] = {
-                TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,          /* Not offered by server */
-                TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,        /* Least preferred */
-                TLS_RSA_WITH_RC4_128_MD5,                           /* Tied in 3rd most preferred but is invalid */
-                TLS_AES_256_GCM_SHA384,                             /* Tied in 3rd most preferred */
-                TLS_AES_128_GCM_SHA256                              /* Tied in 3rd most preferred */
-            };
-            count = sizeof(aes_256_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes_256_wire, count));
-            EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+                uint8_t aes_128_wire[] = {
+                    TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,        /* Least preferred by server */
+                    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,                /* Not offered by server */
+                    TLS_AES_128_GCM_SHA256                              /* Tied in 3rd most preferred */
+                };
+                uint8_t count = sizeof(aes_128_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes_128_wire, count));
+                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+                uint8_t chacha20_wire[] = {
+                    TLS_AES_256_GCM_SHA384,                             /* Tied in 3rd most preferred */
+                    TLS_CHACHA20_POLY1305_SHA256                        /* Second most preferred by server */
+                };
+                count = sizeof(chacha20_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_wire, count));
+                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+
+                uint8_t aes_256_wire[] = {
+                    TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,          /* Not offered by server */
+                    TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,        /* Least preferred */
+                    TLS_RSA_WITH_RC4_128_MD5,                           /* Tied in 3rd most preferred but is invalid */
+                    TLS_AES_256_GCM_SHA384,                             /* Tied in 3rd most preferred */
+                    TLS_AES_128_GCM_SHA256                              /* Tied in 3rd most preferred */
+                };
+                count = sizeof(aes_256_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes_256_wire, count));
+                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+            }
         }
 
         /* If a PSK is being used, then the cipher suite must match the PSK's HMAC algorithm.

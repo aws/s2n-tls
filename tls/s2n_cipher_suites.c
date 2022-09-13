@@ -1246,7 +1246,10 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
         if (potential_match->minimum_required_tls_version < S2N_TLS13) {
             /* If the kex is not supported continue to the next candidate */
             bool kex_supported = false;
-            POSIX_GUARD_RESULT(s2n_kex_supported(potential_match, conn, &kex_supported));
+            if (s2n_result_is_error(s2n_kex_supported(potential_match, conn, &kex_supported))) {
+                return false;
+            }
+
             if (!kex_supported) {
                 return false;
             }
@@ -1272,7 +1275,7 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
 }
 
 /**
- * @brief Same as s2n_wire_ciphers_contain() except that it returns the match's index in the client wire.
+ * @brief Same as s2n_wire_ciphers_contain() except that it sets the match's index in the client wire to the index var.
  * 
  * @param match Cipher suite IANA which we wish to find a match for
  * @param wire Client wire
@@ -1282,6 +1285,7 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
  */
 static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
+    int negative_one = -1;
     for (uint32_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
@@ -1290,7 +1294,7 @@ static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uin
         }
     }
 
-    return -1;
+    return negative_one;
 }
 
 /**
