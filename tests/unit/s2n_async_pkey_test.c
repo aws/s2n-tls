@@ -353,6 +353,16 @@ int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *si
     return S2N_FAILURE;
 }
 
+static int s2n_test_bad_sign(const struct s2n_pkey *pub_key, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature)
+{
+    /* Just write all zeroes.
+     * This could accidentally be the correct signature, but it's very unlikely.
+     */
+    POSIX_GUARD(s2n_blob_zero(signature));
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -364,6 +374,10 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Run all tests for 2 cipher suites to test both sign and decrypt operations */
     struct s2n_cipher_suite *test_cipher_suites[] = {
@@ -662,6 +676,52 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+    /* Test: Apply invalid signature to sync operation */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Start the handshake.
+         * We need to perform enough of the handshake to choose a certificate / private key.
+         */
+        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_ENABLED));
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_CERT));
+
+        /* Setup the pkey verify operation to fail for the chosen private key */
+        EXPECT_NOT_NULL(server_conn->handshake_params.our_chain_and_key);
+        EXPECT_NOT_NULL(server_conn->handshake_params.our_chain_and_key->private_key);
+        struct s2n_pkey *original_pkey = server_conn->handshake_params.our_chain_and_key->private_key;
+        struct s2n_pkey bad_pkey = *original_pkey;
+        bad_pkey.sign = s2n_test_bad_sign;
+        server_conn->handshake_params.our_chain_and_key->private_key = &bad_pkey;
+
+        /* Verify after sign should fail */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_ENABLED));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_VERIFY_SIGNATURE);
+
+        /* Reset pkey for cleanup */
+        server_conn->handshake_params.our_chain_and_key->private_key = original_pkey;
+    }
+
     END_TEST();
-    return 0;
 }
