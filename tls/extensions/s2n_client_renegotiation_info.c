@@ -29,17 +29,47 @@ const s2n_extension_type s2n_client_renegotiation_info_extension = {
     .send = s2n_extension_send_unimplemented,
     .recv = s2n_client_renegotiation_recv,
     .should_send = s2n_extension_never_send,
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *# o  If neither the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV nor the
+     *#    "renegotiation_info" extension was included, set the
+     *#    secure_renegotiation flag to FALSE.  In this case, some servers
+     *#    may want to terminate the handshake instead of continuing
+     *
+     * The conn->secure_renegotiation flag defaults to false, so this is a no-op.
+     * We do not terminate the handshake, although missing messaging for secure
+     * renegotiation degrades client security.
+     *
+     * We could introduce an option to fail in this case in the future.
+     */
     .if_missing = s2n_extension_noop_if_missing,
 };
 
+/**
+ *= https://tools.ietf.org/rfc/rfc5746#3.6
+ *# o  The server MUST check if the "renegotiation_info" extension is
+ *# included in the ClientHello.
+ */
 static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
-    uint8_t renegotiated_connection_len;
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *# The server MUST then verify
+     *# that the length of the "renegotiated_connection" field is zero,
+     *# and if it is not, MUST abort the handshake.
+     */
+    uint8_t renegotiated_connection_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension) || renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    POSIX_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *# If the extension is present, set secure_renegotiation flag to TRUE.
+     */
     conn->secure_renegotiation = 1;
+
     return S2N_SUCCESS;
 }
 

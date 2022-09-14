@@ -1,0 +1,51 @@
+target = "https://tools.ietf.org/rfc/rfc5746#4.5"
+
+# 4.5.  SSLv3
+#
+# While SSLv3 is not a protocol under IETF change control (see
+# [SSLv3]), it was the original basis for TLS and most TLS
+# implementations also support SSLv3.  The IETF encourages SSLv3
+# implementations to adopt the "renegotiation_info" extension and SCSV
+# as defined in this document.  The semantics of the SCSV and extension
+# are identical to TLS stacks except for the size of the verify_data
+# values, which are 36 bytes long each.  Note that this will require
+# adding at least minimal extension processing to such stacks.  Clients
+# that support SSLv3 and offer secure renegotiation (either via SCSV or
+# "renegotiation_info") MUST accept the "renegotiation_info" extension
+# from the server, even if the server version is {0x03, 0x00}, and
+# behave as described in this specification.  TLS servers that support
+# secure renegotiation and support SSLv3 MUST accept SCSV or the
+# "renegotiation_info" extension and respond as described in this
+# specification even if the offered client version is {0x03, 0x00}.
+# SSLv3 does not define the "no_renegotiation" alert (and does
+# 
+# not offer a way to indicate a refusal to renegotiate at a "warning"
+# level).  SSLv3 clients that refuse renegotiation SHOULD use a fatal
+# handshake_failure alert.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients
+that support SSLv3 and offer secure renegotiation (either via SCSV or
+"renegotiation_info") MUST accept the "renegotiation_info" extension
+from the server, even if the server version is {0x03, 0x00}, and
+behave as described in this specification.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+TLS servers that support
+secure renegotiation and support SSLv3 MUST accept SCSV or the
+"renegotiation_info" extension and respond as described in this
+specification even if the offered client version is {0x03, 0x00}.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+SSLv3 clients that refuse renegotiation SHOULD use a fatal
+handshake_failure alert.
+'''
+
