@@ -1,3 +1,4 @@
+pub use anyhow::{anyhow, Error};
 #[derive(Debug, Clone)]
 pub struct Arguments<'a> {
     argument: Vec<&'a str>,
@@ -15,7 +16,7 @@ impl<'a> From<&'a str> for Arguments<'a> {
 
 impl<'a> Arguments<'a> {
     #[allow(dead_code)]
-    pub fn get_dash_c(self) -> Result<&'a str, ()> {
+    pub fn get_dash_c(self) -> Result<&'a str, anyhow::Error> {
         let mut counter = 0;
         for element in &self.argument {
             counter += 1;
@@ -23,21 +24,21 @@ impl<'a> Arguments<'a> {
                 return Ok(self.argument[counter]);
             }
         }
-        Err(())
+        Err(anyhow!("Unable to find -c argument"))
     }
 
-    pub fn get_endpoint(self) -> Result<&'a str, ()> {
+    pub fn get_endpoint(self) -> Result<&'a str, anyhow::Error> {
         let mut counter = 0;
         for element in &self.argument {
             counter += 1;
             if element.eq(&"-c") {
                 let result = self.argument[counter + 1]
-                    .trim_end_matches("_")
-                    .trim_start_matches("_");
+                    .trim_end_matches('_')
+                    .trim_start_matches('_');
                 return Ok(result);
             }
         }
-        Err(())
+        Err(anyhow!("Unable to find endpoint in arguments."))
     }
 
     pub fn get_vec(self) -> Vec<&'a str> {
