@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    /* Test: Hello request received during the handshake */
+    /* Test: Hello requests received during the handshake are a no-op */
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
     }
 
-    /* Test: Hello request not accepted for TLS1.3 */
+    /* Test: Hello requests received during the handshake are an error for TLS1.3 */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -156,7 +156,11 @@ int main(int argc, char **argv)
                 S2N_ERR_BAD_MESSAGE);
     }
 
-    /* Test: Hello request received after the handshake */
+    /* Test: Hello requests received after the handshake can be ignored.
+     *
+     * We can continue sending and receiving data after the request.
+     * s2n-tls treats warnings as fatals by default though, so we must disable that behavior.
+     */
     {
         DEFER_CLEANUP(struct s2n_config *config_with_warns = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config_with_warns);
@@ -195,7 +199,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
     }
 
-    /* Test: no_renegotiation sent in response to valid hello request */
+    /* Test: Hello requests received after the handshake trigger a no_renegotiation alert. */
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
