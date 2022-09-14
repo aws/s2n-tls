@@ -1,0 +1,31 @@
+target = "https://tools.ietf.org/rfc/rfc5746#4.3"
+
+# 4.3.  Server Considerations
+#
+# If the client does not offer the "renegotiation_info" extension or
+# the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV, then this indicates that
+# the client does not support secure renegotiation.  Although the
+# attack described in Section 1 looks like two handshakes to the
+# 
+# server, other attacks may be possible in which the renegotiation is
+# seen only by the client.  If servers wish to ensure that such attacks
+# are impossible, they need to terminate the connection immediately
+# upon failure to negotiate the use of secure renegotiation.  Servers
+# that do choose to allow connections from unpatched clients can still
+# prevent the attack described in Section 1 by refusing to renegotiate
+# over those connections.
+# 
+# In order to enable clients to probe, even servers that do not support
+# renegotiation MUST implement the minimal version of the extension
+# described in this document for initial handshakes, thus signaling
+# that they have been upgraded.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In order to enable clients to probe, even servers that do not support
+renegotiation MUST implement the minimal version of the extension
+described in this document for initial handshakes, thus signaling
+that they have been upgraded.
+'''
+

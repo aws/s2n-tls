@@ -1,0 +1,96 @@
+target = "https://tools.ietf.org/rfc/rfc5746#4.2"
+
+# 4.2.  Client Behavior: Legacy (Insecure) Renegotiation
+#
+# This text applies if the connection's "secure_renegotiation" flag is
+# set to FALSE.
+# 
+# It is possible that un-upgraded servers will request that the client
+# renegotiate.  It is RECOMMENDED that clients refuse this
+# renegotiation request.  Clients that do so MUST respond to such
+# requests with a "no_renegotiation" alert (RFC 5246 requires this
+# alert to be at the "warning" level).  It is possible that the
+# apparently un-upgraded server is in fact an attacker who is then
+# allowing the client to renegotiate with a different, legitimate,
+# upgraded server.  If clients nevertheless choose to renegotiate, they
+# MUST behave as described below.
+# 
+# Clients that choose to renegotiate MUST provide either the
+# TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV or "renegotiation_info" in
+# their ClientHello.  In a legitimate renegotiation with an un-upgraded
+# server, that server should ignore both of these signals.  However, if
+# the server (incorrectly) fails to ignore extensions, sending the
+# "renegotiation_info" extension may cause a handshake failure.  Thus,
+# it is permitted, though NOT RECOMMENDED, for the client to simply
+# send the SCSV.  This is the only situation in which clients are
+# permitted to not send the "renegotiation_info" extension in a
+# ClientHello that is used for renegotiation.
+# 
+# Note that in the case of a downgrade attack, if this is an initial
+# handshake from the server's perspective, then use of the SCSV from
+# the client precludes detection of this attack by the server (if this
+# is a renegotiation from the server's perspective, then it will detect
+# the attack).  However, the attack will be detected by the client when
+# the server sends an empty "renegotiation_info" extension and the
+# client is expecting one containing the previous verify_data.  By
+# contrast, if the client sends the "renegotiation_info" extension,
+# then the server will immediately detect the attack.
+# 
+# When the ServerHello is received, the client MUST verify that it does
+# not contain the "renegotiation_info" extension.  If it does, the
+# client MUST abort the handshake.  (Because the server has already
+# indicated it does not support secure renegotiation, the only way that
+# this can happen is if the server is broken or there is an attack.)
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+It is RECOMMENDED that clients refuse this
+renegotiation request.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients that do so MUST respond to such
+requests with a "no_renegotiation" alert (RFC 5246 requires this
+alert to be at the "warning" level).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If clients nevertheless choose to renegotiate, they
+MUST behave as described below.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients that choose to renegotiate MUST provide either the
+TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV or "renegotiation_info" in
+their ClientHello.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Thus,
+it is permitted, though NOT RECOMMENDED, for the client to simply
+send the SCSV.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When the ServerHello is received, the client MUST verify that it does
+not contain the "renegotiation_info" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If it does, the
+client MUST abort the handshake.
+'''
+
