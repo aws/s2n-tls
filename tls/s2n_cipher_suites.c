@@ -1396,7 +1396,7 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
-    if (negotiated_server_index == -1 && negotiated_server_highest_vers_match_index != -1) {
+    if (negotiated_server_highest_vers_match_index != -1) {
         *server_index = negotiated_server_highest_vers_match_index;
         return S2N_SUCCESS;
     }

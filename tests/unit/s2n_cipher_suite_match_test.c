@@ -802,13 +802,19 @@ int main(int argc, char **argv)
 
                 uint8_t chacha20_boosted_wire[] = {
                     TLS_CHACHA20_POLY1305_SHA256,
-                    TLS_AES_128_GCM_SHA256,
                     TLS_AES_256_GCM_SHA384,
+                    TLS_AES_128_GCM_SHA256,
                 };
 
                 uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
-                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+
+                if (s2n_chacha20_poly1305.is_available()) {
+                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+                } else {
+                    /* Security policy has AES 256 and 128 as equal preference */
+                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+                }
 
                 uint8_t aes256_boosted_wire[] = {
                     TLS_AES_256_GCM_SHA384,
@@ -871,7 +877,11 @@ int main(int argc, char **argv)
                 };
                 count = sizeof(chacha20_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_wire, count));
-                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+                if (s2n_chacha20_poly1305.is_available()) {
+                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+                } else {
+                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+                }
 
                 uint8_t aes_256_wire[] = {
                     TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,          /* Not offered by server */
