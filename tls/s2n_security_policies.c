@@ -743,22 +743,6 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     .ecc_preferences = &s2n_ecc_preferences_test_all,
 };
 
-const struct s2n_security_policy security_policy_test_all_equal_preference_tls13 = {
-    .minimum_protocol_version = S2N_SSLv3,
-    .cipher_preferences = &cipher_preferences_test_all_equal_preference_tls13,
-    .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20201021,
-    .ecc_preferences = &s2n_ecc_preferences_test_all,
-};
-
-const struct s2n_security_policy security_policy_test_arbitrary_equal_preference_tls13 = {
-    .minimum_protocol_version = S2N_SSLv3,
-    .cipher_preferences = &cipher_preferences_test_arbitrary_equal_preferences_tls13,
-    .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20201021,
-    .ecc_preferences = &s2n_ecc_preferences_test_all,
-};
-
 const struct s2n_security_policy security_policy_test_ecdsa_priority = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_ecdsa_priority,
@@ -871,8 +855,6 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="test_ecdsa_priority", .security_policy=&security_policy_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_tls12", .security_policy=&security_policy_test_all_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_tls13", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_equal_preference_tls13", .security_policy=&security_policy_test_all_equal_preference_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_arbitrary_equal_preference", .security_policy=&security_policy_test_arbitrary_equal_preference_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="null", .security_policy=&security_policy_null, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version=NULL, .security_policy=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0 }
 };
