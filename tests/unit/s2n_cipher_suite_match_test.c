@@ -786,10 +786,19 @@ int main(int argc, char **argv)
             /* Test server cipher preference negotiation for client-preferenced equal preference group */
             {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                s2n_connection_set_cipher_preferences(conn, "test_all_equal_preference_tls13");
+                const struct s2n_security_policy test_all_equal_preference_tls13 = {
+                    .minimum_protocol_version = S2N_SSLv3,
+                    .cipher_preferences = &cipher_preferences_test_all_equal_preference_tls13,
+                    .kem_preferences = &kem_preferences_null,
+                    .signature_preferences = &s2n_signature_preferences_20201021,
+                    .ecc_preferences = &s2n_ecc_preferences_test_all,
+                };
+                conn->security_policy_override = &test_all_equal_preference_tls13;
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->client_protocol_version = S2N_TLS13;
                 conn->actual_protocol_version = S2N_TLS13;
+                conn->server_protocol_version = S2N_TLS13;
 
                 uint8_t chacha20_boosted_wire[] = {
                     TLS_CHACHA20_POLY1305_SHA256,
@@ -835,7 +844,14 @@ int main(int argc, char **argv)
              */
             {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                s2n_connection_set_cipher_preferences(conn, "test_arbitrary_equal_preference");
+                const struct s2n_security_policy test_arbitrary_equal_preference = {
+                    .minimum_protocol_version = S2N_SSLv3,
+                    .cipher_preferences = &cipher_preferences_test_arbitrary_equal_preferences_tls13,
+                    .kem_preferences = &kem_preferences_null,
+                    .signature_preferences = &s2n_signature_preferences_20201021,
+                    .ecc_preferences = &s2n_ecc_preferences_test_all,
+                };
+                conn->security_policy_override = &test_arbitrary_equal_preference;
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->actual_protocol_version = S2N_TLS13;

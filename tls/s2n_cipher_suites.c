@@ -993,7 +993,7 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_equal_preference
     .suites = s2n_all_tls13_cipher_suites_equal_preference,
 };
 
-/* An arbitrarily complex cipher suite w/ equal preferncing for testing purposes only */
+/* An arbitrarily complex cipher suite w/ equal preference for testing purposes only */
 static struct s2n_cipher_suite *s2n_test_arbitrary_equal_preference[] = {
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
     &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
@@ -1274,22 +1274,14 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
         return true;
 }
 
-/**
- * @brief Same as s2n_wire_ciphers_contain() except that it sets the match's index in the client wire to the index var.
- * 
- * @param match Cipher suite IANA which we wish to find a match for
- * @param wire Client wire
- * @param count Number of entries
- * @param cipher_suite_len Length offset
- * @return int Index of the match in the client wire. If a match was not found then -1 is returned.
- */
+/* The same function as s2n_wire_ciphers_contain() except this function returns the client index instead of a success flag. */
 static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
     int negative_one = -1;
     for (uint32_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
-        if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+        if (s2n_constant_time_equals(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
             return i;
         }
     }
@@ -1298,23 +1290,42 @@ static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uin
 }
 
 /**
- * @brief This is the logic for parsing a list of s2n_cipher_suites* and selecting a cipher_suite accounting
- *        for equal preference grouping. This method assumes that the server side cipher suite preference is
- *        correctly formatted eg for every group_start delimiter, there exists a following group_end delimiter.
- *        TODO: Add reference to documentation and add basic validation
+ *  This is the logic for parsing a list of s2n_cipher_suites* and selecting a cipher_suite accounting
+ *  for equal preference grouping. This method assumes that the server side cipher suite preference is
+ *  correctly formatted eg for every group_start delimiter, there exists a following group_end delimiter.
  * 
- * @param conn s2n_connection is used to ensure the negotiated cipher is valid for the connection
- * @param wire client wire containing cipher suite IANAs
- * @param count Number of entries
- * @param cipher_suite_len Cipher suite length offset
- * @return int Server's index of the negotiated cipher suite. If no cipher suite was selected then -1 is returned.
+ *  The negotiated server index is set in the *index argument. The algorithm used to determine this is as
+ *  follows:
+ * 
+ *  1. Iterate over each server cipher suite. These cipher preferences are defined by the server's security
+ *     policy.
+ * 
+ *  2. For each server cipher suite, we check if the suite is an actual cipher or is a group delimiter.
+ * 
+ *  3. If the cipher is a group start delimiter we toggle the `in_group` flag as true to indicate we will need
+ *     to use the client's preference as a tie-breaker. Else if the cipher is a group end delimiter, then we
+ *     toggle off the `in_group` flag and see if we have found a negotiable cipher. If we have, then we simply
+ *     return that cipher's server-side index since the client was able to break a tie for the server.
+ * 
+ *  4. Else, we have not encountered a group delimiter. In this case, we check if the client indicated support
+ *     for the cipher. If we are in a group, then we must check all the cipher's in the group and ensure that 
+ *     the client's preference is selected. If we are not in a group, we simply return the cipher since the server
+ *     does not need to have a tie-breaker contest.
+ * 
+ *  5. Repeat 1-4 until a negotiable cipher is found. If none is found, including a last-resort higher protocol
+ *     version then error. Else, set the *index to the found server index.
+ * 
+ *  TODO: Add basic validation for the cipher preference list
+ * 
  */
 static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
                                            const uint8_t* wire,
                                            uint32_t count,
-                                           uint32_t cipher_suite_len) {
+                                           uint32_t cipher_suite_len,
+                                           uint32_t* index) {
     POSIX_ENSURE_REF(wire);
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(index);
 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
@@ -1326,23 +1337,26 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
     int negotiated_server_index = -1, negotiated_server_highest_vers_match_index = -1;
 
     for (uint32_t i = 0; i < cipher_preferences->count; i++) {
-        const struct s2n_cipher_suite* ours = cipher_preferences->suites[i];
+        const struct s2n_cipher_suite* server_cipher = cipher_preferences->suites[i];
+        POSIX_ENSURE_REF(server_cipher);
+
         /* Check if the cipher suite is an equal-preference grouping delimiter */
-        if (ours == &s2n_equal_preference_group_start) {
+        if (server_cipher == &s2n_equal_preference_group_start) {
             in_group = true;
             continue;
         } 
-        if (ours == &s2n_equal_preference_group_end) {
+        if (server_cipher == &s2n_equal_preference_group_end) {
             in_group = false;
             /* Exiting a group and a negotiated cipher has already been found. */
             if (negotiated_server_index != -1) {
-                return negotiated_server_index;
+                *index = negotiated_server_index;
+                return S2N_SUCCESS;
             }
             continue;
         }
 
         /* Cipher suite is NOT a delimiter */
-        int client_index = s2n_wire_ciphers_has_server_cipher_at(ours->iana_value, wire, count, cipher_suite_len);
+        int client_index = s2n_wire_ciphers_has_server_cipher_at(server_cipher->iana_value, wire, count, cipher_suite_len);
 
         /* Client does not support this cipher. Skip. */
         if (client_index < 0) {
@@ -1375,12 +1389,20 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
         }
     }
 
-    /* Settle for a cipher with a higher required proto version, if it was set */
-    if (negotiated_server_index == -1 && negotiated_server_highest_vers_match_index != -1) {
-        return negotiated_server_highest_vers_match_index;
+    /* Found a match */
+    if (negotiated_server_index != -1) {
+        *index = negotiated_server_index;
+        return S2N_SUCCESS;
     }
 
-    return negotiated_server_index;
+    /* Settle for a cipher with a higher required proto version, if it was set */
+    if (negotiated_server_index == -1 && negotiated_server_highest_vers_match_index != -1) {
+        *index = negotiated_server_highest_vers_match_index;
+        return S2N_SUCCESS;
+    }
+
+    /* Could nether find a match nor a cipher w/ a higher version */
+    POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
@@ -1416,10 +1438,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     /* Determine the index for the negotiated cipher suite. Index is a server cipher prefernece index. */
-    int negotiated_index = s2n_get_negotiated_server_index(conn, wire, count, cipher_suite_len);
-    if (negotiated_index < 0) {
-        POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
-    }
+    uint32_t negotiated_index = 0;
+    POSIX_GUARD(s2n_get_negotiated_server_index(conn, wire, count, cipher_suite_len, &negotiated_index));
 
     struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[negotiated_index];
     POSIX_ENSURE_REF(match);
