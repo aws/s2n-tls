@@ -26,6 +26,8 @@ fi
 
 WORK_DIR=$1
 
+echo "YES IN FACT I AM THE NEW VERSION"
+
 source codebuild/bin/s2n_setup_env.sh
 source codebuild/bin/jobs.sh
 export CMAKE_BUILD_PARALLEL_LEVEL=$JOBS
