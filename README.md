@@ -61,6 +61,19 @@ cmake --build ./build -j $(nproc)
 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
 ```
 
+## Installing from vcpkg
+
+You can download and install s2n-tls using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+```sh
+  git clone https://github.com/Microsoft/vcpkg.git
+  cd vcpkg
+  ./bootstrap-vcpkg.sh
+  ./vcpkg integrate install
+  ./vcpkg install s2n
+```
+
+The s2n-tls port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull   request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
 ## Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
 
