@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-set -exo pipefail
+set -eo pipefail
 
 usage() {
     echo "test_install_shared_and_static.sh build_dir"
@@ -26,44 +26,30 @@ fi
 
 WORK_DIR=$1
 
-echo "YES IN FACT I AM THE NEW VERSION"
-
 source codebuild/bin/s2n_setup_env.sh
 source codebuild/bin/jobs.sh
-export CMAKE_BUILD_PARALLEL_LEVEL=$JOBS
-
-# Add $LIBCRYPTO_ROOT/lib to LD_LIBRARY_PATH ("lib" could also be "lib64" or "lib32").
-# This addresses the issue where, after installation, s2n can't find the libcrypto.so it was built against.
-#
-# When s2n is built, if libcrypto.so isn't in an official system lib dir,
-# its path is stored in the RPATH/RUNPATH of libs2n.so. But many tools (CMake, Ninja)
-# strip the RPATH/RUNPATH during installation. Setting LD_LIBRARY_PATH ensures
-# the desired libcrypto.so is found.
-# for LIBDIR in $LIBCRYPTO_ROOT/lib*; do
-#   export LD_LIBRARY_PATH=$LIBDIR${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-# done
 
 COMMON_S2N_BUILD_ARGS=(-H. -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -DBUILD_TESTING=OFF)
 
 # create installation dir with libs2n.so
 if [ ! -d $WORK_DIR/s2n-install-shared ]; then
-    cmake -B$WORK_DIR/s2n-build-shared -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-shared -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]}
-    cmake --build $WORK_DIR/s2n-build-shared --target install
+    (set -x; cmake -B$WORK_DIR/s2n-build-shared -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-shared -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]})
+    (set -x; cmake --build $WORK_DIR/s2n-build-shared --target install -- -j $JOBS)
 fi
 
 # create installation dir with libs2n.a
 if [ ! -d $WORK_DIR/s2n-install-static ]; then
-    cmake -B$WORK_DIR/s2n-build-static -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-static -DBUILD_SHARED_LIBS=OFF ${COMMON_S2N_BUILD_ARGS[@]}
-    cmake --build $WORK_DIR/s2n-build-static --target install
+    (set -x; cmake -B$WORK_DIR/s2n-build-static -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-static -DBUILD_SHARED_LIBS=OFF ${COMMON_S2N_BUILD_ARGS[@]})
+    (set -x; cmake --build $WORK_DIR/s2n-build-static --target install -- -j $JOBS)
 fi
 
 # create installation dir with both libs2n.so and libs2n.a
 if [ ! -d $WORK_DIR/s2n-install-both ]; then
-    cmake -B$WORK_DIR/s2n-build-shared-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]}
-    cmake --build $WORK_DIR/s2n-build-shared-both --target install
+    (set -x; cmake -B$WORK_DIR/s2n-build-shared-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]})
+    (set -x; cmake --build $WORK_DIR/s2n-build-shared-both --target install -- -j $JOBS)
 
-    cmake -B$WORK_DIR/s2n-build-static-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=OFF  ${COMMON_S2N_BUILD_ARGS[@]}
-    cmake --build $WORK_DIR/s2n-build-static-both --target install
+    (set -x; cmake -B$WORK_DIR/s2n-build-static-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=OFF  ${COMMON_S2N_BUILD_ARGS[@]})
+    (set -x; cmake --build $WORK_DIR/s2n-build-static-both --target install -- -j $JOBS)
 fi
 
 # write out source of a small cmake project, containing:
@@ -114,9 +100,9 @@ build_myapp() {
 
     local S2N_INSTALL_PATH=$(realpath $WORK_DIR/$S2N_INSTALL_DIR)
 
-    cmake -H$WORK_DIR/myapp-src -B$MYAPP_BUILD_DIR -D$BUILD_SHARED_LIBS "-DCMAKE_PREFIX_PATH=$S2N_INSTALL_PATH;$LIBCRYPTO_ROOT"
-    cmake --build $MYAPP_BUILD_DIR
-    ldd $MYAPP_BUILD_DIR/myapp
+    (set -x; cmake -H$WORK_DIR/myapp-src -B$MYAPP_BUILD_DIR -D$BUILD_SHARED_LIBS "-DCMAKE_PREFIX_PATH=$S2N_INSTALL_PATH;$LIBCRYPTO_ROOT")
+    (set -x; cmake --build $MYAPP_BUILD_DIR)
+    (set -x; ldd $MYAPP_BUILD_DIR/myapp)
 
     if ldd $MYAPP_BUILD_DIR/myapp | grep -q libs2n.so; then
         local LIBS2N_ACTUAL=libs2n.so
