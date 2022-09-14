@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-set -e
+set -exo pipefail
 
 usage() {
     echo "test_install_shared_and_static.sh build_dir"
@@ -45,23 +45,23 @@ COMMON_S2N_BUILD_ARGS=(-H. -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -DBUILD_TESTING=O
 
 # create installation dir with libs2n.so
 if [ ! -d $WORK_DIR/s2n-install-shared ]; then
-    (set -x; cmake -B$WORK_DIR/s2n-build-shared -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-shared -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]})
-    (set -x; cmake --build $WORK_DIR/s2n-build-shared --target install)
+    cmake -B$WORK_DIR/s2n-build-shared -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-shared -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]}
+    cmake --build $WORK_DIR/s2n-build-shared --target install
 fi
 
 # create installation dir with libs2n.a
 if [ ! -d $WORK_DIR/s2n-install-static ]; then
-    (set -x; cmake -B$WORK_DIR/s2n-build-static -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-static -DBUILD_SHARED_LIBS=OFF ${COMMON_S2N_BUILD_ARGS[@]})
-    (set -x; cmake --build $WORK_DIR/s2n-build-static --target install)
+    cmake -B$WORK_DIR/s2n-build-static -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-static -DBUILD_SHARED_LIBS=OFF ${COMMON_S2N_BUILD_ARGS[@]}
+    cmake --build $WORK_DIR/s2n-build-static --target install
 fi
 
 # create installation dir with both libs2n.so and libs2n.a
 if [ ! -d $WORK_DIR/s2n-install-both ]; then
-    (set -x; cmake -B$WORK_DIR/s2n-build-shared-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]})
-    (set -x; cmake --build $WORK_DIR/s2n-build-shared-both --target install)
+    cmake -B$WORK_DIR/s2n-build-shared-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=ON ${COMMON_S2N_BUILD_ARGS[@]}
+    cmake --build $WORK_DIR/s2n-build-shared-both --target install
 
-    (set -x; cmake -B$WORK_DIR/s2n-build-static-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=OFF  ${COMMON_S2N_BUILD_ARGS[@]})
-    (set -x; cmake --build $WORK_DIR/s2n-build-static-both --target install)
+    cmake -B$WORK_DIR/s2n-build-static-both -DCMAKE_INSTALL_PREFIX=$WORK_DIR/s2n-install-both -DBUILD_SHARED_LIBS=OFF  ${COMMON_S2N_BUILD_ARGS[@]}
+    cmake --build $WORK_DIR/s2n-build-static-both --target install
 fi
 
 # write out source of a small cmake project, containing:
@@ -112,9 +112,9 @@ build_myapp() {
 
     local S2N_INSTALL_PATH=$(realpath $WORK_DIR/$S2N_INSTALL_DIR)
 
-    (set -x; cmake -H$WORK_DIR/myapp-src -B$MYAPP_BUILD_DIR -D$BUILD_SHARED_LIBS "-DCMAKE_PREFIX_PATH=$S2N_INSTALL_PATH;$LIBCRYPTO_ROOT")
-    (set -x; cmake --build $MYAPP_BUILD_DIR)
-    (set -x; ldd $MYAPP_BUILD_DIR/myapp)
+    cmake -H$WORK_DIR/myapp-src -B$MYAPP_BUILD_DIR -D$BUILD_SHARED_LIBS "-DCMAKE_PREFIX_PATH=$S2N_INSTALL_PATH;$LIBCRYPTO_ROOT"
+    cmake --build $MYAPP_BUILD_DIR
+    ldd $MYAPP_BUILD_DIR/myapp
 
     if ldd $MYAPP_BUILD_DIR/myapp | grep -q libs2n.so; then
         local LIBS2N_ACTUAL=libs2n.so
