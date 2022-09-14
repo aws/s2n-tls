@@ -39,9 +39,9 @@ export CMAKE_BUILD_PARALLEL_LEVEL=$JOBS
 # its path is stored in the RPATH/RUNPATH of libs2n.so. But many tools (CMake, Ninja)
 # strip the RPATH/RUNPATH during installation. Setting LD_LIBRARY_PATH ensures
 # the desired libcrypto.so is found.
-for LIBDIR in $LIBCRYPTO_ROOT/lib*; do
-  export LD_LIBRARY_PATH=$LIBDIR${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-done
+# for LIBDIR in $LIBCRYPTO_ROOT/lib*; do
+#   export LD_LIBRARY_PATH=$LIBDIR${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+# done
 
 COMMON_S2N_BUILD_ARGS=(-H. -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -DBUILD_TESTING=OFF)
 
