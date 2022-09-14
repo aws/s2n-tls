@@ -16,7 +16,9 @@ set -eo pipefail
 
 usage() {
     echo "test_install_shared_and_static.sh build_dir"
-    echo "tests that installed s2n-config.cmake chooses appropriately between shared and static"
+    echo "Checks that installed s2n-config.cmake chooses appropriately between shared and static."
+    echo "Note that you MUST build against the version of libcrypto that's actually installed on the system,"
+    echo "because installing libs2n.so forces it to use the system's libcrypto.so."
     exit 1
 }
 
