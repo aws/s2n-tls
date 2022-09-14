@@ -253,6 +253,9 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
     op->type = S2N_ASYNC_SIGN;
     op->conn = conn;
     op->validation_mode = conn->config->async_pkey_validation_mode;
+    if (conn->config->verify_after_sign) {
+        op->validation_mode = S2N_ASYNC_PKEY_VALIDATION_STRICT;
+    }
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
     sign->on_complete                     = on_complete;
@@ -279,7 +282,16 @@ S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_a
     RESULT_GUARD(s2n_pkey_size(pkey, &maximum_signature_length));
     RESULT_GUARD_POSIX(s2n_alloc(&signed_content, maximum_signature_length));
 
-    RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sig_alg, digest, &signed_content));
+    RESULT_ENSURE_REF(conn->config);
+    if (conn->config->verify_after_sign) {
+        DEFER_CLEANUP(struct s2n_hash_state digest_for_verify, s2n_hash_free);
+        RESULT_GUARD_POSIX(s2n_hash_new(&digest_for_verify));
+        RESULT_GUARD_POSIX(s2n_hash_copy(&digest_for_verify, digest));
+        RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sig_alg, digest, &signed_content));
+        RESULT_GUARD(s2n_async_pkey_verify_signature(conn, sig_alg, &digest_for_verify, &signed_content));
+    } else {
+        RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sig_alg, digest, &signed_content));
+    }
 
     RESULT_GUARD_POSIX(on_complete(conn, &signed_content));
 

@@ -255,8 +255,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-            /* Enable signature validation for async sign call */
-            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
+            /* Enable signature validation */
+            EXPECT_SUCCESS(s2n_config_set_verify_after_sign(server_config, S2N_VERIFY_AFTER_SIGN_ENABLED));
             if (test_type == TEST_TYPE_ASYNC) {
                 EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
             }
@@ -289,8 +289,8 @@ int main(int argc, char **argv)
                 /* Configures server with maximum version 1.2 with only RSA key exchange ciphersuites */
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_rsa_kex"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-                /* Enable signature validation for async sign call */
-                EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
+                /* Enable signature validation */
+                EXPECT_SUCCESS(s2n_config_set_verify_after_sign(server_config, S2N_VERIFY_AFTER_SIGN_ENABLED));
                 if (test_type == TEST_TYPE_ASYNC) {
                     EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
                 }
@@ -325,8 +325,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-            /* Enable signature validation for async sign call */
-            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
+            /* Enable signature validation */
+            EXPECT_SUCCESS(s2n_config_set_verify_after_sign(server_config, S2N_VERIFY_AFTER_SIGN_ENABLED));
             if (test_type == TEST_TYPE_ASYNC) {
                 EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
             }
@@ -414,8 +414,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20200207"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-            /* Enable signature validation for async sign call */
-            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
+            /* Enable signature validation */
+            EXPECT_SUCCESS(s2n_config_set_verify_after_sign(server_config, S2N_VERIFY_AFTER_SIGN_ENABLED));
             if (test_type == TEST_TYPE_ASYNC) {
                 EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_fn));
             }
