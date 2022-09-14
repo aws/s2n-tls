@@ -1313,7 +1313,7 @@ static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uin
  *     does not need to have a tie-breaker contest.
  * 
  *  5. Repeat 1-4 until a negotiable cipher is found. If none is found, including a last-resort higher protocol
- *     version then error. Else, set the *index to the found server index.
+ *     version then error. Else, set the *server_index to the found server index.
  * 
  *  TODO: Add basic validation for the cipher preference list
  * 
@@ -1322,10 +1322,10 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
                                            const uint8_t* wire,
                                            uint32_t count,
                                            uint32_t cipher_suite_len,
-                                           uint32_t* index) {
+                                           uint32_t* server_index) {
     POSIX_ENSURE_REF(wire);
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(index);
+    POSIX_ENSURE_REF(server_index);
 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
@@ -1349,7 +1349,7 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
             in_group = false;
             /* Exiting a group and a negotiated cipher has already been found. */
             if (negotiated_server_index != -1) {
-                *index = negotiated_server_index;
+                *server_index = negotiated_server_index;
                 return S2N_SUCCESS;
             }
             continue;
@@ -1391,13 +1391,13 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
 
     /* Found a match */
     if (negotiated_server_index != -1) {
-        *index = negotiated_server_index;
+        *server_index = negotiated_server_index;
         return S2N_SUCCESS;
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (negotiated_server_index == -1 && negotiated_server_highest_vers_match_index != -1) {
-        *index = negotiated_server_highest_vers_match_index;
+        *server_index = negotiated_server_highest_vers_match_index;
         return S2N_SUCCESS;
     }
 
