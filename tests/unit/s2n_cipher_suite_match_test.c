@@ -291,7 +291,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-        /* TEST RENEGOTIATION */
+        /* TEST RENEGOTIATION
+         *
+         *= https://tools.ietf.org/rfc/rfc5746#3.6
+         *= type=test
+         *# o  When a ClientHello is received, the server MUST check if it
+         *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
+         *#    set the secure_renegotiation flag to TRUE.
+         */
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
         EXPECT_EQUAL(conn->secure_renegotiation, 1);
