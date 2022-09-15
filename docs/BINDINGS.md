@@ -11,3 +11,7 @@ Let us know if you know of a language binding to s2n-tls that's not listed below
 ## Python
 
 * [cys2n](https://github.com/samrushing/cys2n)
+
+## Scala Native
+
+* [FS2](https://fs2.io/#/io?id=tls)
