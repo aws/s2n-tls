@@ -62,6 +62,7 @@ S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint
 
 int s2n_server_finished_recv(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
     uint8_t *verify_data = conn->handshake.server_finished;
     POSIX_GUARD_RESULT(s2n_finished_recv(conn, verify_data));
     return S2N_SUCCESS;
