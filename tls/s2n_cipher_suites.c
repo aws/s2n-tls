@@ -1217,19 +1217,20 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
 }
 
 /**
- * @brief While a potential cipher suite match has been identified, we still need to check if the cipher suite
- *        can actually be used for the remainder of the connection. These checks ensure that there exists an
- *        implementation, whether the versions and PSKs are compatible.
+ * While a potential cipher suite match has been identified, we still need to check if the cipher suite
+ * can actually be used for the remainder of the connection. These checks ensure that there exists an
+ * implementation, whether the versions and PSKs are compatible.
  * 
- * @param conn s2n_connection context
- * @param potential_match Potential cipher suite match
- * @return true Cipher suite match is usable
- * @return false Cipher suite match is not usable for this connection
  */
 static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct s2n_cipher_suite* potential_match) {
         /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
         if ((conn->actual_protocol_version >= S2N_TLS13) != (potential_match->minimum_required_tls_version >= S2N_TLS13)) {
             return false;
+        }
+
+        /* If connection is for SSLv3, use SSLv3 version of suites */
+        if (conn->client_protocol_version == S2N_SSLv3) {
+            potential_match = potential_match->sslv3_cipher_suite;
         }
 
         /* Skip the suite if we don't have an available implementation */
@@ -1401,7 +1402,7 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
         return S2N_SUCCESS;
     }
 
-    /* Could nether find a match nor a cipher w/ a higher version */
+    /* Could neither find a match nor a cipher w/ a higher version */
     POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
@@ -1443,6 +1444,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
     struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[negotiated_index];
     POSIX_ENSURE_REF(match);
+    /* If connection is for SSLv3, use SSLv3 version of suites */
+    if (conn->client_protocol_version == S2N_SSLv3) {
+        match = match->sslv3_cipher_suite;
+        POSIX_ENSURE_REF(match);
+    }
     conn->secure->cipher_suite = match;
     return S2N_SUCCESS;
 }
