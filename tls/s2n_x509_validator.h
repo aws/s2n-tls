@@ -32,6 +32,7 @@
 typedef enum {
     UNINIT,
     INIT,
+    PRE_VALIDATE,
     VALIDATED,
     OCSP_VALIDATED,
 } validator_state;
