@@ -186,6 +186,16 @@ batch:
           GCC_VERSION: '6'
           TESTS: crt
 
+    - identifier: s2nInstallSharedAndStatic
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        privileged-mode: true
+        variables:
+          TESTS: sharedandstatic
+          # must use the libcrypto that's actually installed on the system
+          S2N_LIBCRYPTO: openssl-1.1.1
+
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
