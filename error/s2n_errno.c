@@ -276,7 +276,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH, "The libcrypto major version name seen at compile-time is different from the major version name seen at run-time") \
     ERR_ENTRY(S2N_ERR_OSSL_PROVIDER, "Failed to load or unload an openssl provider") \
     ERR_ENTRY(S2N_ERR_CERT_OWNERSHIP, "The ownership of the certificate chain is incompatible with the operation") \
-    ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API")
+    ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API") \
+    ERR_ENTRY(S2N_ERR_NO_RENEGOTIATION, "Only secure, server-initiated renegotiation is supported") \
 /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
