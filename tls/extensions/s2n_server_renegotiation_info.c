@@ -34,32 +34,70 @@ const s2n_extension_type s2n_server_renegotiation_info_extension = {
     .send = s2n_renegotiation_info_send,
     .recv = s2n_renegotiation_info_recv,
     .should_send = s2n_renegotiation_info_should_send,
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *# *  If the extension is not present, the server does not support
+     *#    secure renegotiation; set secure_renegotiation flag to FALSE.
+     *#    In this case, some clients may want to terminate the handshake
+     *#    instead of continuing; see Section 4.1 for discussion.
+     *
+     * The conn->secure_renegotiation flag defaults to false, so this is a no-op.
+     * We do not terminate the handshake, although missing messaging for secure
+     * renegotiation degrades server security.
+     *
+     * We could introduce an option to fail in this case in the future.
+     */
     .if_missing = s2n_extension_noop_if_missing,
 };
 
+/**
+ *= https://tools.ietf.org/rfc/rfc5746#3.6
+ *# o  If the secure_renegotiation flag is set to TRUE, the server MUST
+ *#    include an empty "renegotiation_info" extension in the ServerHello
+ *#    message.
+ */
 static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
 {
     return conn && conn->secure_renegotiation && s2n_connection_get_protocol_version(conn) < S2N_TLS13;
 }
 
+/**
+ *= https://tools.ietf.org/rfc/rfc5746#3.6
+ *# o  If the secure_renegotiation flag is set to TRUE, the server MUST
+ *#    include an empty "renegotiation_info" extension in the ServerHello
+ *#    message.
+ */
 static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    /* renegotiated_connection length. Zero since we don't support renegotiation. */
     POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
     return S2N_SUCCESS;
 }
 
+/**
+ *= https://tools.ietf.org/rfc/rfc5746#3.4
+ *# o  When a ServerHello is received, the client MUST check if it
+ *#    includes the "renegotiation_info" extension:
+ */
 static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    /* RFC5746 Section 3.4: The client MUST then verify that the length of
-     * the "renegotiated_connection" field is zero, and if it is not, MUST
-     * abort the handshake. */
-    uint8_t renegotiated_connection_len;
-    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension), S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-    S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-
     POSIX_ENSURE_REF(conn);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *# *  The client MUST then verify that the length of the
+     *#    "renegotiated_connection" field is zero, and if it is not, MUST
+     *#    abort the handshake (by sending a fatal handshake_failure alert).
+     */
+    uint8_t renegotiated_connection_len = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    POSIX_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *# *  If the extension is present, set the secure_renegotiation flag to TRUE.
+     */
     conn->secure_renegotiation = 1;
     return S2N_SUCCESS;
 }
