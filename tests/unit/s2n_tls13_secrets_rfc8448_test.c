@@ -74,7 +74,7 @@ int main(int argc, char **argv)
         {
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
                 EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
             /* Server */
             {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_early_secret(conn, &early_secret));
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
             /* Client */
             {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_early_secret(conn, &early_secret));
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
                 EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_HELLO, &hash));
 
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
                 EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_HELLO, &hash));
 
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
         {
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &handshake_secret));
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_MASTER_SECRET));
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
                 EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_FINISHED, &hash));
 
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
                 EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, SERVER_FINISHED, &hash));
 
@@ -490,7 +490,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_master_secret(conn, &master_secret));
                 EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, CLIENT_FINISHED, &hash));
 
@@ -530,7 +530,7 @@ int main(int argc, char **argv)
         {
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
 
                 DEFER_CLEANUP(struct s2n_psk *psk = s2n_test_psk_new(conn), s2n_psk_free);
                 EXPECT_NOT_NULL(psk);
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
 
                 DEFER_CLEANUP(struct s2n_psk *psk = s2n_test_psk_new(conn), s2n_psk_free);
                 EXPECT_NOT_NULL(psk);
@@ -608,7 +608,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
-                conn->secure.cipher_suite = cipher_suite;
+                conn->secure->cipher_suite = cipher_suite;
                 EXPECT_OK(s2n_connection_set_test_early_secret(conn, &early_secret));
                 EXPECT_OK(s2n_connection_set_test_transcript_hash(conn, CLIENT_HELLO, &hash));
 

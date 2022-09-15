@@ -54,17 +54,27 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
 int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked) 
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
 
     struct s2n_blob sequence_number = {0};
     if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     } else {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     }
 
     POSIX_GUARD(s2n_check_record_limit(conn, &sequence_number));
 
     if (conn->key_update_pending) {
+        /* Flush any buffered records to ensure an empty output buffer.
+         *
+         * This is important when buffering multiple records because we don't:
+         * 1) Respect max fragment length for handshake messages
+         * 2) Check if there is sufficient space in the output buffer for
+         *    post-handshake messages.
+         */
+        POSIX_GUARD(s2n_flush(conn, blocked));
+
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
         struct s2n_blob key_update_blob = {0};
         POSIX_GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
@@ -104,8 +114,9 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(sequence_number);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite->record_alg);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
 
     /*
      * This is the sequence number that will be used for the next record,
@@ -120,7 +131,7 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
      *
      * This should always trigger on "==", but we use ">=" just in case.
      */
-    if (next_seq_num >= conn->secure.cipher_suite->record_alg->encryption_limit) {
+    if (next_seq_num >= conn->secure->cipher_suite->record_alg->encryption_limit) {
         conn->key_update_pending = true;
     }
 

@@ -1086,7 +1086,8 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[static S2N_TLS_CIPHER_S
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
@@ -1139,16 +1140,16 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# otherwise abort the handshake with an "illegal_parameter" alert.
      **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
-        POSIX_ENSURE(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
+        POSIX_ENSURE(conn->secure->cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
 
-    conn->secure.cipher_suite = cipher_suite;
+    conn->secure->cipher_suite = cipher_suite;
 
     /* For SSLv3 use SSLv3-specific ciphers */
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        conn->secure.cipher_suite = conn->secure.cipher_suite->sslv3_cipher_suite;
-        POSIX_ENSURE_REF(conn->secure.cipher_suite);
+        conn->secure->cipher_suite = conn->secure->cipher_suite->sslv3_cipher_suite;
+        POSIX_ENSURE_REF(conn->secure->cipher_suite);
     }
 
     return 0;
@@ -1169,6 +1170,9 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
 
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
 
@@ -1184,7 +1188,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         }
     }
 
-    /* RFC5746 Section 3.6: A server must check if TLS_EMPTY_RENEGOTIATION_INFO_SCSV is included */
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *# o  When a ClientHello is received, the server MUST check if it
+     *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
+     *#    set the secure_renegotiation flag to TRUE.
+     */
     if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
         conn->secure_renegotiation = 1;
     }
@@ -1254,14 +1263,14 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 continue;
             }
 
-            conn->secure.cipher_suite = match;
+            conn->secure->cipher_suite = match;
             return S2N_SUCCESS;
         }
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
-        conn->secure.cipher_suite = higher_vers_match;
+        conn->secure->cipher_suite = higher_vers_match;
         return S2N_SUCCESS;
     }
 

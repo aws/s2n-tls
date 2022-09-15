@@ -218,7 +218,7 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     if (*p_data == NULL) {
         return S2N_SUCCESS;
     }
-    
+
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     struct s2n_blob b = {.data = *p_data, .allocated = size, .size = size, .growable = 1};
 
@@ -275,11 +275,16 @@ int s2n_mem_cleanup(void)
 
 int s2n_free(struct s2n_blob *b)
 {
-    POSIX_PRECONDITION(s2n_blob_validate(b));
-
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */
     int zero_rc = s2n_blob_zero(b);
+    POSIX_GUARD(s2n_free_without_wipe(b));
+    return zero_rc;
+}
+
+int s2n_free_without_wipe(struct s2n_blob *b)
+{
+    POSIX_PRECONDITION(s2n_blob_validate(b));
 
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
@@ -287,8 +292,6 @@ int s2n_free(struct s2n_blob *b)
     POSIX_GUARD(s2n_mem_free_cb(b->data, b->allocated));
 
     *b = (struct s2n_blob) {0};
-
-    POSIX_GUARD(zero_rc);
 
     return S2N_SUCCESS;
 }

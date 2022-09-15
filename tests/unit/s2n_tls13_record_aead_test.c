@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             protected_record.size,
             iv.data, /* implicit_iv */
             NULL, /* mac not used for TLS 1.3 */
-            conn->secure.client_sequence_number,
+            conn->secure->client_sequence_number,
             &session_key));
 
         S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
@@ -175,36 +175,36 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in)); \
             EXPECT_SUCCESS(s2n_stuffer_write(&conn->in, &protected_record)); \
             /* reset sequence number */ \
-            conn->secure.client_sequence_number[7] = 0;
+            conn->secure->client_sequence_number[7] = 0;
 
         /* Repeat the test to prove RESET_TEST works */
         RESET_TEST
         EXPECT_SUCCESS(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure.client_sequence_number, &session_key));
+            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test record parsing failure from aead tag change */
         RESET_TEST
         conn->in.blob.data[protected_record.size-2]++;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure.client_sequence_number, &session_key));
+            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test incorrect ciphertext changes fails parsing */
         RESET_TEST
         conn->in.blob.data[0]++;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure.client_sequence_number, &session_key));
+            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test wrong sequence number fails parsing */
         RESET_TEST
-        conn->secure.client_sequence_number[7] = 1;
+        conn->secure->client_sequence_number[7] = 1;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure.client_sequence_number, &session_key));
+            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test IV changes fails parsing */
         RESET_TEST
         iv.data[0]++;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure.client_sequence_number, &session_key));
+            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext));
 
         /* Reset sequence number */
-        conn->secure.client_sequence_number[7] = 0;
+        conn->secure->client_sequence_number[7] = 0;
 
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1)); /* tag length + content type */;
 
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
             encrypted.size,
             iv.data, /* implicit_iv */
             NULL, /* mac not used for TLS 1.3 */
-            conn->secure.client_sequence_number,
+            conn->secure->client_sequence_number,
             session_key));
 
         struct s2n_blob decrypted = {
@@ -344,24 +344,24 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
             conn->actual_protocol_version = S2N_TLS13;
             conn->server_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = cipher_suite;
-            conn->server = &conn->secure;
-            conn->client = &conn->secure;
+            conn->secure->cipher_suite = cipher_suite;
+            conn->server = conn->secure;
+            conn->client = conn->secure;
 
             /* init record algorithm */
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
             S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &key));
-            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key));
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key));
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key));
 
             S2N_BLOB_FROM_HEX(protected_record, protected_record_hex);
             S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
 
             /* copy iv bytes from input data */
             for (int i = 0; i < iv.size; i++) {
-                conn->secure.server_implicit_iv[i] = iv.data[i];
-                conn->secure.client_implicit_iv[i] = iv.data[i];
+                conn->secure->server_implicit_iv[i] = iv.data[i];
+                conn->secure->client_implicit_iv[i] = iv.data[i];
             }
 
             /* Test parsing of tls 1.3 aead record */

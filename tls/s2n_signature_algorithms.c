@@ -75,11 +75,12 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
                           struct s2n_signature_scheme *chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
     const struct s2n_signature_preferences *signature_preferences = NULL;
     POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     POSIX_ENSURE_REF(signature_preferences);
 
-    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
     POSIX_ENSURE_REF(cipher_suite);
 
     for (size_t i = 0; i < signature_preferences->count; i++) {
@@ -107,11 +108,13 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
 int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
     const struct s2n_signature_preferences *signature_preferences = NULL;
     POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     POSIX_ENSURE_REF(signature_preferences);
 
-    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
     POSIX_ENSURE_REF(cipher_suite);
 
     for (size_t i = 0; i < signature_preferences->count; i++) {
@@ -171,14 +174,15 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
 int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out, s2n_mode signer)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(sig_scheme_out);
 
     s2n_authentication_method auth_method = 0;
     if (signer == S2N_CLIENT) {
         POSIX_GUARD(s2n_get_auth_method_for_cert_type(conn->handshake_params.client_cert_pkey_type, &auth_method));
     } else {
-        POSIX_ENSURE_REF(conn->secure.cipher_suite);
-        auth_method = conn->secure.cipher_suite->auth_method;
+        POSIX_ENSURE_REF(conn->secure->cipher_suite);
+        auth_method = conn->secure->cipher_suite->auth_method;
     }
 
     /* Default our signature digest algorithms.

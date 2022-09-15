@@ -986,3 +986,26 @@ int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size) {
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE(size > S2N_TLS_MAX_RECORD_LEN_FOR(0), S2N_ERR_INVALID_ARGUMENT);
+    config->send_buffer_size_override = size;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after_sign mode)
+{
+    POSIX_ENSURE_REF(config);
+    switch (mode) {
+        case S2N_VERIFY_AFTER_SIGN_DISABLED:
+            config->verify_after_sign = false;
+            break;
+        case S2N_VERIFY_AFTER_SIGN_ENABLED:
+            config->verify_after_sign = true;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+    }
+    return S2N_SUCCESS;
+}

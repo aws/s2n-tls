@@ -211,10 +211,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), ENCRYPTED_EXTENSIONS);
 
         /* Verify that the EncryptedExtension message would normally be encrypted */
-        EXPECT_EQUAL(server_conn->server, &server_conn->secure);
+        EXPECT_EQUAL(server_conn->server, server_conn->secure);
 
         /* Force the server to disable encryption for the EncryptedExtensions message */
-        server_conn->server = &server_conn->initial;
+        server_conn->server = server_conn->initial;
 
         /* Enable an extension to ensure the message is long enough to resemble an encrypted record.
          * If the message is too short, we fail without even attempting decryption and this error

@@ -871,7 +871,49 @@ extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const ch
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
+typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED, S2N_VERIFY_AFTER_SIGN_ENABLED } s2n_verify_after_sign;
+
+/**
+ * Toggle whether generated signatures are verified before being sent.
+ *
+ * Although signatures produced by the underlying libcrypto should always be valid,
+ * hardware faults, bugs in the signing implementation, or other uncommon factors
+ * can cause unexpected mistakes in the final signatures. Because these mistakes
+ * can leak information about the private key, applications with low trust in their
+ * hardware or libcrypto may want to verify signatures before sending them.
+ *
+ * However, this feature will significantly impact handshake latency.
+ * Additionally, most libcrypto implementations already check for common errors in signatures.
+ */
+S2N_API
+extern int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after_sign mode);
+
 /** 
+ * Set a custom send buffer size.
+ *
+ * This buffer is used to stage records for sending. By default,
+ * enough memory is allocated to hold a single record of the maximum
+ * size configured for the connection. With the default fragment size,
+ * that is about 8K bytes.
+ *
+ * Less memory can be allocated for the send buffer, but this will result in
+ * smaller, more fragmented records and increased overhead. While the absolute
+ * minimum size required is 1025 bytes, at least 2K bytes is recommended for
+ * reasonable record sizes.
+ *
+ * More memory can be allocated for the send buffer. This will result in s2n-tls
+ * buffering multiple records before sending them, reducing system write calls.
+ * At least 17K bytes is recommended for this use case, or at least 35K bytes
+ * if larger fragment sizes are used via `s2n_connection_prefer_throughput()`.
+ *
+ * @param config The configuration object being updated
+ * @param size The desired custom buffer size.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API
+extern int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size);
+
+/**
  * A callback function invoked (usually multiple times) during X.509 validation for each
  * name encountered in the leaf certificate.
  *
@@ -1116,6 +1158,9 @@ extern int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8
 
 /**
  * Enable or disable session caching.
+ * 
+ * @note Session caching will not be turned on unless all three session cache callbacks are set
+ * prior to calling this function.
  *
  * @param config The configuration object being updated
  * @param enabled The configuration object being updated. Set to 1 to enable. Set to 0 to disable.
@@ -1592,7 +1637,9 @@ S2N_API
 extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send);
 
 /**
- * Change the behavior of s2n-tls when sending data to prefer high throughput. Connections preferring throughput will use
+ * Change the behavior of s2n-tls when sending data to prefer high throughput.
+ *
+ * Connections preferring throughput will use
  * large record sizes that minimize overhead.
  *
  * @param conn The connection object being updated
@@ -1602,7 +1649,9 @@ S2N_API
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 
 /**
- * Change the behavior of s2n-tls when sending data to prefer low latency. Connections preferring low latency will be encrypted
+ * Change the behavior of s2n-tls when sending data to prefer low latency.
+ *
+ * Connections preferring low latency will be encrypted
  * using small record sizes that can be decrypted sooner by the recipient. 
  *
  * @param conn The connection object being updated
@@ -1612,10 +1661,32 @@ S2N_API
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
- * Provides a smooth transition from s2n_connection_prefer_low_latency() to s2n_connection_prefer_throughput().
+ * Configure the connection to free IO buffers when they are not currently in use.
+ *
+ * This configuration can be used to minimize connection memory footprint size, at the cost
+ * of more calls to alloc and free. Some of these costs can be mitigated by configuring s2n-tls
+ * to use an allocator that includes thread-local caches or lock-free allocation patterns.
+ *
+ * @param conn The connection object being update
+ * @param enabled Set to `true` if dynamic buffers are enabled; `false` if disabled
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API
+extern int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool enabled);
+
+/**
+ * Changes the behavior of s2n-tls when sending data to initially prefer records
+ * small enough to fit in single ethernet frames.
+ *
+ * When dynamic record sizing is active, the connection sends records small enough
+ * to fit in a single standard 1500 byte ethernet frame. Otherwise, the connection
+ * chooses record sizes according to the configured maximum fragment length.
+ *
+ * Dynamic record sizing is active for the first resize_threshold bytes of a connection,
+ * and is reactivated whenever timeout_threshold seconds pass without sending data.
  *
  * @param conn The connection object being updated
- * @param resize_threshold The number of bytes to send before changing the record size
+ * @param resize_threshold The number of bytes to send before changing the record size. Maximum 8MiB.
  * @param timeout_threshold Reset record size back to a single segment after threshold seconds of inactivity
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -1647,7 +1718,7 @@ extern int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, 
  * Setting the S2N_SELF_SERVICE_BLINDING option with s2n_connection_set_blinding()
  * turns off this behavior. This is useful for applications that are handling many connections
  * in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error,
- * self-service applications should call *2n_connection_get_delay() and pause
+ * self-service applications should call s2n_connection_get_delay() and pause
  * activity on the connection  for the specified number of nanoseconds before calling
  * close() or shutdown().
  */
@@ -2089,6 +2160,8 @@ struct s2n_session_ticket;
 /**
  * Callback function for receiving a session ticket.
  *
+ * This function will be called each time a session ticket is received, which may be multiple times for TLS1.3.
+ *
  * # Safety
  *
  * `ctx` is a void pointer and the caller is responsible for ensuring it is cast to the correct type.
@@ -2162,9 +2235,9 @@ extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t
 /**
  * Serializes the session state from connection and copies into the `session` buffer and returns the number of copied bytes
  *
- * The output of this function depends on whether session ids or session tickets are being used for resumption.
- *
- * @note This is for < TLS 1.3 session resumption.
+ * @note This function is not recommended for > TLS 1.2 because in TLS1.3
+ * servers can send multiple session tickets and this function will only
+ * return the most recently received ticket.
  *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `max_length`
@@ -2176,7 +2249,11 @@ S2N_API
 extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 
 /**
- * Get the lifetime hint for a session.
+ * Retrieves a hint from the server indicating how long this ticket's lifetime is.
+ * 
+ * @note This function is not recommended for > TLS 1.2 because in TLS1.3
+ * servers can send multiple session tickets and this function will only
+ * return the most recently received ticket lifetime hint.
  *
  * @param conn A pointer to the s2n_connection object
  *
@@ -2948,7 +3025,7 @@ extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_asy
  *
  * @param op An opaque object representing the private key operation
  * @param key The private key used for the operation. It can be extracted from
- * `conn` through the `s2n_connection_get_selected_cert` and `s2n_cert_chain_and_key_get_key` calls
+ * `conn` through the `s2n_connection_get_selected_cert` and `s2n_cert_chain_and_key_get_private_key` calls
  */
 S2N_API
 extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);

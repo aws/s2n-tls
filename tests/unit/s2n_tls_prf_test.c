@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS12;
-        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
+        conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
 
         /**
          *= https://tools.ietf.org/rfc/rfc7627#section-4
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     {
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
+        conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
 
         EXPECT_MEMCPY_SUCCESS(conn->secrets.tls12.rsa_premaster_secret, premaster_secret_in.data, premaster_secret_in.size);
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random_in.data, client_random_in.size);
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
         struct s2n_blob message = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&message, client_key_message, client_key_message_length));
 
-        s2n_hmac_algorithm prf_alg = server_conn->secure.cipher_suite->prf_alg;
+        s2n_hmac_algorithm prf_alg = server_conn->secure->cipher_suite->prf_alg;
         s2n_hash_algorithm hash_alg = 0;
         POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
         EXPECT_OK(s2n_prf_get_digest_for_ems(server_conn, &message, hash_alg, &digest_for_ems));

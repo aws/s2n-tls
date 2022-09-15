@@ -392,6 +392,8 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
 
     /* Client hello is parsed and config is finalized.
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
@@ -431,7 +433,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     /* Save the previous cipher suite */
     uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+    POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
     POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
@@ -447,7 +449,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
          *# the server selects the cipher suite as the first step in the
          *# negotiation, then this will happen automatically).
          **/
-        POSIX_ENSURE(s2n_constant_time_equals(previous_cipher_suite_iana, conn->secure.cipher_suite->iana_value,
+        POSIX_ENSURE(s2n_constant_time_equals(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value,
                 S2N_TLS_CIPHER_SUITE_LEN),S2N_ERR_BAD_MESSAGE);
     }
 
@@ -602,8 +604,17 @@ int s2n_client_hello_send(struct s2n_connection *conn)
         POSIX_GUARD(s2n_stuffer_write_bytes(out, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     }
 
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *# o  The client MUST include either an empty "renegotiation_info"
+     *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
+     *#    cipher suite value in the ClientHello.  Including both is NOT
+     *#    RECOMMENDED.
+     *
+     * For maximum backwards compatibility, we choose to use the TLS_EMPTY_RENEGOTIATION_INFO_SCSV cipher suite
+     * rather than the "renegotiation_info" extension.
+     */
     if (legacy_renegotiation_signal_required) {
-        /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
         uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
         POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
     }

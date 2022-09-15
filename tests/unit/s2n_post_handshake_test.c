@@ -47,7 +47,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             EXPECT_FALSE(conn->key_update_pending);
 
             /* Write key update requested to conn->in */
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             EXPECT_FALSE(conn->key_update_pending);
 
             /* Write key update requested to conn->in */
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             EXPECT_FALSE(conn->key_update_pending);
 
             /* Write key update requested to conn->in */
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             uint8_t num_key_updates = 3;
 
             /* Write three key update messages in one record. We cannot call s2n_post_handshake_send
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;    
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;    
             s2n_blocked_status blocked;
 
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));

@@ -443,5 +443,72 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_config_set_send_buffer_size */
+    {
+        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(1);
+
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_EQUAL(config->send_buffer_size_override, 0);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(NULL, min_size), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(config, 0), S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_EQUAL(config->send_buffer_size_override, 0);
+        }
+
+        /* Default applied to connection */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_EQUAL(config->send_buffer_size_override, 0);
+            EXPECT_FALSE(conn->multirecord_send);
+        }
+
+        /* Custom applied to connection */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, min_size));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_EQUAL(config->send_buffer_size_override, min_size);
+            EXPECT_TRUE(conn->multirecord_send);
+        }
+    }
+
+    /* Test s2n_config_set_verify_after_sign */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_FALSE(config->verify_after_sign);
+
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(NULL, S2N_VERIFY_AFTER_SIGN_ENABLED), S2N_ERR_NULL);
+
+        /* Invalid mode */
+        config->verify_after_sign = true;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(config, UINT8_MAX), S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_TRUE(config->verify_after_sign);
+        config->verify_after_sign = false;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_verify_after_sign(config, UINT8_MAX), S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_FALSE(config->verify_after_sign);
+
+        /* Set and unset */
+        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_ENABLED));
+        EXPECT_TRUE(config->verify_after_sign);
+        EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_DISABLED));
+        EXPECT_FALSE(config->verify_after_sign);
+    }
+
     END_TEST();
 }

@@ -311,7 +311,7 @@ if (s2n_negotiate(conn, &blocked) < 0) {
 
 ### Blinding
 
-Blinding is a mitigation against timing side-channels which in some cases can leak information about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and 30 seconds whenever tampering is detected. 
+Blinding is a mitigation against timing side-channels which in some cases can leak information about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and 30 seconds whenever tampering is detected.
 
 Setting the `S2N_SELF_SERVICE_BLINDING` option with `s2n_connection_set_blinding()` turns off this behavior. This is useful for applications that are handling many connections in a single thread. In that case, if `s2n_recv()` or `s2n_negotiate()` return an error, self-service applications must call `s2n_connection_get_delay()` and pause activity on the connection  for the specified number of nanoseconds before calling `close()` or `shutdown()`. `s2n_shutdown()` will fail if called before the blinding delay elapses.
 
@@ -337,8 +337,8 @@ If you are trying to use FIPS mode, you must enable FIPS in your libcrypto libra
 
 ## Security Policies
 
-s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS. 
- 
+s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.
+
 `s2n_config_set_cipher_preferences()` sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.
 
 The following chart maps the security policy version to protocol version and ciphersuites supported:
@@ -366,12 +366,15 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
+|   "rfc9151"    |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |
 
 The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 
 "20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.
 
 "20170405" is a FIPS compliant cipher suite preference list based on approved algorithms in the [FIPS 140-2 Annex A](http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf). Similarly to "20160411", this preference list has CBC cipher suites at the top to accommodate certain Java clients. Users of s2n-tls who plan to enable FIPS mode should consider this version.
+
+The "rfc9151" security policy is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151).
 
 s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:
 
@@ -408,6 +411,7 @@ The following chart maps the security policy version to the signature scheme sup
 |   "20190801"   |      X       |     X    |      X        |    X     |
 |   "20190802"   |      X       |     X    |      X        |    X     |
 |   "20200207"   |      X       |     X    |      X        |    X     |
+|   "rfc9151"    |      X       |     X    |               |    X     |
 
 Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support
 legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotiated.
@@ -437,22 +441,23 @@ The following chart maps the security policy version to the supported curves/gro
 |   "20190801"   |      X       |      X     |   X    |
 |   "20190802"   |      X       |      X     |        |
 |   "20200207"   |      X       |      X     |   X    |
+|   "rfc9151"    |              |      X     |        |
 
 ## Certificates and Authentication
 
 TLS uses certificates to authenticate the server (and optionally the client). The handshake will fail if the client cannot verify the server’s certificate.
 
-Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using [session resumption](#session-resumption-related-calls) or [pre-shared keys](#tls13-pre-shared-key-related-calls).
+Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using [session resumption](#session-resumption) or [pre-shared keys](#tls13-pre-shared-key-related-calls).
 
 ### Configuring the Trust Store
 
 To validate the peer’s certificate, the local “trust store” must contain a certificate that can authenticate the peer’s certificate.
 
-By default, s2n-tls will be initialized with the common trust store locations for the host operating system. To completely override those locations, call `s2n_config_wipe_trust_store()`. To add certificates to the trust store, call `s2n_config_set_verification_ca_location()` or `s2n_config_add_pem_to_trust_store()`. 
+By default, s2n-tls will be initialized with the common trust store locations for the host operating system. To completely override those locations, call `s2n_config_wipe_trust_store()`. To add certificates to the trust store, call `s2n_config_set_verification_ca_location()` or `s2n_config_add_pem_to_trust_store()`.
 
 ### Server Authentication
 
-A server must have a certificate and private key pair to prove its identity. s2n-tls supports RSA, RSA-PSS, and ECDSA certificates, and allows one of each type to be added to a config. 
+A server must have a certificate and private key pair to prove its identity. s2n-tls supports RSA, RSA-PSS, and ECDSA certificates, and allows one of each type to be added to a config.
 
 Create a new certificate and key pair by calling `s2n_cert_chain_and_key_new()`, then load the pem-encoded data with `s2n_cert_chain_and_key_load_pem_bytes()`.  Call `s2n_config_add_cert_chain_and_key_to_store()` to add the certificate and key pair to the config. When a certificate and key pair is no longer needed, it must be cleaned up with `s2n_cert_chain_and_key_free()`.
 
@@ -465,6 +470,12 @@ Client authentication is not enabled by default. However, the server can require
 Client authentication can be configured by calling `s2n_config_set_client_auth_type()` or `s2n_connection_set_client_auth_type()` for both the client and server. Additionally, the client will need to load a certificate and key pair as described for the server in [Server Authentication](#server-authentication) and the server will need to configure its trust store as described in [Configuring the Trust Store](#configuring-the-trust-store).
 
 When using client authentication, the server MUST implement the `s2n_verify_host_fn`, because the default behavior will likely reject all client certificates.
+
+### Certificate Inspection
+
+Applications may want to know which certificate was used by a server for authentication during a connection, since servers can set multiple certificates. `s2n_connection_get_selected_cert()` will return the local certificate chain object used to authenticate. `s2n_connection_get_peer_cert_chain()` will provide the peer's certificate chain, if they sent one. Use `s2n_cert_chain_get_length()` and `s2n_cert_chain_get_cert()` to parse the certificate chain object and get a single certificate from the chain. Use `s2n_cert_get_der()` to get the DER encoded certificate if desired.
+
+Additionally s2n-tls has functions for parsing certificate extensions on a certificate. Use `s2n_cert_get_x509_extension_value_length()` and `s2n_cert_get_x509_extension_value()` to obtain a specific DER encoded certificate extension from a certificate. `s2n_cert_get_utf8_string_from_extension_data_length()` and `s2n_cert_get_utf8_string_from_extension_data()` can be used to obtain a specific UTF8 string representation of a certificate extension instead. These functions will work for both RFC-defined certificate extensions and custom certificate extensions.
 
 ### OCSP Stapling
 
@@ -485,6 +496,42 @@ Certificate transparency information can be applied to both client and server ce
 To use certificate transparency, the requester (usually the client) must call `s2n_config_set_ct_support_level()` with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call `s2n_cert_chain_and_key_set_sct_list()` to set the raw bytes of the transparency information.
 
 Call `s2n_connection_get_sct_list()` to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.
+
+## Session Resumption
+
+TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. The authentication step can be skipped because both the server and client will use their possession of the key from the previous session to prove who they are. We usually refer to the stored session state as a "session ticket". Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.
+
+### Session Ticket Key
+
+The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling `s2n_config_add_ticket_crypto_key()`. See [RFC5077](https://www.rfc-editor.org/rfc/rfc5077#section-5.5) for guidelines on securely generating keys.
+
+Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()` and `s2n_config_set_ticket_decrypt_key_lifetime()`.
+
+The server will stop issuing session resumption tickets if a user doesn't set up a new key before the previous key passes through its encrypt-decrypt lifetime. Therefore it is recommended to add a new key when half of the previous key's encrypt-decrypt lifetime has passed.
+
+### Stateless Session Resumption
+
+In stateless session resumption the server sends a session ticket to a client after a successful handshake, and the client can send that ticket back to the server during a new connection to skip the authentication step. This mechanism allows servers to avoid storing individual state for each client, and for that reason is the preferred method for resuming a session.
+
+Servers should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption. Additionally the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
+
+Clients should call `s2n_config_set_session_tickets_onoff()` to enable stateless session resumption and set a session ticket callback function using `s2n_config_set_session_ticket_cb()`, which will allow clients to receive a session ticket when it arrives. Then `s2n_connection_set_session()` should be called with that saved ticket when attempting to resume a new connection.
+
+### Stateful Session Resumption
+
+In stateful session resumption, also known as session caching, the server caches the session state per client and resumes a session based on the client's session ID. Note that session caching has not been implemented for > TLS1.2. If stateful session resumption is turned on and a TLS1.3 handshake is negotiated, the caching mechanism will not store that session and resumption will not be available the next time the client connects.
+
+Servers should set the three caching callback functions: `s2n_config_set_cache_store_callback()`, `s2n_config_set_cache_retrieve_callback()`, and `s2n_config_set_cache_delete_callback()` and then call `s2n_config_set_session_cache_onoff()` to enable stateful session resumption. Session caching will not be turned on unless all three session cache callbacks are set prior to calling `s2n_config_set_session_cache_onoff()`. Additionally, the server needs to set up an encryption key using `s2n_config_add_ticket_crypto_key()`.
+
+Clients should call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
+
+### Session Resumption in TLS1.2 and TLS1.3
+
+In TLS1.2, session ticket messages are sent during the handshake and are automatically received as part of calling `s2n_negotiate()`. They will be available as soon as negotiation is complete.
+
+In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling `s2n_negotiate()`. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling `s2n_recv()` immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection. 
+
+Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
@@ -547,61 +594,56 @@ Indicates that connection properties were changed on the basis of server_name.
 Triggers a s2n-tls server to send the server_name extension. Must be called
 before s2n-tls finishes processing the ClientHello.
 
-## Session Caching related calls
+## Record sizes
 
-s2n-tls includes support for resuming from cached SSL/TLS session, provided
-the caller sets (and implements) three callback functions.
+### Throughput vs Latency
 
-### s2n\_config\_set\_cache\_store\_callback
+When sending data, s2n-tls uses a default maximum record size which experimentation
+has suggested provides a reasonable balance of performance and throughput.
 
-```c
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int
-        (*cache_store_callback)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
-```
+**s2n_connection_prefer_throughput** can be called to increase the record size, which
+minimizes overhead. It also increases s2n-tls's memory usage.
 
-**s2n_config_set_cache_store_callback** allows the caller to set a callback
-function that will be used to store SSL session data in a cache. The callback
-function takes seven arguments: a pointer to the s2n_connection object,
-a pointer to abitrary data for use within the callback, a 64-bit unsigned integer
-specifying the number of seconds the session data may be stored for, a pointer
-to a key which can be used to retrieve the cached entry, a 64 bit unsigned
-integer specifying the size of this key, a pointer to a value which should be stored,
-and a 64 bit unsigned integer specified the size of this value.
+**s2n_connection_prefer_low_latency** can be called to decrease the record size, which
+allows the receiver to decrypt the data faster. It also decreases s2n-tls's memory usage.
 
-### s2n\_config\_set\_cache\_retrieve\_callback
+These options only affect the size of the records that s2n-tls sends, not the behavior
+of the peer.
 
-```c
-int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int
-        (*cache_retrieve_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
-```
+### Maximum Fragment Length
 
-**s2n_config_set_cache_retrieve_callback** allows the caller to set a callback
-function that will be used to retrieve SSL session data from a cache. The
-callback function takes six arguments: a pointer to the s2n_connection object,
-a pointer to abitrary data for use within the callback, a pointer to a key which
-can be used to retrieve the cached entry, a 64 bit unsigned integer specifying
-the size of this key, a pointer to a memory location where the value should be stored,
-and a pointer to a 64 bit unsigned integer specifing the size of this value.
-Initially *value_size will be set to the amount of space allocated for
-the value, the callback should set *value_size to the actual size of the
-data returned. If there is insufficient space, -1 should be returned.
+The maximum number of bytes that can be sent in a TLS record is called the "maximum fragment length",
+and is set to 2^14 bytes by default. Regardless of the maximum record size that s2n-tls
+uses when sending, it may receive records containing up to 2^14 bytes of plaintext.
 
-If the cache is not ready to provide data for the request, S2N_CALLBACK_BLOCKED should be returned.
-This will cause s2n_negotiate() to return S2N_BLOCKED_ON_APPLICATION_INPUT.
+A client can request a lower maximum fragment length by calling **s2n_config_send_max_fragment_length**,
+reducing the size of TLS records sent and providing benefits similar to **s2n_connection_prefer_low_latency**.
+However, many TLS servers either ignore these requests or handle them incorrectly, so a client should
+never assume that a lower maximum fragment length will be honored. If a server accepts the requested
+maximum fragment length, the client will respect that maximum when sending.
 
-### s2n\_config\_set\_cache\_delete\_callback
+By default, an s2n-tls server will ignore a client's requested maximum fragment length.
+If **s2n_config_accept_max_fragment_length** is called, the server will respect the client's requested
+maximum fragment length when sending, but will not reject client records with a larger fragment size.
 
-```c
-int s2n_config_set_cache_delete_callback(struct s2n_config *config, int
-        (*cache_delete_callback))(struct s2n_connection *conn, void *, const void *key, uint64_t key_size), void *data);
-```
+If a maximum fragment length is negotiated during the connection, it will override the behavior
+configured by **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
 
-**s2n_config_set_cache_delete_callback** allows the caller to set a callback
-function that will be used to delete SSL session data from a cache. The
-callback function takes four arguments: a pointer to s2n_connection object,
-a pointer to abitrary data for use within the callback, a pointer to a key
-which can be used to delete the cached entry, and a 64 bit unsigned integer
-specifying the size of this key.
+### Dynamic Record Sizing
+
+Sending smaller records at the beginning of a connection can decrease first byte latency,
+particularly if TCP slow start is used.
+
+**s2n_connection_set_dynamic_record_threshold** can be called to initially send smaller records.
+The connection will send the first **resize_threshold** bytes in records small enough to
+fit in a single standard 1500 byte ethernet frame. Whenever **timeout_threshold** seconds
+pass without sending data, the connection will revert to this behavior and send small records again.
+
+Dynamic record sizing doesn't completely override **s2n_connection_prefer_throughput**,
+**s2n_connection_prefer_low_latency**, or the negotiated maximum fragment length.
+Once **resize_threshold** is hit, records return to the maximum size configured for the connection.
+And if the maximum fragment length negotiated with the peer is lower than what dynamic record sizing
+would normally produce, the lower value will be used.
 
 ## Connection-oriented functions
 
@@ -653,27 +695,6 @@ types of I/O).
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_connection\_prefer\_throughput(struct s2n_connection *conn)
-
-```c
-int s2n_connection_prefer_throughput(struct s2n_connection *conn);
-int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
-int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
-```
-
-**s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
-change the behavior of s2n-tls when sending data to prefer either throughput
-or low latency. Connections preferring low latency will be encrypted using small
-record sizes that can be decrypted sooner by the recipient. Connections
-preferring throughput will use large record sizes that minimize overhead.
-
--Connections default to an 8k outgoing maximum
-
-**s2n_connection_set_dynamic_record_threshold**
-provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**.
-**s2n_send** uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
-and reset record size back to a single segment after timeout_threshold seconds of inactivity.
 
 ### s2n\_connection\_get\_protocol\_version
 
@@ -779,133 +800,6 @@ These functions retrieve the session id as sent by the client in the ClientHello
 
 **s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
 
-### s2n\_connection\_get\_selected\_cert
-
-```c
-struct s2n_cert_chain_and_key s2n_connection_get_selected_cert(struct s2n_connection *conn);
-```
-
-Return the certificate that was used during the TLS handshake.
-
-- If **conn** is a server connection, the certificate selected will depend on the
-  ServerName sent by the client and supported ciphers.
-- If **conn** is a client connection, the certificate sent in response to a CertificateRequest
-  message is returned. Currently s2n-tls supports loading only one certificate in client mode. Note that
-  not all TLS endpoints will request a certificate.
-
-This function returns NULL if the certificate selection phase of the handshake has not completed
- or if a certificate was not requested by the peer.
-
-### s2n\_cert\_chain\_get\_cert
-
-```c
-int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
-```
-
-**s2n_cert_chain_get_cert** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
-
-### Session Resumption Related calls
-
-```c
-int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint32_t lifetime_in_secs);
-
-int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
-int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
-int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
-int s2n_connection_get_session_length(struct s2n_connection *conn);
-int s2n_connection_get_session_id_length(struct s2n_connection *conn);
-int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
-int s2n_connection_is_session_resumed(struct s2n_connection *conn);
-```
-
-- **lifetime_in_secs** lifetime of the cached session state required to resume a
-handshake.
-- **session** session will contain serialized session related information needed to resume handshake either using session id or session ticket.
-- **length** length of the serialized session state.
-- **max_length** Max number of bytes to copy into the **session** buffer.
-
-**s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
-
-**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
-
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of copied bytes. The output of this function depends on whether session ids or session tickets are being used for resumption.
-
-If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket received will be used. Note that the size of the session tickets varies.
-
-If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
-
-**s2n_connection_get_session_ticket_lifetime_hint** returns the session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption.
-
-**s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
-
-**s2n_connection_get_session_id_length** returns the latest session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
-
-**s2n_connection_get_session_id** gets the latest session id from the connection, copies it into the **session_id** buffer, and returns the number of copied bytes. The session id may change between s2n receiving the ClientHello and sending the ServerHello, but this function will always describe the latest session id. See **s2n_client_hello_get_session_id** to get the session id as it was sent by the client in the ClientHello message.
-
-**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
-
-### TLS1.3 Session Resumption Related Calls
-
-Session resumption works differently in versions TLS1.3 and higher. While some of the TLS1.2 session resumption APIs have relevance for TLS1.3 session resumption, you need additional APIs to utilize all the capabilities of TLS1.3 session resumption. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Additionally, multiple session tickets may be issued for the same connection.
-
-Clients need to call s2n_recv after negotiating to receive session ticket messages, as these could arrive anytime post-handshake.
-
-```c
-int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
-int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
-int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
-
-typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
-int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
-int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
-int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
-int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
-```
-
-**s2n_config_set_initial_ticket_count** sets the initial number of session tickets the server will send. The default value is one ticket.
-
-**s2n_connection_add_new_tickets_to_send** increases the number of session tickets to send by **num**. If this function is called after the handshake, a server should call s2n_send to send the additional session tickets, as they do not automatically get sent.
-
-**s2n_connection_set_server_keying_material_lifetime** sets the keying material lifetime for session tickets. Use this to ensure session tickets don't get reissued past the lifetime of the certificate used to authenticate the original full handshake. The default lifetime is one week.
-
-**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with the **s2n_session_ticket** getters to get the serialized ticket data and related information. A **ctx** pointer is provided to let a user pass state to the callback, if needed. Be careful if the implemented callback is expensive or allocates a lot of memory, as the server can send many session tickets.
-
-**s2n_config_set_session_ticket_cb** sets the session ticket callback function to be invoked whenever the client receives
-a session ticket from the server.
-
-**s2n_session_ticket_get_data_len** takes a s2n_session_ticket object and retrieves the number of bytes needed to store the session ticket. Use this to allocate enough memory for the session ticket in **s2n_session_ticket_get_data**.
-
-**s2n_session_ticket_get_data** takes a s2n_session_ticket object and copies the serialized session ticket data into the
-**data** buffer. For this reason **max_data_len** must be set to the maximum amount of bytes that can be copied into
-the **data** buffer.
-
-**s2n_session_ticket_get_lifetime** takes a s2n_session_ticket object and retrieves the lifetime of the ticket in seconds.
-
-### Session Ticket Specific calls
-
-```c
-int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
-int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
-int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
-int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
-```
-
-- **enabled** when set to 0 will disable session resumption using session ticket
-- **name** name of the session ticket key that should be randomly generated to avoid collisions
-- **name_len** length of session ticket key name
-- **key** key used to perform encryption/decryption of session ticket
-- **key_len** length of the session ticket key
-- **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch is set to now.
-
-**s2n_config_set_session_tickets_onoff** enables and disables session resumption using session ticket
-
-**s2n_config_set_ticket_encrypt_decrypt_key_lifetime** sets how long a session ticket key will be in a state where it can be used for both encryption and decryption of tickets on the server side. The default value is 2 hours.
-
-**s2n_config_set_ticket_decrypt_key_lifetime** sets how long a session ticket key will be in a state where it can used just for decryption of already assigned tickets on the server side. Once decrypted, the session will resume and the server will issue a new session ticket encrypted using a key in encrypt-decrypt state. The default value is 13 hours.
-
-**s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
-this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
-
 ### s2n\_connection\_free\_handshake
 
 ```c
@@ -970,7 +864,7 @@ always eventually be freed by calling **s2n_async_pkey_op_free**.
 
 The private key operation can be performed by calling **s2n_async_pkey_op_perform**
 (or **s2n_async_pkey_op_set_output**: see [Offloading private key operations](#Offloading-private-key-operations)).
-The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
+The required private key can be retrieved using the **s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_private_key** calls. The operation can then be finalized with **s2n_async_pkey_op_apply** to continue the handshake.
 
 ### Asynchronous Private Key Operations
 

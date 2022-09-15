@@ -429,7 +429,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
-        /* TLS_EMPTY_RENEGOTIATION_INFO_SCSV only included if TLS1.2 ciphers included */
+        /* TLS_EMPTY_RENEGOTIATION_INFO_SCSV included if TLS1.2 ciphers included
+         *
+         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *= type=test
+         *# o  The client MUST include either an empty "renegotiation_info"
+         *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
+         *#    cipher suite value in the ClientHello.
+         */
         if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_reset_tls13_in_test());
             const uint8_t empty_renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
@@ -1307,8 +1314,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        EXPECT_EQUAL(server_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
-        EXPECT_EQUAL(client_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(server_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(client_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
         EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
         EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
         EXPECT_EQUAL(client_conn->handshake_params.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);

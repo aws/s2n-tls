@@ -150,6 +150,21 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 
     RESULT_ENSURE(conn->tickets_sent <= conn->tickets_to_send, S2N_ERR_INTEGER_OVERFLOW);
 
+    /* Flush any buffered records to ensure an empty output buffer.
+     *
+     * This is important when buffering multiple records because we don't:
+     * 1) Respect max fragment length for handshake messages
+     * 2) Check if there is sufficient space in the output buffer for
+     *    post-handshake messages.
+     *
+     * Careful how this flush fits into the ordering of this method:
+     * We want to avoid unnecessary work like repeatedly encrypting
+     * the ticket if the flush repeatedly blocks, but we also want
+     * to avoid unnecessarily flushing if no ticket will actually
+     * need to be sent.
+     */
+    RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
+
     size_t session_state_size = 0;
     RESULT_GUARD(s2n_connection_get_session_state_size(conn, &session_state_size));
     const size_t maximum_nst_size = session_state_size + S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE;

@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->secrets.tls13.extract_secret_type = S2N_EARLY_SECRET;
 
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
 
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
             EXPECT_OK(s2n_set_test_key_shares(conn, &s2n_ecc_curve_secp256r1));
 
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < test_cases_count; i ++) {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = test_cases[i].cipher_suite;
+            conn->secure->cipher_suite = test_cases[i].cipher_suite;
             conn->secrets.tls13.extract_secret_type = test_cases[i].curr_secret_type;
             EXPECT_OK(s2n_set_test_key_shares(conn, test_cases[i].curve));
             EXPECT_OK(s2n_tls13_extract_secret(conn, test_cases[i].next_secret_type));
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
 
             EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET, S2N_SERVER, &output));
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->handshake.handshake_type = handshake_type;
             EXPECT_OK(s2n_set_test_key_shares(conn, &s2n_ecc_curve_secp256r1));
 
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake.handshake_type = handshake_type;
             conn->handshake.message_number = message_nums[S2N_HANDSHAKE_SECRET];
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = test_cases[i].cipher_suite;
+            conn->secure->cipher_suite = test_cases[i].cipher_suite;
             conn->secrets.tls13.extract_secret_type = test_cases[i].curr_secret_type;
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake.handshake_type = handshake_type;
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
 
             EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.extract_secret, test_secret.data, test_secret.size);
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
 
             EXPECT_MEMCPY_SUCCESS(conn->secrets.tls13.client_handshake_secret,
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_early_secret,
                     empty_secret, sizeof(empty_secret));
@@ -388,7 +388,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &test_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_handshake_secret,
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.client_app_secret,
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,

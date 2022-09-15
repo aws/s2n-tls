@@ -101,8 +101,8 @@ int main(int argc, char **argv)
 
                     client_conn->actual_protocol_version = S2N_TLS13;
                     server_conn->actual_protocol_version = S2N_TLS13;
-                    client_conn->secure.cipher_suite = &tls_13_ciphers[i];
-                    server_conn->secure.cipher_suite = &tls_13_ciphers[i];
+                    client_conn->secure->cipher_suite = &tls_13_ciphers[i];
+                    server_conn->secure->cipher_suite = &tls_13_ciphers[i];
 
                     struct s2n_signature_scheme chosen_scheme = {0};
 
@@ -162,8 +162,8 @@ int main(int argc, char **argv)
 
                     client_conn->actual_protocol_version = S2N_TLS13;
                     server_conn->actual_protocol_version = S2N_TLS13;
-                    client_conn->secure.cipher_suite = &tls_13_ciphers[i];
-                    server_conn->secure.cipher_suite = &tls_13_ciphers[i];
+                    client_conn->secure->cipher_suite = &tls_13_ciphers[i];
+                    server_conn->secure->cipher_suite = &tls_13_ciphers[i];
 
                     struct s2n_signature_scheme chosen_scheme = {0};
 

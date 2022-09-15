@@ -66,6 +66,11 @@ struct s2n_config {
      * Note: This defaults to false to ensure backwards compatibility.
      */
     unsigned client_hello_cb_enable_poll:1;
+    /*
+     * Whether to verify signatures locally before sending them over the wire.
+     * See s2n_config_set_verify_after_sign.
+     */
+    unsigned verify_after_sign:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
@@ -149,6 +154,9 @@ struct s2n_config {
     void *context;
 
     s2n_cert_ownership cert_ownership;
+
+    /* Used to override the stuffer size for a connection's `out` stuffer. */
+    uint32_t send_buffer_size_override;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);

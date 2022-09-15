@@ -199,7 +199,7 @@ int main(int argc, char **argv)
             + COMPRESSION_METHOD_SIZE;
 
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
-        server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        server_conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->kex_params.client_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.client_ecc_evp_params));
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, conf));
 
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
-        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         conn->kex_params.client_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, conf));
 
         conn->server_protocol_version = S2N_TLS13;
-        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         conn->kex_params.client_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
@@ -599,7 +599,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20201021"));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
 
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20201021"));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             conn->kex_params.server_ecc_evp_params.negotiated_curve = test_curve;
 

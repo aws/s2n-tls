@@ -54,8 +54,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_hash_algorithm num_hash_bytes = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
     server_conn->actual_protocol_version = TLS_VERSIONS[(randval & 0x03) % s2n_array_len(TLS_VERSIONS)];
-    server_conn->secure.cipher_suite = cipher_prefs->suites[(randval >> 2) % cipher_prefs->count];
-    POSIX_GUARD(s2n_hmac_hash_alg(server_conn->secure.cipher_suite->prf_alg, &num_hash_bytes));
+    server_conn->secure->cipher_suite = cipher_prefs->suites[(randval >> 2) % cipher_prefs->count];
+    POSIX_GUARD(s2n_hmac_hash_alg(server_conn->secure->cipher_suite->prf_alg, &num_hash_bytes));
 
     /* We do not use a GUARD macro here as there may not be enough bytes to write the necessary
      * amount, and the result of a failed read_bytes call is an acceptable test input. */
