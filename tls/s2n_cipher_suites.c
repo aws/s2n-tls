@@ -1188,7 +1188,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         }
     }
 
-    /* RFC5746 Section 3.6: A server must check if TLS_EMPTY_RENEGOTIATION_INFO_SCSV is included */
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *# o  When a ClientHello is received, the server MUST check if it
+     *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
+     *#    set the secure_renegotiation flag to TRUE.
+     */
     if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
         conn->secure_renegotiation = 1;
     }

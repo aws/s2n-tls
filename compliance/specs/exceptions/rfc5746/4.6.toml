@@ -1,0 +1,23 @@
+target = "https://tools.ietf.org/rfc/rfc5746#3.6"
+
+[[exception]]
+quote = '''
+TLS servers implementing this specification MUST ignore any unknown
+extensions offered by the client and they MUST accept version numbers
+higher than their highest version number and negotiate the highest
+common version.  These two requirements reiterate preexisting
+requirements in RFC 5246 and are merely stated here in the interest
+of forward compatibility.
+'''
+reason = '''
+These requirements are a duplicate of existing requirements from RFC 5246.
+'''
+
+[[exception]]
+quote = '''
+TLS implementations MUST
+continue to comply with Section 7.4.1.4 for all other extensions.
+'''
+reason = '''
+These requirements are a duplicate of existing requirements from RFC 5246.
+'''
