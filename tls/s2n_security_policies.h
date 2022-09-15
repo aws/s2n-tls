@@ -72,7 +72,6 @@ extern const struct s2n_security_policy security_policy_test_all_ecdsa;
 extern const struct s2n_security_policy security_policy_test_ecdsa_priority;
 extern const struct s2n_security_policy security_policy_test_all_rsa_kex;
 extern const struct s2n_security_policy security_policy_test_all_tls13;
-extern const struct s2n_security_policy security_policy_test_all_equal_preference_tls13;
 
 /* See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html */
 extern const struct s2n_security_policy security_policy_elb_2015_04;
