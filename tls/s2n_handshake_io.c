@@ -1289,7 +1289,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          *# SHOULD be ignored by the client if it arrives in the middle of a handshake.
          */
         if (message_type == TLS_HELLO_REQUEST) {
-            POSIX_GUARD(s2n_client_hello_request_recv(conn));
+            POSIX_GUARD_RESULT(s2n_client_hello_request_validate(conn));
             POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
             continue;
         }

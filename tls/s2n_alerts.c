@@ -275,3 +275,9 @@ int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 {
     return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
 }
+
+S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
+{
+    RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_WARNING, S2N_TLS_ALERT_NO_RENEGOTIATION));
+    return S2N_RESULT_OK;
+}
