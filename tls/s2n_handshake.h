@@ -142,6 +142,11 @@ struct s2n_handshake {
      */
     uint8_t required_hash_algs[S2N_HASH_SENTINEL];
 
+    /*
+     * The data required by the Finished messages.
+     * The data will be different for the client and server,
+     * but the length of the data will be the same.
+     */
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
     uint8_t finished_len;
