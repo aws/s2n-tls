@@ -26,57 +26,65 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_server_finished_recv(struct s2n_connection *conn)
+S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *our_version)
 {
-    uint8_t *our_version;
-    int length = S2N_TLS_FINISHED_LEN;
-    our_version = conn->handshake.server_finished;
+    RESULT_ENSURE_REF(conn);
 
+    uint8_t length = conn->handshake.finished_len;
+    /* Recalculate length to ensure that we're validating the right number of bytes */
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        length = S2N_SSL_FINISHED_LEN;
+        RESULT_ENSURE_EQ(length, S2N_SSL_FINISHED_LEN);
+    } else {
+        RESULT_ENSURE_EQ(length, S2N_TLS_FINISHED_LEN);
     }
 
     uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, length);
-    POSIX_ENSURE_REF(their_version);
+    RESULT_ENSURE_REF(their_version);
 
-    S2N_ERROR_IF(!s2n_constant_time_equals(our_version, their_version, length), S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(s2n_constant_time_equals(our_version, their_version, length), S2N_ERR_BAD_MESSAGE);
+    return S2N_RESULT_OK;
+}
 
-    return 0;
+S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint8_t *our_version)
+{
+    RESULT_ENSURE_REF(conn);
+
+    struct s2n_blob seq = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&seq, seq_num, S2N_TLS_SEQUENCE_NUM_LEN));
+    RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
+
+    uint8_t length = conn->handshake.finished_len;
+    RESULT_ENSURE_GT(length, 0);
+
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, length));
+    return S2N_RESULT_OK;
+}
+
+int s2n_server_finished_recv(struct s2n_connection *conn)
+{
+    uint8_t *our_version = conn->handshake.server_finished;
+    POSIX_GUARD_RESULT(s2n_finished_recv(conn, our_version));
+    return S2N_SUCCESS;
 }
 
 int s2n_server_finished_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
 
-    uint8_t *our_version;
-    int length = S2N_TLS_FINISHED_LEN;
-
-    /* Compute the finished message */
+    uint8_t *our_version = conn->handshake.server_finished;
+    uint8_t *seq_num = conn->secure->server_sequence_number;
     POSIX_GUARD(s2n_prf_server_finished(conn));
+    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, our_version));
 
-    our_version = conn->handshake.server_finished;
-
-    if (conn->actual_protocol_version == S2N_SSLv3) {
-        length = S2N_SSL_FINISHED_LEN;
-    }
-
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, length));
-
-    /* Zero the sequence number */
-    struct s2n_blob seq = {.data = conn->secure->server_sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
-    POSIX_GUARD(s2n_blob_zero(&seq));
-
-    /* Update the secure state to active, and point the client at the active state */
+    POSIX_ENSURE_REF(conn->secure);
     conn->server = conn->secure;
 
     if (s2n_connection_is_session_resumed(conn)) {
         POSIX_GUARD(s2n_prf_key_expansion(conn));
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
-
 
 int s2n_tls13_server_finished_recv(struct s2n_connection *conn) {
     POSIX_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS13);

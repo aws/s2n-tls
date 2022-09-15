@@ -25,39 +25,30 @@
 
 #include "utils/s2n_safety.h"
 
+S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *our_version);
+S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint8_t *our_version);
+
 int s2n_client_finished_recv(struct s2n_connection *conn)
 {
-    uint8_t *our_version;
-    our_version = conn->handshake.client_finished;
-    uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, S2N_TLS_FINISHED_LEN);
-    POSIX_ENSURE_REF(their_version);
-
-    S2N_ERROR_IF(!s2n_constant_time_equals(our_version, their_version, S2N_TLS_FINISHED_LEN) || conn->handshake.rsa_failed, S2N_ERR_BAD_MESSAGE);
-
-    return 0;
+    uint8_t *our_version = conn->handshake.client_finished;
+    POSIX_GUARD_RESULT(s2n_finished_recv(conn, our_version));
+    POSIX_ENSURE(!conn->handshake.rsa_failed, S2N_ERR_BAD_MESSAGE);
+    return S2N_SUCCESS;
 }
 
 int s2n_client_finished_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
 
-    uint8_t *our_version;
+    uint8_t *our_version = conn->handshake.client_finished;
+    uint8_t *seq_num = conn->secure->client_sequence_number;
     POSIX_GUARD(s2n_prf_client_finished(conn));
+    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, our_version));
 
-    struct s2n_blob seq = {.data = conn->secure->client_sequence_number,.size = sizeof(conn->secure->client_sequence_number) };
-    POSIX_GUARD(s2n_blob_zero(&seq));
-    our_version = conn->handshake.client_finished;
-
-    /* Update the server to use the cipher suite */
+    POSIX_ENSURE_REF(conn->secure);
     conn->client = conn->secure;
 
-    if (conn->actual_protocol_version == S2N_SSLv3) {
-        POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_SSL_FINISHED_LEN));
-    } else {
-        POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_TLS_FINISHED_LEN));
-    }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_tls13_client_finished_recv(struct s2n_connection *conn) {
