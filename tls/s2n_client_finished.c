@@ -30,8 +30,8 @@ S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint
 
 int s2n_client_finished_recv(struct s2n_connection *conn)
 {
-    uint8_t *our_version = conn->handshake.client_finished;
-    POSIX_GUARD_RESULT(s2n_finished_recv(conn, our_version));
+    uint8_t *verify_data = conn->handshake.client_finished;
+    POSIX_GUARD_RESULT(s2n_finished_recv(conn, verify_data));
     POSIX_ENSURE(!conn->handshake.rsa_failed, S2N_ERR_BAD_MESSAGE);
     return S2N_SUCCESS;
 }
@@ -40,10 +40,10 @@ int s2n_client_finished_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    uint8_t *our_version = conn->handshake.client_finished;
+    uint8_t *verify_data = conn->handshake.client_finished;
     uint8_t *seq_num = conn->secure->client_sequence_number;
     POSIX_GUARD(s2n_prf_client_finished(conn));
-    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, our_version));
+    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, verify_data));
 
     POSIX_ENSURE_REF(conn->secure);
     conn->client = conn->secure;

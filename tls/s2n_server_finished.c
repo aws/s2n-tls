@@ -26,7 +26,7 @@
 
 #include "utils/s2n_safety.h"
 
-S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *our_version)
+S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *local_verify_data)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -38,14 +38,14 @@ S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *our_version)
         RESULT_ENSURE_EQ(length, S2N_TLS_FINISHED_LEN);
     }
 
-    uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, length);
-    RESULT_ENSURE_REF(their_version);
+    uint8_t *peer_verify_data = s2n_stuffer_raw_read(&conn->handshake.io, length);
+    RESULT_ENSURE_REF(peer_verify_data);
 
-    RESULT_ENSURE(s2n_constant_time_equals(our_version, their_version, length), S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(s2n_constant_time_equals(local_verify_data, peer_verify_data, length), S2N_ERR_BAD_MESSAGE);
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint8_t *our_version)
+S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint8_t *verify_data)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -56,14 +56,14 @@ S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint
     uint8_t length = conn->handshake.finished_len;
     RESULT_ENSURE_GT(length, 0);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, length));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, verify_data, length));
     return S2N_RESULT_OK;
 }
 
 int s2n_server_finished_recv(struct s2n_connection *conn)
 {
-    uint8_t *our_version = conn->handshake.server_finished;
-    POSIX_GUARD_RESULT(s2n_finished_recv(conn, our_version));
+    uint8_t *verify_data = conn->handshake.server_finished;
+    POSIX_GUARD_RESULT(s2n_finished_recv(conn, verify_data));
     return S2N_SUCCESS;
 }
 
@@ -71,10 +71,10 @@ int s2n_server_finished_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    uint8_t *our_version = conn->handshake.server_finished;
+    uint8_t *verify_data = conn->handshake.server_finished;
     uint8_t *seq_num = conn->secure->server_sequence_number;
     POSIX_GUARD(s2n_prf_server_finished(conn));
-    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, our_version));
+    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, verify_data));
 
     POSIX_ENSURE_REF(conn->secure);
     conn->server = conn->secure;

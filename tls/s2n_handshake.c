@@ -354,11 +354,19 @@ S2N_RESULT s2n_handshake_set_finished_len(struct s2n_connection *conn, uint8_t l
     RESULT_ENSURE_LTE(len, sizeof(conn->handshake.server_finished));
     RESULT_ENSURE_LTE(len, sizeof(conn->handshake.client_finished));
 
+    /*
+     * We maintain a version of the "finished" / "verify_data" field
+     * for both the client and server, so this method will be called
+     * once for the client version and once for the server version.
+     *
+     * The lengths of both versions must match, or something has
+     * gone wrong in our implementation.
+     */
     uint8_t *finished_length = &conn->handshake.finished_len;
     if (*finished_length == 0) {
         *finished_length = len;
     }
-
     RESULT_ENSURE_EQ(*finished_length, len);
+
     return S2N_RESULT_OK;
 }
