@@ -787,7 +787,11 @@ int main(int argc, char **argv)
             {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 
-                /* Cipher suite w/ all TLS cipher suites in one equal preference group */
+                /**
+                 * TODO: This cipher suite will be moved to s2n_cipher_preferences w/ it's own security policy.
+                 *       For now, it's only used for testing purposes.
+                 * Cipher suite w/ all TLS cipher suites in one equal preference group.
+                 */
                 static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites_equal_preference[] = {
                     &s2n_equal_preference_group_start,              /* start group */
                     &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
