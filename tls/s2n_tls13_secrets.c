@@ -193,9 +193,11 @@ static S2N_RESULT s2n_derive_secret_without_context(struct s2n_connection *conn,
  *# finished_key =
  *#     HKDF-Expand-Label(BaseKey, "finished", "", Hash.length)
  **/
-S2N_RESULT s2n_tls13_compute_finished_key(s2n_hmac_algorithm hmac_alg,
+static S2N_RESULT s2n_tls13_compute_finished_key(struct s2n_connection *conn,
         const struct s2n_blob *base_key, struct s2n_blob *output)
 {
+    RESULT_GUARD(s2n_handshake_set_finished_len(conn, output->size));
+
     /*
      * TODO: We should be able to reuse the prf_work_space rather
      * than allocating a new HMAC every time.
@@ -203,7 +205,7 @@ S2N_RESULT s2n_tls13_compute_finished_key(s2n_hmac_algorithm hmac_alg,
     DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
 
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
+    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac_state, CONN_HMAC_ALG(conn),
             base_key, &s2n_tls13_label_finished, &(struct s2n_blob){0}, output));
     return S2N_RESULT_OK;
 }
@@ -378,7 +380,7 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
-    RESULT_GUARD(s2n_tls13_compute_finished_key(CONN_HMAC_ALG(conn),
+    RESULT_GUARD(s2n_tls13_compute_finished_key(conn,
             output, &CONN_FINISHED(conn, client)));
 
     return S2N_RESULT_OK;
@@ -407,7 +409,7 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
-    RESULT_GUARD(s2n_tls13_compute_finished_key(CONN_HMAC_ALG(conn),
+    RESULT_GUARD(s2n_tls13_compute_finished_key(conn,
             output, &CONN_FINISHED(conn, server)));
 
     return S2N_RESULT_OK;

@@ -621,7 +621,7 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
     uint8_t *md5_digest = out;
     uint8_t *sha_digest = out + MD5_DIGEST_LENGTH;
 
-    POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.client_finished));
+    POSIX_GUARD_RESULT(s2n_handshake_set_finished_len(conn, MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH));
 
     struct s2n_hash_state *md5 = hash_workspace;
     POSIX_GUARD(s2n_hash_copy(md5, &conn->handshake.hashes->md5));
@@ -659,7 +659,6 @@ static int s2n_sslv3_client_finished(struct s2n_connection *conn)
 
     uint8_t prefix[4] = { 0x43, 0x4c, 0x4e, 0x54 };
 
-    POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.client_finished));
     return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.client_finished);
 }
 
@@ -670,7 +669,6 @@ static int s2n_sslv3_server_finished(struct s2n_connection *conn)
 
     uint8_t prefix[4] = { 0x53, 0x52, 0x56, 0x52 };
 
-    POSIX_ENSURE_LTE(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.server_finished));
     return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.server_finished);
 }
 
@@ -693,6 +691,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
 
     client_finished.data = conn->handshake.client_finished;
     client_finished.size = S2N_TLS_FINISHED_LEN;
+    POSIX_GUARD_RESULT(s2n_handshake_set_finished_len(conn, client_finished.size));
     label.data = client_finished_label;
     label.size = sizeof(client_finished_label) - 1;
 
@@ -750,6 +749,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
 
     server_finished.data = conn->handshake.server_finished;
     server_finished.size = S2N_TLS_FINISHED_LEN;
+    POSIX_GUARD_RESULT(s2n_handshake_set_finished_len(conn, server_finished.size));
     label.data = server_finished_label;
     label.size = sizeof(server_finished_label) - 1;
 
