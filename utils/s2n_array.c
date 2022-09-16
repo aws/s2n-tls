@@ -121,9 +121,11 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
 
     /* If we are adding at an existing index, slide everything down. */
     if (idx < array->len) {
+        uint32_t size = 0;
+        RESULT_GUARD_POSIX(s2n_mul_overflow(array->len - idx, array->element_size, &size));
         memmove(array->mem.data + array->element_size * (idx + 1),
                 array->mem.data + array->element_size * idx,
-                (array->len - idx) * array->element_size);
+                size);
     }
 
     *element = array->mem.data + array->element_size * idx;
@@ -141,9 +143,11 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
     /* If the removed element is the last one, no need to move anything.
      * Otherwise, shift everything down */
     if (idx != array->len - 1) {
+        uint32_t size = 0;
+        RESULT_GUARD_POSIX(s2n_mul_overflow(array->len - idx - 1, array->element_size, &size));
         memmove(array->mem.data + array->element_size * idx,
                 array->mem.data + array->element_size * (idx + 1),
-                (array->len - idx - 1) * array->element_size);
+                size);
     }
     array->len--;
 
