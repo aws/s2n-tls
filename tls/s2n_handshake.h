@@ -142,8 +142,18 @@ struct s2n_handshake {
      */
     uint8_t required_hash_algs[S2N_HASH_SENTINEL];
 
+    /*
+     * Data required by the Finished messages.
+     * In TLS1.2 and earlier, the data is the verify_data.
+     * In TLS1.3, the data is the finished_key used to calculate the verify_data.
+     *
+     * The data will be different for the client and server.
+     * The length of the data will be the same for the client and server.
+     * The length of the data depends on protocol version and cipher suite.
+     */
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
+    uint8_t finished_len;
 
     /* Which message-order affecting features are enabled */
     uint32_t handshake_type;
@@ -186,6 +196,7 @@ int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffe
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type);
 S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message);
 S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake);
+S2N_RESULT s2n_handshake_set_finished_len(struct s2n_connection *conn, uint8_t len);
 
 /* s2n_handshake_io */
 int s2n_conn_set_handshake_type(struct s2n_connection *conn);
