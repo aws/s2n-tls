@@ -39,7 +39,7 @@ declare -A KNOWN_MEMCMP_USAGE
 KNOWN_MEMCMP_USAGE["$PWD/crypto/s2n_rsa.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_early_data.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_kem.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=3
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=2
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_server_hello.c"]=3
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_security_policies.c"]=1
 KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1

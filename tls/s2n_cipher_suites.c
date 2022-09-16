@@ -980,36 +980,6 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
     .suites = s2n_all_tls13_cipher_suites,
 };
 
-static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites_equal_preference[] = {
-    &s2n_equal_preference_group_start,              /* start group */
-    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
-    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
-    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
-    &s2n_equal_preference_group_end,                /* end group */
-};
-
-const struct s2n_cipher_preferences cipher_preferences_test_all_equal_preference_tls13 = {
-    .count = s2n_array_len(s2n_all_tls13_cipher_suites_equal_preference),
-    .suites = s2n_all_tls13_cipher_suites_equal_preference,
-};
-
-/* An arbitrarily complex cipher suite w/ equal preference for testing purposes only */
-static struct s2n_cipher_suite *s2n_test_arbitrary_equal_preference[] = {
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
-    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
-    &s2n_equal_preference_group_start,              /* start group */
-    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
-    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
-    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
-    &s2n_equal_preference_group_end,                /* end group */
-    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
-};
-
-const struct s2n_cipher_preferences cipher_preferences_test_arbitrary_equal_preferences_tls13 = {
-    .count = s2n_array_len(s2n_test_arbitrary_equal_preference),
-    .suites = s2n_test_arbitrary_equal_preference,
-};
-
 static bool should_init_crypto = true;
 static bool crypto_initialized = false;
 int s2n_crypto_disable_init(void) {
@@ -1203,25 +1173,31 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     return 0;
 }
 
-static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+/* This function returns the client index for a cipher *match. If a matching cipher could not be found, then -1 is returned. */
+static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
+    int negative_one = -1;
     for (uint32_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
-        if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
-            return 1;
+        if (s2n_constant_time_equals(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+            return i;
         }
     }
 
-    return 0;
+    return negative_one;
 }
 
-/**
- * While a potential cipher suite match has been identified, we still need to check if the cipher suite
- * can actually be used for the remainder of the connection. These checks ensure that there exists an
- * implementation, whether the versions and PSKs are compatible.
- * 
- */
+static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+{
+    int index = s2n_wire_ciphers_has_server_cipher_at(match, wire, count, cipher_suite_len);
+    if (index < 0) {
+        return 0;
+    }
+    return 1;
+}
+
+/* Checks that a mutually-supported cipher suite can be used in this connection */
 static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct s2n_cipher_suite* potential_match) {
         /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
         if ((conn->actual_protocol_version >= S2N_TLS13) != (potential_match->minimum_required_tls_version >= S2N_TLS13)) {
@@ -1275,71 +1251,41 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
         return true;
 }
 
-/* The same function as s2n_wire_ciphers_contain() except this function returns the client index instead of a success flag. */
-static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
-{
-    int negative_one = -1;
-    for (uint32_t i = 0; i < count; i++) {
-        const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
-
-        if (s2n_constant_time_equals(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
-            return i;
-        }
-    }
-
-    return negative_one;
-}
-
 /**
- *  This is the logic for parsing a list of s2n_cipher_suites* and selecting a cipher_suite accounting
- *  for equal preference grouping. This method assumes that the server side cipher suite preference is
- *  correctly formatted eg for every group_start delimiter, there exists a following group_end delimiter.
- * 
- *  The negotiated server index is set in the *index argument. The algorithm used to determine this is as
- *  follows:
- * 
- *  1. Iterate over each server cipher suite. These cipher preferences are defined by the server's security
- *     policy.
- * 
- *  2. For each server cipher suite, we check if the suite is an actual cipher or is a group delimiter.
- * 
- *  3. If the cipher is a group start delimiter we toggle the `in_group` flag as true to indicate we will need
- *     to use the client's preference as a tie-breaker. Else if the cipher is a group end delimiter, then we
- *     toggle off the `in_group` flag and see if we have found a negotiable cipher. If we have, then we simply
- *     return that cipher's server-side index since the client was able to break a tie for the server.
- * 
- *  4. Else, we have not encountered a group delimiter. In this case, we check if the client indicated support
- *     for the cipher. If we are in a group, then we must check all the cipher's in the group and ensure that 
- *     the client's preference is selected. If we are not in a group, we simply return the cipher since the server
- *     does not need to have a tie-breaker contest.
- * 
- *  5. Repeat 1-4 until a negotiable cipher is found. If none is found, including a last-resort higher protocol
- *     version then error. Else, set the *server_index to the found server index.
- * 
  *  TODO: Add basic validation for the cipher preference list
  * 
+ * Used by the server to select a mutually-supported cipher suite.
+ * This function iterates over the server's cipher suite preference list, choosing the first 
+ * suite that is also supported by the client. If an in-group deliminator is encountered, for 
+ * each in-group cipher suite, we iterate through the client's preferences and save the 
+ * index of the client's cipher suite, throwing out the previous index if it is 
+ * less-preferred by the client than the current index. Once the end-group deliminator is 
+ * encountered, the server either chooses that cipher suite indicated by that index or, if no cipher suite 
+ * has been found, continues iterating through its list. This function checks that the potential cipher
+ * suite match is valid and can be used for the connection.
+ * 
  */
-static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
-                                           const uint8_t* wire,
-                                           uint32_t count,
-                                           uint32_t cipher_suite_len,
-                                           uint32_t* server_index) {
-    POSIX_ENSURE_REF(wire);
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(server_index);
+static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection* conn,
+                                                          const uint8_t* wire,
+                                                          uint32_t count,
+                                                          uint32_t cipher_suite_len,
+                                                          uint32_t* server_index) {
+    RESULT_ENSURE_REF(wire);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(server_index);
 
     const struct s2n_security_policy *security_policy;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
     const struct s2n_cipher_preferences* cipher_preferences = security_policy->cipher_preferences;
-    POSIX_ENSURE_REF(cipher_preferences);
+    RESULT_ENSURE_REF(cipher_preferences);
 
     bool in_group = false;
     int negotiated_client_index = count;
-    int negotiated_server_index = -1, negotiated_server_highest_vers_match_index = -1;
+    int negotiated_server_index = -1, highest_vers_match_index = -1;
 
     for (uint32_t i = 0; i < cipher_preferences->count; i++) {
         const struct s2n_cipher_suite* server_cipher = cipher_preferences->suites[i];
-        POSIX_ENSURE_REF(server_cipher);
+        RESULT_ENSURE_REF(server_cipher);
 
         /* Check if the cipher suite is an equal-preference grouping delimiter */
         if (server_cipher == &s2n_equal_preference_group_start) {
@@ -1351,7 +1297,7 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
             /* Exiting a group and a negotiated cipher has already been found. */
             if (negotiated_server_index != -1) {
                 *server_index = negotiated_server_index;
-                return S2N_SUCCESS;
+                return S2N_RESULT_OK;
             }
             continue;
         }
@@ -1372,8 +1318,8 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
 
         /* Don't immediately choose a cipher the connection shouldn't be able to support */
         if (conn->actual_protocol_version < match->minimum_required_tls_version) {
-            if (negotiated_server_highest_vers_match_index == -1) {
-                negotiated_server_highest_vers_match_index = i;
+            if (highest_vers_match_index == -1) {
+                highest_vers_match_index = i;
             }
             continue;
         }
@@ -1393,17 +1339,17 @@ static int s2n_get_negotiated_server_index(struct s2n_connection* conn,
     /* Found a match */
     if (negotiated_server_index != -1) {
         *server_index = negotiated_server_index;
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
-    if (negotiated_server_highest_vers_match_index != -1) {
-        *server_index = negotiated_server_highest_vers_match_index;
-        return S2N_SUCCESS;
+    if (highest_vers_match_index != -1) {
+        *server_index = highest_vers_match_index;
+        return S2N_RESULT_OK;
     }
 
     /* Could neither find a match nor a cipher w/ a higher version */
-    POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
@@ -1438,9 +1384,9 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    /* Determine the index for the negotiated cipher suite. Index is a server cipher prefernece index. */
+    /* Determine the index for the negotiated cipher suite. Index is a server cipher preference index. */
     uint32_t negotiated_index = 0;
-    POSIX_GUARD(s2n_get_negotiated_server_index(conn, wire, count, cipher_suite_len, &negotiated_index));
+    POSIX_GUARD_RESULT(s2n_get_mutually_supported_cipher_index(conn, wire, count, cipher_suite_len, &negotiated_index));
 
     struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[negotiated_index];
     POSIX_ENSURE_REF(match);
