@@ -1174,9 +1174,9 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 }
 
 /* This function returns the client index for a cipher *match. If a matching cipher could not be found, then -1 is returned. */
-static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_wire_index_of_cipher_suite(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    int negative_one = -1;
+    int cipher_not_found = -1;
     for (uint32_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
@@ -1185,12 +1185,12 @@ static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uin
         }
     }
 
-    return negative_one;
+    return cipher_not_found;
 }
 
 static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    int server_index = s2n_wire_ciphers_has_server_cipher_at(match, wire, count, cipher_suite_len);
+    int server_index = s2n_wire_index_of_cipher_suite(match, wire, count, cipher_suite_len);
     if (server_index < 0) {
         return 0;
     }
@@ -1199,61 +1199,59 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
 
 /* Checks that a mutually-supported cipher suite can be used in this connection */
 static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct s2n_cipher_suite* potential_match) {
-        /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
-        if ((conn->actual_protocol_version >= S2N_TLS13) != (potential_match->minimum_required_tls_version >= S2N_TLS13)) {
+    /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
+    if ((conn->actual_protocol_version >= S2N_TLS13) != (potential_match->minimum_required_tls_version >= S2N_TLS13)) {
+        return false;
+    }
+
+    /* If connection is for SSLv3, use SSLv3 version of suites */
+    if (conn->client_protocol_version == S2N_SSLv3) {
+        potential_match = potential_match->sslv3_cipher_suite;
+    }
+
+    /* Skip the suite if we don't have an available implementation */
+    if (!potential_match->available) {
+        return false;
+    }
+
+    /* Make sure the cipher is valid for available certs */
+    if (s2n_is_cipher_suite_valid_for_auth(conn, potential_match) != S2N_SUCCESS) {
+        return false;
+    }
+
+    /* TLS 1.3 does not include key exchange in cipher suites */
+    if (potential_match->minimum_required_tls_version < S2N_TLS13) {
+        /* If the kex is not supported continue to the next candidate */
+        bool kex_supported = false;
+        if (s2n_result_is_error(s2n_kex_supported(potential_match, conn, &kex_supported))) {
             return false;
         }
 
-        /* If connection is for SSLv3, use SSLv3 version of suites */
-        if (conn->client_protocol_version == S2N_SSLv3) {
-            potential_match = potential_match->sslv3_cipher_suite;
-        }
-
-        /* Skip the suite if we don't have an available implementation */
-        if (!potential_match->available) {
+        if (!kex_supported) {
             return false;
         }
 
-        /* Make sure the cipher is valid for available certs */
-        if (s2n_is_cipher_suite_valid_for_auth(conn, potential_match) != S2N_SUCCESS) {
+        /* If the kex is not configured correctly continue to the next candidate */
+        if (s2n_result_is_error(s2n_configure_kex(potential_match, conn))) {
             return false;
         }
+    }
 
-        /* TLS 1.3 does not include key exchange in cipher suites */
-        if (potential_match->minimum_required_tls_version < S2N_TLS13) {
-            /* If the kex is not supported continue to the next candidate */
-            bool kex_supported = false;
-            if (s2n_result_is_error(s2n_kex_supported(potential_match, conn, &kex_supported))) {
-                return false;
-            }
-
-            if (!kex_supported) {
-                return false;
-            }
-
-            /* If the kex is not configured correctly continue to the next candidate */
-            if (s2n_result_is_error(s2n_configure_kex(potential_match, conn))) {
-                return false;
-            }
+    /**
+    *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+    *# The server MUST ensure that it selects a compatible PSK
+    *# (if any) and cipher suite.
+    **/
+    if (conn->psk_params.chosen_psk != NULL) {
+        if (potential_match->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
+            return false;
         }
+    }
 
-        /**
-        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
-        *# The server MUST ensure that it selects a compatible PSK
-        *# (if any) and cipher suite.
-        **/
-        if (conn->psk_params.chosen_psk != NULL) {
-            if (potential_match->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
-                return false;
-            }
-        }
-
-        return true;
+    return true;
 }
 
 /**
- *  TODO: Add basic validation for the cipher preference list
- * 
  * Used by the server to select a mutually-supported cipher suite.
  * This function iterates over the server's cipher suite preference list, choosing the first 
  * suite that is also supported by the client. If an in-group deliminator is encountered, for 
@@ -1280,8 +1278,18 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
     RESULT_ENSURE_REF(cipher_preferences);
 
     bool in_group = false;
+    /** 
+     * Tracks mutually supported cipher suite in the client index. This is needed to track tie-breakers
+     * in an equal-preference group.
+     */
     int negotiated_client_index = count;
-    int negotiated_server_index = -1, highest_vers_match_index = -1;
+    /* Same as negotiated_client_index, but is instead a server index. */
+    int negotiated_server_index = -1;
+    /** 
+     * The highest protocol version match index (also a server index). This is a fall back index if
+     * no other mutually-supported cipher suite is identified.
+     */
+    int highest_vers_match_index = -1;
 
     for (uint32_t i = 0; i < cipher_preferences->count; i++) {
         const struct s2n_cipher_suite* server_cipher = cipher_preferences->suites[i];
@@ -1303,7 +1311,7 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
         }
 
         /* Cipher suite is NOT a delimiter */
-        int client_index = s2n_wire_ciphers_has_server_cipher_at(server_cipher->iana_value, wire, count, cipher_suite_len);
+        int client_index = s2n_wire_index_of_cipher_suite(server_cipher->iana_value, wire, count, cipher_suite_len);
 
         /* Client does not support this cipher. Skip. */
         if (client_index < 0) {
