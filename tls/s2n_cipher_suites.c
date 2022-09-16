@@ -1190,8 +1190,8 @@ static int s2n_wire_ciphers_has_server_cipher_at(const uint8_t *match, const uin
 
 static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    int index = s2n_wire_ciphers_has_server_cipher_at(match, wire, count, cipher_suite_len);
-    if (index < 0) {
+    int server_index = s2n_wire_ciphers_has_server_cipher_at(match, wire, count, cipher_suite_len);
+    if (server_index < 0) {
         return 0;
     }
     return 1;
