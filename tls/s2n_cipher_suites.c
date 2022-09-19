@@ -1188,13 +1188,13 @@ static int s2n_wire_index_of_cipher_suite(const uint8_t *match, const uint8_t *w
     return cipher_not_found;
 }
 
-static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static bool s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
     int server_index = s2n_wire_index_of_cipher_suite(match, wire, count, cipher_suite_len);
     if (server_index < 0) {
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 /* Checks that a mutually-supported cipher suite can be used in this connection */
@@ -1389,12 +1389,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         conn->secure_renegotiation = 1;
     }
 
-    const struct s2n_security_policy *security_policy;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-
     /* Determine the index for the negotiated cipher suite. Index is a server cipher preference index. */
     uint32_t negotiated_index = 0;
     POSIX_GUARD_RESULT(s2n_get_mutually_supported_cipher_index(conn, wire, count, cipher_suite_len, &negotiated_index));
+
+    const struct s2n_security_policy *security_policy;
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[negotiated_index];
     POSIX_ENSURE_REF(match);
