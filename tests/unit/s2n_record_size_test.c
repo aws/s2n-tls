@@ -68,6 +68,9 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
     EXPECT_OK(s2n_get_public_random_data(&r));
 
+    uint8_t empty_data[1] = { 0 };
+    struct s2n_blob e = {.data = empty_data, .size = 0};
+
     uint8_t aes128_key[] = "123456789012345";
     struct s2n_blob aes128 = {.data = aes128_key, .size = sizeof(aes128_key) };
 
@@ -98,6 +101,11 @@ int main(int argc, char **argv)
         const int medium_payload = S2N_DEFAULT_FRAGMENT_LENGTH;
         int bytes_written = 0;
 
+        /* Check writing nothing. */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &e));
+        EXPECT_EQUAL(bytes_written, 0);
+        
         /* Check the default: medium records */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
@@ -114,6 +122,25 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
         EXPECT_EQUAL(bytes_written, large_payload);
+
+        /* Check alerts aren't fragmented
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *= type=test
+         *# Alert messages (Section 6) MUST NOT be fragmented across records, and
+         *# multiple alert messages MUST NOT be coalesced into a single
+         *# TLSPlaintext record. In other words, a record with an Alert type
+         *# MUST contain exactly one message.
+         */
+        conn->actual_protocol_version = S2N_TLS13;
+        uint8_t simple_alert_data[2];
+        simple_alert_data[0] = 1; /* warning */
+        simple_alert_data[1] = 0; /* close-notify */
+        struct s2n_blob simple_alert = {.data = simple_alert_data, .size = sizeof(simple_alert_data)};
+        EXPECT_OK(s2n_connection_set_max_fragment_length(conn, 1));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &simple_alert));
+        EXPECT_EQUAL(bytes_written, sizeof(simple_alert_data));
+
 
         /* Clean up */
         conn->secure->cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
@@ -139,7 +166,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_record_max_write_payload_size(server_conn, &size));
         EXPECT_EQUAL(size, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
-        /* trigger a payload that is under the limits */
+        /* trigger a payload that is under the limits
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *= type=test
+         *# Implementations MUST NOT send zero-length fragments of Handshake
+         *# types, even if those fragments contain padding.
+         */
         server_conn->max_outgoing_fragment_length = 0;
         EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_payload_size(server_conn, &size), S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
@@ -442,12 +474,31 @@ int main(int argc, char **argv)
         /* Configure to use s2n maximum fragment / record settings */
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
 
-        /* Testing with a small blob */
-        s2n_stack_blob(small_blob, ONE_BLOCK, ONE_BLOCK);
+        /* Testing with a empty blob
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *= type=test
+         *# Zero-length
+         *# fragments of Application Data MAY be sent, as they are potentially
+         *# useful as a traffic analysis countermeasure.
+         */
+        s2n_stack_blob(empty_blob, 0, 1);
 
         int bytes_taken;
 
         const uint16_t TLS13_RECORD_OVERHEAD = 22;
+        EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &empty_blob));
+        EXPECT_EQUAL(bytes_taken, 0); /* we wrote the full blob size */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), TLS13_RECORD_OVERHEAD); /* bytes on the wire */
+
+        /* Check we get a friendly error if we use s2n_record_write again */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &empty_blob), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &empty_blob));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+
+        /* Testing with a small blob */
+        s2n_stack_blob(small_blob, ONE_BLOCK, ONE_BLOCK);
+
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob));
         EXPECT_EQUAL(bytes_taken, ONE_BLOCK); /* we wrote the full blob size */
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), ONE_BLOCK + TLS13_RECORD_OVERHEAD); /* bytes on the wire */
@@ -480,7 +531,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Now escape the sandbox and attempt to get record_write to use a larger plaintext bytes */
-        /* However, the max fragment length should still be bounded based on the protocol specification */
+        /* However, the max fragment length should still be bounded based on the protocol specification 
+         *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+         *= type=test
+         *# The length MUST NOT exceed 2^14 bytes.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *= type=test
+         *# Application Data
+         *# fragments MAY be split across multiple records or coalesced into a
+         *# single record.
+         */
         const uint16_t MAX_FORCED_OUTGOING_FRAGMENT_LENGTH = 16400;
 
         server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH; /* Trigger fragment length bounding */

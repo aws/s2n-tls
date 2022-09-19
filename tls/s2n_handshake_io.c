@@ -960,6 +960,9 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records.
+ *= https://tools.ietf.org/rfc/rfc8446#5.1
+ *# Handshake messages MAY be coalesced into a single TLSPlaintext record
+ *# or fragmented across several records, provided that:
  * Precondition: secure outbound I/O has already been flushed
  */
 static int s2n_handshake_write_io(struct s2n_connection *conn)
@@ -981,11 +984,23 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         }
     }
 
-    /* Write the handshake data to records in fragment sized chunks */
+    /* Write the handshake data to records in fragment sized chunks 
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# -  Handshake messages MUST NOT be interleaved with other record
+     *# types. That is, if a handshake message is split over two or more
+     *# records, there MUST NOT be any other records between them.
+     */
     struct s2n_blob out = {0};
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
         uint16_t max_payload_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_payload_size));
+        /* s2n_stuffer_data_available(&conn->handshake.io) is non-zero
+         * and max_payload_size is non-zero (see s2n_record_max_write_payload_size)
+         * therefore this is a non-zero length fragment.
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *# Implementations MUST NOT send zero-length fragments of Handshake
+         *# types, even if those fragments contain padding.
+         */
         out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
 
         out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
@@ -1010,7 +1025,16 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
-    /* Update the secrets, if necessary */
+    /* Update the secrets, if necessary 
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# -  Handshake messages MUST NOT span key changes.  Implementations
+     *# MUST verify that all messages immediately preceding a key change
+     *# align with a record boundary; if not, then they MUST terminate the
+     *# connection with an "unexpected_message" alert.  Because the
+     *# ClientHello, EndOfEarlyData, ServerHello, Finished, and KeyUpdate
+     *# messages can immediately precede a key change, implementations
+     *# MUST send these messages in alignment with a record boundary.
+     */
     POSIX_GUARD_RESULT(s2n_tls13_secrets_update(conn));
     POSIX_GUARD_RESULT(s2n_tls13_key_schedule_update(conn));
 
@@ -1199,6 +1223,16 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         POSIX_GUARD(s2n_handshake_handle_sslv2(conn));
     }
 
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# -  Handshake messages MUST NOT be interleaved with other record
+     *# types.  That is, if a handshake message is split over two or more
+     *# records, there MUST NOT be any other records between them.
+     */
+    if (IS_TLS13_HANDSHAKE(conn) && record_type != TLS_HANDSHAKE) {
+        POSIX_ENSURE(s2n_stuffer_is_wiped(&conn->handshake.io), S2N_ERR_BAD_MESSAGE);
+    }
+
     /* Now we have a record, but it could be a partial fragment of a message, or it might
      * contain several messages.
      */
@@ -1232,15 +1266,25 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
 
         return S2N_SUCCESS;
-    } else if (record_type != TLS_HANDSHAKE) {
-        if (record_type == TLS_ALERT) {
-            POSIX_GUARD(s2n_process_alert_fragment(conn));
-        }
-
-        /* Ignore record types that we don't support */
-
+    } else if (record_type == TLS_ALERT) {
+        POSIX_GUARD(s2n_process_alert_fragment(conn));
+        
         /* We're done with the record, wipe it */
         POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+        return S2N_SUCCESS;
+    } else if (record_type != TLS_HANDSHAKE) {
+        /* We're done with the record, wipe it */
+        POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+        
+        if (IS_TLS13_HANDSHAKE(conn)) {
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#5.1
+             *= type=implication
+             *# Any future content types MUST specify appropriate
+             *# rules.
+             */
+            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+        }
         return S2N_SUCCESS;
     }
 
@@ -1253,10 +1297,15 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         int r;
         POSIX_GUARD((r = s2n_read_full_handshake_message(conn, &message_type)));
 
-        /* Do we need more data? This happens for message fragmentation */
+        /* Do we need more data? This happens for message fragmentation 
+          *= https://tools.ietf.org/rfc/rfc8446#5.1
+          *# Handshake messages MAY be coalesced into a single TLSPlaintext record
+          *# or fragmented across several records, provided that:
+          */
         if (r == 1) {
-            /* Break out of this inner loop, but since we're not changing the state, the
-             * outer loop in s2n_handshake_io() will read another record.
+            /* Don't wipe conn->handshake.io which contains a fragment of a handshake
+             * message. Don't progress the state machine. We should end up here or in an
+             * error case on the next call from s2n_handshake_io.
              */
             POSIX_GUARD_RESULT(s2n_wipe_record(conn));
             return S2N_SUCCESS;
@@ -1300,6 +1349,31 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
         /* Call the relevant handler */
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn)));
+
+        /* Bail on key change in the middle of a record. 
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *# -  Handshake messages MUST NOT span key changes.  Implementations
+         *#    MUST verify that all messages immediately preceding a key change
+         *#    align with a record boundary; if not, then they MUST terminate the
+         *#    connection with an "unexpected_message" alert.  Because the
+         *#    ClientHello, EndOfEarlyData, ServerHello, Finished, and KeyUpdate
+         *#    messages can immediately precede a key change, implementations
+         *#    MUST send these messages in alignment with a record boundary.
+         */
+        if (IS_TLS13_HANDSHAKE(conn)) {
+            switch (message_type) {
+                case TLS_CLIENT_HELLO:
+                case TLS_END_OF_EARLY_DATA:
+                case TLS_SERVER_HELLO:
+                case TLS_FINISHED:
+                case TLS_KEY_UPDATE:
+                    POSIX_ENSURE(!s2n_stuffer_data_available(&conn->in), S2N_ERR_BAD_MESSAGE);
+                    break;
+                
+                default:
+                    break;
+            }
+        }
 
         /* Advance the state machine */
         POSIX_GUARD_RESULT(s2n_finish_read(conn));

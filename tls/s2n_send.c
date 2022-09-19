@@ -97,7 +97,13 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
     POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
 
-    /* If there's an alert pending out, send that */
+    /* If there's an alert pending out, send that alone.
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# Alert messages (Section 6) MUST NOT be fragmented across records, and
+     *# multiple alert messages MUST NOT be coalesced into a single
+     *# TLSPlaintext record. In other words, a record with an Alert type
+     *# MUST contain exactly one message.
+     */
     if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
         struct s2n_blob alert = {0};
         alert.data = conn->reader_alert_out.blob.data;
@@ -186,7 +192,12 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         conn->last_write_elapsed = elapsed;
     }
 
-    /* Now write the data we were asked to send this round */
+    /* Now write the data we were asked to send this round 
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# Application Data
+     *# fragments MAY be split across multiple records or coalesced into a
+     *# single record.
+     */
     while (total_size - conn->current_user_data_consumed) {
         ssize_t to_write = MIN(total_size - conn->current_user_data_consumed, max_payload_size);
 

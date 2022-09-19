@@ -34,8 +34,7 @@
  *# records carrying data in chunks of 2^14 bytes or less.
  *
  *= https://tools.ietf.org/rfc/rfc8446#section-5.1
- *# The record layer fragments information blocks into TLSPlaintext
- *# records carrying data in chunks of 2^14 bytes or less.
+ *# The length MUST NOT exceed 2^14 bytes.
  */
 #define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH         (1 << 14)
 

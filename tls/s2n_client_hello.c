@@ -570,6 +570,14 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
 
+    /* We don't send version 0x0301
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# In order to maximize backward
+     *# compatibility, a record containing an initial ClientHello SHOULD have
+     *# version 0x0301 (reflecting TLS 1.0) and a record containing a second
+     *# ClientHello or a ServerHello MUST have version 0x0303 (reflecting
+     *# TLS 1.2).
+     */
     uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
     client_protocol_version[0] = reported_protocol_version / 10;
     client_protocol_version[1] = reported_protocol_version % 10;

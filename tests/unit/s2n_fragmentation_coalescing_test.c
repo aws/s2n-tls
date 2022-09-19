@@ -33,7 +33,7 @@
  * To do this we fork() subprocesses that write records to a pipe, s2n is configured to read fragments
  * from the pipe.
  */
-
+#define TLS_CHANGE_CIPHER_SPEC 20
 #define TLS_ALERT              21
 #define TLS_HANDSHAKE          22
 #define TLS_HEARTBEAT          24
@@ -165,6 +165,10 @@ uint8_t fatal_alert[] = {       /* Fatal: unexpected message */
     0x02, 0x0a
 };
 
+uint8_t change_cipher_spec[] = {       /* Change Cipher Spec message */
+    0x01,
+};
+
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 void fragmented_message(int write_fd)
@@ -240,6 +244,49 @@ void interleaved_message(int write_fd)
         _exit(100);
     }
     if (write(write_fd, heartbeat_message, sizeof(heartbeat_message)) != sizeof(heartbeat_message)) {
+        _exit(100);
+    }
+
+    /* Write the rest of the hello message */
+    length = sizeof(server_hello_message) - written;
+    record_header[0] = TLS_HANDSHAKE;
+    record_header[3] = length >> 8;
+    record_header[4] = length & 0xff;
+    if (write(write_fd, record_header, 5) != 5) {
+        _exit(100);
+    }
+    if (write(write_fd, server_hello_message + written, length) != length) {
+        _exit(100);
+    }
+
+    /* Close the pipe and exit */
+    close(write_fd);
+}
+
+void interleaved_message_tls13(int write_fd)
+{
+    int length = sizeof(server_hello_message) / 2;
+    uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (length >> 8), length & 0xff };
+    int written = 0;
+
+    /* Write half of the message */
+    if (write(write_fd, record_header, 5) != 5) {
+        _exit(100);
+    }
+    if (write(write_fd, server_hello_message, length) != length) {
+        _exit(100);
+    }
+    written += length;
+
+    /* Write improper CCS. */
+    record_header[0] = TLS_CHANGE_CIPHER_SPEC;
+    record_header[3] = sizeof(change_cipher_spec) >> 8;
+    record_header[4] = sizeof(change_cipher_spec) & 0xff;
+
+    if (write(write_fd, record_header, 5) != 5) {
+        _exit(100);
+    }
+    if (write(write_fd, change_cipher_spec, sizeof(change_cipher_spec)) != sizeof(change_cipher_spec)) {
         _exit(100);
     }
 
@@ -635,6 +682,65 @@ int main(int argc, char **argv)
 
     /* Check that the server hello message was not processed */
     EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
+
+    /* Clean up */
+    EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
+    EXPECT_EQUAL(status, 0);
+    EXPECT_SUCCESS(close(p[0]));
+
+    /* TLS1.3 has diffrent constraints 
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *= type=test
+     *# Handshake messages MAY be coalesced into a single TLSPlaintext record
+     *# or fragmented across several records, provided that:
+     */
+    EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *= type=test
+     *# -  Handshake messages MUST NOT be interleaved with other record
+     *# types. That is, if a handshake message is split over two or more
+     *# records, there MUST NOT be any other records between them.
+     */
+
+    /* Create a pipe */
+    EXPECT_SUCCESS(pipe(p));
+
+    /* Wipe the connection */
+    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS13;
+    conn->client_protocol_version = S2N_TLS13;
+    conn->actual_protocol_version = S2N_TLS13;
+
+    /* Set up the connection to read from the fd */
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
+
+    /* Pretend the client hello has already been set */
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+    conn->handshake.message_number = SERVER_HELLO;
+
+    /* Create a child process */
+    pid = fork();
+    if (pid == 0) {
+        /* This is the child process, close the read end of the pipe */
+        EXPECT_SUCCESS(close(p[0]));
+
+        /* Write the fragmented hello message */
+        interleaved_message_tls13(p[1]);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        _exit(0);
+    }
+
+    /* This is the parent process, close the write end of the pipe */
+    EXPECT_SUCCESS(close(p[1]));
+
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_BAD_MESSAGE);
+
+    /* Check that the server hello message NOT was processed */
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
