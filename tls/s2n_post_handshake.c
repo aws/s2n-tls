@@ -49,7 +49,7 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
                 POSIX_GUARD_RESULT(s2n_tls13_server_nst_recv(conn, &post_handshake_stuffer));
                 break;
             case TLS_HELLO_REQUEST:
-                POSIX_GUARD(s2n_client_hello_request_recv(conn));
+                POSIX_GUARD_RESULT(s2n_client_hello_request_recv(conn));
                 break;
             case TLS_CLIENT_HELLO:
             case TLS_SERVER_HELLO:
