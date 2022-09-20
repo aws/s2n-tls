@@ -79,55 +79,66 @@ And when invoking CMake for your project, do one of two things:
 
 ## Building s2n-tls with Openssl
 
-We keep the build artifacts in the -build directory:
+We keep the build artifacts in the *-build directory:
 ```shell
 cd libcrypto-build
 ```
 
-Download the desired Openssl version:
+### Download the desired Openssl version:
+Openssl 3.0.5
 ```shell
-# Download Openssl 3.0.5
 curl -L -o openssl.tar.gz https://github.com/openssl/openssl/archive/refs/tags/openssl-3.0.5.tar.gz
 tar -xzvf openssl-3.0.5.tar.gz
 cd `tar ztf openssl-3.0.5.tar.gz | head -n1 | cut -f1 -d/`
+```
 
-# Download OpenSSL-1.1.1
+OpenSSL-1.1.1
+```shell
 curl -LO https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1.tar.gz
 tar -xzvf OpenSSL_1_1_1.tar.gz
 cd `tar ztf OpenSSL_1_1_1.tar.gz | head -n1 | cut -f1 -d/`
+```
 
-# Download OpenSSL-1.0.2
+OpenSSL-1.0.2
+```shell
 curl -LO https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_0_2.tar.gz
 tar -xzvf OpenSSL_1_0_2.tar.gz
 cd `tar ztf OpenSSL_1_0_2.tar.gz | head -n1 | cut -f1 -d/`
 ```
 
-Build Openssl. The following config command disables numerous Openssl features and algorithms which
-are not used by s2n-tls. A minimal feature-set can help prevent exposure to security vulnerabilities.
-```shell
-# When build openssl 1.0.2 libcrypto also include the following flags
-./config ... no-libunbound no-gmp no-jpake no-krb5 no-store ...
+### Build Openssl
+The following config command disables numerous Openssl features and algorithms which are not used
+by s2n-tls. A minimal feature-set can help prevent exposure to security vulnerabilities.
 
-# Build Openssl libcrypto
+OpenSSL-1.1.1 and OpenSSL-3.0.5
+```shell
 ./config -fPIC no-shared              \
-         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
-         no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
-         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
-         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-         --prefix=`pwd`/../../libcrypto-root/
+        no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+        no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
+        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+        --prefix=`pwd`/../../libcrypto-root/
+
+make
+make install
+```
+
+OpenSSL-1.0.2. Mac Users should replace "./config" with "./Configure darwin64-x86_64-cc".
+```shell
+./config -fPIC no-shared              \
+        no-libunbound no-gmp no-jpake no-krb5 no-store    \
+        no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+        no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
+        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+        --prefix=`pwd`/../../libcrypto-root/
 
 make depend
 make
 make install
 ```
 
-Build s2n-tls
-```shell
-cd ../../ # root of project
-make
-```
-
-**OpenSSL_1_1_1 32-bit builds** should use the following config command
+OpenSSL-1.1.1 32-bit
 ```shell
 setarch i386 ./config -fPIC no-shared     \
         -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
@@ -137,14 +148,18 @@ setarch i386 ./config -fPIC no-shared     \
         --prefix=`pwd`/../../libcrypto-root/
 ```
 
-**Openssl 1.0.2 Mac Users:** replace "./config" with "./Configure darwin64-x86_64-cc".
+### Build s2n-tls
+```shell
+cd ../../ # root of project
+make
+```
 
 ## Building s2n-tls with LibreSSL
 
 To build s2n-tls with LibreSSL, do the following:
 
 ```shell
-# We keep the build artifacts in the -build directory
+# We keep the build artifacts in the *-build directory
 cd libcrypto-build
 
 # Download the latest version of LibreSSL
@@ -171,7 +186,7 @@ directly via git. This procedure has been tested with
 fb68d6c901b98ffe15b8890d00bc819bf44c5f01 of BoringSSL.
 
 ```shell
-# We keep the build artifacts in the -build directory
+# We keep the build artifacts in the *-build directory
 cd libcrypto-build
 
 # Clone BoringSSL
