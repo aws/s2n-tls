@@ -12,6 +12,7 @@
 *.profraw
 *.tmp
 *.pyc
+.DS_Store
 coverage/html/*
 docs/doxygen/output/
 libcrypto-build/*
