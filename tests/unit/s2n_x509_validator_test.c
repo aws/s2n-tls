@@ -433,6 +433,7 @@ int main(int argc, char **argv) {
 
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(0, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
 
@@ -719,6 +720,7 @@ int main(int argc, char **argv) {
 
         EXPECT_EQUAL(1, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
 
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
@@ -760,6 +762,7 @@ int main(int argc, char **argv) {
 
         EXPECT_EQUAL(0, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
 
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
@@ -801,6 +804,7 @@ int main(int argc, char **argv) {
 
         EXPECT_EQUAL(1, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
 
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
@@ -1372,6 +1376,7 @@ int main(int argc, char **argv) {
                 &pkey_type, &public_key_out), S2N_ERR_CERT_UNTRUSTED);
 
         s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_UNKNOWN, pkey_type);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
 
