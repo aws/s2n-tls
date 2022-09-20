@@ -1292,7 +1292,7 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
     int highest_vers_match_index = -1;
 
     for (uint32_t i = 0; i < cipher_preferences->count; i++) {
-        const struct s2n_cipher_suite* server_cipher = cipher_preferences->suites[i];
+        struct s2n_cipher_suite* server_cipher = cipher_preferences->suites[i];
         RESULT_ENSURE_REF(server_cipher);
 
         /* Check if the cipher suite is an equal-preference grouping delimiter */
@@ -1318,21 +1318,20 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
             continue;
         }
 
-        /* Found a potential match. Validate that the cipher suite is suitable for this connection. */
-        struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[i];
-        if (!s2n_cipher_suite_match_is_valid(conn, match)) {
+        /* Validate that the cipher suite is suitable for this connection. */
+        if (!s2n_cipher_suite_match_is_valid(conn, server_cipher)) {
             continue;
         }
 
         /* Don't immediately choose a cipher the connection shouldn't be able to support */
-        if (conn->actual_protocol_version < match->minimum_required_tls_version) {
+        if (conn->actual_protocol_version < server_cipher->minimum_required_tls_version) {
             if (highest_vers_match_index == -1) {
                 highest_vers_match_index = i;
             }
             continue;
         }
         if (in_group) {
-            /* Both client and server support a grouped-cipher */
+            /* Store the most-preferred client cipher in-group */
             if (client_index < negotiated_client_index) {
                 negotiated_client_index = client_index;
                 negotiated_server_index = i;

@@ -783,42 +783,66 @@ int main(int argc, char **argv)
 
         /* Test equal preference grouping */
         {
-            /* Test server cipher preference negotiation for client-preferenced equal preference group */
+            /**
+             * TODO: This cipher suite will be moved to s2n_cipher_preferences w/ it's own security policy.
+             *       For now, it's only used for testing purposes.
+             * Cipher suite w/ all TLS cipher suites in one equal preference group.
+             */
+            static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites_equal_preference[] = {
+                &s2n_equal_preference_group_start,              /* start group */
+                &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+                &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+                &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+                &s2n_equal_preference_group_end,                /* end group */
+            };
+                
+            const struct s2n_cipher_preferences cipher_preferences_test_all_equal_preference_tls13 = {
+                .count = s2n_array_len(s2n_all_tls13_cipher_suites_equal_preference),
+                .suites = s2n_all_tls13_cipher_suites_equal_preference,
+            };
+
+            const struct s2n_security_policy test_all_equal_preference_tls13 = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences_test_all_equal_preference_tls13,
+                .kem_preferences = &kem_preferences_null,
+                .signature_preferences = &s2n_signature_preferences_20201021,
+                .ecc_preferences = &s2n_ecc_preferences_test_all,
+            };
+
+            /* An arbitrarily complex cipher suite w/ equal preference */
+            static struct s2n_cipher_suite *s2n_test_arbitrary_equal_preference[] = {
+                &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
+                &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+                &s2n_equal_preference_group_start,              /* start group */
+                &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+                &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+                &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
+                &s2n_equal_preference_group_end,                /* end group */
+                &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
+            };
+                
+            const struct s2n_cipher_preferences cipher_preferences_test_arbitrary_equal_preferences_tls13 = {
+                .count = s2n_array_len(s2n_test_arbitrary_equal_preference),
+                .suites = s2n_test_arbitrary_equal_preference,
+            };
+            const struct s2n_security_policy test_arbitrary_equal_preference = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences_test_arbitrary_equal_preferences_tls13,
+                .kem_preferences = &kem_preferences_null,
+                .signature_preferences = &s2n_signature_preferences_20201021,
+                .ecc_preferences = &s2n_ecc_preferences_test_all,
+            };
+
+            /* Test equal-preferenced tls13 cipher suites */
             {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                
-                /**
-                 * TODO: This cipher suite will be moved to s2n_cipher_preferences w/ it's own security policy.
-                 *       For now, it's only used for testing purposes.
-                 * Cipher suite w/ all TLS cipher suites in one equal preference group.
-                 */
-                static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites_equal_preference[] = {
-                    &s2n_equal_preference_group_start,              /* start group */
-                    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
-                    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
-                    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
-                    &s2n_equal_preference_group_end,                /* end group */
-                };
-                
-                const struct s2n_cipher_preferences cipher_preferences_test_all_equal_preference_tls13 = {
-                    .count = s2n_array_len(s2n_all_tls13_cipher_suites_equal_preference),
-                    .suites = s2n_all_tls13_cipher_suites_equal_preference,
-                };
 
-                const struct s2n_security_policy test_all_equal_preference_tls13 = {
-                    .minimum_protocol_version = S2N_SSLv3,
-                    .cipher_preferences = &cipher_preferences_test_all_equal_preference_tls13,
-                    .kem_preferences = &kem_preferences_null,
-                    .signature_preferences = &s2n_signature_preferences_20201021,
-                    .ecc_preferences = &s2n_ecc_preferences_test_all,
-                };
                 conn->security_policy_override = &test_all_equal_preference_tls13;
-
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->client_protocol_version = S2N_TLS13;
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->server_protocol_version = S2N_TLS13;
-
+                
                 uint8_t chacha20_boosted_wire[] = {
                     TLS_CHACHA20_POLY1305_SHA256,
                     TLS_AES_256_GCM_SHA384,
@@ -870,29 +894,6 @@ int main(int argc, char **argv)
             {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-                /* An arbitrarily complex cipher suite w/ equal preference */
-                static struct s2n_cipher_suite *s2n_test_arbitrary_equal_preference[] = {
-                    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
-                    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
-                    &s2n_equal_preference_group_start,              /* start group */
-                    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
-                    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
-                    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
-                    &s2n_equal_preference_group_end,                /* end group */
-                    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
-                };
-                
-                const struct s2n_cipher_preferences cipher_preferences_test_arbitrary_equal_preferences_tls13 = {
-                    .count = s2n_array_len(s2n_test_arbitrary_equal_preference),
-                    .suites = s2n_test_arbitrary_equal_preference,
-                };
-                const struct s2n_security_policy test_arbitrary_equal_preference = {
-                    .minimum_protocol_version = S2N_SSLv3,
-                    .cipher_preferences = &cipher_preferences_test_arbitrary_equal_preferences_tls13,
-                    .kem_preferences = &kem_preferences_null,
-                    .signature_preferences = &s2n_signature_preferences_20201021,
-                    .ecc_preferences = &s2n_ecc_preferences_test_all,
-                };
                 conn->security_policy_override = &test_arbitrary_equal_preference;
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
