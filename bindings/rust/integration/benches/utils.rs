@@ -15,18 +15,6 @@ impl<'a> From<&'a str> for Arguments<'a> {
 }
 
 impl<'a> Arguments<'a> {
-    #[allow(dead_code)]
-    pub fn get_dash_c(self) -> Result<&'a str, anyhow::Error> {
-        let mut counter = 0;
-        for element in &self.argument {
-            counter += 1;
-            if element.eq(&"-c") {
-                return Ok(self.argument[counter]);
-            }
-        }
-        Err(anyhow!("Unable to find -c argument"))
-    }
-
     pub fn get_endpoint(self) -> Result<&'a str, anyhow::Error> {
         let mut counter = 0;
         for element in &self.argument {
@@ -44,16 +32,6 @@ impl<'a> Arguments<'a> {
     pub fn get_vec(self) -> Vec<&'a str> {
         self.argument
     }
-}
-
-#[test]
-fn argument_get_dash_c_test() {
-    let args: Arguments = "reset --hard --force -c foo.pem".into();
-    assert_eq!(
-        args.get_dash_c().unwrap(),
-        "foo.pem",
-        "Failed to fetch the correct argument"
-    );
 }
 
 #[test]
