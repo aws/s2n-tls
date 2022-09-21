@@ -357,7 +357,6 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_GUARD(s2n_x509_validator_read_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
 
     if (validator->skip_cert_validation) {
-        validator->state = CERT_CHAIN_PROCESSED;
         return S2N_RESULT_OK;
     }
 
@@ -371,17 +370,13 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
             validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
-    validator->state = CERT_CHAIN_PROCESSED;
+    validator->state = READY_TO_VERIFY;
 
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn) {
-    RESULT_ENSURE(validator->state == CERT_CHAIN_PROCESSED, S2N_ERR_INVALID_CERT_STATE);
-
-    if (validator->skip_cert_validation) {
-        return S2N_RESULT_OK;
-    }
+    RESULT_ENSURE(validator->state == READY_TO_VERIFY, S2N_ERR_INVALID_CERT_STATE);
 
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
@@ -442,7 +437,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD(s2n_x509_validator_process_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
     }
 
-    if (validator->state == CERT_CHAIN_PROCESSED) {
+    if (validator->state == READY_TO_VERIFY) {
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
     }
 
