@@ -253,7 +253,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&extension, renegotiation_info_len));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
-                    S2N_ERR_NO_RENEGOTIATION);
+                    S2N_ERR_BAD_MESSAGE);
         }
 
         /* Receive incorrect length: too large */
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&extension, renegotiation_info_len));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
-                    S2N_ERR_NO_RENEGOTIATION);
+                    S2N_ERR_BAD_MESSAGE);
         }
 
         /* Receive incorrect client_verify_data */
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
                     server_verify_data, server_verify_data, verify_data_len));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
-                    S2N_ERR_NO_RENEGOTIATION);
+                    S2N_ERR_BAD_MESSAGE);
         }
 
         /* Receive incorrect server_verify_data */
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
                     client_verify_data, client_verify_data, verify_data_len));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
-                    S2N_ERR_NO_RENEGOTIATION);
+                    S2N_ERR_BAD_MESSAGE);
         }
 
         /* Receive initial handshake extension */
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.send(conn, &extension));
             conn->handshake.renegotiation = true;
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
-                    S2N_ERR_NO_RENEGOTIATION);
+                    S2N_ERR_BAD_MESSAGE);
         }
     }
 

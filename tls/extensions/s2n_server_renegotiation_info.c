@@ -31,11 +31,25 @@ static int s2n_renegotiation_info_if_missing(struct s2n_connection *conn);
 
 const s2n_extension_type s2n_server_renegotiation_info_extension = {
     .iana_value = TLS_EXTENSION_RENEGOTIATION_INFO,
-    .is_response = false,
     .send = s2n_renegotiation_info_send,
     .recv = s2n_renegotiation_info_recv,
     .should_send = s2n_renegotiation_info_should_send,
     .if_missing = s2n_renegotiation_info_if_missing,
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *# Note that sending a "renegotiation_info" extension in response to a
+     *# ClientHello containing only the SCSV is an explicit exception to the
+     *# prohibition in RFC 5246, Section 7.4.1.4, on the server sending
+     *# unsolicited extensions and is only allowed because the client is
+     *# signaling its willingness to receive the extension via the
+     *# TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.
+     *
+     * This extension is technically a response extension, but doesn't
+     * follow any of the usual response extension rules.
+     * s2n-tls will therefore not treat it as a response extension.
+     */
+    .is_response = false,
 };
 
 /**
@@ -113,17 +127,17 @@ static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn
 
     uint8_t renegotiated_connection_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    POSIX_ENSURE(verify_data_len * 2 == renegotiated_connection_len, S2N_ERR_NO_RENEGOTIATION);
+    POSIX_ENSURE(verify_data_len * 2 == renegotiated_connection_len, S2N_ERR_BAD_MESSAGE);
 
     uint8_t *first_half = s2n_stuffer_raw_read(extension, verify_data_len);
     POSIX_ENSURE_REF(first_half);
     POSIX_ENSURE(s2n_constant_time_equals(first_half, conn->handshake.client_finished, verify_data_len),
-            S2N_ERR_NO_RENEGOTIATION);
+            S2N_ERR_BAD_MESSAGE);
 
     uint8_t *second_half = s2n_stuffer_raw_read(extension, verify_data_len);
     POSIX_ENSURE_REF(second_half);
     POSIX_ENSURE(s2n_constant_time_equals(second_half, conn->handshake.server_finished, verify_data_len),
-            S2N_ERR_NO_RENEGOTIATION);
+            S2N_ERR_BAD_MESSAGE);
 
     return S2N_SUCCESS;
 }
