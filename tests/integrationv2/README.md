@@ -174,13 +174,18 @@ The CI will run `make install` and `make -C ./bindings/rust` to create and insta
 
 ### What is happening inside the CriterionS2N provider?
 
-The binary created by `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds and replaces in the final testing command.
+The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary and moves the s2nc/d command line arguments into an environment variable.  The binary created by `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds and replaces in the final testing command.
 The arguments to s2nc/d are moved to the environment variables `S2NC_ARGS` or `S2ND_ARGS`, which are read by the rust benchmark when spawning s2nc/d as subprocesses.
 
-The name of the test is constructed from the s2nc/d command line arguments.
+The name of the criterion report is based on the test name; constructed from the s2nc/d command line arguments.
 
 Criterion needs 3 passes to generate a report showing changes between two runs. The first pass establishes a base line, the second run a delta dataset, and the final a report.
 These modes have slightly different command line arguments to criterion and are controlled with the environment variable S2N_USECRITERION in the provider.
+
+### Running locally
+
+The Criterion CodeBuild scripts can be used to run these locally, with the caveat that the s3/github interactions require access to the various resources. A future improvement might be to have a local mode that disables these. 
+
 
 ## Troubleshooting CriterionS2N
 
