@@ -414,7 +414,7 @@ class CriterionS2N(S2N):
         self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters"]
 
     def capture_client_args_report(self):
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc",
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters",
                          "--load-baseline", "new", "--baseline", "main"]
 
 
