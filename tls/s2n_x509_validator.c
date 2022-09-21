@@ -421,7 +421,7 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
     RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
     RESULT_ENSURE(s2n_asn1der_to_public_key_and_type(public_key, pkey_type, &asn1_cert) == 0,
-                  S2N_ERR_CERT_UNTRUSTED);
+            S2N_ERR_CERT_UNTRUSTED);
 
     /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
     if (conn->actual_protocol_version >= S2N_TLS13) {
@@ -451,7 +451,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
     s2n_pkey_zero_init(&public_key);
     s2n_parsed_extensions_list first_certificate_extensions = { 0 };
     RESULT_GUARD(s2n_x509_validator_read_leaf_info(conn, cert_chain_in, cert_chain_len, &public_key, pkey_type,
-                                                   &first_certificate_extensions));
+            &first_certificate_extensions));
 
     if (conn->actual_protocol_version >= S2N_TLS13) {
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));

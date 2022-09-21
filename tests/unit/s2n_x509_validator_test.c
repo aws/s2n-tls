@@ -1410,6 +1410,7 @@ int main(int argc, char **argv) {
                 &pkey_type, &public_key_out), S2N_ERR_CERT_UNTRUSTED);
 
         s2n_stuffer_free(&chain_stuffer);
+        EXPECT_TRUE(S2N_PKEY_TYPE_UNKNOWN == pkey_type);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
 
