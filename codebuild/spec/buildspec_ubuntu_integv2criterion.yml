@@ -16,20 +16,20 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
-          S2N_USE_CRITERION: 2
+          S2N_USECRITERION: baseline
           S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
           XDIST_WORKERS: 2
           RUST_BACKTRACE: 1
-    - identifier: s2nIntegrationv2WellKnownEndpoints
+    - identifier: s2nIntegrationv2WellKnownEndpointsDelta
       debug-session: true
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
-          S2N_USE_CRITERION: 1
+          S2N_USECRITERION: delta
           S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
@@ -38,6 +38,26 @@ batch:
           ARTIFACT_FILE: integv2criterion
       depend-on:
         - s2nIntegrationv2WellKnownEndpointsBaseline
+    - identifier: s2nIntegrationv2WellKnownEndpointsReport
+      debug-session: true
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_well_known_endpoints
+          S2N_USECRITERION: report
+          S2N_NO_PQ: 1
+          TESTS: integrationv2crit
+          GCC_VERSION: 6
+          XDIST_WORKERS: 2
+          ARTIFACT_BUCKET: s3://s2n-tls-logs/release
+          ARTIFACT_FILE: integv2criterion
+      depend-on:
+        - s2nIntegrationv2WellKnownEndpointsBaseline
+
+phases:
+  install:
+    runtime-versions:
 
 phases:
   install:
