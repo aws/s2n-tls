@@ -7,7 +7,7 @@ def pytest_addoption(parser):
     parser.addoption("--fips-mode", action="store", dest="fips-mode", default=False, type=int, help="S2N is running in FIPS mode")
     parser.addoption("--no-pq", action="store", dest="no-pq", default=False, type=int, help="Turn off PQ support")
     parser.addoption("--provider-criterion", action="store", dest="provider-criterion",
-      default=False, type=int, help="0=off(default, 1=Run the test under a Criterion provider in delta mode, 2=Run in baseline mode.")
+      default=False, type=str, help="Use Criterion provider in one of 3 modes: [off,delta,baseline]")
 
 def pytest_configure(config):
     """

@@ -331,10 +331,10 @@ class CriterionS2N(S2N):
     """
     Wrap the S2N provider in criterion-rust
     """
-    criterion_off = 0
-    criterion_delta = 1
-    criterion_baseline = 2
-    criterion_report = 3
+    criterion_off = 'off'
+    criterion_delta = 'delta'
+    criterion_baseline = 'baseline'
+    criterion_report = 'report'
     # Figure out what mode to run in: baseline, delta or report
     criterion_mode = get_flag(S2N_USECRITERION)
 
