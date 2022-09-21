@@ -411,7 +411,7 @@ class CriterionS2N(S2N):
 
     def capture_client_args_delta(self):
         # Without this flag, criterion won't run
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc"]
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters"]
 
     def capture_client_args_report(self):
         self.cmd_line = [self.s2nc_bench, "--bench", "s2nc",
