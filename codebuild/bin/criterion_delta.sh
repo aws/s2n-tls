@@ -14,9 +14,28 @@
 
 set -eu
 source ./codebuild/bin/utils.sh
+# Disable PQ
+export S2N_NOPQ=1
+# Limit the number of child processes in the test run
+export XDIST_WORKERS: 2
+export RUST_BACKTRACE: 1
 
-make install
-source $HOME/.cargo/env
-make -C bindings/rust
-S2N_USE_CRITERION=1 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
-S2N_USE_CRITERION=3 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
+
+# CodeBuild artifacts are too limited;
+# scipting the baseline download steps here.
+download_artifacts(){
+  mkdir -p ./tests/integrationv2/target/criterion || true
+  aws s3 cp ${AWS_S3_URL}/${AWS_S3_PATH} ./tests/integrationv2/target/criterion/
+  unzip -o ${AWS_S3_PATH} -d ./tests/integrationv2/target/criterion/
+  echo "S3 download complete"
+}
+
+# Fetch creds and the latest release number.
+gh_login s2n_codebuild_PRs
+get_latest_release
+AWS_S3_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+criterion_install_deps
+download_artifacts
+
+S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
+S2N_USE_CRITERION=report make -C tests/integrationv2 "$INTEGV2_TEST"

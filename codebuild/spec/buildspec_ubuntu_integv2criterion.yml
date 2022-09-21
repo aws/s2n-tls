@@ -9,6 +9,8 @@ env:
 # Doc for batch https://docs.aws.amazon.com/codebuild/latest/userguide/batch-build-buildspec.html#build-spec.batch.build-list
 batch:
   build-graph:
+    # This is here in the event we've just done a release, and no baseline exists yet.
+    # Normally, this baseline should be a no-op.
     - identifier: s2nIntegrationv2WellKnownEndpointsBaseline
       buildspec: codebuild/spec/buildspec_ubuntu_integv2criterion_baseline.yml
       env:
@@ -16,12 +18,6 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
-          S2N_USECRITERION: baseline
-          S2N_NO_PQ: 1
-          TESTS: integrationv2crit
-          GCC_VERSION: 6
-          XDIST_WORKERS: 2
-          RUST_BACKTRACE: 1
     - identifier: s2nIntegrationv2WellKnownEndpointsDelta
       debug-session: true
       env:
@@ -29,35 +25,8 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           INTEGV2_TEST: test_well_known_endpoints
-          S2N_USECRITERION: delta
-          S2N_NO_PQ: 1
-          TESTS: integrationv2crit
-          GCC_VERSION: 6
-          XDIST_WORKERS: 2
-          ARTIFACT_BUCKET: s3://s2n-tls-logs/release
-          ARTIFACT_FILE: integv2criterion
       depend-on:
         - s2nIntegrationv2WellKnownEndpointsBaseline
-    - identifier: s2nIntegrationv2WellKnownEndpointsReport
-      debug-session: true
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          INTEGV2_TEST: test_well_known_endpoints
-          S2N_USECRITERION: report
-          S2N_NO_PQ: 1
-          TESTS: integrationv2crit
-          GCC_VERSION: 6
-          XDIST_WORKERS: 2
-          ARTIFACT_BUCKET: s3://s2n-tls-logs/release
-          ARTIFACT_FILE: integv2criterion
-      depend-on:
-        - s2nIntegrationv2WellKnownEndpointsBaseline
-
-phases:
-  install:
-    runtime-versions:
 
 phases:
   install:
@@ -65,19 +34,7 @@ phases:
       python: 3.x
     commands:
       - $CB_BIN_DIR/install_ubuntu_dependencies.sh
-      - $CB_BIN_DIR/utils.sh gh_login s2n_codebuild_PRs
-      - export LATEST_RELEASE_VER=$($CB_BIN_DIR/utils.sh get_latest_release)
-      - mkdir -p tests/integrationv2/target/criterion || true
-      - aws s3 cp ${ARTIFACT_BUCKET}/${ARTIFACT_FILE}_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip .
-      - unzip -o ${ARTIFACT_FILE}_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip -d ./tests/integrationv2/target/criterion
   build:
     commands:
       - codebuild-breakpoint
       - $CB_BIN_DIR/criterion_delta.sh
-artifacts:
-  files:
-    - "**/index.html"
-    - "**/*.svg"
-    - "**/*.json"
-  base-directory: "tests/integrationv2/target/criterion"
-  discard-paths: no
