@@ -2,8 +2,6 @@ import os
 from common import Protocols, Curves, Ciphers
 from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
 
-EXECUTABLE=33261
-
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
 
@@ -110,6 +108,10 @@ def invalid_test_parameters(*args, **kwargs):
 
 
 def find_files(file_glob, root_dir=".", mode=None):
+    """
+    find util in python form.
+    mode defaults to owner has executable
+    """
     # file_glob: a snippet of the filename, e.g. ".py"
     # root_dir: starting point for search
     result=[]
@@ -119,9 +121,9 @@ def find_files(file_glob, root_dir=".", mode=None):
                 full_name=os.path.abspath(os.path.join(root,file))
                 if mode:
                     try:
-                        stat = os.stat(full_name)[0]
+                        stat = oct(os.stat(full_name).st_mode)
                         if stat == mode:
-                                result.append(full_name)
+                            result.append(full_name)
                     except FileNotFoundError:
                         # symlinks
                         pass

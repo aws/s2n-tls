@@ -5,7 +5,7 @@ import threading
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from global_flags import S2N_USECRITERION
-from utils import find_files, EXECUTABLE
+from utils import find_files
 
 
 TLS_13_LIBCRYPTOS = {
@@ -339,11 +339,11 @@ class CriterionS2N(S2N):
     criterion_mode = get_flag(S2N_USECRITERION)
 
     def _find_s2n_benchmark(self, pattern):
-        result = find_files(pattern, root_dir=self.cargo_root, mode=EXECUTABLE)
+        result = find_files(pattern, root_dir=self.cargo_root, mode='0o100775')
         if len(result) > 0:
             return result[0]
         else:
-            raise FileNotFoundError("s2n criterion benchmark not found.")
+            raise FileNotFoundError(f"s2n criterion benchmark not found {result}.")
 
     def _find_cargo(self):
         # return a path to the highest level dir containing Cargo.toml
@@ -354,6 +354,8 @@ class CriterionS2N(S2N):
             else:
                 if len(file) < len(shortest):
                     shortest = file
+        if shortest is None:
+            raise("Unable to find Cargo.toml")
         # Return the path, minus Cargo.toml
         return str("/".join(shortest.split("/")[:-1]))
 
