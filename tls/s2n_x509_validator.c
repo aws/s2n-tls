@@ -300,12 +300,12 @@ static S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_cha
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_parse_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len) {
     RESULT_ENSURE(validator->skip_cert_validation || s2n_x509_trust_store_has_certs(validator->trust_store), S2N_ERR_CERT_UNTRUSTED);
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
-    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
 
     RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
     RESULT_GUARD_POSIX(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
@@ -313,7 +313,7 @@ static S2N_RESULT s2n_x509_validator_parse_cert_chain(struct s2n_x509_validator 
     X509 *server_cert = NULL;
 
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && sk_X509_num(validator->cert_chain_from_wire) < validator->max_chain_depth) {
-        struct s2n_blob asn1_cert = {0};
+        struct s2n_blob asn1_cert = { 0 };
         RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
         const uint8_t *data = asn1_cert.data;
@@ -349,13 +349,14 @@ static S2N_RESULT s2n_x509_validator_parse_cert_chain(struct s2n_x509_validator 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len) {
     RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
 
-    RESULT_GUARD(s2n_x509_validator_parse_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
+    RESULT_GUARD(s2n_x509_validator_read_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
 
     if (validator->skip_cert_validation) {
+        validator->state = CERT_CHAIN_PROCESSED;
         return S2N_RESULT_OK;
     }
 
@@ -369,12 +370,18 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
             validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
-    validator->state = CERT_CHAIN_READ;
+    validator->state = CERT_CHAIN_PROCESSED;
 
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn) {
+    RESULT_ENSURE(validator->state == CERT_CHAIN_PROCESSED, S2N_ERR_INVALID_CERT_STATE);
+
+    if (validator->skip_cert_validation) {
+        return S2N_RESULT_OK;
+    }
+
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
 
@@ -404,12 +411,12 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
 static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
         struct s2n_pkey *public_key, s2n_pkey_type *pkey_type, s2n_parsed_extensions_list *first_certificate_extensions) {
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
-    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
 
     RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
     RESULT_GUARD_POSIX(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
 
-    struct s2n_blob asn1_cert = {0};
+    struct s2n_blob asn1_cert = { 0 };
     RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
     RESULT_ENSURE(s2n_asn1der_to_public_key_and_type(public_key, pkey_type, &asn1_cert) == 0,
@@ -429,24 +436,19 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
 
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
-    switch (validator->state) {
-        case INIT:
-            break;
-        default:
-            RESULT_BAIL(S2N_ERR_INVALID_CERT_STATE);
-    }
+    RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
 
     if (validator->state == INIT) {
-        RESULT_GUARD(s2n_x509_validator_read_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
+        RESULT_GUARD(s2n_x509_validator_process_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
     }
 
-    if (validator->state == CERT_CHAIN_READ) {
+    if (validator->state == CERT_CHAIN_PROCESSED) {
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
     }
 
-    DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
+    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
     s2n_pkey_zero_init(&public_key);
-    s2n_parsed_extensions_list first_certificate_extensions = {0};
+    s2n_parsed_extensions_list first_certificate_extensions = { 0 };
     RESULT_GUARD(s2n_x509_validator_read_leaf_info(conn, cert_chain_in, cert_chain_len, &public_key, pkey_type,
                                                    &first_certificate_extensions));
 
