@@ -18,8 +18,8 @@ source codebuild/bin/utils.sh
 # Disable PQ
 export S2N_NOPQ=1
 # Limit the number of child processes in the test run
-export XDIST_WORKERS: 2
-export RUST_BACKTRACE: 1
+export XDIST_WORKERS=2
+export RUST_BACKTRACE=1
 export AWS_S3_URL="s3://s2n-tls-logs/release/"
 
 # There can be only one artifact config per batch job,

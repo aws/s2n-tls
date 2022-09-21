@@ -16,18 +16,22 @@ set -eu
 source ./codebuild/bin/utils.sh
 # Disable PQ
 export S2N_NOPQ=1
+export AWS_S3_URL="s3://s2n-tls-logs/release/"
 # Limit the number of child processes in the test run
-export XDIST_WORKERS: 2
-export RUST_BACKTRACE: 1
+export XDIST_WORKERS=2
+export RUST_BACKTRACE=1
 
 
 # CodeBuild artifacts are too limited;
 # scipting the baseline download steps here.
 download_artifacts(){
   mkdir -p ./tests/integrationv2/target/criterion || true
-  aws s3 cp ${AWS_S3_URL}/${AWS_S3_PATH} ./tests/integrationv2/target/criterion/
-  unzip -o ${AWS_S3_PATH} -d ./tests/integrationv2/target/criterion/
+  echo "Downloadingp ${AWS_S3_URL}${AWS_S3_PATH}"
+  pushd  ./tests/integrationv2/target/criterion/
+  aws s3 cp ${AWS_S3_URL}${AWS_S3_PATH} .
+  unzip -o ${AWS_S3_PATH}
   echo "S3 download complete"
+  popd
 }
 
 # Fetch creds and the latest release number.
@@ -37,5 +41,6 @@ AWS_S3_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
 criterion_install_deps
 download_artifacts
 
-S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
-S2N_USE_CRITERION=report make -C tests/integrationv2 "$INTEGV2_TEST"
+echo "Current dir: $(pwd)"
+S2N_USECRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
+S2N_USECRITERION=report make -C tests/integrationv2 "$INTEGV2_TEST"
