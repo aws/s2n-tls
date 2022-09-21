@@ -428,7 +428,6 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
         s2n_parsed_extensions_list parsed_extensions_list = { 0 };
         RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
 
-        /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
         *first_certificate_extensions = parsed_extensions_list;
     }
 
@@ -454,6 +453,13 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
             &first_certificate_extensions));
 
     if (conn->actual_protocol_version >= S2N_TLS13) {
+        /* Only process certificate extensions received in the first certificate. Extensions received in all other
+         * certificates are ignored.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.4.2
+         *# If an extension applies to the entire chain, it SHOULD be included in
+         *# the first CertificateEntry.
+         */
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
