@@ -121,8 +121,14 @@ else()
             ${CMAKE_BINARY_DIR}
             "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS ${KYBER512R3_AVX2_BMI2_FLAGS})
-            
-        if(KYBER512R3_AVX2_BMI2_SUPPORTED)
+
+        try_compile(KYBER512R3_M256_INTRINSICS_SUPPORTED
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/m256_intrinsics.c")
+
+        # Some platforms support -mavx2 flag but not m256 intrinsics required to use them. Only enable Kyber assembly
+        # optimizations if both are supported. See https://github.com/aws/s2n-tls/pull/3005 for more info.
+        if(KYBER512R3_AVX2_BMI2_SUPPORTED AND KYBER512R3_M256_INTRINSICS_SUPPORTED)
             set(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED ON)
         endif()
     endif()
@@ -283,7 +289,7 @@ if(S2N_NO_PQ)
 endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
-    FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*.c")
+    FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
     set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_KYBER512R3_AVX2_BMI2)
 

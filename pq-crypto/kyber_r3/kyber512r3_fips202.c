@@ -14,6 +14,10 @@
 #define NROUNDS 24
 #define ROL(a, offset) (((a) << (offset)) ^ ((a) >> (64 - (offset))))
 
+#if S2N_ANY_NONPORTABLE_OPTIMIZATIONS_ENABLED
+#error "Compiling portable code with non-portable assembly optimizations is not allowed"
+#endif
+
 /*************************************************
  * Name:        load64
  *

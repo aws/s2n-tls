@@ -39,4 +39,3 @@ clean: decruft
 	$(MAKE) -C kyber_r3 decruft
 
 include ../s2n.mk
-include ./s2n_pq_asm.mk
