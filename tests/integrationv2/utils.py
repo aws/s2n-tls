@@ -2,8 +2,10 @@ import os
 from common import Protocols, Curves, Ciphers
 from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
 
+
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
+
 
 def get_expected_openssl_version(protocol):
     return {
@@ -44,7 +46,8 @@ def invalid_test_parameters(*args, **kwargs):
     curve = kwargs.get('curve')
     signature = kwargs.get('signature')
 
-    providers = [provider_ for provider_ in [provider, other_provider] if provider_]
+    providers = [provider_ for provider_ in [
+        provider, other_provider] if provider_]
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
@@ -114,11 +117,11 @@ def find_files(file_glob, root_dir=".", mode=None):
     """
     # file_glob: a snippet of the filename, e.g. ".py"
     # root_dir: starting point for search
-    result=[]
+    result = []
     for root, dirs, files in os.walk(root_dir):
         for file in files:
             if file_glob in file:
-                full_name=os.path.abspath(os.path.join(root,file))
+                full_name = os.path.abspath(os.path.join(root, file))
                 if mode:
                     try:
                         stat = oct(os.stat(full_name).st_mode)
@@ -128,6 +131,6 @@ def find_files(file_glob, root_dir=".", mode=None):
                         # symlinks
                         pass
                 else:
-                        result.append(full_name)
+                    result.append(full_name)
 
     return result

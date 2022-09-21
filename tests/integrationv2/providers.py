@@ -13,6 +13,7 @@ TLS_13_LIBCRYPTOS = {
     "openssl-1.1.1"
 }
 
+
 def get_expected_s2n_version(protocol, provider):
     """
     s2nd and s2nc print a number for the negotiated TLS version.
@@ -27,7 +28,6 @@ def get_expected_s2n_version(protocol, provider):
         version = protocol.value
 
     return version
-
 
 
 class Provider(object):
@@ -343,7 +343,8 @@ class CriterionS2N(S2N):
         if len(result) > 0:
             return result[0]
         else:
-            raise FileNotFoundError(f"s2n criterion benchmark not found {result}.")
+            raise FileNotFoundError(
+                f"s2n criterion benchmark not found {result}.")
 
     def _find_cargo(self):
         # return a path to the highest level dir containing Cargo.toml
@@ -374,11 +375,11 @@ class CriterionS2N(S2N):
         # Find the criterion binaries
         self._cargo_bench()
 
-        #strip off the s2nc/d at the front because criterion
+        # strip off the s2nc/d at the front because criterion
         if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
             self.cmd_line = self.cmd_line[1:]
 
-        #strip off the s2nc -e argument, criterion handler isn't sending any STDIN characters,
+        # strip off the s2nc -e argument, criterion handler isn't sending any STDIN characters,
         # and makes it look like s2nc is hanging.
         if '-e' in self.cmd_line:
             self.cmd_line.remove('-e')
@@ -386,10 +387,12 @@ class CriterionS2N(S2N):
 
         # Copy the command arguments to an environment variable for the harness to read.
         if self.options.mode == Provider.ServerMode:
-            self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
+            self.options.env_overrides.update(
+                {'S2ND_ARGS': ' '.join(self.cmd_line)})
             self.capture_server_args()
         elif self.options.mode == Provider.ClientMode:
-            self.options.env_overrides.update({'S2NC_ARGS': ' '.join(self.cmd_line)})
+            self.options.env_overrides.update(
+                {'S2NC_ARGS': ' '.join(self.cmd_line)})
             if self.criterion_mode == CriterionS2N.criterion_baseline:
                 self.capture_client_args_baseline()
             if self.criterion_mode == CriterionS2N.criterion_delta:
@@ -403,14 +406,16 @@ class CriterionS2N(S2N):
 
     def capture_client_args_baseline(self):
         # Without this flag, criterion won't run
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--save-baseline", "main"]
+        self.cmd_line = [self.s2nc_bench, "--bench",
+                         "s2nc", "--save-baseline", "main"]
 
     def capture_client_args_delta(self):
         # Without this flag, criterion won't run
         self.cmd_line = [self.s2nc_bench, "--bench", "s2nc"]
 
     def capture_client_args_report(self):
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--load-baseline", "new", "--baseline", "main"]
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc",
+                         "--load-baseline", "new", "--baseline", "main"]
 
 
 class OpenSSL(Provider):
