@@ -8,6 +8,7 @@ mod utils;
 pub fn s2nc(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2nc");
     let s2nc_env: &str = &env::var("S2NC_ARGS").unwrap();
+    dbg!("S2NC_ARGS were: {:?}", &s2nc_env);
     let s2nc_args: utils::Arguments = s2nc_env.into();
     let test_name = format!("s2nc_{}", s2nc_args.get_endpoint().unwrap());
     dbg!("Parsed test_name as: {:?}", &test_name);

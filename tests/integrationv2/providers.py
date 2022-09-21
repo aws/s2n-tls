@@ -378,6 +378,12 @@ class CriterionS2N(S2N):
         if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
             self.cmd_line = self.cmd_line[1:]
 
+        #strip off the s2nc -e argument, criterion handler isn't sending any STDIN characters,
+        # and makes it look like s2nc is hanging.
+        if '-e' in self.cmd_line:
+            self.cmd_line.remove('-e')
+            print(f"***** cmd_line is now {self.cmd_line}")
+
         # Copy the command arguments to an environment variable for the harness to read.
         if self.options.mode == Provider.ServerMode:
             self.options.env_overrides.update({'S2ND_ARGS': ' '.join(self.cmd_line)})
