@@ -42,5 +42,5 @@ criterion_install_deps
 download_artifacts
 
 echo "Current dir: $(pwd)"
-S2N_USECRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
-S2N_USECRITERION=report make -C tests/integrationv2 "$INTEGV2_TEST"
+S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
+S2N_USE_CRITERION=report make -C tests/integrationv2 "$INTEGV2_TEST"

@@ -5,7 +5,7 @@ from constants import TRUST_STORE_BUNDLE
 from configuration import available_ports, PROTOCOLS
 from fixtures import managed_process
 from common import ProviderOptions, Protocols, Ciphers, pq_enabled
-from global_flags import get_flag, S2N_FIPS_MODE, S2N_USECRITERION
+from global_flags import get_flag, S2N_FIPS_MODE, S2N_USE_CRITERION
 from providers import Provider, S2N, CriterionS2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
@@ -84,7 +84,7 @@ else:
             {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
     }
 
-if get_flag(S2N_USECRITERION):
+if get_flag(S2N_USE_CRITERION):
     provider = [CriterionS2N]
     timeout = 60
 else:

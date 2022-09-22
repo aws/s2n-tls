@@ -1,5 +1,5 @@
 import pytest
-from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_PQ, S2N_USECRITERION
+from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_PQ, S2N_USE_CRITERION
 
 
 def pytest_addoption(parser):
@@ -31,7 +31,7 @@ def pytest_configure(config):
         set_flag(S2N_FIPS_MODE, True)
 
     set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
-    set_flag(S2N_USECRITERION, config.getoption('provider-criterion', None))
+    set_flag(S2N_USE_CRITERION, config.getoption('provider-criterion', None))
 
 
 def pytest_collection_modifyitems(config, items):

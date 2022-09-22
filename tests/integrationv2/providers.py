@@ -4,7 +4,7 @@ import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
-from global_flags import S2N_USECRITERION
+from global_flags import S2N_USE_CRITERION
 from utils import find_files
 
 
@@ -336,7 +336,7 @@ class CriterionS2N(S2N):
     criterion_baseline = 'baseline'
     criterion_report = 'report'
     # Figure out what mode to run in: baseline, delta or report
-    criterion_mode = get_flag(S2N_USECRITERION)
+    criterion_mode = get_flag(S2N_USE_CRITERION)
 
     def _find_s2n_benchmark(self, pattern):
         result = find_files(pattern, root_dir=self.cargo_root, mode='0o100775')
