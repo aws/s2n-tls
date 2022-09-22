@@ -22,5 +22,6 @@
     }
 
 int main() {
+    ALIGNED_UINT8(256) buf;
     return 0;
 }
