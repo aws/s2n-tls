@@ -370,3 +370,9 @@ S2N_RESULT s2n_handshake_set_finished_len(struct s2n_connection *conn, uint8_t l
 
     return S2N_RESULT_OK;
 }
+
+bool s2n_handshake_is_renegotiation(struct s2n_connection *conn)
+{
+    return s2n_in_unit_test() && conn &&
+            (conn->mode == S2N_CLIENT) && conn->handshake.renegotiation;
+}

@@ -54,6 +54,14 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          */
         S2N_ALERT_CASE(S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
+        /* For errors involving secure renegotiation:
+         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *# Note: later in Section 3, "abort the handshake" is used as
+         *# shorthand for "send a fatal handshake_failure alert and
+         *# terminate the connection".
+         */
+        S2N_ALERT_CASE(S2N_ERR_NO_RENEGOTIATION, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+
         /* TODO: Add mappings for other protocol errors.
          */
         S2N_NO_ALERT(S2N_ERR_ENCRYPT);
