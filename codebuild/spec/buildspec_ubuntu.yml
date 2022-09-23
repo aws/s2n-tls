@@ -22,7 +22,5 @@ phases:
   build:
     commands:
       - printenv
+      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - $CB_BIN_DIR/s2n_codebuild.sh
-  post_build:
-    commands:
-      - echo Build completed on `date`

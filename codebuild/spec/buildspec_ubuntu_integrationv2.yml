@@ -23,4 +23,5 @@ phases:
     commands:
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
+      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - TOX_TEST_NAME=$INTEGV2_TEST TESTS=integrationv2 $CB_BIN_DIR/s2n_codebuild.sh
