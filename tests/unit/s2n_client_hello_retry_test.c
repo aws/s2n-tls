@@ -959,6 +959,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(client_conn, apn, sizeof(apn)));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            client_conn->handshake.renegotiation = true;
+            client_conn->secure_renegotiation = true;
             if (tls13_tickets) {
                 EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             }
@@ -979,13 +981,6 @@ int main(int argc, char **argv)
 
                 /* The cookie is a special case and only appears AFTER the retry */
                 if (iana == TLS_EXTENSION_COOKIE) {
-                    continue;
-                }
-
-                /* s2n-tls doesn't actually support sending this extension */
-                if (iana == TLS_EXTENSION_RENEGOTIATION_INFO) {
-                    EXPECT_EQUAL(s2n_client_renegotiation_info_extension.should_send,
-                            &s2n_extension_never_send);
                     continue;
                 }
 

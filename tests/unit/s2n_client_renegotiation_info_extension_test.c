@@ -25,6 +25,8 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    const uint8_t renegotiation_info_scsv_iana[] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+
     /* Test receive - too much data */
     {
         struct s2n_connection *conn;
@@ -94,8 +96,6 @@ int main(int argc, char **argv)
      *#    RECOMMENDED.
      */
     {
-        const uint8_t renegotiation_info_scsv_iana[] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
-
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
@@ -186,6 +186,102 @@ int main(int argc, char **argv)
 
         /* Expect secure renegotiation to be true: extension received */
         EXPECT_TRUE(server_conn->secure_renegotiation);
+    }
+
+    /* Test: should_send during renegotiation handshake
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= type=test
+     *# o  The client MUST include the "renegotiation_info" extension in the
+     *#    ClientHello
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        /* Not included by default */
+        EXPECT_FALSE(s2n_client_renegotiation_info_extension.should_send(conn));
+
+        /* Included if renegotiation enabled */
+        conn->handshake.renegotiation = true;
+        EXPECT_TRUE(s2n_client_renegotiation_info_extension.should_send(conn));
+    }
+
+    /* Test: send during renegotiation handshake
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= type=test
+     *# o  The client MUST include the "renegotiation_info" extension in the
+     *#    ClientHello, containing the saved client_verify_data.
+     */
+    {
+        /* Send client_verify_data */
+        {
+            const uint8_t client_verify_data[] = "client verify data";
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->handshake.renegotiation = true;
+
+            /* Setup client_verify_data */
+            EXPECT_MEMCPY_SUCCESS(conn->handshake.client_finished,
+                    client_verify_data, sizeof(client_verify_data));
+            conn->handshake.finished_len = sizeof(client_verify_data);
+
+            /* Error if secure renegotiation not supported */
+            {
+                conn->secure_renegotiation = false;
+
+                DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.send(conn, &out),
+                        S2N_ERR_NO_RENEGOTIATION);
+            }
+
+            /* Success if secure renegotiation supported */
+            {
+                conn->secure_renegotiation = true;
+
+                DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+                EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.send(conn, &out));
+
+                uint8_t actual_len = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &actual_len));
+                EXPECT_EQUAL(actual_len, sizeof(client_verify_data));
+
+                uint8_t *actual_data = s2n_stuffer_raw_read(&out, actual_len);
+                EXPECT_BYTEARRAY_EQUAL(actual_data, client_verify_data, actual_len);
+            }
+        }
+
+        /*
+         *= https://tools.ietf.org/rfc/rfc5746#3.5
+         *= type=test
+         *# The SCSV MUST NOT be included.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->secure_renegotiation = true;
+            conn->handshake.renegotiation = true;
+
+            EXPECT_SUCCESS(s2n_client_hello_send(conn));
+            EXPECT_SUCCESS(s2n_parse_client_hello(conn));
+
+            /* Expect TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
+            bool found_renegotiation_info_scsv = false;
+            for (size_t i = 0; i < conn->client_hello.cipher_suites.size; i += S2N_TLS_CIPHER_SUITE_LEN) {
+                uint8_t *iana = conn->client_hello.cipher_suites.data + i;
+                if (memcmp(iana, renegotiation_info_scsv_iana, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+                    found_renegotiation_info_scsv = true;
+                }
+            }
+            EXPECT_FALSE(found_renegotiation_info_scsv);
+        }
     }
 
     END_TEST();
