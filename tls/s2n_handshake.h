@@ -180,6 +180,9 @@ struct s2n_handshake {
 
     /* Set to 1 if the RSA verification failed */
     unsigned rsa_failed:1;
+
+    /* Indicates that this is a renegotiation handshake */
+    unsigned renegotiation:1;
 };
 
 /* Only used in our test cases. */
@@ -197,6 +200,7 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
 S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message);
 S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake);
 S2N_RESULT s2n_handshake_set_finished_len(struct s2n_connection *conn, uint8_t len);
+bool s2n_handshake_is_renegotiation(struct s2n_connection *conn);
 
 /* s2n_handshake_io */
 int s2n_conn_set_handshake_type(struct s2n_connection *conn);

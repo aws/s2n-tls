@@ -592,29 +592,33 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Now, write the IANA values of every available cipher suite in our list */
     struct s2n_cipher_suite *cipher = NULL;
-    bool legacy_renegotiation_signal_required = false;
-    for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
+    bool tls12_is_possible = false;
+    for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
         cipher = cipher_preferences->suites[i];
         if (s2n_result_is_error(s2n_cipher_suite_validate_available(conn, cipher))) {
             continue;
         }
         if (cipher->minimum_required_tls_version < S2N_TLS13) {
-            legacy_renegotiation_signal_required = true;
+            tls12_is_possible = true;
         }
         POSIX_GUARD(s2n_stuffer_write_bytes(out, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     }
 
     /**
+     * For initial handshakes:
      *= https://tools.ietf.org/rfc/rfc5746#3.4
      *# o  The client MUST include either an empty "renegotiation_info"
      *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
      *#    cipher suite value in the ClientHello.  Including both is NOT
      *#    RECOMMENDED.
-     *
      * For maximum backwards compatibility, we choose to use the TLS_EMPTY_RENEGOTIATION_INFO_SCSV cipher suite
      * rather than the "renegotiation_info" extension.
+     *
+     * For renegotiation handshakes:
+     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *# The SCSV MUST NOT be included.
      */
-    if (legacy_renegotiation_signal_required) {
+    if (tls12_is_possible && !s2n_handshake_is_renegotiation(conn)) {
         uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
         POSIX_GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
     }
