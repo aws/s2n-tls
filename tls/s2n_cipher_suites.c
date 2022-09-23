@@ -219,6 +219,11 @@ struct s2n_cipher_suite s2n_null_cipher_suite = {
     .record_alg = &s2n_record_alg_null,
 };
 
+/* Both the group start and group end cipher suites are never negotiated. To ensure
+ * this, the IANA value is set to TLS_NULL_WITH_NULL_NULL. s2n checks that the negotiated
+ * cipher IANA id is never this value (see s2n_connection_get_cipher_iana_value) therefore preventing
+ * these ciphers from being negotiated.
+ */
 struct s2n_cipher_suite s2n_equal_preference_group_start = {
     .available = 0,
     .name = "EQUAL_PREFERENCE_GROUP_START",
@@ -1204,11 +1209,6 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
         return false;
     }
 
-    /* If connection is for SSLv3, use SSLv3 version of suites */
-    if (conn->client_protocol_version == S2N_SSLv3) {
-        potential_match = potential_match->sslv3_cipher_suite;
-    }
-
     /* Skip the suite if we don't have an available implementation */
     if (!potential_match->available) {
         return false;
@@ -1258,19 +1258,20 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
  * each in-group cipher suite, we iterate through the client's preferences and save the 
  * index of the client's cipher suite, throwing out the previous index if it is 
  * less-preferred by the client than the current index. Once the end-group deliminator is 
- * encountered, the server either chooses that cipher suite indicated by that index or, if no cipher suite 
+ * encountered, the server either accepts the idenfitied cipher suite or if no cipher suite 
  * has been found, continues iterating through its list. This function checks that the potential cipher
  * suite match is valid and can be used for the connection.
  * 
  */
-static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection* conn,
-                                                          const uint8_t* wire,
-                                                          uint32_t count,
-                                                          uint32_t cipher_suite_len,
-                                                          uint32_t* server_index) {
+static S2N_RESULT s2n_get_mutually_supported_cipher(struct s2n_connection* conn,
+                                                    const uint8_t* wire,
+                                                    uint32_t count,
+                                                    uint32_t cipher_suite_len,
+                                                    struct s2n_cipher_suite** negotiated_cipher) {
     RESULT_ENSURE_REF(wire);
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(server_index);
+    RESULT_ENSURE_REF(negotiated_cipher);
+    RESULT_ENSURE_EQ(*negotiated_cipher, NULL);
 
     const struct s2n_security_policy *security_policy;
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
@@ -1283,8 +1284,6 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
      * in an equal-preference group.
      */
     int negotiated_client_index = count;
-    /* Same as negotiated_client_index, but is instead a server index. */
-    int negotiated_server_index = -1;
     /** 
      * The highest protocol version match index (also a server index). This is a fall back index if
      * no other mutually-supported cipher suite is identified.
@@ -1303,11 +1302,15 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
         if (server_cipher == &s2n_equal_preference_group_end) {
             in_group = false;
             /* Exiting a group and a negotiated cipher has already been found. */
-            if (negotiated_server_index != -1) {
-                *server_index = negotiated_server_index;
+            if (*negotiated_cipher) {
                 return S2N_RESULT_OK;
             }
             continue;
+        }
+
+        /* If connection is for SSLv3, use SSLv3 version of suites */
+        if (conn->client_protocol_version == S2N_SSLv3) {
+            server_cipher = server_cipher->sslv3_cipher_suite;
         }
 
         /* Cipher suite is NOT a delimiter */
@@ -1334,24 +1337,23 @@ static S2N_RESULT s2n_get_mutually_supported_cipher_index(struct s2n_connection*
             /* Store the most-preferred client cipher in-group */
             if (client_index < negotiated_client_index) {
                 negotiated_client_index = client_index;
-                negotiated_server_index = i;
+                *negotiated_cipher = server_cipher;
             }
         } else {
             /* Else, the client and server both support a non-grouped cipher. */
-            negotiated_server_index = i;
+            *negotiated_cipher = server_cipher;
             break;
         }
     }
 
     /* Found a match */
-    if (negotiated_server_index != -1) {
-        *server_index = negotiated_server_index;
+    if (*negotiated_cipher) {
         return S2N_RESULT_OK;
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (highest_vers_match_index != -1) {
-        *server_index = highest_vers_match_index;
+        *negotiated_cipher = cipher_preferences->suites[highest_vers_match_index];
         return S2N_RESULT_OK;
     }
 
@@ -1388,21 +1390,13 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         conn->secure_renegotiation = 1;
     }
 
-    /* Determine the index for the negotiated cipher suite. Index is a server cipher preference index. */
-    uint32_t negotiated_index = 0;
-    POSIX_GUARD_RESULT(s2n_get_mutually_supported_cipher_index(conn, wire, count, cipher_suite_len, &negotiated_index));
+    /* Determine the negotiated cipher suite. */
+    struct s2n_cipher_suite* negotiated_cipher = NULL;
+    POSIX_GUARD_RESULT(s2n_get_mutually_supported_cipher(conn, wire, count, cipher_suite_len, &negotiated_cipher));
+    POSIX_ENSURE_REF(negotiated_cipher);
 
-    const struct s2n_security_policy *security_policy;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    conn->secure->cipher_suite = negotiated_cipher;
 
-    struct s2n_cipher_suite* match = security_policy->cipher_preferences->suites[negotiated_index];
-    POSIX_ENSURE_REF(match);
-    /* If connection is for SSLv3, use SSLv3 version of suites */
-    if (conn->client_protocol_version == S2N_SSLv3) {
-        match = match->sslv3_cipher_suite;
-        POSIX_ENSURE_REF(match);
-    }
-    conn->secure->cipher_suite = match;
     return S2N_SUCCESS;
 }
 
