@@ -142,7 +142,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
-    _exit(0);
+    exit(0);
 }
 
 int main(int argc, char **argv)
@@ -184,6 +184,10 @@ int main(int argc, char **argv)
         if (pid == 0) {
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+
+            free(cert_chain_pem);
+            free(private_key_pem);
+            free(dhparams_pem);
 
             /* Write the fragmented hello message */
             mock_client(&io_pair);

@@ -102,7 +102,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
     s2n_cleanup();
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
-    _exit(result);
+    exit(result);
 }
 
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
@@ -306,26 +306,10 @@ int init_server_conn(struct s2n_connection **conn, struct s2n_test_io_pair *io_p
     return S2N_SUCCESS;
 }
 
-int start_client_conn(struct s2n_test_io_pair *io_pair, pid_t *pid,
-        int expect_failure, int expect_server_name_used)
-{
-    /* Create a pipe */
-    EXPECT_SUCCESS(s2n_io_pair_init(io_pair));
-
-    /* Create a child process */
-    *pid = fork();
-    if (*pid == 0) {
-        /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
-
-        mock_client(io_pair, expect_failure, expect_server_name_used);
-    }
-    return S2N_SUCCESS;
-}
-
 static int test_case_clean(struct s2n_connection *conn, pid_t client_pid,
         struct s2n_config *config, struct s2n_test_io_pair *io_pair,
-        struct client_hello_context *ch_ctx)
+        struct client_hello_context *ch_ctx, struct s2n_cert_chain_and_key *chain_and_key,
+        char *cert_chain_pem, char *private_key_pem)
 {
     s2n_blocked_status blocked;
     int status;
@@ -337,15 +321,29 @@ static int test_case_clean(struct s2n_connection *conn, pid_t client_pid,
     EXPECT_EQUAL(waitpid(-1, &status, 0), client_pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
+
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    free(cert_chain_pem);
+    free(private_key_pem);
+
     /* client process cleans their end, we just need to close server side */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
     memset(ch_ctx, 0, sizeof(struct client_hello_context));
     return S2N_SUCCESS;
 }
 
-int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
-        struct s2n_cert_chain_and_key *chain_and_key, struct client_hello_context *ch_ctx)
+int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
 {
+    char *cert_chain_pem;
+    char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+
     struct s2n_test_io_pair io_pair;
     struct s2n_config *config;
     struct s2n_connection *conn;
@@ -371,7 +369,24 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, ch_ctx));
 
-    EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 1));
+    /* Create a pipe */
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
+    /* Create a child process */
+    pid = fork();
+    if (pid == 0) {
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+
+        /* Cleanup */
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_config_free(swap_config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        free(cert_chain_pem);
+        free(private_key_pem);
+
+        mock_client(&io_pair, 0, 1);
+    }
+
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
 
     /* do the handshake */
@@ -394,15 +409,27 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
     EXPECT_SUCCESS(server_recv(conn));
 
-    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx));
+    /* Cleanup */
+    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx,
+            chain_and_key, cert_chain_pem, private_key_pem));
     EXPECT_SUCCESS(s2n_config_free(swap_config));
+
     return S2N_SUCCESS;
 }
 
 int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
-        struct s2n_cert_chain_and_key *chain_and_key,
         struct client_hello_context *ch_ctx)
 {
+    char *cert_chain_pem;
+    char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+
     struct s2n_test_io_pair io_pair;
     struct s2n_config *config;
     struct s2n_connection *conn;
@@ -414,7 +441,24 @@ int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
     /* Setup ClientHello callback */
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, ch_ctx));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
-    EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 0));
+
+    /* Create a pipe */
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
+    /* Create a child process */
+    pid = fork();
+    if (pid == 0) {
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+
+        /* Cleanup */
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        free(cert_chain_pem);
+        free(private_key_pem);
+
+        mock_client(&io_pair, 0, 0);
+    }
+
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
 
     /* do the handshake */
@@ -431,14 +475,23 @@ int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
     EXPECT_SUCCESS(server_recv(conn));
 
-    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx));
+    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx,
+            chain_and_key, cert_chain_pem, private_key_pem));
     return S2N_SUCCESS;
 }
 
-int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode,
-        struct s2n_cert_chain_and_key *chain_and_key,
-        struct client_hello_context *ch_ctx)
+int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
 {
+    char *cert_chain_pem;
+    char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+
     struct s2n_test_io_pair io_pair;
     struct s2n_config *config;
     struct s2n_connection *conn;
@@ -452,7 +505,22 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode,
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_fail_handshake, ch_ctx));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
 
-    EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 1, 0));
+    /* Create a pipe */
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
+    /* Create a child process */
+    pid = fork();
+    if (pid == 0) {
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+
+        /* Cleanup */
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        free(cert_chain_pem);
+        free(private_key_pem);
+
+        mock_client(&io_pair, 1, 0);
+    }
 
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
     /* If s2n_negotiate fails, it usually would delay with a sleep. In order to
@@ -472,15 +540,26 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode,
     /* shutdown to flush alert */
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     EXPECT_SUCCESS(s2n_connection_free(conn));
+    /* indicate cleaup is already done */
+    conn = NULL;
 
-    EXPECT_SUCCESS(test_case_clean(NULL, pid, config, &io_pair, ch_ctx));
+    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx,
+            chain_and_key, cert_chain_pem, private_key_pem));
     return S2N_SUCCESS;
 }
 
-int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
-        struct s2n_cert_chain_and_key *chain_and_key,
-        struct client_hello_context *ch_ctx)
+int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
 {
+    char *cert_chain_pem;
+    char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+
     struct s2n_test_io_pair io_pair = { 0 };
     struct s2n_config *config = s2n_config_new();
     EXPECT_NOT_NULL(config);
@@ -496,7 +575,22 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
     /* Enable callback polling mode */
     EXPECT_SUCCESS(s2n_config_client_hello_cb_enable_poll(config));
 
-    EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 0));
+    /* Create a pipe */
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
+    /* Create a child process */
+    pid = fork();
+    if (pid == 0) {
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+
+        /* Cleanup */
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        free(cert_chain_pem);
+        free(private_key_pem);
+
+        mock_client(&io_pair, 0, 0);
+    }
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
 
     /* negotiate and make assertions */
@@ -504,69 +598,48 @@ int run_test_poll_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
     EXPECT_SUCCESS(server_recv(conn));
 
-    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx));
+    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx,
+            chain_and_key, cert_chain_pem, private_key_pem));
     return S2N_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
     struct client_hello_context client_hello_ctx = { 0 };
-    char *cert_chain_pem;
-    char *private_key_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
     BEGIN_TEST();
 
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
     /** Test config swapping in client hello callback **/
 
     /* we want to update the config outside of callback so don't swap in callback */
     client_hello_ctx.swap_config_nonblocking_mode = 1;
-    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
 
     /* non blocking callback when callback marks cb_done during the callback */
     client_hello_ctx.swap_config_during_callback = 1;
     client_hello_ctx.mark_done_during_callback = 1;
-    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
 
     /* we want to update the config in the callback */
     client_hello_ctx.swap_config_during_callback = 1;
-    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING, &client_hello_ctx));
 
     /* validate legacy behavior for server_name_used */
     /* we want to update the config in the callback */
     client_hello_ctx.swap_config_during_callback = 1;
     client_hello_ctx.legacy_rc_for_server_name_used = 1;
-    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING, &client_hello_ctx));
 
     /** Tests for test when server_name_used is not set **/
-    EXPECT_SUCCESS(run_test_no_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_no_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING, &client_hello_ctx));
 
-    EXPECT_SUCCESS(run_test_no_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_no_config_swap_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
 
     /** Test rejecting connection in client hello callback **/
-    EXPECT_SUCCESS(run_test_reject_handshake_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_reject_handshake_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING, &client_hello_ctx));
 
-    EXPECT_SUCCESS(run_test_reject_handshake_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING,
-            chain_and_key, &client_hello_ctx));
+    EXPECT_SUCCESS(run_test_reject_handshake_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
 
-    EXPECT_SUCCESS(run_test_poll_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING,
-            chain_and_key, &client_hello_ctx));
-
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    free(cert_chain_pem);
-    free(private_key_pem);
+    EXPECT_SUCCESS(run_test_poll_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
 
     END_TEST();
 

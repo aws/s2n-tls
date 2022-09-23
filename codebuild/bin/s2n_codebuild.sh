@@ -47,7 +47,15 @@ if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     # We have to output something every 9 minutes, as some test may run longer than 10 minutes
     # and will not produce any output
     while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
-    S2N_DEBUG=true make -j $JOBS valgrind
+
+    if [[ "$GCC_VERSION" == "9" && "$LIBCRYPTO_ROOT" == "openssl-1.1.1" ]]; then
+        # https://github.com/aws/s2n-tls/pull/3511
+        # Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
+        S2N_DEBUG=true make -j $JOBS valgrind_gcc9_ossl_111
+    else
+        S2N_DEBUG=true make -j $JOBS valgrind
+    fi
+
     kill %1
 fi
 

@@ -54,17 +54,30 @@ $(UNIT_TESTS)::
 	./$@
 endif
 
+$(VALGRIND_PEDANTIC_TESTS)::
+	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
+	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	S2N_VALGRIND=1 \
+	valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --run-libc-freeres=yes -q --error-exitcode=9 --gen-suppressions=all --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
+	./$(@:.valgrind=)
+
 $(VALGRIND_TESTS)::
 	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_VALGRIND=1 \
-	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
+	valgrind --leak-check=full --run-libc-freeres=yes -q --error-exitcode=9 --gen-suppressions=all --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
 	./$(@:.valgrind=)
 
 .PHONY : valgrind
 valgrind: $(VALGRIND_TESTS)
 
+.PHONY : valgrind_gcc9_ossl_111
+	echo "running valgrind_gcc9_ossl_111"
+	# https://github.com/aws/s2n-tls/pull/3511
+	# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
+	valgrind: $(VALGRIND_PEDANTIC_TESTS)
 
 .PHONY : clean
 clean: decruft

@@ -60,7 +60,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     s2n_config_free(client_config);
     s2n_cleanup();
 
-    _exit(0);
+    exit(0);
 }
 
 /**
@@ -106,6 +106,7 @@ int main(int argc, char **argv)
 
         /* Free the config */
         EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         free(cert_chain_pem);
         free(private_key_pem);
 
@@ -191,13 +192,13 @@ int main(int argc, char **argv)
         s2n_stuffer_send_to_fd(&out, io_pair.server, s2n_stuffer_data_available(&out), NULL);
     } while (!server_shutdown);
 
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-
     /* Clean up */
-    EXPECT_SUCCESS(s2n_stuffer_free(&in));
-    EXPECT_SUCCESS(s2n_stuffer_free(&out));
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
+
+    EXPECT_SUCCESS(s2n_stuffer_free(&in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&out));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);

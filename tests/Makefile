@@ -33,6 +33,9 @@ benchmark: libs
 valgrind: libs
 	${MAKE} -C unit valgrind
 
+valgrind_gcc9_ossl_111: libs
+	${MAKE} -C unit valgrind_gcc9_ossl_111
+
 .PHONY : libs
 libs:
 	${MAKE} -C testlib

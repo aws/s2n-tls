@@ -90,7 +90,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, s2n_alert_behavior alert_behav
 
     s2n_cleanup();
 
-    _exit(result);
+    exit(result);
 }
 
 int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
@@ -117,7 +117,7 @@ int client_hello_send_alerts(struct s2n_connection *conn, void *ctx)
 
     for (int i = 0; i < alert->count; i++) {
         if (write(alert->write_fd, alert_msg, sizeof(alert_msg)) != sizeof(alert_msg)) {
-            _exit(100);
+            exit(100);
         }
 
         alert->invoked++;
@@ -169,6 +169,10 @@ int main(int argc, char **argv)
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
             mock_client(&io_pair, S2N_ALERT_IGNORE_WARNINGS, 0);
         }
 
@@ -236,6 +240,11 @@ int main(int argc, char **argv)
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
+
             mock_client(&io_pair, S2N_ALERT_IGNORE_WARNINGS, 1);
         }
 
@@ -284,6 +293,10 @@ int main(int argc, char **argv)
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
             mock_client(&io_pair, S2N_ALERT_FAIL_ON_WARNINGS, 1);
         }
 

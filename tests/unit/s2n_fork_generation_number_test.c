@@ -256,7 +256,7 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
     return S2N_SUCCESS;
 }
 
-static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
+static int s2n_test_case_default_cb_valgrind_marker(struct fgn_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_init());
 
@@ -284,7 +284,7 @@ static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
     return S2N_SUCCESS;
 }
 
-static int s2n_test_case_madv_wipeonfork_cb(struct fgn_test_case *test_case)
+static int s2n_test_case_madv_wipeonfork_cb_valgrind_marker(struct fgn_test_case *test_case)
 {
     if (s2n_is_madv_wipeonfork_supported() == false) {
         TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
@@ -319,9 +319,9 @@ static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 }
 
 struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
-    { "Default fork detect mechanisms.", s2n_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME },
+    { "Default fork detect mechanisms.", s2n_test_case_default_cb_valgrind_marker, CLONE_TEST_DETERMINE_AT_RUNTIME },
     { "Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, CLONE_TEST_NO },
-    { "Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, CLONE_TEST_YES },
+    { "Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb_valgrind_marker, CLONE_TEST_YES },
     { "Only map_inherit_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES }
 };
 

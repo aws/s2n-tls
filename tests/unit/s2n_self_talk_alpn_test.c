@@ -97,10 +97,10 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
 
     s2n_cleanup();
 
-    _exit(result);
+    exit(result);
 }
 
-int main(int argc, char **argv)
+int main_alpn_valgrind_marker()
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
@@ -121,299 +121,334 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(config = s2n_config_new());
+    {
+        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(config = s2n_config_new());
 
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
-    EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_size));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_size));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
-    /** Test no client ALPN request */
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+        /** Test no client ALPN request */
+        /* Create a pipe */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
 
-        /* Send the client hello with no ALPN extensions, and validate we didn't
-         * negotiate an application protocol */
-        mock_client(client_to_server[1], server_to_client[0], NULL, 0, NULL);
-    }
-
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
-
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
-
-    /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-
-    EXPECT_EQUAL(s2n_connection_get_selected_cert(conn), chain_and_key);
-
-    /* Expect NULL negotiated protocol */
-    EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
-
-    for (int i = 1; i < 0xffff; i += 100) {
-        char *ptr = buffer;
-        int size = i;
-
-        do {
-            int bytes_read = 0;
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
-            size -= bytes_read;
-            ptr += bytes_read;
-        } while (size);
-
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
+            free(dhparams_pem);
+            /* Send the client hello with no ALPN extensions, and validate we didn't
+             * negotiate an application protocol */
+            mock_client(client_to_server[1], server_to_client[0], NULL, 0, NULL);
         }
-    }
 
-    EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
 
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-    /* Test a matching ALPN request */
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
-        /* Clients ALPN preferences match our preferences, so we pick the
-         * most preferred server one */
-        mock_client(client_to_server[1], server_to_client[0], protocols, protocols_size, protocols[0]);
-    }
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+        EXPECT_EQUAL(s2n_connection_get_selected_cert(conn), chain_and_key);
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        /* Expect NULL negotiated protocol */
+        EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        for (int i = 1; i < 0xffff; i += 100) {
+            char *ptr = buffer;
+            int size = i;
 
-    /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+            do {
+                int bytes_read = 0;
+                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
-    /* Expect our most preferred negotiated protocol */
-    EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
+                size -= bytes_read;
+                ptr += bytes_read;
+            } while (size);
 
-    for (int i = 1; i < 0xffff; i += 100) {
-        char *ptr = buffer;
-        int size = i;
-
-        do {
-            int bytes_read = 0;
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
-            size -= bytes_read;
-            ptr += bytes_read;
-        } while (size);
-
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
+            for (int j = 0; j < i; j++) {
+                EXPECT_EQUAL(buffer[j], 33);
+            }
         }
+
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_EQUAL(status, 0);
     }
 
-    EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+    {
+        /* Test a matching ALPN request */
+        /* Create a pipe */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
 
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
 
-    /* Test a lower preferred matching ALPN request */
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
-
-        /* Client only advertises our second choice, so we should negotiate it */
-        mock_client(client_to_server[1], server_to_client[0], &protocols[1], 1, protocols[1]);
-    }
-
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
-
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
-
-    /* Negotiate the handshake. */
-
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-
-    for (int i = 1; i < 0xffff; i += 100) {
-        char *ptr = buffer;
-        int size = i;
-
-        do {
-            int bytes_read = 0;
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
-            size -= bytes_read;
-            ptr += bytes_read;
-        } while (size);
-
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
+            free(dhparams_pem);
+            /* Clients ALPN preferences match our preferences, so we pick the
+             * most preferred server one */
+            mock_client(client_to_server[1], server_to_client[0], protocols, protocols_size, protocols[0]);
         }
+
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
+
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        /* Expect our most preferred negotiated protocol */
+        EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
+
+        for (int i = 1; i < 0xffff; i += 100) {
+            char *ptr = buffer;
+            int size = i;
+
+            do {
+                int bytes_read = 0;
+                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
+
+                size -= bytes_read;
+                ptr += bytes_read;
+            } while (size);
+
+            for (int j = 0; j < i; j++) {
+                EXPECT_EQUAL(buffer[j], 33);
+            }
+        }
+
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_EQUAL(status, 0);
     }
 
-    /* Expect our least preferred negotiated protocol */
-    EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[1]);
+    {
+        /* Test a lower preferred matching ALPN request */
+        /* Create a pipe */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
 
-    EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
 
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
+            free(dhparams_pem);
+            /* Client only advertises our second choice, so we should negotiate it */
+            mock_client(client_to_server[1], server_to_client[0], &protocols[1], 1, protocols[1]);
+        }
 
-    /* Test a non-matching ALPN request */
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        /* Negotiate the handshake. */
+
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        for (int i = 1; i < 0xffff; i += 100) {
+            char *ptr = buffer;
+            int size = i;
+
+            do {
+                int bytes_read = 0;
+                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
+
+                size -= bytes_read;
+                ptr += bytes_read;
+            } while (size);
+
+            for (int j = 0; j < i; j++) {
+                EXPECT_EQUAL(buffer[j], 33);
+            }
+        }
+
+        /* Expect our least preferred negotiated protocol */
+        EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[1]);
+
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_EQUAL(status, 0);
+    }
+
+    {
+        /* Test a non-matching ALPN request */
+        /* Create a pipe */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
+            free(dhparams_pem);
+            /* Client doesn't support any of our protocols, so we shouldn't complete
+             * the handshake */
+            mock_client(client_to_server[1], server_to_client[0], mismatch_protocols, 1, NULL);
+        }
+
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
+
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        /* Expect NULL negotiated protocol */
+        EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
+
+        /* Negotiation failed. Free the connection without shutdown */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Close the pipes */
         EXPECT_SUCCESS(close(client_to_server[0]));
         EXPECT_SUCCESS(close(server_to_client[1]));
 
-        /* Client doesn't support any of our protocols, so we shouldn't complete
-         * the handshake */
-        mock_client(client_to_server[1], server_to_client[0], mismatch_protocols, 1, NULL);
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_NOT_EQUAL(status, 0);
     }
 
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+    {
+        /* Test a connection level application protocol */
+        /* Create a pipe */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            free(cert_chain_pem);
+            free(private_key_pem);
+            free(dhparams_pem);
+            /* Client config support all protocols, expect http 2 after negotiation */
+            mock_client(client_to_server[1], server_to_client[0], protocols, protocols_size, protocols[2]);
+        }
 
-    /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
 
-    /* Expect NULL negotiated protocol */
-    EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-    /* Negotiation failed. Free the connection without shutdown */
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
-    /* Close the pipes */
-    EXPECT_SUCCESS(close(client_to_server[0]));
-    EXPECT_SUCCESS(close(server_to_client[1]));
+        /* Override connection protocol to http 2 */
+        EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, &protocols[2], 1));
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_NOT_EQUAL(status, 0);
+        EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[2]);
+        /* Negotiation failed. Free the connection without shutdown */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
 
-    /* Test a connection level application protocol */
-    /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
-
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
+        /* Close the pipes */
         EXPECT_SUCCESS(close(client_to_server[0]));
         EXPECT_SUCCESS(close(server_to_client[1]));
 
-        /* Client config support all protocols, expect http 2 after negotiation */
-        mock_client(client_to_server[1], server_to_client[0], protocols, protocols_size, protocols[2]);
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_NOT_EQUAL(status, 0);
     }
-
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
-
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
-
-    /* Override connection protocol to http 2 */
-    EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, &protocols[2], 1));
-    /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-
-    EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[2]);
-    /* Negotiation failed. Free the connection without shutdown */
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-
-    /* Close the pipes */
-    EXPECT_SUCCESS(close(client_to_server[0]));
-    EXPECT_SUCCESS(close(server_to_client[1]));
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_NOT_EQUAL(status, 0);
 
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -423,4 +458,9 @@ int main(int argc, char **argv)
     END_TEST();
 
     return 0;
+}
+
+int main(int argc, char **argv)
+{
+    main_alpn_valgrind_marker();
 }

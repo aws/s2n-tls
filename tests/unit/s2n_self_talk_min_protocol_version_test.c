@@ -57,7 +57,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t version)
     s2n_cleanup();
 
     /* Expect failure of handshake */
-    _exit(result == 0 ? 1 : 0);
+    exit(result == 0 ? 1 : 0);
 }
 
 int main(int argc, char **argv)
@@ -97,6 +97,8 @@ int main(int argc, char **argv)
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
             /* Send the client hello with TLSv1 and validate that we failed handshake */
             mock_client(&io_pair, version);
         }

@@ -10,3 +10,51 @@
    fun:pthread_create@@GLIBC_2.2.5
    fun:main
 }
+
+# --errors-for-leak-kinds=all reports pedantic `reachable` leaks so we
+# suppress some trivial ones here
+{
+   ignore_fprint_allocations
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:fprintf
+   fun:main
+}
+{
+   ignore_setenv_allocations
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:setenv
+   fun:main
+}
+
+
+# TODO: fix the pedantic leak errors from s2n_fork_generation_number_test
+{
+   ignore_s2n_fork_generation_number_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_test_case_default_cb_valgrind_marker
+   fun:main
+}
+{
+   ignore_s2n_fork_generation_number_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_test_case_madv_wipeonfork_cb_valgrind_marker
+   fun:main
+}
+
+# TODO: fix the pedantic leak errors from s2n_self_talk_alpn_test
+{
+   ignore_s2n_fork_generation_number_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:main_alpn_valgrind_marker
+   fun:main
+}

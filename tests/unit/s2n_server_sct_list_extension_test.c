@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_certificate.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_server_sct_list.h"
 
 const uint8_t sct_list_data[] = "SCT LIST DATA";
-struct s2n_cert_chain_and_key *chain_and_key;
 
-int s2n_test_enable_sending_extension(struct s2n_connection *conn)
+int s2n_test_enable_sending_extension(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key)
 {
     conn->mode = S2N_SERVER;
     conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
@@ -34,6 +34,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
@@ -50,26 +51,26 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_server_sct_list_extension.should_send(conn));
 
         /* Send if all prerequisites met */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         EXPECT_TRUE(s2n_server_sct_list_extension.should_send(conn));
 
         /* Don't send if client */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         conn->mode = S2N_CLIENT;
         EXPECT_FALSE(s2n_server_sct_list_extension.should_send(conn));
 
         /* Don't send if certificate transparency not requested */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         conn->ct_level_requested = S2N_CT_SUPPORT_NONE;
         EXPECT_FALSE(s2n_server_sct_list_extension.should_send(conn));
 
         /* Don't send if no certificate set */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         conn->handshake_params.our_chain_and_key = NULL;
         EXPECT_FALSE(s2n_server_sct_list_extension.should_send(conn));
 
         /* Don't send if no ocsp data */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         EXPECT_SUCCESS(s2n_free(&conn->handshake_params.our_chain_and_key->sct_list));
         EXPECT_FALSE(s2n_server_sct_list_extension.should_send(conn));
 
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
 
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -99,7 +100,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
 
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));

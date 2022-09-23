@@ -46,7 +46,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
 
     result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
-        _exit(1);
+        exit(1);
     }
 
     s2n_shutdown(conn, &blocked);
@@ -55,7 +55,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     s2n_cleanup();
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
-    _exit(0);
+    exit(0);
 }
 
 int main(int argc, char **argv)
@@ -108,6 +108,7 @@ int main(int argc, char **argv)
 
             /* Free the config */
             EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
             free(cert_chain_pem);
             free(private_key_pem);
             free(dhparams_pem);
