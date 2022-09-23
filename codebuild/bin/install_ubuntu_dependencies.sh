@@ -34,14 +34,22 @@ get_rust() {
 }
 
 base_packages() {
+  # Prebuild CodeBuild images have golang already (manually) installed
+  export GO_MISSING=$(which go &> /dev/null; echo $?)
   echo "Installing repositories and base packages"
   apt update -y
   apt install -y software-properties-common
   add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  add-apt-repository ppa:longsleep/golang-backports -y
+  if [[ "$GO_MISSING" -eq 1 ]]; then
+      add-apt-repository ppa:longsleep/golang-backports -y
+  fi
   apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools  tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl shellcheck git tox cmake libtool ninja-build golang-go quilt jq"
+  DEPENDENCIES="unzip make indent iproute2 kwstyle libssl-dev net-tools  tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config psmisc gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl shellcheck git tox cmake libtool ninja-build quilt jq"
+
+  if [[ $"GO_MISSING" -eq 1 ]]; then
+      DEPENDENCIES+=" golang-go"
+  fi
   if [[ -n "${GCC_VERSION:-}" ]] && [[ "${GCC_VERSION:-}" != "NONE" ]]; then
     DEPENDENCIES+=" gcc-$GCC_VERSION g++-$GCC_VERSION";
   fi
