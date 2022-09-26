@@ -1261,7 +1261,6 @@ static bool s2n_cipher_suite_match_is_valid(struct s2n_connection* conn, struct 
  * encountered, the server either accepts the idenfitied cipher suite or if no cipher suite 
  * has been found, continues iterating through its list. This function checks that the potential cipher
  * suite match is valid and can be used for the connection.
- * 
  */
 static S2N_RESULT s2n_get_mutually_supported_cipher(struct s2n_connection* conn,
                                                     const uint8_t* wire,
@@ -1285,10 +1284,10 @@ static S2N_RESULT s2n_get_mutually_supported_cipher(struct s2n_connection* conn,
      */
     int negotiated_client_index = count;
     /** 
-     * The highest protocol version match index (also a server index). This is a fall back index if
+     * The highest protocol version match cipher. This is a fall back cipher if
      * no other mutually-supported cipher suite is identified.
      */
-    int highest_vers_match_index = -1;
+    struct s2n_cipher_suite* highest_vers_match_cipher = NULL;
 
     for (uint32_t i = 0; i < cipher_preferences->count; i++) {
         struct s2n_cipher_suite* server_cipher = cipher_preferences->suites[i];
@@ -1328,8 +1327,8 @@ static S2N_RESULT s2n_get_mutually_supported_cipher(struct s2n_connection* conn,
 
         /* Don't immediately choose a cipher the connection shouldn't be able to support */
         if (conn->actual_protocol_version < server_cipher->minimum_required_tls_version) {
-            if (highest_vers_match_index == -1) {
-                highest_vers_match_index = i;
+            if (!highest_vers_match_cipher) {
+                highest_vers_match_cipher = server_cipher;
             }
             continue;
         }
@@ -1352,8 +1351,8 @@ static S2N_RESULT s2n_get_mutually_supported_cipher(struct s2n_connection* conn,
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
-    if (highest_vers_match_index != -1) {
-        *negotiated_cipher = cipher_preferences->suites[highest_vers_match_index];
+    if (highest_vers_match_cipher) {
+        *negotiated_cipher = highest_vers_match_cipher;
         return S2N_RESULT_OK;
     }
 
