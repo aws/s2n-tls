@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pq-crypto/s2n_pq_asm.h"
+
 /* All kyber512r3 functions and global variables in the pq-crypto/kyber_r3 directory
  * should be defined using the namespace macro to avoid symbol collisions. For example,
  * in foo.h, declare a function as follows:
