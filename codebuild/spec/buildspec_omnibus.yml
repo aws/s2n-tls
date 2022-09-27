@@ -21,6 +21,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: sawHMACPlus
           SAW: true
@@ -31,6 +32,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: tls
           SAW: true
@@ -52,6 +54,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: valgrind
           GCC_VERSION: 6
@@ -63,6 +66,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: valgrind
           GCC_VERSION: 9
@@ -74,6 +78,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: valgrind
           GCC_VERSION: '6'
@@ -85,6 +90,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: valgrind
           GCC_VERSION: '6'
@@ -96,6 +102,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: valgrind
           GCC_VERSION: '6'
@@ -107,6 +114,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: asan
           GCC_VERSION: '6'
@@ -119,6 +127,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: asan
           GCC_VERSION: '6'
@@ -130,6 +139,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: unit
           GCC_VERSION: '9'
@@ -163,6 +173,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: interning
           BUILD_S2N: 'true'
@@ -172,6 +183,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: interning
           BUILD_S2N: 'true'
@@ -181,6 +193,7 @@ batch:
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           GCC_VERSION: '6'
@@ -190,6 +203,7 @@ batch:
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           TESTS: sharedandstatic
@@ -199,6 +213,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: true
@@ -211,6 +226,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
@@ -223,6 +239,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
