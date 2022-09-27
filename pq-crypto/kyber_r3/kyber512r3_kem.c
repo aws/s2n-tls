@@ -9,6 +9,10 @@
 #include "pq-crypto/s2n_pq_random.h"
 #include "pq-crypto/s2n_pq.h"
 
+#if S2N_ANY_NONPORTABLE_OPTIMIZATIONS_ENABLED
+#error "Compiling portable code with non-portable assembly optimizations is not allowed"
+#endif
+
 /*************************************************
 * Name:        crypto_kem_keypair
 *

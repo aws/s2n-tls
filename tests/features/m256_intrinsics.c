@@ -12,18 +12,16 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include <stdint.h>
+#include <immintrin.h>
 
-#pragma once
+#define ALIGNED_UINT8(N)        \
+    union {                     \
+        uint8_t coeffs[N];      \
+        __m256i vec[(N+31)/32]; \
+    }
 
-#include <stdbool.h>
-#include "utils/s2n_result.h"
-#include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
-#include "pq-crypto/s2n_pq_asm.h"
-
-bool s2n_kyber512r3_is_avx2_bmi2_enabled(void);
-S2N_RESULT s2n_try_enable_kyber512r3_opt_avx2_bmi2(void);
-S2N_RESULT s2n_disable_kyber512r3_opt_avx2_bmi2(void);
- 
-bool s2n_pq_is_enabled(void);
-S2N_RESULT s2n_pq_init(void);
+int main() {
+    ALIGNED_UINT8(256) buf;
+    return 0;
+}
