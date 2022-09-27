@@ -320,6 +320,11 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     POSIX_GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
+    /* The ClientHello version must be TLS12 after a HelloRetryRequest */
+    if (s2n_is_hello_retry_handshake(conn)) {
+        POSIX_ENSURE_EQ(conn->client_hello_version, S2N_TLS12);
+    }
+
     if (conn->client_hello_version == S2N_SSLv2) {
         POSIX_GUARD(s2n_sslv2_client_hello_recv(conn));
         return S2N_SUCCESS;
