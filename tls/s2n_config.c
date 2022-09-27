@@ -829,32 +829,41 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     POSIX_GUARD(s2n_config_wipe_expired_ticket_crypto_keys(config, -1));
 
-    S2N_ERROR_IF(key_len == 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
+    POSIX_ENSURE(key_len != 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
     uint32_t ticket_keys_len = 0;
     POSIX_GUARD_RESULT(s2n_set_len(config->ticket_keys, &ticket_keys_len));
-    S2N_ERROR_IF(ticket_keys_len >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
+    POSIX_ENSURE(ticket_keys_len < S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
 
-    S2N_ERROR_IF(name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN || s2n_find_ticket_key(config, name), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+    POSIX_ENSURE(name_len != 0, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+    POSIX_ENSURE(name_len <= S2N_TICKET_KEY_NAME_LEN, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
-    uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN];
-    struct s2n_blob out_key = { .data = output_pad, .size = sizeof(output_pad) };
+    /* Copy the name into a zero-padded array. */
+    /* This ensures that all ticket names are equal in length, as the serialized name is fixed length */
+    uint8_t name_data[S2N_TICKET_KEY_NAME_LEN] = { 0 };
+    POSIX_CHECKED_MEMCPY(name_data, name, name_len);
+
+    /* ensure the ticket name is not already present */
+    POSIX_ENSURE(s2n_find_ticket_key(config, name_data) == NULL, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+
+    uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN] = { 0 };
+    struct s2n_blob out_key = { .data = output_pad, .size = s2n_array_len(output_pad) };
     struct s2n_blob in_key = { .data = key, .size = key_len };
     struct s2n_blob salt = { .size = 0 };
     struct s2n_blob info = { .size = 0 };
 
-    struct s2n_ticket_key *session_ticket_key;
-    DEFER_CLEANUP(struct s2n_blob allocator = {0}, s2n_free);
+    struct s2n_ticket_key *session_ticket_key = { 0 };
+    DEFER_CLEANUP(struct s2n_blob allocator = { 0 }, s2n_free);
     POSIX_GUARD(s2n_alloc(&allocator, sizeof(struct s2n_ticket_key)));
     session_ticket_key = (struct s2n_ticket_key *) (void *) allocator.data;
 
-    DEFER_CLEANUP(struct s2n_hmac_state hmac = {0}, s2n_hmac_free);
+    DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
 
     POSIX_GUARD(s2n_hmac_new(&hmac));
     POSIX_GUARD(s2n_hkdf(&hmac, S2N_HMAC_SHA256, &salt, &in_key, &info, &out_key));
 
-    DEFER_CLEANUP(struct s2n_hash_state hash = {0}, s2n_hash_free);
-    uint8_t hash_output[SHA_DIGEST_LENGTH];
+    DEFER_CLEANUP(struct s2n_hash_state hash = { 0 }, s2n_hash_free);
+    uint8_t hash_output[SHA_DIGEST_LENGTH] = { 0 };
 
     POSIX_GUARD(s2n_hash_new(&hash));
     POSIX_GUARD(s2n_hash_init(&hash, S2N_HASH_SHA1));
@@ -870,13 +879,13 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     /* Insert hash key into a sorted array at known index */
     POSIX_GUARD_RESULT(s2n_set_add(config->ticket_key_hashes, hash_output));
 
-    POSIX_CHECKED_MEMCPY(session_ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN);
+    POSIX_CHECKED_MEMCPY(session_ticket_key->key_name, name_data, s2n_array_len(name_data));
     POSIX_CHECKED_MEMCPY(session_ticket_key->aes_key, out_key.data, S2N_AES256_KEY_LEN);
     out_key.data = output_pad + S2N_AES256_KEY_LEN;
     POSIX_CHECKED_MEMCPY(session_ticket_key->implicit_aad, out_key.data, S2N_TICKET_AAD_IMPLICIT_LEN);
 
     if (intro_time_in_seconds_from_epoch == 0) {
-        uint64_t now;
+        uint64_t now = 0;
         POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
         session_ticket_key->intro_timestamp = now;
     } else {
