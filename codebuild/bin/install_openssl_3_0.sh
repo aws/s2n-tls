@@ -44,7 +44,7 @@ mkdir -p $INSTALL_DIR
 $CONFIGURE shared -g3 -fPIC              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
-         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng no-dtls          \
          -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
          --prefix="$INSTALL_DIR"
 

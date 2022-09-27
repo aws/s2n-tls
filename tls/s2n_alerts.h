@@ -74,6 +74,11 @@ typedef enum {
     S2N_TLS_ALERT_INAPPROPRIATE_FALLBACK = 86,
     S2N_TLS_ALERT_USER_CANCELED = 90,
     /*
+     *= https://tools.ietf.org/rfc/rfc5246#section-7.2
+     *#     no_renegotiation(100),
+     */
+    S2N_TLS_ALERT_NO_RENEGOTIATION = 100,
+    /*
      *= https://tools.ietf.org/rfc/rfc8446#section-6
      *#     missing_extension(109),
      *#     unsupported_extension(110),
@@ -101,3 +106,4 @@ extern int s2n_process_alert_fragment(struct s2n_connection *conn);
 extern int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn);
 extern int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn);
 extern int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn);
+S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn);

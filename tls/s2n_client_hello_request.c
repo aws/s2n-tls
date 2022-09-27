@@ -15,19 +15,30 @@
 
 #include "api/s2n.h"
 
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-int s2n_client_hello_request_recv(struct s2n_connection *conn)
+S2N_RESULT s2n_client_hello_request_validate(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE(conn->actual_protocol_version < S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE_REF(conn);
+    if (IS_NEGOTIATED(conn)) {
+        RESULT_ENSURE(conn->actual_protocol_version < S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+    }
 
     /*
      *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
      *# The HelloRequest message MAY be sent by the server at any time.
      */
-    POSIX_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_BAD_MESSAGE);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_client_hello_request_validate(conn));
 
     /*
      *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
@@ -36,5 +47,6 @@ int s2n_client_hello_request_recv(struct s2n_connection *conn)
      *# the client if it does not wish to renegotiate a session, or the
      *# client may, if it wishes, respond with a no_renegotiation alert.
      */
-    return S2N_SUCCESS;
+    RESULT_GUARD(s2n_queue_reader_no_renegotiation_alert(conn));
+    return S2N_RESULT_OK;
 }

@@ -407,6 +407,33 @@ int main(int argc, char **argv)
                     empty_secret, sizeof(empty_secret));
         }
 
+        /* Computes finished keys on SERVER_HELLO */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_connection_set_test_handshake_secret(conn, &test_secret));
+            EXPECT_EQUAL(conn->handshake.finished_len, 0);
+            EXPECT_BYTEARRAY_EQUAL(conn->handshake.client_finished,
+                    empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->handshake.server_finished,
+                    empty_secret, sizeof(empty_secret));
+
+            while(s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
+                conn->handshake.message_number++;
+            }
+            EXPECT_OK(s2n_tls13_secrets_update(conn));
+
+            uint8_t expected_len = 0;
+            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &expected_len));
+            EXPECT_EQUAL(conn->handshake.finished_len, expected_len);
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->handshake.client_finished,
+                    empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->handshake.server_finished,
+                    empty_secret, sizeof(empty_secret));
+        }
+
         /* Derives application secrets on SERVER_FINISHED */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),

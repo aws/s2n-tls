@@ -21,14 +21,16 @@
 
 #include "utils/s2n_safety.h"
 
+static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static bool s2n_client_renegotiation_should_send(struct s2n_connection *conn);
 
 const s2n_extension_type s2n_client_renegotiation_info_extension = {
     .iana_value = TLS_EXTENSION_RENEGOTIATION_INFO,
     .is_response = false,
-    .send = s2n_extension_send_unimplemented,
+    .send = s2n_client_renegotiation_send,
     .recv = s2n_client_renegotiation_recv,
-    .should_send = s2n_extension_never_send,
+    .should_send = s2n_client_renegotiation_should_send,
 
     /**
      *= https://tools.ietf.org/rfc/rfc5746#3.6
@@ -45,6 +47,39 @@ const s2n_extension_type s2n_client_renegotiation_info_extension = {
      */
     .if_missing = s2n_extension_noop_if_missing,
 };
+
+/**
+ *= https://tools.ietf.org/rfc/rfc5746#3.5
+ *# o  The client MUST include the "renegotiation_info" extension in the
+ *#    ClientHello
+ */
+static bool s2n_client_renegotiation_should_send(struct s2n_connection *conn)
+{
+    return conn && s2n_handshake_is_renegotiation(conn);
+}
+
+/**
+ *= https://tools.ietf.org/rfc/rfc5746#3.5
+ *# o  The client MUST include the "renegotiation_info" extension in the
+ *#    ClientHello, containing the saved client_verify_data.
+ */
+static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    POSIX_ENSURE_REF(conn);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *# This text applies if the connection's "secure_renegotiation" flag is
+     *# set to TRUE (if it is set to FALSE, see Section 4.2).
+     */
+    POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+
+    uint8_t renegotiated_connection_len = conn->handshake.finished_len;
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, renegotiated_connection_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.client_finished, renegotiated_connection_len));
+
+    return S2N_SUCCESS;
+}
 
 /**
  *= https://tools.ietf.org/rfc/rfc5746#3.6
