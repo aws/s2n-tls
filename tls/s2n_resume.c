@@ -213,7 +213,7 @@ static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, st
 }
 
 static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_stuffer *from)
-{   
+{
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
 
@@ -695,7 +695,7 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
 /* This function is used in s2n_decrypt_session_ticket in order for s2n to
  * find the matching key that was used for encryption.
  */
-struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name)
+struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN])
 {
     uint64_t now;
     struct s2n_ticket_key *ticket_key = NULL;
@@ -785,7 +785,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     DEFER_CLEANUP(struct s2n_session_key aes_ticket_key = {0}, s2n_session_key_free);
     struct s2n_blob aes_key_blob = {0};
 
-    uint8_t key_name[S2N_TICKET_KEY_NAME_LEN];
+    uint8_t key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
 
     uint8_t iv_data[S2N_TLS_GCM_IV_LEN] = { 0 };
     struct s2n_blob iv = { 0 };
@@ -796,7 +796,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD(s2n_blob_init(&aad_blob, aad_data, sizeof(aad_data)));
     struct s2n_stuffer aad = {0};
 
-    POSIX_GUARD(s2n_stuffer_read_bytes(from, key_name, S2N_TICKET_KEY_NAME_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(from, key_name, s2n_array_len(key_name)));
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
@@ -819,7 +819,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     uint8_t *en_blob_data = s2n_stuffer_raw_read(from, en_blob_size);
     POSIX_ENSURE_REF(en_blob_data);
     POSIX_GUARD(s2n_blob_init(&en_blob, en_blob_data, en_blob_size));
-    POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));    
+    POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
 
     struct s2n_blob state_blob = { 0 };
     uint32_t state_blob_size = en_blob_size - S2N_TLS_GCM_TAG_LEN;
@@ -857,7 +857,7 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     struct s2n_session_key aes_ticket_key = {0};
     struct s2n_blob aes_key_blob = {0};
 
-    uint8_t key_name[S2N_TICKET_KEY_NAME_LEN] = {0};
+    uint8_t key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
 
     uint8_t iv_data[S2N_TLS_GCM_IV_LEN] = { 0 };
     struct s2n_blob iv = {0};
@@ -877,12 +877,12 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     struct s2n_blob en_blob = {0};
     POSIX_GUARD(s2n_blob_init(&en_blob, en_data, sizeof(en_data)));
 
-    POSIX_GUARD(s2n_stuffer_read_bytes(from, key_name, S2N_TICKET_KEY_NAME_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(from, key_name, s2n_array_len(key_name)));
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
     /* Key has expired; do full handshake with New Session Ticket (NST) */
-    S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+    POSIX_ENSURE(key != NULL, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
     POSIX_GUARD(s2n_stuffer_read(from, &iv));
 

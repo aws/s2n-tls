@@ -97,6 +97,7 @@ int main(int argc, char **argv)
         /* Check preconditions */
         conn->secure->client_sequence_number[0] = 1;
         EXPECT_BYTEARRAY_EQUAL(&conn->handshake.client_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, 0);
         EXPECT_NOT_EQUAL(conn->client, conn->secure);
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, 1));
 
@@ -106,10 +107,36 @@ int main(int argc, char **argv)
         /* Check for expected updates */
         EXPECT_EQUAL(conn->secure->client_sequence_number[0], 0);
         EXPECT_BYTEARRAY_NOT_EQUAL(&conn->handshake.client_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, S2N_TLS_FINISHED_LEN);
         EXPECT_EQUAL(conn->client, conn->secure);
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test SSLv3 s2n_client_ccs_recv */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_128_cbc_sha;
+        conn->actual_protocol_version = S2N_SSLv3;
+
+        /* Check preconditions */
+        conn->secure->client_sequence_number[0] = 1;
+        EXPECT_BYTEARRAY_EQUAL(&conn->handshake.client_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, 0);
+        EXPECT_NOT_EQUAL(conn->client, conn->secure);
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, 1));
+
+        EXPECT_SUCCESS(s2n_ccs_send(conn));
+        EXPECT_SUCCESS(s2n_client_ccs_recv(conn));
+
+        /* Check for expected updates */
+        EXPECT_EQUAL(conn->secure->client_sequence_number[0], 0);
+        EXPECT_BYTEARRAY_NOT_EQUAL(&conn->handshake.client_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, S2N_SSL_FINISHED_LEN);
+        EXPECT_EQUAL(conn->client, conn->secure);
+        EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
     }
 
     /* Test s2n_server_ccs_recv */
@@ -123,6 +150,7 @@ int main(int argc, char **argv)
         /* Check preconditions */
         conn->secure->server_sequence_number[0] = 1;
         EXPECT_BYTEARRAY_EQUAL(&conn->handshake.server_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, 0);
         EXPECT_NOT_EQUAL(conn->server, conn->secure);
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, 1));
 
@@ -132,10 +160,36 @@ int main(int argc, char **argv)
         /* Check for expected updates */
         EXPECT_EQUAL(conn->secure->server_sequence_number[0], 0);
         EXPECT_BYTEARRAY_NOT_EQUAL(&conn->handshake.server_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, S2N_TLS_FINISHED_LEN);
         EXPECT_EQUAL(conn->server, conn->secure);
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test SSLv3 s2n_server_ccs_recv */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_128_cbc_sha;
+        conn->actual_protocol_version = S2N_SSLv3;
+
+        /* Check preconditions */
+        conn->secure->server_sequence_number[0] = 1;
+        EXPECT_BYTEARRAY_EQUAL(&conn->handshake.server_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, 0);
+        EXPECT_NOT_EQUAL(conn->server, conn->secure);
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->alert_in, 1));
+
+        EXPECT_SUCCESS(s2n_ccs_send(conn));
+        EXPECT_SUCCESS(s2n_server_ccs_recv(conn));
+
+        /* Check for expected updates */
+        EXPECT_EQUAL(conn->secure->server_sequence_number[0], 0);
+        EXPECT_BYTEARRAY_NOT_EQUAL(&conn->handshake.server_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
+        EXPECT_EQUAL(conn->handshake.finished_len, S2N_SSL_FINISHED_LEN);
+        EXPECT_EQUAL(conn->server, conn->secure);
+        EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
     }
 
     END_TEST();
