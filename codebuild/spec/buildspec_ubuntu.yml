@@ -19,46 +19,15 @@ env:
     CB_BIN_DIR: "./codebuild/bin"
 
 phases:
-  install:
-    runtime-versions:
-      python: 3.x
-    commands:
-      - echo Entered the install phase...
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-        fi
-      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
-      - echo "We need a test PPA for gcc-9."
-      - add-apt-repository ppa:ubuntu-toolchain-r/test -y
-      - apt-get update -o Acquire::CompressionTypes::Order::=gz
-      - apt-get update -y
-      - |
-        if expr "${GCC_VERSION}" : "9" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-9 gcc gcc-9;
-        fi
-      - |
-        if expr "${GCC_VERSION}" : "6" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
-        fi
-
-      # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
-      - |
-        if expr "${LATEST_CLANG}" != "true" >/dev/null; then
-          apt-get install -y --no-install-recommends clang-3.9 llvm-3.9;
-        fi
-      - apt-get install -y --no-install-recommends indent iproute2 kwstyle lcov libssl-dev m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc cmake tox libtool ninja-build
   pre_build:
     commands:
       - |
         if [ -d "third-party-src" ]; then
           cd third-party-src;
+          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
-      - $CB_BIN_DIR/install_default_dependencies.sh
   build:
     commands:
       - printenv
+      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - $CB_BIN_DIR/s2n_codebuild.sh
-  post_build:
-    commands:
-      - echo Build completed on `date`
