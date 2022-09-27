@@ -73,7 +73,7 @@ struct s2n_session_ticket {
     uint32_t session_lifetime;
 };
 
-extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
+extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN]);
 extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
 extern int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
 extern int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to); 

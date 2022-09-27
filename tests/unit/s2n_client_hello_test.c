@@ -1330,6 +1330,24 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
+    /* s2n_client_hello_recv should fail when reading an SSLv2 client hello during a hello retry handshake */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+            s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        /* Handshake is hello retry and TLS1.3 was negotiated */
+        EXPECT_OK(s2n_handshake_type_set_flag(server_conn, HELLO_RETRY_REQUEST));
+        server_conn->actual_protocol_version = S2N_TLS13;
+
+        /* Second client hello has version SSLv2 */
+        server_conn->client_hello_version = S2N_SSLv2;
+
+        /* Mock having some data in the client hello */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
+    }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
