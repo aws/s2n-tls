@@ -90,7 +90,6 @@ static bool s2n_cleanup_atexit_impl(void)
     s2n_wipe_static_configs();
 
     initialized = false;
-    atexit_cleanup = true;
     return s2n_result_is_ok(s2n_libcrypto_cleanup()) &&
         s2n_result_is_ok(s2n_rand_cleanup_thread()) &&
         s2n_result_is_ok(s2n_rand_cleanup()) &&
