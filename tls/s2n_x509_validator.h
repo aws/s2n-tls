@@ -70,10 +70,10 @@ struct s2n_x509_crl {
     X509_CRL *crl;
 };
 
-/* Allocates a new s2n_x509_cert struct */
+/** Allocates a new s2n_x509_cert struct */
 struct s2n_x509_cert* s2n_x509_cert_new(void);
 
-/* Frees a s2n_x509_cert struct */
+/** Frees a s2n_x509_cert struct */
 int s2n_x509_cert_free(struct s2n_x509_cert *cert);
 
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */
