@@ -946,6 +946,22 @@ typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_l
 S2N_API
 extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
 
+struct s2n_x509_cert;
+
+S2N_API
+extern int s2n_x509_cert_get_issuer_hash(struct s2n_x509_cert *cert, unsigned long *hash);
+
+struct s2n_x509_crl;
+
+S2N_API
+extern int s2n_x509_crl_from_pem(char *pem, struct s2n_x509_crl **crl);
+
+S2N_API
+extern int s2n_x509_crl_free(struct s2n_x509_crl *crl);
+
+S2N_API
+extern int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash);
+
 /**
  * Toggles whether or not to validate stapled OCSP responses.
  *
