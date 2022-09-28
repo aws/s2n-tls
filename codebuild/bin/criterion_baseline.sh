@@ -51,7 +51,6 @@ if [ "$zip_count" -eq 0 ]; then
   criterion_install_deps
   git fetch --tags
   git checkout "$LATEST_RELEASE_VER"
-  git rebase criterion_tests
   S2N_USE_CRITERION=baseline make -C tests/integrationv2 "$INTEGV2_TEST"
   upload_artifacts
 else

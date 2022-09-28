@@ -339,7 +339,8 @@ class CriterionS2N(S2N):
     criterion_mode = get_flag(S2N_USE_CRITERION)
 
     def _find_s2n_benchmark(self, pattern):
-        result = find_files(pattern, root_dir=self.cargo_root, mode='0o100775')
+        # Use executable bit to find the correct file.
+        result = find_files(pattern, root_dir=self.cargo_root, mode='0o755')
         if len(result) > 0:
             return result[0]
         else:
