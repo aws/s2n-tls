@@ -188,6 +188,8 @@ impl FunctionCallbacks {
                 "s2n_session_ticket_fn",
                 "s2n_stacktrace",
                 "s2n_verify_host_fn",
+                "s2n_x509_cert",
+                "s2n_x509_crl",
             ]
             .iter()
             .copied()
