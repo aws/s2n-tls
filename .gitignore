@@ -36,3 +36,4 @@ CMakeCache.txt
 CMakeFiles/*
 .project
 ./codebuild/spec/buildspec_*_batch.yml
+build/
