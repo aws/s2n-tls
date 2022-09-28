@@ -66,9 +66,21 @@ struct s2n_x509_cert {
     X509 *cert;
 };
 
+S2N_API
+extern int s2n_x509_cert_get_issuer_hash(struct s2n_x509_cert *cert, unsigned long *hash);
+
 struct s2n_x509_crl {
     X509_CRL *crl;
 };
+
+S2N_API
+extern int s2n_x509_crl_from_pem(char *pem, struct s2n_x509_crl **crl);
+
+S2N_API
+extern int s2n_x509_crl_free(struct s2n_x509_crl *crl);
+
+S2N_API
+extern int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash);
 
 /** Allocates a new s2n_x509_cert struct */
 struct s2n_x509_cert* s2n_x509_cert_new(void);
