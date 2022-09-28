@@ -46,8 +46,13 @@ def invalid_test_parameters(*args, **kwargs):
     curve = kwargs.get('curve')
     signature = kwargs.get('signature')
 
-    providers = [provider_ for provider_ in [
-        provider, other_provider] if provider_]
+    # autopep8: off
+    providers = [
+            provider_ for provider_ in [
+                provider, other_provider
+            ] if provider_
+    ]
+    # autopep8: on
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)

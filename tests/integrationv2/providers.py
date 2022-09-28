@@ -404,15 +404,22 @@ class CriterionS2N(S2N):
         # Without this flag, criterion won't run
         self.cmd_line = [self.s2nd_bench, "--bench"]
 
+    # Saves baseline data with the tag "main"
+    # see https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
     def capture_client_args_baseline(self):
-        # Without this flag, criterion won't run
         self.cmd_line = [self.s2nc_bench, "--bench",
                          "s2nc", "--save-baseline", "main"]
 
+    # "By default, Criterion.rs will compare the measurements against the previous run"
+    # This run is stored with the tag "new"
+    # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
     def capture_client_args_delta(self):
-        # Without this flag, criterion won't run
         self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters"]
 
+    # Compare main against new
+    # The docs hint that the flag "load-baseline" doesn't actually run the measurement, which means
+    # if a test is expecting output, it will fail.
+    # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
     def capture_client_args_report(self):
         self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters",
                          "--load-baseline", "new", "--baseline", "main"]
