@@ -35,6 +35,9 @@ Installing CBMC
   should add that directory to your `$PATH`.
   If you built CBMC using Make, then those programs will have been installed in the `src/cbmc`, `src/goto-cc`, and `src/goto-instrument` directories respectively.
 
+- Install [Litani](https://github.com/awslabs/aws-build-accumulator).
+
+- Install [cbmc-viewer](https://github.com/model-checking/cbmc-viewer/releases).
 
 Running the proofs
 ------------------
