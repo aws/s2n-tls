@@ -184,7 +184,15 @@ These modes have slightly different command line arguments to criterion and are 
 
 ### Running locally
 
-The Criterion CodeBuild scripts can be used to run these locally, with the caveat that the s3/github interactions require access to the various resources. A future improvement might be to have a local mode that disables these. 
+The Criterion CodeBuild scripts can be used to run these locally, with the caveat that the s3/github interactions require access to the various resources. A future improvement might be to have a local mode that disables these.  Make sure you have the [github cli](https://github.com/cli/cli/blob/trunk/docs/install_linux.md) installed, python3.9, rust, and write permissions to `/usr/local/bin|lib` (or use sudo) - in addition to the traditional C build tooling.
+
+```
+INTEGV2_TEST=test_well_known_endpoints ./codebuild/bin/criterion_baseline.sh
+INTEGV2_TEST=test_well_known_endpoints ./codebuild/bin/criterion_delta.sh
+```
+
+The resulting reports are viewable via `tests/integrationv2/target/criterion/report/index.html`
+
 
 
 ## Troubleshooting CriterionS2N
