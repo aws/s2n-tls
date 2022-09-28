@@ -33,6 +33,7 @@ typedef enum {
     UNINIT,
     INIT,
     READY_TO_VERIFY,
+    AWAITING_CRL_CALLBACK,
     VALIDATED,
     OCSP_VALIDATED,
 } validator_state;
@@ -59,7 +60,9 @@ struct s2n_x509_validator {
     uint8_t check_stapled_ocsp;
     uint16_t max_chain_depth;
     STACK_OF(X509) *cert_chain_from_wire;
+    STACK_OF(X509_CRL) *crl_stack;
     int state;
+    struct s2n_array *crl_lookup_contexts;
 };
 
 struct s2n_x509_cert {
@@ -81,6 +84,29 @@ extern int s2n_x509_crl_free(struct s2n_x509_crl *crl);
 
 S2N_API
 extern int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash);
+
+typedef enum {
+    AWAITING_RESPONSE,
+    FINISHED
+} crl_lookup_callback_status;
+
+struct s2n_crl_lookup_context {
+    crl_lookup_callback_status status;
+    struct s2n_x509_cert *cert;
+    uint16_t cert_idx;
+    struct s2n_x509_crl *crl;
+};
+
+typedef int (*s2n_crl_lookup_fn) (struct s2n_crl_lookup_context *context, void *data);
+
+S2N_API
+extern int s2n_crl_lookup_get_cert(struct s2n_crl_lookup_context *context, struct s2n_x509_cert **cert);
+
+S2N_API
+extern int s2n_crl_lookup_accept(struct s2n_crl_lookup_context *context, struct s2n_x509_crl *crl);
+
+S2N_API
+extern int s2n_crl_lookup_reject(struct s2n_crl_lookup_context *context);
 
 /** Allocates a new s2n_x509_cert struct */
 struct s2n_x509_cert* s2n_x509_cert_new(void);
@@ -125,7 +151,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth);
 
 /** Cleans up underlying memory and data members. Struct can be reused afterwards. */
-void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
+int s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
 
 /**
  * Validates a certificate chain against the configured trust store in safe mode. In unsafe mode, it will find the public key
@@ -162,3 +188,6 @@ S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 
 
 /* Checks to see if a certificate has a signature algorithm that's in our certificate_signature_preferences list */
 S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences);
+
+/** Initializes a s2n_crl_lookup_context */
+S2N_RESULT s2n_crl_lookup_context_init(struct s2n_crl_lookup_context *context);

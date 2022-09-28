@@ -182,7 +182,11 @@ S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 S2N_CLEANUP_RESULT s2n_array_free_p(struct s2n_array **parray)
 {
     RESULT_ENSURE_REF(parray);
+
     struct s2n_array *array = *parray;
+    if (array == NULL) {
+        return S2N_RESULT_OK;
+    }
 
     RESULT_ENSURE_REF(array);
     /* Free the elements */

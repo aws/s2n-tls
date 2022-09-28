@@ -232,6 +232,24 @@ int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash) 
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_crl_lookup_context_init(struct s2n_crl_lookup_context *context) {
+    context->status = AWAITING_RESPONSE;
+    context->cert = NULL;
+    context->cert_idx = -1;
+    context->crl = NULL;
+
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_crl_lookup_context_free(struct s2n_crl_lookup_context *context) {
+    if (context) {
+        RESULT_GUARD_POSIX(s2n_x509_cert_free(context->cert));
+    }
+    return S2N_RESULT_OK;
+}
+
+DEFINE_POINTER_CLEANUP_FUNC(struct s2n_crl_lookup_context*, s2n_crl_lookup_context_free);
+
 int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *validator) {
     POSIX_ENSURE_REF(validator);
     validator->trust_store = NULL;
@@ -241,6 +259,8 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->max_chain_depth = DEFAULT_MAX_CHAIN_DEPTH;
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
+    validator->crl_stack = sk_X509_CRL_new_null();
+    validator->crl_lookup_contexts = NULL;
 
     return 0;
 }
@@ -257,7 +277,9 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
         POSIX_ENSURE_REF(validator->store_ctx);
     }
     validator->cert_chain_from_wire = sk_X509_new_null();
+    validator->crl_stack = sk_X509_CRL_new_null();
     validator->state = INIT;
+    validator->crl_lookup_contexts = NULL;
 
     return 0;
 }
@@ -268,17 +290,36 @@ static inline void wipe_cert_chain(STACK_OF(X509) *cert_chain) {
     }
 }
 
-void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
+int s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     if (validator->store_ctx) {
         X509_STORE_CTX_free(validator->store_ctx);
         validator->store_ctx = NULL;
     }
     wipe_cert_chain(validator->cert_chain_from_wire);
+    if (validator->crl_stack) {
+        /* Only free the stack itself, since we don't own the CRLs */
+        sk_X509_CRL_free(validator->crl_stack);
+        validator->crl_stack = NULL;
+    }
     validator->cert_chain_from_wire = NULL;
     validator->trust_store = NULL;
     validator->skip_cert_validation = 0;
     validator->state = UNINIT;
     validator->max_chain_depth = 0;
+    if (validator->crl_lookup_contexts) {
+        uint32_t crl_lookup_contexts_len = 0;
+        POSIX_GUARD_RESULT(s2n_array_num_elements(validator->crl_lookup_contexts, &crl_lookup_contexts_len));
+        for (int i = 0; i < crl_lookup_contexts_len; i++) {
+            struct s2n_crl_lookup_context *context = NULL;
+            POSIX_GUARD_RESULT(s2n_array_get(validator->crl_lookup_contexts, i, (void**) &context));
+            POSIX_GUARD_RESULT(s2n_crl_lookup_context_free(context));
+        }
+
+        POSIX_GUARD_RESULT(s2n_array_free(validator->crl_lookup_contexts));
+        validator->crl_lookup_contexts = NULL;
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
@@ -444,6 +485,116 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_x509_validator_load_crls_from_contexts(struct s2n_x509_validator *validator) {
+    uint32_t num_contexts = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
+    for (uint32_t i = 0; i < num_contexts; i++) {
+        struct s2n_crl_lookup_context *context = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void **) &context));
+        RESULT_ENSURE_REF(context);
+
+        if (!context->crl) {
+            /* A CRL was intentionally not returned from the callback. Don't add anything to the store.*/
+            continue;
+        }
+
+        RESULT_ENSURE_REF(context->crl->crl);
+        if (!sk_X509_CRL_push(validator->crl_stack, context->crl->crl)) {
+            RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        }
+    }
+
+    X509_STORE_CTX_set0_crls(validator->store_ctx, validator->crl_stack);
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_x509_validator_get_crl_lookup_callback_status(struct s2n_x509_validator *validator,
+        crl_lookup_callback_status *status) {
+    RESULT_ENSURE_REF(validator->crl_lookup_contexts);
+
+    *status = FINISHED;
+
+    uint32_t num_contexts = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
+    for (uint32_t i = 0; i < num_contexts; i++) {
+        struct s2n_crl_lookup_context *context = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, ( void ** ) &context));
+        RESULT_ENSURE_REF(context);
+
+        switch (context->status) {
+            case FINISHED:
+                break;
+            case AWAITING_RESPONSE:
+                *status = AWAITING_RESPONSE;
+                return S2N_RESULT_OK;
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_x509_validator_handle_crl_lookup_callback_result(struct s2n_x509_validator *validator) {
+    crl_lookup_callback_status status = 0;
+    RESULT_GUARD(s2n_x509_validator_get_crl_lookup_callback_status(validator, &status));
+    switch (status) {
+        case FINISHED:
+            RESULT_GUARD(s2n_x509_validator_load_crls_from_contexts(validator));
+            validator->state = READY_TO_VERIFY;
+            break;
+        case AWAITING_RESPONSE:
+            validator->state = AWAITING_CRL_CALLBACK;
+            RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
+    }
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_x509_validator_crl_lookup(struct s2n_x509_validator *validator, struct s2n_connection *conn) {
+    RESULT_ENSURE_REF(validator->store_ctx);
+
+    int cert_count = sk_X509_num(validator->cert_chain_from_wire);
+
+    DEFER_CLEANUP(struct s2n_array *crl_lookup_contexts = s2n_array_new(sizeof(struct s2n_crl_lookup_context)),
+                  s2n_array_free_p);
+    RESULT_ENSURE_REF(crl_lookup_contexts);
+
+    for (int i = 0; i < cert_count; ++i) {
+        DEFER_CLEANUP(struct s2n_crl_lookup_context* context = NULL, s2n_crl_lookup_context_free_pointer);
+        RESULT_GUARD(s2n_array_pushback(crl_lookup_contexts, (void**) &context));
+
+        RESULT_GUARD(s2n_crl_lookup_context_init(context));
+
+        X509 *cert = sk_X509_value(validator->cert_chain_from_wire, i);
+        RESULT_ENSURE_REF(cert);
+
+        struct s2n_x509_cert *s2n_cert = s2n_x509_cert_new();
+        RESULT_ENSURE_REF(s2n_cert);
+        s2n_cert->cert = cert;
+
+        context->cert = s2n_cert;
+        context->cert_idx = i;
+
+        ZERO_TO_DISABLE_DEFER_CLEANUP(context);
+    }
+
+    validator->crl_lookup_contexts = crl_lookup_contexts;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(crl_lookup_contexts);
+
+    uint32_t num_contexts = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
+    for (uint32_t i = 0; i < num_contexts; i++) {
+        struct s2n_crl_lookup_context *context = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void**) &context));
+        RESULT_ENSURE_REF(context);
+
+        RESULT_GUARD_POSIX(conn->crl_lookup(context, conn->data_for_crl_lookup));
+    }
+
+    RESULT_GUARD(s2n_x509_validator_handle_crl_lookup_callback_result(validator));
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len) {
     RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
@@ -464,6 +615,10 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
             validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
+    if (conn->crl_lookup) {
+        RESULT_GUARD(s2n_x509_validator_crl_lookup(validator, conn));
+    }
+
     validator->state = READY_TO_VERIFY;
 
     return S2N_RESULT_OK;
@@ -474,6 +629,11 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
 
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
+
+    if (conn->crl_lookup) {
+        X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
+        X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL);
+    }
 
     uint64_t current_sys_time = 0;
     conn->config->wall_clock(conn->config->sys_clock_ctx, &current_sys_time);
@@ -488,6 +648,17 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         switch (ossl_error) {
             case X509_V_ERR_CERT_HAS_EXPIRED:
                 RESULT_BAIL(S2N_ERR_CERT_EXPIRED);
+            case X509_V_ERR_CERT_REVOKED:
+                RESULT_BAIL(S2N_ERR_CERT_REVOKED);
+            case X509_V_ERR_UNABLE_TO_GET_CRL:
+            case X509_V_ERR_DIFFERENT_CRL_SCOPE:
+                RESULT_BAIL(S2N_ERR_CRL_LOOKUP_FAILED);
+            case X509_V_ERR_CRL_SIGNATURE_FAILURE:
+                RESULT_BAIL(S2N_ERR_CRL_SIGNATURE);
+            case X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER:
+                RESULT_BAIL(S2N_ERR_CRL_ISSUER);
+            case X509_V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION:
+                RESULT_BAIL(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION);
             default:
                 RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
@@ -525,7 +696,15 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
 
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
-    RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
+    switch (validator->state) {
+        case INIT:
+            break;
+        case AWAITING_CRL_CALLBACK:
+            RESULT_GUARD(s2n_x509_validator_handle_crl_lookup_callback_result(validator));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_INVALID_CERT_STATE);
+    }
 
     if (validator->state == INIT) {
         RESULT_GUARD(s2n_x509_validator_process_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
@@ -722,4 +901,28 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
 {
     return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
+}
+
+int s2n_crl_lookup_get_cert(struct s2n_crl_lookup_context *context, struct s2n_x509_cert **cert) {
+    POSIX_ENSURE_REF(context);
+    POSIX_ENSURE_REF(context->cert);
+
+    *cert = context->cert;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_crl_lookup_accept(struct s2n_crl_lookup_context *context, struct s2n_x509_crl *crl) {
+    POSIX_ENSURE_REF(context);
+    POSIX_ENSURE_REF(crl);
+    context->crl = crl;
+    context->status = FINISHED;
+    return S2N_SUCCESS;
+}
+
+int s2n_crl_lookup_reject(struct s2n_crl_lookup_context *context) {
+    POSIX_ENSURE_REF(context);
+    context->crl = NULL;
+    context->status = FINISHED;
+    return S2N_SUCCESS;
 }

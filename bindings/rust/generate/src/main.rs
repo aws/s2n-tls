@@ -164,6 +164,8 @@ impl FunctionCallbacks {
                 "s2n_clock_time_nanoseconds",
                 "s2n_config",
                 "s2n_connection",
+                "s2n_crl_lookup_context",
+                "s2n_crl_lookup_fn",
                 "s2n_early_data_cb",
                 "s2n_key_log_fn",
                 "s2n_mem_cleanup_callback",
