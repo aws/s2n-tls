@@ -1028,7 +1028,7 @@ int s2n_cipher_suites_init(void)
 }
 
 /* Reset any selected record algorithms */
-int s2n_cipher_suites_cleanup(void)
+S2N_RESULT s2n_cipher_suites_cleanup(void)
 {
     const int num_cipher_suites = sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite *);
     for (int i = 0; i < num_cipher_suites; i++) {
@@ -1038,7 +1038,7 @@ int s2n_cipher_suites_cleanup(void)
 
         /* Release custom SSLv3 cipher suites */
         if (cur_suite->sslv3_cipher_suite != cur_suite) {
-            POSIX_GUARD(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
+            RESULT_GUARD_POSIX(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
         }
         cur_suite->sslv3_cipher_suite = NULL;
     }
@@ -1053,7 +1053,7 @@ int s2n_cipher_suites_cleanup(void)
 #endif
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[static S2N_TLS_CIPHER_SUITE_LEN], struct s2n_cipher_suite **cipher_suite)

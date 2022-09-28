@@ -22,12 +22,16 @@ ifndef S2N_NO_PQ_ASM
     # by the compiler. So for each needed instruction set
     # extension we check if the compiler supports it and
     # set proper flags to be added in the kyber_r3 Makefile.
-    dummy_file := "$(S2N_ROOT)/tests/features/noop_main.c"
-    dummy_file_out := "test_kyber512r3_avx2_bmi2_support.o"
-    KYBER512R3_AVX2_BMI2_SUPPORTED := $(shell $(CC) -mavx2 -mbmi2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
-    ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-        CFLAGS += -DS2N_KYBER512R3_AVX2_BMI2
-        CFLAGS_LLVM += -DS2N_KYBER512R3_AVX2_BMI2
-        KYBER512R3_AVX2_BMI2_FLAGS := -mavx2 -mbmi2
+
+    # Check if m256 intrinsics are supported by the compiler
+    m256_file := "$(S2N_ROOT)/tests/features/m256_intrinsics.c"
+    m256_file_out := "test_kyber512r3_m256_support.o"
+    KYBER512R3_M256_SUPPORTED := $(shell $(CC) -c -o $(m256_file_out) $(m256_file) > /dev/null 2>&1; echo $$?; rm $(m256_file_out) > /dev/null 2>&1)
+
+    ifeq ($(KYBER512R3_M256_SUPPORTED), 0)
+      # Check if mavx2 and mbmi2 flags are supported by the compiler
+      dummy_file := "$(S2N_ROOT)/tests/features/noop_main.c"
+      dummy_file_out := "test_kyber512r3_avx2_bmi2_support.o"
+      KYBER512R3_AVX2_BMI2_SUPPORTED := $(shell $(CC) -mavx2 -mbmi2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
     endif
 endif

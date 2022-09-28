@@ -28,15 +28,19 @@ OBJS=$(SRCS:.c=.o)
 
 AVX2_SRCS=kyber512r3_cbd_avx2.c kyber512r3_consts_avx2.c kyber512r3_fips202x4_avx2.c kyber512r3_indcpa_avx2.c kyber512r3_poly_avx2.c kyber512r3_polyvec_avx2.c kyber512r3_rejsample_avx2.c KeccakP-1600-times4-SIMD256_avx2.c
 AVX2_ASM_SRCS=kyber512r3_basemul_avx2.S kyber512r3_fq_avx2.S kyber512r3_invntt_avx2.S kyber512r3_ntt_avx2.S kyber512r3_shuffle_avx2.S
-ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-AVX2_OBJS=$(AVX2_SRCS:.c=.o)
-AVX2_ASM_OBJS=$(AVX2_ASM_SRCS:.S=.o)
-endif
 
-$(OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+
 ifeq ($(KYBER512R3_AVX2_BMI2_SUPPORTED), 0)
-$(AVX2_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
-$(AVX2_ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+  CFLAGS += -DS2N_KYBER512R3_AVX2_BMI2
+  CFLAGS_LLVM += -DS2N_KYBER512R3_AVX2_BMI2
+
+  AVX2_OBJS=$(AVX2_SRCS:.c=.o)
+  AVX2_ASM_OBJS=$(AVX2_ASM_SRCS:.S=.o)
+
+  KYBER512R3_AVX2_BMI2_FLAGS= -mavx2 -mbmi2
+  $(AVX2_SRCS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+  $(AVX2_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
+  $(AVX2_ASM_OBJS): CFLAGS += $(KYBER512R3_AVX2_BMI2_FLAGS)
 endif
 
 #WA for GCC 4.8.5 bug.
