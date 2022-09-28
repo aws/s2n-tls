@@ -3,6 +3,10 @@
 #include "kyber512r3_ntt.h"
 #include "kyber512r3_reduce.h"
 
+#if S2N_ANY_NONPORTABLE_OPTIMIZATIONS_ENABLED
+#error "Compiling portable code with non-portable assembly optimizations is not allowed"
+#endif
+
 const int16_t zetas[128] = {
     2285, 2571, 2970, 1812, 1493, 1422, 287, 202, 3158, 622, 1577, 182, 962,
     2127, 1855, 1468, 573, 2004, 264, 383, 2500, 1458, 1727, 3199, 2648, 1017,
