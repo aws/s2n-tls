@@ -42,7 +42,7 @@ bool s2n_server_npn_should_send(struct s2n_connection *conn)
     /* Only use the NPN extension to negotiate a protocol if the client didn't
      * send the ALPN extension.
      */
-    return s2n_client_npn_should_send(conn) && !s2n_alpn_should_send(conn);
+    return s2n_client_npn_should_send(conn) && !s2n_server_alpn_should_send(conn);
 }
 
 int s2n_server_npn_send(struct s2n_connection *conn, struct s2n_stuffer *out)

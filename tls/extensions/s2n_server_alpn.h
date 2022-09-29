@@ -19,4 +19,4 @@
 
 extern const s2n_extension_type s2n_server_alpn_extension;
 
-bool s2n_alpn_should_send(struct s2n_connection *conn);
+bool s2n_server_alpn_should_send(struct s2n_connection *conn);
