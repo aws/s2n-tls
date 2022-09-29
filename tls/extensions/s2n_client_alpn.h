@@ -21,6 +21,7 @@
 
 extern const s2n_extension_type s2n_client_alpn_extension;
 bool s2n_client_alpn_should_send(struct s2n_connection *conn);
+int s2n_select_supported_protocol(struct s2n_connection *conn, struct s2n_blob *protocol_preferences, struct s2n_stuffer *extension);
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 
