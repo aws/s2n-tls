@@ -959,8 +959,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(client_conn, apn, sizeof(apn)));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            client_conn->handshake.renegotiation = true;
-            client_conn->secure_renegotiation = true;
             if (tls13_tickets) {
                 EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             }
@@ -995,6 +993,13 @@ int main(int argc, char **argv)
                 } else if (!tls13_tickets && (iana == TLS_EXTENSION_PRE_SHARED_KEY
                         || iana == TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES
                         || iana == TLS_EXTENSION_EARLY_DATA)) {
+                    continue;
+                }
+
+                /* No extension is sent for an initial handshake,
+                 * and TLS1.3 doesn't support renegotiation handshakes.
+                 */
+                if (iana == TLS_EXTENSION_RENEGOTIATION_INFO) {
                     continue;
                 }
 
