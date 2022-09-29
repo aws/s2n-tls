@@ -19,5 +19,3 @@
 
 extern const s2n_extension_type s2n_client_npn_extension;
 extern const s2n_extension_type s2n_server_npn_extension;
-
-bool s2n_npn_should_send(struct s2n_connection *conn);

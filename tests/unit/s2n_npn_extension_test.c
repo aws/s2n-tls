@@ -20,6 +20,7 @@
 
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_npn.h"
+#include "tls/extensions/s2n_client_alpn.h"
 #include "testlib/s2n_testlib.h"
 #include "tests/s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
@@ -47,39 +48,42 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn);
         EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
 
-        /* NPN not supported */
+        /* No application protocols set */
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
 
-        /* NPN supported but no application protocols set */
-        client_conn->config->npn_supported = true;
-        EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
-
+        /* Application protocols set but NPN not supported. In this case the ALPN extension will be sent. */
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
+        EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
+        EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
+
+        /* Both ALPN and NPN extensions will be sent */
+        client_conn->config->npn_supported = true;
         EXPECT_TRUE(s2n_client_npn_extension.should_send(client_conn));
+        EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
     }
 
     /* Should-send tests on the server side */
     {
-        /* Setup necessary to send NPN */
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
-
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        
+        /* NPN not supported */
+        EXPECT_FALSE(s2n_server_npn_extension.should_send(server_conn));
 
+        /* NPN supported */
         server_conn->config->npn_supported = true;
-
         EXPECT_TRUE(s2n_server_npn_extension.should_send(server_conn));
 
         /* Server has already negotiated a protocol with the ALPN extension */
         uint8_t first_protocol_len = strlen(protocols[0]);
-        EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocols, first_protocol_len);
-        server_conn->application_protocol[first_protocol_len] = '\0';
+        EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocols, first_protocol_len + 1);
         EXPECT_FALSE(s2n_server_npn_extension.should_send(server_conn));
     }
 
@@ -164,7 +168,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(s2n_get_application_protocol(client_conn));
         }
 
-        /* Multiple matches exist and client's preferred choice is selected */
+        /* Multiple matches exist and server's preferred choice is selected */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
@@ -186,11 +190,12 @@ int main(int argc, char **argv)
                 };
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&extension, wire_bytes, sizeof(wire_bytes)));
-
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
 
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
-            EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
+
+            /* Client's second protocol is selected because the server prefers it over client's first protocol */
+            EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[1], strlen(protocols[1]));
         }
     }
 
