@@ -18,7 +18,7 @@ source ./codebuild/bin/utils.sh
 export S2N_NOPQ=1
 export AWS_S3_URL="s3://s2n-tls-logs/release/"
 # Limit the number of child processes in the test run
-export XDIST_WORKERS=2
+export XDIST_WORKERS=4
 export RUST_BACKTRACE=1
 
 
@@ -43,4 +43,3 @@ download_artifacts
 
 echo "Current dir: $(pwd)"
 S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
-S2N_USE_CRITERION=report make -C tests/integrationv2 "$INTEGV2_TEST"

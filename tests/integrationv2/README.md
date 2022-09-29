@@ -179,7 +179,7 @@ The arguments to s2nc/d are moved to the environment variables `S2NC_ARGS` or `S
 
 The name of the criterion report is based on the test name; constructed from the s2nc/d command line arguments.
 
-Criterion needs 3 passes to generate a report showing changes between two runs. The first pass establishes a base line, the second run a delta dataset, and the final a report.
+Criterion needs 2 passes to generate a report showing changes between two runs. The first pass establishes a base line, the second run a delta dataset, and a report.
 These modes have slightly different command line arguments to criterion and are controlled with the environment variable S2N_USE_CRITERION in the provider.
 
 ### Running locally

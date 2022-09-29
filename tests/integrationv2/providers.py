@@ -334,7 +334,6 @@ class CriterionS2N(S2N):
     criterion_off = 'off'
     criterion_delta = 'delta'
     criterion_baseline = 'baseline'
-    criterion_report = 'report'
     # Figure out what mode to run in: baseline, delta or report
     criterion_mode = get_flag(S2N_USE_CRITERION)
 
@@ -398,8 +397,6 @@ class CriterionS2N(S2N):
                 self.capture_client_args_baseline()
             if self.criterion_mode == CriterionS2N.criterion_delta:
                 self.capture_client_args_delta()
-            if self.criterion_mode == CriterionS2N.criterion_report:
-                self.capture_client_args_report()
 
     def capture_server_args(self, cmd_line):
         # Without this flag, criterion won't run
@@ -415,15 +412,7 @@ class CriterionS2N(S2N):
     # This run is stored with the tag "new"
     # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
     def capture_client_args_delta(self):
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters"]
-
-    # Compare main against new
-    # The docs hint that the flag "load-baseline" doesn't actually run the measurement, which means
-    # if a test is expecting output, it will fail.
-    # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
-    def capture_client_args_report(self):
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters",
-                         "--load-baseline", "new", "--baseline", "main"]
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters","--baseline","main"]
 
 
 class OpenSSL(Provider):
