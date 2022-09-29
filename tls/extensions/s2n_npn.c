@@ -39,8 +39,8 @@ const s2n_extension_type s2n_client_npn_extension = {
 
 bool s2n_server_npn_should_send(struct s2n_connection *conn)
 {
-    /* Only use the NPN extension to negotiate a protocol if the client didn't
-     * send the ALPN extension.
+    /* Only use the NPN extension to negotiate a protocol if we don't have
+     * an option to use the ALPN extension.
      */
     return s2n_client_npn_should_send(conn) && !s2n_server_alpn_should_send(conn);
 }
@@ -71,9 +71,6 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     while(s2n_stuffer_data_available(extension) > 0) {
         struct s2n_blob protocol = { 0 };
         POSIX_ENSURE(s2n_result_is_ok(s2n_protocol_preferences_read(extension, &protocol)), S2N_ERR_BAD_MESSAGE);
-        if(protocol.size >= sizeof(conn->application_protocol)) {
-            continue;
-        }
         
         bool match_found = false;
         POSIX_ENSURE(s2n_result_is_ok(s2n_protocol_preferences_contain(supported_protocols, &protocol, &match_found)), S2N_ERR_BAD_MESSAGE);
