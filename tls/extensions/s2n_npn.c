@@ -67,20 +67,8 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    /* Selects mutually supported protocol with server preference */
-    while(s2n_stuffer_data_available(extension) > 0) {
-        struct s2n_blob protocol = { 0 };
-        POSIX_ENSURE(s2n_result_is_ok(s2n_protocol_preferences_read(extension, &protocol)), S2N_ERR_BAD_MESSAGE);
-        
-        bool match_found = false;
-        POSIX_ENSURE(s2n_result_is_ok(s2n_protocol_preferences_contain(supported_protocols, &protocol, &match_found)), S2N_ERR_BAD_MESSAGE);
-        
-        if (match_found) {
-            POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
-            conn->application_protocol[protocol.size] = '\0';
-            return S2N_SUCCESS;
-        }    
-    }
+    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+
     return S2N_SUCCESS;
 }
 

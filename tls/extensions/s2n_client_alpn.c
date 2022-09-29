@@ -60,47 +60,31 @@ static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer 
 
 static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t size_of_all;
-    struct s2n_stuffer server_protos = {0};
+    struct s2n_blob *supported_protocols = NULL;
+    POSIX_GUARD(s2n_connection_get_protocol_preferences(conn, &supported_protocols));
+    POSIX_ENSURE_REF(supported_protocols);
 
-    struct s2n_blob *server_app_protocols;
-    POSIX_GUARD(s2n_connection_get_protocol_preferences(conn, &server_app_protocols));
-
-    if (!server_app_protocols->size) {
+    if (supported_protocols->size == 0) {
         /* No protocols configured, nothing to do */
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
+    uint16_t wire_size = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &wire_size));
+    if (wire_size > s2n_stuffer_data_available(extension) || wire_size < 3) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
     }
+    
+    struct s2n_blob client_protocols = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_protocols, s2n_stuffer_raw_read(extension, wire_size), wire_size));
 
-    struct s2n_blob client_app_protocols = { 0 };
-    client_app_protocols.size = size_of_all;
-    client_app_protocols.data = s2n_stuffer_raw_read(extension, size_of_all);
-    POSIX_ENSURE_REF(client_app_protocols.data);
+    struct s2n_stuffer server_protocols = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&server_protocols, supported_protocols));
+    POSIX_GUARD(s2n_stuffer_skip_write(&server_protocols, supported_protocols->size));
 
-    /* Find a matching protocol */
-    POSIX_GUARD(s2n_stuffer_init(&server_protos, server_app_protocols));
-    POSIX_GUARD(s2n_stuffer_skip_write(&server_protos, server_app_protocols->size));
+    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, &server_protocols, &client_protocols));
 
-    while (s2n_stuffer_data_available(&server_protos) > 0) {
-        struct s2n_blob server_protocol = { 0 };
-        POSIX_ENSURE(s2n_result_is_ok(s2n_protocol_preferences_read(&server_protos, &server_protocol)),
-                S2N_ERR_BAD_MESSAGE);
-
-        bool is_match = false;
-        POSIX_ENSURE(s2n_result_is_ok(s2n_protocol_preferences_contain(&client_app_protocols, &server_protocol, &is_match)),
-                S2N_ERR_BAD_MESSAGE);
-
-        if (is_match) {
-            POSIX_CHECKED_MEMCPY(conn->application_protocol, server_protocol.data, server_protocol.size);
-            conn->application_protocol[server_protocol.size] = '\0';
-            return S2N_SUCCESS;
-        }
-    }
     return S2N_SUCCESS;
 }
 
