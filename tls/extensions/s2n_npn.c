@@ -22,7 +22,7 @@
 
 #include "utils/s2n_safety.h"
 
-bool s2n_client_npn_should_send(struct s2n_connection *conn)
+bool s2n_npn_should_send(struct s2n_connection *conn)
 {
     return s2n_client_alpn_should_send(conn) && conn->config->npn_supported;
 }
@@ -32,17 +32,16 @@ const s2n_extension_type s2n_client_npn_extension = {
     .is_response = false,
     .send = s2n_extension_send_noop,
     .recv = s2n_extension_recv_noop,
-    .should_send = s2n_client_npn_should_send,
+    .should_send = s2n_npn_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
-
 
 bool s2n_server_npn_should_send(struct s2n_connection *conn)
 {
     /* Only use the NPN extension to negotiate a protocol if we don't have
      * an option to use the ALPN extension.
      */
-    return s2n_client_npn_should_send(conn) && !s2n_server_alpn_should_send(conn);
+    return s2n_npn_should_send(conn) && !s2n_server_alpn_should_send(conn);
 }
 
 int s2n_server_npn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
