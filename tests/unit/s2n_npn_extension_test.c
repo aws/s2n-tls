@@ -199,5 +199,96 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Tests for the NPN extension on the Encrypted Extensions handshake message */
+    {
+        /* s2n_npn_encrypted_should_send */
+        {
+            /* No connection */
+            EXPECT_FALSE(s2n_npn_encrypted_extension.should_send(NULL));
+
+            /* No chosen application protocol */
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_FALSE(s2n_npn_encrypted_extension.should_send(client_conn));
+
+            /* Should send if protocol has been negotiated */
+            uint8_t first_protocol_len = strlen(protocols[0]);
+            EXPECT_MEMCPY_SUCCESS(client_conn->application_protocol, protocols[0], first_protocol_len + 1);
+            EXPECT_TRUE(s2n_npn_encrypted_extension.should_send(client_conn));
+        }
+
+        /* s2n_npn_encrypted_extension_send */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+
+            uint8_t first_protocol_len = strlen(protocols[0]);
+            EXPECT_MEMCPY_SUCCESS(client_conn->application_protocol, protocols[0], first_protocol_len + 1);
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_npn_encrypted_extension.send(client_conn, &out));
+
+            uint8_t protocol_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &protocol_len));
+
+            uint8_t protocol[UINT8_MAX] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&out, protocol, protocol_len));
+            EXPECT_BYTEARRAY_EQUAL(protocol, protocols[0], protocol_len);
+
+            uint8_t padding_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &padding_len));
+            EXPECT_TRUE(padding_len > 0);
+            
+            for(size_t i = 0; i < padding_len; i++) {
+                uint8_t byte = UINT8_MAX;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &byte));
+                EXPECT_EQUAL(byte, 0);
+            }
+            EXPECT_EQUAL(s2n_stuffer_data_available(&out), 0);
+        }
+
+        /* NPN Encrypted Extension recv can read NPN Encrypted Extension send */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            uint8_t first_protocol_len = strlen(protocols[0]);
+            EXPECT_MEMCPY_SUCCESS(client_conn->application_protocol, protocols[0], first_protocol_len + 1);
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_npn_encrypted_extension.send(client_conn, &out));
+            EXPECT_SUCCESS(s2n_npn_encrypted_extension.recv(server_conn, &out));
+
+            EXPECT_NOT_NULL(s2n_get_application_protocol(server_conn));
+            EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
+        }
+
+        /* s2n_calculate_padding */
+        {
+            struct {
+                uint8_t protocol_len;
+                uint8_t expected_padding;
+            } test_cases[] = {
+                { .protocol_len = 0, .expected_padding = 30 },
+                { .protocol_len = 32, .expected_padding = 30 },
+                { .protocol_len = 17, .expected_padding = 13 },
+                { .protocol_len = 2, .expected_padding = 28 },
+                { .protocol_len = UINT8_MAX, .expected_padding = 31 },
+                { .protocol_len = 30, .expected_padding = 32 },
+            };
+
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                uint8_t output = 0;
+                EXPECT_OK(s2n_calculate_padding(test_cases[i].protocol_len, &output));
+                EXPECT_EQUAL(output, test_cases[i].expected_padding);
+            }
+        }
+    }
+
     END_TEST();
 }

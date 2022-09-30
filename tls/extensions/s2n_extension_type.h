@@ -67,6 +67,7 @@ static const uint16_t s2n_supported_extensions[] = {
     TLS_EXTENSION_PRE_SHARED_KEY,
     TLS_EXTENSION_EARLY_DATA,
     TLS_EXTENSION_EMS,
+    TLS_EXTENSION_NPN,
 };
 
 typedef char s2n_extension_bitfield[S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN];
