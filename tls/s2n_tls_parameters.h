@@ -96,6 +96,12 @@
 #define TLS_EXTENSION_CERT_AUTHORITIES     47
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
+/* The NPN extension was never standardized, therefore there is no official
+ * iana value. However, Openssl does have a chosen value for this extension 
+ * and that is what is used here.
+*/
+#define TLS_EXTENSION_NPN                  13172
+
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
 #define TLS_EXTENSION_EARLY_DATA             42
 #define TLS_EXTENSION_SUPPORTED_VERSIONS     43
