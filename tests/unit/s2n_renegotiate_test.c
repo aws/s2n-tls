@@ -28,7 +28,7 @@ struct s2n_reneg_test_case {
     uint8_t max_frag_code;
 };
 
-int main()
+int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
@@ -190,7 +190,6 @@ int main()
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-            /* "io_pair" just uses file descriptors and the default io callbacks */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
@@ -209,6 +208,95 @@ int main()
             client_conn->handshake.renegotiation = false;
             server_conn->handshake.renegotiation = false;
 
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        }
+
+        /* Handshake with added client auth succeeds after wipe */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_NONE));
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_NONE));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_FALSE(IS_CLIENT_AUTH_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
+            client_conn->handshake.renegotiation = false;
+            server_conn->handshake.renegotiation = false;
+
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_CLIENT_AUTH_NO_CERT(client_conn));
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
+            EXPECT_FALSE(IS_CLIENT_AUTH_NO_CERT(server_conn));
+        }
+
+        /* Handshake with different fragment length succeeds after wipe */
+        {
+            DEFER_CLEANUP(struct s2n_config *small_frag_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(small_frag_config);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(small_frag_config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(small_frag_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, "default"));
+            EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(small_frag_config));
+            EXPECT_SUCCESS(s2n_config_send_max_fragment_length(small_frag_config, S2N_TLS_MAX_FRAG_LEN_512));
+
+            DEFER_CLEANUP(struct s2n_config *larger_frag_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(larger_frag_config);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(larger_frag_config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(larger_frag_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, "default"));
+            EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(larger_frag_config));
+            EXPECT_SUCCESS(s2n_config_send_max_fragment_length(larger_frag_config, S2N_TLS_MAX_FRAG_LEN_4096));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, larger_frag_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, larger_frag_config));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
+            client_conn->handshake.renegotiation = false;
+            server_conn->handshake.renegotiation = false;
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, small_frag_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, small_frag_config));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
+            client_conn->handshake.renegotiation = false;
+            server_conn->handshake.renegotiation = false;
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, larger_frag_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
 
@@ -266,9 +354,13 @@ int main()
                     S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
 
-            /* Attempt to start renegotiation */
-            client_conn->handshake.renegotiation = true;
             EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate_wipe(client_conn), S2N_ERR_INVALID_STATE);
+
+            /* Finish the send */
+            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&out, client_conn));
+            EXPECT_EQUAL(s2n_send(client_conn, large_app_data, sizeof(large_app_data), &blocked), sizeof(large_app_data));
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
         }
 
         /* Wipe mid-read not allowed */
@@ -291,16 +383,22 @@ int main()
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Initiate a partial recv */
-            uint16_t partial_recv_len = server_conn->max_outgoing_fragment_length / 2;
+            uint16_t partial_recv_len = sizeof(app_data) / 2;
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            EXPECT_EQUAL(s2n_send(server_conn, large_app_data, sizeof(large_app_data), &blocked), sizeof(large_app_data));
+            EXPECT_EQUAL(s2n_send(server_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, partial_recv_len, &blocked), partial_recv_len);
-            EXPECT_BYTEARRAY_EQUAL(large_app_data, recv_buffer, partial_recv_len);
+            EXPECT_BYTEARRAY_EQUAL(app_data, recv_buffer, partial_recv_len);
             EXPECT_TRUE(s2n_peek(client_conn) > 0);
 
-            /* Attempt to start renegotiation */
-            client_conn->handshake.renegotiation = true;
             EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate_wipe(client_conn), S2N_ERR_INVALID_STATE);
+
+            /* Finish the recv */
+            size_t remaining_recv_len = sizeof(app_data) - partial_recv_len;
+            EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, remaining_recv_len, &blocked), remaining_recv_len);
+            EXPECT_BYTEARRAY_EQUAL(app_data + partial_recv_len, recv_buffer, remaining_recv_len);
+            EXPECT_EQUAL(s2n_peek(client_conn), 0);
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
         }
     }
 
@@ -309,9 +407,9 @@ int main()
      */
     {
         /* Setup a security policy that only contains one cipher */
-        struct s2n_cipher_preferences one_cipher_preferences = { .count = 1, .suites = NULL };
+        struct s2n_cipher_preferences one_cipher_preference = { .count = 1, .suites = NULL };
         struct s2n_security_policy one_cipher_policy = security_policy_test_all;
-        one_cipher_policy.cipher_preferences = &one_cipher_preferences;
+        one_cipher_policy.cipher_preferences = &one_cipher_preference;
 
         /* This config can only be used for servers, because currently only servers can have multiple certs */
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
@@ -331,7 +429,7 @@ int main()
         struct s2n_reneg_test_case test_cases[2000] = { 0 };
         size_t test_cases_count = 0;
         const struct s2n_cipher_preferences *ciphers = security_policy_test_all.cipher_preferences;
-        for (uint8_t version = S2N_TLS10; version < S2N_TLS13; version++) {
+        for (uint8_t version = S2N_SSLv3; version < S2N_TLS13; version++) {
             for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
                 if (!ciphers->suites[cipher_i]->available) {
                     continue;
@@ -371,14 +469,18 @@ int main()
             /* Setup test case */
             server_conn->server_protocol_version = test_cases[i].protocol_version;
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, test_cases[i].max_frag_code));
-            one_cipher_preferences.suites = &test_cases[i].cipher_suite;
+            one_cipher_preference.suites = &test_cases[i].cipher_suite;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Verify test case setup */
             EXPECT_EQUAL(client_conn->actual_protocol_version, test_cases[i].protocol_version);
-            EXPECT_EQUAL(client_conn->secure->cipher_suite, test_cases[i].cipher_suite);
             EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, mfl_code_to_length[test_cases[i].max_frag_code]);
+            if (test_cases[i].protocol_version > S2N_SSLv3) {
+                EXPECT_EQUAL(client_conn->secure->cipher_suite, test_cases[i].cipher_suite);
+            } else {
+                EXPECT_EQUAL(client_conn->secure->cipher_suite, test_cases[i].cipher_suite->sslv3_cipher_suite);
+            }
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
 
