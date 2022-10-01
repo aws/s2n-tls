@@ -426,10 +426,18 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
+        /* The oldest version s2n-tls supports is SSLv3.
+         * However, SSLv3 requires MD5 for its PRF.
+         */
+        uint8_t oldest_tested_version = S2N_SSLv3;
+        if (!s2n_hash_is_available(S2N_HASH_MD5)) {
+            oldest_tested_version = S2N_TLS10;
+        }
+
         struct s2n_reneg_test_case test_cases[2000] = { 0 };
         size_t test_cases_count = 0;
         const struct s2n_cipher_preferences *ciphers = security_policy_test_all.cipher_preferences;
-        for (uint8_t version = S2N_SSLv3; version < S2N_TLS13; version++) {
+        for (uint8_t version = oldest_tested_version; version < S2N_TLS13; version++) {
             for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
                 if (!ciphers->suites[cipher_i]->available) {
                     continue;
