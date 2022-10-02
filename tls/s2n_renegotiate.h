@@ -16,5 +16,10 @@
 #pragma once
 
 struct s2n_connection;
+struct s2n_config;
+
+typedef enum { S2N_RENEGOTIATE_REJECT, S2N_RENEGOTIATE_ACCEPT} s2n_renegotiate_response;
+typedef int (*s2n_renegotiate_request_cb)(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response);
+int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb cb, void *ctx);
 
 int s2n_renegotiate_wipe(struct s2n_connection *conn);
