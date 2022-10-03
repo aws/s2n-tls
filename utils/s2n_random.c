@@ -70,6 +70,10 @@ static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .drbgs_initialized = false
 };
 
+/* These 2 variables control the de-allocation of memory to fields inside of s2n_per_thread_rand_state: */
+static pthread_key_t s2n_per_thread_rand_state_alloc_key;
+static pthread_once_t s2n_per_thread_alloc_key_once = PTHREAD_ONCE_INIT;
+
 static int s2n_rand_init_impl(void);
 static int s2n_rand_cleanup_impl(void);
 static int s2n_rand_urandom_impl(void *ptr, uint32_t size);
@@ -130,6 +134,16 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
+static void s2n_drbg_destructor(void *_unused_argument) {
+    (void)_unused_argument;
+    s2n_result_ignore(s2n_rand_cleanup_thread());
+}
+
+static void s2n_drbg_make_alloc_key(void)
+{
+    (void)pthread_key_create(&s2n_per_thread_rand_state_alloc_key, s2n_drbg_destructor);
+}
+
 static S2N_RESULT s2n_init_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
@@ -137,10 +151,19 @@ static S2N_RESULT s2n_init_drbgs(void)
     struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
     struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
 
+    RESULT_ENSURE(pthread_once(&s2n_per_thread_alloc_key_once, s2n_drbg_make_alloc_key) == 0, S2N_ERR_DRBG);
+
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
 
     s2n_per_thread_rand_state.drbgs_initialized = true;
+
+    /**
+     * Note: even though s2n_per_thread_rand_state is thread-local, s2n_drbg_instantiate() is allocating
+     * memory to fields of that struct. To avoid leaking these allocations, s2n_drbg_destructor() ensures
+     * that s2n_rand_cleanup_thread() is called when this thread exits.
+     */
+    RESULT_ENSURE(pthread_setspecific(s2n_per_thread_rand_state_alloc_key, &s2n_per_thread_rand_state) == 0, S2N_ERR_DRBG);
 
     return S2N_RESULT_OK;
 }
@@ -436,6 +459,9 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
 {
     /* Currently, it is only safe for this function to mutate the drbg states
      * in the per thread rand state. See s2n_ensure_uniqueness().
+     *
+     * This function has no effect when called from any other thread than
+     * the one which allocated the fields that s2n_drbg_wipe de-allocates.
      */
     RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.private_drbg));
     RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.public_drbg));
