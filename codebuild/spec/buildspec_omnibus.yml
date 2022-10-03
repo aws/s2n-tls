@@ -44,7 +44,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_2XLARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images:sidetrail
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu14codebuild
         variables:
           TESTS: sidetrail
 

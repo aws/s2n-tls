@@ -1,9 +1,21 @@
 ---
 version: 0.2
+# Daily scheduled job to pre-build a release baseline artifact.
 env:
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
+
+# Doc for batch https://docs.aws.amazon.com/codebuild/latest/userguide/batch-build-buildspec.html#build-spec.batch.build-list
+batch:
+  build-graph:
+    - identifier: s2nIntegrationv2WellKnownEndpointsBaseline
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_well_known_endpoints
+
 phases:
   install:
     runtime-versions:
@@ -17,14 +29,3 @@ phases:
   build:
     commands:
       - $CB_BIN_DIR/criterion_baseline.sh
-      - mkdir -p tests/integrationv2/target/criterion
-      - echo "{id:$CODEBUILD_BUILD_ID}" >> tests/integrationv2/target/criterion/artifact.json
-
-artifacts:
-  files:
-    - "**/index.html"
-    - "**/*.svg"
-    - "**/*.json"
-  base-directory: "tests/integrationv2/target/criterion"
-  discard-paths: no
-

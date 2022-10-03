@@ -2,7 +2,7 @@ import collections
 
 from common import Certificates, Ciphers, Curves, Protocols, AvailablePorts
 from constants import TEST_SNI_CERT_DIRECTORY
-from providers import S2N, OpenSSL, BoringSSL, JavaSSL
+from providers import CriterionS2N, S2N, OpenSSL, BoringSSL, JavaSSL
 
 
 # The boolean configuration will let a test run for True and False

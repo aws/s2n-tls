@@ -15,14 +15,12 @@
 set -eu
 source codebuild/bin/utils.sh
 
-AWS_S3_URL="s3://s2n-tls-logs/release/"
-
-install_deps(){
-    make install
-    source "$HOME"/.cargo/env
-    make -C bindings/rust
-}
-
+# Disable PQ
+export S2N_NOPQ=1
+# Limit the number of child processes in the test run
+export XDIST_WORKERS=2
+export RUST_BACKTRACE=1
+export AWS_S3_URL="s3://s2n-tls-logs/release/"
 
 # There can be only one artifact config per batch job,
 # so we're scipting the baseline upload steps here.
@@ -35,20 +33,25 @@ upload_artifacts(){
 }
 
 if [ -d "third-party-src" ]; then
-  # Don't run against c.a.c.
+  echo "Not running against c.a.c."
   return 0
 fi
 
 # Fetch creds and the latest release number.
 gh_login s2n_codebuild_PRs
 get_latest_release
-AWS_S3_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
 
+# Build a specific filename for this release
+AWS_S3_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
 zip_count=$(aws s3 ls "${AWS_S3_URL}${AWS_S3_PATH}"|wc -l||true)
+
+# Only do the baseline if an artifact for the current release doesn't exist.
 if [ "$zip_count" -eq 0 ]; then
   echo "File ${AWS_S3_URL}${AWS_S3_PATH} not found"
-  install_deps
-  TOX_TEST_NAME=${INTEGV2_TEST}.py make integrationv2
+  criterion_install_deps
+  git fetch --tags
+  git checkout "$LATEST_RELEASE_VER"
+  S2N_USE_CRITERION=baseline make -C tests/integrationv2 "$INTEGV2_TEST"
   upload_artifacts
 else
   echo "Found existing artifact for ${LATEST_RELEASE_VER}, not rebuilding."
