@@ -34,8 +34,7 @@ openssl-sys = { version = "0.9" }
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
-# https://github.com/rust-lang/cmake-rs/pull/146 - cmake-rs is unmaintained and broken past 1.45
-cmake = { version = "0.1.45", optional = true }
+cmake = { version = "0.1", optional = true }
 
 [dev-dependencies]
 # Pin to this version until s2n-tls supports OpenSSL 3.0
