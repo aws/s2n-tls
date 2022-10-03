@@ -137,6 +137,31 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_select_server_preference_protocol(struct s2n_connection *conn, struct s2n_stuffer *server_list,
+    struct s2n_blob *client_list)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(server_list);
+    RESULT_ENSURE_REF(client_list);
+
+    while(s2n_stuffer_data_available(server_list) > 0) {
+        struct s2n_blob protocol = { 0 };
+        RESULT_ENSURE_OK(s2n_protocol_preferences_read(server_list, &protocol), S2N_ERR_BAD_MESSAGE);
+        
+        bool match_found = false;
+        RESULT_ENSURE_OK(s2n_protocol_preferences_contain(client_list, &protocol, &match_found), S2N_ERR_BAD_MESSAGE);
+        
+        if (match_found) {
+            RESULT_ENSURE_LT(protocol.size, sizeof(conn->application_protocol));
+            RESULT_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
+            conn->application_protocol[protocol.size] = '\0';
+            return S2N_RESULT_OK;
+        }    
+    }
+
+    return S2N_RESULT_OK;   
+}
+
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
 {
     POSIX_GUARD_RESULT(s2n_protocol_preferences_set(&config->application_protocols, protocols, protocol_count));
