@@ -4,8 +4,8 @@ import pytest
 from configuration import available_ports, MULTI_CERT_TEST_CASES, PROVIDERS, PROTOCOLS
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
-from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
+from providers import Provider, S2N, OpenSSL, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 
 def filter_cipher_list(*args, **kwargs):

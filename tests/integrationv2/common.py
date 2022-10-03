@@ -7,7 +7,7 @@ import itertools
 
 
 from constants import TEST_CERT_DIRECTORY
-from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
+from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE, S2N_USE_CRITERION
 
 
 def data_bytes(n_bytes):
