@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 
             /* Fails for TLS1.3 */
             server_conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_tls12_encrypted_extensions_recv(server_conn),     S2N_ERR_BAD_MESSAGE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls12_encrypted_extensions_recv(server_conn), S2N_ERR_BAD_MESSAGE);
 
             /* Succeeds for TLS1.2 */
             server_conn->actual_protocol_version = S2N_TLS12;

@@ -113,7 +113,14 @@ int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stu
 {   
     uint8_t protocol_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
+#if defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
     POSIX_ENSURE_LT(protocol_len, sizeof(conn->application_protocol));
+#if defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
     POSIX_ENSURE_REF(protocol);

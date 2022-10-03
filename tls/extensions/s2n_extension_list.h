@@ -43,8 +43,8 @@ typedef enum {
     S2N_EXTENSION_LIST_CERTIFICATE,
     S2N_EXTENSION_LIST_NST,
     S2N_EXTENSION_LIST_EMPTY,
-    S2N_EXTENSION_LIST_IDS_COUNT,
     S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12,
+    S2N_EXTENSION_LIST_IDS_COUNT,
 } s2n_extension_list_id;
 
 int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out);
