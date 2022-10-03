@@ -23,11 +23,20 @@ int main(int argc, char **argv)
     /* this includes a call to s2n_init */
     BEGIN_TEST();
 
+    /* test call idempotency: see https://github.com/aws/s2n-tls/issues/3446 */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_init(), S2N_ERR_INITIALIZED);
+
+    /* cleanup can only be called once when atexit is disabled, since mem_cleanup is not idempotent */
+    EXPECT_SUCCESS(s2n_cleanup());
+    EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup(), S2N_ERR_NOT_INITIALIZED);
+
     /* clean up and init multiple times */
+    EXPECT_SUCCESS(s2n_init());
     for (size_t i = 0; i < 10; i++) {
-        s2n_cleanup();
+        EXPECT_SUCCESS(s2n_cleanup());
         EXPECT_SUCCESS(s2n_init());
     }
 
+    /* this includes a call to s2n_cleanup */
     END_TEST();
 }
