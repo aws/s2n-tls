@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
         /* Server has already negotiated a protocol with the ALPN extension */
         uint8_t first_protocol_len = strlen(protocols[0]);
-        EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocols, first_protocol_len + 1);
+        EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocols[0], first_protocol_len + 1);
         EXPECT_FALSE(s2n_server_npn_extension.should_send(server_conn));
     }
 
