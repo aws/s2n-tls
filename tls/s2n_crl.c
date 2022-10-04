@@ -79,6 +79,7 @@ int s2n_x509_crl_free(struct s2n_x509_crl *crl) {
 int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash) {
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
+    POSIX_ENSURE_REF(hash);
 
     X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
     POSIX_ENSURE_REF(crl_name);
