@@ -154,9 +154,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_recv(server_conn));
             uint32_t max_early_data = 0;
             EXPECT_OK(s2n_early_data_get_server_max_size(server_conn, &max_early_data));
+
             /* Value is unchanged because extension was ignored */
             EXPECT_EQUAL(max_early_data, arbitrary_max_early_data);
-
         }
     }
     END_TEST();
