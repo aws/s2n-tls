@@ -221,8 +221,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* Send some more data */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+        for (size_t i = 0; i < 10; i++) {
+            EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
+            EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+            EXPECT_FALSE(client_conn->closing);
+            EXPECT_FALSE(client_conn->closed);
+        }
     }
 
     /* Test: Hello requests received after the handshake trigger a no_renegotiation alert
