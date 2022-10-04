@@ -45,7 +45,6 @@ int main(int argc, char **argv)
             /* Succeeds for TLS1.2 */
             client_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_send(client_conn));
-
         }
 
         /* Sends the npn extension */
@@ -63,12 +62,12 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_send(client_conn));
 
-            uint16_t extension_list_size;
+            uint16_t extension_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(stuffer, &extension_list_size));
             EXPECT_NOT_EQUAL(extension_list_size, 0);
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), extension_list_size);
 
-            uint16_t extension_type;
+            uint16_t extension_type = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(stuffer, &extension_type));
             EXPECT_EQUAL(extension_type, s2n_npn_encrypted_extension.iana_value);
         }
@@ -145,8 +144,19 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer *stuffer = &server_conn->handshake.io;
 
-            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERT_REQ, server_conn, stuffer));
+            /* Setup connection to send a max early data extension */
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, 100));
+            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, server_conn, stuffer));
+
+            /* Set early data size to a different arbitrary size so that we can test whether or not it changes */
+            uint32_t arbitrary_max_early_data = 300;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, arbitrary_max_early_data));
             EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_recv(server_conn));
+            uint32_t max_early_data = 0;
+            EXPECT_OK(s2n_early_data_get_server_max_size(server_conn, &max_early_data));
+            /* Value is unchanged because extension was ignored */
+            EXPECT_EQUAL(max_early_data, arbitrary_max_early_data);
+
         }
     }
     END_TEST();

@@ -122,6 +122,16 @@ int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stu
     POSIX_ENSURE_REF(protocol);
     POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol, protocol_len);
     conn->application_protocol[protocol_len] = '\0';
+    
+    /* Check padding is correct */
+    uint8_t padding_len = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &padding_len));
+    for (size_t i = 0; i < padding_len; i++) {
+        uint8_t byte = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint8(extension, &byte));
+        POSIX_ENSURE_EQ(byte, 0);
+    }
+    POSIX_ENSURE_EQ(s2n_stuffer_data_available(extension), 0);
 
     return S2N_SUCCESS;
 }

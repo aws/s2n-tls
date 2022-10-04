@@ -276,6 +276,8 @@ int main(int argc, char **argv)
             uint8_t wire_bytes[] = {
                 /* Zero-length protocol */
                 0x00,
+                /* Zero-length padding */
+                0x00,
                 };
 
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
@@ -294,6 +296,24 @@ int main(int argc, char **argv)
             uint8_t wire_bytes[] = {
                 /* Incorrect length of extension */
                 0x10,
+                };
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_npn_encrypted_extension.recv(server_conn, &out), S2N_ERR_NULL);
+        }
+
+        /* NPN Encrypted Extension recv errors on malformed padding */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            uint8_t wire_bytes[] = {
+                /* Zero-length protocol */
+                0x00, 0x00,
+                /* Padding character is not zero */
+                0x01, 0xFF,
                 };
 
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
