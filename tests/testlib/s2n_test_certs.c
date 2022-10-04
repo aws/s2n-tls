@@ -76,9 +76,3 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
     return 0;
 }
 
-int free_char_array_pointer(char** array) {
-    if (array && *array) {
-        free(*array);
-    }
-    return S2N_SUCCESS;
-}
