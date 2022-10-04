@@ -80,9 +80,50 @@ static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
  *#    include an empty "renegotiation_info" extension in the ServerHello
  *#    message.
  */
-static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_renegotiation_info_send_initial(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
+    return S2N_SUCCESS;
+}
+
+static int s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    POSIX_ENSURE_REF(conn);
+
+    /* s2n-tls servers do not support renegotiation.
+     * We add the renegotiation version of this logic only for testing.
+     */
+    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *# This text applies if the connection's "secure_renegotiation" flag is
+     *# set to TRUE (if it is set to FALSE, see Section 4.4).
+     */
+    POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *# o  The server MUST include a "renegotiation_info" extension
+     *#    containing the saved client_verify_data and server_verify_data in
+     *#    the ServerHello.
+     */
+    const uint8_t verify_data_len = conn->handshake.finished_len;
+    POSIX_ENSURE_GT(verify_data_len, 0);
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, verify_data_len * 2));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.client_finished, verify_data_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.server_finished, verify_data_len));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    if (s2n_handshake_is_renegotiation(conn)) {
+        POSIX_GUARD(s2n_renegotiation_info_send_renegotiation(conn, out));
+    } else {
+        POSIX_GUARD(s2n_renegotiation_info_send_initial(conn, out));
+    }
     return S2N_SUCCESS;
 }
 

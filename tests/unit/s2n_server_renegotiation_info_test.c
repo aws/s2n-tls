@@ -55,6 +55,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
+    const uint8_t client_verify_data[] = "client verify data";
+    const uint8_t server_verify_data[] = "server verify data";
+    EXPECT_EQUAL(sizeof(client_verify_data), sizeof(server_verify_data));
+    const uint8_t verify_data_len = sizeof(server_verify_data);
+
     /* Test should_send
      *
      *= https://tools.ietf.org/rfc/rfc5746#3.6
@@ -246,9 +251,6 @@ int main(int argc, char **argv)
      *#    abort the handshake.
      */
     {
-        uint8_t client_verify_data[] = "client verify data";
-        uint8_t server_verify_data[] = "server verify data";
-
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
@@ -260,8 +262,6 @@ int main(int argc, char **argv)
                 client_verify_data, sizeof(client_verify_data));
         EXPECT_MEMCPY_SUCCESS(conn->handshake.server_finished,
                 server_verify_data, sizeof(server_verify_data));
-        EXPECT_EQUAL(sizeof(client_verify_data), sizeof(server_verify_data));
-        uint8_t verify_data_len = sizeof(server_verify_data);
         conn->handshake.finished_len = verify_data_len;
         uint8_t renegotiation_info_len = verify_data_len * 2;
 
@@ -353,6 +353,54 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_BAD_MESSAGE);
         }
+    }
+
+    /* Test send during renegotiation handshake
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= type=test
+     *# o  The server MUST include a "renegotiation_info" extension
+     *#    containing the saved client_verify_data and server_verify_data in
+     *#    the ServerHello.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        client_conn->handshake.renegotiation = true;
+        client_conn->secure_renegotiation = true;
+        EXPECT_MEMCPY_SUCCESS(client_conn->handshake.client_finished,
+                client_verify_data, sizeof(client_verify_data));
+        EXPECT_MEMCPY_SUCCESS(client_conn->handshake.server_finished,
+                server_verify_data, sizeof(server_verify_data));
+        client_conn->handshake.finished_len = verify_data_len;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        server_conn->handshake.renegotiation = true;
+        server_conn->secure_renegotiation = true;
+        EXPECT_MEMCPY_SUCCESS(server_conn->handshake.client_finished,
+                client_verify_data, sizeof(client_verify_data));
+        EXPECT_MEMCPY_SUCCESS(server_conn->handshake.server_finished,
+                server_verify_data, sizeof(server_verify_data));
+        server_conn->handshake.finished_len = verify_data_len;
+
+        DEFER_CLEANUP(struct s2n_stuffer sent_extension = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&sent_extension, 0));
+        EXPECT_TRUE(s2n_server_renegotiation_info_extension.should_send(client_conn));
+        EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.send(client_conn, &sent_extension));
+
+        /* Verify matches test method */
+        DEFER_CLEANUP(struct s2n_stuffer test_extension = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_server_renegotiation_info_extension_write(&test_extension,
+                client_verify_data, server_verify_data, verify_data_len));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&sent_extension), s2n_stuffer_data_available(&test_extension));
+        EXPECT_BYTEARRAY_EQUAL(sent_extension.blob.data, test_extension.blob.data,
+                s2n_stuffer_data_available(&sent_extension));
+
+        /* Verify we can recv what we send */
+        EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.recv(server_conn, &sent_extension));
     }
 
     /* Functional Test
