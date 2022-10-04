@@ -1,11 +1,26 @@
-import os
 from common import Protocols, Curves, Ciphers
+from providers import S2N, OpenSSL
 from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
-from stat import *
 
 
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
+
+
+def get_expected_s2n_version(protocol, provider):
+    """
+    s2nd and s2nc print a number for the negotiated TLS version.
+
+    provider is s2n's peer. If s2n tries to speak to s2n < tls13,
+    tls12 is always chosen. This is true even when the requested
+    protocol is less than tls12.
+    """
+    if provider == S2N and protocol != Protocols.TLS13:
+        version = '33'
+    else:
+        version = protocol.value
+
+    return version
 
 
 def get_expected_openssl_version(protocol):
@@ -47,13 +62,7 @@ def invalid_test_parameters(*args, **kwargs):
     curve = kwargs.get('curve')
     signature = kwargs.get('signature')
 
-    # autopep8: off
-    providers = [
-            provider_ for provider_ in [
-                provider, other_provider
-            ] if provider_
-    ]
-    # autopep8: on
+    providers = [provider_ for provider_ in [provider, other_provider] if provider_]
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)
@@ -114,29 +123,3 @@ def invalid_test_parameters(*args, **kwargs):
                 return True
 
     return False
-
-
-def find_files(file_glob, root_dir=".", mode=None):
-    """
-    find util in python form.
-    file_glob: a snippet of the filename, e.g. ".py"
-    root_dir: starting point for search
-    mode is an octal representation of owner/group/other, e.g.: '0o644'
-    """
-    result = []
-    for root, dirs, files in os.walk(root_dir):
-        for file in files:
-            if file_glob in file:
-                full_name = os.path.abspath(os.path.join(root, file))
-                if mode:
-                    try:
-                        stat = oct(S_IMODE(os.stat(full_name).st_mode))
-                        if stat == mode:
-                            result.append(full_name)
-                    except FileNotFoundError:
-                        # symlinks
-                        pass
-                else:
-                    result.append(full_name)
-
-    return result
