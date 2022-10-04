@@ -24,18 +24,9 @@ get_latest_release(){
 
 gh_login(){
     # Takes secrets manager key as an argument
-    # This GH personal access token must have 'repo' permsissions to work.
     aws secretsmanager get-secret-value --secret-id "$1" --query 'SecretString' --output text |jq -r '.secret_key'| gh auth login --with-token
-
     #gh auth status
 }
-
-criterion_install_deps(){
-    make install
-    source "$HOME"/.cargo/env
-    make -C bindings/rust
-}
-
 
 usage(){
     echo -e "Usage:\n\tget_latest_release: returns just the latest v.N.N.N version"
