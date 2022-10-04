@@ -1,33 +1,14 @@
-import os
 import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
-from global_flags import S2N_USE_CRITERION
-from utils import find_files
 
 
 TLS_13_LIBCRYPTOS = {
     "awslc",
     "openssl-1.1.1"
 }
-
-
-def get_expected_s2n_version(protocol, provider):
-    """
-    s2nd and s2nc print a number for the negotiated TLS version.
-
-    provider is s2n's peer. If s2n tries to speak to s2n < tls13,
-    tls12 is always chosen. This is true even when the requested
-    protocol is less than tls12.
-    """
-    if (issubclass(provider, S2N)) and protocol != Protocols.TLS13:
-        version = '33'
-    else:
-        version = protocol.value
-
-    return version
 
 
 class Provider(object):
@@ -327,95 +308,8 @@ class S2N(Provider):
         return cmd_line
 
 
-class CriterionS2N(S2N):
-    """
-    Wrap the S2N provider in criterion-rust
-    """
-    criterion_off = 'off'
-    criterion_delta = 'delta'
-    criterion_baseline = 'baseline'
-    # Figure out what mode to run in: baseline, delta or report
-    criterion_mode = get_flag(S2N_USE_CRITERION)
-
-    def _find_s2n_benchmark(self, pattern):
-        # Use executable bit to find the correct file.
-        result = find_files(pattern, root_dir=self.cargo_root, mode='0o755')
-        if len(result) > 0:
-            return result[0]
-        else:
-            raise FileNotFoundError(
-                f"s2n criterion benchmark not found {result}.")
-
-    def _find_cargo(self):
-        # return a path to the highest level dir containing Cargo.toml
-        shortest = None
-        for file in find_files("Cargo.toml", root_dir="../.."):
-            if shortest is None:
-                shortest = file
-            else:
-                if len(file) < len(shortest):
-                    shortest = file
-        if shortest is None:
-            raise("Unable to find Cargo.toml")
-        # Return the path, minus Cargo.toml
-        return str("/".join(shortest.split("/")[:-1]))
-
-    def _cargo_bench(self):
-        """
-        Find the handlers
-        """
-        self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
-        self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
-
-    def __init__(self, options: ProviderOptions):
-        super().__init__(options)
-        # Set cargo root
-        self.cargo_root = self._find_cargo()
-
-        # Find the criterion binaries
-        self._cargo_bench()
-
-        # strip off the s2nc/d at the front because criterion
-        if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
-            self.cmd_line = self.cmd_line[1:]
-
-        # strip off the s2nc -e argument, criterion handler isn't sending any STDIN characters,
-        # and makes it look like s2nc is hanging.
-        if '-e' in self.cmd_line:
-            self.cmd_line.remove('-e')
-            print(f"***** cmd_line is now {self.cmd_line}")
-
-        # Copy the command arguments to an environment variable for the harness to read.
-        if self.options.mode == Provider.ServerMode:
-            self.options.env_overrides.update(
-                {'S2ND_ARGS': ' '.join(self.cmd_line)})
-            self.capture_server_args()
-        elif self.options.mode == Provider.ClientMode:
-            self.options.env_overrides.update(
-                {'S2NC_ARGS': ' '.join(self.cmd_line)})
-            if self.criterion_mode == CriterionS2N.criterion_baseline:
-                self.capture_client_args_baseline()
-            if self.criterion_mode == CriterionS2N.criterion_delta:
-                self.capture_client_args_delta()
-
-    def capture_server_args(self, cmd_line):
-        # Without this flag, criterion won't run
-        self.cmd_line = [self.s2nd_bench, "--bench"]
-
-    # Saves baseline data with the tag "main"
-    # see https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
-    def capture_client_args_baseline(self):
-        self.cmd_line = [self.s2nc_bench, "--bench",
-                         "s2nc", "--save-baseline", "main"]
-
-    # "By default, Criterion.rs will compare the measurements against the previous run"
-    # This run is stored with the tag "new"
-    # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
-    def capture_client_args_delta(self):
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters","--baseline","main"]
-
-
 class OpenSSL(Provider):
+
     _version = get_flag(S2N_PROVIDER_VERSION)
 
     def __init__(self, options: ProviderOptions):
@@ -615,7 +509,7 @@ class OpenSSL(Provider):
 
 class JavaSSL(Provider):
     """
-    NOTE: Only a Java SSL client has been set up. The server has not been
+    NOTE: Only a Java SSL client has been set up. The server has not been 
     implemented yet.
     """
 

@@ -1,5 +1,5 @@
 import pytest
-from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_PQ, S2N_USE_CRITERION
+from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_PQ
 
 
 def pytest_addoption(parser):
@@ -9,8 +9,6 @@ def pytest_addoption(parser):
                      default=False, type=int, help="S2N is running in FIPS mode")
     parser.addoption("--no-pq", action="store", dest="no-pq",
                      default=False, type=int, help="Turn off PQ support")
-    parser.addoption("--provider-criterion", action="store", dest="provider-criterion",
-                     default=False, type=str, help="Use Criterion provider in one of 3 modes: [off,delta,baseline,report]")
 
 
 def pytest_configure(config):
@@ -24,14 +22,12 @@ def pytest_configure(config):
 
     no_pq = config.getoption('no-pq', 0)
     fips_mode = config.getoption('fips-mode', 0)
-    use_criterion = config.getoption('proivder-criterion', 0)
-    if no_pq is 1:
+    if no_pq == 1:
         set_flag(S2N_NO_PQ, True)
-    if fips_mode is 1:
+    if fips_mode == 1:
         set_flag(S2N_FIPS_MODE, True)
 
     set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
-    set_flag(S2N_USE_CRITERION, config.getoption('provider-criterion', None))
 
 
 def pytest_collection_modifyitems(config, items):
