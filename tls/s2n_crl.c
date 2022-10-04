@@ -14,14 +14,6 @@
 */
 
 #include "s2n_crl.h"
-#include "crypto/s2n_openssl.h"
-#include "crypto/s2n_openssl_x509.h"
-#include "utils/s2n_asn1_time.h"
-#include "utils/s2n_result.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_rfc5952.h"
-#include "tls/extensions/s2n_extension_list.h"
-#include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 
 static struct s2n_x509_crl* s2n_x509_crl_new(void) {

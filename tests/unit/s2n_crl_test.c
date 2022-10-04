@@ -17,9 +17,14 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_crl.h"
 
-#define CRL_TEST_CHAIN_LEN 2
-
 DEFINE_POINTER_CLEANUP_FUNC(struct s2n_x509_crl*, s2n_x509_crl_free);
+
+int free_uint8_array_pointer(uint8_t** array) {
+    if (array && *array) {
+        free(*array);
+    }
+    return S2N_SUCCESS;
+}
 
 #define S2N_CRL_ROOT_CERT                               "../pems/crl/root_cert.pem"
 #define S2N_CRL_NONE_REVOKED_CERT_CHAIN                 "../pems/crl/none_revoked_cert_chain.pem"
@@ -35,13 +40,6 @@ DEFINE_POINTER_CLEANUP_FUNC(struct s2n_x509_crl*, s2n_x509_crl_free);
 #define S2N_CRL_INTERMEDIATE_REVOKED_CRL                "../pems/crl/intermediate_revoked_crl.pem"
 #define S2N_CRL_INTERMEDIATE_INVALID_LAST_UPDATE_CRL    "../pems/crl/intermediate_invalid_last_update_crl.pem"
 #define S2N_CRL_INTERMEDIATE_INVALID_NEXT_UPDATE_CRL    "../pems/crl/intermediate_invalid_next_update_crl.pem"
-
-int free_uint8_array_pointer(uint8_t** array) {
-    if (array && *array) {
-        free(*array);
-    }
-    return S2N_SUCCESS;
-}
 
 int main(int argc, char *argv[])
 {
