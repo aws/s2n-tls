@@ -19,6 +19,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -103,7 +104,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
         alert.size = 2;
         POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
         POSIX_GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
-        conn->closing = 1;
+        POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
 
         /* Actually write it ... */
         goto WRITE;
@@ -116,7 +117,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
         alert.size = 2;
         POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
         POSIX_GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
-        conn->closing = 1;
+        POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
 
         /* Actually write it ... */
         goto WRITE;
