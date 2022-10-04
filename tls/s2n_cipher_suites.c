@@ -1215,7 +1215,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             /* If connection is for SSLv3, use SSLv3 version of suites */
-            if (conn->client_protocol_version == S2N_SSLv3) {
+            if (conn->actual_protocol_version == S2N_SSLv3) {
                 match = match->sslv3_cipher_suite;
             }
 

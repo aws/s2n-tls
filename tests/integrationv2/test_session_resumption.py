@@ -6,8 +6,8 @@ import time
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS, TLS13_CIPHERS
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
-from providers import Provider, S2N, OpenSSL, get_expected_s2n_version
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from providers import Provider, S2N, OpenSSL
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)

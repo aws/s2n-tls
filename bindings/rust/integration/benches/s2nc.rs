@@ -2,16 +2,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::{env, process::Command, time::Duration};
+use std::{dbg, env, process::Command, time::Duration};
+mod utils;
 
 pub fn s2nc(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2nc");
     let s2nc_env: &str = &env::var("S2NC_ARGS").unwrap();
-    let s2nc_split = s2nc_env.split(' ').collect::<Vec<&str>>();
-    let test_name = format!("s2nc_{}_{}", s2nc_split[5], s2nc_split[6]);
+    let s2nc_args: utils::Arguments = s2nc_env.into();
+    let test_name = format!("s2nc_{}", s2nc_args.get_endpoint().unwrap());
+    dbg!("Parsed test_name as: {:?}", &test_name);
+    let s2nc_env: &str = &env::var("S2NC_ARGS").unwrap();
+    let s2nc_args: utils::Arguments = s2nc_env.into();
     group.bench_function(test_name, move |b| {
         b.iter(|| {
-            let s2nc_argvec = s2nc_split.clone();
+            let s2nc_argvec = s2nc_args.clone().get_vec();
             let status = Command::new("/usr/local/bin/s2nc")
                 .args(s2nc_argvec)
                 .status()
