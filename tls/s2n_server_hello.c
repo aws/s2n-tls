@@ -179,6 +179,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     }
 
     if (conn->server_protocol_version >= S2N_TLS13) {
+        POSIX_ENSURE(!conn->handshake.renegotiation, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.3
