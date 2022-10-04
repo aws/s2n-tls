@@ -136,6 +136,18 @@ int main(int argc, char **argv)
 
             EXPECT_BYTEARRAY_EQUAL(client_conn->application_protocol, server_conn->application_protocol, protocol_len);
         }
+
+        /* Ignores unexpected extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->actual_protocol_version = S2N_TLS12;
+
+            struct s2n_stuffer *stuffer = &server_conn->handshake.io;
+
+            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERT_REQ, server_conn, stuffer));
+            EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_recv(server_conn));
+        }
     }
     END_TEST();
 }

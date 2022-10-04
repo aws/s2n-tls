@@ -88,6 +88,10 @@ bool s2n_npn_encrypted_should_send(struct s2n_connection *conn)
 S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
 {
     RESULT_ENSURE_REF(padding_len);
+
+    /* https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04#section-3
+     * The length of"padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32)
+     */
     *padding_len = 32 - ((protocol_len + 2) % 32);
     return S2N_RESULT_OK;
 }
@@ -106,21 +110,13 @@ int s2n_npn_encrypted_extension_send(struct s2n_connection *conn, struct s2n_stu
     }
 
     return S2N_SUCCESS;
-    
 }
 
 int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {   
     uint8_t protocol_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
-#if defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtautological-constant-out-of-range-compare"
-#endif
-    POSIX_ENSURE_LT(protocol_len, sizeof(conn->application_protocol));
-#if defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
+    POSIX_ENSURE_LT((uint16_t)protocol_len, sizeof(conn->application_protocol));
 
     uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
     POSIX_ENSURE_REF(protocol);

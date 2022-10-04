@@ -268,6 +268,40 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
         }
 
+        /* NPN Encrypted Extension recv can read empty extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            uint8_t wire_bytes[] = {
+                /* Zero-length protocol */
+                0x00,
+                };
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
+            EXPECT_SUCCESS(s2n_npn_encrypted_extension.recv(server_conn, &out));
+
+            EXPECT_NULL(s2n_get_application_protocol(server_conn));
+        }
+
+        /* NPN Encrypted Extension recv errors on malformed extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            uint8_t wire_bytes[] = {
+                /* Incorrect length of extension */
+                0x10,
+                };
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_npn_encrypted_extension.recv(server_conn, &out), S2N_ERR_SAFETY);
+        }
+
         /* s2n_calculate_padding */
         {
             struct {
