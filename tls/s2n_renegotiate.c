@@ -93,6 +93,15 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
     bool secure_renegotiation = conn->secure_renegotiation;
     POSIX_ENSURE(secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
+    /* Save the finished data.
+     * This is required for the renegotiate_info extension on the new handshake.
+     */
+    uint8_t finished_len = conn->handshake.finished_len;
+    uint8_t client_finished[sizeof(conn->handshake.client_finished)] = { 0 };
+    POSIX_CHECKED_MEMCPY(client_finished, conn->handshake.client_finished, finished_len);
+    uint8_t server_finished[sizeof(conn->handshake.server_finished)] = { 0 };
+    POSIX_CHECKED_MEMCPY(server_finished, conn->handshake.server_finished, finished_len);
+
     POSIX_GUARD(s2n_connection_wipe(conn));
 
     /* Setup the new crypto parameters.
@@ -107,6 +116,9 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
 
     /* Restore saved values */
     POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, max_frag_len));
+    POSIX_CHECKED_MEMCPY(conn->handshake.client_finished, client_finished, finished_len);
+    POSIX_CHECKED_MEMCPY(conn->handshake.server_finished, server_finished, finished_len);
+    conn->handshake.finished_len = finished_len;
     conn->actual_protocol_version = actual_protocol_version;
     conn->server_protocol_version = server_protocol_version;
     conn->client_protocol_version = client_protocol_version;
