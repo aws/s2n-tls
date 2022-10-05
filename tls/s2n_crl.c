@@ -16,19 +16,20 @@
 #include "s2n_crl.h"
 #include "tls/s2n_connection.h"
 
-static struct s2n_x509_crl* s2n_x509_crl_new(void) {
+struct s2n_crl *s2n_crl_new(void) {
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
-    PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_x509_crl)));
+    PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crl)));
+    PTR_GUARD_POSIX(s2n_blob_zero(&mem));
 
-    struct s2n_x509_crl *crl = (struct s2n_x509_crl*)(void*) mem.data;
-    crl->crl = NULL;
+    struct s2n_crl *crl = (struct s2n_crl *)(void*) mem.data;
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return crl;
 }
 
-int s2n_x509_crl_from_pem(uint8_t *pem, size_t len, struct s2n_x509_crl **crl) {
+int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len) {
     POSIX_ENSURE_REF(crl);
+    POSIX_ENSURE(crl->crl == NULL, S2N_ERR_INVALID_ARGUMENT);
 
     struct s2n_blob pem_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&pem_blob, pem, len));
@@ -41,34 +42,33 @@ int s2n_x509_crl_from_pem(uint8_t *pem, size_t len, struct s2n_x509_crl **crl) {
     POSIX_GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
     POSIX_GUARD(s2n_stuffer_crl_from_pem(&pem_stuffer, &der_out_stuffer));
 
-    DEFER_CLEANUP(struct s2n_blob crl_blob = { 0 }, s2n_free);
-    POSIX_GUARD(s2n_alloc(&crl_blob, s2n_stuffer_data_available(&der_out_stuffer)));
-    POSIX_GUARD(s2n_stuffer_read(&der_out_stuffer, &crl_blob));
-
-    *crl = s2n_x509_crl_new();
-    POSIX_ENSURE_REF(*crl);
-
-    const uint8_t *data = crl_blob.data;
-    (*crl)->crl = d2i_X509_CRL(NULL, &data, crl_blob.size);
-    POSIX_ENSURE((*crl)->crl != NULL, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+    const uint8_t *data = der_out_stuffer.blob.data;
+    crl->crl = d2i_X509_CRL(NULL, &data, der_out_stuffer.blob.size);
+    POSIX_ENSURE(crl->crl != NULL, S2N_ERR_INVALID_PEM);
 
     return S2N_SUCCESS;
 }
 
-int s2n_x509_crl_free(struct s2n_x509_crl *crl) {
+int s2n_crl_free(struct s2n_crl **crl) {
     if (crl == NULL) {
         return S2N_SUCCESS;
     }
-
-    if (crl->crl) {
-        X509_CRL_free(crl->crl);
+    if (*crl == NULL) {
+        return S2N_SUCCESS;
     }
-    POSIX_GUARD(s2n_free_object((uint8_t **) &crl, sizeof(struct s2n_x509_crl)));
+
+    if ((*crl)->crl != NULL) {
+        X509_CRL_free((*crl)->crl);
+    }
+
+    POSIX_GUARD(s2n_free_object((uint8_t **) crl, sizeof(struct s2n_crl)));
+
+    *crl = NULL;
 
     return S2N_SUCCESS;
 }
 
-int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash) {
+int s2n_crl_get_issuer_hash(struct s2n_crl *crl, unsigned long *hash) {
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
     POSIX_ENSURE_REF(hash);

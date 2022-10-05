@@ -19,12 +19,13 @@
 
 #include <openssl/x509v3.h>
 
-struct s2n_x509_crl {
+struct s2n_crl {
     X509_CRL *crl;
 };
 
 /* TODO: APIs are part of an unfinished CRL validation feature and are temporarily hidden
  * https://github.com/aws/s2n-tls/issues/3499 */
-int s2n_x509_crl_from_pem(uint8_t *pem, size_t len, struct s2n_x509_crl **crl);
-int s2n_x509_crl_free(struct s2n_x509_crl *crl);
-int s2n_x509_crl_get_issuer_hash(struct s2n_x509_crl *crl, unsigned long *hash);
+struct s2n_crl *s2n_crl_new(void);
+int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
+int s2n_crl_free(struct s2n_crl **crl);
+int s2n_crl_get_issuer_hash(struct s2n_crl *crl, unsigned long *hash);
