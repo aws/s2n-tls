@@ -79,7 +79,7 @@ static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n
  *# "renegotiation_info" extension and respond as described in this
  *# specification even if the offered client version is {0x03, 0x00}.
  */
-static int s2n_client_renegotiation_recv_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_client_renegotiation_recv_if_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /**
      *= https://tools.ietf.org/rfc/rfc5746#3.6
@@ -101,7 +101,7 @@ static int s2n_client_renegotiation_recv_initial(struct s2n_connection *conn, st
     return S2N_SUCCESS;
 }
 
-static int s2n_client_renegotiation_recv_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_client_renegotiation_recv_if_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
 
@@ -143,9 +143,9 @@ static int s2n_client_renegotiation_recv_renegotiation(struct s2n_connection *co
 static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
-        POSIX_GUARD(s2n_client_renegotiation_recv_renegotiation(conn, extension));
+        POSIX_GUARD(s2n_client_renegotiation_recv_if_renegotiation(conn, extension));
     } else {
-        POSIX_GUARD(s2n_client_renegotiation_recv_initial(conn, extension));
+        POSIX_GUARD(s2n_client_renegotiation_recv_if_initial(conn, extension));
     }
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_BAD_MESSAGE);
     return S2N_SUCCESS;

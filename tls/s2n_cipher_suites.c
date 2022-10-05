@@ -1188,7 +1188,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         }
     }
 
-
     if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
         /** For renegotiation handshakes:
          *= https://tools.ietf.org/rfc/rfc5746#3.7
