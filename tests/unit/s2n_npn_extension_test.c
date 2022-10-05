@@ -31,6 +31,8 @@
 #define SPDY2 0x73, 0x70, 0x64, 0x79, 0x2f, 0x32
 #define SPDY3 0x73, 0x70, 0x64, 0x79, 0x2f, 0x33
 
+S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -273,18 +275,19 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
 
-            uint8_t wire_bytes[] = {
-                /* Zero-length protocol */
-                0x00,
-                /* Zero-length padding */
-                0x00,
-            };
-
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
-            EXPECT_SUCCESS(s2n_npn_encrypted_extension.recv(server_conn, &out));
 
+            /* Zero-length protocol */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, 0));
+            uint8_t padding_len = 0;
+            EXPECT_OK(s2n_calculate_padding(0, &padding_len));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, padding_len));
+            for(size_t i = 0; i < padding_len; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, 0));
+            }
+
+            EXPECT_SUCCESS(s2n_npn_encrypted_extension.recv(server_conn, &out));
             EXPECT_NULL(s2n_get_application_protocol(server_conn));
         }
 
@@ -322,7 +325,11 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_npn_encrypted_extension.recv(server_conn, &out), S2N_ERR_SAFETY);
         }
 
-        /* s2n_calculate_padding */
+        /*
+         *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+         *= type=test
+         *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
+         */
         {
             struct {
                 uint8_t protocol_len;

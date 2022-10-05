@@ -92,22 +92,22 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_recv(server_conn));
         }
 
-        /* Should parse an empty list */
+        /* Should error on an empty list */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
             server_conn->actual_protocol_version = S2N_TLS12;
+            /* Mark that the server sent the NPN extension and it expects a response */
+            EXPECT_SUCCESS(s2n_connection_allow_response_extension(server_conn, s2n_server_npn_extension.iana_value));
 
             struct s2n_stuffer *stuffer = &server_conn->handshake.io;
 
             /* Parse no data */
-            EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_recv(server_conn));
-            EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls12_encrypted_extensions_recv(server_conn), S2N_ERR_MISSING_EXTENSION);
 
             /* Parse explicitly empty list */
             EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, server_conn, stuffer));
-            EXPECT_SUCCESS(s2n_tls12_encrypted_extensions_recv(server_conn));
-            EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls12_encrypted_extensions_recv(server_conn), S2N_ERR_MISSING_EXTENSION);
         }
 
         /* Should parse s2n_tls12_encrypted_extensions_send */

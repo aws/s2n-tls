@@ -89,8 +89,9 @@ S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
 {
     RESULT_ENSURE_REF(padding_len);
 
-    /* https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04#section-3
-     * The length of"padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32)
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+     *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
      */
     *padding_len = 32 - ((protocol_len + 2) % 32);
     return S2N_RESULT_OK;
@@ -122,10 +123,13 @@ int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stu
     POSIX_ENSURE_REF(protocol);
     POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol, protocol_len);
     conn->application_protocol[protocol_len] = '\0';
-    
-    /* Check padding is correct */
+
+    uint8_t expected_padding_len = 0;
+    POSIX_GUARD_RESULT(s2n_calculate_padding(protocol_len, &expected_padding_len));
     uint8_t padding_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &padding_len));
+    POSIX_ENSURE_EQ(padding_len, expected_padding_len);
+
     for (size_t i = 0; i < padding_len; i++) {
         uint8_t byte = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8(extension, &byte));
@@ -142,5 +146,5 @@ const s2n_extension_type s2n_npn_encrypted_extension = {
     .send = s2n_npn_encrypted_extension_send,
     .recv = s2n_npn_encrypted_extension_recv,
     .should_send = s2n_npn_encrypted_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing = s2n_extension_error_if_missing,
 };

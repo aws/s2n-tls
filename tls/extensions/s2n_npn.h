@@ -20,6 +20,3 @@
 extern const s2n_extension_type s2n_client_npn_extension;
 extern const s2n_extension_type s2n_server_npn_extension;
 extern const s2n_extension_type s2n_npn_encrypted_extension;
-
-S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
-
