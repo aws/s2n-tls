@@ -44,6 +44,9 @@
 #define IS_ISSUING_NEW_SESSION_TICKET(conn) \
     ( s2n_handshake_type_check_tls12_flag(conn, WITH_SESSION_TICKET) )
 
+#define IS_NPN_HANDSHAKE(conn)               \
+    ( s2n_handshake_type_check_tls12_flag(conn, WITH_NPN) )
+
 #define IS_HELLO_RETRY_HANDSHAKE(conn)      \
     ( s2n_handshake_type_check_tls13_flag(conn, HELLO_RETRY_REQUEST) )
 
@@ -71,6 +74,7 @@ typedef enum {
     TLS12_PERFECT_FORWARD_SECRECY   = 16,
     OCSP_STATUS                     = 32,
     WITH_SESSION_TICKET             = 64,
+    WITH_NPN                        = 128,
 } s2n_tls12_handshake_type_flag;
 
 S2N_RESULT s2n_handshake_type_set_tls12_flag(struct s2n_connection *conn, s2n_tls12_handshake_type_flag flag);
