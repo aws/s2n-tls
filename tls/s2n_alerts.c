@@ -300,6 +300,18 @@ int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 
 S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
 {
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *# SSLv3 does not define the "no_renegotiation" alert (and does
+     *# not offer a way to indicate a refusal to renegotiate at a "warning"
+     *# level).  SSLv3 clients that refuse renegotiation SHOULD use a fatal
+     *# handshake_failure alert.
+     **/
+    if (s2n_connection_get_protocol_version(conn) == S2N_SSLv3) {
+        RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+        return S2N_RESULT_OK;
+    }
+
     RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_WARNING, S2N_TLS_ALERT_NO_RENEGOTIATION));
     return S2N_RESULT_OK;
 }
