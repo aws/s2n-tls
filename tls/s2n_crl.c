@@ -39,7 +39,7 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len) {
     POSIX_GUARD(s2n_stuffer_skip_write(&pem_stuffer, pem_blob.size));
 
     DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {0}, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, len));
     POSIX_GUARD(s2n_stuffer_crl_from_pem(&pem_stuffer, &der_out_stuffer));
 
     uint32_t data_size = s2n_stuffer_data_available(&der_out_stuffer);
