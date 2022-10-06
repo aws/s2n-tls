@@ -147,7 +147,7 @@ s2n-tls avoids implementing rarely used options and extensions, as well as featu
 The security of TLS and its associated encryption algorithms depends upon secure random number generation. s2n-tls provides every thread with two separate random number generators. One for "public" randomly generated data that may appear in the clear, and one for "private" data that should remain secret. This approach lessens the risk of potential predictability weaknesses in random number generation algorithms from leaking information across contexts.
 
 ##### Modularized encryption
-s2n-tls has been structured so that different encryption libraries may be used. Today s2n-tls supports OpenSSL, LibreSSL, BoringSSL, and the Apple Common Crypto framework to perform the underlying cryptographic operations.
+s2n-tls has been structured so that different encryption libraries may be used. Today s2n-tls supports OpenSSL (versions 1.0.2, 1.1.1 and 3.0.x), LibreSSL, BoringSSL, and the Apple Common Crypto framework to perform the underlying cryptographic operations.
 
 ##### Timing blinding
 s2n-tls includes structured support for blinding time-based side-channels that may leak sensitive data. For example, if s2n-tls fails to parse a TLS record or handshake message, s2n-tls will add a randomized delay of between 10 and 30 seconds, granular to nanoseconds, before responding. This raises the complexity of real-world timing side-channel attacks by a factor of at least tens of trillions.

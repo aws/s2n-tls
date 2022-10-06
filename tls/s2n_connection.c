@@ -731,6 +731,7 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
     if (conn->application_protocols_overridden.size > 0) {
         *protocol_preferences = &conn->application_protocols_overridden;
     } else {
+        POSIX_ENSURE_REF(conn->config);
         *protocol_preferences = &conn->config->application_protocols;
     }
 

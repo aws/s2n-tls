@@ -14,11 +14,14 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_alerts.h"
 
 #include "tls/s2n_quic_support.h"
 
 #define ALERT_LEN (sizeof(uint16_t))
+
+int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 int main(int argc, char **argv)
 {
@@ -328,6 +331,45 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
+    }
+
+    /* Test s2n_alerts_close_if_fatal */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Sanity check: s2n_flush doesn't close the connection */
+        conn->closing = false;
+        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+        EXPECT_FALSE(conn->closing);
+
+        /* Test: a fatal reader alert closes the connection */
+        conn->closing = false;
+        EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+        EXPECT_TRUE(conn->closing);
+
+        /* Test: a close_notify alert closes the connection
+         * This is our only writer alert, and technically it's a warning.
+         */
+        conn->closing = false;
+        EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
+        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+        EXPECT_TRUE(conn->closing);
+
+        /* Test: a no_renegotiation alert does not close the connection */
+        conn->closing = false;
+        EXPECT_OK(s2n_queue_reader_no_renegotiation_alert(conn));
+        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
+        EXPECT_FALSE(conn->closing);
     }
 
     END_TEST();

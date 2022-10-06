@@ -48,6 +48,12 @@ int s2n_disable_atexit(void) {
 
 int s2n_init(void)
 {
+    /* USAGE-GUIDE says s2n_init MUST NOT be called more than once
+     * Public documentation for API states s2n_init should only be called once
+     * https://github.com/aws/s2n-tls/issues/3446 is a result of not enforcing this
+     */
+    POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
+
     main_thread = pthread_self();
     /* Should run before any init method that calls libcrypto methods
      * to ensure we don't try to call methods that don't exist.
@@ -89,11 +95,16 @@ static bool s2n_cleanup_atexit_impl(void)
     /* the configs need to be wiped before resetting the memory callbacks */
     s2n_wipe_static_configs();
 
-    return s2n_result_is_ok(s2n_libcrypto_cleanup()) &&
+    bool cleaned_up =
+        s2n_result_is_ok(s2n_cipher_suites_cleanup()) &&
         s2n_result_is_ok(s2n_rand_cleanup_thread()) &&
         s2n_result_is_ok(s2n_rand_cleanup()) &&
+        s2n_result_is_ok(s2n_libcrypto_cleanup()) &&
         s2n_result_is_ok(s2n_locking_cleanup()) &&
         (s2n_mem_cleanup() == S2N_SUCCESS);
+
+    initialized = !cleaned_up;
+    return cleaned_up;
 }
 
 int s2n_cleanup(void)
@@ -105,12 +116,15 @@ int s2n_cleanup(void)
     /* If this is the main thread and atexit cleanup is disabled,
      * perform final cleanup now */
     if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
+        /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
+        POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
         POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
     }
+
     return 0;
 }
 
 static void s2n_cleanup_atexit(void)
 {
-    s2n_cleanup_atexit_impl();
+    (void)s2n_cleanup_atexit_impl();
 }

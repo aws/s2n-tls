@@ -110,6 +110,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         POSIX_GUARD(s2n_connection_set_config(conn, config));
+        conn->actual_protocol_version = S2N_TLS12;
 
         struct s2n_stuffer signature_algorithms_extension;
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));

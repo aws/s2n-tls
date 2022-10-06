@@ -37,13 +37,12 @@ const s2n_extension_type s2n_client_renegotiation_info_extension = {
      *# o  If neither the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV nor the
      *#    "renegotiation_info" extension was included, set the
      *#    secure_renegotiation flag to FALSE.  In this case, some servers
-     *#    may want to terminate the handshake instead of continuing
+     *#    may want to terminate the handshake instead of continuing; see
+     *#    Section 4.3 for discussion.
      *
      * The conn->secure_renegotiation flag defaults to false, so this is a no-op.
-     * We do not terminate the handshake, although missing messaging for secure
-     * renegotiation degrades client security.
-     *
-     * We could introduce an option to fail in this case in the future.
+     * We do not terminate the handshake for compatibility reasons.
+     * See https://github.com/aws/s2n-tls/issues/3528
      */
     .if_missing = s2n_extension_noop_if_missing,
 };
@@ -85,6 +84,12 @@ static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n
  *= https://tools.ietf.org/rfc/rfc5746#3.6
  *# o  The server MUST check if the "renegotiation_info" extension is
  *# included in the ClientHello.
+ *
+ * Note that this extension must also work for SSLv3:
+ *= https://tools.ietf.org/rfc/rfc5746#4.5
+ *# TLS servers that support secure renegotiation and support SSLv3 MUST accept SCSV or the
+ *# "renegotiation_info" extension and respond as described in this
+ *# specification even if the offered client version is {0x03, 0x00}.
  */
 static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {

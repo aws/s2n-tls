@@ -15,11 +15,11 @@
 
 #pragma once
 
-#include "api/s2n.h"
+struct s2n_connection;
+struct s2n_config;
 
-#include "utils/s2n_result.h"
+typedef enum { S2N_RENEGOTIATE_REJECT, S2N_RENEGOTIATE_ACCEPT} s2n_renegotiate_response;
+typedef int (*s2n_renegotiate_request_cb)(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response);
+int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb cb, void *ctx);
 
-S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol);
-S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains);
-S2N_RESULT s2n_select_server_preference_protocol(struct s2n_connection *conn, struct s2n_stuffer *server_list,
-    struct s2n_blob *client_list);
+int s2n_renegotiate_wipe(struct s2n_connection *conn);

@@ -87,6 +87,29 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test receive when using SSLv3
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= type=test
+     *# TLS servers that support secure renegotiation and support SSLv3 MUST accept SCSV or the
+     *# "renegotiation_info" extension and respond as described in this
+     *# specification even if the offered client version is {0x03, 0x00}.
+     **/
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0));
+
+        server_conn->server_protocol_version = S2N_SSLv3;
+        server_conn->actual_protocol_version = S2N_SSLv3;
+        EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.recv(server_conn, &extension));
+        EXPECT_TRUE(server_conn->secure_renegotiation);
+    }
+
     /*
      *= https://tools.ietf.org/rfc/rfc5746#3.4
      *= type=test
