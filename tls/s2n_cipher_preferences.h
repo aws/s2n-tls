@@ -23,6 +23,7 @@
 struct s2n_cipher_preferences {
     uint8_t count;
     struct s2n_cipher_suite **suites;
+    bool prioritize_chacha20;
 };
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;

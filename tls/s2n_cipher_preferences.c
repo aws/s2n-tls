@@ -814,6 +814,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[] 
 const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08),
     .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2019_08,
+    .prioritize_chacha20 = false
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
