@@ -45,6 +45,21 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(config);
+    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+    const uint8_t client_verify_data[] = "client verify data";
+    const uint8_t server_verify_data[] = "server verify data";
+    EXPECT_EQUAL(sizeof(client_verify_data), sizeof(server_verify_data));
+    const uint8_t verify_data_len = sizeof(server_verify_data);
+
     /* Test should_send
      *
      *= https://tools.ietf.org/rfc/rfc5746#3.6
@@ -80,7 +95,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test server_renegotiation_info send and recv during initial handshake */
+    /* Test server_renegotiation_info send and recv during initial handshake
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#4.3
+     *= type=test
+     *# In order to enable clients to probe, even servers that do not support
+     *# renegotiation MUST implement the minimal version of the extension
+     *# described in this document for initial handshakes, thus signaling
+     *# that they have been upgraded.
+     */
     {
         struct s2n_connection *server_conn, *client_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -102,6 +125,38 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test server_renegotiation_info recv when using SSLv3
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= type=test
+     *# Clients that support SSLv3 and offer secure renegotiation (either via SCSV or
+     *# "renegotiation_info") MUST accept the "renegotiation_info" extension
+     *# from the server, even if the server version is {0x03, 0x00}, and
+     *# behave as described in this specification.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+
+        DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->secure_renegotiation = true;
+        EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.send(server_conn, &extension));
+        EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&extension), 0);
+
+        client_conn->client_protocol_version = S2N_SSLv3;
+        client_conn->actual_protocol_version = S2N_SSLv3;
+        EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.recv(client_conn, &extension));
+        EXPECT_EQUAL(client_conn->secure_renegotiation, 1);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&extension), 0);
     }
 
     /* Test server_renegotiation_info recv during initial handshake - extension too long */
@@ -196,9 +251,6 @@ int main(int argc, char **argv)
      *#    abort the handshake.
      */
     {
-        uint8_t client_verify_data[] = "client verify data";
-        uint8_t server_verify_data[] = "server verify data";
-
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
@@ -210,8 +262,6 @@ int main(int argc, char **argv)
                 client_verify_data, sizeof(client_verify_data));
         EXPECT_MEMCPY_SUCCESS(conn->handshake.server_finished,
                 server_verify_data, sizeof(server_verify_data));
-        EXPECT_EQUAL(sizeof(client_verify_data), sizeof(server_verify_data));
-        uint8_t verify_data_len = sizeof(server_verify_data);
         conn->handshake.finished_len = verify_data_len;
         uint8_t renegotiation_info_len = verify_data_len * 2;
 
@@ -305,6 +355,54 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test send during renegotiation handshake
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= type=test
+     *# o  The server MUST include a "renegotiation_info" extension
+     *#    containing the saved client_verify_data and server_verify_data in
+     *#    the ServerHello.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        client_conn->handshake.renegotiation = true;
+        client_conn->secure_renegotiation = true;
+        EXPECT_MEMCPY_SUCCESS(client_conn->handshake.client_finished,
+                client_verify_data, sizeof(client_verify_data));
+        EXPECT_MEMCPY_SUCCESS(client_conn->handshake.server_finished,
+                server_verify_data, sizeof(server_verify_data));
+        client_conn->handshake.finished_len = verify_data_len;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        server_conn->handshake.renegotiation = true;
+        server_conn->secure_renegotiation = true;
+        EXPECT_MEMCPY_SUCCESS(server_conn->handshake.client_finished,
+                client_verify_data, sizeof(client_verify_data));
+        EXPECT_MEMCPY_SUCCESS(server_conn->handshake.server_finished,
+                server_verify_data, sizeof(server_verify_data));
+        server_conn->handshake.finished_len = verify_data_len;
+
+        DEFER_CLEANUP(struct s2n_stuffer sent_extension = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&sent_extension, 0));
+        EXPECT_TRUE(s2n_server_renegotiation_info_extension.should_send(client_conn));
+        EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.send(client_conn, &sent_extension));
+
+        /* Verify matches test method */
+        DEFER_CLEANUP(struct s2n_stuffer test_extension = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_server_renegotiation_info_extension_write(&test_extension,
+                client_verify_data, server_verify_data, verify_data_len));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&sent_extension), s2n_stuffer_data_available(&test_extension));
+        EXPECT_BYTEARRAY_EQUAL(sent_extension.blob.data, test_extension.blob.data,
+                s2n_stuffer_data_available(&sent_extension));
+
+        /* Verify we can recv what we send */
+        EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.recv(server_conn, &sent_extension));
+    }
+
     /* Functional Test
      *
      *= https://tools.ietf.org/rfc/rfc5746#3.4
@@ -313,13 +411,6 @@ int main(int argc, char **argv)
      *#    includes the "renegotiation_info" extension:
      */
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -362,6 +453,46 @@ int main(int argc, char **argv)
 
             EXPECT_TRUE(client_conn->secure_renegotiation);
         }
+    }
+
+    /* Functional Test: SSLv3
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= type=test
+     *# Clients that support SSLv3 and offer secure renegotiation (either via SCSV or
+     *# "renegotiation_info") MUST accept the "renegotiation_info" extension
+     *# from the server, even if the server version is {0x03, 0x00}, and
+     *# behave as described in this specification.  TLS servers that support
+     *# secure renegotiation and support SSLv3 MUST accept SCSV or the
+     *# "renegotiation_info" extension and respond as described in this
+     *# specification even if the offered client version is {0x03, 0x00}.
+     **/
+    if (s2n_hash_is_available(S2N_HASH_MD5)) {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
+        client_conn->client_protocol_version = S2N_SSLv3;
+        client_conn->actual_protocol_version = S2N_SSLv3;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
+        server_conn->server_protocol_version = S2N_SSLv3;
+        server_conn->actual_protocol_version = S2N_SSLv3;
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(client_conn->secure_renegotiation);
+        EXPECT_TRUE(server_conn->secure_renegotiation);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_SSLv3);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_SSLv3);
     }
 
     END_TEST();
