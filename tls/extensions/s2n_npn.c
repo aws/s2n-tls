@@ -146,5 +146,7 @@ const s2n_extension_type s2n_npn_encrypted_extension = {
     .send = s2n_npn_encrypted_extension_send,
     .recv = s2n_npn_encrypted_extension_recv,
     .should_send = s2n_npn_encrypted_should_send,
+    /* The NPN extension is the only one defined for TLS1.2 Encrypted Extensions.
+     * If it's missing, something has gone wrong. */
     .if_missing = s2n_extension_error_if_missing,
 };
