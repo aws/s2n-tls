@@ -43,6 +43,29 @@ int main(int argc, char *argv[])
 
         EXPECT_SUCCESS(s2n_crl_free(&crl));
         EXPECT_NULL(crl);
+
+        /* Multiple calls to free succeed */
+        EXPECT_SUCCESS(s2n_crl_free(&crl));
+        EXPECT_NULL(crl);
+    }
+
+    /* s2n_crl_new allocates and frees a s2n_crl with an internal X509_CRL set */
+    {
+        uint8_t crl_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        uint32_t crl_pem_len = 0;
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_CRL_ROOT_CRL, crl_pem, &crl_pem_len, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_crl *crl = s2n_crl_new();
+        EXPECT_NOT_NULL(crl);
+
+        EXPECT_SUCCESS(s2n_crl_load_pem(crl, crl_pem, crl_pem_len));
+        EXPECT_NOT_NULL(crl->crl);
+
+        EXPECT_SUCCESS(s2n_crl_free(&crl));
+        EXPECT_NULL(crl);
+
+        /* Multiple calls to free succeed */
+        EXPECT_SUCCESS(s2n_crl_free(&crl));
+        EXPECT_NULL(crl);
     }
 
     /* Ensure s2n_crl_load_pem produces a valid X509_CRL internally */

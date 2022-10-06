@@ -42,8 +42,9 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len) {
     POSIX_GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
     POSIX_GUARD(s2n_stuffer_crl_from_pem(&pem_stuffer, &der_out_stuffer));
 
-    const uint8_t *data = der_out_stuffer.blob.data;
-    crl->crl = d2i_X509_CRL(NULL, &data, der_out_stuffer.blob.size);
+    uint32_t data_size = s2n_stuffer_data_available(&der_out_stuffer);
+    const uint8_t *data = s2n_stuffer_raw_read(&der_out_stuffer, data_size);
+    crl->crl = d2i_X509_CRL(NULL, &data, data_size);
     POSIX_ENSURE(crl->crl != NULL, S2N_ERR_INVALID_PEM);
 
     return S2N_SUCCESS;
@@ -59,6 +60,7 @@ int s2n_crl_free(struct s2n_crl **crl) {
 
     if ((*crl)->crl != NULL) {
         X509_CRL_free((*crl)->crl);
+        (*crl)->crl = NULL;
     }
 
     POSIX_GUARD(s2n_free_object((uint8_t **) crl, sizeof(struct s2n_crl)));
