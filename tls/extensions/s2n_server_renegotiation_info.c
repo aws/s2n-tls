@@ -80,13 +80,13 @@ static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
  *#    include an empty "renegotiation_info" extension in the ServerHello
  *#    message.
  */
-static int s2n_renegotiation_info_send_if_initial(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_renegotiation_info_send_initial(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
     return S2N_SUCCESS;
 }
 
-static int s2n_renegotiation_info_send_if_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
 
@@ -120,9 +120,9 @@ static int s2n_renegotiation_info_send_if_renegotiation(struct s2n_connection *c
 static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
-        POSIX_GUARD(s2n_renegotiation_info_send_if_renegotiation(conn, out));
+        POSIX_GUARD(s2n_renegotiation_info_send_renegotiation(conn, out));
     } else {
-        POSIX_GUARD(s2n_renegotiation_info_send_if_initial(conn, out));
+        POSIX_GUARD(s2n_renegotiation_info_send_initial(conn, out));
     }
     return S2N_SUCCESS;
 }
@@ -132,7 +132,7 @@ static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_s
  *# o  When a ServerHello is received, the client MUST check if it
  *#    includes the "renegotiation_info" extension:
  */
-static int s2n_renegotiation_info_recv_if_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_renegotiation_info_recv_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
 
@@ -155,7 +155,7 @@ static int s2n_renegotiation_info_recv_if_initial(struct s2n_connection *conn, s
     return S2N_SUCCESS;
 }
 
-static int s2n_renegotiation_info_recv_if_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
     uint8_t verify_data_len = conn->handshake.finished_len;
@@ -205,9 +205,9 @@ static int s2n_renegotiation_info_recv_if_renegotiation(struct s2n_connection *c
 static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
-        POSIX_GUARD(s2n_renegotiation_info_recv_if_renegotiation(conn, extension));
+        POSIX_GUARD(s2n_renegotiation_info_recv_renegotiation(conn, extension));
     } else {
-        POSIX_GUARD(s2n_renegotiation_info_recv_if_initial(conn, extension));
+        POSIX_GUARD(s2n_renegotiation_info_recv_initial(conn, extension));
     }
     return S2N_SUCCESS;
 }

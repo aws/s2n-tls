@@ -364,7 +364,7 @@ int main(int argc, char **argv)
      *#    the ServerHello.
      */
     {
-        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_SERVER),
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         client_conn->handshake.renegotiation = true;
