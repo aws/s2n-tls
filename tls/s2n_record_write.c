@@ -309,6 +309,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     uint16_t data_bytes_to_take;
     if (content_type == TLS_ALERT && conn->actual_protocol_version == S2N_TLS13) {
         data_bytes_to_take = to_write;
+        POSIX_ENSURE(to_write == 2, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
     } else {
         data_bytes_to_take = MIN(to_write, max_write_payload_size);
     }
