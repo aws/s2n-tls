@@ -1168,6 +1168,7 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
     return 0;
 }
 
+/* Finds and sets the index of the ChaCha20 cipher in the server security policy. If ChaCha20 does not exist, then the index is set to -1. */
 static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s2n_cipher_preferences* cipher_preferences, int* index) {
     RESULT_ENSURE_REF(cipher_preferences);
     RESULT_ENSURE_REF(index);
@@ -1176,7 +1177,7 @@ static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s
 
     for (int i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *cipher_iana = cipher_preferences->suites[i]->iana_value;
-        if (!memcmp(chacha20_iana, cipher_iana, S2N_TLS_CIPHER_SUITE_LEN)) {
+        if (s2n_constant_time_equals(chacha20_iana, cipher_iana, S2N_TLS_CIPHER_SUITE_LEN)) {
             *index = i;
             return S2N_RESULT_OK;
         }
@@ -1186,19 +1187,21 @@ static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s
     return S2N_RESULT_OK;
 }
 
+/* If the client has ChaCha20 as their most preferred cipher suite (first cipher suite) then set flag to true. */
 static S2N_RESULT s2n_wire_indicates_chacha20_boosting(uint8_t* wire, uint8_t count, uint32_t cipher_suite_len, bool* chacha20_boosted) {
     RESULT_ENSURE_REF(wire);
     RESULT_ENSURE_REF(chacha20_boosted);
+        
+    *chacha20_boosted = false;
 
     if (count == 0) {
-        *chacha20_boosted = false;
         return S2N_RESULT_OK;
     }
 
     const uint8_t* clients_first_cipher_iana = wire + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
     const uint8_t chacha20_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_CHACHA20_POLY1305_SHA256 };
 
-    if (!memcmp(chacha20_iana, clients_first_cipher_iana, S2N_TLS_CIPHER_SUITE_LEN)) {
+    if (s2n_constant_time_equals(chacha20_iana, clients_first_cipher_iana, S2N_TLS_CIPHER_SUITE_LEN)) {
         *chacha20_boosted = true;
         return S2N_RESULT_OK;
     }
@@ -1220,7 +1223,7 @@ static S2N_RESULT s2n_validate_cipher_suite_match(struct s2n_connection* conn, s
     }
 
     /* If connection is for SSLv3, use SSLv3 version of suites */
-    if (conn->client_protocol_version == S2N_SSLv3) {
+    if (conn->actual_protocol_version == S2N_SSLv3) {
         *potential_match = (*potential_match)->sslv3_cipher_suite;
     }
 
@@ -1326,7 +1329,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         }
     }
 
-    /* ChaCha20 boosting was not enabled/supported. Fall back to server order cipher preferencs. */
+    /* ChaCha20 boosting was not enabled/supported. Fall back to server order cipher preferences. */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
 
