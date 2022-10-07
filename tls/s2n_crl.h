@@ -28,4 +28,4 @@ struct s2n_crl {
 struct s2n_crl *s2n_crl_new(void);
 int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
 int s2n_crl_free(struct s2n_crl **crl);
-int s2n_crl_get_issuer_hash(struct s2n_crl *crl, unsigned long *hash);
+int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);

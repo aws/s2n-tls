@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(crl);
         EXPECT_SUCCESS(s2n_crl_load_pem(crl, crl_pem, crl_pem_len));
 
-        unsigned long hash = 0;
+        uint64_t hash = 0;
         EXPECT_SUCCESS(s2n_crl_get_issuer_hash(crl, &hash));
         EXPECT_TRUE(hash != 0);
     }

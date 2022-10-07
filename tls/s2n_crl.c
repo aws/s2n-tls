@@ -70,7 +70,7 @@ int s2n_crl_free(struct s2n_crl **crl) {
     return S2N_SUCCESS;
 }
 
-int s2n_crl_get_issuer_hash(struct s2n_crl *crl, unsigned long *hash) {
+int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash) {
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
     POSIX_ENSURE_REF(hash);
