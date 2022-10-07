@@ -370,7 +370,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_ALERT, &empty_blob));
+        EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &empty_blob));
 
         /* Make sure that TLS 1.3 records appear as TLS 1.2 version */
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
