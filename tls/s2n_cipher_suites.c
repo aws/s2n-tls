@@ -1169,21 +1169,21 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
 }
 
 /* Finds and sets the index of the ChaCha20 cipher in the server security policy. If ChaCha20 does not exist, then the index is set to -1. */
-static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s2n_cipher_preferences* cipher_preferences, int* index) {
+static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s2n_cipher_preferences* cipher_preferences, int* idx) {
     RESULT_ENSURE_REF(cipher_preferences);
-    RESULT_ENSURE_REF(index);
+    RESULT_ENSURE_REF(idx);
 
     const uint8_t chacha20_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_CHACHA20_POLY1305_SHA256 };
 
     for (int i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *cipher_iana = cipher_preferences->suites[i]->iana_value;
         if (s2n_constant_time_equals(chacha20_iana, cipher_iana, S2N_TLS_CIPHER_SUITE_LEN)) {
-            *index = i;
+            *idx = i;
             return S2N_RESULT_OK;
         }
     }
 
-    *index = -1;
+    *idx = -1;
     return S2N_RESULT_OK;
 }
 
