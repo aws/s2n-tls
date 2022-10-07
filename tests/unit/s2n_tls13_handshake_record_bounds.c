@@ -166,7 +166,10 @@ int main(int argc, char **argv)
         free(cert_chain);
     }
 
-    /*
+    /* Try to construct a situation in which a bad implemention might not align
+     * these messages with a record boundary. We send the Client hello and then
+     * ensure we are at a record boundary by checking the out messages.
+     *
      *= https://tools.ietf.org/rfc/rfc8446#5.1
      *= type=test
      *# Because the
@@ -224,6 +227,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
 
         EXPECT_TRUE(!s2n_stuffer_data_available(&client_conn->in));
+        EXPECT_TRUE(!s2n_stuffer_data_available(&client_conn->out));
 
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
