@@ -214,7 +214,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     }
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
-    if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
+    if (conn->actual_protocol_version >= S2N_TLS12 && peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
         /* Use a best effort approach to selecting a signature scheme matching client's preferences */
         POSIX_GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
     }

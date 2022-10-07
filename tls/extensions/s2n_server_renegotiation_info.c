@@ -24,6 +24,17 @@
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 
+/**
+ * s2n-tls servers do NOT support renegotiation.
+ *
+ * We implement this extension to handle clients that require secure renegotiation support:
+ *= https://tools.ietf.org/rfc/rfc5746#4.3
+ *# In order to enable clients to probe, even servers that do not support
+ *# renegotiation MUST implement the minimal version of the extension
+ *# described in this document for initial handshakes, thus signaling
+ *# that they have been upgraded.
+ */
+
 static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn);
 static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -69,9 +80,50 @@ static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
  *#    include an empty "renegotiation_info" extension in the ServerHello
  *#    message.
  */
-static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_renegotiation_info_send_initial(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
+    return S2N_SUCCESS;
+}
+
+static int s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    POSIX_ENSURE_REF(conn);
+
+    /* s2n-tls servers do not support renegotiation.
+     * We add the renegotiation version of this logic only for testing.
+     */
+    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *# This text applies if the connection's "secure_renegotiation" flag is
+     *# set to TRUE (if it is set to FALSE, see Section 4.4).
+     */
+    POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *# o  The server MUST include a "renegotiation_info" extension
+     *#    containing the saved client_verify_data and server_verify_data in
+     *#    the ServerHello.
+     */
+    const uint8_t verify_data_len = conn->handshake.finished_len;
+    POSIX_ENSURE_GT(verify_data_len, 0);
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, verify_data_len * 2));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.client_finished, verify_data_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.server_finished, verify_data_len));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    if (s2n_handshake_is_renegotiation(conn)) {
+        POSIX_GUARD(s2n_renegotiation_info_send_renegotiation(conn, out));
+    } else {
+        POSIX_GUARD(s2n_renegotiation_info_send_initial(conn, out));
+    }
     return S2N_SUCCESS;
 }
 
@@ -142,6 +194,14 @@ static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn
     return S2N_SUCCESS;
 }
 
+/**
+ * Note that this extension must also work for SSLv3:
+ *= https://tools.ietf.org/rfc/rfc5746#4.5
+ *# Clients that support SSLv3 and offer secure renegotiation (either via SCSV or
+ *# "renegotiation_info") MUST accept the "renegotiation_info" extension
+ *# from the server, even if the server version is {0x03, 0x00}, and
+ *# behave as described in this specification.
+ */
 static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
@@ -170,13 +230,24 @@ static int s2n_renegotiation_info_if_missing(struct s2n_connection *conn)
          *#    secure renegotiation; set secure_renegotiation flag to FALSE.
          *#    In this case, some clients may want to terminate the handshake
          *#    instead of continuing; see Section 4.1 for discussion.
-         *
-         * We do not terminate the handshake, although missing messaging for secure
-         * renegotiation degrades server security.
-         *
-         * We could introduce an option to fail in this case in the future.
          */
         conn->secure_renegotiation = false;
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc5746#4.1
+         *= type=exception
+         *= reason=Avoid interoperability problems
+         *# If clients wish to ensure that such attacks are impossible, they need
+         *# to terminate the connection immediately upon failure to receive the
+         *# extension without completing the handshake.  Such clients MUST
+         *# generate a fatal "handshake_failure" alert prior to terminating the
+         *# connection.  However, it is expected that many TLS servers that do
+         *# not support renegotiation (and thus are not vulnerable) will not
+         *# support this extension either, so in general, clients that implement
+         *# this behavior will encounter interoperability problems.
+         *
+         * TODO: https://github.com/aws/s2n-tls/issues/3528
+         */
         return S2N_SUCCESS;
     }
 }

@@ -15,11 +15,8 @@
 
 #pragma once
 
-#include "api/s2n.h"
+#include "tls/extensions/s2n_extension_type.h"
 
-#include "utils/s2n_result.h"
-
-S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol);
-S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains);
-S2N_RESULT s2n_select_server_preference_protocol(struct s2n_connection *conn, struct s2n_stuffer *server_list,
-    struct s2n_blob *client_list);
+extern const s2n_extension_type s2n_client_npn_extension;
+extern const s2n_extension_type s2n_server_npn_extension;
+extern const s2n_extension_type s2n_npn_encrypted_extension;

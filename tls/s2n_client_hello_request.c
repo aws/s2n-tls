@@ -38,15 +38,44 @@ S2N_RESULT s2n_client_hello_request_validate(struct s2n_connection *conn)
 S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_GUARD(s2n_client_hello_request_validate(conn));
 
     /*
+     *= https://tools.ietf.org/rfc/rfc5746#section-4.2
+     *# This text applies if the connection's "secure_renegotiation" flag is
+     *# set to FALSE.
+     *#
+     *# It is possible that un-upgraded servers will request that the client
+     *# renegotiate.  It is RECOMMENDED that clients refuse this
+     *# renegotiation request.  Clients that do so MUST respond to such
+     *# requests with a "no_renegotiation" alert (RFC 5246 requires this
+     *# alert to be at the "warning" level).  It is possible that the
+     *# apparently un-upgraded server is in fact an attacker who is then
+     *# allowing the client to renegotiate with a different, legitimate,
+     *# upgraded server.
+     */
+    if (!conn->secure_renegotiation) {
+        RESULT_GUARD(s2n_queue_reader_no_renegotiation_alert(conn));
+        return S2N_RESULT_OK;
+    }
+
+    s2n_renegotiate_response response = S2N_RENEGOTIATE_REJECT;
+    if (conn->config->renegotiate_request_cb) {
+        RESULT_GUARD_POSIX((conn->config->renegotiate_request_cb)(
+                conn, conn->config->renegotiate_request_ctx, &response));
+    }
+
+    /*
      *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
-     *# This message will be ignored by the client if the client is
-     *# currently negotiating a session.  This message MAY be ignored by
+     *# This message MAY be ignored by
      *# the client if it does not wish to renegotiate a session, or the
      *# client may, if it wishes, respond with a no_renegotiation alert.
      */
-    RESULT_GUARD(s2n_queue_reader_no_renegotiation_alert(conn));
+    if (response != S2N_RENEGOTIATE_ACCEPT) {
+        RESULT_GUARD(s2n_queue_reader_no_renegotiation_alert(conn));
+        return S2N_RESULT_OK;
+    }
+
     return S2N_RESULT_OK;
 }

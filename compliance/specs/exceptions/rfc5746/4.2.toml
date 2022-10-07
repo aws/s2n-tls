@@ -1,0 +1,42 @@
+target = "https://tools.ietf.org/rfc/rfc5746#4.2"
+
+[[exception]]
+quote = '''
+If clients nevertheless choose to renegotiate, they
+MUST behave as described below.
+'''
+reason = '''
+s2n-tls does not support insecure renegotiation
+and does not renegotiate if secure_renegotiation is FALSE.
+'''
+
+[[exception]]
+quote = '''
+Clients that choose to renegotiate MUST provide either the
+TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV or "renegotiation_info" in
+their ClientHello.  In a legitimate renegotiation with an un-upgraded
+server, that server should ignore both of these signals.  However, if
+the server (incorrectly) fails to ignore extensions, sending the
+"renegotiation_info" extension may cause a handshake failure.  Thus,
+it is permitted, though NOT RECOMMENDED, for the client to simply
+send the SCSV.  This is the only situation in which clients are
+permitted to not send the "renegotiation_info" extension in a
+ClientHello that is used for renegotiation.
+'''
+reason = '''
+s2n-tls does not support insecure renegotiation
+and does not renegotiate if secure_renegotiation is FALSE.
+'''
+
+[[exception]]
+quote = '''
+When the ServerHello is received, the client MUST verify that it does
+not contain the "renegotiation_info" extension.  If it does, the
+client MUST abort the handshake.  (Because the server has already
+indicated it does not support secure renegotiation, the only way that
+this can happen is if the server is broken or there is an attack.)
+'''
+reason = '''
+s2n-tls does not support insecure renegotiation
+and does not renegotiate if secure_renegotiation is FALSE.
+'''

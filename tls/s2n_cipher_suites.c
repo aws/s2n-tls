@@ -1188,13 +1188,21 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         }
     }
 
-    /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
-     *# o  When a ClientHello is received, the server MUST check if it
-     *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
-     *#    set the secure_renegotiation flag to TRUE.
-     */
     if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
+        /** For renegotiation handshakes:
+         *= https://tools.ietf.org/rfc/rfc5746#3.7
+         *# o  When a ClientHello is received, the server MUST verify that it
+         *#    does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If
+         *#    the SCSV is present, the server MUST abort the handshake.
+         */
+        POSIX_ENSURE(!s2n_handshake_is_renegotiation(conn), S2N_ERR_BAD_MESSAGE);
+
+        /** For initial handshakes:
+         *= https://tools.ietf.org/rfc/rfc5746#3.6
+         *# o  When a ClientHello is received, the server MUST check if it
+         *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
+         *#    set the secure_renegotiation flag to TRUE.
+         */
         conn->secure_renegotiation = 1;
     }
 
@@ -1215,7 +1223,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             /* If connection is for SSLv3, use SSLv3 version of suites */
-            if (conn->client_protocol_version == S2N_SSLv3) {
+            if (conn->actual_protocol_version == S2N_SSLv3) {
                 match = match->sslv3_cipher_suite;
             }
 

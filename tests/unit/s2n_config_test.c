@@ -31,6 +31,11 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, vo
     return S2N_SUCCESS;
 }
 
+static int s2n_test_reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -508,6 +513,32 @@ int main(int argc, char **argv)
         EXPECT_TRUE(config->verify_after_sign);
         EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_DISABLED));
         EXPECT_FALSE(config->verify_after_sign);
+    }
+
+    /* Test s2n_config_set_renegotiate_request_cb */
+    {
+        uint8_t context = 0;
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* Unset by default */
+        EXPECT_EQUAL(config->renegotiate_request_cb, NULL);
+        EXPECT_EQUAL(config->renegotiate_request_ctx, NULL);
+
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_renegotiate_request_cb(NULL, s2n_test_reneg_req_cb, &context), S2N_ERR_NULL);
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, NULL, &context));
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_req_cb, NULL));
+
+        /* Set */
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_req_cb, &context));
+        EXPECT_EQUAL(config->renegotiate_request_cb, s2n_test_reneg_req_cb);
+        EXPECT_EQUAL(config->renegotiate_request_ctx, &context);
+
+        /* Unset */
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, NULL, NULL));
+        EXPECT_EQUAL(config->renegotiate_request_cb, NULL);
+        EXPECT_EQUAL(config->renegotiate_request_ctx, NULL);
     }
 
     END_TEST();

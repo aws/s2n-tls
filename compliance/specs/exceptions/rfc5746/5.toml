@@ -1,0 +1,11 @@
+target = "https://tools.ietf.org/rfc/rfc5746#5"
+
+[[exception]]
+quote = '''
+Servers SHOULD NOT allow
+clients to renegotiate without using this extension.
+'''
+reason = '''
+s2n-tls servers do not support renegotiation
+and do not allow clients to renegotiate.
+'''

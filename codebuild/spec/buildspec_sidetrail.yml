@@ -19,24 +19,6 @@ env:
     CB_BIN_DIR: "./codebuild/bin"
 
 phases:
-  install:
-    runtime-versions:
-      python: 3.x
-    commands:
-      - echo Entered the install phase...
-      - apt-key list
-      - add-apt-repository ppa:ubuntu-toolchain-r/test -y
-      - apt-get update -o Acquire::CompressionTypes::Order::=gz
-      - apt-get update -y
-      - |
-        if expr "${GCC_VERSION}" : "9" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-9 gcc gcc-9;
-        fi
-      - |
-        if expr "${GCC_VERSION}" : "6" >/dev/null; then
-          apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
-        fi
-      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev clang-3.9 llvm-3.9 m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc
   build:
     commands:
       - printenv
