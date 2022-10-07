@@ -356,7 +356,8 @@ int main(int argc, char **argv)
     /* Sequence number should wrap around */
     EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(conn, TLS_ALERT, &empty_blob), S2N_ERR_RECORD_LIMIT);
 
-    /* Test TLS 1.3 Record should reflect as TLS 1.2 version on the wire 
+    /* Test TLS 1.3 Record should reflect as TLS 1.2 version on the wire
+     *
      *= https://tools.ietf.org/rfc/rfc8446#5.1
      *= type=TEST
      *# legacy_record_version:  MUST be set to 0x0303 for all records
