@@ -102,8 +102,8 @@ int main(int argc, char **argv)
                 0xFF, 0x00, /* extension type */
                 0x00, 0x02, /* extension payload length */
                 0xAB, 0xCD, /* extension payload */
-                /* NPN extension without data */
-                0x33, 0x74,
+                /* Encrypt then mac extension without data */
+                0x00, 0x16,
                 0x00, 0x00
         };
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
         /* Succeeds on an unsupported extension with no payload */
         bool exists = false;
-        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x3374, &exists));
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&conn->client_hello, 0x0016, &exists));
         EXPECT_TRUE(exists);
 
         /* Succeeds on an unsupported extension with payload */

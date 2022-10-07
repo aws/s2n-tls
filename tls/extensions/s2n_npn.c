@@ -79,3 +79,74 @@ const s2n_extension_type s2n_server_npn_extension = {
     .should_send = s2n_server_npn_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
+
+bool s2n_npn_encrypted_should_send(struct s2n_connection *conn)
+{
+    return s2n_server_alpn_should_send(conn);
+}
+
+S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
+{
+    RESULT_ENSURE_REF(padding_len);
+
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+     *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
+     */
+    *padding_len = 32 - ((protocol_len + 2) % 32);
+    return S2N_RESULT_OK;
+}
+
+int s2n_npn_encrypted_extension_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{   
+    uint8_t protocol_len = strlen(conn->application_protocol);
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, protocol_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, (uint8_t*) conn->application_protocol, protocol_len));
+    
+    uint8_t padding_len = 0;
+    POSIX_GUARD_RESULT(s2n_calculate_padding(protocol_len, &padding_len));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, padding_len));
+    for (size_t i = 0; i < padding_len; i++) {
+        POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{   
+    uint8_t protocol_len = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
+    POSIX_ENSURE_LT((uint16_t)protocol_len, sizeof(conn->application_protocol));
+
+    uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
+    POSIX_ENSURE_REF(protocol);
+    POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol, protocol_len);
+    conn->application_protocol[protocol_len] = '\0';
+
+    uint8_t expected_padding_len = 0;
+    POSIX_GUARD_RESULT(s2n_calculate_padding(protocol_len, &expected_padding_len));
+    uint8_t padding_len = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &padding_len));
+    POSIX_ENSURE_EQ(padding_len, expected_padding_len);
+
+    for (size_t i = 0; i < padding_len; i++) {
+        uint8_t byte = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint8(extension, &byte));
+        POSIX_ENSURE_EQ(byte, 0);
+    }
+    POSIX_ENSURE_EQ(s2n_stuffer_data_available(extension), 0);
+
+    return S2N_SUCCESS;
+}
+
+const s2n_extension_type s2n_npn_encrypted_extension = {
+    .iana_value = TLS_EXTENSION_NPN,
+    .is_response = true,
+    .send = s2n_npn_encrypted_extension_send,
+    .recv = s2n_npn_encrypted_extension_recv,
+    .should_send = s2n_npn_encrypted_should_send,
+    /* The NPN extension is the only one defined for TLS1.2 Encrypted Extensions.
+     * If it's missing, something has gone wrong. */
+    .if_missing = s2n_extension_error_if_missing,
+};
