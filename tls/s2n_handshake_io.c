@@ -1360,10 +1360,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          *# -  Handshake messages MUST NOT span key changes.  Implementations
          *#    MUST verify that all messages immediately preceding a key change
          *#    align with a record boundary; if not, then they MUST terminate the
-         *#    connection with an "unexpected_message" alert.  Because the
-         *#    ClientHello, EndOfEarlyData, ServerHello, Finished, and KeyUpdate
-         *#    messages can immediately precede a key change, implementations
-         *#    MUST send these messages in alignment with a record boundary.
+         *#    connection with an "unexpected_message" alert.
          */
         if (IS_TLS13_HANDSHAKE(conn)) {
             switch (message_type) {
