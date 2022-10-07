@@ -44,6 +44,7 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len) {
 
     uint32_t data_size = s2n_stuffer_data_available(&der_out_stuffer);
     const uint8_t *data = s2n_stuffer_raw_read(&der_out_stuffer, data_size);
+    POSIX_ENSURE_REF(data);
     crl->crl = d2i_X509_CRL(NULL, &data, data_size);
     POSIX_ENSURE(crl->crl != NULL, S2N_ERR_INVALID_PEM);
 
