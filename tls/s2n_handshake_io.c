@@ -1282,6 +1282,11 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
              *= type=implication
              *# Any future content types MUST specify appropriate
              *# rules.
+             *
+             *= https://tools.ietf.org/rfc/rfc8446#5
+             *# If a TLS
+             *# implementation receives an unexpected record type, it MUST terminate
+             *# the connection with an "unexpected_message" alert.
              */
             POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
         }
