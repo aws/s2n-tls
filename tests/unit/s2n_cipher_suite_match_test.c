@@ -797,19 +797,19 @@ int main(int argc, char **argv)
             const struct s2n_cipher_preferences cipher_preference_with_chacha20_and_boosting = {
                 .count = s2n_array_len(cipher_suites_with_chacha20_last),
                 .suites = cipher_suites_with_chacha20_last,
-                .prioritize_chacha20 = true
+                .allow_chacha20_boosting = true
             };
 
             const struct s2n_cipher_preferences cipher_preference_with_chacha20_and_no_boosting = {
                 .count = s2n_array_len(cipher_suites_with_chacha20_last),
                 .suites = cipher_suites_with_chacha20_last,
-                .prioritize_chacha20 = false
+                .allow_chacha20_boosting = false
             };
 
             const struct s2n_cipher_preferences cipher_preference_without_chacha20_and_boosting = {
                 .count = s2n_array_len(cipher_suites_without_chacha20),
                 .suites = cipher_suites_without_chacha20,
-                .prioritize_chacha20 = true
+                .allow_chacha20_boosting = true
             };
 
             const struct s2n_security_policy test_chacha20_and_boosted = {
@@ -938,12 +938,12 @@ int main(int argc, char **argv)
 
                 uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
-
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
 
                 uint8_t chacha20_only_wire[] = {
                     TLS_CHACHA20_POLY1305_SHA256,
                 };
+                count = sizeof(chacha20_only_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, chacha20_only_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));

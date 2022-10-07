@@ -1155,21 +1155,24 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     return 0;
 }
 
-static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_wire_ciphers_contain(const uint8_t *match, struct s2n_stuffer *wire_stuffer, uint32_t count, uint32_t cipher_suite_len)
 {
     for (uint32_t i = 0; i < count; i++) {
-        const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
+        uint8_t theirs[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+        POSIX_GUARD(s2n_stuffer_read_bytes(wire_stuffer, theirs, cipher_suite_len));
 
         if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+            POSIX_GUARD(s2n_stuffer_reread(wire_stuffer));
             return 1;
         }
     }
 
+    POSIX_GUARD(s2n_stuffer_reread(wire_stuffer));
     return 0;
 }
 
 /* Finds and sets the index of the ChaCha20 cipher in the server security policy. If ChaCha20 does not exist, then the index is set to -1. */
-static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s2n_cipher_preferences* cipher_preferences, int* idx) {
+static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s2n_cipher_preferences* cipher_preferences, ssize_t* idx) {
     RESULT_ENSURE_REF(cipher_preferences);
     RESULT_ENSURE_REF(idx);
 
@@ -1188,8 +1191,8 @@ static S2N_RESULT s2n_get_index_of_chacha20_in_cipher_preferences(const struct s
 }
 
 /* If the client has ChaCha20 as their most preferred cipher suite (first cipher suite) then set flag to true. */
-static S2N_RESULT s2n_wire_indicates_chacha20_boosting(uint8_t* wire, uint8_t count, uint32_t cipher_suite_len, bool* chacha20_boosted) {
-    RESULT_ENSURE_REF(wire);
+static S2N_RESULT s2n_wire_indicates_chacha20_boosting(struct s2n_stuffer* wire_stuffer, uint8_t count, uint32_t cipher_suite_len, bool* chacha20_boosted) {
+    RESULT_ENSURE_REF(wire_stuffer);
     RESULT_ENSURE_REF(chacha20_boosted);
         
     *chacha20_boosted = false;
@@ -1198,7 +1201,9 @@ static S2N_RESULT s2n_wire_indicates_chacha20_boosting(uint8_t* wire, uint8_t co
         return S2N_RESULT_OK;
     }
 
-    const uint8_t* clients_first_cipher_iana = wire + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
+    uint8_t clients_first_cipher_iana[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(wire_stuffer, clients_first_cipher_iana, cipher_suite_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(wire_stuffer));
     const uint8_t chacha20_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_CHACHA20_POLY1305_SHA256 };
 
     if (s2n_constant_time_equals(chacha20_iana, clients_first_cipher_iana, S2N_TLS_CIPHER_SUITE_LEN)) {
@@ -1275,6 +1280,13 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
+    struct s2n_blob wire_blob = {0};
+    POSIX_GUARD(s2n_blob_init(&wire_blob, wire + cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN, count * cipher_suite_len));
+
+    struct s2n_stuffer wire_stuffer = {0};
+    POSIX_GUARD(s2n_stuffer_init(&wire_stuffer, &wire_blob));
+    POSIX_GUARD(s2n_stuffer_write(&wire_stuffer, &wire_blob));
+
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
 
@@ -1284,13 +1296,14 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
      */
     if (conn->client_protocol_version < conn->server_protocol_version) {
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
-        if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
+        if (s2n_wire_ciphers_contain(fallback_scsv, &wire_stuffer, count, cipher_suite_len)) {
             conn->closed = 1;
+            POSIX_GUARD(s2n_stuffer_free(&wire_stuffer));
             POSIX_BAIL(S2N_ERR_FALLBACK_DETECTED);
         }
     }
 
-    if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
+    if (s2n_wire_ciphers_contain(renegotiation_info_scsv, &wire_stuffer, count, cipher_suite_len)) {
         /** For renegotiation handshakes:
          *= https://tools.ietf.org/rfc/rfc5746#3.7
          *# o  When a ClientHello is received, the server MUST verify that it
@@ -1311,29 +1324,44 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    int server_index_of_chacha20_cipher = -1;
-    POSIX_GUARD_RESULT(s2n_get_index_of_chacha20_in_cipher_preferences(security_policy->cipher_preferences, &server_index_of_chacha20_cipher));
+    /* Check if both server and client signaled support for ChaCha20 boosting */
+    do {
+        if (!security_policy->cipher_preferences->allow_chacha20_boosting) {
+            break;
+        }
 
-    bool client_indicates_chacha20_boosting = false;
-    POSIX_GUARD_RESULT(s2n_wire_indicates_chacha20_boosting(wire, count, cipher_suite_len, &client_indicates_chacha20_boosting));
+        ssize_t server_index_of_chacha20_cipher = -1;
+        POSIX_GUARD_RESULT(s2n_get_index_of_chacha20_in_cipher_preferences(security_policy->cipher_preferences, &server_index_of_chacha20_cipher));
+
+        if (server_index_of_chacha20_cipher < 0) {
+            break;
+        }
+
+        bool client_indicates_chacha20_boosting = false;
+        POSIX_GUARD_RESULT(s2n_wire_indicates_chacha20_boosting(&wire_stuffer, count, cipher_suite_len, &client_indicates_chacha20_boosting));
+
+        if (!client_indicates_chacha20_boosting) {
+            break;
+        }
     
-    /* The server indicates ChaCha20 boosting support AND has ChaCha20 in its cipher preferences AND the client has indicated ChaCha20 boosting*/
-    if (security_policy->cipher_preferences->prioritize_chacha20 && server_index_of_chacha20_cipher >= 0 && client_indicates_chacha20_boosting) {
         struct s2n_cipher_suite* chacha20 = security_policy->cipher_preferences->suites[server_index_of_chacha20_cipher];
         bool chacha20_is_valid_match = false;
         POSIX_GUARD_RESULT(s2n_validate_cipher_suite_match(conn, &chacha20, &chacha20_is_valid_match));
 
-        if (chacha20_is_valid_match) {
-            conn->secure->cipher_suite = chacha20;
-            return S2N_SUCCESS;
+        if (!chacha20_is_valid_match) {
+            break;
         }
-    }
+
+        conn->secure->cipher_suite = chacha20;
+        POSIX_GUARD(s2n_stuffer_free(&wire_stuffer));
+        return S2N_SUCCESS;
+    } while (0);
 
     /* ChaCha20 boosting was not enabled/supported. Fall back to server order cipher preferences. */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
 
-        if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
+        if (s2n_wire_ciphers_contain(ours, &wire_stuffer, count, cipher_suite_len)) {
             /* We have a match */
             struct s2n_cipher_suite *match = security_policy->cipher_preferences->suites[i];
 
@@ -1353,6 +1381,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             conn->secure->cipher_suite = match;
+            POSIX_GUARD(s2n_stuffer_free(&wire_stuffer));
             return S2N_SUCCESS;
         }
     }
@@ -1360,9 +1389,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure->cipher_suite = higher_vers_match;
+        POSIX_GUARD(s2n_stuffer_free(&wire_stuffer));
         return S2N_SUCCESS;
     }
 
+    POSIX_GUARD(s2n_stuffer_free(&wire_stuffer));
     POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
