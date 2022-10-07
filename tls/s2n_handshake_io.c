@@ -989,6 +989,15 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
      *# -  Handshake messages MUST NOT be interleaved with other record
      *# types. That is, if a handshake message is split over two or more
      *# records, there MUST NOT be any other records between them.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#5.1
+     *# -  Handshake messages MUST NOT span key changes.  Implementations
+     *# MUST verify that all messages immediately preceding a key change
+     *# align with a record boundary; if not, then they MUST terminate the
+     *# connection with an "unexpected_message" alert.  Because the
+     *# ClientHello, EndOfEarlyData, ServerHello, Finished, and KeyUpdate
+     *# messages can immediately precede a key change, implementations
+     *# MUST send these messages in alignment with a record boundary.
      */
     struct s2n_blob out = {0};
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
@@ -1025,15 +1034,8 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
-    /* Update the secrets, if necessary 
-     *= https://tools.ietf.org/rfc/rfc8446#5.1
-     *# -  Handshake messages MUST NOT span key changes.  Implementations
-     *# MUST verify that all messages immediately preceding a key change
-     *# align with a record boundary; if not, then they MUST terminate the
-     *# connection with an "unexpected_message" alert.  Because the
-     *# ClientHello, EndOfEarlyData, ServerHello, Finished, and KeyUpdate
-     *# messages can immediately precede a key change, implementations
-     *# MUST send these messages in alignment with a record boundary.
+    /* Update the secrets, if necessary. Since we only ever send one message per record,
+     * the key update here is aligned with the records.
      */
     POSIX_GUARD_RESULT(s2n_tls13_secrets_update(conn));
     POSIX_GUARD_RESULT(s2n_tls13_key_schedule_update(conn));
