@@ -167,6 +167,9 @@ extern int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_
 /* Read a certificate  from a PEM encoded stuffer to an ASN1/DER encoded one */
 extern int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
 
+/* Read a CRL from a PEM encoded stuffer to an ASN1/DER encoded one */
+extern int s2n_stuffer_crl_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
+
 /* Read DH parameters om a PEM encoded stuffer to a PKCS3 encoded one */
 extern int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
 
