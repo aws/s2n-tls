@@ -100,8 +100,7 @@ int s2n_record_header_parse(
      *
      *= https://tools.ietf.org/rfc/rfc8446#5.1
      *= type=exception
-     *# An
-     *# endpoint that receives a record that exceeds this length MUST
+     *# An endpoint that receives a record that exceeds this length MUST
      *# terminate the connection with a "record_overflow" alert.
      */
     POSIX_GUARD(s2n_stuffer_reread(in));
