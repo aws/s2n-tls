@@ -516,10 +516,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, sizeof(recv_buffer), &blocked), sizeof(app_data));
             EXPECT_BYTEARRAY_EQUAL(recv_buffer, app_data, sizeof(app_data));
 
-            /* Test that a second handshake can occur.
-             * Because the s2n-tls server doesn't support renegotiation,
-             * we'll pretend that we're not performing renegotiation.
-             */
+            /* Test that a second handshake can occur. */
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
