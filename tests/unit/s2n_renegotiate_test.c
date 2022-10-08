@@ -197,16 +197,8 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            /* Test that a second handshake can occur.
-             * Because the s2n-tls server doesn't support renegotiation,
-             * we'll pretend that we're not performing renegotiation.
-             * We're interested in the handshake itself here, not the
-             * "secure renegotiation" safety checks.
-             */
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
@@ -234,8 +226,6 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
@@ -283,8 +273,6 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, small_frag_config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, small_frag_config));
@@ -292,12 +280,43 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        }
+
+        /* renegotiation_info is non-empty after wipe */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Verify that the renegotiation_info was empty / missing */
+            ssize_t renegotiation_info_len = s2n_client_hello_get_extension_length(&server_conn->client_hello,
+                    S2N_EXTENSION_RENEGOTIATION_INFO);
+            EXPECT_EQUAL(renegotiation_info_len, 0);
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
+            EXPECT_TRUE(client_conn->handshake.finished_len > 0);
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Verify that the renegotiation_info was not empty / missing */
+            renegotiation_info_len = s2n_client_hello_get_extension_length(&server_conn->client_hello,
+                    S2N_EXTENSION_RENEGOTIATION_INFO);
+            EXPECT_TRUE(renegotiation_info_len > sizeof(uint8_t));
         }
 
         /* Wipe of insecure connection not allowed */
@@ -497,13 +516,8 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, sizeof(recv_buffer), &blocked), sizeof(app_data));
             EXPECT_BYTEARRAY_EQUAL(recv_buffer, app_data, sizeof(app_data));
 
-            /* Test that a second handshake can occur.
-             * Because the s2n-tls server doesn't support renegotiation,
-             * we'll pretend that we're not performing renegotiation.
-             */
+            /* Test that a second handshake can occur. */
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
     }
