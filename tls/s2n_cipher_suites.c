@@ -1158,7 +1158,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 static int s2n_wire_ciphers_contain(const uint8_t *match, struct s2n_stuffer *wire_stuffer, uint32_t count, uint32_t cipher_suite_len)
 {
     for (uint32_t i = 0; i < count; i++) {
-        uint8_t theirs[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+        uint8_t theirs[S2N_SSLv2_CIPHER_SUITE_LEN] = {0};
         POSIX_GUARD(s2n_stuffer_read_bytes(wire_stuffer, theirs, cipher_suite_len));
 
         if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
@@ -1201,7 +1201,7 @@ static S2N_RESULT s2n_wire_indicates_chacha20_boosting(struct s2n_stuffer* wire_
         return S2N_RESULT_OK;
     }
 
-    uint8_t clients_first_cipher_iana[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+    uint8_t clients_first_cipher_iana[S2N_SSLv2_CIPHER_SUITE_LEN] = {0};
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(wire_stuffer, clients_first_cipher_iana, cipher_suite_len));
     RESULT_GUARD_POSIX(s2n_stuffer_reread(wire_stuffer));
     const uint8_t chacha20_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_CHACHA20_POLY1305_SHA256 };
