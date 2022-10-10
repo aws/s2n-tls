@@ -110,8 +110,8 @@ void usage()
     fprintf(stderr, "  --npn \n");
     fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "\n");
-    fprintf(stderr, "  --buffered-send <number of bytes>\n");
-    fprintf(stderr, "    Set s2n-send to buffer tls-records by <number of bytes> before sending them over the wire.\n");
+    fprintf(stderr, "  --buffered-send <buffer size>\n");
+    fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
     exit(1);
 }
 
