@@ -37,6 +37,8 @@ extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
 extern int s2n_encrypted_extensions_send(struct s2n_connection *conn);
 extern int s2n_encrypted_extensions_recv(struct s2n_connection *conn);
+extern int s2n_tls12_encrypted_extensions_send(struct s2n_connection *conn);
+extern int s2n_tls12_encrypted_extensions_recv(struct s2n_connection *conn);
 extern int s2n_server_cert_send(struct s2n_connection *conn);
 extern int s2n_server_cert_recv(struct s2n_connection *conn);
 extern int s2n_server_status_send(struct s2n_connection *conn);

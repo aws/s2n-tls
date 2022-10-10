@@ -83,7 +83,7 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, con
 S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
 S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
 
-#define S2N_MAX_TEST_PEM_SIZE 4096
+#define S2N_MAX_TEST_PEM_SIZE 8192
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
  * Absolute paths will be needed if test directories go to deeper levels.
