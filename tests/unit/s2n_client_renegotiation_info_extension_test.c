@@ -300,6 +300,11 @@ int main(int argc, char **argv)
             conn->secure_renegotiation = true;
             conn->handshake.renegotiation = true;
 
+            /* Setup client_verify_data */
+            EXPECT_MEMCPY_SUCCESS(conn->handshake.client_finished,
+                    client_verify_data, sizeof(client_verify_data));
+            conn->handshake.finished_len = sizeof(client_verify_data);
+
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_SUCCESS(s2n_parse_client_hello(conn));
 
@@ -424,7 +429,6 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
-        client_conn->handshake.renegotiation = true;
         client_conn->secure_renegotiation = true;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -448,14 +452,22 @@ int main(int argc, char **argv)
         client_conn->security_policy_override = &security_policy;
 
         /* Succeeds if server expects an initial handshake */
-        server_conn->handshake.renegotiation = false;
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        /* Fails if server expects renegotiation */
+        client_conn->handshake.renegotiation = true;
+        EXPECT_MEMCPY_SUCCESS(client_conn->handshake.client_finished,
+                client_verify_data, sizeof(client_verify_data));
+        client_conn->handshake.finished_len = sizeof(client_verify_data);
+
         server_conn->handshake.renegotiation = true;
+        EXPECT_MEMCPY_SUCCESS(server_conn->handshake.client_finished,
+                client_verify_data, sizeof(client_verify_data));
+        server_conn->handshake.finished_len = sizeof(client_verify_data);
+
+        /* Fails if server expects renegotiation */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
