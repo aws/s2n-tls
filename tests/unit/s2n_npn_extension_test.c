@@ -149,7 +149,13 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
         }
 
-        /* No match exists */
+        /*
+         *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
+         *= type=test
+         *# In the event that the client doesn't support any of server's protocols, or
+         *# the server doesn't advertise any, it SHOULD select the first protocol
+         *# that it supports.
+         */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
@@ -167,7 +173,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
 
-            EXPECT_NULL(s2n_get_application_protocol(client_conn));
+            /* No match exists so client's preference is selected */
+            EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
+            EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
         }
 
         /* Multiple matches exist and server's preferred choice is selected */

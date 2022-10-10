@@ -68,6 +68,29 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
 
     POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
 
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
+     *# In the event that the client doesn't support any of server's protocols, or
+     *# the server doesn't advertise any, it SHOULD select the first protocol
+     *# that it supports.
+     */
+    if(s2n_get_application_protocol(conn) == NULL) {
+        struct s2n_stuffer stuffer = { 0 };
+        POSIX_GUARD(s2n_stuffer_init(&stuffer, supported_protocols));
+        POSIX_GUARD(s2n_stuffer_skip_write(&stuffer, supported_protocols->size));
+
+        uint8_t length = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint8(&stuffer, &length));
+        POSIX_ENSURE_GT(length, 0);
+
+        uint8_t *data = s2n_stuffer_raw_read(&stuffer, length);
+        POSIX_ENSURE_REF(data);
+
+        POSIX_ENSURE_LT((uint16_t)length, sizeof(conn->application_protocol));
+        POSIX_CHECKED_MEMCPY(conn->application_protocol, data, length);
+        conn->application_protocol[length] = '\0';
+    }
+
     return S2N_SUCCESS;
 }
 
