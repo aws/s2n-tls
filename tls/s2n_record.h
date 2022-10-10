@@ -39,6 +39,13 @@
  */
 #define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH         (1 << 14)
 
+/*
+ * The minimum amount of space we need to reserve for a message
+ * fragment. S2N chooses not to fragment alert messages (of
+ * length 2) in order to ensure that we maximize interoperablity.
+ */
+#define S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH 2
+
 /* The TLS1.2 record length allows for 1024 bytes of compression expansion and
  * 1024 bytes of encryption expansion and padding.
  * Since S2N does not support compression, we can ignore the compression overhead.
