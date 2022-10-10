@@ -51,6 +51,8 @@ void usage()
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
+    fprintf(stderr, "  --send-file [file path]\n");
+    fprintf(stderr, "    Sends the contents of the provided file to the server after connecting.");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");
@@ -259,6 +261,7 @@ int main(int argc, char *const *argv)
     struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
+    const char *send_file = NULL;
     int use_corked_io = 0;
     uint8_t non_blocking = 0;
     const char *key_log_path = NULL;
@@ -272,6 +275,7 @@ int main(int argc, char *const *argv)
         {"ciphers", required_argument, 0, 'c'},
         {"enter-fips-mode", no_argument, NULL, 'F'},
         {"echo", no_argument, 0, 'e'},
+        {"send-file", required_argument, 0, 'S'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
@@ -317,6 +321,9 @@ int main(int argc, char *const *argv)
             break;
         case 'e':
             echo_input = 1;
+            break;
+        case 'S':
+            send_file = load_file_to_cstring(optarg);
             break;
         case 'h':
             usage();
@@ -606,6 +613,32 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
+        if (send_file != NULL) {
+            printf("Sending file contents:\n%s\n", send_file);
+
+            unsigned long bytes_remaining = strlen(send_file);
+            const char *send_file_ptr = send_file;
+            s2n_blocked_status blocked;
+            do {
+                s2n_errno = S2N_ERR_T_OK;
+                ssize_t bytes_written = s2n_send(conn, send_file_ptr, bytes_remaining, &blocked);
+                if (bytes_written < 0) {
+                    if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                        fprintf(stderr, "Error writing to connection: '%s'\n",
+                                s2n_strerror(s2n_errno, "EN"));
+                        exit(1);
+                    }
+
+                    if (wait_for_event(sockfd, blocked) != S2N_SUCCESS) {
+                        S2N_ERROR_PRESERVE_ERRNO();
+                    }
+                } else {
+                    bytes_remaining -= bytes_written;
+                    send_file_ptr += bytes_written;
+                }
+            } while (bytes_remaining > 0);
+        }
 
         if (echo_input == 1) {
             bool stop_echo = false;
