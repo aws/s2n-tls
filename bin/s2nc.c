@@ -618,7 +618,7 @@ int main(int argc, char *const *argv)
             printf("Sending file contents:\n%s\n", send_file);
 
             unsigned long bytes_remaining_long = strlen(send_file);
-            GUARD_EXIT(bytes_remaining_long < LONG_MAX, "send-file is too large");
+            GUARD_EXIT(bytes_remaining_long < INT_MAX, "send-file is too large");
             ssize_t bytes_remaining = (ssize_t) bytes_remaining_long;
 
             const char *send_file_ptr = send_file;
