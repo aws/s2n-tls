@@ -66,7 +66,15 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+     *# The "extension_data" field of a "next_protocol_negotiation" extension
+     *# in a "ServerHello" contains an optional list of protocols advertised
+     *# by the server.
+     */
+    if (s2n_stuffer_data_available(extension)) {
+        POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    }
 
     /*
      *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4

@@ -165,7 +165,29 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, sizeof(protocol)));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&extension, protocol, sizeof(protocol)));
 
+            /*
+             *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
+             *= type=test
+             *# In the event that the client doesn't support any of server's protocols, or
+             *# the server doesn't advertise any, it SHOULD select the first protocol
+             *# that it supports.
+             */
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
+            EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
+            EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
+        }
+
+        /* Server sends empty list */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
 
             /*
              *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
@@ -174,6 +196,7 @@ int main(int argc, char **argv)
              *# the server doesn't advertise any, it SHOULD select the first protocol
              *# that it supports.
              */
+            EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
         }
