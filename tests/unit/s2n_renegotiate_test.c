@@ -28,6 +28,39 @@ struct s2n_reneg_test_case {
     uint8_t max_frag_code;
 };
 
+const struct s2n_reneg_test_case dhe_test_cases[] = {
+        {
+            .protocol_version = S2N_SSLv3,
+            .cipher_suite = &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+            .max_frag_code = 0,
+        },
+        {
+            .protocol_version = S2N_TLS10,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_128_cbc_sha,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_512,
+        },
+        {
+            .protocol_version = S2N_TLS11,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_256_cbc_sha,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_1024,
+        },
+        {
+            .protocol_version = S2N_TLS12,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+            .max_frag_code = 0,
+        },
+        {
+            .protocol_version = S2N_TLS12,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_2048,
+        },
+        {
+            .protocol_version = S2N_TLS12,
+            .cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_4096,
+        },
+};
+
 int main(int argc, char *argv[])
 {
     BEGIN_TEST();
@@ -455,22 +488,48 @@ int main(int argc, char *argv[])
 
         struct s2n_reneg_test_case test_cases[2000] = { 0 };
         size_t test_cases_count = 0;
+
+        /* FFDHE is very, VERY slow.
+         * To avoid this test taking multiple minutes,
+         * we choose a limited number of dhe test cases.
+         */
+        for (size_t i = 0; i < s2n_array_len(dhe_test_cases); i++) {
+            if (!dhe_test_cases[i].cipher_suite->available) {
+                continue;
+            }
+            if (dhe_test_cases[i].protocol_version < oldest_tested_version) {
+                continue;
+            }
+            test_cases[test_cases_count] = dhe_test_cases[i];
+            test_cases_count++;
+            EXPECT_TRUE(test_cases_count < s2n_array_len(test_cases));
+        }
+        EXPECT_TRUE(test_cases_count > 0);
+
         const struct s2n_cipher_preferences *ciphers = security_policy_test_all.cipher_preferences;
         for (uint8_t version = oldest_tested_version; version < S2N_TLS13; version++) {
             for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
-                if (!ciphers->suites[cipher_i]->available) {
+                struct s2n_cipher_suite *cipher = ciphers->suites[cipher_i];
+
+                if (!cipher->available) {
                     continue;
                 }
 
-                if (version < ciphers->suites[cipher_i]->minimum_required_tls_version) {
+                if (version < cipher->minimum_required_tls_version) {
+                    continue;
+                }
+
+                if (cipher->key_exchange_alg == &s2n_dhe) {
+                    /* See dhe_test_cases */
                     continue;
                 }
 
                 for (size_t max_frag_i = 0; max_frag_i < s2n_array_len(mfl_code_to_length); max_frag_i++) {
-                    test_cases[test_cases_count].protocol_version = version;
-                    test_cases[test_cases_count].cipher_suite = ciphers->suites[cipher_i];
-                    test_cases[test_cases_count].max_frag_code = max_frag_i;
-
+                    test_cases[test_cases_count] = (struct s2n_reneg_test_case) {
+                        .protocol_version = version,
+                        .cipher_suite = ciphers->suites[cipher_i],
+                        .max_frag_code = max_frag_i,
+                    };
                     test_cases_count++;
                     EXPECT_TRUE(test_cases_count < s2n_array_len(test_cases));
                 }
