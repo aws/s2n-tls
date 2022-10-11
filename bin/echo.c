@@ -23,6 +23,7 @@
 #include "api/s2n.h"
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <sys/param.h>
 
 #include "crypto/s2n_pkey.h"
 #include "common.h"
@@ -251,6 +252,30 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
+void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64_t len, s2n_blocked_status *blocked)
+{
+    uint64_t bytes_remaining = len;
+    const char *data_ptr = data;
+    do {
+        ssize_t send_len = MIN(bytes_remaining, SSIZE_MAX);
+        ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, blocked);
+        if (bytes_written < 0) {
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                fprintf(stderr, "Error writing to connection: '%s'\n",
+                        s2n_strerror(s2n_errno, "EN"));
+                exit(1);
+            }
+
+            GUARD_EXIT(wait_for_event(sockfd, *blocked), "Unable to send data");
+            continue;
+        }
+
+        bytes_remaining -= bytes_written;
+        data_ptr += bytes_written;
+
+    } while (bytes_remaining > 0);
+}
+
 int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 {
     struct pollfd readers[2];
@@ -331,26 +356,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
                     /* We may not be able to write all the data we read in one shot, so
                      * keep sending until we have cleared our buffer. */
-                    char *buf_ptr = buffer;
-                    do {
-                        s2n_errno = S2N_ERR_T_OK;
-                        bytes_written = s2n_send(conn, buf_ptr, bytes_read, &blocked);
-                        if (bytes_written < 0) {
-                            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-                                fprintf(stderr, "Error writing to connection: '%s'\n",
-                                        s2n_strerror(s2n_errno, "EN"));
-                                exit(1);
-                            }
-
-                            if (wait_for_event(sockfd, blocked) != S2N_SUCCESS) {
-                                S2N_ERROR_PRESERVE_ERRNO();
-                            }
-                        } else {
-                            // Only modify the counts if we successfully wrote the data
-                            bytes_read -= bytes_written;
-                            buf_ptr += bytes_written;
-                        }
-                    } while (bytes_read > 0);
+                    send_data(conn, sockfd, buffer, bytes_read, &blocked);
 
                 } while (bytes_available || blocked);
 

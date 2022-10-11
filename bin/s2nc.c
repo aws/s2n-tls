@@ -232,31 +232,6 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
 }
 
-static void send_cstring(struct s2n_connection *conn, int sockfd, const char *data) {
-    unsigned long bytes_remaining = strlen(data);
-    const char *data_ptr = data;
-    s2n_blocked_status blocked;
-    do {
-        s2n_errno = S2N_ERR_T_OK;
-        ssize_t send_len = MIN(bytes_remaining, INT_MAX);
-        ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, &blocked);
-        if (bytes_written < 0) {
-            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-                fprintf(stderr, "Error writing to connection: '%s'\n",
-                        s2n_strerror(s2n_errno, "EN"));
-                exit(1);
-            }
-
-            GUARD_EXIT(wait_for_event(sockfd, blocked), "Unable to send cstring");
-            continue;
-        }
-
-        bytes_remaining -= bytes_written;
-        data_ptr += bytes_written;
-
-    } while (bytes_remaining > 0);
-}
-
 int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
@@ -642,7 +617,10 @@ int main(int argc, char *const *argv)
 
         if (send_file != NULL) {
             printf("Sending file contents:\n%s\n", send_file);
-            send_cstring(conn, sockfd, send_file);
+
+            unsigned long send_file_len = strlen(send_file);
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            send_data(conn, sockfd, send_file, send_file_len, &blocked);
         }
 
         if (echo_input == 1) {
