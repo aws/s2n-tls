@@ -66,8 +66,7 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    /* Ignore errors as we can select our own protocol if parsing fails */
-    s2n_result_ignore(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
 
     /*
      *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
