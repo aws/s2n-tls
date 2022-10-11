@@ -52,7 +52,7 @@ void usage()
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  --send-file [file path]\n");
-    fprintf(stderr, "    Sends the contents of the provided file to the server after connecting.");
+    fprintf(stderr, "    Sends the contents of the provided file to the server after connecting.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");
