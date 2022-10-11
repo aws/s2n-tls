@@ -617,7 +617,10 @@ int main(int argc, char *const *argv)
         if (send_file != NULL) {
             printf("Sending file contents:\n%s\n", send_file);
 
-            unsigned long bytes_remaining = strlen(send_file);
+            unsigned long bytes_remaining_long = strlen(send_file);
+            GUARD_EXIT(bytes_remaining_long < LONG_MAX, "send-file is too large");
+            ssize_t bytes_remaining = (ssize_t) bytes_remaining_long;
+
             const char *send_file_ptr = send_file;
             s2n_blocked_status blocked;
             do {
