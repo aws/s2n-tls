@@ -290,7 +290,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
     /* Act as a simple proxy between stdin and the SSL connection */
     int p = 0;
-    s2n_blocked_status blocked;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     do {
         /* echo will send and receive Application Data back and forth between
          * client and server, until stop_echo is true. */
