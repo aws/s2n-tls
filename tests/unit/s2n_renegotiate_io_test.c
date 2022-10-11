@@ -22,6 +22,13 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
+/* We use bitflags to test every combination
+ * of where application data could appear in renegotiation.
+ *
+ * So app_data_case==6 would mean "110", so we would be testing
+ * a renegotiation handshake that received application data
+ * before and after the server hello.
+ */
 enum S2N_TEST_APP_DATA_CASES {
     S2N_TEST_APP_DATA_BEFORE_RENEG          = 1,
     S2N_TEST_APP_DATA_BEFORE_SERVER_HELLO   = 2,
