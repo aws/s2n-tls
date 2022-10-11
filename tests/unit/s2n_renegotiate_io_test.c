@@ -30,6 +30,20 @@ enum S2N_TEST_APP_DATA_CASES {
 };
 #define S2N_TEST_APP_DATA_LEN 10
 
+static S2N_RESULT s2n_renegotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
+    ssize_t app_data_read = 0;
+    uint8_t recv_buffer[1] = { 0 };
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    while (s2n_renegotiate(client_conn, recv_buffer, sizeof(recv_buffer), &app_data_read, &blocked) != S2N_SUCCESS) {
+        RESULT_ENSURE_EQ(s2n_errno, S2N_ERR_IO_BLOCKED);
+        RESULT_ENSURE_EQ(blocked, S2N_BLOCKED_ON_READ);
+        RESULT_ENSURE_EQ(app_data_read, 0);
+        s2n_negotiate(server_conn, &blocked);
+    }
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char *argv[])
 {
     BEGIN_TEST();
@@ -44,8 +58,7 @@ int main(int argc, char *argv[])
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
-    uint8_t app_data[] = "smaller hello world";
-    //uint8_t large_app_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = "hello world and a lot of zeroes";
+    uint8_t app_data[] = "test application data";
 
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
@@ -63,20 +76,13 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-        uint8_t recv_buffer[1] = { 0 };
-
         /* First handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
         EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
 
-        ssize_t app_data_read = 0;
-        while (s2n_renegotiate(client_conn, recv_buffer, sizeof(recv_buffer), &app_data_read, &blocked) != S2N_SUCCESS) {
-            EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
-            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
-            EXPECT_EQUAL(app_data_read, 0);
-            s2n_negotiate(server_conn, &blocked);
-        }
+        /* Second handshake */
+        EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
     }
 
     /* Test that s2n_renegotiate can handle ApplicationData */
@@ -113,6 +119,9 @@ int main(int argc, char *argv[])
 
         /* Client also made progress on the handshake */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+
+        /* Finish renegotiation */
+        EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
     }
 
     /* Test that s2n_renegotiate can handle an ApplicationData fragment larger than the receive buffer */
@@ -165,6 +174,9 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
             EXPECT_EQUAL(app_data_read, 0);
         }
+
+        /* Finish renegotiation */
+        EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
     }
 
     /* Test that s2n_renegotiate can handle multiple ApplicationData records */
@@ -208,6 +220,9 @@ int main(int argc, char *argv[])
 
         /* Client also made progress on the handshake */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+
+        /* Finish renegotiation */
+        EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
     }
 
     /* Test that s2n_renegotiate rejects ApplicationData after receiving the ServerHello */
@@ -464,12 +479,7 @@ int main(int argc, char *argv[])
             }
 
             /* Handshake completes */
-            while (s2n_renegotiate(client_conn, recv_buffer, sizeof(recv_buffer), &app_data_read, &blocked) != S2N_SUCCESS) {
-                EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
-                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
-                EXPECT_EQUAL(app_data_read, 0);
-                s2n_negotiate(server_conn, &blocked);
-            }
+            EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
         }
 
         EXPECT_TRUE(reneg_ch_had_app_data);
