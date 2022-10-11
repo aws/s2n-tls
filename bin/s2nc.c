@@ -234,12 +234,12 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
 static void send_cstring(struct s2n_connection *conn, int sockfd, const char *data) {
     unsigned long bytes_remaining = strlen(data);
-    const char *send_file_ptr = data;
+    const char *data_ptr = data;
     s2n_blocked_status blocked;
     do {
         s2n_errno = S2N_ERR_T_OK;
         ssize_t send_len = MIN(bytes_remaining, INT_MAX);
-        ssize_t bytes_written = s2n_send(conn, send_file_ptr, send_len, &blocked);
+        ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, &blocked);
         if (bytes_written < 0) {
             if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
                 fprintf(stderr, "Error writing to connection: '%s'\n",
@@ -252,7 +252,7 @@ static void send_cstring(struct s2n_connection *conn, int sockfd, const char *da
         }
 
         bytes_remaining -= bytes_written;
-        send_file_ptr += bytes_written;
+        data_ptr += bytes_written;
 
     } while (bytes_remaining > 0);
 }
