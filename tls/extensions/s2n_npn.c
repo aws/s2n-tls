@@ -86,17 +86,12 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         struct s2n_stuffer stuffer = { 0 };
         POSIX_GUARD(s2n_stuffer_init(&stuffer, supported_protocols));
         POSIX_GUARD(s2n_stuffer_skip_write(&stuffer, supported_protocols->size));
+        struct s2n_blob protocol = { 0 };
+        POSIX_GUARD_RESULT(s2n_protocol_preferences_read(&stuffer, &protocol));
 
-        uint8_t length = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint8(&stuffer, &length));
-        POSIX_ENSURE_GT(length, 0);
-
-        uint8_t *data = s2n_stuffer_raw_read(&stuffer, length);
-        POSIX_ENSURE_REF(data);
-
-        POSIX_ENSURE_LT((uint16_t)length, sizeof(conn->application_protocol));
-        POSIX_CHECKED_MEMCPY(conn->application_protocol, data, length);
-        conn->application_protocol[length] = '\0';
+        POSIX_ENSURE_LT(protocol.size, sizeof(conn->application_protocol));
+        POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
+        conn->application_protocol[protocol.size] = '\0';
     }
 
     return S2N_SUCCESS;
