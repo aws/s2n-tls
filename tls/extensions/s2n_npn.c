@@ -66,7 +66,8 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    /* Ignore errors as we can select our own protocol if parsing fails */
+    s2n_result_ignore(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
 
     /*
      *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
@@ -74,7 +75,7 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
      *# the server doesn't advertise any, it SHOULD select the first protocol
      *# that it supports.
      */
-    if(s2n_get_application_protocol(conn) == NULL) {
+    if (s2n_get_application_protocol(conn) == NULL) {
         struct s2n_stuffer stuffer = { 0 };
         POSIX_GUARD(s2n_stuffer_init(&stuffer, supported_protocols));
         POSIX_GUARD(s2n_stuffer_skip_write(&stuffer, supported_protocols->size));
