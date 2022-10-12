@@ -297,7 +297,6 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
         while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
-            ssize_t bytes_written = 0;
 
             if (readers[0].revents & POLLIN) {
                 s2n_errno = S2N_ERR_T_OK;
@@ -317,7 +316,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
                 char *buf_ptr = buffer;
                 do {
-                    bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
+                    ssize_t bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
                     if (bytes_written < 0) {
                         fprintf(stderr, "Error writing to stdout\n");
                         exit(1);
