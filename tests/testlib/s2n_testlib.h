@@ -172,8 +172,8 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 
-S2N_RESULT s2n_test_cert_chain_from_pem(struct s2n_stuffer *test_chain_stuffer, const char *pem_data,
-        uint8_t protocol_version);
+S2N_RESULT s2n_test_cert_chain_from_pem(const char *pem_data, uint8_t protocol_version,
+        struct s2n_stuffer *cert_chain_stuffer);
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connection *server_conn,
