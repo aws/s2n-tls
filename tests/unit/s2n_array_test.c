@@ -27,132 +27,137 @@ struct array_element {
 
 int main(int argc, char **argv)
 {
-    struct s2n_array *array = { 0 };
-    int element_size = sizeof(struct array_element);
-    uint32_t len = 0;
-    uint32_t capacity = 0;
-
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    struct array_element elements[NUM_OF_ELEMENTS] = {0};
 
+    int element_size = sizeof(struct array_element);
+
+    struct array_element elements[NUM_OF_ELEMENTS] = {0};
     for (int i = 0; i < NUM_OF_ELEMENTS; i++) {
         elements[i].first = i;
         elements[i].second = 'a' + i;
     }
 
-    /* Verify add and get elements with null array */
-    EXPECT_ERROR(s2n_array_pushback(NULL, NULL));
-    EXPECT_ERROR(s2n_array_get(NULL, 0, NULL));
+    {
+        struct s2n_array *array = { 0 };
+        uint32_t len = 0;
+        uint32_t capacity = 0;
 
-    /* Verify freeing null array */
-    EXPECT_ERROR(s2n_array_free(NULL));
+        /* Verify add and get elements with null array */
+        EXPECT_ERROR(s2n_array_pushback(NULL, NULL));
+        EXPECT_ERROR(s2n_array_get(NULL, 0, NULL));
 
-    EXPECT_NOT_NULL(array = s2n_array_new(element_size));
+        /* Verify freeing null array */
+        EXPECT_ERROR(s2n_array_free(NULL));
 
-    /* Validate array parameters */
-    EXPECT_OK(s2n_array_capacity(array, &capacity));
-    EXPECT_EQUAL(capacity, 16);
-    EXPECT_OK(s2n_array_num_elements(array, &len));
-    EXPECT_EQUAL(len, 0);
-    EXPECT_EQUAL(array->element_size, element_size);
+        EXPECT_NOT_NULL(array = s2n_array_new(element_size));
 
-    /* Add an element */
-    struct array_element *element = NULL;
-    EXPECT_OK(s2n_array_pushback(array, (void **)&element));
-    EXPECT_NOT_NULL(element);
-    element->first = elements[0].first;
-    element->second = elements[0].second;
+        /* Validate array parameters */
+        EXPECT_OK(s2n_array_capacity(array, &capacity));
+        EXPECT_EQUAL(capacity, 16);
+        EXPECT_OK(s2n_array_num_elements(array, &len));
+        EXPECT_EQUAL(len, 0);
+        EXPECT_EQUAL(array->element_size, element_size);
 
-    /* Validate array parameters */
-    EXPECT_OK(s2n_array_capacity(array, &capacity));
-    EXPECT_EQUAL(capacity, 16);
-    EXPECT_OK(s2n_array_num_elements(array, &len));
-    EXPECT_EQUAL(len, 1);
+        /* Add an element */
+        struct array_element *element = NULL;
+        EXPECT_OK(s2n_array_pushback(array, (void **)&element));
+        EXPECT_NOT_NULL(element);
+        element->first = elements[0].first;
+        element->second = elements[0].second;
 
-    /* Get first element */
-    struct array_element *first_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 0, (void **)&first_element));
-    EXPECT_NOT_NULL(first_element);
-    EXPECT_EQUAL(first_element->first, elements[0].first);
-    EXPECT_EQUAL(first_element->second, elements[0].second);
+        /* Validate array parameters */
+        EXPECT_OK(s2n_array_capacity(array, &capacity));
+        EXPECT_EQUAL(capacity, 16);
+        EXPECT_OK(s2n_array_num_elements(array, &len));
+        EXPECT_EQUAL(len, 1);
 
-    /* Get second element */
-    struct array_element *second_element = NULL;
-    EXPECT_ERROR(s2n_array_get(array, 1, (void **)&second_element));
-    EXPECT_NULL(second_element);
+        /* Get first element */
+        struct array_element *first_element = NULL;
+        EXPECT_OK(s2n_array_get(array, 0, (void **)&first_element));
+        EXPECT_NOT_NULL(first_element);
+        EXPECT_EQUAL(first_element->first, elements[0].first);
+        EXPECT_EQUAL(first_element->second, elements[0].second);
 
-    /* Add more than 16 elements */
-    for (int i = 1; i < NUM_OF_ELEMENTS; i++) {
-        struct array_element *elem = NULL;
-        EXPECT_OK(s2n_array_pushback(array, (void **)&elem));
-        EXPECT_NOT_NULL(elem);
-        elem->first = elements[i].first;
-        elem->second = elements[i].second;
+        /* Get second element */
+        struct array_element *second_element = NULL;
+        EXPECT_ERROR(s2n_array_get(array, 1, (void **)&second_element));
+        EXPECT_NULL(second_element);
+
+        /* Add more than 16 elements */
+        for (int i = 1; i < NUM_OF_ELEMENTS; i++) {
+            struct array_element *elem = NULL;
+            EXPECT_OK(s2n_array_pushback(array, (void **)&elem));
+            EXPECT_NOT_NULL(elem);
+            elem->first = elements[i].first;
+            elem->second = elements[i].second;
+        }
+
+        /* Validate array parameters again */
+        EXPECT_OK(s2n_array_capacity(array, &capacity));
+        EXPECT_EQUAL(capacity, 32);
+        EXPECT_OK(s2n_array_num_elements(array, &len));
+        EXPECT_EQUAL(len, 17);
+        EXPECT_EQUAL(array->element_size, element_size);
+        EXPECT_SUCCESS(memcmp(array->mem.data, elements, NUM_OF_ELEMENTS * element_size));
+
+        /* Insert element at given index */
+        struct array_element *insert_element = NULL;
+        EXPECT_OK(s2n_array_insert(array, 16, (void **)&insert_element));
+        EXPECT_NOT_NULL(insert_element);
+        insert_element->first = 20;
+        insert_element->second = 'a' + 20;;
+
+        /* Validate array parameters */
+        EXPECT_OK(s2n_array_capacity(array, &capacity));
+        EXPECT_EQUAL(capacity, 32);
+        EXPECT_OK(s2n_array_num_elements(array, &len));
+        EXPECT_EQUAL(len, 18);
+
+        /* Get the inserted element */
+        struct array_element *inserted_element = NULL;
+        EXPECT_OK(s2n_array_get(array, 16, (void **)&inserted_element));
+        EXPECT_NOT_NULL(inserted_element);
+        EXPECT_EQUAL(inserted_element->first, insert_element->first);
+        EXPECT_EQUAL(inserted_element->second, insert_element->second);
+
+        /* Get the element after the inserted element */
+        struct array_element *after_inserted_element = NULL;
+        EXPECT_OK(s2n_array_get(array, 17, (void **)&after_inserted_element));
+        EXPECT_NOT_NULL(after_inserted_element);
+        EXPECT_EQUAL(after_inserted_element->first, elements[16].first);
+        EXPECT_EQUAL(after_inserted_element->second, elements[16].second);
+
+        /* Delete element from given index */
+        EXPECT_OK(s2n_array_remove(array, 0));
+
+        /* Validate array parameters */
+        EXPECT_OK(s2n_array_capacity(array, &capacity));
+        EXPECT_EQUAL(capacity, 32);
+        EXPECT_OK(s2n_array_num_elements(array, &len));
+        EXPECT_EQUAL(len, 17);
+
+        /* Get the current element at the deleted index */
+        struct array_element *after_removed_element = NULL;
+        EXPECT_OK(s2n_array_get(array, 0, (void **)&after_removed_element));
+        EXPECT_EQUAL(after_removed_element->first, elements[1].first);
+        EXPECT_EQUAL(after_removed_element->second, elements[1].second);
+
+        /* Done with the array, make sure it can be freed */
+        EXPECT_OK(s2n_array_free(array));
+
+        /* Check what happens if there is an integer overflow */
+        /* 0xF00000F0 * 16 = 3840 (in 32 bit arithmatic) */
+        EXPECT_NULL(array = s2n_array_new(0xF00000F0));
+        EXPECT_NOT_NULL(array = s2n_array_new(240));
+        EXPECT_OK(s2n_array_free(array));
     }
-
-    /* Validate array parameters again */
-    EXPECT_OK(s2n_array_capacity(array, &capacity));
-    EXPECT_EQUAL(capacity, 32);
-    EXPECT_OK(s2n_array_num_elements(array, &len));
-    EXPECT_EQUAL(len, 17);
-    EXPECT_EQUAL(array->element_size, element_size);
-    EXPECT_SUCCESS(memcmp(array->mem.data, elements, NUM_OF_ELEMENTS * element_size));
-
-    /* Insert element at given index */
-    struct array_element *insert_element = NULL;
-    EXPECT_OK(s2n_array_insert(array, 16, (void **)&insert_element));
-    EXPECT_NOT_NULL(insert_element);
-    insert_element->first = 20;
-    insert_element->second = 'a' + 20;;
-
-    /* Validate array parameters */
-    EXPECT_OK(s2n_array_capacity(array, &capacity));
-    EXPECT_EQUAL(capacity, 32);
-    EXPECT_OK(s2n_array_num_elements(array, &len));
-    EXPECT_EQUAL(len, 18);
-
-    /* Get the inserted element */
-    struct array_element *inserted_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 16, (void **)&inserted_element));
-    EXPECT_NOT_NULL(inserted_element);
-    EXPECT_EQUAL(inserted_element->first, insert_element->first);
-    EXPECT_EQUAL(inserted_element->second, insert_element->second);
-
-    /* Get the element after the inserted element */
-    struct array_element *after_inserted_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 17, (void **)&after_inserted_element));
-    EXPECT_NOT_NULL(after_inserted_element);
-    EXPECT_EQUAL(after_inserted_element->first, elements[16].first);
-    EXPECT_EQUAL(after_inserted_element->second, elements[16].second);
-
-    /* Delete element from given index */
-    EXPECT_OK(s2n_array_remove(array, 0));
-
-    /* Validate array parameters */
-    EXPECT_OK(s2n_array_capacity(array, &capacity));
-    EXPECT_EQUAL(capacity, 32);
-    EXPECT_OK(s2n_array_num_elements(array, &len));
-    EXPECT_EQUAL(len, 17);
-
-    /* Get the current element at the deleted index */
-    struct array_element *after_removed_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 0, (void **)&after_removed_element));
-    EXPECT_EQUAL(after_removed_element->first, elements[1].first);
-    EXPECT_EQUAL(after_removed_element->second, elements[1].second);
-
-    /* Done with the array, make sure it can be freed */
-    EXPECT_OK(s2n_array_free(array));
-
-    /* Check what happens if there is an integer overflow */
-    /* 0xF00000F0 * 16 = 3840 (in 32 bit arithmatic) */
-    EXPECT_NULL(array = s2n_array_new(0xF00000F0));
-    EXPECT_NOT_NULL(array = s2n_array_new(240));
-    EXPECT_OK(s2n_array_free(array));
 
     /* Arrays initialize with default capacity */
     {
         DEFER_CLEANUP(struct s2n_array *default_array = s2n_array_new(element_size), s2n_array_free_p);
+
+        uint32_t capacity = 0;
         EXPECT_OK(s2n_array_capacity(default_array, &capacity));
         EXPECT_EQUAL(capacity, S2N_INITIAL_ARRAY_SIZE);
     }
@@ -176,6 +181,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_array_capacity(array, &actual_capacity));
             EXPECT_EQUAL(capacity_set, actual_capacity);
 
+            uint32_t len = 0;
             EXPECT_OK(s2n_array_num_elements(array, &len));
             EXPECT_EQUAL(len, j + 1);
         }
@@ -188,6 +194,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_array_capacity(array, &actual_capacity));
         EXPECT_NOT_EQUAL(capacity_set, actual_capacity);
 
+        uint32_t len = 0;
         EXPECT_OK(s2n_array_num_elements(array, &len));
         EXPECT_EQUAL(len, capacity_set + 1);
     }
