@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
      */
     {
         /* Setup a security policy that only contains one cipher */
-        struct s2n_cipher_preferences one_cipher_preference = { .count = 1, .suites = NULL, .allow_chacha20_boosting = false};
+        struct s2n_cipher_preferences one_cipher_preference = { .count = 1, .suites = NULL };
         struct s2n_security_policy one_cipher_policy = security_policy_test_all;
         one_cipher_policy.cipher_preferences = &one_cipher_preference;
 

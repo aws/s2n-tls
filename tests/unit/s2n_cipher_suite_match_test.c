@@ -842,12 +842,11 @@ int main(int argc, char **argv)
                 TLS_AES_128_GCM_SHA256,
             };
 
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             /* If the server chose a security policy w/ ChaCha20 AND has ChaCha20 boosting enabled
              * then negotiate ChaCha20 iff the client has ChaCha20 as the most-preferred cipher.
              */
             {
-                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-
                 conn->security_policy_override = &test_chacha20_and_boosted;
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->client_protocol_version = S2N_TLS13;
@@ -885,7 +884,6 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
 
             /* If the server chose a security policy w/ ChaCha20 AND does not have ChaCha20 boosting enabled
@@ -893,8 +891,6 @@ int main(int argc, char **argv)
              * preference.
              */
             {
-                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-
                 conn->security_policy_override = &test_chacha20_and_not_boosted;
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->client_protocol_version = S2N_TLS13;
@@ -921,15 +917,12 @@ int main(int argc, char **argv)
                 }
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
 
             /* The server chose a (malformed) security policy where ChaCha20 boosting is toggled on but 
              * the cipher preferences does not contain ChaCha20. In this case, ChaCha20 boosting is off.
              */
             {
-                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-
                 conn->security_policy_override = &test_no_chacha20_and_boosted;
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->client_protocol_version = S2N_TLS13;
@@ -947,8 +940,9 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, chacha20_only_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
+
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 
         /* If a PSK is being used, then the cipher suite must match the PSK's HMAC algorithm.
