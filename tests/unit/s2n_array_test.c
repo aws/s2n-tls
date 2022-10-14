@@ -192,5 +192,39 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(len, capacity_set + 1);
     }
 
+    /* Pushback fails if static array is full */
+    {
+        DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, 1),
+                s2n_array_free_p);
+        EXPECT_OK(s2n_array_set_growable(array, S2N_ARRAY_STATIC));
+
+        /* First pushback succeeds */
+        struct array_element *element1 = NULL;
+        EXPECT_OK(s2n_array_pushback(array, (void **) &element1));
+        EXPECT_NOT_NULL(element1);
+
+        /* Second pushback fails because array can't grow */
+        struct array_element *element2 = NULL;
+        EXPECT_ERROR_WITH_ERRNO(s2n_array_pushback(array, (void **) &element2),
+                S2N_ERR_ARRAY_GROW_NOT_ALLOWED);
+    }
+
+    /* Insert fails if static array is full */
+    {
+        DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, 1),
+                      s2n_array_free_p);
+        EXPECT_OK(s2n_array_set_growable(array, S2N_ARRAY_STATIC));
+
+        /* First insert succeeds */
+        struct array_element *element1 = NULL;
+        EXPECT_OK(s2n_array_insert(array, 0, (void **) &element1));
+        EXPECT_NOT_NULL(element1);
+
+        /* Second insert fails because array can't grow */
+        struct array_element *element2 = NULL;
+        EXPECT_ERROR_WITH_ERRNO(s2n_array_insert(array, 1, (void **) &element2),
+                S2N_ERR_ARRAY_GROW_NOT_ALLOWED);
+    }
+
     END_TEST();
 }

@@ -172,6 +172,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_POSTCONDITION_VIOLATION, "Postcondition violation") \
     ERR_ENTRY(S2N_ERR_INTEGER_OVERFLOW, "Integer overflow violation") \
     ERR_ENTRY(S2N_ERR_ARRAY_INDEX_OOB, "Array index out of bounds") \
+    ERR_ENTRY(S2N_ERR_ARRAY_GROW_NOT_ALLOWED, "Static array is not allowed to grow") \
     ERR_ENTRY(S2N_ERR_FREE_STATIC_BLOB, "Cannot free a static blob") \
     ERR_ENTRY(S2N_ERR_RESIZE_STATIC_BLOB, "Cannot resize a static blob") \
     ERR_ENTRY(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API, "libcrypto does not support this API") \

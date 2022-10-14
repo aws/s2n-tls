@@ -35,6 +35,7 @@ S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 {
     RESULT_ENSURE_REF(array);
+    RESULT_ENSURE(array->growable == S2N_ARRAY_GROWABLE, S2N_ERR_ARRAY_GROW_NOT_ALLOWED);
 
     /* Acquire the memory */
     uint32_t mem_needed;
@@ -57,15 +58,21 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
     return array;
 }
 
-struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t len) {
+struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t capacity)
+{
     DEFER_CLEANUP(struct s2n_blob mem = {0}, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
     struct s2n_array *array = (void *) mem.data;
 
-    *array = (struct s2n_array) {.mem = { 0 }, .len = 0, .element_size = element_size};
+    *array = (struct s2n_array) {
+        .mem = { 0 },
+        .len = 0,
+        .element_size = element_size,
+        .growable = S2N_ARRAY_GROWABLE,
+    };
 
-    PTR_GUARD_RESULT(s2n_array_enlarge(array, len));
+    PTR_GUARD_RESULT(s2n_array_enlarge(array, capacity));
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return array;
@@ -75,7 +82,21 @@ S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
 {
     RESULT_ENSURE_REF(array);
 
-    *array = (struct s2n_array){.element_size = element_size};
+    *array = (struct s2n_array){
+        .mem = { 0 },
+        .len = 0,
+        .element_size = element_size,
+        .growable = S2N_ARRAY_GROWABLE,
+    };
+
+    RESULT_GUARD(s2n_array_validate(array));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_array_set_growable(struct s2n_array *array, s2n_array_growable growable)
+{
+    RESULT_ENSURE_REF(array);
+    array->growable = growable;
 
     RESULT_GUARD(s2n_array_validate(array));
     return S2N_RESULT_OK;
