@@ -33,6 +33,7 @@ struct s2n_array {
 
 extern S2N_RESULT s2n_array_validate(const struct s2n_array *array);
 extern struct s2n_array *s2n_array_new(uint32_t element_size);
+extern struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t len);
 extern S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size);
 extern S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element);
 extern S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t idx, void **element);

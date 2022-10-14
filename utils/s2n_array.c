@@ -51,18 +51,23 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 
 struct s2n_array *s2n_array_new(uint32_t element_size)
 {
-    struct s2n_blob mem = {0};
+    struct s2n_array *array = s2n_array_new_with_capacity(element_size, S2N_INITIAL_ARRAY_SIZE);
+    PTR_ENSURE_REF(array);
+
+    return array;
+}
+
+struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t len) {
+    DEFER_CLEANUP(struct s2n_blob mem = {0}, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
     struct s2n_array *array = (void *) mem.data;
 
-    *array = (struct s2n_array) {.mem = {0}, .len = 0, .element_size = element_size};
+    *array = (struct s2n_array) {.mem = { 0 }, .len = 0, .element_size = element_size};
 
-    if (s2n_result_is_error(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE))) {
-        /* Avoid memory leak if allocation fails */
-        PTR_GUARD_POSIX(s2n_free(&mem));
-        return NULL;
-    }
+    PTR_GUARD_RESULT(s2n_array_enlarge(array, len));
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return array;
 }
 
@@ -182,9 +187,12 @@ S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 S2N_CLEANUP_RESULT s2n_array_free_p(struct s2n_array **parray)
 {
     RESULT_ENSURE_REF(parray);
-    struct s2n_array *array = *parray;
 
-    RESULT_ENSURE_REF(array);
+    struct s2n_array *array = *parray;
+    if (array == NULL) {
+        return S2N_RESULT_OK;
+    }
+
     /* Free the elements */
     RESULT_GUARD_POSIX(s2n_free(&array->mem));
 

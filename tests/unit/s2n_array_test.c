@@ -27,7 +27,7 @@ struct array_element {
 
 int main(int argc, char **argv)
 {
-    struct s2n_array *array;
+    struct s2n_array *array = { 0 };
     int element_size = sizeof(struct array_element);
     uint32_t len = 0;
     uint32_t capacity = 0;
@@ -149,5 +149,48 @@ int main(int argc, char **argv)
     EXPECT_NULL(array = s2n_array_new(0xF00000F0));
     EXPECT_NOT_NULL(array = s2n_array_new(240));
     EXPECT_OK(s2n_array_free(array));
+
+    /* Arrays initialize with default capacity */
+    {
+        DEFER_CLEANUP(struct s2n_array *default_array = s2n_array_new(element_size), s2n_array_free_p);
+        EXPECT_OK(s2n_array_capacity(default_array, &capacity));
+        EXPECT_EQUAL(capacity, S2N_INITIAL_ARRAY_SIZE);
+    }
+
+    /* Test creating arrays with different initial capacities */
+    for (int i = 0; i < 10; i++) {
+        uint32_t capacity_set = i * i;
+        DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, capacity_set),
+                s2n_array_free_p);
+
+        uint32_t actual_capacity = 0;
+        EXPECT_OK(s2n_array_capacity(array, &actual_capacity));
+        EXPECT_EQUAL(capacity_set, actual_capacity);
+
+        /* Array doesn't grow before capacity is reached */
+        for (int j = 0; j < capacity_set; j++) {
+            struct array_element *element = NULL;
+            EXPECT_OK(s2n_array_pushback(array, (void **) &element));
+            EXPECT_NOT_NULL(element);
+
+            EXPECT_OK(s2n_array_capacity(array, &actual_capacity));
+            EXPECT_EQUAL(capacity_set, actual_capacity);
+
+            EXPECT_OK(s2n_array_num_elements(array, &len));
+            EXPECT_EQUAL(len, j + 1);
+        }
+
+        /* Array grows only after capacity is reached */
+        struct array_element *element = NULL;
+        EXPECT_OK(s2n_array_pushback(array, (void **) &element));
+        EXPECT_NOT_NULL(element);
+
+        EXPECT_OK(s2n_array_capacity(array, &actual_capacity));
+        EXPECT_NOT_EQUAL(capacity_set, actual_capacity);
+
+        EXPECT_OK(s2n_array_num_elements(array, &len));
+        EXPECT_EQUAL(len, capacity_set + 1);
+    }
+
     END_TEST();
 }
