@@ -76,35 +76,23 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
     return 0;
 }
 
-S2N_RESULT s2n_test_cert_chain_from_pem(const char *pem_data, uint8_t protocol_version,
+S2N_RESULT s2n_test_cert_chain_from_pem(struct s2n_connection *conn, const char *pem_path,
         struct s2n_stuffer *cert_chain_stuffer) {
     RESULT_ENSURE_REF(cert_chain_stuffer);
     RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(cert_chain_stuffer, 4096));
 
-    DEFER_CLEANUP(struct s2n_stuffer pem_data_stuffer = { 0 }, s2n_stuffer_free);
-    RESULT_GUARD_POSIX(s2n_stuffer_alloc_ro_from_string(&pem_data_stuffer, pem_data));
+    uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+    uint32_t cert_chain_pem_len = 0;
+    RESULT_GUARD_POSIX(s2n_read_test_pem_and_len(pem_path, cert_chain_pem, &cert_chain_pem_len, S2N_MAX_TEST_PEM_SIZE));
 
-    DEFER_CLEANUP(struct s2n_stuffer cert_stuffer = { 0 }, s2n_stuffer_free);
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&cert_stuffer, 4096));
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+            s2n_cert_chain_and_key_ptr_free);
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key, cert_chain_pem, cert_chain_pem_len));
 
-    while (s2n_stuffer_data_available(&pem_data_stuffer)) {
-        RESULT_GUARD_POSIX(s2n_stuffer_certificate_from_pem(&pem_data_stuffer, &cert_stuffer));
-        uint32_t cert_len = s2n_stuffer_data_available(&cert_stuffer);
-        RESULT_ENSURE_GT(cert_len, 0);
+    RESULT_GUARD_POSIX(s2n_send_cert_chain(conn, cert_chain_stuffer, chain_and_key));
 
-        uint8_t *raw_cert_data = s2n_stuffer_raw_read(&cert_stuffer, cert_len);
-        RESULT_ENSURE_REF(raw_cert_data);
-
-        RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(cert_chain_stuffer, cert_len));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(cert_chain_stuffer, raw_cert_data, cert_len));
-
-        /* Add an extra uint8_t to represent 0 length certificate extensions in tls13 */
-        if (protocol_version >= S2N_TLS13) {
-            RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(cert_chain_stuffer, 0));
-        }
-    }
-
-    RESULT_ENSURE_GT(s2n_stuffer_data_available(cert_chain_stuffer), 0);
+    /* Skip the cert chain length */
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(cert_chain_stuffer, 3));
 
     return S2N_RESULT_OK;
 }
