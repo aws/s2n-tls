@@ -1157,8 +1157,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 
 static int s2n_wire_ciphers_contain(const uint8_t *match, struct s2n_stuffer *wire_stuffer, uint32_t count, uint32_t cipher_suite_len)
 {
-    POSIX_ENSURE_LTE(cipher_suite_len, sizeof(S2N_SSLv2_CIPHER_SUITE_LEN));
     uint8_t theirs[S2N_SSLv2_CIPHER_SUITE_LEN] = { 0 };
+    POSIX_ENSURE_LTE(cipher_suite_len, sizeof(theirs));
 
     for (uint32_t i = 0; i < count; i++) {
         POSIX_GUARD(s2n_stuffer_read_bytes(wire_stuffer, theirs, cipher_suite_len));
