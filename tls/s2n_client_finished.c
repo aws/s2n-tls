@@ -26,7 +26,7 @@
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *our_version);
-S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *seq_num, uint8_t *our_version);
+S2N_RESULT s2n_finished_send(struct s2n_connection *conn, uint8_t *our_version);
 
 int s2n_client_finished_recv(struct s2n_connection *conn)
 {
@@ -42,9 +42,8 @@ int s2n_client_finished_send(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
 
     uint8_t *verify_data = conn->handshake.client_finished;
-    uint8_t *seq_num = conn->secure->client_sequence_number;
     POSIX_GUARD(s2n_prf_client_finished(conn));
-    POSIX_GUARD_RESULT(s2n_finished_send(conn, seq_num, verify_data));
+    POSIX_GUARD_RESULT(s2n_finished_send(conn, verify_data));
 
     POSIX_ENSURE_REF(conn->secure);
     conn->client = conn->secure;
