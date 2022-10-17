@@ -203,7 +203,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, 1),
                 s2n_array_free_p);
-        EXPECT_OK(s2n_array_set_growable(array, S2N_ARRAY_STATIC));
+        EXPECT_OK(s2n_array_set_static(array));
 
         /* First pushback succeeds */
         struct array_element *element1 = NULL;
@@ -213,14 +213,14 @@ int main(int argc, char **argv)
         /* Second pushback fails because array can't grow */
         struct array_element *element2 = NULL;
         EXPECT_ERROR_WITH_ERRNO(s2n_array_pushback(array, (void **) &element2),
-                S2N_ERR_ARRAY_GROW_NOT_ALLOWED);
+                S2N_ERR_RESIZE_STATIC_ARRAY);
     }
 
     /* Insert fails if static array is full */
     {
         DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, 1),
-                      s2n_array_free_p);
-        EXPECT_OK(s2n_array_set_growable(array, S2N_ARRAY_STATIC));
+                s2n_array_free_p);
+        EXPECT_OK(s2n_array_set_static(array));
 
         /* First insert succeeds */
         struct array_element *element1 = NULL;
@@ -230,7 +230,43 @@ int main(int argc, char **argv)
         /* Second insert fails because array can't grow */
         struct array_element *element2 = NULL;
         EXPECT_ERROR_WITH_ERRNO(s2n_array_insert(array, 1, (void **) &element2),
-                S2N_ERR_ARRAY_GROW_NOT_ALLOWED);
+                S2N_ERR_RESIZE_STATIC_ARRAY);
+    }
+
+    /* Inserting into the middle of a static arrays fails */
+    {
+        DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, 2),
+                s2n_array_free_p);
+        EXPECT_OK(s2n_array_set_static(array));
+
+        /* First insert succeeds */
+        struct array_element *element1 = NULL;
+        EXPECT_OK(s2n_array_insert(array, 0, (void **) &element1));
+        EXPECT_NOT_NULL(element1);
+
+        /* Second insert fails because first element can't be shifted */
+        struct array_element *element2 = NULL;
+        EXPECT_ERROR_WITH_ERRNO(s2n_array_insert(array, 0, (void **) &element2),
+                S2N_ERR_SHIFT_STATIC_ARRAY);
+    }
+
+    /* Removing from the middle of a static array fails */
+    {
+        DEFER_CLEANUP(struct s2n_array *array = s2n_array_new_with_capacity(element_size, 3),
+                s2n_array_free_p);
+        EXPECT_OK(s2n_array_set_static(array));
+
+        for (int i = 0; i < 3; i++) {
+            struct array_element *element = NULL;
+            EXPECT_OK(s2n_array_pushback(array, (void **) &element));
+            EXPECT_NOT_NULL(element);
+        }
+
+        /* Removing from the end of the array succeeds, since no shift is needed */
+        EXPECT_OK(s2n_array_remove(array, 2));
+
+        /* Removing from the front of the array errors, since array must shift */
+        EXPECT_ERROR_WITH_ERRNO(s2n_array_remove(array, 0), S2N_ERR_SHIFT_STATIC_ARRAY);
     }
 
     END_TEST();
