@@ -40,7 +40,7 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn handshake_with_pool_multithread() -> Result<(), Box<dyn std::error::Error>> {
-    const COUNT: usize = 200;
+    const COUNT: usize = 20;
     const CLIENT_LIMIT: usize = 3;
 
     let client_config = common::client_config()?.build()?;
