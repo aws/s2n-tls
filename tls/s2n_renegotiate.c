@@ -20,6 +20,26 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
+/* We don't want to introduce a new blocked status for renegotiation
+ * because that would potentially require applications to update their
+ * blocked status handling logic for no reason.
+ *
+ * It is impossible to use both early data and renegotiation for the same handshake,
+ * and both are just application data received during the handshake.
+ * Therefore, we will alias S2N_BLOCKED_ON_EARLY_DATA for reuse with renegotiation.
+ */
+const s2n_blocked_status S2N_BLOCKED_ON_APPLICATION_DATA = S2N_BLOCKED_ON_EARLY_DATA;
+
+S2N_RESULT s2n_renegotiate_validate(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_NO_RENEGOTIATION);
+    RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+    RESULT_ENSURE(conn->handshake.renegotiation, S2N_ERR_INVALID_STATE);
+    return S2N_RESULT_OK;
+}
+
 /*
  * Prepare a connection to be reused for a second handshake.
  *
@@ -134,4 +154,46 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
 
     conn->handshake.renegotiation = true;
     return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_renegotiate_read_app_data(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t app_data_buf_size,
+        ssize_t *app_data_size, s2n_blocked_status *blocked)
+{
+    RESULT_ENSURE_REF(blocked);
+
+    ssize_t r = s2n_recv(conn, app_data_buf, app_data_buf_size, blocked);
+    RESULT_GUARD_POSIX(r);
+    *app_data_size = r;
+
+    *blocked = S2N_BLOCKED_ON_APPLICATION_DATA;
+    RESULT_BAIL(S2N_ERR_APP_DATA_BLOCKED);
+}
+
+int s2n_renegotiate(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t app_data_buf_size,
+        ssize_t *app_data_size, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD_RESULT(s2n_renegotiate_validate(conn));
+
+    POSIX_ENSURE_REF(app_data_size);
+    *app_data_size = 0;
+
+    /* If there is outstanding application data, pass it back to the application.
+     * We can't read the next handshake record until we drain the buffer.
+     */
+    if (s2n_peek(conn) > 0) {
+        POSIX_GUARD_RESULT(s2n_renegotiate_read_app_data(conn,
+                app_data_buf, app_data_buf_size, app_data_size, blocked));
+    }
+
+    int result = s2n_negotiate(conn, blocked);
+
+    /* If we encounter application data while reading handshake records,
+     * pass it back to the application.
+     */
+    if (result != S2N_SUCCESS && s2n_errno == S2N_ERR_APP_DATA_BLOCKED) {
+        POSIX_GUARD_RESULT(s2n_renegotiate_read_app_data(conn,
+                app_data_buf, app_data_buf_size, app_data_size, blocked));
+    }
+
+    return result;
 }
