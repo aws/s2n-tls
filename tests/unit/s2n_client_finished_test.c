@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "api/s2n.h"
+#include "crypto/s2n_sequence.h"
 #include "tls/s2n_tls.h"
 
 int main(int argc, char **argv)
@@ -90,6 +91,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_SAFETY);
+    }
+
+    /* Secure sequence number is unchanged after sending Client Finished */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+
+        client_conn->secure->client_sequence_number[0] = 1;
+        EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
+
+        /* Secure sequence number is unchanged */
+        EXPECT_EQUAL(client_conn->secure->client_sequence_number[0], 1);
     }
 
     END_TEST();
