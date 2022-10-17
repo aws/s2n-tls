@@ -34,6 +34,7 @@
 
 #define OPT_TICKET_IN 1000
 #define OPT_TICKET_OUT 1001
+#define OPT_SEND_FILE 1002
 
 void usage()
 {
@@ -51,6 +52,8 @@ void usage()
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
+    fprintf(stderr, "  --send-file [file path]\n");
+    fprintf(stderr, "    Sends the contents of the provided file to the server after connecting.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");
@@ -259,6 +262,7 @@ int main(int argc, char *const *argv)
     struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
+    const char *send_file = NULL;
     int use_corked_io = 0;
     uint8_t non_blocking = 0;
     const char *key_log_path = NULL;
@@ -272,6 +276,7 @@ int main(int argc, char *const *argv)
         {"ciphers", required_argument, 0, 'c'},
         {"enter-fips-mode", no_argument, NULL, 'F'},
         {"echo", no_argument, 0, 'e'},
+        {"send-file", required_argument, 0, OPT_SEND_FILE},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
@@ -317,6 +322,9 @@ int main(int argc, char *const *argv)
             break;
         case 'e':
             echo_input = 1;
+            break;
+        case OPT_SEND_FILE:
+            send_file = load_file_to_cstring(optarg);
             break;
         case 'h':
             usage();
@@ -606,6 +614,14 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
+        if (send_file != NULL) {
+            printf("Sending file contents:\n%s\n", send_file);
+
+            unsigned long send_file_len = strlen(send_file);
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            send_data(conn, sockfd, send_file, send_file_len, &blocked);
+        }
 
         if (echo_input == 1) {
             bool stop_echo = false;
