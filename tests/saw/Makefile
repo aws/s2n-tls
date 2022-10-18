@@ -162,7 +162,8 @@ TLS_DIRS = $(sort $(dir $(TLS_COPY)))
 STUFFER_C = $(wildcard ../../stuffer/*.c) $(wildcard ../../stuffer/*.h) ../../stuffer/Makefile
 STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(STUFFER_C)))
 
-API_COPY =$(addprefix s2n/api/, $(notdir $(wildcard ../../api/*.h)))
+API_COPY = $(subst ../../api, s2n/api, $(wildcard ../../api/*.h ../../api/*/*.h))
+API_DIRS = $(sort $(dir $(API_COPY)))
 
 ERROR_C = $(wildcard ../../error/*.c) $(wildcard ../../error/*.h) ../../error/Makefile
 ERROR_COPY = $(addprefix s2n/error/, $(notdir $(ERROR_C)))
@@ -173,7 +174,7 @@ s2n/error :
 	mkdir -p $@
 
 s2n/api :
-	mkdir -p $@
+	mkdir -p $(API_DIRS)
 
 s2n/crypto :
 	mkdir -p $@
