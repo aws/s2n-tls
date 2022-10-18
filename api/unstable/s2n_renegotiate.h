@@ -101,8 +101,7 @@ int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegot
  * if the application originally called `s2n_connection_set_blinding` on the connection,
  * then the application will need to call `s2n_connection_set_blinding` again after `s2n_renegotiate_wipe`.
  *
- * However, continuing to handle encrypted records requires send / recv methods, so the exceptions to
- * the previous rule are:
+ * The connection-specific setup methods the application does not need to call again are:
  * - Methods to set the file descriptors
  *   (`s2n_connection_set_fd`, `s2n_connection_set_read_fd`, `s2n_connection_set_write_fd`)
  * - Methods to set the send callback
