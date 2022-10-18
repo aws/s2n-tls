@@ -35,7 +35,6 @@ S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 {
     RESULT_ENSURE_REF(array);
-    RESULT_ENSURE(array->is_static == false, S2N_ERR_RESIZE_STATIC_ARRAY);
 
     /* Acquire the memory */
     uint32_t mem_needed;
@@ -89,19 +88,9 @@ S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t elemen
         .mem = { 0 },
         .len = 0,
         .element_size = element_size,
-        .is_static = false,
     };
 
     RESULT_GUARD(s2n_array_enlarge(array, capacity));
-
-    RESULT_GUARD(s2n_array_validate(array));
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_array_set_static(struct s2n_array *array)
-{
-    RESULT_ENSURE_REF(array);
-    array->is_static = true;
 
     RESULT_GUARD(s2n_array_validate(array));
     return S2N_RESULT_OK;
@@ -152,8 +141,6 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
 
     /* If we are adding at an existing index, slide everything down. */
     if (idx < array->len) {
-        RESULT_ENSURE(array->is_static == false, S2N_ERR_SHIFT_STATIC_ARRAY);
-
         uint32_t size = 0;
         RESULT_GUARD_POSIX(s2n_mul_overflow(array->len - idx, array->element_size, &size));
         memmove(array->mem.data + array->element_size * (idx + 1),
@@ -176,8 +163,6 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
     /* If the removed element is the last one, no need to move anything.
      * Otherwise, shift everything down */
     if (idx != array->len - 1) {
-        RESULT_ENSURE(array->is_static == false, S2N_ERR_SHIFT_STATIC_ARRAY);
-
         uint32_t size = 0;
         RESULT_GUARD_POSIX(s2n_mul_overflow(array->len - idx - 1, array->element_size, &size));
         memmove(array->mem.data + array->element_size * idx,
