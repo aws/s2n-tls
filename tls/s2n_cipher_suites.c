@@ -1171,34 +1171,18 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, struct s2n_stuffer wir
     return 0;
 }
 
-S2N_RESULT s2n_cipher_preferences_contain(const struct s2n_cipher_preferences *cipher_preferences, uint8_t iana[S2N_TLS_CIPHER_SUITE_LEN], bool *cipher_preferences_contain) {
-    RESULT_ENSURE_REF(cipher_preferences);
-    RESULT_ENSURE_REF(cipher_preferences_contain);
+S2N_RESULT s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite* cipher_suite, bool* uses_chacha20_alg) {
+    RESULT_ENSURE_REF(cipher_suite);
+    RESULT_ENSURE_REF(uses_chacha20_alg);
 
-    *cipher_preferences_contain = false;
+    *uses_chacha20_alg = false;
 
-    for (int i = 0; i < cipher_preferences->count; i++) {
-        const uint8_t *cipher_pref_iana = cipher_preferences->suites[i]->iana_value;
-        if (s2n_constant_time_equals(cipher_pref_iana, iana, S2N_TLS_CIPHER_SUITE_LEN)) {
-            *cipher_preferences_contain = true;
+    for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
+        const struct s2n_record_algorithm* alg = cipher_suite->all_record_algs[i];
+        if (alg == &s2n_record_alg_chacha20_poly1305 || alg == &s2n_tls13_record_alg_chacha20_poly1305) {
+            *uses_chacha20_alg = true;
             return S2N_RESULT_OK;
         }
-    }
-
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_iana_is_a_chacha20_cipher_suite(const uint8_t iana[S2N_TLS_CIPHER_SUITE_LEN], bool* is_chacha20_cipher_suite) {
-    RESULT_ENSURE_REF(is_chacha20_cipher_suite);
-
-    *is_chacha20_cipher_suite = false;
-    if (s2n_constant_time_equals(s2n_tls13_chacha20_poly1305_sha256.iana_value, iana, S2N_TLS_CIPHER_SUITE_LEN) ||
-        s2n_constant_time_equals(s2n_ecdhe_rsa_with_chacha20_poly1305_sha256.iana_value, iana, S2N_TLS_CIPHER_SUITE_LEN) ||
-        s2n_constant_time_equals(s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256.iana_value, iana, S2N_TLS_CIPHER_SUITE_LEN) ||
-        s2n_constant_time_equals(s2n_dhe_rsa_with_chacha20_poly1305_sha256.iana_value, iana, S2N_TLS_CIPHER_SUITE_LEN)) {
-        
-        *is_chacha20_cipher_suite = true;
-        return S2N_RESULT_OK;
     }
 
     return S2N_RESULT_OK;
@@ -1264,6 +1248,29 @@ static S2N_RESULT s2n_validate_cipher_suite_match(struct s2n_connection *conn, s
     return S2N_RESULT_OK;
 }
 
+/* Iterates over the server cipher preferences and look for a chacha20 ciphersuite. If one can not be found, then set chacha20_cipher to NULL */
+static S2N_RESULT s2n_negotitate_chacha20_cipher_suite(const struct s2n_security_policy* security_policy, uint32_t count, uint32_t cipher_suite_len, struct s2n_stuffer wire_stuffer, struct s2n_cipher_suite **chacha20_cipher) {
+    RESULT_ENSURE_REF(security_policy);
+    RESULT_ENSURE_REF(chacha20_cipher);
+
+    *chacha20_cipher = NULL;
+
+    for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
+        struct s2n_cipher_suite *cipher = security_policy->cipher_preferences->suites[i];
+        const uint8_t *server_iana = cipher->iana_value;
+
+        bool cipher_uses_chacha20_alg = false;
+        RESULT_GUARD(s2n_cipher_suite_uses_chacha20_alg(cipher, &cipher_uses_chacha20_alg));
+
+        if (cipher_uses_chacha20_alg && s2n_wire_ciphers_contain(server_iana, wire_stuffer, count, cipher_suite_len)) {
+            *chacha20_cipher = cipher;
+            return S2N_RESULT_OK;
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
 /* If both server and client signaled support for ChaCha20 boosting, then the corresponding ChaCha20 cipher suite is set. Else, NULL is set. */
 static S2N_RESULT s2n_get_boosted_cipher_suite(struct s2n_connection *conn, struct s2n_stuffer wire_stuffer, uint32_t count, uint32_t cipher_suite_len, struct s2n_cipher_suite **boosted_cipher_suite) {
     RESULT_ENSURE_REF(conn);
@@ -1282,32 +1289,31 @@ static S2N_RESULT s2n_get_boosted_cipher_suite(struct s2n_connection *conn, stru
     uint8_t clients_first_cipher_iana[S2N_SSLv2_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(&wire_stuffer, clients_first_cipher_iana, cipher_suite_len));
 
-    bool is_chacha20_cipher_suite = false;
-    RESULT_GUARD(s2n_iana_is_a_chacha20_cipher_suite(clients_first_cipher_iana, &is_chacha20_cipher_suite));
-    if (!is_chacha20_cipher_suite) { 
+    struct s2n_cipher_suite *client_first_cipher_suite = NULL;
+    RESULT_GUARD(s2n_cipher_suite_from_iana(clients_first_cipher_iana, &client_first_cipher_suite));
+    RESULT_ENSURE_REF(client_first_cipher_suite);
+
+    bool cipher_suite_has_chacha20_alg = false;
+    RESULT_GUARD(s2n_cipher_suite_uses_chacha20_alg(client_first_cipher_suite, &cipher_suite_has_chacha20_alg));
+    if (!cipher_suite_has_chacha20_alg) { 
         return S2N_RESULT_OK;
     }
 
-    /* Check if the server has the boosted chacha20 cipher suite in its cipher preferences */
-    bool server_supports_boosted_cipher = false;
-    RESULT_GUARD(s2n_cipher_preferences_contain(security_policy->cipher_preferences, clients_first_cipher_iana, &server_supports_boosted_cipher));
-    if (!server_supports_boosted_cipher) {
+    /* The client has signaled ChaCha20 boosting. Now, iterate through the server ciphersuite preferences for a negotiable ChaCha20 cipher */
+    struct s2n_cipher_suite *negotiated_chacha20_cipher_suite = NULL;
+    RESULT_GUARD(s2n_negotitate_chacha20_cipher_suite(security_policy, count, cipher_suite_len, wire_stuffer, &negotiated_chacha20_cipher_suite));
+    if (!negotiated_chacha20_cipher_suite) {
         return S2N_RESULT_OK;
     }
-
-    /* We know the client is boosting a supported chacha20 cipher suite; retrieve the cipher suite from the iana */
-    struct s2n_cipher_suite *chacha20_cipher_suite = NULL;
-    RESULT_GUARD(s2n_cipher_suite_from_iana(clients_first_cipher_iana, &chacha20_cipher_suite));
-    RESULT_ENSURE_REF(chacha20_cipher_suite);
 
     /* Validate that the chacha20 cipher suite is a valid for the connection */
     bool chacha20_is_valid_match = false;
-    RESULT_GUARD(s2n_validate_cipher_suite_match(conn, &chacha20_cipher_suite, &chacha20_is_valid_match));
+    RESULT_GUARD(s2n_validate_cipher_suite_match(conn, &negotiated_chacha20_cipher_suite, &chacha20_is_valid_match));
     if (!chacha20_is_valid_match) {
         return S2N_RESULT_OK;
     }
 
-    *boosted_cipher_suite = chacha20_cipher_suite;
+    *boosted_cipher_suite = negotiated_chacha20_cipher_suite;
     return S2N_RESULT_OK;
 }
 

@@ -992,9 +992,32 @@ int main(int argc, char **argv)
                 count = sizeof(ecdhe_rsa_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 if (s2n_chacha20_poly1305.is_available()) {
                     EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, ecdhe_rsa_chacha20_boosted_wire, count));
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256);
+                    /* 
+                     * 1. Client has signalled chacha20 boosting since TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 is first
+                     * 2. The allow_chacha20_boosting is enabled
+                     * 3. The server negotiates s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256 as it is its most preferred
+                     *    chacha20 ciphersuite and is mutually supported by the client
+                     */
+                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
                 } else {
                     EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, ecdhe_rsa_chacha20_boosted_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
+                }
+
+                uint8_t aes_128_boosted_wire[] = {
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                    TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+                };
+                count = sizeof(aes_128_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                if (s2n_chacha20_poly1305.is_available()) {
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes_128_boosted_wire, count));
+                    /* 
+                     * 1. Client did not signal chacha20 boosting
+                     * 2. The allow_chacha20_boosting is enabled
+                     * 3. Server proceeds with server-preference negotiation. s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256 is negotiated
+                     */
+                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
+                } else {
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, aes_128_boosted_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
                 }
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
