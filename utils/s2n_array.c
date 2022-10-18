@@ -59,15 +59,17 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
 
 struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t capacity)
 {
-    DEFER_CLEANUP(struct s2n_blob mem = {0}, s2n_free);
+    struct s2n_blob mem = { 0 };
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
-    struct s2n_array *array = (void *) mem.data;
+    DEFER_CLEANUP(struct s2n_array *array = (void *) mem.data, s2n_array_free_p);
 
     PTR_GUARD_RESULT(s2n_array_init_with_capacity(array, element_size, capacity));
 
-    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
-    return array;
+    struct s2n_array *array_ret = array;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(array);
+
+    return array_ret;
 }
 
 S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
@@ -76,7 +78,6 @@ S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
 
     RESULT_GUARD(s2n_array_init_with_capacity(array, element_size, 0));
 
-    RESULT_GUARD(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
@@ -92,7 +93,6 @@ S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t elemen
 
     RESULT_GUARD(s2n_array_enlarge(array, capacity));
 
-    RESULT_GUARD(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
