@@ -66,7 +66,33 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+     *# The "extension_data" field of a "next_protocol_negotiation" extension
+     *# in a "ServerHello" contains an optional list of protocols advertised
+     *# by the server.
+     */
+    if (s2n_stuffer_data_available(extension)) {
+        POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    }
+
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-4
+     *# In the event that the client doesn't support any of server's protocols, or
+     *# the server doesn't advertise any, it SHOULD select the first protocol
+     *# that it supports.
+     */
+    if (s2n_get_application_protocol(conn) == NULL) {
+        struct s2n_stuffer stuffer = { 0 };
+        POSIX_GUARD(s2n_stuffer_init(&stuffer, supported_protocols));
+        POSIX_GUARD(s2n_stuffer_skip_write(&stuffer, supported_protocols->size));
+        struct s2n_blob protocol = { 0 };
+        POSIX_GUARD_RESULT(s2n_protocol_preferences_read(&stuffer, &protocol));
+
+        POSIX_ENSURE_LT(protocol.size, sizeof(conn->application_protocol));
+        POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
+        conn->application_protocol[protocol.size] = '\0';
+    }
 
     return S2N_SUCCESS;
 }
@@ -117,7 +143,6 @@ int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stu
 {   
     uint8_t protocol_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
-    POSIX_ENSURE_LT((uint16_t)protocol_len, sizeof(conn->application_protocol));
 
     uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
     POSIX_ENSURE_REF(protocol);

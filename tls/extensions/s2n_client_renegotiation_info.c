@@ -62,6 +62,7 @@ static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n
     POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
     uint8_t renegotiated_connection_len = conn->handshake.finished_len;
+    POSIX_ENSURE_GT(renegotiated_connection_len, 0);
     POSIX_GUARD(s2n_stuffer_write_uint8(out, renegotiated_connection_len));
     POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.client_finished, renegotiated_connection_len));
 

@@ -1149,6 +1149,25 @@ static S2N_RESULT s2n_finish_read(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
+{
+    if (conn->early_data_expected) {
+        RESULT_GUARD(s2n_early_data_validate_recv(conn));
+        RESULT_BAIL(S2N_ERR_EARLY_DATA_BLOCKED);
+    }
+
+    if (conn->handshake.renegotiation) {
+        RESULT_GUARD(s2n_renegotiate_validate(conn));
+        /* During renegotiation, Application Data may only be received until
+         * the server acknowledges the new handshake with a ServerHello.
+         */
+        RESULT_ENSURE(ACTIVE_MESSAGE(conn) == SERVER_HELLO, S2N_ERR_BAD_MESSAGE);
+        RESULT_BAIL(S2N_ERR_APP_DATA_BLOCKED);
+    }
+
+    RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -1204,9 +1223,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
      */
 
     if (record_type == TLS_APPLICATION_DATA) {
-        POSIX_ENSURE(conn->early_data_expected, S2N_ERR_BAD_MESSAGE);
-        POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
-        POSIX_BAIL(S2N_ERR_EARLY_DATA_BLOCKED);
+        POSIX_GUARD_RESULT(s2n_handshake_app_data_recv(conn));
     } else if (record_type == TLS_CHANGE_CIPHER_SPEC) {
         /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
          * due to a peer operating in middlebox compatibility mode.

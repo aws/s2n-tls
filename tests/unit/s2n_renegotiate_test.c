@@ -28,6 +28,39 @@ struct s2n_reneg_test_case {
     uint8_t max_frag_code;
 };
 
+const struct s2n_reneg_test_case dhe_test_cases[] = {
+        {
+            .protocol_version = S2N_SSLv3,
+            .cipher_suite = &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+            .max_frag_code = 0,
+        },
+        {
+            .protocol_version = S2N_TLS10,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_128_cbc_sha,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_512,
+        },
+        {
+            .protocol_version = S2N_TLS11,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_256_cbc_sha,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_1024,
+        },
+        {
+            .protocol_version = S2N_TLS12,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+            .max_frag_code = 0,
+        },
+        {
+            .protocol_version = S2N_TLS12,
+            .cipher_suite = &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_2048,
+        },
+        {
+            .protocol_version = S2N_TLS12,
+            .cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256,
+            .max_frag_code = S2N_TLS_MAX_FRAG_LEN_4096,
+        },
+};
+
 int main(int argc, char *argv[])
 {
     BEGIN_TEST();
@@ -197,16 +230,8 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            /* Test that a second handshake can occur.
-             * Because the s2n-tls server doesn't support renegotiation,
-             * we'll pretend that we're not performing renegotiation.
-             * We're interested in the handshake itself here, not the
-             * "secure renegotiation" safety checks.
-             */
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
@@ -234,8 +259,6 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
@@ -283,8 +306,6 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, small_frag_config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, small_frag_config));
@@ -292,12 +313,43 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        }
+
+        /* renegotiation_info is non-empty after wipe */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Verify that the renegotiation_info was empty / missing */
+            ssize_t renegotiation_info_len = s2n_client_hello_get_extension_length(&server_conn->client_hello,
+                    S2N_EXTENSION_RENEGOTIATION_INFO);
+            EXPECT_EQUAL(renegotiation_info_len, 0);
+
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
+            EXPECT_TRUE(client_conn->handshake.finished_len > 0);
+            EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Verify that the renegotiation_info was not empty / missing */
+            renegotiation_info_len = s2n_client_hello_get_extension_length(&server_conn->client_hello,
+                    S2N_EXTENSION_RENEGOTIATION_INFO);
+            EXPECT_TRUE(renegotiation_info_len > sizeof(uint8_t));
         }
 
         /* Wipe of insecure connection not allowed */
@@ -436,22 +488,48 @@ int main(int argc, char *argv[])
 
         struct s2n_reneg_test_case test_cases[2000] = { 0 };
         size_t test_cases_count = 0;
+
+        /* FFDHE is very, VERY slow.
+         * To avoid this test taking multiple minutes,
+         * we choose a limited number of dhe test cases.
+         */
+        for (size_t i = 0; i < s2n_array_len(dhe_test_cases); i++) {
+            if (!dhe_test_cases[i].cipher_suite->available) {
+                continue;
+            }
+            if (dhe_test_cases[i].protocol_version < oldest_tested_version) {
+                continue;
+            }
+            test_cases[test_cases_count] = dhe_test_cases[i];
+            test_cases_count++;
+            EXPECT_TRUE(test_cases_count < s2n_array_len(test_cases));
+        }
+        EXPECT_TRUE(test_cases_count > 0);
+
         const struct s2n_cipher_preferences *ciphers = security_policy_test_all.cipher_preferences;
         for (uint8_t version = oldest_tested_version; version < S2N_TLS13; version++) {
             for (size_t cipher_i = 0; cipher_i < ciphers->count; cipher_i++) {
-                if (!ciphers->suites[cipher_i]->available) {
+                struct s2n_cipher_suite *cipher = ciphers->suites[cipher_i];
+
+                if (!cipher->available) {
                     continue;
                 }
 
-                if (version < ciphers->suites[cipher_i]->minimum_required_tls_version) {
+                if (version < cipher->minimum_required_tls_version) {
+                    continue;
+                }
+
+                if (cipher->key_exchange_alg == &s2n_dhe) {
+                    /* See dhe_test_cases */
                     continue;
                 }
 
                 for (size_t max_frag_i = 0; max_frag_i < s2n_array_len(mfl_code_to_length); max_frag_i++) {
-                    test_cases[test_cases_count].protocol_version = version;
-                    test_cases[test_cases_count].cipher_suite = ciphers->suites[cipher_i];
-                    test_cases[test_cases_count].max_frag_code = max_frag_i;
-
+                    test_cases[test_cases_count] = (struct s2n_reneg_test_case) {
+                        .protocol_version = version,
+                        .cipher_suite = ciphers->suites[cipher_i],
+                        .max_frag_code = max_frag_i,
+                    };
                     test_cases_count++;
                     EXPECT_TRUE(test_cases_count < s2n_array_len(test_cases));
                 }
@@ -497,13 +575,8 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, sizeof(recv_buffer), &blocked), sizeof(app_data));
             EXPECT_BYTEARRAY_EQUAL(recv_buffer, app_data, sizeof(app_data));
 
-            /* Test that a second handshake can occur.
-             * Because the s2n-tls server doesn't support renegotiation,
-             * we'll pretend that we're not performing renegotiation.
-             */
+            /* Test that a second handshake can occur. */
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
-            client_conn->handshake.renegotiation = false;
-            server_conn->handshake.renegotiation = false;
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
     }

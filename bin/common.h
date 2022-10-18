@@ -78,6 +78,7 @@ struct conn_settings {
 };
 
 void print_s2n_error(const char *app_error);
+void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64_t len, s2n_blocked_status *blocked);
 int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo);
 int wait_for_event(int fd, s2n_blocked_status blocked);
 int negotiate(struct s2n_connection *conn, int sockfd);
