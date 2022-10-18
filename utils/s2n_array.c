@@ -176,6 +176,7 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
                    0,
                    array->element_size);
 
+    RESULT_GUARD(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
