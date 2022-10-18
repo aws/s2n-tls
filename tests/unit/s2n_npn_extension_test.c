@@ -393,6 +393,8 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
+        /* Not <= because the application protocol is a string, which needs to
+         * be terminated by a null character */
         EXPECT_TRUE(UINT8_MAX < sizeof(server_conn->application_protocol));
     }
 
