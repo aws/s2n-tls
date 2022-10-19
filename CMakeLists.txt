@@ -39,6 +39,7 @@ option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 include(CTest)
 
 file(GLOB API_HEADERS "api/*.h")
+file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
 
 file(GLOB CRYPTO_HEADERS "crypto/*.h")
 file(GLOB CRYPTO_SRC "crypto/*.c")
@@ -85,7 +86,7 @@ endif()
 
 ##be nice to visual studio users
 if(MSVC)
-    source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
+    source_group("Header Files\\s2n\\api" FILES ${API_HEADERS} ${API_UNSTABLE_HEADERS})
     source_group("Header Files\\s2n\\crypto" FILES ${CRYPTO_HEADERS})
     source_group("Header Files\\s2n\\error" FILES ${ERROR_HEADERS})
     source_group("Header Files\\s2n\\pq-crypto" FILES ${PQ_HEADERS})
@@ -231,6 +232,7 @@ endif()
 
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
+    ${API_UNSTABLE_HEADERS}
     ${CRYPTO_HEADERS}
     ${ERROR_HEADERS}
     ${PQ_HEADERS}
@@ -610,6 +612,7 @@ endif()
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
+install(FILES ${API_UNSTABLE_HEADERS} DESTINATION "include/s2n/unstable" COMPONENT Development)
 
 if (UNIX AND NOT APPLE)
     include(GNUInstallDirs)
