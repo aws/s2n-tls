@@ -59,10 +59,11 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
 
 struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t capacity)
 {
-    struct s2n_blob mem = { 0 };
+    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
     DEFER_CLEANUP(struct s2n_array *array = (void *) mem.data, s2n_array_free_p);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
     PTR_GUARD_RESULT(s2n_array_init_with_capacity(array, element_size, capacity));
 
@@ -85,11 +86,7 @@ S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t elemen
 {
     RESULT_ENSURE_REF(array);
 
-    *array = (struct s2n_array){
-        .mem = { 0 },
-        .len = 0,
-        .element_size = element_size,
-    };
+    *array = (struct s2n_array) { .element_size = element_size };
 
     RESULT_GUARD(s2n_array_enlarge(array, capacity));
 
