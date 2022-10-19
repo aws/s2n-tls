@@ -1507,6 +1507,15 @@ S2N_RESULT s2n_connection_dynamic_free_out_buffer(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+int s2n_connection_is_ktls_enable(struct s2n_connection *s2n_connection, bool *enable)
+{
+    POSIX_ENSURE_REF(s2n_connection);
+
+    /* ktls IO functionality is managed by s2n-tls. ktls cannot be enabled
+     * if the application sets custom io. */
+    return (s2n_connection->managed_send_io && s2n_connection->ktls_enabled_send_io);
+}
+
 S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);

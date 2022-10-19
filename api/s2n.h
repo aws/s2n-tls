@@ -892,7 +892,7 @@ S2N_API
 extern int s2n_config_ktls_enable(struct s2n_config *config);
 
 S2N_API
-extern int s2n_connection_is_ktls_enable(struct s2n_connection *conn);
+extern int s2n_connection_is_ktls_enable(struct s2n_connection *conn, bool *enabled);
 
 /** 
  * Set a custom send buffer size.

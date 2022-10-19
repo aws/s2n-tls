@@ -93,7 +93,10 @@ struct s2n_connection {
     unsigned write_fd_broken:1;
 
     /* Has the user set their own I/O callbacks or is this connection using the
-     * default socket-based I/O set by s2n */
+     * default socket-based I/O set by s2n.
+     *
+     * `true` means that s2n-tls manages the io callback and associated context.
+     * */
     unsigned managed_send_io:1;
     unsigned managed_recv_io:1;
 
@@ -130,6 +133,10 @@ struct s2n_connection {
     /* If enabled, this connection will free each of its IO buffers after all data
      * has been flushed */
     unsigned dynamic_buffers:1;
+
+    /* This connection is using ktls */
+    unsigned ktls_enabled_send_io:1;
+    unsigned ktls_enabled_recv_io:1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
