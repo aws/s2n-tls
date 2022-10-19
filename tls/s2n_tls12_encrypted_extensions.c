@@ -27,6 +27,15 @@ int s2n_tls12_encrypted_extensions_send(struct s2n_connection *conn)
 
     struct s2n_stuffer *out = &conn->handshake.io;
     POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, conn, out));
+
+    POSIX_ENSURE_REF(conn->secure);
+    conn->client = conn->secure;
+
+    /* Since this is the first encrypted message sent, zero the sequence number */
+    struct s2n_blob seq = { 0 };
+    POSIX_GUARD(s2n_blob_init(&seq, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    POSIX_GUARD(s2n_blob_zero(&seq));
+
     return S2N_SUCCESS;
 }
 
@@ -37,5 +46,6 @@ int s2n_tls12_encrypted_extensions_recv(struct s2n_connection *conn)
 
     struct s2n_stuffer *in = &conn->handshake.io;
     POSIX_GUARD(s2n_extension_list_recv(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, conn, in));
+
     return S2N_SUCCESS;
 }

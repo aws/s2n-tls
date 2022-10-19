@@ -17,7 +17,6 @@
 #include "testlib/s2n_testlib.h"
 
 #include "api/s2n.h"
-#include "crypto/s2n_sequence.h"
 #include "tls/s2n_tls.h"
 
 int main(int argc, char **argv)
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_SAFETY);
     }
 
-    /* Secure sequence number is unchanged after sending Client Finished */
+    /* Test secure client sequence number behavior when sending Client Finished */
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
@@ -101,7 +100,14 @@ int main(int argc, char **argv)
         client_conn->secure->client_sequence_number[0] = 1;
         EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
 
-        /* Secure sequence number is unchanged */
+        /* Secure sequence number is zeroed after sending Client Finished in a regular handshake */
+        EXPECT_EQUAL(client_conn->secure->client_sequence_number[0], 0);
+
+        client_conn->secure->client_sequence_number[0] = 1;
+        client_conn->npn_negotiated = true;
+        EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
+
+        /* Secure sequence number is unchanged after sending Client Finished in an NPN handshake */
         EXPECT_EQUAL(client_conn->secure->client_sequence_number[0], 1);
     }
 
