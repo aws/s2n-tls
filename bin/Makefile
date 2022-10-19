@@ -33,4 +33,4 @@ install: s2nc s2nd $(bindir)
 	@cp s2n? $(bindir)
 
 uninstall:
-	@rm $(bindir)/s2n?
+	@rm -f $(bindir)/s2n?

@@ -33,7 +33,6 @@ const s2n_blocked_status S2N_BLOCKED_ON_APPLICATION_DATA = S2N_BLOCKED_ON_EARLY_
 S2N_RESULT s2n_renegotiate_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_NO_RENEGOTIATION);
     RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
     RESULT_ENSURE(conn->handshake.renegotiation, S2N_ERR_INVALID_STATE);

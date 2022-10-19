@@ -1854,7 +1854,7 @@ typedef enum {
  *
  * @param conn A pointer to the s2n_connection object
  * @param blocked A pointer which will be set to the blocked status. 
- * @returns The number of bytes written, and may indicate a partial write
+ * @returns S2N_SUCCESS if the handshake completed. S2N_FAILURE if the handshake encountered an error or is blocked.
  */
 S2N_API
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
