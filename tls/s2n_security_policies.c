@@ -955,9 +955,7 @@ int s2n_security_policies_init()
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
 
-            bool is_chacha20_cipher_suite = false;
-            POSIX_GUARD_RESULT(s2n_cipher_suite_uses_chacha20_alg(cipher, &is_chacha20_cipher_suite));
-            if (is_chacha20_cipher_suite) {
+            if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
                 cipher_preferences_has_chacha20_cipher_suite = true;
             }
         }
