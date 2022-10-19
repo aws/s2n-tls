@@ -126,5 +126,3 @@ extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26;
 
 extern const struct s2n_cipher_preferences cipher_preferences_null;
-
-extern S2N_RESULT s2n_cipher_preferences_contain(const struct s2n_cipher_preferences *cipher_preferences, uint8_t iana[S2N_TLS_CIPHER_SUITE_LEN], bool *cipher_preferences_contain);

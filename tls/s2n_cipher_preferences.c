@@ -1861,21 +1861,4 @@ const struct s2n_cipher_preferences cipher_preferences_rfc9151 = {
     .allow_chacha20_boosting = false,
 };
 
-S2N_RESULT s2n_cipher_preferences_contain(const struct s2n_cipher_preferences *cipher_preferences, uint8_t iana[S2N_TLS_CIPHER_SUITE_LEN], bool *cipher_preferences_contain) {
-    RESULT_ENSURE_REF(cipher_preferences);
-    RESULT_ENSURE_REF(cipher_preferences_contain);
-
-    *cipher_preferences_contain = false;
-
-    for (size_t i = 0; i < cipher_preferences->count; i++) {
-        const uint8_t *cipher_pref_iana = cipher_preferences->suites[i]->iana_value;
-        if (s2n_constant_time_equals(cipher_pref_iana, iana, S2N_TLS_CIPHER_SUITE_LEN)) {
-            *cipher_preferences_contain = true;
-            return S2N_RESULT_OK;
-        }
-    }
-
-    return S2N_RESULT_OK;
-}
-
 /* clang-format on */
