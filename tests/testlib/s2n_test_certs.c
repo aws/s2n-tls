@@ -97,10 +97,8 @@ S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const 
     RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&certificate_message_stuffer, 3));
 
     uint32_t cert_chain_len = s2n_stuffer_data_available(&certificate_message_stuffer);
-    uint8_t *cert_chain_data = s2n_stuffer_raw_read(&certificate_message_stuffer, cert_chain_len);
-    RESULT_ENSURE_REF(cert_chain_data);
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(cert_chain_stuffer, cert_chain_len));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(cert_chain_stuffer, cert_chain_data, cert_chain_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&certificate_message_stuffer, cert_chain_stuffer, cert_chain_len));
 
     return S2N_RESULT_OK;
 }
