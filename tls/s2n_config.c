@@ -1019,6 +1019,14 @@ int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after
     return S2N_SUCCESS;
 }
 
+/* TODO: read vs write vs both. add s2n_ktls_mode */
+int s2n_config_ktls_enable(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->ktls_requested = true;
+    return S2N_SUCCESS;
+}
+
 /*
  *= https://tools.ietf.org/rfc/rfc5746#5
  *# TLS implementations SHOULD provide a mechanism to disable and enable

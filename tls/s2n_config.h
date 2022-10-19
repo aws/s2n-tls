@@ -76,6 +76,11 @@ struct s2n_config {
     /* Indicates support for the npn extension */
     unsigned npn_supported:1;
 
+    /* Depending on OS and hardware support its possible to use ktls.
+     *
+     * This option indicates if connections should attempt to use ktls if available. */
+    unsigned ktls_requested:1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 

@@ -888,6 +888,12 @@ typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED, S2N_VERIFY_AFTER_SIGN_ENABLED } s
 S2N_API
 extern int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after_sign mode);
 
+S2N_API
+extern int s2n_config_ktls_enable(struct s2n_config *config);
+
+S2N_API
+extern int s2n_connection_is_ktls_enable(struct s2n_connection *conn);
+
 /** 
  * Set a custom send buffer size.
  *
