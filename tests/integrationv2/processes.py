@@ -11,6 +11,7 @@ from time import monotonic as _time
 
 _PopenSelector = selectors.PollSelector
 _PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
+_DEBUG_LEN = 80
 
 
 class _processCommunicator(object):
@@ -34,9 +35,10 @@ class _processCommunicator(object):
     time to time.
     """
 
-    def __init__(self, proc):
+    def __init__(self, proc, name):
         self.proc = proc
         self.wait_for_marker = None
+        self.name = name
 
         # If the process times out, communicate() is called once more to pick
         # up any data remaining in stdout/stderr. This flags lets us know if
@@ -157,10 +159,12 @@ class _processCommunicator(object):
                 for key, events in ready:
                     # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
+                        print(f'{self.name}: stdin available')
                         chunk = input_view[input_data_offset:
                                            input_data_offset + _PIPE_BUF]
                         try:
                             input_data_offset += os.write(key.fd, chunk)
+                            print(f'{self.name}: sent')
                         except BrokenPipeError:
                             selector.unregister(key.fileobj)
                         else:
@@ -170,9 +174,16 @@ class _processCommunicator(object):
                                 input_data_offset = 0
                                 if send_marker_list:
                                     send_marker = send_marker_list.pop(0)
+                                print(f'{self.name}: next send_marker is {send_marker}')
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
+                        print(f'{self.name}: stdout available')
                         data = os.read(key.fd, 32768)
-                        if not data:
+                        if data:
+                            data_str = str(data)
+                            data_debug = data_str[:_DEBUG_LEN]
+                            if len(data_str) > _DEBUG_LEN:
+                                 data_debug += f' ...({len(data_str) - _DEBUG_LEN} more bytes)'
+                        else:
                             selector.unregister(key.fileobj)
 
                         # fileobj2output[key.fileobj] is a list of data chunks
@@ -182,7 +193,10 @@ class _processCommunicator(object):
                         # If we are looking for, and find, the ready-to-send marker, then
                         # register STDIN to receive events. If there is no data to send,
                         # just mark input_send as true so we can close out STDIN.
-                        if send_marker is not None and send_marker in str(data):
+                        if send_marker:
+                            print(f'{self.name}: looking for send_marker {send_marker} in {data_debug}')
+                        if send_marker is not None and send_marker in data_str:
+                            print(f'{self.name}: found {send_marker}')
                             if self.proc.stdin and input_data:
                                 selector.register(
                                     self.proc.stdin, selectors.EVENT_WRITE)
@@ -193,14 +207,20 @@ class _processCommunicator(object):
                                 input_view = memoryview(message)
                                 input_data_len = len(message)
                                 input_data_sent = False
+                                print(f'{self.name}: will send {message}')
                             else:
                                 input_data_sent = True
+                                print(f'{self.name}: will send nothing')
 
-                        if self.wait_for_marker is not None and self.wait_for_marker in str(data):
+                        if self.wait_for_marker:
+                            print(f'{self.name}: looking for wait_for_marker {self.wait_for_marker} in {data_debug}')
+                        if self.wait_for_marker is not None and self.wait_for_marker in data_str:
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
                             return None, None
 
+                        if kill_marker:
+                            print(f'{self.name}: looking for kill_marker {kill_marker} in {data}')
                         if kill_marker is not None and kill_marker in data:
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
@@ -209,7 +229,11 @@ class _processCommunicator(object):
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
                 if self.proc.stdin and input_data_sent and not input_data:
-                    if close_marker is None or (close_marker and close_marker in str(data)):
+                    print(f'{self.name}: finished sending')
+                    if close_marker:
+                        print(f'{self.name}: looking for close_marker {close_marker} in {data_debug}')
+                    if close_marker is None or (close_marker and close_marker in data_str):
+                        print(f'{self.name}: closing stdin')
                         input_data_sent = None
                         self.proc.stdin.close()
 
@@ -312,7 +336,7 @@ class ManagedProcess(threading.Thread):
                     None, None, None, ex, self.expect_stderr)
                 raise ex
 
-            communicator = _processCommunicator(proc)
+            communicator = _processCommunicator(proc, self.cmd_line[0])
 
             if self.ready_to_test is not None:
                 # Some processes won't be ready until they have emitted some string in stdout.
