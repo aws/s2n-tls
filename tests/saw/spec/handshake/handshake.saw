@@ -103,8 +103,10 @@ let prove_handshake_io_lowlevel = do {
 //
 //   FOTArray unimplemented for backend
 let prove_state_machine = do {
-    print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
-    prove_print (w4_unint_z3 []) {{ tls12rfcSimulatesS2N `{16} }};
+    // TLS1.2 is temporarily removed from SAW testing
+    // Tracking issue: https://github.com/aws/s2n-tls/issues/3516
+    // print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
+    // prove_print (w4_unint_z3 []) {{ tls12rfcSimulatesS2N `{16} }};
 
     print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
     prove_print (w4_unint_z3 []) {{ tls13rfcSimulatesS2N `{16} }};
