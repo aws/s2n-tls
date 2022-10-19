@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include "api/s2n.h"
+#include <s2n.h>
 
 /**
- * @file s2n_renegotiate.h
+ * @file renegotiate.h
  *
  * "Renegotiation" is a TLS feature offered in TLS1.2 and earlier.
  * During renegotiation, a new handshake is performed on an already established
