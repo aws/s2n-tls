@@ -962,7 +962,7 @@ int s2n_security_policies_init()
 
         if (cipher_preference->allow_chacha20_boosting) {
             /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
-            S2N_ERROR_IF(!cipher_preferences_has_chacha20_cipher_suite, S2N_ERR_INVALID_SECURITY_POLICY);
+            POSIX_ENSURE(cipher_preferences_has_chacha20_cipher_suite, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));
