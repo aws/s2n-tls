@@ -75,11 +75,13 @@ async fn shutdown_after_split() -> Result<(), Box<dyn std::error::Error>> {
     let (mut client_reader, mut client_writer) = tokio::io::split(client);
 
     let mut received = [0; 1];
-    tokio::try_join!(
+
+    // ignore any shutdown errors in case things go wrong
+    let _ = tokio::try_join!(
         server.shutdown(),
         client_reader.read(&mut received),
         write_until_shutdown(&mut client_writer),
-    )?;
+    );
 
     Ok(())
 }
