@@ -63,6 +63,8 @@ def invalid_test_parameters(*args, **kwargs):
     signature = kwargs.get('signature')
 
     providers = [provider_ for provider_ in [provider, other_provider] if provider_]
+    # Always consider S2N
+    providers.append(S2N)
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)

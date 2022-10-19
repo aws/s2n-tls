@@ -21,6 +21,7 @@
 #include <errno.h>
 
 #include "api/s2n.h"
+#include "api/unstable/renegotiate.h"
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <sys/param.h>
@@ -252,6 +253,43 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
+int renegotiate(struct s2n_connection *conn, int fd)
+{
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    uint8_t buffer[STDIO_BUFSIZE] = { 0 };
+    ssize_t data_read = 0;
+
+    GUARD_RETURN(s2n_renegotiate_wipe(conn), "Unable to prepare connection for renegotiate");
+
+    fprintf(stdout, "RENEGOTIATE\n");
+    fflush(stdout);
+
+    while (s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
+        uint8_t *data_ptr = buffer;
+        while(data_read > 0) {
+            ssize_t data_written = write(STDOUT_FILENO, data_ptr, data_read);
+            GUARD_RETURN(data_written, "Error writing to stdout\n");
+            data_read -= data_written;
+            data_ptr += data_written;
+        }
+
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            fprintf(stderr, "Failed to renegotiate: '%s'. %s\n", s2n_strerror(s2n_errno, NULL),
+                    s2n_strerror_debug(s2n_errno, NULL));
+            if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_ALERT) {
+                fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
+            }
+            return S2N_FAILURE;
+        }
+
+        GUARD_RETURN(wait_for_event(fd, blocked), "Error polling IO for renegotiate");
+    }
+
+    print_connection_info(conn);
+    printf("s2n is ready, again\n");
+    return S2N_SUCCESS;
+}
+
 void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64_t len, s2n_blocked_status *blocked)
 {
     uint64_t bytes_remaining = len;
@@ -293,7 +331,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     do {
         /* echo will send and receive Application Data back and forth between
-         * client and server, until stop_echo is true. */
+         * client and server, until stop_echo is true or stdin EOF is reached. */
         while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
