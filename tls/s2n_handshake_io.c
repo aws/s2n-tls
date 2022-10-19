@@ -1465,7 +1465,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
 
     /* ensure that user requested ktls, and has not set custom IO */
-    if (conn->config->ktls_requested && !conn->managed_send_io) {
+    if (conn->config->ktls_requested && conn->managed_send_io) {
 
         if (s2n_result_is_ok(s2n_ktls_enable(conn))) {
             /* ktls has been enabled */
