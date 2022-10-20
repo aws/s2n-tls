@@ -96,9 +96,7 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd) {
     memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
     /* set keys */
-    struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
-    int ret_val = setsockopt(w_io_ctx->fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
-    /* int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info)); */
+    int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
     if (ret_val < 0) {
         fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         /* exit(1); */
@@ -161,8 +159,6 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
     return 0;
 }
 
-// FIXME
-// - check if we want to enable write
 S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     RESULT_ENSURE_REF(conn);
 
@@ -179,7 +175,7 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
         fprintf(stdout, "ktls wrote hello world success---------- \n");
     }
 
-    RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
+    /* RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd)); */
 
     /* // check if we want to enable read */
     /* POSIX_GUARD(s2n_ktls_rx_keys(conn)); */
@@ -190,7 +186,7 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
 /* Enable the "tls" Upper Level Protocols (ULP) over TCP for this connection */
 S2N_RESULT s2n_ktls_register_ulp(int fd) {
-    // FIXME see if this is already done
+    // todo see if this is already done
     int ret_val = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
     if (ret_val < 0) {
         fprintf(stderr, "ktls register upl failed 2 xxxxxxxxxxxxxx: %s\n", strerror(errno));
@@ -203,7 +199,7 @@ S2N_RESULT s2n_ktls_register_ulp(int fd) {
     return S2N_RESULT_OK;
 }
 
-// FIXME
+// todo
 // - add server mode
 // - RX mode
 // - cleanup if intermediate steps fails
@@ -221,12 +217,13 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     RESULT_ENSURE_EQ(conn->ktls_enabled_recv_io, false);
 
     const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
+    int fd = peer_socket_ctx->fd;
 
     /* register the tls ULP */
-    RESULT_GUARD(s2n_ktls_register_ulp(peer_socket_ctx->fd));
+    RESULT_GUARD(s2n_ktls_register_ulp(fd));
 
     /* set keys */
-    RESULT_GUARD(s2n_ktls_set_keys(conn, peer_socket_ctx->fd));
+    RESULT_GUARD(s2n_ktls_set_keys(conn, fd));
 
     conn->ktls_enabled_send_io = true;
     /* conn->ktls_enabled_recv_io = true; */
