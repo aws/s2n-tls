@@ -527,6 +527,8 @@ int main(int argc, char *const *argv)
             );
         }
 
+        GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed");
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
@@ -535,7 +537,7 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
- 
+
         GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");

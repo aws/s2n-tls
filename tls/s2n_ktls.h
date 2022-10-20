@@ -17,21 +17,21 @@
 
 #include "tls/s2n_connection.h"
 
-/* /1* The default write I/O context for communication over a ktls socket *1/ */
-/* struct s2n_ktls_write_io_context { */
-/*     /1* The peer's fd *1/ */
-/*     int fd; */
+/* The default write I/O context for communication over a ktls socket */
+struct s2n_ktls_write_io_context {
+    /* The peer's fd */
+    int fd;
 
-/*     /1* User requested ktls enable. *1/ */
-/*     /1* TODO: this should live on the config rather on the connection. *1/ */
-/*     /1* unsigned int ktls_requested:1; *1/ */
+    /* The "tls" UPL has been enabled. */
+    unsigned int ktls_socket_set:1;
 
-/*     /1* The TCP socket has been made TLS aware. *1/ */
-/*     unsigned int ktls_socket_set:1; */
-
-/*     /1* ktls is enabled for this connection. *1/ */
-/*     unsigned int ktls_enabled:1; */
-/* }; */
+    /* ktls is enabled for this connection.
+     *
+     * This means that UPL has been enabled, transport keys have been set
+     * and ktls specific IO callback/context has been set.
+     */
+    unsigned int ktls_enabled:1;
+};
 
 /* /1* TODO: wip. implement the write first. *1/ */
 /* /1* The default read I/O context for communication over a ktls socket *1/ */

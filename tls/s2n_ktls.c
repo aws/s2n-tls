@@ -21,6 +21,7 @@
 #include <sys/sendfile.h>
 #include <stdio.h>
 #include <string.h>
+#include "utils/s2n_result.h"
 #define SOL_TCP        6
 
 #include "api/s2n.h"
@@ -64,7 +65,7 @@
 /*     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context; */
 /*     int ret_val = setsockopt(r_io_ctx->fd, SOL_TLS, TLS_RX, &crypto_info, sizeof (crypto_info)); */
 /*     if (ret_val < 0) { */
-/*         fprintf(stderr, "ktls RX tls key 3: %s\n", strerror(errno)); */
+/*         fprintf(stderr, "ktls set RX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
 /*         /1* exit(1); *1/ */
 /*     } else { */
 /*         fprintf(stdout, "ktls RX keys set---------- \n"); */
@@ -73,14 +74,14 @@
 /*     return S2N_SUCCESS; */
 /* } */
 
-int s2n_ktls_tx_keys(struct s2n_connection *conn) {
+S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd) {
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
     memset(&crypto_info, 0, sizeof(crypto_info));
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
 
     struct s2n_tls12_secrets tls12_secret = conn->secrets.tls12;
     /* uint8_t s = sizeof(tls12_secret.master_secret); */
-    POSIX_ENSURE_EQ(16, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    RESULT_ENSURE_EQ(16, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
     /* tls 1.2 */
     crypto_info.info.version = TLS_1_2_VERSION;
@@ -94,28 +95,91 @@ int s2n_ktls_tx_keys(struct s2n_connection *conn) {
     memcpy(crypto_info.rec_seq, conn->server->server_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
     memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
-    /* check managed_send_io */
+    /* set keys */
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
-    int ret_val = setsockopt(w_io_ctx->fd, SOL_TLS, TLS_TX, &crypto_info, sizeof (crypto_info));
+    int ret_val = setsockopt(w_io_ctx->fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
+    /* int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info)); */
     if (ret_val < 0) {
-        fprintf(stderr, "ktls TX tls key 3: %s\n", strerror(errno));
+        fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         /* exit(1); */
     } else {
         fprintf(stdout, "ktls TX keys set---------- \n");
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
+int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(buf);
+    int wfd = ((struct s2n_ktls_write_io_context*) io_context)->fd;
+    if (wfd < 0) {
+        errno = EBADF;
+        POSIX_BAIL(S2N_ERR_BAD_FD);
+    }
+
+    /* On success, the number of bytes written is returned. On failure, -1 is
+     * returned and errno is set appropriately. */
+
+    fprintf(stdout, "ktls writing---------- \n");
+    ssize_t result = write(wfd, buf, len);
+    fprintf(stdout, "ktls writing done---------- \n");
+    POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
+    return result;
+}
+
+int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
+{
+    struct s2n_blob ctx_mem = {0};
+    struct s2n_ktls_write_io_context *peer_ktls_ctx;
+
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_ktls_write_io_context)));
+
+    peer_ktls_ctx = (struct s2n_ktls_write_io_context *)(void *)ctx_mem.data;
+    peer_ktls_ctx->fd = wfd;
+    peer_ktls_ctx->ktls_socket_set = true;
+    peer_ktls_ctx->ktls_enabled = true;
+
+    POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_ktls_write_fn));
+    POSIX_GUARD(s2n_connection_set_send_ctx(conn, peer_ktls_ctx));
+    conn->managed_send_io = true;
+
+    /* This is only needed if the user is using corked io.
+     * Take the snapshot in case optimized io is enabled after setting the fd.
+     */
+    POSIX_GUARD(s2n_socket_write_snapshot(conn));
+
+    uint8_t ipv6;
+    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
+        conn->ipv6 = (ipv6 ? 1 : 0);
+    }
+
+    conn->write_fd_broken = 0;
+
+    return 0;
+}
+
+// FIXME
+// - check if we want to enable write
 S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     RESULT_ENSURE_REF(conn);
 
-    // TODO
-    // - check if we want to enable write
-    // - return RESULT
-    RESULT_GUARD_POSIX(s2n_ktls_tx_keys(conn));
-    // TODO set write fd with ktls io and context
-    s2n_connection_set_write_fd(conn, fd);
+    // TODO!!!!!!!!!! setting the keys and
+    // set write fd with ktls io and context
+    RESULT_GUARD(s2n_ktls_tx_keys(conn, fd));
+
+    const char *msg = "hello world\n";
+    int ret_val = write(fd, msg, strlen(msg));
+    if (ret_val < 0) {
+        fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno));
+        return S2N_RESULT_ERROR;
+    } else {
+        fprintf(stdout, "ktls wrote hello world success---------- \n");
+    }
+
+    RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
     /* // check if we want to enable read */
     /* POSIX_GUARD(s2n_ktls_rx_keys(conn)); */
@@ -125,27 +189,26 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 }
 
 /* Enable the "tls" Upper Level Protocols (ULP) over TCP for this connection */
-S2N_RESULT s2n_ktls_register_ulp(struct s2n_connection *conn) {
-    RESULT_ENSURE_REF(conn);
-
-    const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
-
-    // TODO see if this is already done
-    int ret_val = setsockopt(peer_socket_ctx->fd, SOL_TCP, TCP_ULP, "tls", sizeof ("tls"));
+S2N_RESULT s2n_ktls_register_ulp(int fd) {
+    // FIXME see if this is already done
+    int ret_val = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
     if (ret_val < 0) {
-        fprintf(stderr, "ktls enable failed 2: %s\n", strerror(errno));
+        fprintf(stderr, "ktls register upl failed 2 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
         /* exit(1); */
     } else {
-        fprintf(stdout, "ktls enabled---------- \n");
+        fprintf(stdout, "ktls upl enabled---------- \n");
     }
 
     return S2N_RESULT_OK;
 }
 
+// FIXME
+// - add server mode
+// - RX mode
+// - cleanup if intermediate steps fails
 S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
-    // TODO support client mode
-    if (conn->mode == S2N_CLIENT) {
+    if (conn->mode == S2N_SERVER) {
         return S2N_RESULT_ERROR;
     }
 
@@ -153,15 +216,20 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     RESULT_ENSURE_EQ(conn->managed_send_io, true);
     /* RESULT_ENSURE_EQ(conn->managed_recv_io, true); */
 
+    /* should not be called twice */
+    RESULT_ENSURE_EQ(conn->ktls_enabled_send_io, false);
+    RESULT_ENSURE_EQ(conn->ktls_enabled_recv_io, false);
+
     const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
 
     /* register the tls ULP */
-    RESULT_GUARD(s2n_ktls_register_ulp(conn));
+    RESULT_GUARD(s2n_ktls_register_ulp(peer_socket_ctx->fd));
 
     /* set keys */
     RESULT_GUARD(s2n_ktls_set_keys(conn, peer_socket_ctx->fd));
 
     conn->ktls_enabled_send_io = true;
+    /* conn->ktls_enabled_recv_io = true; */
 
     return S2N_RESULT_OK;
 }
