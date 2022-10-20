@@ -48,22 +48,15 @@ int s2n_client_finished_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    /* An NPN handshake cannot zero the client sequence number when sending the 
-     * Client Finished message because it is not the first encrypted
-     * message the client sends.
-     */
-    if (!conn->npn_negotiated) {
-        struct s2n_blob seq = { 0 };
-        POSIX_GUARD(s2n_blob_init(&seq, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        POSIX_GUARD(s2n_blob_zero(&seq));
-    }
-
     uint8_t *verify_data = conn->handshake.client_finished;
     POSIX_GUARD(s2n_prf_client_finished(conn));
-    POSIX_GUARD_RESULT(s2n_finished_send(conn, verify_data));
 
-    POSIX_ENSURE_REF(conn->secure);
-    conn->client = conn->secure;
+    /* NPN handshakes start encryption in the Encrypted Extensions message */
+    if (!conn->npn_negotiated) {
+        POSIX_GUARD_RESULT(s2n_start_local_encryption(conn));
+    }
+
+    POSIX_GUARD_RESULT(s2n_finished_send(conn, verify_data));
 
     return S2N_SUCCESS;
 }

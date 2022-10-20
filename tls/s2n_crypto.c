@@ -95,3 +95,26 @@ S2N_CLEANUP_RESULT s2n_crypto_parameters_free(struct s2n_crypto_parameters **par
     RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) params, sizeof(struct s2n_crypto_parameters)));
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_start_local_encryption(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    if (conn->mode == S2N_CLIENT) {
+        struct s2n_blob seq = { 0 };
+        RESULT_GUARD_POSIX(s2n_blob_init(&seq, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
+
+        RESULT_ENSURE_REF(conn->secure);
+        conn->client = conn->secure;
+    } else {
+        struct s2n_blob seq = { 0 };
+        RESULT_GUARD_POSIX(s2n_blob_init(&seq, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
+
+        RESULT_ENSURE_REF(conn->secure);
+        conn->server = conn->secure;
+    }
+
+    return S2N_RESULT_OK;
+}

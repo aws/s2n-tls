@@ -71,16 +71,9 @@ int s2n_server_finished_send(struct s2n_connection *conn)
     uint8_t *verify_data = conn->handshake.server_finished;
     POSIX_GUARD(s2n_prf_server_finished(conn));
 
-    /* Zero the sequence number since this is the first encrypted message
-     * the server sends */
-    struct s2n_blob seq = { 0 };
-    POSIX_GUARD(s2n_blob_init(&seq, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    POSIX_GUARD(s2n_blob_zero(&seq));
+    POSIX_GUARD_RESULT(s2n_start_local_encryption(conn));
 
     POSIX_GUARD_RESULT(s2n_finished_send(conn, verify_data));
-
-    POSIX_ENSURE_REF(conn->secure);
-    conn->server = conn->secure;
 
     if (s2n_connection_is_session_resumed(conn)) {
         POSIX_GUARD(s2n_prf_key_expansion(conn));
