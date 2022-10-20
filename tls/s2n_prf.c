@@ -36,6 +36,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety_macros.h"
 
 static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
@@ -139,7 +140,7 @@ static int s2n_evp_pkey_p_hash_digest_init(struct s2n_prf_working_space *ws)
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.md);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey);
- 
+
     /* Ignore the MD5 check when in FIPS mode to comply with the TLS 1.0 RFC */
     if (s2n_is_in_fips_mode()) {
         POSIX_GUARD(s2n_digest_allow_md5_for_fips(&ws->p_hash.evp_hmac.evp_digest));
@@ -483,7 +484,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
      * outputs will be XORd just ass the TLS 1.0 and 1.1 RFCs require.
      */
     POSIX_GUARD(s2n_blob_zero(out));
-    
+
     if (conn->actual_protocol_version == S2N_TLS12) {
         return s2n_p_hash(conn->prf_space, conn->secure->cipher_suite->prf_alg, secret, label, seed_a, seed_b,
                           seed_c, out);
@@ -873,11 +874,12 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Make the client key */
     POSIX_GUARD(s2n_prf_make_client_key(conn, &key_material));
+    POSIX_CHECKED_MEMCPY(conn->c_key, key_material.blob.data, 16);
 
     /* Make the server key */
     POSIX_GUARD(s2n_prf_make_server_key(conn, &key_material));
 
-    /* Composite CBC does MAC inside the cipher, pass it the MAC key. 
+    /* Composite CBC does MAC inside the cipher, pass it the MAC key.
      * Must happen after setting encryption/decryption keys.
      */
     if (conn->secure->cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {

@@ -162,11 +162,11 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd) {
     /* RESULT_ENSURE_EQ(16, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
 
     /* tls 1.2 */
-    struct s2n_tls12_secrets tls12_secret = conn->secrets.tls12;
+    /* struct s2n_tls12_secrets tls12_secret = conn->secrets.tls12; */
     memcpy(crypto_info.salt, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
     memcpy(crypto_info.iv, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     memcpy(crypto_info.rec_seq, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-    memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    memcpy(crypto_info.key, conn->c_key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
     /* tls 1.3 */
     /* ... */
