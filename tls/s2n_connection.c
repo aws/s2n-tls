@@ -1507,7 +1507,7 @@ S2N_RESULT s2n_connection_dynamic_free_out_buffer(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_is_ktls_enable(struct s2n_connection *s2n_connection, bool *enable)
+int s2n_connection_is_ktls_enabled(struct s2n_connection *s2n_connection, bool *enable)
 {
     POSIX_ENSURE_REF(s2n_connection);
 

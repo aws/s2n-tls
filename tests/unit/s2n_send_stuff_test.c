@@ -165,7 +165,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
     bool enabled = false;
-    s2n_connection_is_ktls_enable(server_conn, &enabled);
+    s2n_connection_is_ktls_enabled(server_conn, &enabled);
     EXPECT_FALSE(enabled);
 
     /* Negotiate the handshake. */

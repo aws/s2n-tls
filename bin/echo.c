@@ -258,7 +258,13 @@ void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64
     const char *data_ptr = data;
     do {
         ssize_t send_len = MIN(bytes_remaining, SSIZE_MAX);
+
         ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, blocked);
+        fprintf(stdout, "s2n_send data ------------ bytes: %zd\n", bytes_written);
+        if (bytes_written == 5) {
+            s2n_connection_ktls_switch_keys(conn);
+        }
+
         if (bytes_written < 0) {
             if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
                 fprintf(stderr, "Error writing to connection: '%s'\n",
@@ -301,6 +307,8 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
             if (readers[0].revents & POLLIN) {
                 s2n_errno = S2N_ERR_T_OK;
                 bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
+
+                fprintf(stdout, "s2n_recv data ------------ bytes: %zd\n", bytes_read);
                 if (bytes_read == 0) {
                     return 0;
                 }
@@ -342,6 +350,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
                         bytes_to_read = sizeof(buffer);
                     }
 
+                    fprintf(stdout, "need to send data ------------ bytes: %zd\n", bytes_read);
                     bytes_read = read(STDIN_FILENO, buffer, bytes_to_read);
                     if (bytes_read < 0 && errno != EINTR){
                         fprintf(stderr, "Error reading from stdin\n");
