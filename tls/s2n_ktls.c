@@ -96,13 +96,13 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd) {
     memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
     /* set keys */
-    int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
-    if (ret_val < 0) {
-        fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
-        /* exit(1); */
-    } else {
-        fprintf(stdout, "ktls TX keys set---------- \n");
-    }
+    /* int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info)); */
+    /* if (ret_val < 0) { */
+    /*     fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
+    /*     /1* exit(1); *1/ */
+    /* } else { */
+    /*     fprintf(stdout, "ktls TX keys set---------- \n"); */
+    /* } */
 
     return S2N_RESULT_OK;
 }
@@ -120,9 +120,9 @@ int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len)
     /* On success, the number of bytes written is returned. On failure, -1 is
      * returned and errno is set appropriately. */
 
-    fprintf(stdout, "ktls writing---------- \n");
+    fprintf(stdout, "ktls writing---------- len: %d\n", len);
     ssize_t result = write(wfd, buf, len);
-    fprintf(stdout, "ktls writing done---------- \n");
+    fprintf(stdout, "ktls writing done---------- result: %zd\n", result);
     POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
     return result;
 }
@@ -138,7 +138,6 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
     peer_ktls_ctx = (struct s2n_ktls_write_io_context *)(void *)ctx_mem.data;
     peer_ktls_ctx->fd = wfd;
     peer_ktls_ctx->ktls_socket_set = true;
-    peer_ktls_ctx->ktls_enabled = true;
 
     POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_ktls_write_fn));
     POSIX_GUARD(s2n_connection_set_send_ctx(conn, peer_ktls_ctx));
@@ -166,20 +165,16 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     // set write fd with ktls io and context
     RESULT_GUARD(s2n_ktls_tx_keys(conn, fd));
 
-    const char *msg = "hello world\n";
-    int ret_val = write(fd, msg, strlen(msg));
-    if (ret_val < 0) {
-        fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno));
-        return S2N_RESULT_ERROR;
-    } else {
-        fprintf(stdout, "ktls wrote hello world success---------- \n");
-    }
+    /* const char *msg = "hello world\n"; */
+    /* int ret_val = write(fd, msg, strlen(msg)); */
+    /* if (ret_val < 0) { */
+    /*     fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
+    /*     return S2N_RESULT_ERROR; */
+    /* } else { */
+    /*     fprintf(stdout, "ktls wrote hello world success---------- \n"); */
+    /* } */
 
-    /* RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd)); */
-
-    /* // check if we want to enable read */
-    /* POSIX_GUARD(s2n_ktls_rx_keys(conn)); */
-    /* s2n_connection_set_read_fd(conn, conn->ktls_read_fd); */
+    RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
     return S2N_RESULT_OK;
 }
@@ -209,6 +204,8 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     }
 
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_EQ(conn->config->ktls_requested, true);
+
     RESULT_ENSURE_EQ(conn->managed_send_io, true);
     /* RESULT_ENSURE_EQ(conn->managed_recv_io, true); */
 

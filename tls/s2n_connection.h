@@ -134,7 +134,11 @@ struct s2n_connection {
      * has been flushed */
     unsigned dynamic_buffers:1;
 
-    /* This connection is using ktls */
+    /* ktls is enabled for this connection.
+     *
+     * This means that UPL has been enabled, transport keys have been set
+     * and ktls specific IO callback/context has been set.
+     */
     unsigned ktls_enabled_send_io:1;
     unsigned ktls_enabled_recv_io:1;
 

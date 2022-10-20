@@ -24,13 +24,6 @@ struct s2n_ktls_write_io_context {
 
     /* The "tls" UPL has been enabled. */
     unsigned int ktls_socket_set:1;
-
-    /* ktls is enabled for this connection.
-     *
-     * This means that UPL has been enabled, transport keys have been set
-     * and ktls specific IO callback/context has been set.
-     */
-    unsigned int ktls_enabled:1;
 };
 
 /* /1* TODO: wip. implement the write first. *1/ */

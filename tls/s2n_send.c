@@ -211,9 +211,16 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
         POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
 
-        /* Write and encrypt the record */
-        int written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
+        int written_to_record = 0;
+        if (conn->ktls_enabled_send_io) {
+            /* Write the data and have ktls encrypt it */
+            written_to_record = s2n_record_ktls_writev(conn, TLS_APPLICATION_DATA, bufs, count,
                     conn->current_user_data_consumed + offs, to_write);
+        } else {
+            /* Write and encrypt the record */
+            written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
+                    conn->current_user_data_consumed + offs, to_write);
+        }
         POSIX_GUARD(written_to_record);
         conn->current_user_data_consumed += written_to_record;
         conn->active_application_bytes_consumed += written_to_record;

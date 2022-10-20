@@ -227,6 +227,21 @@ static inline int s2n_record_encrypt(
     return 0;
 }
 
+/* send a ktls record.. so skip encryption */
+int s2n_record_ktls_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true);
+
+    fprintf(stdout, "ktls record write ---------- \n");
+
+    /* Write the plaintext data */
+    POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, in_count, offs, to_write));
+
+    fprintf(stdout, "ktls record write ---------- %zu\n", to_write);
+    return to_write;
+}
+
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
     struct s2n_blob iv = { 0 };
