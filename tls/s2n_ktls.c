@@ -45,14 +45,14 @@
 /* 		/1* for TLS 1.2 IV is generated in kernel *1/ */
 /*     /1* tls 1.2 *1/ */
 /*     crypto_info.info.version = TLS_1_2_VERSION; */
-/*     memcpy(crypto_info.iv, conn->server->server_sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+/*     memcpy(crypto_info.iv, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE); */
 
 /*     /1* tls 1.3 *1/ */
 /*     /1* ... *1/ */
 
 /*     /1* common *1/ */
-/*     memcpy(crypto_info.salt, conn->server->server_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE); */
-/*     memcpy(crypto_info.rec_seq, conn->server->server_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE); */
+/*     memcpy(crypto_info.salt, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE); */
+/*     memcpy(crypto_info.rec_seq, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE); */
 /*     memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
 
 /* 				/1* if (setsockopt (sockin, SOL_TLS, TLS_RX, *1/ */
@@ -74,41 +74,7 @@
 /*     return S2N_SUCCESS; */
 /* } */
 
-S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd) {
-    struct tls12_crypto_info_aes_gcm_128 crypto_info;
-    memset(&crypto_info, 0, sizeof(crypto_info));
-    crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
-
-    struct s2n_tls12_secrets tls12_secret = conn->secrets.tls12;
-    /* uint8_t s = sizeof(tls12_secret.master_secret); */
-    RESULT_ENSURE_EQ(16, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-
-    /* tls 1.2 */
-    crypto_info.info.version = TLS_1_2_VERSION;
-    memcpy(crypto_info.iv, conn->server->server_sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-
-    /* tls 1.3 */
-    /* ... */
-
-    /* common */
-    memcpy(crypto_info.salt, conn->server->server_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-    memcpy(crypto_info.rec_seq, conn->server->server_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-    memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-
-    /* set keys */
-    /* int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info)); */
-    /* if (ret_val < 0) { */
-    /*     fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
-    /*     /1* exit(1); *1/ */
-    /* } else { */
-    /*     fprintf(stdout, "ktls TX keys set---------- \n"); */
-    /* } */
-
-    return S2N_RESULT_OK;
-}
-
-int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len)
-{
+int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len) {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(buf);
     int wfd = ((struct s2n_ktls_write_io_context*) io_context)->fd;
@@ -127,8 +93,7 @@ int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len)
     return result;
 }
 
-int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
-{
+int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd) {
     struct s2n_blob ctx_mem = {0};
     struct s2n_ktls_write_io_context *peer_ktls_ctx;
 
@@ -157,6 +122,67 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
 
     return 0;
 }
+
+S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd) {
+    RESULT_ENSURE_EQ(conn->mode, S2N_CLIENT);
+
+/* struct tls_crypto_info { */
+    /*     unsigned short version; */
+    /*     unsigned short cipher_type; */
+/* }; */
+
+/* struct tls12_crypto_info_aes_gcm_128 { */
+    /*     struct tls_crypto_info info; */
+    /*     unsigned char iv[TLS_CIPHER_AES_GCM_128_IV_SIZE]; */
+    /*     unsigned char key[TLS_CIPHER_AES_GCM_128_KEY_SIZE]; */
+    /*     unsigned char salt[TLS_CIPHER_AES_GCM_128_SALT_SIZE]; */
+    /*     unsigned char rec_seq[TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE]; */
+/* }; */
+
+
+/* struct tls12_crypto_info_aes_gcm_128 crypto_info; */
+
+/* crypto_info.info.version = TLS_1_2_VERSION; */
+/* crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128; */
+/* memcpy(crypto_info.iv, iv_write, TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+/* memcpy(crypto_info.rec_seq, seq_number_write, */
+    /*                                   TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE); */
+/* memcpy(crypto_info.key, cipher_key_write, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
+/* memcpy(crypto_info.salt, implicit_iv_write, TLS_CIPHER_AES_GCM_128_SALT_SIZE); */
+
+/* setsockopt(sock, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info)); */
+
+
+    struct tls12_crypto_info_aes_gcm_128 crypto_info;
+    /* memset(&crypto_info, 0, sizeof(crypto_info)); */
+    crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
+    crypto_info.info.version = TLS_1_2_VERSION;
+
+    /* uint8_t s = sizeof(tls12_secret.master_secret); */
+    /* RESULT_ENSURE_EQ(16, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
+
+    /* tls 1.2 */
+    struct s2n_tls12_secrets tls12_secret = conn->secrets.tls12;
+    memcpy(crypto_info.salt, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+    memcpy(crypto_info.iv, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
+    memcpy(crypto_info.rec_seq, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
+    memcpy(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+
+    /* tls 1.3 */
+    /* ... */
+
+    /* set keys */
+    int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
+    if (ret_val < 0) {
+        fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
+        /* exit(1); */
+    } else {
+        fprintf(stdout, "ktls TX keys set---------- \n");
+    }
+
+    return S2N_RESULT_OK;
+}
+
 
 S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     RESULT_ENSURE_REF(conn);
