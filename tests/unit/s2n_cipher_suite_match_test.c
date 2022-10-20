@@ -790,6 +790,7 @@ int main(int argc, char **argv)
             };
 
             static struct s2n_cipher_suite *cipher_suites_with_tls12_chacha20[] = {
+                &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
                 &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
                 &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
                 &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
@@ -922,7 +923,7 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
-                /* Server has chacha20 boosting disabled but we can still negotitate it */
+                /* Server has chacha20 boosting disabled but we can still negotiate it */
                 uint8_t chacha20_only_wire[] = {
                     TLS_CHACHA20_POLY1305_SHA256,
                 };
@@ -962,7 +963,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             } 
             
-            /* Test that the server does not mix up different ChaCha20 cipher suites */
+            /* Test various ChaCha20 boosting behaviour with tls 1.2 chacha20 cipher suites */
             {
                 conn->security_policy_override = &test_tls12_chacha20_and_boosted;
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
@@ -977,6 +978,7 @@ int main(int argc, char **argv)
 
                 uint8_t count = sizeof(ecdhe_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 if (s2n_chacha20_poly1305.is_available()) {
+                    /* s2n correctly identifies ecdhe_ecdsa_with_chacha20_poly1305_sha256b as a chacha20 cipher suite and negotiates it */
                     EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, ecdhe_chacha20_boosted_wire, count));
                     EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
                 } else {
@@ -996,7 +998,7 @@ int main(int argc, char **argv)
                      * 1. Client has signalled chacha20 boosting since TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 is first
                      * 2. The allow_chacha20_boosting is enabled
                      * 3. The server negotiates s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256 as it is its most preferred
-                     *    chacha20 ciphersuite and is mutually supported by the client
+                     *    chacha20 cipher suite and is mutually supported by the client
                      */
                     EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
                 } else {

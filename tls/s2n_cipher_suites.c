@@ -1175,66 +1175,6 @@ bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
     return cipher_suite && cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
 }
 
-/* Checks that a mutually-supported cipher suite can be used in this connection */
-static S2N_RESULT s2n_validate_cipher_suite_match(struct s2n_connection *conn, struct s2n_cipher_suite **potential_match, bool *match_is_valid) {
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(match_is_valid);
-    RESULT_ENSURE_REF(potential_match);
-
-    *match_is_valid = false;
-
-    /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
-    if ((conn->actual_protocol_version >= S2N_TLS13) != ((*potential_match)->minimum_required_tls_version >= S2N_TLS13)) {
-        return S2N_RESULT_OK;
-    }
-    /* If connection is for SSLv3, use SSLv3 version of suites */
-    if (conn->actual_protocol_version == S2N_SSLv3) {
-        *potential_match = (*potential_match)->sslv3_cipher_suite;
-    }
-
-    /* Skip the suite if we don't have an available implementation */
-    if (!(*potential_match)->available) {
-        return S2N_RESULT_OK;
-    }
-
-    /* Make sure the cipher is valid for available certs */
-    if (s2n_is_cipher_suite_valid_for_auth(conn, *potential_match) != S2N_SUCCESS) {
-        return S2N_RESULT_OK;
-    }
-
-    /* TLS 1.3 does not include key exchange in cipher suites */
-    if ((*potential_match)->minimum_required_tls_version < S2N_TLS13) {
-        /* If the kex is not supported continue to the next candidate */
-        bool kex_supported = false;
-        if (s2n_result_is_error(s2n_kex_supported(*potential_match, conn, &kex_supported))) {
-            return S2N_RESULT_OK;
-        }
-
-        if (!kex_supported) {
-            return S2N_RESULT_OK;
-        }
-
-        /* If the kex is not configured correctly continue to the next candidate */
-        if (s2n_result_is_error(s2n_configure_kex(*potential_match, conn))) {
-            return S2N_RESULT_OK;
-        }
-    }
-
-    /**
-    *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
-    *# The server MUST ensure that it selects a compatible PSK
-    *# (if any) and cipher suite.
-    **/
-    if (conn->psk_params.chosen_psk != NULL) {
-        if ((*potential_match)->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
-            return S2N_RESULT_OK;
-        }
-    }
-
-    *match_is_valid = true;
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_client_signalled_chacha20_boosting(struct s2n_stuffer wire_stuffer, uint32_t cipher_suite_len, bool *client_signalled_chacha20_boosting) {
     RESULT_ENSURE_REF(client_signalled_chacha20_boosting);
     *client_signalled_chacha20_boosting = false;
@@ -1330,11 +1270,50 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             /* We have a match */
             struct s2n_cipher_suite *match = cipher_preferences->suites[i];
 
-            bool match_is_valid = false;
-            POSIX_GUARD_RESULT(s2n_validate_cipher_suite_match(conn, &match, &match_is_valid));
-
-            if (!match_is_valid) {
+            /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
+            if ((conn->actual_protocol_version >= S2N_TLS13) != (match->minimum_required_tls_version >= S2N_TLS13)) {
                 continue;
+            }
+
+            /* If connection is for SSLv3, use SSLv3 version of suites */
+            if (conn->actual_protocol_version == S2N_SSLv3) {
+                match = match->sslv3_cipher_suite;
+            }
+
+            /* Skip the suite if we don't have an available implementation */
+            if (!match->available) {
+                continue;
+            }
+
+            /* Make sure the cipher is valid for available certs */
+            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
+                continue;
+            }
+
+            /* TLS 1.3 does not include key exchange in cipher suites */
+            if (match->minimum_required_tls_version < S2N_TLS13) {
+                /* If the kex is not supported continue to the next candidate */
+                bool kex_supported = false;
+                POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
+                if (!kex_supported) {
+                    continue;
+                }
+
+                /* If the kex is not configured correctly continue to the next candidate */
+                if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
+                    continue;
+                }
+            }
+
+            /**
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+             *# The server MUST ensure that it selects a compatible PSK
+             *# (if any) and cipher suite.
+             **/
+            if (conn->psk_params.chosen_psk != NULL) {
+                if (match->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
+                    continue;
+                }
             }
 
             /* Don't immediately choose a cipher the connection shouldn't be able to support */
@@ -1345,33 +1324,25 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 continue;
             }
 
+            /* Don't immediately choose the first negotiable cipher we find. ChaCha20 boosting may be enabled so we will need to continue iterating */
+            if (!server_preference_match) {
+                server_preference_match = match;
+            }
+
             /* The server and client have chacha20 boosting support enabled AND the server identified a negotiable match */
             if (mutual_chacha20_boosting_support) {
                 if (s2n_cipher_suite_uses_chacha20_alg(match)) {
                     conn->secure->cipher_suite = match;
                     return S2N_SUCCESS;
                 }
+                continue;
             }
-
-            if (!server_preference_match) {
-                server_preference_match = match;
-            }
-
-            /* 
-             * If chacha20 boosting is not supported, then we do not need to continue searching for a negotiable chacha20
-             * cipher suite. Instead, set the server's most preferred and negotiable cipher suite match.
-             */
-            if (!mutual_chacha20_boosting_support) {
-                conn->secure->cipher_suite = server_preference_match;
-                return S2N_SUCCESS;
-            }
+            
+            conn->secure->cipher_suite = match;
+            return S2N_SUCCESS;
         }
     }
 
-    /* 
-     * If chacha20 boosting was not enabled or it was and we failed to identify a negotiable 
-     * chacha20 cipher suite, then fall back to server preference match 
-     */
     if (server_preference_match) {
         conn->secure->cipher_suite = server_preference_match;
         return S2N_SUCCESS;
