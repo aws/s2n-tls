@@ -3,9 +3,7 @@
 #include "kyber512r3_poly.h"
 #include "kyber512r3_polyvec.h"
 
-#if S2N_ANY_NONPORTABLE_OPTIMIZATIONS_ENABLED
-#error "Compiling portable code with non-portable assembly optimizations is not allowed"
-#endif
+S2N_ENSURE_PORTABLE_OPTIMIZATIONS
 
 /*************************************************
 * Name:        polyvec_compress

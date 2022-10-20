@@ -290,6 +290,15 @@ if(S2N_NO_PQ)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ)
 endif()
 
+# Whether to fail the build when compiling s2n's portable C code with non-portable assembly optimizations. Doing this
+# can lead to runtime crashes if build artifacts are built on modern hardware, but deployed to older hardware without
+# newer CPU instructions. s2n, by default, should be backwards compatible with older CPU types so this flag should be
+# enabled in s2n's CI builds and tests, but other consumers of s2n may have stronger control of what CPU types they
+# deploy to, and can enable more CPU optimizations.
+if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
+endif()
+
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
     FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
     set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${KYBER512R3_AVX2_BMI2_FLAGS})
