@@ -1,14 +1,11 @@
 import copy
-import os
 import pytest
-import time
 import random
-from collections import namedtuple
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS, PROTOCOLS
 from common import ProviderOptions, Protocols, Curves
 from fixtures import managed_process
-from providers import Provider, S2N, OpenSSL, GnuTLS
+from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
 
@@ -20,6 +17,7 @@ TEST_PROTCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
 S2N_RENEG_OPTION = "--renegotiation"
 S2N_RENEG_ACCEPT = "accept"
 S2N_RENEG_REJECT = "reject"
+OPENSSL_RENEG_CTRL_CMD = 'r\n'
 
 
 # Output indicating renegotiation state
@@ -49,15 +47,14 @@ def to_marker(val):
 
 
 """
-The integrationv2 framework controls process IO with "markers".
-Messages can only be written to stdin if "send_marker"s are read from stdio.
-This results in the restriction that a process can only send in response to its own output,
-and also makes reasoning about message ordering very difficult.
+Msg handles translating a series of human-readable messages into the "markers" required
+by the integrationv2 framework.
 
-Because testing renegotiation requires multiple messages to be sent and received,
-we construct the "data_to_send", "send_marker" and "close_marker" lists required
-by the integrationv2 framework programmatically based on a "Msg" abstraction
-that is easier to visualize and reason about.
+The integrationv2 framework controls process IO with various types of "markers".
+Actions like writing data to a process's stdin or shutting down a process's stdin
+can only occur if specific "markers" are read from the process's stdio. This makes
+a simple scenario like a client and server taking turns sending application data require
+careful construction of the data_to_send, send_marker, and close_marker options.
 
 For simplicity, "Msg" currently assumes:
 - s2n sends first. This lets us assume the first send_marker is S2N.get_send_marker().
@@ -69,7 +66,9 @@ class Msg(object):
         # Indicates what stdio string should trigger this message.
         # Will default to the previous message (see Msg.send_markers).
         self.send_marker = send_marker
-        # Indicates that the message will not be received by the peer
+        # Indicates that the message will be consumed by the process itself
+        # rather than sent to the peer. This means it will never appear in
+        # the peer's stdio and cannot be used as a send_marker.
         self.ctrl = ctrl_str is not None
         if ctrl_str:
             self.data_str = ctrl_str
@@ -99,8 +98,7 @@ class Msg(object):
     @staticmethod
     def send_markers(messages, mode):
         send_markers = [ ]
-        for i in range(0, len(messages)):
-            message = messages[i]
+        for i, message in enumerate(messages):
             if message.mode is not mode:
                 continue
             elif message.send_marker:
@@ -135,9 +133,13 @@ class Msg(object):
 # The order of messages that will trigger renegotiation
 # and verify sending and receiving continues to work afterwards.
 RENEG_MESSAGES = [
+    # Client sends first message
     Msg(Provider.ClientMode),
-    Msg(Provider.ServerMode, ctrl_str='r\n'),
+    # Server initiates renegotiation
+    Msg(Provider.ServerMode, ctrl_str=OPENSSL_RENEG_CTRL_CMD),
+    # Server sends first message
     Msg(Provider.ServerMode, send_marker=OPENSSL_RENEG_REQ_MARKER),
+    # Client and Server exchange several more messages
     Msg(Provider.ClientMode),
     Msg(Provider.ServerMode),
     Msg(Provider.ClientMode),
@@ -145,7 +147,7 @@ RENEG_MESSAGES = [
 ]
 
 
-def setup_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, reneg_option=None):
+def basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, reneg_option=None):
     options = ProviderOptions(
         port = next(available_ports),
         cipher = cipher,
@@ -192,7 +194,7 @@ This tests the default behavior for customers who do not enable renegotiation.
 @pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_ignores_openssl_hello_request(managed_process, cipher, curve, certificate, protocol, provider):
-    (s2n_client, server) = setup_reneg_test(managed_process, cipher, curve, certificate, protocol, provider)
+    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider)
 
     for results in server.get_results():
         results.assert_success()
@@ -218,7 +220,7 @@ Renegotiation request rejected by s2n-tls client.
 @pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_rejects_openssl_hello_request(managed_process, cipher, curve, certificate, protocol, provider):
-    (s2n_client, server) = setup_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, \
+    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, \
         reneg_option=S2N_RENEG_REJECT)
 
     for results in server.get_results():
@@ -241,7 +243,7 @@ Renegotiation request accepted by s2n-tls client.
 @pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
-    (s2n_client, server) = setup_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, \
+    (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, \
         reneg_option=S2N_RENEG_ACCEPT)
 
     for results in server.get_results():

@@ -232,7 +232,7 @@ int print_connection_info(struct s2n_connection *conn)
 int negotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked;
-    while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
+    while(s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
                     s2n_strerror(s2n_errno, "EN"),
@@ -264,7 +264,7 @@ int renegotiate(struct s2n_connection *conn, int fd)
     fprintf(stdout, "RENEGOTIATE\n");
     fflush(stdout);
 
-    while (s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
+    while(s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
         uint8_t *data_ptr = buffer;
         while(data_read > 0) {
             ssize_t data_written = write(STDOUT_FILENO, data_ptr, data_read);

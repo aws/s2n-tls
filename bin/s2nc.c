@@ -36,7 +36,7 @@
 #define OPT_TICKET_IN 1000
 #define OPT_TICKET_OUT 1001
 #define OPT_SEND_FILE 1002
-#define OPT_TICKET_RENEG 1003
+#define OPT_RENEG 1003
 
 void usage()
 {
@@ -135,13 +135,15 @@ struct reneg_req_ctx {
 
 static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response)
 {
+    if (!conn || !context || !response) {
+        return S2N_FAILURE;
+    }
     struct reneg_req_ctx *reneg_ctx = (struct reneg_req_ctx *) context;
 
     *response = reneg_ctx->response;
     if (*response == S2N_RENEGOTIATE_ACCEPT) {
         reneg_ctx->do_renegotiate = true;
     }
-
     return S2N_SUCCESS;
 }
 
@@ -320,7 +322,7 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
-        {"renegotiation", required_argument, 0, OPT_TICKET_RENEG},
+        {"renegotiation", required_argument, 0, OPT_RENEG},
         { 0 },
     };
 
@@ -420,7 +422,7 @@ int main(int argc, char *const *argv)
             early_data = load_file_to_cstring(optarg);
             GUARD_EXIT_NULL(early_data);
             break;
-        case OPT_TICKET_RENEG:
+        case OPT_RENEG:
             setup_reneg_cb = true;
             if (strcmp(optarg, "accept") == 0) {
                 reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
