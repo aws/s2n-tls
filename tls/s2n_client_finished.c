@@ -50,13 +50,8 @@ int s2n_client_finished_send(struct s2n_connection *conn)
 
     uint8_t *verify_data = conn->handshake.client_finished;
     POSIX_GUARD(s2n_prf_client_finished(conn));
-
-    /* NPN handshakes start encryption in the Encrypted Extensions message */
-    if (!conn->npn_negotiated) {
-        POSIX_GUARD_RESULT(s2n_start_local_encryption(conn));
-    }
-
     POSIX_GUARD_RESULT(s2n_finished_send(conn, verify_data));
+    POSIX_GUARD_RESULT(s2n_start_local_encryption(conn));
 
     return S2N_SUCCESS;
 }

@@ -100,13 +100,15 @@ S2N_RESULT s2n_start_local_encryption(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->initial);
 
-    if (conn->mode == S2N_CLIENT) {
+    /* Only start encryption if we have not already switched to secure parameters */
+    if (conn->mode == S2N_CLIENT && conn->client == conn->initial) {
         struct s2n_blob seq = { 0 };
         RESULT_GUARD_POSIX(s2n_blob_init(&seq, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
         conn->client = conn->secure;
-    } else {
+    } else if (conn->mode == S2N_SERVER && conn->server == conn->initial) {
         struct s2n_blob seq = { 0 };
         RESULT_GUARD_POSIX(s2n_blob_init(&seq, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         RESULT_GUARD_POSIX(s2n_blob_zero(&seq));
