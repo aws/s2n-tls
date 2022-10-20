@@ -30,7 +30,7 @@ fi
 
 # Linker flags are a workaround for openssl
 case "$TESTS" in
-  "unit") cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -D${CMAKE_PQ_OPTION}
+  "unit") cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -D${CMAKE_PQ_OPTION} -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True
           cmake --build ./build -j $(nproc)
           CTEST_PARALLEL_LEVEL=$(nproc) make -C build test;;
   *) echo "Unknown test"
