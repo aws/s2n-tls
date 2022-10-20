@@ -135,9 +135,9 @@ struct reneg_req_ctx {
 
 static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response)
 {
-    if (!conn || !context || !response) {
-        return S2N_FAILURE;
-    }
+    GUARD_EXIT_NULL(conn);
+    GUARD_EXIT_NULL(context);
+    GUARD_EXIT_NULL(response);
     struct reneg_req_ctx *reneg_ctx = (struct reneg_req_ctx *) context;
 
     *response = reneg_ctx->response;
