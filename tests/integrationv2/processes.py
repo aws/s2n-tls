@@ -192,6 +192,7 @@ class _processCommunicator(object):
                                 # Data destined for stdin is stored in a memoryview
                                 input_view = memoryview(message)
                                 input_data_len = len(message)
+                                input_data_sent = False
                             else:
                                 input_data_sent = True
 
@@ -207,7 +208,7 @@ class _processCommunicator(object):
 
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
-                if self.proc.stdin and input_data_sent:
+                if self.proc.stdin and input_data_sent and not input_data:
                     if close_marker is None or (close_marker and close_marker in str(data)):
                         input_data_sent = None
                         self.proc.stdin.close()
