@@ -45,7 +45,7 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     uint32_t array_elements_size;
     RESULT_GUARD_POSIX(s2n_mul_overflow(array->element_size, array->len, &array_elements_size));
     RESULT_CHECKED_MEMSET(array->mem.data + array_elements_size, 0, array->mem.size - array_elements_size);
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
@@ -95,14 +95,14 @@ S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t elemen
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t idx, void **element)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     RESULT_ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
     *element = array->mem.data + (array->element_size * idx);
@@ -119,7 +119,7 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **element)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     RESULT_ENSURE(idx <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
@@ -148,13 +148,13 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
     *element = array->mem.data + array->element_size * idx;
     array->len++;
 
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     RESULT_ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.
@@ -173,13 +173,13 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
                    0,
                    array->element_size);
 
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     RESULT_ENSURE_MUT(len);
 
     *len = array->len;
@@ -189,7 +189,7 @@ S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 
 S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     RESULT_ENSURE_MUT(capacity);
 
     *capacity = array->mem.size / array->element_size;
