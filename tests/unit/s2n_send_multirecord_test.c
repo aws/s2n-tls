@@ -23,6 +23,7 @@
 #include "api/s2n.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_record.h"
 #include "utils/s2n_random.h"
 
 #define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
@@ -199,7 +200,7 @@ int main(int argc, char **argv)
          * application data is also fragmented into 2 byte chucks, which is pretty silly,
          * but is an edge case.
          */
-        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(2);
+        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH);
 
         DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(min_buffer_config);

@@ -16,16 +16,16 @@ SEND_BUFFER_SIZE_PREFER_THROUGHPUT = 35 * K_BYTES
 SEND_BUFFER_SIZE_HUGE = 512 * K_BYTES
 
 SEND_BUFFER_SIZES = [
-#    SEND_BUFFER_SIZE_MIN,
-#    SEND_BUFFER_SIZE_MIN_RECOMMENDED,
-#    SEND_BUFFER_SIZE_MULTI_RECORD,
-#    SEND_BUFFER_SIZE_PREFER_THROUGHPUT,
+    SEND_BUFFER_SIZE_MIN,
+    SEND_BUFFER_SIZE_MIN_RECOMMENDED,
+    SEND_BUFFER_SIZE_MULTI_RECORD,
+    SEND_BUFFER_SIZE_PREFER_THROUGHPUT,
     SEND_BUFFER_SIZE_HUGE
 ]
 
 TEST_CERTS = [
-   # Certificates.RSA_4096_SHA512,
-   # Certificates.ECDSA_384,
+    Certificates.RSA_4096_SHA512,
+    Certificates.ECDSA_384,
     Certificates.RSA_PSS_2048_SHA256
 ]
 
@@ -67,7 +67,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
     client = managed_process(other_provider, client_options, timeout=5)
 
     for results in client.get_results():
-        if other_provider is S2N: assert(random_bytes in results.stdout)
+        if other_provider is S2N:
+            assert(len(results.stderr) == 0)
+            assert(to_bytes("CONNECTED") in results.stdout)
         results.assert_success()
 
     for results in server.get_results():

@@ -19,6 +19,7 @@
 #include "tls/s2n_renegotiate.h"
 
 #include "tls/s2n_tls.h"
+#include "tls/s2n_record.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
@@ -198,8 +199,7 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            /* The smallest fragment length allowed. Can't fragment alert messages. */
-            size_t small_frag_len = 2;
+            size_t small_frag_len = S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH;
             client_conn->max_outgoing_fragment_length = small_frag_len;
 
             EXPECT_EQUAL(s2n_send(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
