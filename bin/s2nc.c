@@ -157,7 +157,7 @@ static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegoti
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
-    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value, uint32_t send_buffer_byte_size) {
+    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
 
     if (config == NULL) {
         print_s2n_error("Error getting new config");
@@ -261,10 +261,6 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     }
 
     GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
-
-    if (send_buffer_byte_size != 0) {
-        GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
-    }
 }
 
 int main(int argc, char *const *argv)
@@ -538,7 +534,11 @@ int main(int argc, char *const *argv)
         }
 
         struct s2n_config *config = s2n_config_new();
-        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value, send_buffer_byte_size);
+        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
+
+        if (send_buffer_byte_size != 0) {
+            GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size");
+        }
 
         if (client_cert_input != client_key_input) {
             print_s2n_error("Client cert/key pair must be given.");
