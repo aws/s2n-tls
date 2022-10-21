@@ -67,6 +67,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
+        while(s2n_conn_get_current_message_type(server_conn) != CLIENT_FINISHED) {
+            server_conn->handshake.message_number++;
+        }
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_BAD_MESSAGE);
     }
 
@@ -89,9 +92,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
-        while(s2n_conn_get_current_message_type(server_conn) != CLIENT_FINISHED) {
-            server_conn->handshake.message_number++;
-        }
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_SAFETY);
     }
 
