@@ -71,7 +71,7 @@ int s2n_server_finished_send(struct s2n_connection *conn)
     uint8_t *verify_data = conn->handshake.server_finished;
     POSIX_GUARD(s2n_prf_server_finished(conn));
 
-    POSIX_GUARD_RESULT(s2n_start_local_encryption(conn));
+    POSIX_GUARD_RESULT(s2n_crypto_parameters_switch(conn));
 
     POSIX_GUARD_RESULT(s2n_finished_send(conn, verify_data));
 

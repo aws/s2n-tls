@@ -28,7 +28,7 @@ int s2n_tls12_encrypted_extensions_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
     POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, conn, out));
 
-    POSIX_GUARD_RESULT(s2n_start_local_encryption(conn));
+    POSIX_GUARD_RESULT(s2n_crypto_parameters_switch(conn));
 
     return S2N_SUCCESS;
 }

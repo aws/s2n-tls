@@ -92,17 +92,5 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(client_conn), S2N_ERR_SAFETY);
     }
 
-    /* Test secure server sequence number is zeroed when sending Server Finished */
-    {
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server_conn);
-
-        server_conn->secure->server_sequence_number[0] = 1;
-        EXPECT_SUCCESS(s2n_server_finished_send(server_conn));
-
-        /* Secure server sequence number has been zeroed */
-        EXPECT_EQUAL(server_conn->secure->server_sequence_number[0], 0);
-    }
-
     END_TEST();
 }

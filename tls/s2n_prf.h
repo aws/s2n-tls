@@ -62,4 +62,7 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
 S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, s2n_hash_algorithm hash_alg, struct s2n_blob *output);
 extern int s2n_prf_key_expansion(struct s2n_connection *conn);
 extern int s2n_prf_server_finished(struct s2n_connection *conn);
-extern int s2n_prf_client_finished(struct s2n_connection *conn);
+S2N_RESULT s2n_prf_client_finished(struct s2n_connection *conn);
+int s2n_prf_client_finished_impl(struct s2n_connection *conn);
+
+

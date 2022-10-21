@@ -50,7 +50,7 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */
-    POSIX_GUARD(s2n_prf_client_finished(conn));
+    POSIX_GUARD_RESULT(s2n_prf_client_finished(conn));
 
     /* Update the client to use the cipher-suite */
     conn->client = conn->secure;

@@ -96,7 +96,7 @@ S2N_CLEANUP_RESULT s2n_crypto_parameters_free(struct s2n_crypto_parameters **par
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_start_local_encryption(struct s2n_connection *conn)
+S2N_RESULT s2n_crypto_parameters_switch(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);

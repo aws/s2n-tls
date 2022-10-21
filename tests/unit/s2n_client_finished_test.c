@@ -36,7 +36,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
 
         /* Calculate valid verify_data */
-        POSIX_GUARD(s2n_prf_client_finished(server_conn));
+        POSIX_GUARD_RESULT(s2n_prf_client_finished(server_conn));
 
         EXPECT_EQUAL(client_conn->client, client_conn->initial);
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
 
         /* Mutate valid verify_data */
-        POSIX_GUARD(s2n_prf_client_finished(server_conn));
+        POSIX_GUARD_RESULT(s2n_prf_client_finished(server_conn));
         server_conn->handshake.client_finished[0]++;
 
         EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
@@ -83,32 +83,16 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
 
         /* Change the length of valid verify_data */
-        POSIX_GUARD(s2n_prf_client_finished(server_conn));
+        POSIX_GUARD_RESULT(s2n_prf_client_finished(server_conn));
         server_conn->handshake.finished_len = 1;
 
         EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
+        while(s2n_conn_get_current_message_type(server_conn) != CLIENT_FINISHED) {
+            server_conn->handshake.message_number++;
+        }
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_SAFETY);
-    }
-
-    /* Test secure client sequence number behavior when sending Client Finished */
-    {
-        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client_conn);
-
-        client_conn->secure->client_sequence_number[0] = 1;
-        EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
-
-        /* Secure sequence number is zeroed after sending Client Finished in a regular handshake */
-        EXPECT_EQUAL(client_conn->secure->client_sequence_number[0], 0);
-
-        client_conn->secure->client_sequence_number[0] = 1;
-        client_conn->npn_negotiated = true;
-        EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
-
-        /* Secure sequence number is unchanged after sending Client Finished in an NPN handshake */
-        EXPECT_EQUAL(client_conn->secure->client_sequence_number[0], 1);
     }
 
     END_TEST();

@@ -672,8 +672,21 @@ static int s2n_sslv3_server_finished(struct s2n_connection *conn)
     return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.server_finished);
 }
 
-int s2n_prf_client_finished(struct s2n_connection *conn)
+S2N_RESULT s2n_prf_client_finished(struct s2n_connection *conn)
 {
+    RESULT_ENSURE_REF(conn);
+
+    if (conn->mode == S2N_SERVER && !conn->npn_negotiated
+        && s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_GUARD_POSIX(s2n_prf_client_finished_impl(conn));
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_prf_client_finished_impl(struct s2n_connection *conn){
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->handshake.hashes);
