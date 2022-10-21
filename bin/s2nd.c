@@ -125,7 +125,7 @@ static char default_private_key[] =
     "-----END RSA PRIVATE KEY-----";
 
 
-#define OPT_BUFFERED_SEND 1002
+#define OPT_BUFFERED_SEND 1000
 
 void usage()
 {
