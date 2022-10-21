@@ -60,8 +60,11 @@ int main(int argc, char **argv)
         client_conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
         client_conn->actual_protocol_version = S2N_TLS12;
 
-        /* Mutate valid verify_data */
         EXPECT_SUCCESS(s2n_client_finished_send(client_conn));
+
+        /* s2n_client_finished_send calculates and writes the handshake verify data
+         * to the io stuffer. Since the verify data is at least 12 bytes long
+         * we can flip a random bit in that range to mutate it. */
         client_conn->handshake.io.blob.data[10]++;
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));

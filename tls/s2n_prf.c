@@ -672,7 +672,8 @@ static int s2n_sslv3_server_finished(struct s2n_connection *conn)
     return s2n_sslv3_finished(conn, prefix, &conn->handshake.hashes->hash_workspace, conn->handshake.server_finished);
 }
 
-int s2n_prf_client_finished(struct s2n_connection *conn){
+int s2n_prf_client_finished(struct s2n_connection *conn)
+{
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->handshake.hashes);

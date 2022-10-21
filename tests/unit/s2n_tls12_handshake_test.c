@@ -140,6 +140,32 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test: Client CCS messages always come before Client Finished messages */
+    {
+        for (int i = 0; i < valid_tls12_handshakes_size; i++) {
+            int handshake = valid_tls12_handshakes[i];
+            /* Initial message doesn't contain a CCS message */
+            if (handshake == INITIAL) {
+                continue;
+            }
+
+            bool ccs_encountered = false;
+
+            for (int j = 0; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+                
+                if (handshakes[handshake][j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                    ccs_encountered = true;
+                }
+
+                if (handshakes[handshake][j] == CLIENT_FINISHED) {
+                    EXPECT_TRUE(ccs_encountered);
+                }
+            }
+            /* Every valid handshake includes a CCS message */
+            EXPECT_TRUE(ccs_encountered);
+        }
+    }
+
     /* Test: TLS1.2 client waits for expected CCS messages */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
