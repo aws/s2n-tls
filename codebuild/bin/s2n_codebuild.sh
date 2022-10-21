@@ -65,6 +65,45 @@ if [[ -n "$S2N_NO_PQ" ]]; then
     CMAKE_PQ_OPTION="S2N_NO_PQ=True"
 fi
 
+apache2_config() {
+    command="$1"
+    echo "apache2: ${command}"
+
+    APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR" \
+    APACHE_RUN_USER=www-data \
+    APACHE_RUN_GROUP=www-data \
+    APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid" \
+    APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" \
+    APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock" \
+    APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log" \
+    apache2 -k "${command}" -f "${APACHE2_INSTALL_DIR}/apache2.conf"
+}
+
+apache2_stop() {
+    apache2_config stop
+}
+
+apache2_start() {
+    apache2_config start
+
+    # Stop the apache server after tests finish, even if an error occurs
+    trap apache2_stop ERR EXIT
+}
+
+run_integration_v2_tests() {
+    apache2_start
+    "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
+    make clean
+    make integrationv2
+}
+
+run_integration_v2_criterion_tests() {
+    apache2_start
+    make install
+    make -C bindings/rust
+    make -C tests/integrationv2 "${INTEGV2_TEST}"
+}
+
 # Run Multiple tests on one flag.
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log failure-tests; fi
 
@@ -73,11 +112,11 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_P
 if [[ "$TESTS" == "ALL" || "$TESTS" == "interning" ]]; then ./codebuild/bin/test_libcrypto_interning.sh; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; S2N_NO_SSLYZE=1 make integration ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then $CB_BIN_DIR/install_s2n_head.sh "$(mktemp -d)"; make clean; make integrationv2 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then run_integration_v2_tests; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "crt" ]]; then ./codebuild/bin/build_aws_crt_cpp.sh $(mktemp -d) $(mktemp -d); fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sharedandstatic" ]]; then ./codebuild/bin/test_install_shared_and_static.sh $(mktemp -d); fi
 # Env must have S2N_USE_CRITERION set for the following to work
-if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2crit" ]]; then make install; make -C bindings/rust ; make -C tests/integrationv2 "${INTEGV2_TEST}"; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2crit" ]]; then run_integration_v2_criterion_tests; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "benchmark" ]]; then (make clean && make benchmark) ; fi
 if [[ "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/verify_HMAC.log ; fi

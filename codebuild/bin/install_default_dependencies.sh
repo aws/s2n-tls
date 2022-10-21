@@ -124,6 +124,10 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
     if [[ "$DISTRO" == "ubuntu" && "$S2N_NO_SSLYZE" != "true" ]]; then
         codebuild/bin/install_sslyze.sh
     fi
+
+    if [[ ! -x "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+      codebuild/bin/install_apache2.sh codebuild/bin/apache2 "$APACHE2_INSTALL_DIR"
+    fi
 fi
 
 # Install SAW, Z3, and Yices for formal verification
