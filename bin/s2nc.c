@@ -100,9 +100,10 @@ void usage()
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E ,--early-data <file path>\n");
     fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.\n");
-    fprintf(stderr, "  --renegotiation [accept|reject]\n"
+    fprintf(stderr, "  --renegotiation [accept|reject|wait]\n"
                     "    accept: Accept all server requests for a new handshake\n"
-                    "    reject: Reject all server requests for a new handshake\n");
+                    "    reject: Reject all server requests for a new handshake\n"
+                    "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -130,6 +131,7 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
 
 struct reneg_req_ctx {
     bool do_renegotiate;
+    bool wait;
     s2n_renegotiate_response response;
 };
 
@@ -428,6 +430,9 @@ int main(int argc, char *const *argv)
                 reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
             } else if (strcmp(optarg, "reject") == 0) {
                 reneg_ctx.response = S2N_RENEGOTIATE_REJECT;
+            } else if (strcmp(optarg, "wait") == 0) {
+                reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
+                reneg_ctx.wait = true;
             } else {
                 fprintf(stderr, "Unrecognized option: %s\n", optarg);
                 exit(1);
@@ -674,7 +679,7 @@ int main(int argc, char *const *argv)
             }
 
             reneg_ctx.do_renegotiate = false;
-            GUARD_EXIT(renegotiate(conn, sockfd), "Renegotiation failed");
+            GUARD_EXIT(renegotiate(conn, sockfd, reneg_ctx.wait), "Renegotiation failed");
         }
 
         /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
