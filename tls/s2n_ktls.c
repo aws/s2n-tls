@@ -66,6 +66,7 @@
 /*     int ret_val = setsockopt(r_io_ctx->fd, SOL_TLS, TLS_RX, &crypto_info, sizeof (crypto_info)); */
 /*     if (ret_val < 0) { */
 /*         fprintf(stderr, "ktls set RX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
+/*         return S2N_RESULT_ERROR; */
 /*         /1* exit(1); *1/ */
 /*     } else { */
 /*         fprintf(stdout, "ktls RX keys set---------- \n"); */
@@ -127,7 +128,6 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, bool fake) {
     RESULT_ENSURE_EQ(conn->mode, S2N_CLIENT);
 
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
-    /* memset(&crypto_info, 0, sizeof(crypto_info)); */
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
     crypto_info.info.version = TLS_1_2_VERSION;
 
@@ -153,7 +153,7 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, bool fake) {
     int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
     if (ret_val < 0) {
         fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
-        /* exit(1); */
+        return S2N_RESULT_ERROR;
     } else {
         fprintf(stdout, "ktls TX keys set---------- \n");
     }
@@ -193,7 +193,6 @@ S2N_RESULT s2n_ktls_register_ulp(int fd) {
     if (ret_val < 0) {
         fprintf(stderr, "ktls register upl failed 2 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
-        /* exit(1); */
     } else {
         fprintf(stdout, "ktls upl enabled---------- \n");
     }
@@ -246,6 +245,8 @@ int s2n_connection_ktls_switch_keys(struct s2n_connection *conn) {
 
     const struct s2n_ktls_write_io_context *peer_ktls_ctx = conn->send_io_context;
     int fd = peer_ktls_ctx->fd;
+
+    POSIX_GUARD_RESULT(s2n_ktls_register_ulp(fd));
 
     POSIX_GUARD_RESULT(s2n_ktls_tx_keys(conn, fd, true));
 
