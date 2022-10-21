@@ -65,30 +65,7 @@ if [[ -n "$S2N_NO_PQ" ]]; then
     CMAKE_PQ_OPTION="S2N_NO_PQ=True"
 fi
 
-apache2_config() {
-    command="$1"
-    echo "apache2: ${command}"
-
-    APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR" \
-    APACHE_RUN_USER=www-data \
-    APACHE_RUN_GROUP=www-data \
-    APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid" \
-    APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" \
-    APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock" \
-    APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log" \
-    apache2 -k "${command}" -f "${APACHE2_INSTALL_DIR}/apache2.conf"
-}
-
-apache2_stop() {
-    apache2_config stop
-}
-
-apache2_start() {
-    apache2_config start
-
-    # Stop the apache server after tests finish, even if an error occurs
-    trap apache2_stop ERR EXIT
-}
+source codebuild/bin/s2n_apache2.sh
 
 run_integration_v2_tests() {
     apache2_start
