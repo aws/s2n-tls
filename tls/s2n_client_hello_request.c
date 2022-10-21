@@ -77,7 +77,7 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
      *# the client if it does not wish to renegotiate a session, or the
      *# client may, if it wishes, respond with a no_renegotiation alert.
      */
-    if (response != S2N_RENEGOTIATE_ACCEPT) {
+    if (response == S2N_RENEGOTIATE_REJECT) {
         RESULT_GUARD(s2n_queue_reader_no_renegotiation_alert(conn));
         return S2N_RESULT_OK;
     }

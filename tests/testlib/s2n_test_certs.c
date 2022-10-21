@@ -76,3 +76,29 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
     return 0;
 }
 
+S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const char *pem_path,
+        struct s2n_stuffer *cert_chain_stuffer) {
+    RESULT_ENSURE_REF(cert_chain_stuffer);
+
+    DEFER_CLEANUP(struct s2n_stuffer certificate_message_stuffer = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&certificate_message_stuffer, 4096));
+
+    uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+    uint32_t cert_chain_pem_len = 0;
+    RESULT_GUARD_POSIX(s2n_read_test_pem_and_len(pem_path, cert_chain_pem, &cert_chain_pem_len, S2N_MAX_TEST_PEM_SIZE));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+            s2n_cert_chain_and_key_ptr_free);
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key, cert_chain_pem, cert_chain_pem_len));
+
+    RESULT_GUARD_POSIX(s2n_send_cert_chain(conn, &certificate_message_stuffer, chain_and_key));
+
+    /* Skip the cert chain length */
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&certificate_message_stuffer, 3));
+
+    uint32_t cert_chain_len = s2n_stuffer_data_available(&certificate_message_stuffer);
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc(cert_chain_stuffer, cert_chain_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&certificate_message_stuffer, cert_chain_stuffer, cert_chain_len));
+
+    return S2N_RESULT_OK;
+}
