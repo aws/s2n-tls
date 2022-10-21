@@ -1,6 +1,6 @@
 import pytest
 
-from configuration import available_ports, PROTOCOLS, Protocols, ALL_TEST_CIPHERS, TLS13_CIPHERS, Certificates
+from configuration import available_ports, PROTOCOLS, Protocols, ALL_TEST_CIPHERS, Certificates
 from common import ProviderOptions, data_bytes
 from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
