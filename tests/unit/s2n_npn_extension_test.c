@@ -382,5 +382,21 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Check application protocol array can hold the largest uint8_t value.
+     *
+     * We frequently copy a uint8_t's worth of data into this array. Adding
+     * checks to ensure that the array will be large enough causes compilers
+     * to give warnings that the check will always be true.
+     * This test will fail if we ever make that array smaller, so we remember
+     * to go back and add those checks.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        /* Not <= because the application protocol is a string, which needs to
+         * be terminated by a null character */
+        EXPECT_TRUE(UINT8_MAX < sizeof(server_conn->application_protocol));
+    }
+
     END_TEST();
 }
