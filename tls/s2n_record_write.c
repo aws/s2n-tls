@@ -79,6 +79,9 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
 
     *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
+    /* If a custom send buffer is configured, ensure it will be large enough for the payload.
+     * That may mean we need a smaller fragment size.
+     */
     uint32_t send_buffer_override = conn->config->send_buffer_size_override;
     if (send_buffer_override) {
         uint16_t max_record_size = 0;
