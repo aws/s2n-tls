@@ -178,13 +178,12 @@ class _processCommunicator(object):
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
                         print(f'{self.name}: stdout available')
                         data = os.read(key.fd, 32768)
-                        if data:
-                            data_str = str(data)
-                            data_debug = data_str[:_DEBUG_LEN]
-                            if len(data_str) > _DEBUG_LEN:
-                                 data_debug += f' ...({len(data_str) - _DEBUG_LEN} more bytes)'
-                        else:
+                        if not data:
                             selector.unregister(key.fileobj)
+                        data_str = str(data)
+                        data_debug = data_str[:_DEBUG_LEN]
+                        if len(data_str) > _DEBUG_LEN:
+                             data_debug += f' ...({len(data_str) - _DEBUG_LEN} more bytes)'
 
                         # fileobj2output[key.fileobj] is a list of data chunks
                         # that get joined later
