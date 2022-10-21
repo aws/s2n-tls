@@ -22,6 +22,8 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <inttypes.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
@@ -283,6 +285,7 @@ int main(int argc, char *const *argv)
     int max_early_data = 0;
     uint32_t send_buffer_byte_size = 0;
     bool npn = false;
+    int sscanf_matched_items;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -413,7 +416,11 @@ int main(int argc, char *const *argv)
             conn_settings.https_bench = bytes;
             break;
         case OPT_BUFFERED_SEND:
-            send_buffer_byte_size = (uint32_t) atoi(optarg);
+            sscanf_matched_items = sscanf(optarg, "%"SCNu32, &send_buffer_byte_size);
+            if (sscanf_matched_items != 1) {
+                fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
+                exit(1);
+            }
             break;
         case 'A':
             alpn = optarg;

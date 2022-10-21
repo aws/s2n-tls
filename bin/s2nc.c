@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <inttypes.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
@@ -303,6 +305,8 @@ int main(int argc, char *const *argv)
     char *early_data = NULL;
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
+    uint32_t send_buffer_byte_size = 0;
+    int sscanf_matched_items;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -442,6 +446,13 @@ int main(int argc, char *const *argv)
                 reneg_ctx.wait = true;
             } else {
                 fprintf(stderr, "Unrecognized option: %s\n", optarg);
+                exit(1);
+            }
+            break;
+        case OPT_BUFFERED_SEND:
+            sscanf_matched_items = sscanf(optarg, "%"SCNu32, &send_buffer_byte_size);
+            if (sscanf_matched_items != 1) {
+                fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
             break;
