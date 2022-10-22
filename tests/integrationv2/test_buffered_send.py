@@ -80,7 +80,7 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name) # PROTOCOLS """
+@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
 def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provider, protocol, certificate, buffer_size):
