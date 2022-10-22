@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     {
         for (int i = 0; i < valid_tls12_handshakes_size; i++) {
             int handshake = valid_tls12_handshakes[i];
-            /* Initial message doesn't contain a CCS message */
+            /* Initial handshake doesn't contain a CCS message */
             if (handshake == INITIAL) {
                 continue;
             }
