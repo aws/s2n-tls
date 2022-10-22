@@ -25,6 +25,7 @@
 #define SOL_TCP        6
 
 #include "api/s2n.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_ktls.h"
 
 #include "utils/s2n_safety_macros.h"
@@ -67,13 +68,45 @@
 /*     if (ret_val < 0) { */
 /*         fprintf(stderr, "ktls set RX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
 /*         return S2N_RESULT_ERROR; */
-/*         /1* exit(1); *1/ */
 /*     } else { */
 /*         fprintf(stdout, "ktls RX keys set---------- \n"); */
 /*     } */
 
 /*     return S2N_SUCCESS; */
 /* } */
+/* send TLS control message using record_type */
+
+S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length) {
+      struct msghdr msg = {0};
+      int cmsg_len = sizeof(record_type);
+      struct cmsghdr *cmsg;
+      char buf[CMSG_SPACE(cmsg_len)];
+      struct iovec msg_iov;   /* Vector of data to send/receive into.  */
+
+      msg.msg_control = buf;
+      msg.msg_controllen = sizeof(buf);
+      cmsg = CMSG_FIRSTHDR(&msg);
+      cmsg->cmsg_level = SOL_TLS;
+      cmsg->cmsg_type = TLS_SET_RECORD_TYPE;
+      cmsg->cmsg_len = CMSG_LEN(cmsg_len);
+      *CMSG_DATA(cmsg) = TLS_ALERT;
+      msg.msg_controllen = cmsg->cmsg_len;
+
+      msg_iov.iov_base = data;
+      msg_iov.iov_len = length;
+      msg.msg_iov = &msg_iov;
+      msg.msg_iovlen = 1;
+
+      int ret_val = sendmsg(sock, &msg, 0);
+    if (ret_val < 0) {
+        fprintf(stderr, "ktls send cmsg xxxxxxxxxxxxxx: type: %d, errno %s\n", record_type, strerror(errno));
+        return S2N_RESULT_ERROR;
+    } else {
+        fprintf(stdout, "ktls send cmsg ---------- : type: %d\n", record_type);
+    }
+
+    return S2N_RESULT_OK;
+}
 
 int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len) {
     POSIX_ENSURE_REF(io_context);
@@ -124,8 +157,10 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd) {
     return 0;
 }
 
+/* currently only handles tls 1.2 */
 S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, bool fake) {
     RESULT_ENSURE_EQ(conn->mode, S2N_CLIENT);
+    RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS12);
 
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
@@ -133,21 +168,17 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, bool fake) {
 
     RESULT_ENSURE_EQ(sizeof(conn->c_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
-    /* tls 1.2 */
     RESULT_CHECKED_MEMCPY(crypto_info.salt, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
     RESULT_CHECKED_MEMCPY(crypto_info.iv, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     RESULT_CHECKED_MEMCPY(crypto_info.rec_seq, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
 
     uint8_t temp_c_key[16] = {0};
-    if (fake) {
+    if (!fake) {
         RESULT_CHECKED_MEMCPY(temp_c_key, conn->c_key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
     } else {
-        RESULT_CHECKED_MEMCPY(temp_c_key, conn->c_key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+        /* RESULT_CHECKED_MEMCPY(temp_c_key, conn->c_key, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
     }
     RESULT_CHECKED_MEMCPY(crypto_info.key, temp_c_key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-
-    /* tls 1.3 */
-    /* ... */
 
     /* set keys */
     int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
@@ -169,19 +200,25 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     // set write fd with ktls io and context
     RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, false));
 
-    /* { */
-    /*     /1* should be able to send plaintext since we are using ktls *1/ */
-    /*     const char *msg = "hello world\n"; */
-    /*     int ret_val = write(fd, msg, strlen(msg)); */
-    /*     if (ret_val < 0) { */
-    /*         fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
-    /*         return S2N_RESULT_ERROR; */
-    /*     } else { */
-    /*         fprintf(stdout, "ktls wrote hello world success---------- \n"); */
-    /*     } */
-    /* } */
+    {
+        /* should be able to send plaintext since we are using ktls */
+        const char *msg = "hello world\n";
+        int ret_val = write(fd, msg, strlen(msg));
+        if (ret_val < 0) {
+            fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno));
+            return S2N_RESULT_ERROR;
+        } else {
+            fprintf(stdout, "ktls wrote hello world success---------- \n");
+        }
+    }
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
+
+    int s2n_tls_alert_level_fatal = 2;
+    uint8_t alert[2];
+    alert[0] = s2n_tls_alert_level_fatal;
+    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
+    RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH));
 
     return S2N_RESULT_OK;
 }
