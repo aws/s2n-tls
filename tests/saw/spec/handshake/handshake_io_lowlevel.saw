@@ -128,7 +128,10 @@ crucible_ghost_value corked {{ 0 : [2] }};
 let setup_connection_common chosen_psk_null = do {
    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
    
-   version <- crucible_fresh_var "version" (llvm_int 8);
+   // TLS1.2 is temporarily removed from SAW testing, force the TLS1.3 version
+   // Tracking issue: https://github.com/aws/s2n-tls/issues/3516
+   // version <- crucible_fresh_var "version" (llvm_int 8);
+   let version = {{34 : [8]}};
    crucible_precond {{ version != S2N_UNKNOWN_PROTOCOL_VERSION /\ version <= S2N_TLS13 }};
    crucible_points_to (crucible_field pconn "actual_protocol_version") (crucible_term version);
    
@@ -379,7 +382,9 @@ let s2n_advance_message_spec = do {
     // in-memory representation of the arrays hasn't changed, just the types.
     // As a result, we can use crucible_points_to_untyped to check if the two
     // state machines are bitwise equivalent without checking the types.
-    crucible_points_to_untyped (crucible_global "handshakes") (crucible_term {{ handshakes }});
+    // TLS1.2 is temporarily removed from SAW testing
+    // Tracking issue: https://github.com/aws/s2n-tls/issues/3516
+    // crucible_points_to_untyped (crucible_global "handshakes") (crucible_term {{ handshakes }});
     crucible_points_to_untyped (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
     
     let messages = [ {{CLIENT_HELLO : [5]}}
@@ -404,7 +409,9 @@ let s2n_advance_message_spec = do {
                    , {{APPLICATION_DATA : [5]}}
                    ];
 
-    for messages (verify_state_machine_elem (crucible_global "state_machine") {{ state_machine }} );
+    // TLS1.2 is temporarily removed from SAW testing
+    // Tracking issue: https://github.com/aws/s2n-tls/issues/3516
+    // for messages (verify_state_machine_elem (crucible_global "state_machine") {{ state_machine }} );
     for messages (verify_state_machine_elem (crucible_global "tls13_state_machine") {{ tls13_state_machine }} );
 
     // assert that s2n_advance_message returns 0 (true if the 4
