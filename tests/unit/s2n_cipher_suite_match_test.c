@@ -780,10 +780,111 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
         }
+        /* Test ChaCha20 boosting behaviour for tls 1.2 connection */
+        {
+            struct s2n_cipher_preferences cipher_preferences = { 0 };
 
-        /* Test ChaCha20 boosting behaviour */
+            struct s2n_security_policy security_policy = {
+                .minimum_protocol_version = S2N_SSLv2,
+                .cipher_preferences = &cipher_preferences,
+                .kem_preferences = &kem_preferences_null,
+                .signature_preferences = &s2n_signature_preferences_20201021,
+                .ecc_preferences = &s2n_ecc_preferences_test_all,
+            };
+    
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+
+            connection->security_policy_override = &security_policy;
+            connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+            connection->client_protocol_version = S2N_TLS12;
+            connection->actual_protocol_version = S2N_TLS12;
+            connection->server_protocol_version = S2N_TLS13;
+
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+            if (s2n_chacha20_poly1305.is_available()) {
+                /* Chacha20 boosting support is enabled server-side with multiple potential chacha20 cipher suites */
+                {
+                    static struct s2n_cipher_suite *cipher_suites_with_tls12_chacha20[] = {
+                        &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
+                        &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
+                        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
+                        &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+                    };
+
+                    cipher_preferences = (struct s2n_cipher_preferences) {
+                        .count = s2n_array_len(cipher_suites_with_tls12_chacha20),
+                        .suites = cipher_suites_with_tls12_chacha20,
+                        .allow_chacha20_boosting = true
+                    };
+
+                    uint8_t ecdhe_chacha20_boosted_wire[] = {
+                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+                        TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                    };
+
+                    uint8_t count = sizeof(ecdhe_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                    printf("\n>>> HERE\n");
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, ecdhe_chacha20_boosted_wire, count));
+                    /* Server and client have chacha20 boosting enabled. Server negotiates its most preferred
+                     * chacha20 cipher suite (which happens to also be the client's most preferred)
+                     */
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
+
+                    uint8_t ecdhe_rsa_chacha20_boosted_wire[] = {
+                        0x00,
+                        TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+                        0x00,
+                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+                        0x00,
+                        TLS_CHACHA20_POLY1305_SHA256,
+                        0x00,
+                        TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+                    };
+                    count = sizeof(ecdhe_rsa_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                    EXPECT_SUCCESS(s2n_set_cipher_as_sslv2_server(connection, ecdhe_rsa_chacha20_boosted_wire, count));
+                    /* Server and client have chacha20 boosting enabled. Server negotiates its most preferred
+                     * chacha20 cipher suite (which happens to NOT be the client's most preferred)
+                     */
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
+
+                    uint8_t aes_128_boosted_wire[] = {
+                        TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+                    };
+                    count = sizeof(aes_128_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, aes_128_boosted_wire, count));
+                    /* Server has chacha20 boosting enabled but not the client. The server tries to negotiate 
+                     * its most preferred cipher suite, which happens to be a chacha20 cipher suite.
+                     */
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
+                }
+            }
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        }
+
+        /* Test ChaCha20 boosting behaviour for tls 1.3 connection */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
+            struct s2n_cipher_preferences cipher_preferences = { 0 };
+
+            struct s2n_security_policy security_policy = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences,
+                .kem_preferences = &kem_preferences_null,
+                .signature_preferences = &s2n_signature_preferences_20201021,
+                .ecc_preferences = &s2n_ecc_preferences_test_all,
+            };
+    
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+
+            connection->security_policy_override = &security_policy;
+            connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+            connection->client_protocol_version = S2N_TLS13;
+            connection->actual_protocol_version = S2N_TLS13;
+            connection->server_protocol_version = S2N_TLS13;
 
             /* The server chose a (malformed) security policy where ChaCha20 boosting is toggled on but 
              * the cipher preferences does not contain ChaCha20. In this case, ChaCha20 boosting behaviour is off.
@@ -794,18 +895,10 @@ int main(int argc, char **argv)
                     &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
                 };
 
-                const struct s2n_cipher_preferences cipher_preference_without_chacha20_and_boosting = {
+                cipher_preferences = (struct s2n_cipher_preferences) {
                     .count = s2n_array_len(cipher_suites_without_chacha20),
                     .suites = cipher_suites_without_chacha20,
                     .allow_chacha20_boosting = true
-                };
-
-                const struct s2n_security_policy test_no_chacha20_and_boosted = {
-                    .minimum_protocol_version = S2N_SSLv3,
-                    .cipher_preferences = &cipher_preference_without_chacha20_and_boosting,
-                    .kem_preferences = &kem_preferences_null,
-                    .signature_preferences = &s2n_signature_preferences_20201021,
-                    .ecc_preferences = &s2n_ecc_preferences_test_all,
                 };
 
                 uint8_t chacha20_boosted_wire[] = {
@@ -814,25 +907,18 @@ int main(int argc, char **argv)
                     TLS_AES_128_GCM_SHA256,
                 };
 
-                conn->security_policy_override = &test_no_chacha20_and_boosted;
-                conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                conn->client_protocol_version = S2N_TLS13;
-                conn->actual_protocol_version = S2N_TLS13;
-                conn->server_protocol_version = S2N_TLS13;
-
                 uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_boosted_wire, count));
                 /* Server correctly negotiates its most preferred cipher, aes_256 */
-                EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+                EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
 
                 uint8_t chacha20_only_wire[] = {
                     TLS_CHACHA20_POLY1305_SHA256,
                 };
                 count = sizeof(chacha20_only_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 /* Server is unable to identify a mutually supported cipher */
-                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, chacha20_only_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(connection, chacha20_only_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
-                EXPECT_SUCCESS(s2n_connection_wipe(conn));
             } 
 
             if (s2n_chacha20_poly1305.is_available()) {
@@ -844,18 +930,10 @@ int main(int argc, char **argv)
                         &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
                     };
 
-                    const struct s2n_cipher_preferences cipher_preference_with_chacha20_and_boosting = {
+                    cipher_preferences = (struct s2n_cipher_preferences) {
                         .count = s2n_array_len(cipher_suites_with_chacha20_last),
                         .suites = cipher_suites_with_chacha20_last,
                         .allow_chacha20_boosting = true
-                    };
-
-                    const struct s2n_security_policy test_chacha20_and_boosted = {
-                        .minimum_protocol_version = S2N_SSLv3,
-                        .cipher_preferences = &cipher_preference_with_chacha20_and_boosting,
-                        .kem_preferences = &kem_preferences_null,
-                        .signature_preferences = &s2n_signature_preferences_20201021,
-                        .ecc_preferences = &s2n_ecc_preferences_test_all,
                     };
 
                     uint8_t chacha20_boosted_wire[] = {
@@ -864,16 +942,10 @@ int main(int argc, char **argv)
                         TLS_AES_128_GCM_SHA256,
                     };
 
-                    conn->security_policy_override = &test_chacha20_and_boosted;
-                    conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                    conn->client_protocol_version = S2N_TLS13;
-                    conn->actual_protocol_version = S2N_TLS13;
-                    conn->server_protocol_version = S2N_TLS13;
-
                     uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_boosted_wire, count));
                     /* Server and client indicated chacha20 boosting. Server identifies a mutually supported chacha20 cipher suite */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
 
                     uint8_t wire_aes_256_and_chacha20[] = {
                         TLS_AES_256_GCM_SHA384,
@@ -885,8 +957,8 @@ int main(int argc, char **argv)
                      * Client however has chacha20 in its preference list. Server negotiates its 
                      * most preferred negotiable cipher suite 
                      */
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_aes_256_and_chacha20, count));
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire_aes_256_and_chacha20, count));
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
 
                     uint8_t wire_without_chacha20[] = {
                         TLS_AES_256_GCM_SHA384,
@@ -898,10 +970,9 @@ int main(int argc, char **argv)
                      * Client does not have chacha20 in its preference list. Server negotiates its 
                      * most preferred negotiable cipher suite 
                      */
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_without_chacha20, count));
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire_without_chacha20, count));
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
-                    EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 }
 
                 /* Chacha20 boosting support is disabled server-side, but its security policy has a chacha20 cipher suite */
@@ -912,18 +983,10 @@ int main(int argc, char **argv)
                         &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
                     };
 
-                    const struct s2n_cipher_preferences cipher_preference_with_chacha20_and_no_boosting = {
+                    cipher_preferences = (struct s2n_cipher_preferences) {
                         .count = s2n_array_len(cipher_suites_with_chacha20_last),
                         .suites = cipher_suites_with_chacha20_last,
                         .allow_chacha20_boosting = false
-                    };
-
-                    const struct s2n_security_policy test_chacha20_and_not_boosted = {
-                        .minimum_protocol_version = S2N_SSLv3,
-                        .cipher_preferences = &cipher_preference_with_chacha20_and_no_boosting,
-                        .kem_preferences = &kem_preferences_null,
-                        .signature_preferences = &s2n_signature_preferences_20201021,
-                        .ecc_preferences = &s2n_ecc_preferences_test_all,
                     };
 
                     uint8_t chacha20_boosted_wire[] = {
@@ -932,16 +995,10 @@ int main(int argc, char **argv)
                         TLS_AES_128_GCM_SHA256,
                     };
 
-                    conn->security_policy_override = &test_chacha20_and_not_boosted;
-                    conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                    conn->client_protocol_version = S2N_TLS13;
-                    conn->actual_protocol_version = S2N_TLS13;
-                    conn->server_protocol_version = S2N_TLS13;
-
                     uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_boosted_wire, count));
                     /* Server has chacha20 boosting disabled so the server negotiates based on server preference */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
                     uint8_t chacha20_only_wire[] = {
                         TLS_CHACHA20_POLY1305_SHA256,
@@ -949,81 +1006,11 @@ int main(int argc, char **argv)
 
                     count = sizeof(chacha20_only_wire) / S2N_TLS_CIPHER_SUITE_LEN;
 
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_only_wire, count));
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_only_wire, count));
                     /* Server has chacha20 boosting disabled but we can still negotiate it if it's the only option */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
-
-                    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
                 }
 
-                /* Chacha20 boosting support is enabled server-side with multiple potential chacha20 cipher suites */
-                {
-                    static struct s2n_cipher_suite *cipher_suites_with_tls12_chacha20[] = {
-                        &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
-                        &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
-                        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
-                        &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-                    };
-
-                    const struct s2n_cipher_preferences cipher_preference_with_tls12_chacha20_and_boosting = {
-                        .count = s2n_array_len(cipher_suites_with_tls12_chacha20),
-                        .suites = cipher_suites_with_tls12_chacha20,
-                        .allow_chacha20_boosting = true
-                    };
-
-                    const struct s2n_security_policy test_tls12_chacha20_and_boosted = {
-                        .minimum_protocol_version = S2N_SSLv2,
-                        .cipher_preferences = &cipher_preference_with_tls12_chacha20_and_boosting,
-                        .kem_preferences = &kem_preferences_null,
-                        .signature_preferences = &s2n_signature_preferences_20201021,
-                        .ecc_preferences = &s2n_ecc_preferences_test_all,
-                    };
-
-                    conn->security_policy_override = &test_tls12_chacha20_and_boosted;
-                    conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                    conn->client_protocol_version = S2N_TLS12;
-                    conn->actual_protocol_version = S2N_TLS12;
-                    conn->server_protocol_version = S2N_TLS12;
-
-                    uint8_t ecdhe_chacha20_boosted_wire[] = {
-                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-                        TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                    };
-
-                    uint8_t count = sizeof(ecdhe_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, ecdhe_chacha20_boosted_wire, count));
-                    /* Server and client have chacha20 boosting enabled. Server negotiates its most preferred
-                     * chacha20 cipher suite (which happens to also be the client's most preferred)
-                     */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
-
-                    uint8_t ecdhe_rsa_chacha20_boosted_wire[] = {
-                        TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-                        TLS_CHACHA20_POLY1305_SHA256,
-                        TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-                    };
-                    count = sizeof(ecdhe_rsa_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, ecdhe_rsa_chacha20_boosted_wire, count));
-                    /* Server and client have chacha20 boosting enabled. Server negotiates its most preferred
-                     * chacha20 cipher suite (which happens to NOT be the client's most preferred)
-                     */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
-
-                    uint8_t aes_128_boosted_wire[] = {
-                        TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-                    };
-                    count = sizeof(aes_128_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, aes_128_boosted_wire, count));
-                    /* Server has chacha20 boosting enabled but not the client. The server tries to negotiate 
-                     * its most preferred cipher suite, which happens to be a chacha20 cipher suite.
-                     */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
-
-                    EXPECT_SUCCESS(s2n_connection_wipe(conn));
-                }
             } else {
                 /* Chacha20 boosting support is enabled server-side but chacha20 is unavailable */
                 {
@@ -1033,18 +1020,10 @@ int main(int argc, char **argv)
                         &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
                     };
 
-                    const struct s2n_cipher_preferences cipher_preference_with_chacha20_and_boosting = {
+                    cipher_preferences = (struct s2n_cipher_preferences) {
                         .count = s2n_array_len(cipher_suites_with_chacha20_last),
                         .suites = cipher_suites_with_chacha20_last,
                         .allow_chacha20_boosting = true
-                    };
-
-                    const struct s2n_security_policy test_chacha20_and_boosted = {
-                        .minimum_protocol_version = S2N_SSLv3,
-                        .cipher_preferences = &cipher_preference_with_chacha20_and_boosting,
-                        .kem_preferences = &kem_preferences_null,
-                        .signature_preferences = &s2n_signature_preferences_20201021,
-                        .ecc_preferences = &s2n_ecc_preferences_test_all,
                     };
 
                     uint8_t chacha20_boosted_wire[] = {
@@ -1053,17 +1032,11 @@ int main(int argc, char **argv)
                         TLS_AES_128_GCM_SHA256,
                     };
 
-                    conn->security_policy_override = &test_chacha20_and_boosted;
-                    conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                    conn->client_protocol_version = S2N_TLS13;
-                    conn->actual_protocol_version = S2N_TLS13;
-                    conn->server_protocol_version = S2N_TLS13;
-
                     uint8_t count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, chacha20_boosted_wire, count));
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_boosted_wire, count));
 
                     /* ChaCha20 is not available, then the server negotiates it's most preferred cipher suite */
-                    EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
                 }
             }
 
