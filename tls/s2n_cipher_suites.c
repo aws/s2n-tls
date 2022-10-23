@@ -1241,7 +1241,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     POSIX_ENSURE_REF(cipher_preferences);
 
     bool mutual_chacha20_boosting_support = s2n_result_is_ok(s2n_validate_chacha20_boosting(cipher_preferences, wire, cipher_suite_len));
-    // printf("Chacha20: %i\n", mutual_chacha20_boosting_support);
 
     /*
      * s2n only respects server preference order and chooses the server's
@@ -1255,11 +1254,9 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
      */
     for (size_t i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
-        // printf("Trying: %s\n", cipher_preferences->suites[i]->name);
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
-            // printf("Match: %s\n", cipher_preferences->suites[i]->name);
             struct s2n_cipher_suite *match = cipher_preferences->suites[i];
 
             /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
