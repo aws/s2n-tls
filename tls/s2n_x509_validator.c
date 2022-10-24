@@ -22,6 +22,7 @@
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_crl.h"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -147,6 +148,8 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->max_chain_depth = DEFAULT_MAX_CHAIN_DEPTH;
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
+    validator->crl_stack = sk_X509_CRL_new_null();
+    validator->crl_lookup_contexts = NULL;
 
     return 0;
 }
@@ -164,6 +167,8 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     }
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
+    validator->crl_stack = sk_X509_CRL_new_null();
+    validator->crl_lookup_contexts = NULL;
 
     return 0;
 }
@@ -174,7 +179,7 @@ static inline void wipe_cert_chain(STACK_OF(X509) *cert_chain) {
     }
 }
 
-void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
+int s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     if (validator->store_ctx) {
         X509_STORE_CTX_free(validator->store_ctx);
         validator->store_ctx = NULL;
@@ -185,6 +190,17 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     validator->skip_cert_validation = 0;
     validator->state = UNINIT;
     validator->max_chain_depth = 0;
+    if (validator->crl_stack) {
+        /* Only free the stack itself, since we don't own the CRLs */
+        sk_X509_CRL_free(validator->crl_stack);
+        validator->crl_stack = NULL;
+    }
+    if (validator->crl_lookup_contexts) {
+        POSIX_GUARD_RESULT(s2n_array_free(validator->crl_lookup_contexts));
+        validator->crl_lookup_contexts = NULL;
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
@@ -370,6 +386,11 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
             validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
+    if (conn->crl_lookup) {
+        RESULT_GUARD(s2n_crl_invoke_lookup_callbacks(conn, validator));
+        RESULT_GUARD(s2n_crl_handle_lookup_callback_result(validator));
+    }
+
     validator->state = READY_TO_VERIFY;
 
     return S2N_RESULT_OK;
@@ -380,6 +401,11 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
 
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
+
+    if (conn->crl_lookup) {
+        X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
+        X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL);
+    }
 
     uint64_t current_sys_time = 0;
     conn->config->wall_clock(conn->config->sys_clock_ctx, &current_sys_time);
@@ -394,6 +420,17 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         switch (ossl_error) {
             case X509_V_ERR_CERT_HAS_EXPIRED:
                 RESULT_BAIL(S2N_ERR_CERT_EXPIRED);
+            case X509_V_ERR_CERT_REVOKED:
+                RESULT_BAIL(S2N_ERR_CERT_REVOKED);
+            case X509_V_ERR_UNABLE_TO_GET_CRL:
+            case X509_V_ERR_DIFFERENT_CRL_SCOPE:
+                RESULT_BAIL(S2N_ERR_CRL_LOOKUP_FAILED);
+            case X509_V_ERR_CRL_SIGNATURE_FAILURE:
+                RESULT_BAIL(S2N_ERR_CRL_SIGNATURE);
+            case X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER:
+                RESULT_BAIL(S2N_ERR_CRL_ISSUER);
+            case X509_V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION:
+                RESULT_BAIL(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION);
             default:
                 RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
@@ -431,7 +468,15 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
 
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
-    RESULT_ENSURE(validator->state == INIT, S2N_ERR_INVALID_CERT_STATE);
+    switch (validator->state) {
+        case INIT:
+            break;
+        case AWAITING_CRL_CALLBACK:
+            RESULT_GUARD(s2n_crl_handle_lookup_callback_result(validator));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_INVALID_CERT_STATE);
+    }
 
     if (validator->state == INIT) {
         RESULT_GUARD(s2n_x509_validator_process_cert_chain(validator, conn, cert_chain_in, cert_chain_len));
