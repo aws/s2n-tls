@@ -164,11 +164,10 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->cert_chain_from_wire);
 
-    DEFER_CLEANUP(struct s2n_array *crl_lookup_contexts = s2n_array_new(sizeof(struct s2n_crl_lookup_context)),
-                  s2n_array_free_p);
-    RESULT_ENSURE_REF(crl_lookup_contexts);
-
     int cert_count = sk_X509_num(validator->cert_chain_from_wire);
+    DEFER_CLEANUP(struct s2n_array *crl_lookup_contexts = s2n_array_new_with_capacity(sizeof(struct s2n_crl_lookup_context),
+            cert_count), s2n_array_free_p);
+    RESULT_ENSURE_REF(crl_lookup_contexts);
 
     for (int i = 0; i < cert_count; ++i) {
         struct s2n_crl_lookup_context* context = NULL;
