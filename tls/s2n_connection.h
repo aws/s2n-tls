@@ -36,7 +36,6 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
-#include "tls/s2n_crl.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
@@ -348,9 +347,6 @@ struct s2n_connection {
     s2n_verify_host_fn verify_host_fn;
     void *data_for_verify_host;
     uint8_t verify_host_fn_overridden;
-
-    s2n_crl_lookup_fn crl_lookup;
-    void *data_for_crl_lookup;
 
     /* Session ticket data */
     s2n_session_ticket_status session_ticket_status;

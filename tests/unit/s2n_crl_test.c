@@ -175,13 +175,13 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
+        config->crl_lookup = crl_lookup_test_callback;
+        config->data_for_crl_lookup = (void*) &received_lookup_data;
+
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
-
-        connection->crl_lookup = crl_lookup_test_callback;
-        connection->data_for_crl_lookup = (void*) &received_lookup_data;
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_NONE_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
@@ -221,13 +221,13 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
+        config->crl_lookup = crl_lookup_test_callback;
+        config->data_for_crl_lookup = (void*) &data;
+
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
-
-        connection->crl_lookup = crl_lookup_test_callback;
-        connection->data_for_crl_lookup = (void *) &data;
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_LEAF_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
@@ -262,13 +262,13 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
+        config->crl_lookup = crl_lookup_test_callback;
+        config->data_for_crl_lookup = (void*) &data;
+
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
-
-        connection->crl_lookup = crl_lookup_test_callback;
-        connection->data_for_crl_lookup = (void *) &data;
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
 
@@ -307,14 +307,14 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
+        struct crl_lookup_data data = { 0 };
+        config->crl_lookup = crl_lookup_test_callback;
+        config->data_for_crl_lookup = (void*) &data;
+
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
-
-        struct crl_lookup_data data = { 0 };
-        connection->crl_lookup = crl_lookup_test_callback;
-        connection->data_for_crl_lookup = &data;
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_NONE_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
@@ -345,12 +345,12 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
+        config->crl_lookup = crl_lookup_noop;
+
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
-
-        connection->crl_lookup = crl_lookup_noop;
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_NONE_REVOKED_CERT_CHAIN, &cert_chain_stuffer));

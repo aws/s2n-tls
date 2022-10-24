@@ -386,7 +386,7 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
             validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
-    if (conn->crl_lookup) {
+    if (conn->config->crl_lookup) {
         RESULT_GUARD(s2n_crl_invoke_lookup_callbacks(conn, validator));
         RESULT_GUARD(s2n_crl_handle_lookup_callback_result(validator));
     }
@@ -402,7 +402,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
 
-    if (conn->crl_lookup) {
+    if (conn->config->crl_lookup) {
         X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
         X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL);
     }
