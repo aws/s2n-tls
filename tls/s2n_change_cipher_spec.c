@@ -49,9 +49,6 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     struct s2n_blob seq = {.data = conn->secure->client_sequence_number,.size = sizeof(conn->secure->client_sequence_number) };
     POSIX_GUARD(s2n_blob_zero(&seq));
 
-    /* Compute the finished message */
-    POSIX_GUARD(s2n_prf_client_finished(conn));
-
     /* Update the client to use the cipher-suite */
     conn->client = conn->secure;
 
