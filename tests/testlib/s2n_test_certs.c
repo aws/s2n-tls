@@ -80,16 +80,24 @@ S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const 
         struct s2n_stuffer *cert_chain_stuffer) {
     RESULT_ENSURE_REF(cert_chain_stuffer);
 
-    DEFER_CLEANUP(struct s2n_stuffer certificate_message_stuffer = { 0 }, s2n_stuffer_free);
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&certificate_message_stuffer, 4096));
-
     uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     uint32_t cert_chain_pem_len = 0;
     RESULT_GUARD_POSIX(s2n_read_test_pem_and_len(pem_path, cert_chain_pem, &cert_chain_pem_len, S2N_MAX_TEST_PEM_SIZE));
 
+    RESULT_GUARD(s2n_test_cert_chain_data_from_pem_data(conn, cert_chain_pem, cert_chain_pem_len, cert_chain_stuffer));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_cert_chain_data_from_pem_data(struct s2n_connection *conn, uint8_t *pem_data, uint32_t pem_data_len,
+        struct s2n_stuffer *cert_chain_stuffer) {
+
+    DEFER_CLEANUP(struct s2n_stuffer certificate_message_stuffer = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&certificate_message_stuffer, 4096));
+
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
-            s2n_cert_chain_and_key_ptr_free);
-    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key, cert_chain_pem, cert_chain_pem_len));
+                  s2n_cert_chain_and_key_ptr_free);
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key, pem_data, pem_data_len));
 
     RESULT_GUARD_POSIX(s2n_send_cert_chain(conn, &certificate_message_stuffer, chain_and_key));
 
