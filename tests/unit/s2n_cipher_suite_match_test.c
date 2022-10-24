@@ -864,7 +864,7 @@ int main(int argc, char **argv)
                         TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
                     };
 
-                    uint8_t count = sizeof(ecdhe_rsa_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
+                    uint8_t count = sizeof(ecdhe_rsa_chacha20_boosted_wire) / S2N_SSLv2_CIPHER_SUITE_LEN;
                     EXPECT_SUCCESS(s2n_set_cipher_as_sslv2_server(connection, ecdhe_rsa_chacha20_boosted_wire, count));
                     EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
                 }
