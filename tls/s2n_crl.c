@@ -190,7 +190,8 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
         RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void**) &context));
         RESULT_ENSURE_REF(context);
 
-        RESULT_GUARD_POSIX(conn->config->crl_lookup(context, conn->config->data_for_crl_lookup));
+        int result = conn->config->crl_lookup(context, conn->config->data_for_crl_lookup);
+        RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
     return S2N_RESULT_OK;
