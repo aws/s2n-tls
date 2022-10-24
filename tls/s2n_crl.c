@@ -100,7 +100,7 @@ static S2N_RESULT s2n_crl_load_crls_from_contexts(struct s2n_x509_validator *val
         RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void **) &context));
         RESULT_ENSURE_REF(context);
 
-        if (!context->crl) {
+        if (context->crl == NULL) {
             /* A CRL was intentionally not returned from the callback. Don't add anything to the store.*/
             continue;
         }
@@ -120,8 +120,6 @@ static S2N_RESULT s2n_crl_get_lookup_callback_status(struct s2n_x509_validator *
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->crl_lookup_contexts);
 
-    *status = FINISHED;
-
     uint32_t num_contexts = 0;
     RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
     for (uint32_t i = 0; i < num_contexts; i++) {
@@ -129,15 +127,13 @@ static S2N_RESULT s2n_crl_get_lookup_callback_status(struct s2n_x509_validator *
         RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void **) &context));
         RESULT_ENSURE_REF(context);
 
-        switch (context->status) {
-            case FINISHED:
-                break;
-            case AWAITING_RESPONSE:
-                *status = AWAITING_RESPONSE;
-                return S2N_RESULT_OK;
+        if (context->status == AWAITING_RESPONSE) {
+            *status = AWAITING_RESPONSE;
+            return S2N_RESULT_OK;
         }
     }
 
+    *status = FINISHED;
     return S2N_RESULT_OK;
 }
 
@@ -146,6 +142,7 @@ S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *vali
 
     crl_lookup_callback_status status = 0;
     RESULT_GUARD(s2n_crl_get_lookup_callback_status(validator, &status));
+
     switch (status) {
         case FINISHED:
             RESULT_GUARD(s2n_crl_load_crls_from_contexts(validator));

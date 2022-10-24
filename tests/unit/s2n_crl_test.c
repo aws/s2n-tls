@@ -274,8 +274,6 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
         EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
 
-        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         if (i == 0) {
             /* Ensure CRL validation fails when only the intermediate certificate is revoked */
