@@ -24,7 +24,13 @@
 
 bool s2n_npn_should_send(struct s2n_connection *conn)
 {
-    return s2n_client_alpn_should_send(conn) && conn->config->npn_supported;
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+     *# For the same reasons, after a handshake has been performed for a
+     *# given connection, renegotiations on the same connection MUST NOT
+     *# include the "next_protocol_negotiation" extension.
+     */
+    return s2n_client_alpn_should_send(conn) && conn->config->npn_supported && !s2n_handshake_is_renegotiation(conn);
 }
 
 const s2n_extension_type s2n_client_npn_extension = {
