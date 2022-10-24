@@ -123,6 +123,50 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, NULL, NULL));
     }
 
+    /* Client and server both support NPN, however, they have no protocols in common.
+     * Connection negotiates client's top protocol. */
+    {
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        /* Config with different protocols */
+        const char *server_protocols[] = { "h2", "h3" };
+        const uint8_t server_protocols_count = s2n_array_len(server_protocols);
+        DEFER_CLEANUP(struct s2n_config *different_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(different_config);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(different_config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, "default"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(different_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_protocol_preferences(different_config, server_protocols, server_protocols_count));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(different_config, s2n_wipe_alpn_ext, NULL));        
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, different_config));
+
+        server_conn->config->npn_supported = true;
+        client_conn->config->npn_supported = true;
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_TRUE(IS_NPN_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_NPN_HANDSHAKE(client_conn));
+
+        /* Client-preference protocol is chosen since server and client have no mutually supported protocols. */
+        EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
+        EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
+        EXPECT_NOT_NULL(s2n_get_application_protocol(server_conn));
+        EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, NULL, NULL));
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     END_TEST();
