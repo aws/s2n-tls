@@ -66,16 +66,17 @@ if [[ -n "$S2N_NO_PQ" ]]; then
 fi
 
 source codebuild/bin/s2n_apache2.sh
+APACHE_CERT_DIR="$(pwd)/tests/pems"
 
 run_integration_v2_tests() {
-    apache2_start
+    apache2_start "${APACHE_CERT_DIR}"
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
     make clean
     make integrationv2
 }
 
 run_integration_v2_criterion_tests() {
-    apache2_start
+    apache2_start "${APACHE_CERT_DIR}"
     make install
     make -C bindings/rust
     make -C tests/integrationv2 "${INTEGV2_TEST}"

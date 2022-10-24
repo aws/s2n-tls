@@ -14,7 +14,8 @@
 #
 
 apache2_config() {
-    command="$1"
+    cert_dir="$1"
+    command="$2"
     echo "apache2: ${command}"
 
     APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR" \
@@ -24,16 +25,19 @@ apache2_config() {
     APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" \
     APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock" \
     APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log" \
+    APACHE_CERT_DIR="${cert_dir}" \
     apache2 -k "${command}" -f "${APACHE2_INSTALL_DIR}/apache2.conf"
 }
 
 apache2_stop() {
-    apache2_config stop
+    cert_dir="$1"
+    apache2_config "${cert_dir}" stop
 }
 
 apache2_start() {
-    apache2_config start
+    cert_dir="$1"
+    apache2_config "${cert_dir}" start
 
     # Stop the apache server after tests finish, even if an error occurs
-    trap apache2_stop ERR EXIT
+    trap 'apache2_stop "${cert_dir}"' ERR EXIT
 }
