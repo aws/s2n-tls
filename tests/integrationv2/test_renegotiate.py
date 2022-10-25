@@ -275,9 +275,12 @@ but does require client auth during the second handshake.
 @pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_client_auth_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
-    messages = RENEG_MESSAGES.copy()
-    ctrl_msg = [ m for m in messages if m.ctrl ][0]
-    messages[messages.index(ctrl_msg)] = Msg(Provider.ServerMode, ctrl_str='R\n')
+    # We want to use the same messages to test renegotiation,
+    # but with 'R' instead of 'r' to trigger the Openssl renegotiate request.
+    messages = copy.deepcopy(RENEG_MESSAGES)
+    for m in messages:
+        if m.ctrl:
+            m.data_str = 'R\n'
     
     client_auth_marker = "|CLIENT_AUTH"
     no_client_cert_marker = "|NO_CLIENT_CERT"
