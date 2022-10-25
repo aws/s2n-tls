@@ -65,6 +65,17 @@ int main(int argc, char **argv)
         client_conn->config->npn_supported = true;
         EXPECT_TRUE(s2n_client_npn_extension.should_send(client_conn));
         EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
+
+        /*
+         *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+         *= type=test
+         *# For the same reasons, after a handshake has been performed for a
+         *# given connection, renegotiations on the same connection MUST NOT
+         *# include the "next_protocol_negotiation" extension.
+         */
+        client_conn->handshake.renegotiation = true;
+        EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
+        EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
     }
 
     /* Should-send tests on the server side */
