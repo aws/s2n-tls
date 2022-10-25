@@ -131,6 +131,10 @@ struct s2n_connection {
      * has been flushed */
     unsigned dynamic_buffers:1;
 
+    /* Indicates protocol negotiation will be done through the NPN extension
+     * instead of the ALPN extension */
+    unsigned npn_negotiated:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
