@@ -56,6 +56,16 @@ ALL_TEST_CERTS = [
 ]
 
 
+# List of certificates which enable all cipher suites
+MINIMAL_TEST_CERTS = [
+    Certificates.RSA_2048_SHA512,
+    Certificates.RSA_4096_SHA256,
+    Certificates.ECDSA_256,
+    Certificates.ECDSA_384,
+    Certificates.RSA_PSS_2048_SHA256
+]
+
+
 # List of all ciphers that will be tested.
 ALL_TEST_CIPHERS = [
     Ciphers.DHE_RSA_AES128_SHA,

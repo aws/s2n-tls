@@ -363,6 +363,44 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ctx.call_count, 1);
     }
 
+    /* Test: Hello requests received after the handshake do not trigger a no_renegotiation alert
+     * if the application ignores the renegotiation request
+     */
+    {
+        struct s2n_test_reneg_req_ctx ctx = { .app_decision = S2N_RENEGOTIATE_IGNORE };
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_reneg_cb));
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, &ctx));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Complete the handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(client_conn->secure_renegotiation);
+
+        /* Send the hello request message. */
+        EXPECT_OK(s2n_send_client_hello_request(server_conn));
+
+        /* no_renegotation alert NOT sent and received */
+        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
+        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+
+        /* Callback triggered */
+        EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
+        EXPECT_EQUAL(ctx.call_count, 1);
+    }
+
     /* Test: Hello requests received after the handshake trigger a no_renegotiation alert
      * if secure renegotiation is not supported, even if the application would have accepted the request.
      *

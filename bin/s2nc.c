@@ -27,6 +27,7 @@
 #endif
 
 #include "api/s2n.h"
+#include "api/unstable/renegotiate.h"
 #include "common.h"
 #include "error/s2n_errno.h"
 
@@ -35,6 +36,7 @@
 #define OPT_TICKET_IN 1000
 #define OPT_TICKET_OUT 1001
 #define OPT_SEND_FILE 1002
+#define OPT_RENEG 1003
 
 void usage()
 {
@@ -97,12 +99,13 @@ void usage()
                     "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E ,--early-data <file path>\n");
-    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.");
+    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.\n");
+    fprintf(stderr, "  --renegotiation [accept|reject]\n"
+                    "    accept: Accept all server requests for a new handshake\n"
+                    "    reject: Reject all server requests for a new handshake\n");
     fprintf(stderr, "\n");
     exit(1);
 }
-
-
 
 size_t session_state_length = 0;
 uint8_t *session_state = NULL;
@@ -122,6 +125,25 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
     bool *session_ticket_recv = (bool *)ctx;
     *session_ticket_recv = 1;
 
+    return S2N_SUCCESS;
+}
+
+struct reneg_req_ctx {
+    bool do_renegotiate;
+    s2n_renegotiate_response response;
+};
+
+static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response)
+{
+    GUARD_EXIT_NULL(conn);
+    GUARD_EXIT_NULL(context);
+    GUARD_EXIT_NULL(response);
+    struct reneg_req_ctx *reneg_ctx = (struct reneg_req_ctx *) context;
+
+    *response = reneg_ctx->response;
+    if (*response == S2N_RENEGOTIATE_ACCEPT) {
+        reneg_ctx->do_renegotiate = true;
+    }
     return S2N_SUCCESS;
 }
 
@@ -261,7 +283,7 @@ int main(int argc, char *const *argv)
     const char *host = NULL;
     struct verify_data unsafe_verify_data;
     const char *port = "443";
-    int echo_input = 0;
+    bool echo_input = false;
     const char *send_file = NULL;
     int use_corked_io = 0;
     uint8_t non_blocking = 0;
@@ -270,6 +292,8 @@ int main(int argc, char *const *argv)
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len = 0;
     char *early_data = NULL;
+    bool setup_reneg_cb = false;
+    struct reneg_req_ctx reneg_ctx = { 0 };
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -298,6 +322,7 @@ int main(int argc, char *const *argv)
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
+        {"renegotiation", required_argument, 0, OPT_RENEG},
         { 0 },
     };
 
@@ -321,7 +346,7 @@ int main(int argc, char *const *argv)
             fips_mode = 1;
             break;
         case 'e':
-            echo_input = 1;
+            echo_input = true;
             break;
         case OPT_SEND_FILE:
             send_file = load_file_to_cstring(optarg);
@@ -396,6 +421,17 @@ int main(int argc, char *const *argv)
         case 'E':
             early_data = load_file_to_cstring(optarg);
             GUARD_EXIT_NULL(early_data);
+            break;
+        case OPT_RENEG:
+            setup_reneg_cb = true;
+            if (strcmp(optarg, "accept") == 0) {
+                reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
+            } else if (strcmp(optarg, "reject") == 0) {
+                reneg_ctx.response = S2N_RENEGOTIATE_REJECT;
+            } else {
+                fprintf(stderr, "Unrecognized option: %s\n", optarg);
+                exit(1);
+            }
             break;
         case '?':
         default:
@@ -527,6 +563,11 @@ int main(int argc, char *const *argv)
             );
         }
 
+        if (setup_reneg_cb) {
+            GUARD_EXIT(s2n_config_set_renegotiate_request_cb(config, reneg_req_cb, &reneg_ctx),
+                    "Error setting renegotiation request callback");
+        }
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
@@ -623,11 +664,17 @@ int main(int argc, char *const *argv)
             send_data(conn, sockfd, send_file, send_file_len, &blocked);
         }
 
-        if (echo_input == 1) {
-            bool stop_echo = false;
+        while (echo_input) {
             fflush(stdout);
             fflush(stderr);
-            echo(conn, sockfd, &stop_echo);
+            echo(conn, sockfd, &reneg_ctx.do_renegotiate);
+
+            if (!reneg_ctx.do_renegotiate) {
+                break;
+            }
+
+            reneg_ctx.do_renegotiate = false;
+            GUARD_EXIT(renegotiate(conn, sockfd), "Renegotiation failed");
         }
 
         /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
