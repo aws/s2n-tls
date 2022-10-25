@@ -65,7 +65,7 @@ if [[ -n "$S2N_NO_PQ" ]]; then
     CMAKE_PQ_OPTION="S2N_NO_PQ=True"
 fi
 
-setup_integration_v2_tests() {
+setup_apache_server() {
     # Start the apache server if the list of tests isn't defined, meaning all tests
     # are to be run, or if the renegotiate test is included in the list of tests.
     if [[ -z $TOX_TEST_NAME ]] || [[ "${TOX_TEST_NAME}" == *"test_renegotiate"* ]]; then
@@ -77,14 +77,14 @@ setup_integration_v2_tests() {
 }
 
 run_integration_v2_tests() {
-    setup_integration_v2_tests
+    setup_apache_server
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
     make clean
     make integrationv2
 }
 
 run_integration_v2_criterion_tests() {
-    setup_integration_v2_tests
+    setup_apache_server
     make install
     make -C bindings/rust
     make -C tests/integrationv2 "${INTEGV2_TEST}"
