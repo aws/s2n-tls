@@ -64,6 +64,10 @@ static int crl_lookup_callback_fail(struct s2n_crl_lookup_context *context, void
     return 1;
 }
 
+static uint8_t verify_host_always_allow(const char *host_name, size_t host_name_len, void *data) {
+    return 1;
+}
+
 static struct s2n_crl *load_test_crl(const char* pem_path) {
     uint8_t crl_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     uint32_t pem_len = 0;
@@ -474,6 +478,192 @@ int main(int argc, char *argv[])
         s2n_pkey_type pkey_type;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CANCELLED);
+    }
+
+    /* Self-talk: server certificate is not revoked */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_CRL_NONE_REVOKED_CERT_CHAIN, S2N_CRL_NONE_REVOKED_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_crl;
+        data.crls[1] = root_crl;
+
+        config->crl_lookup = crl_lookup_test_callback;
+        config->data_for_crl_lookup = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* Self-talk: server certificate is revoked */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_CRL_LEAF_REVOKED_CERT_CHAIN, S2N_CRL_LEAF_REVOKED_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_crl;
+        data.crls[1] = root_crl;
+
+        config->crl_lookup = crl_lookup_test_callback;
+        config->data_for_crl_lookup = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                S2N_ERR_CERT_REVOKED);
+
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* Self-talk: client certificate is not revoked */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *server_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&server_chain_and_key,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&client_chain_and_key,
+                S2N_CRL_NONE_REVOKED_CERT_CHAIN, S2N_CRL_NONE_REVOKED_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_crl;
+        data.crls[1] = root_crl;
+
+        server_config->crl_lookup = crl_lookup_test_callback;
+        server_config->data_for_crl_lookup = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(server_conn, verify_host_always_allow, NULL));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "S2nTestServer"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* Self-talk: client certificate is revoked */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *server_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&server_chain_and_key,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&client_chain_and_key,
+                S2N_CRL_LEAF_REVOKED_CERT_CHAIN, S2N_CRL_LEAF_REVOKED_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_crl;
+        data.crls[1] = root_crl;
+
+        server_config->crl_lookup = crl_lookup_test_callback;
+        server_config->data_for_crl_lookup = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(server_conn, verify_host_always_allow, NULL));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "S2nTestServer"));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                S2N_ERR_CERT_REVOKED);
+
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
     }
 
     /* Calling s2n_crl_lookup return functions correctly set context fields */
