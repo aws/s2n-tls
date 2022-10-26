@@ -68,7 +68,7 @@ fi
 setup_apache_server() {
     # Start the apache server if the list of tests isn't defined, meaning all tests
     # are to be run, or if the renegotiate test is included in the list of tests.
-    if [[ -z $TOX_TEST_NAME ]] || [[ "${TOX_TEST_NAME}" == *"test_renegotiate"* ]]; then
+    if [[ -z $TOX_TEST_NAME ]] || [[ "${TOX_TEST_NAME}" == *"test_renegotiate_apache"* ]]; then
         source codebuild/bin/s2n_apache2.sh
         APACHE_CERT_DIR="$(pwd)/tests/pems"
 

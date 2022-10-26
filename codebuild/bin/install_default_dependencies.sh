@@ -119,14 +119,16 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
       codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" | head -50
     fi
 
-    # Install SSLyze for all Integration Tests on Ubuntu.
-    # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
-    if [[ "$DISTRO" == "ubuntu" && "$S2N_NO_SSLYZE" != "true" ]]; then
-        codebuild/bin/install_sslyze.sh
-    fi
+    if [[ "$DISTRO" == "ubuntu" ]]; then
+        # Install SSLyze for all Integration Tests on Ubuntu.
+        # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
+        if [[ "$S2N_NO_SSLYZE" != "true" ]]; then
+            codebuild/bin/install_sslyze.sh
+        fi
 
-    if [[ ! -x "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
-      codebuild/bin/install_apache2.sh codebuild/bin/apache2 "$APACHE2_INSTALL_DIR"
+        if [[ ! -x "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+            codebuild/bin/install_apache2.sh codebuild/bin/apache2 "$APACHE2_INSTALL_DIR"
+        fi
     fi
 fi
 

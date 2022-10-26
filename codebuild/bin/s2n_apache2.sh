@@ -13,6 +13,8 @@
 # permissions and limitations under the License.
 #
 
+set -eu
+
 apache2_config() {
     cert_dir="$1"
     command="$2"
@@ -35,6 +37,11 @@ apache2_stop() {
 }
 
 apache2_start() {
+    if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+        echo "apache2 not installed"
+        exit 1
+    fi
+
     cert_dir="$1"
     apache2_config "${cert_dir}" start
 

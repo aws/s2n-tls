@@ -14,7 +14,7 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -eu
 source codebuild/bin/s2n_setup_env.sh
 
 usage() {
