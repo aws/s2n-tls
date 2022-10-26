@@ -28,6 +28,7 @@
 
 #include "api/s2n.h"
 #include "api/unstable/renegotiate.h"
+#include "api/unstable/npn.h"
 #include "common.h"
 #include "error/s2n_errno.h"
 
@@ -37,6 +38,7 @@
 #define OPT_TICKET_OUT 1001
 #define OPT_SEND_FILE 1002
 #define OPT_RENEG 1003
+#define OPT_NPN 1004
 
 void usage()
 {
@@ -104,6 +106,8 @@ void usage()
                     "    accept: Accept all server requests for a new handshake\n"
                     "    reject: Reject all server requests for a new handshake\n"
                     "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
+    fprintf(stderr, "  --npn \n");
+    fprintf(stderr, "    Indicates support for the NPN extension. The alpn option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -296,6 +300,7 @@ int main(int argc, char *const *argv)
     char *early_data = NULL;
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
+    bool npn = false;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -325,6 +330,7 @@ int main(int argc, char *const *argv)
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
         {"renegotiation", required_argument, 0, OPT_RENEG},
+        {"npn", no_argument, 0, OPT_NPN},
         { 0 },
     };
 
@@ -437,6 +443,9 @@ int main(int argc, char *const *argv)
                 fprintf(stderr, "Unrecognized option: %s\n", optarg);
                 exit(1);
             }
+            break;
+        case OPT_NPN:
+            npn = true;
             break;
         case '?':
         default:
@@ -571,6 +580,10 @@ int main(int argc, char *const *argv)
         if (setup_reneg_cb) {
             GUARD_EXIT(s2n_config_set_renegotiate_request_cb(config, reneg_req_cb, &reneg_ctx),
                     "Error setting renegotiation request callback");
+        }
+
+        if (npn) {
+            GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
         }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
