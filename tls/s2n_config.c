@@ -1031,3 +1031,16 @@ int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegot
     config->renegotiate_request_ctx = ctx;
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_npn(struct s2n_config *config, uint8_t enable)
+{
+    POSIX_ENSURE_REF(config);
+
+    if (enable) {
+        config->npn_supported = true;
+    } else {
+        config->npn_supported = false;
+    }
+
+    return S2N_SUCCESS;
+}
