@@ -169,13 +169,23 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
         RESULT_ENSURE_REF(cert);
         lookup->cert = cert;
         lookup->cert_idx = i;
-
-        int result = conn->config->crl_lookup_cb(lookup, conn->config->crl_lookup_ctx);
-        RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
     validator->crl_lookup_list = crl_lookup_list;
     ZERO_TO_DISABLE_DEFER_CLEANUP(crl_lookup_list);
+
+    /* Invoke the crl lookup callbacks after the crl_lookup_list is stored on the validator. This ensures that if a
+     * callback fails, the memory for all other callbacks that may still be running remains allocated */
+    uint32_t num_lookups = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
+    for (uint32_t i = 0; i < num_lookups; i++) {
+        struct s2n_crl_lookup *lookup = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void**) &lookup));
+        RESULT_ENSURE_REF(lookup);
+
+        int result = conn->config->crl_lookup_cb(lookup, conn->config->crl_lookup_ctx);
+        RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
+    }
 
     return S2N_RESULT_OK;
 }
