@@ -143,14 +143,13 @@ S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *vali
     switch (status) {
         case FINISHED:
             validator->state = READY_TO_VERIFY;
-            break;
+            return S2N_RESULT_OK;
         case AWAITING_RESPONSE:
             validator->state = AWAITING_CRL_CALLBACK;
             RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
         default:
             RESULT_BAIL(S2N_ERR_INVALID_CERT_STATE);
     }
-    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s2n_x509_validator *validator) {
