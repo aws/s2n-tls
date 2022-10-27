@@ -36,8 +36,6 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
 
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
-
             /* Fails for TLS1.3 */
             client_conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls12_encrypted_extensions_send(client_conn), S2N_ERR_BAD_MESSAGE);
@@ -51,7 +49,6 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
             client_conn->actual_protocol_version = S2N_TLS12;
 
             struct s2n_stuffer *stuffer = &client_conn->handshake.io;
@@ -82,6 +79,11 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
+            char protocol[] = { "http/1.1" };
+            uint8_t protocol_len = strlen(protocol);
+            EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocol, protocol_len + 1);
+            struct s2n_stuffer *stuffer = &server_conn->handshake.io;
+            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, server_conn, stuffer));
 
             /* Fails for TLS1.3 */
             server_conn->actual_protocol_version = S2N_TLS13;
@@ -97,9 +99,6 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
             server_conn->actual_protocol_version = S2N_TLS12;
-            /* Mark that the server sent the NPN extension and it expects a response */
-            EXPECT_SUCCESS(s2n_connection_allow_response_extension(server_conn, s2n_server_npn_extension.iana_value));
-
             struct s2n_stuffer *stuffer = &server_conn->handshake.io;
 
             /* Parse no data */
@@ -116,12 +115,10 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
             server_conn->actual_protocol_version = S2N_TLS12;
             client_conn->actual_protocol_version = S2N_TLS12;
-            
+
             char protocol[] = { "http/1.1" };
             uint8_t protocol_len = strlen(protocol);
             EXPECT_MEMCPY_SUCCESS(client_conn->application_protocol, protocol, protocol_len + 1);
@@ -142,7 +139,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
             server_conn->actual_protocol_version = S2N_TLS12;
 
+            /* Setup handshake to send NPN extension */
+            char protocol[] = { "http/1.1" };
+            uint8_t protocol_len = strlen(protocol);
+            EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocol, protocol_len + 1);
             struct s2n_stuffer *stuffer = &server_conn->handshake.io;
+            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, server_conn, stuffer));
 
             /* Setup connection to send a max early data extension */
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, 100));
