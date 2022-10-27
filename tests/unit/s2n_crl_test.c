@@ -40,27 +40,27 @@ struct crl_lookup_data {
     uint8_t callback_invoked_count;
 };
 
-static int crl_lookup_test_callback(struct s2n_crl_lookup_context *context, void *data) {
-    struct crl_lookup_data *crl_data = (struct crl_lookup_data*) data;
+static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context) {
+    struct crl_lookup_data *crl_data = (struct crl_lookup_data*) context;
 
     crl_data->callback_invoked_count += 1;
 
-    crl_data->certs[context->cert_idx] = context->cert;
+    crl_data->certs[lookup->cert_idx] = lookup->cert;
 
-    struct s2n_crl *crl = crl_data->crls[context->cert_idx];
+    struct s2n_crl *crl = crl_data->crls[lookup->cert_idx];
     if (crl == NULL) {
-        s2n_crl_lookup_reject(context);
+        POSIX_GUARD(s2n_crl_lookup_reject(lookup));
     } else {
-        s2n_crl_lookup_accept(context, crl);
+        POSIX_GUARD(s2n_crl_lookup_accept(lookup, crl));
     }
     return 0;
 }
 
-static int crl_lookup_noop(struct s2n_crl_lookup_context *context, void *data) {
+static int crl_lookup_noop(struct s2n_crl_lookup *lookup, void *context) {
     return 0;
 }
 
-static int crl_lookup_callback_fail(struct s2n_crl_lookup_context *context, void *data) {
+static int crl_lookup_callback_fail(struct s2n_crl_lookup *lookup, void *context) {
     return 1;
 }
 
@@ -85,7 +85,6 @@ static struct s2n_crl *load_test_crl(const char* pem_path) {
 int main(int argc, char *argv[])
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* s2n_crl_new allocates and frees a s2n_crl */
     {
@@ -162,7 +161,7 @@ int main(int argc, char *argv[])
     DEFER_CLEANUP(struct s2n_crl *intermediate_revoked_crl = load_test_crl(S2N_CRL_INTERMEDIATE_REVOKED_CRL), s2n_crl_free);
     EXPECT_NOT_NULL(intermediate_revoked_crl);
 
-    /* Save a list of received X509s for s2n_crl_lookup_context tests */
+    /* Save a list of received X509s for s2n_crl_lookup tests */
     struct crl_lookup_data received_lookup_data = { 0 };
     DEFER_CLEANUP(struct s2n_x509_validator received_lookup_data_validator, s2n_x509_validator_wipe);
 
@@ -183,8 +182,8 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &received_lookup_data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &received_lookup_data;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -229,8 +228,8 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -245,7 +244,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CERT_REVOKED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
@@ -270,8 +269,8 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -292,7 +291,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CERT_REVOKED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
@@ -314,8 +313,8 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
 
         struct crl_lookup_data data = { 0 };
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -330,7 +329,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CRL_LOOKUP_FAILED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
@@ -358,8 +357,8 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -407,7 +406,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        config->crl_lookup = crl_lookup_noop;
+        config->crl_lookup_cb = crl_lookup_noop;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -425,22 +424,26 @@ int main(int argc, char *argv[])
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
         /* Blocks if no response received from callbacks */
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                &pkey_type, &public_key_out), S2N_ERR_ASYNC_BLOCKED);
+        for (int i = 0; i < 10; i++) {
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
+                    &pkey_type, &public_key_out), S2N_ERR_ASYNC_BLOCKED);
+        }
 
         /* Continues to block if only one callback has sent a response */
-        struct s2n_crl_lookup_context *context = NULL;
-        EXPECT_OK(s2n_array_get(validator.crl_lookup_contexts, 0, (void **) &context));
-        EXPECT_NOT_NULL(context);
-        EXPECT_SUCCESS(s2n_crl_lookup_accept(context, root_crl));
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                &pkey_type, &public_key_out), S2N_ERR_ASYNC_BLOCKED);
+        struct s2n_crl_lookup *lookup = NULL;
+        EXPECT_OK(s2n_array_get(validator.crl_lookup_list, 0, (void **) &lookup));
+        EXPECT_NOT_NULL(lookup);
+        EXPECT_SUCCESS(s2n_crl_lookup_accept(lookup, root_crl));
+        for (int i = 0; i < 10; ++i) {
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
+                    &pkey_type, &public_key_out), S2N_ERR_ASYNC_BLOCKED);
+        }
 
         /* Unblocks when all callbacks send a response */
-        context = NULL;
-        EXPECT_OK(s2n_array_get(validator.crl_lookup_contexts, 1, (void **) &context));
-        EXPECT_NOT_NULL(context);
-        EXPECT_SUCCESS(s2n_crl_lookup_accept(context, intermediate_crl));
+        lookup = NULL;
+        EXPECT_OK(s2n_array_get(validator.crl_lookup_list, 1, (void **) &lookup));
+        EXPECT_NOT_NULL(lookup);
+        EXPECT_SUCCESS(s2n_crl_lookup_accept(lookup, intermediate_crl));
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                 &public_key_out));
     }
@@ -460,7 +463,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
 
-        config->crl_lookup = crl_lookup_callback_fail;
+        config->crl_lookup_cb = crl_lookup_callback_fail;
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -475,7 +478,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CANCELLED);
     }
@@ -496,8 +499,8 @@ int main(int argc, char *argv[])
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
 
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -534,8 +537,8 @@ int main(int argc, char *argv[])
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
 
-        config->crl_lookup = crl_lookup_test_callback;
-        config->data_for_crl_lookup = (void*) &data;
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -587,8 +590,8 @@ int main(int argc, char *argv[])
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
 
-        server_config->crl_lookup = crl_lookup_test_callback;
-        server_config->data_for_crl_lookup = (void*) &data;
+        server_config->crl_lookup_cb = crl_lookup_test_callback;
+        server_config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -640,8 +643,8 @@ int main(int argc, char *argv[])
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
 
-        server_config->crl_lookup = crl_lookup_test_callback;
-        server_config->data_for_crl_lookup = (void*) &data;
+        server_config->crl_lookup_cb = crl_lookup_test_callback;
+        server_config->crl_lookup_ctx = (void*) &data;
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -668,27 +671,27 @@ int main(int argc, char *argv[])
 
     /* Calling s2n_crl_lookup return functions correctly set context fields */
     {
-        struct s2n_crl_lookup_context context = { 0 };
+        struct s2n_crl_lookup lookup = { 0 };
 
-        context.status = AWAITING_RESPONSE;
-        EXPECT_SUCCESS(s2n_crl_lookup_accept(&context, root_crl));
-        EXPECT_TRUE(context.status == FINISHED);
-        EXPECT_NOT_NULL(context.crl);
+        lookup.status = AWAITING_RESPONSE;
+        EXPECT_SUCCESS(s2n_crl_lookup_accept(&lookup, root_crl));
+        EXPECT_TRUE(lookup.status == FINISHED);
+        EXPECT_NOT_NULL(lookup.crl);
 
-        context.status = AWAITING_RESPONSE;
-        EXPECT_SUCCESS(s2n_crl_lookup_reject(&context));
-        EXPECT_TRUE(context.status == FINISHED);
-        EXPECT_NULL(context.crl);
+        lookup.status = AWAITING_RESPONSE;
+        EXPECT_SUCCESS(s2n_crl_lookup_reject(&lookup));
+        EXPECT_TRUE(lookup.status == FINISHED);
+        EXPECT_NULL(lookup.crl);
     }
 
     /* Certificate issuer hash is retrieved successfully */
     {
-        struct s2n_crl_lookup_context context = { 0 };
+        struct s2n_crl_lookup lookup = { 0 };
         EXPECT_NOT_NULL(received_lookup_data.certs[0]);
-        context.cert = received_lookup_data.certs[0];
+        lookup.cert = received_lookup_data.certs[0];
 
         uint64_t hash = 0;
-        EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&context, &hash));
+        EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&lookup, &hash));
         EXPECT_TRUE(hash != 0);
     }
 
@@ -696,12 +699,12 @@ int main(int argc, char *argv[])
     {
         /* The hash of the leaf certificate matches the hash of the intermediate CRL */
 
-        struct s2n_crl_lookup_context leaf_context = { 0 };
+        struct s2n_crl_lookup leaf_lookup = { 0 };
         EXPECT_NOT_NULL(received_lookup_data.certs[0]);
-        leaf_context.cert = received_lookup_data.certs[0];
+        leaf_lookup.cert = received_lookup_data.certs[0];
 
         uint64_t leaf_cert_hash = 0;
-        EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&leaf_context, &leaf_cert_hash));
+        EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&leaf_lookup, &leaf_cert_hash));
         EXPECT_TRUE(leaf_cert_hash != 0);
 
         uint64_t intermediate_crl_hash = 0;
@@ -712,12 +715,12 @@ int main(int argc, char *argv[])
 
         /* The hash of the intermediate certificate matches the hash of the root CRL */
 
-        struct s2n_crl_lookup_context intermediate_context = { 0 };
+        struct s2n_crl_lookup intermediate_lookup = { 0 };
         EXPECT_NOT_NULL(received_lookup_data.certs[1]);
-        intermediate_context.cert = received_lookup_data.certs[1];
+        intermediate_lookup.cert = received_lookup_data.certs[1];
 
         uint64_t intermediate_cert_hash = 0;
-        EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&intermediate_context, &intermediate_cert_hash));
+        EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&intermediate_lookup, &intermediate_cert_hash));
         EXPECT_TRUE(intermediate_cert_hash != 0);
 
         uint64_t root_crl_hash = 0;

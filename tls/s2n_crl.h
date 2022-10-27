@@ -31,14 +31,14 @@ typedef enum {
     FINISHED
 } crl_lookup_callback_status;
 
-struct s2n_crl_lookup_context {
+struct s2n_crl_lookup {
     crl_lookup_callback_status status;
     X509 *cert;
     uint16_t cert_idx;
     struct s2n_crl *crl;
 };
 
-typedef int (*s2n_crl_lookup_fn) (struct s2n_crl_lookup_context *context, void *data);
+typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *context);
 
 /* TODO: APIs are part of an unfinished CRL validation feature and are temporarily hidden
  * https://github.com/aws/s2n-tls/issues/3499 */
@@ -46,9 +46,9 @@ struct s2n_crl *s2n_crl_new(void);
 int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
 int s2n_crl_free(struct s2n_crl **crl);
 int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
-int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup_context *context, uint64_t *hash);
-int s2n_crl_lookup_accept(struct s2n_crl_lookup_context *context, struct s2n_crl *crl);
-int s2n_crl_lookup_reject(struct s2n_crl_lookup_context *context);
+int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash);
+int s2n_crl_lookup_accept(struct s2n_crl_lookup *lookup, struct s2n_crl *crl);
+int s2n_crl_lookup_reject(struct s2n_crl_lookup *lookup);
 
 S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *validator);
 S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s2n_x509_validator *validator);

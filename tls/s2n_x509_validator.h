@@ -62,7 +62,7 @@ struct s2n_x509_validator {
     STACK_OF(X509) *cert_chain_from_wire;
     int state;
     STACK_OF(X509_CRL) *crl_stack;
-    struct s2n_array *crl_lookup_contexts;
+    struct s2n_array *crl_lookup_list;
 };
 
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */

@@ -149,7 +149,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_stack = sk_X509_CRL_new_null();
-    validator->crl_lookup_contexts = NULL;
+    validator->crl_lookup_list      = NULL;
 
     return 0;
 }
@@ -168,7 +168,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_stack = sk_X509_CRL_new_null();
-    validator->crl_lookup_contexts = NULL;
+    validator->crl_lookup_list      = NULL;
 
     return 0;
 }
@@ -195,9 +195,9 @@ int s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
         sk_X509_CRL_free(validator->crl_stack);
         validator->crl_stack = NULL;
     }
-    if (validator->crl_lookup_contexts) {
-        POSIX_GUARD_RESULT(s2n_array_free(validator->crl_lookup_contexts));
-        validator->crl_lookup_contexts = NULL;
+    if (validator->crl_lookup_list) {
+        POSIX_GUARD_RESULT(s2n_array_free(validator->crl_lookup_list));
+        validator->crl_lookup_list = NULL;
     }
 
     return S2N_SUCCESS;
@@ -386,7 +386,7 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,
             validator->cert_chain_from_wire), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
-    if (conn->config->crl_lookup) {
+    if (conn->config->crl_lookup_cb) {
         RESULT_GUARD(s2n_crl_invoke_lookup_callbacks(conn, validator));
         RESULT_GUARD(s2n_crl_handle_lookup_callback_result(validator));
     }
@@ -402,7 +402,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
 
-    if (conn->config->crl_lookup) {
+    if (conn->config->crl_lookup_cb) {
         X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
         X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL);
     }

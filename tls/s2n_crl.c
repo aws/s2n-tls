@@ -87,26 +87,26 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash) {
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_crl_load_crls_from_contexts(struct s2n_x509_validator *validator) {
+static S2N_RESULT s2n_crl_load_crls_from_lookup_list(struct s2n_x509_validator *validator) {
     RESULT_ENSURE_REF(validator);
-    RESULT_ENSURE_REF(validator->crl_lookup_contexts);
+    RESULT_ENSURE_REF(validator->crl_lookup_list);
     RESULT_ENSURE_REF(validator->crl_stack);
     RESULT_ENSURE_REF(validator->store_ctx);
 
-    uint32_t num_contexts = 0;
-    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
-    for (uint32_t i = 0; i < num_contexts; i++) {
-        struct s2n_crl_lookup_context *context = NULL;
-        RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void **) &context));
-        RESULT_ENSURE_REF(context);
+    uint32_t num_lookups = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
+    for (uint32_t i = 0; i < num_lookups; i++) {
+        struct s2n_crl_lookup *lookup = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void **) &lookup));
+        RESULT_ENSURE_REF(lookup);
 
-        if (context->crl == NULL) {
+        if (lookup->crl == NULL) {
             /* A CRL was intentionally not returned from the callback. Don't add anything to the store.*/
             continue;
         }
 
-        RESULT_ENSURE_REF(context->crl->crl);
-        if (!sk_X509_CRL_push(validator->crl_stack, context->crl->crl)) {
+        RESULT_ENSURE_REF(lookup->crl->crl);
+        if (!sk_X509_CRL_push(validator->crl_stack, lookup->crl->crl)) {
             RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
         }
     }
@@ -118,16 +118,16 @@ static S2N_RESULT s2n_crl_load_crls_from_contexts(struct s2n_x509_validator *val
 
 static S2N_RESULT s2n_crl_get_lookup_callback_status(struct s2n_x509_validator *validator, crl_lookup_callback_status *status) {
     RESULT_ENSURE_REF(validator);
-    RESULT_ENSURE_REF(validator->crl_lookup_contexts);
+    RESULT_ENSURE_REF(validator->crl_lookup_list);
 
-    uint32_t num_contexts = 0;
-    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
-    for (uint32_t i = 0; i < num_contexts; i++) {
-        struct s2n_crl_lookup_context *context = NULL;
-        RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void **) &context));
-        RESULT_ENSURE_REF(context);
+    uint32_t num_lookups = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
+    for (uint32_t i = 0; i < num_lookups; i++) {
+        struct s2n_crl_lookup *lookup = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void **) &lookup));
+        RESULT_ENSURE_REF(lookup);
 
-        if (context->status == AWAITING_RESPONSE) {
+        if (lookup->status == AWAITING_RESPONSE) {
             *status = AWAITING_RESPONSE;
             return S2N_RESULT_OK;
         }
@@ -145,7 +145,7 @@ S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *vali
 
     switch (status) {
         case FINISHED:
-            RESULT_GUARD(s2n_crl_load_crls_from_contexts(validator));
+            RESULT_GUARD(s2n_crl_load_crls_from_lookup_list(validator));
             validator->state = READY_TO_VERIFY;
             break;
         case AWAITING_RESPONSE:
@@ -162,13 +162,13 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     RESULT_ENSURE_REF(validator->cert_chain_from_wire);
 
     int cert_count = sk_X509_num(validator->cert_chain_from_wire);
-    DEFER_CLEANUP(struct s2n_array *crl_lookup_contexts = s2n_array_new_with_capacity(sizeof(struct s2n_crl_lookup_context),
+    DEFER_CLEANUP(struct s2n_array *crl_lookup_list = s2n_array_new_with_capacity(sizeof(struct s2n_crl_lookup),
             cert_count), s2n_array_free_p);
-    RESULT_ENSURE_REF(crl_lookup_contexts);
+    RESULT_ENSURE_REF(crl_lookup_list);
 
     for (int i = 0; i < cert_count; ++i) {
-        struct s2n_crl_lookup_context* context = NULL;
-        RESULT_GUARD(s2n_array_pushback(crl_lookup_contexts, (void**) &context));
+        struct s2n_crl_lookup * context = NULL;
+        RESULT_GUARD(s2n_array_pushback(crl_lookup_list, (void**) &context));
 
         X509 *cert = sk_X509_value(validator->cert_chain_from_wire, i);
         RESULT_ENSURE_REF(cert);
@@ -176,28 +176,28 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
         context->cert_idx = i;
     }
 
-    validator->crl_lookup_contexts = crl_lookup_contexts;
-    ZERO_TO_DISABLE_DEFER_CLEANUP(crl_lookup_contexts);
+    validator->crl_lookup_list = crl_lookup_list;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(crl_lookup_list);
 
-    uint32_t num_contexts = 0;
-    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_contexts, &num_contexts));
-    for (uint32_t i = 0; i < num_contexts; i++) {
-        struct s2n_crl_lookup_context *context = NULL;
-        RESULT_GUARD(s2n_array_get(validator->crl_lookup_contexts, i, (void**) &context));
-        RESULT_ENSURE_REF(context);
+    uint32_t num_lookups = 0;
+    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
+    for (uint32_t i = 0; i < num_lookups; i++) {
+        struct s2n_crl_lookup *lookup = NULL;
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void**) &lookup));
+        RESULT_ENSURE_REF(lookup);
 
-        int result = conn->config->crl_lookup(context, conn->config->data_for_crl_lookup);
+        int result = conn->config->crl_lookup_cb(lookup, conn->config->crl_lookup_ctx);
         RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
     return S2N_RESULT_OK;
 }
 
-int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup_context *context, uint64_t *hash) {
-    POSIX_ENSURE_REF(context->cert);
+int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash) {
+    POSIX_ENSURE_REF(lookup->cert);
     POSIX_ENSURE_REF(hash);
 
-    unsigned long temp_hash = X509_issuer_name_hash(context->cert);
+    unsigned long temp_hash = X509_issuer_name_hash(lookup->cert);
     POSIX_ENSURE(temp_hash != 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
     *hash = temp_hash;
@@ -205,17 +205,17 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup_context *context, 
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_accept(struct s2n_crl_lookup_context *context, struct s2n_crl *crl) {
-    POSIX_ENSURE_REF(context);
+int s2n_crl_lookup_accept(struct s2n_crl_lookup *lookup, struct s2n_crl *crl) {
+    POSIX_ENSURE_REF(lookup);
     POSIX_ENSURE_REF(crl);
-    context->crl = crl;
-    context->status = FINISHED;
+    lookup->crl = crl;
+    lookup->status = FINISHED;
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_reject(struct s2n_crl_lookup_context *context) {
-    POSIX_ENSURE_REF(context);
-    context->crl = NULL;
-    context->status = FINISHED;
+int s2n_crl_lookup_reject(struct s2n_crl_lookup *lookup) {
+    POSIX_ENSURE_REF(lookup);
+    lookup->crl = NULL;
+    lookup->status = FINISHED;
     return S2N_SUCCESS;
 }
