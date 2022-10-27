@@ -163,28 +163,20 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     RESULT_ENSURE_REF(crl_lookup_list);
 
     for (int i = 0; i < cert_count; ++i) {
-        struct s2n_crl_lookup * context = NULL;
-        RESULT_GUARD(s2n_array_pushback(crl_lookup_list, (void**) &context));
+        struct s2n_crl_lookup * lookup = NULL;
+        RESULT_GUARD(s2n_array_pushback(crl_lookup_list, (void**) &lookup));
 
         X509 *cert = sk_X509_value(validator->cert_chain_from_wire, i);
         RESULT_ENSURE_REF(cert);
-        context->cert = cert;
-        context->cert_idx = i;
-    }
-
-    validator->crl_lookup_list = crl_lookup_list;
-    ZERO_TO_DISABLE_DEFER_CLEANUP(crl_lookup_list);
-
-    uint32_t num_lookups = 0;
-    RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
-    for (uint32_t i = 0; i < num_lookups; i++) {
-        struct s2n_crl_lookup *lookup = NULL;
-        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void**) &lookup));
-        RESULT_ENSURE_REF(lookup);
+        lookup->cert = cert;
+        lookup->cert_idx = i;
 
         int result = conn->config->crl_lookup_cb(lookup, conn->config->crl_lookup_ctx);
         RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
+
+    validator->crl_lookup_list = crl_lookup_list;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(crl_lookup_list);
 
     return S2N_RESULT_OK;
 }
