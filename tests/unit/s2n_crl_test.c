@@ -40,7 +40,8 @@ struct crl_lookup_data {
     uint8_t callback_invoked_count;
 };
 
-static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context) {
+static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context)
+{
     struct crl_lookup_data *crl_data = (struct crl_lookup_data*) context;
     crl_data->callback_invoked_count += 1;
     crl_data->certs[lookup->cert_idx] = lookup->cert;
@@ -55,19 +56,23 @@ static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context
     return 0;
 }
 
-static int crl_lookup_noop(struct s2n_crl_lookup *lookup, void *context) {
+static int crl_lookup_noop(struct s2n_crl_lookup *lookup, void *context)
+{
     return 0;
 }
 
-static int crl_lookup_callback_fail(struct s2n_crl_lookup *lookup, void *context) {
+static int crl_lookup_callback_fail(struct s2n_crl_lookup *lookup, void *context)
+{
     return 1;
 }
 
-static uint8_t verify_host_always_allow(const char *host_name, size_t host_name_len, void *data) {
+static uint8_t verify_host_always_allow(const char *host_name, size_t host_name_len, void *data)
+{
     return 1;
 }
 
-static struct s2n_crl *load_test_crl(const char* pem_path) {
+static struct s2n_crl *load_test_crl(const char* pem_path)
+{
     uint8_t crl_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     uint32_t pem_len = 0;
     PTR_GUARD_POSIX(s2n_read_test_pem_and_len(pem_path, crl_pem, &pem_len, S2N_MAX_TEST_PEM_SIZE));

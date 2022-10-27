@@ -16,7 +16,8 @@
 #include "s2n_crl.h"
 #include "tls/s2n_connection.h"
 
-struct s2n_crl *s2n_crl_new(void) {
+struct s2n_crl *s2n_crl_new(void)
+{
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crl)));
     PTR_GUARD_POSIX(s2n_blob_zero(&mem));
@@ -27,7 +28,8 @@ struct s2n_crl *s2n_crl_new(void) {
     return crl;
 }
 
-int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len) {
+int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len)
+{
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE(crl->crl == NULL, S2N_ERR_INVALID_ARGUMENT);
 
@@ -51,7 +53,8 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len) {
     return S2N_SUCCESS;
 }
 
-int s2n_crl_free(struct s2n_crl **crl) {
+int s2n_crl_free(struct s2n_crl **crl)
+{
     if (crl == NULL) {
         return S2N_SUCCESS;
     }
@@ -71,7 +74,8 @@ int s2n_crl_free(struct s2n_crl **crl) {
     return S2N_SUCCESS;
 }
 
-int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash) {
+int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash)
+{
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
     POSIX_ENSURE_REF(hash);
@@ -87,7 +91,8 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash) {
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validator, STACK_OF(X509_CRL) *crl_stack) {
+S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validator, STACK_OF(X509_CRL) *crl_stack)
+{
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->crl_lookup_list);
     RESULT_ENSURE_REF(crl_stack);
@@ -113,7 +118,8 @@ S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validato
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_crl_get_lookup_callback_status(struct s2n_x509_validator *validator, crl_lookup_callback_status *status) {
+static S2N_RESULT s2n_crl_get_lookup_callback_status(struct s2n_x509_validator *validator, crl_lookup_callback_status *status)
+{
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->crl_lookup_list);
 
@@ -134,7 +140,8 @@ static S2N_RESULT s2n_crl_get_lookup_callback_status(struct s2n_x509_validator *
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *validator) {
+S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *validator)
+{
     RESULT_ENSURE_REF(validator);
 
     crl_lookup_callback_status status = 0;
@@ -152,7 +159,8 @@ S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *vali
     }
 }
 
-S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s2n_x509_validator *validator) {
+S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s2n_x509_validator *validator)
+{
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->cert_chain_from_wire);
 
@@ -190,7 +198,8 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     return S2N_RESULT_OK;
 }
 
-int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash) {
+int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash)
+{
     POSIX_ENSURE_REF(lookup);
     POSIX_ENSURE_REF(lookup->cert);
     POSIX_ENSURE_REF(hash);
@@ -203,7 +212,8 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t 
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl) {
+int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl)
+{
     POSIX_ENSURE_REF(lookup);
     POSIX_ENSURE_REF(crl);
     lookup->crl = crl;
@@ -211,7 +221,8 @@ int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl) {
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup) {
+int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup)
+{
     POSIX_ENSURE_REF(lookup);
     lookup->crl = NULL;
     lookup->status = FINISHED;
