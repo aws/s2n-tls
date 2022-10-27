@@ -265,7 +265,7 @@ int main(int argc, char **argv)
                         case SERVER_NEW_SESSION_TICKET:
                         case SERVER_CERT_STATUS:
                         case SERVER_HELLO_DONE:
-                        case TLS12_ENCRYPTED_EXTENSIONS:
+                        case CLIENT_NPN:
                             FAIL_MSG("Unexpected TLS1.2 message");
                             break;
                     }

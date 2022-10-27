@@ -17,6 +17,10 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_client_hello.c"
 
+/* The server will always prefer to negotiate an application protocol with 
+ * the ALPN extension. This callback wipes the ALPN extension from the client
+ * hello and forces the server to negotiate a protocol using the NPN extension 
+ * instead. */
 static int s2n_wipe_alpn_ext(struct s2n_connection *conn, void *ctx)
 {
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
@@ -52,6 +56,15 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
 
+    /* Set up config that wipes ALPN extension */
+    DEFER_CLEANUP(struct s2n_config *npn_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(npn_config);
+    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(npn_config));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(npn_config, "default"));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(npn_config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_set_protocol_preferences(npn_config, protocols, protocols_count));
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(npn_config, s2n_wipe_alpn_ext, NULL));
+
     EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
@@ -65,7 +78,7 @@ int main(int argc, char **argv)
         client_conn->config->npn_supported = true;
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair = { 0 };
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
@@ -83,7 +96,6 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
     }
@@ -91,16 +103,13 @@ int main(int argc, char **argv)
     /* Client and server both support NPN. Wipe ALPN with the Client Hello callback so only NPN is received.
      * NPN is negotiated and not ALPN. */
     {
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_wipe_alpn_ext, NULL));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, npn_config));
 
         server_conn->config->npn_supported = true;
         client_conn->config->npn_supported = true;
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair = { 0 };
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
@@ -117,17 +126,13 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, NULL, NULL));
     }
 
     /* Client and server both support NPN, however, they have no protocols in common.
      * Connection negotiates client's top protocol. */
     {
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-
         /* Config with different protocols */
         const char *server_protocols[] = { "h2", "h3" };
         const uint8_t server_protocols_count = s2n_array_len(server_protocols);
@@ -144,7 +149,7 @@ int main(int argc, char **argv)
         client_conn->config->npn_supported = true;
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair = { 0 };
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
@@ -161,10 +166,8 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, NULL, NULL));
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

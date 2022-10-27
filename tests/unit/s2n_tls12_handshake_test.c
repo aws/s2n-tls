@@ -478,7 +478,7 @@ int main(int argc, char **argv)
                 OCSP_STATUS | CLIENT_AUTH | WITH_SESSION_TICKET | WITH_NPN;
         const char* expected[] = { "CLIENT_HELLO",
                 "SERVER_HELLO", "SERVER_CERT", "SERVER_CERT_STATUS", "SERVER_KEY", "SERVER_CERT_REQ", "SERVER_HELLO_DONE",
-                "CLIENT_CERT", "CLIENT_KEY", "CLIENT_CERT_VERIFY", "CLIENT_CHANGE_CIPHER_SPEC", "TLS12_ENCRYPTED_EXTENSIONS",
+                "CLIENT_CERT", "CLIENT_KEY", "CLIENT_CERT_VERIFY", "CLIENT_CHANGE_CIPHER_SPEC", "CLIENT_NPN",
                 "CLIENT_FINISHED", "SERVER_NEW_SESSION_TICKET", "SERVER_CHANGE_CIPHER_SPEC", "SERVER_FINISHED",
                 "APPLICATION_DATA" };
 
@@ -496,8 +496,8 @@ int main(int argc, char **argv)
 
     /* Test: A WITH_NPN form of every valid, negotiated handshake exists */
     {
-        uint32_t handshake_type_original, handshake_type_ee;
-        message_type_t *messages_original, *messages_ee;
+        uint32_t handshake_type_original, handshake_type_npn;
+        message_type_t *messages_original, *messages_npn;
 
         for (size_t i = 0; i < valid_tls12_handshakes_size; i++) {
 
@@ -510,26 +510,21 @@ int main(int argc, char **argv)
             }
 
             /* Get the WITH_NPN form of the handshake */
-            handshake_type_ee = handshake_type_original | WITH_NPN;
-            messages_ee = handshakes[handshake_type_ee];
+            handshake_type_npn = handshake_type_original | WITH_NPN;
+            messages_npn = handshakes[handshake_type_npn];
 
-            /* Ignore identical handshakes */
-            if (handshake_type_original == handshake_type_ee) {
-                continue;
-            }
-
-            for (size_t j = 0, j_ee = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_ee < S2N_MAX_HANDSHAKE_LENGTH; j++, j_ee++) {
+            for (size_t j = 0, j_npn = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_npn < S2N_MAX_HANDSHAKE_LENGTH; j++, j_npn++) {
 
                 /* The original handshake cannot contain the Encrypted Extension message */
-                EXPECT_NOT_EQUAL(messages_original[j], TLS12_ENCRYPTED_EXTENSIONS);
+                EXPECT_NOT_EQUAL(messages_original[j], CLIENT_NPN);
 
                 /* Skip the Encrypted Extension message in WITH_NPN handshake */
-                if (messages_ee[j_ee] == TLS12_ENCRYPTED_EXTENSIONS) {
-                    j_ee++;
+                if (messages_npn[j_npn] == CLIENT_NPN) {
+                    j_npn++;
                 }
 
                 /* Otherwise the handshakes must be equivalent */
-                EXPECT_EQUAL(messages_original[j], messages_ee[j_ee]);
+                EXPECT_EQUAL(messages_original[j], messages_npn[j_npn]);
             }
         }
     }

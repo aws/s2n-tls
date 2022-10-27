@@ -62,10 +62,12 @@ static const s2n_extension_type *const client_hello_extensions[] = {
 
         &s2n_client_signature_algorithms_extension,
         &s2n_client_server_name_extension,
+
         /* We MUST process the NPN extension after the ALPN extension
          * because NPN is only negotiated if ALPN is not */
         &s2n_client_alpn_extension,
         &s2n_client_npn_extension,
+
         &s2n_client_status_request_extension,
         &s2n_client_sct_list_extension,
         &s2n_client_max_frag_len_extension,

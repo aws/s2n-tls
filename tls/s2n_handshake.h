@@ -64,7 +64,7 @@ typedef enum {
     CLIENT_CERT_VERIFY,
     CLIENT_CHANGE_CIPHER_SPEC,
     /* Not a standardized message. Defined: https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04 */
-    TLS12_ENCRYPTED_EXTENSIONS,
+    CLIENT_NPN,
     CLIENT_FINISHED,
     SERVER_CHANGE_CIPHER_SPEC,
     SERVER_FINISHED,
