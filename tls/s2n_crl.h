@@ -52,3 +52,4 @@ int s2n_crl_lookup_reject(struct s2n_crl_lookup *lookup);
 
 S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *validator);
 S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s2n_x509_validator *validator);
+S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validator, STACK_OF(X509_CRL) *crl_stack);

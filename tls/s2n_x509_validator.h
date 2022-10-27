@@ -61,7 +61,6 @@ struct s2n_x509_validator {
     uint16_t max_chain_depth;
     STACK_OF(X509) *cert_chain_from_wire;
     int state;
-    STACK_OF(X509_CRL) *crl_stack;
     struct s2n_array *crl_lookup_list;
 };
 

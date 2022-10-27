@@ -87,11 +87,10 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash) {
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_crl_load_crls_from_lookup_list(struct s2n_x509_validator *validator) {
+S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validator, STACK_OF(X509_CRL) *crl_stack) {
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->crl_lookup_list);
-    RESULT_ENSURE_REF(validator->crl_stack);
-    RESULT_ENSURE_REF(validator->store_ctx);
+    RESULT_ENSURE_REF(crl_stack);
 
     uint32_t num_lookups = 0;
     RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
@@ -101,17 +100,15 @@ static S2N_RESULT s2n_crl_load_crls_from_lookup_list(struct s2n_x509_validator *
         RESULT_ENSURE_REF(lookup);
 
         if (lookup->crl == NULL) {
-            /* A CRL was intentionally not returned from the callback. Don't add anything to the store.*/
+            /* A CRL was intentionally not returned from the callback. Don't add anything to the stack*/
             continue;
         }
 
         RESULT_ENSURE_REF(lookup->crl->crl);
-        if (!sk_X509_CRL_push(validator->crl_stack, lookup->crl->crl)) {
+        if (!sk_X509_CRL_push(crl_stack, lookup->crl->crl)) {
             RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
         }
     }
-
-    X509_STORE_CTX_set0_crls(validator->store_ctx, validator->crl_stack);
 
     return S2N_RESULT_OK;
 }
@@ -145,7 +142,6 @@ S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *vali
 
     switch (status) {
         case FINISHED:
-            RESULT_GUARD(s2n_crl_load_crls_from_lookup_list(validator));
             validator->state = READY_TO_VERIFY;
             break;
         case AWAITING_RESPONSE:

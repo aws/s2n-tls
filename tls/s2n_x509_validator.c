@@ -45,6 +45,8 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP*, OCSP_BASICRESP_free);
 /* Time used by default for nextUpdate if none provided in OCSP: 1 hour since thisUpdate. */
 #define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600000000000
 
+DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509_CRL)*, sk_X509_CRL_free);
+
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
 }
@@ -148,8 +150,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->max_chain_depth = DEFAULT_MAX_CHAIN_DEPTH;
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
-    validator->crl_stack = sk_X509_CRL_new_null();
-    validator->crl_lookup_list      = NULL;
+    validator->crl_lookup_list = NULL;
 
     return 0;
 }
@@ -167,8 +168,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     }
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
-    validator->crl_stack = sk_X509_CRL_new_null();
-    validator->crl_lookup_list      = NULL;
+    validator->crl_lookup_list = NULL;
 
     return 0;
 }
@@ -190,11 +190,6 @@ int s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     validator->skip_cert_validation = 0;
     validator->state = UNINIT;
     validator->max_chain_depth = 0;
-    if (validator->crl_stack) {
-        /* Only free the stack itself, since we don't own the CRLs */
-        sk_X509_CRL_free(validator->crl_stack);
-        validator->crl_stack = NULL;
-    }
     if (validator->crl_lookup_list) {
         POSIX_GUARD_RESULT(s2n_array_free(validator->crl_lookup_list));
         validator->crl_lookup_list = NULL;
@@ -402,8 +397,19 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
 
+    DEFER_CLEANUP(STACK_OF(X509_CRL) *crl_stack = NULL, sk_X509_CRL_free_pointer);
+
     if (conn->config->crl_lookup_cb) {
+        crl_stack = sk_X509_CRL_new_null();
+        RESULT_GUARD(s2n_crl_get_crls_from_lookup_list(validator, crl_stack));
+
+        /* Set the CRL list that the libcrypto will use to validate certificates with */
+        X509_STORE_CTX_set0_crls(validator->store_ctx, crl_stack);
+
+        /* Enable CRL validation for certificates in X509_verify_cert */
         X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
+
+        /* Enable CRL validation for all certificates, not just the leaf */
         X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL);
     }
 
