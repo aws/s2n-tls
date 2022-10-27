@@ -202,7 +202,7 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t 
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_accept(struct s2n_crl_lookup *lookup, struct s2n_crl *crl) {
+int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl) {
     POSIX_ENSURE_REF(lookup);
     POSIX_ENSURE_REF(crl);
     lookup->crl = crl;
@@ -210,7 +210,7 @@ int s2n_crl_lookup_accept(struct s2n_crl_lookup *lookup, struct s2n_crl *crl) {
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_reject(struct s2n_crl_lookup *lookup) {
+int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup) {
     POSIX_ENSURE_REF(lookup);
     lookup->crl = NULL;
     lookup->status = FINISHED;

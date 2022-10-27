@@ -49,9 +49,9 @@ static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context
 
     struct s2n_crl *crl = crl_data->crls[lookup->cert_idx];
     if (crl == NULL) {
-        POSIX_GUARD(s2n_crl_lookup_reject(lookup));
+        POSIX_GUARD(s2n_crl_lookup_ignore(lookup));
     } else {
-        POSIX_GUARD(s2n_crl_lookup_accept(lookup, crl));
+        POSIX_GUARD(s2n_crl_lookup_set(lookup, crl));
     }
     return 0;
 }
@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
         struct s2n_crl_lookup *lookup = NULL;
         EXPECT_OK(s2n_array_get(validator.crl_lookup_list, 0, (void **) &lookup));
         EXPECT_NOT_NULL(lookup);
-        EXPECT_SUCCESS(s2n_crl_lookup_accept(lookup, root_crl));
+        EXPECT_SUCCESS(s2n_crl_lookup_set(lookup, root_crl));
         for (int i = 0; i < 10; ++i) {
             EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                     &pkey_type, &public_key_out), S2N_ERR_ASYNC_BLOCKED);
@@ -443,7 +443,7 @@ int main(int argc, char *argv[])
         lookup = NULL;
         EXPECT_OK(s2n_array_get(validator.crl_lookup_list, 1, (void **) &lookup));
         EXPECT_NOT_NULL(lookup);
-        EXPECT_SUCCESS(s2n_crl_lookup_accept(lookup, intermediate_crl));
+        EXPECT_SUCCESS(s2n_crl_lookup_set(lookup, intermediate_crl));
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                 &public_key_out));
     }
@@ -674,12 +674,12 @@ int main(int argc, char *argv[])
         struct s2n_crl_lookup lookup = { 0 };
 
         lookup.status = AWAITING_RESPONSE;
-        EXPECT_SUCCESS(s2n_crl_lookup_accept(&lookup, root_crl));
+        EXPECT_SUCCESS(s2n_crl_lookup_set(&lookup, root_crl));
         EXPECT_TRUE(lookup.status == FINISHED);
         EXPECT_NOT_NULL(lookup.crl);
 
         lookup.status = AWAITING_RESPONSE;
-        EXPECT_SUCCESS(s2n_crl_lookup_reject(&lookup));
+        EXPECT_SUCCESS(s2n_crl_lookup_ignore(&lookup));
         EXPECT_TRUE(lookup.status == FINISHED);
         EXPECT_NULL(lookup.crl);
     }
