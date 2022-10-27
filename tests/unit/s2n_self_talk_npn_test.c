@@ -55,6 +55,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
+    config->npn_supported = true;
 
     /* Set up config that wipes ALPN extension */
     DEFER_CLEANUP(struct s2n_config *npn_config = s2n_config_new(), s2n_config_ptr_free);
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(npn_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(npn_config, protocols, protocols_count));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(npn_config, s2n_wipe_alpn_ext, NULL));
+    npn_config->npn_supported = true;
 
     EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
@@ -73,9 +75,6 @@ int main(int argc, char **argv)
     {
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-
-        server_conn->config->npn_supported = true;
-        client_conn->config->npn_supported = true;
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
@@ -104,9 +103,6 @@ int main(int argc, char **argv)
      * NPN is negotiated and not ALPN. */
     {
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, npn_config));
-
-        server_conn->config->npn_supported = true;
-        client_conn->config->npn_supported = true;
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
@@ -142,11 +138,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, "default"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(different_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(different_config, server_protocols, server_protocols_count));
-        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(different_config, s2n_wipe_alpn_ext, NULL));        
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(different_config, s2n_wipe_alpn_ext, NULL));
+        different_config->npn_supported = true;
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, different_config));
-
-        server_conn->config->npn_supported = true;
-        client_conn->config->npn_supported = true;
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
