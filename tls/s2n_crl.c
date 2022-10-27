@@ -191,6 +191,7 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
 }
 
 int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash) {
+    POSIX_ENSURE_REF(lookup);
     POSIX_ENSURE_REF(lookup->cert);
     POSIX_ENSURE_REF(hash);
 

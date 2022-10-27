@@ -42,9 +42,7 @@ struct crl_lookup_data {
 
 static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context) {
     struct crl_lookup_data *crl_data = (struct crl_lookup_data*) context;
-
     crl_data->callback_invoked_count += 1;
-
     crl_data->certs[lookup->cert_idx] = lookup->cert;
 
     struct s2n_crl *crl = crl_data->crls[lookup->cert_idx];
@@ -53,6 +51,7 @@ static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context
     } else {
         POSIX_GUARD(s2n_crl_lookup_set(lookup, crl));
     }
+
     return 0;
 }
 

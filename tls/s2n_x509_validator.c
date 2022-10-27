@@ -407,10 +407,12 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         X509_STORE_CTX_set0_crls(validator->store_ctx, crl_stack);
 
         /* Enable CRL validation for certificates in X509_verify_cert */
-        X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK);
+        RESULT_GUARD_OSSL(X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK),
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
         /* Enable CRL validation for all certificates, not just the leaf */
-        X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL);
+        RESULT_GUARD_OSSL(X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL),
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
     }
 
     uint64_t current_sys_time = 0;
