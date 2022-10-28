@@ -166,7 +166,6 @@ S2N_RESULT s2n_ktls_tx_keys(
         uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN],
         uint8_t key[16]
 ) {
-    RESULT_ENSURE_EQ(conn->mode, S2N_CLIENT);
     RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS12);
 
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
@@ -204,7 +203,8 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     if (conn->mode == S2N_SERVER) {
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number, conn->server_key));
     } else {
-        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, conn->client_key));
+        /* RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, conn->client_key)); */
+        return S2N_RESULT_ERROR;
     }
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
