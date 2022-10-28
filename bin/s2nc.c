@@ -527,7 +527,7 @@ int main(int argc, char *const *argv)
             );
         }
 
-        GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed");
+        /* GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed"); */
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 

@@ -96,6 +96,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
+    config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
