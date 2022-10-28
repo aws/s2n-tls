@@ -162,8 +162,8 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd) {
 S2N_RESULT s2n_ktls_tx_keys(
         struct s2n_connection *conn,
         int fd,
-        uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN],
-        uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN],
+        uint8_t implicit_iv[S2N_TLS_MAX_IV_LEN],
+        uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN],
         uint8_t key[16]
 ) {
     RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS12);
@@ -172,14 +172,9 @@ S2N_RESULT s2n_ktls_tx_keys(
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
     crypto_info.info.version = TLS_1_2_VERSION;
 
-    RESULT_ENSURE_EQ(sizeof(conn->client_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-
-    RESULT_CHECKED_MEMCPY(crypto_info.salt, client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info.iv, client_implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info.rec_seq, client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-
-    /* uint8_t temp_c_key[16] = {0}; */
-    /* RESULT_CHECKED_MEMCPY(temp_c_key, conn->c_key, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
+    RESULT_CHECKED_MEMCPY(crypto_info.salt, implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info.rec_seq, sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
 
     RESULT_CHECKED_MEMCPY(crypto_info.key, key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
@@ -199,12 +194,12 @@ S2N_RESULT s2n_ktls_tx_keys(
 S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     RESULT_ENSURE_REF(conn);
 
-    // / TODO combine tx_keys fn and simply pass the key, iv, salt
     if (conn->mode == S2N_SERVER) {
+        RESULT_ENSURE_EQ(sizeof(conn->server_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number, conn->server_key));
     } else {
-        /* RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, conn->client_key)); */
-        return S2N_RESULT_ERROR;
+        RESULT_ENSURE_EQ(sizeof(conn->client_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, conn->client_key));
     }
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));

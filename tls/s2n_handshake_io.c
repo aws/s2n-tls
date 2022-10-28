@@ -1477,7 +1477,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         }
     }
 
-    /* POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true); */
+    POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true);
 
     *blocked = S2N_NOT_BLOCKED;
 
