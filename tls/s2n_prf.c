@@ -874,11 +874,11 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Make the client key */
     POSIX_GUARD(s2n_prf_make_client_key(conn, &key_material));
-    POSIX_CHECKED_MEMCPY(conn->c_key, key_material.blob.data, 16);
+    POSIX_CHECKED_MEMCPY(conn->client_key, key_material.blob.data, 16);
 
     /* Make the server key */
     POSIX_GUARD(s2n_prf_make_server_key(conn, &key_material));
-    POSIX_CHECKED_MEMCPY(conn->s_key, key_material.blob.data, 16);
+    POSIX_CHECKED_MEMCPY(conn->server_key, key_material.blob.data, 16);
 
     /* Composite CBC does MAC inside the cipher, pass it the MAC key.
      * Must happen after setting encryption/decryption keys.
