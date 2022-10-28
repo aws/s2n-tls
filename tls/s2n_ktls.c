@@ -235,30 +235,33 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
     // / TODO combine tx_keys fn and simply pass the key, iv, salt
     if (conn->mode == S2N_SERVER) {
+        /* return S2N_RESULT_ERROR; */
       RESULT_GUARD(s2n_ktls_server_tx_keys(conn, fd, false));
     } else {
-      RESULT_GUARD(s2n_ktls_client_tx_keys(conn, fd, false));
+        RESULT_GUARD(s2n_ktls_client_tx_keys(conn, fd, false));
     }
 
-    {
-        /* should be able to send plaintext since we are using ktls */
-        const char *msg = "hello world\n";
-        int ret_val = write(fd, msg, strlen(msg));
-        if (ret_val < 0) {
-            fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno));
-            return S2N_RESULT_ERROR;
-        } else {
-            fprintf(stdout, "ktls wrote hello world success---------- \n");
-        }
-    }
+    /* { */
+    /*     /1* should be able to send plaintext since we are using ktls *1/ */
+    /*     const char *msg = "hello world\n"; */
+    /*     int ret_val = write(fd, msg, strlen(msg)); */
+    /*     if (ret_val < 0) { */
+    /*         fprintf(stderr, "ktls write failed 5 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
+    /*         return S2N_RESULT_ERROR; */
+    /*     } else { */
+    /*         fprintf(stdout, "ktls wrote hello world success---------- \n"); */
+    /*     } */
+    /* } */
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
-    int s2n_tls_alert_level_fatal = 2;
-    uint8_t alert[2];
-    alert[0] = s2n_tls_alert_level_fatal;
-    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
-    RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH));
+    /* int s2n_tls_alert_level_fatal = 2; */
+    /* uint8_t alert[2]; */
+    /* alert[0] = s2n_tls_alert_level_fatal; */
+    /* alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY; */
+    /* RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH)); */
+
+    conn->ktls_enabled_send_io = true;
 
     return S2N_RESULT_OK;
 }
@@ -301,7 +304,6 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     /* set keys */
     RESULT_GUARD(s2n_ktls_set_keys(conn, fd));
 
-    conn->ktls_enabled_send_io = true;
     /* conn->ktls_enabled_recv_io = true; */
 
     return S2N_RESULT_OK;
