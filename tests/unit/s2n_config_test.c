@@ -22,9 +22,10 @@
 
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_npn.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
+
+#include "unstable/npn.h"
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
@@ -549,12 +550,12 @@ int main(int argc, char **argv)
         EXPECT_FALSE(config->npn_supported);
 
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_npn(NULL, 1), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_npn(NULL, true), S2N_ERR_NULL);
 
         /* Set and unset */
-        EXPECT_SUCCESS(s2n_config_set_npn(config, 1));
+        EXPECT_SUCCESS(s2n_config_set_npn(config, true));
         EXPECT_TRUE(config->npn_supported);
-        EXPECT_SUCCESS(s2n_config_set_npn(config, 0));
+        EXPECT_SUCCESS(s2n_config_set_npn(config, false));
         EXPECT_FALSE(config->npn_supported);
     }
 
