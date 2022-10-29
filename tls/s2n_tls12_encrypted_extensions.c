@@ -17,9 +17,7 @@
 #include "utils/s2n_safety.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_npn.h"
-
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_extension_list.h"
 
 int s2n_tls12_encrypted_extensions_send(struct s2n_connection *conn)
 {

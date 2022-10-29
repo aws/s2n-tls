@@ -22,15 +22,14 @@
  *
  * The Next Protocol Negotiation Extension, or NPN, was an RFC proposal to
  * negotiate an application protocol. This proposal was never standardized, and
- * it was eventually replaced with the ALPN Extension. Unfortunately, an early
- * draft version of the NPN Extension was implemented in several TLS libraries.
- * Now, clients and servers using older TLS implementations may require this 
- * extension in order to connect.
+ * it was eventually replaced with the ALPN Extension. However, an early draft
+ * version of the NPN Extension was implemented in Openssl.
+ * Now, OpenSSL clients and servers may require this extension in order to connect.
  *
  * s2n-tls supports NPN to make it easier for users whose peers require this
  * extension, but s2n-tls does NOT recommend its use. The specific draft version
  * supported is https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-03,
- * which provides interoperability between OpenSSL.
+ * which provides interoperability with OpenSSL.
  */
 
 /**
