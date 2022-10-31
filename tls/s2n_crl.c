@@ -198,6 +198,47 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     return S2N_RESULT_OK;
 }
 
+int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx) {
+    /* If Openssl would have returned successfully, return success. */
+    if (default_ossl_ret > 0) {
+        return default_ossl_ret;
+    }
+
+    int err = X509_STORE_CTX_get_error(ctx);
+
+    switch (err) {
+        case X509_V_ERR_UNABLE_TO_GET_CRL: {
+            X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
+            if (cert == NULL) {
+                return default_ossl_ret;
+            }
+
+            /* Openssl tries to find CRLs for root certificates, which usually succeeds because the CRL of the n - 1
+             * certificate has the same subject name as the root certificate, since the root is self-signed. The root
+             * certificate, however, will never have a CRL. So, ignore all CRL lookup errors for self-signed
+             * certificates. */
+            unsigned long subject_hash = X509_subject_name_hash(cert);
+            unsigned long issuer_hash = X509_issuer_name_hash(cert);
+            if (subject_hash == issuer_hash) {
+                return 1;
+            }
+
+            crl_validate_option *validate_option = (crl_validate_option *) X509_get_ex_data(cert, 0);
+            if (validate_option == NULL) {
+                return default_ossl_ret;
+            }
+
+            if (*validate_option == CRL_DO_NOT_VALIDATE) {
+                return 1;
+            }
+
+            return default_ossl_ret;
+        }
+        default:
+            return default_ossl_ret;
+    }
+}
+
 int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash)
 {
     POSIX_ENSURE_REF(lookup);
@@ -212,12 +253,23 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t 
     return S2N_SUCCESS;
 }
 
+int s2n_crl_lookup_get_cert_index(struct s2n_crl_lookup *lookup, uint16_t *cert_index) {
+    POSIX_ENSURE_REF(lookup);
+    *cert_index = lookup->cert_idx;
+    return S2N_SUCCESS;
+}
+
 int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl)
 {
     POSIX_ENSURE_REF(lookup);
     POSIX_ENSURE_REF(crl);
     lookup->crl = crl;
     lookup->status = FINISHED;
+
+    POSIX_ENSURE_REF(lookup->cert);
+    lookup->validate_option = CRL_VALIDATE;
+    POSIX_GUARD_OSSL(X509_set_ex_data(lookup->cert, 0, &lookup->validate_option), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
     return S2N_SUCCESS;
 }
 
@@ -226,5 +278,22 @@ int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup)
     POSIX_ENSURE_REF(lookup);
     lookup->crl = NULL;
     lookup->status = FINISHED;
+
+    POSIX_ENSURE_REF(lookup->cert);
+    lookup->validate_option = CRL_VALIDATE;
+    POSIX_GUARD_OSSL(X509_set_ex_data(lookup->cert, 0, &lookup->validate_option), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_crl_lookup_do_not_validate(struct s2n_crl_lookup *lookup) {
+    POSIX_ENSURE_REF(lookup);
+    lookup->crl = NULL;
+    lookup->status = FINISHED;
+
+    POSIX_ENSURE_REF(lookup->cert);
+    lookup->validate_option = CRL_DO_NOT_VALIDATE;
+    POSIX_GUARD_OSSL(X509_set_ex_data(lookup->cert, 0, &lookup->validate_option), S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
     return S2N_SUCCESS;
 }

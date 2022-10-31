@@ -38,13 +38,23 @@ struct crl_lookup_data {
     struct s2n_crl *crls[5];
     X509 *certs[5];
     uint8_t callback_invoked_count;
+    crl_validate_option validate_options[5];
 };
 
 static int crl_lookup_test_callback(struct s2n_crl_lookup *lookup, void *context)
 {
+    uint16_t cert_idx = 0;
+    POSIX_GUARD(s2n_crl_lookup_get_cert_index(lookup, &cert_idx));
+
     struct crl_lookup_data *crl_data = (struct crl_lookup_data*) context;
     crl_data->callback_invoked_count += 1;
-    crl_data->certs[lookup->cert_idx] = lookup->cert;
+    crl_data->certs[cert_idx] = lookup->cert;
+    crl_validate_option validate_option = crl_data->validate_options[cert_idx];
+
+    if (validate_option == CRL_DO_NOT_VALIDATE) {
+        POSIX_GUARD(s2n_crl_lookup_do_not_validate(lookup));
+        return 0;
+    }
 
     struct s2n_crl *crl = crl_data->crls[lookup->cert_idx];
     if (crl == NULL) {
@@ -213,6 +223,45 @@ int main(int argc, char *argv[])
         }
     }
 
+    /* CRL validation succeeds for single certificate in the chain */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "root"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_ROOT_CERT, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key_out));
+        EXPECT_TRUE(data.callback_invoked_count == 1);
+    }
+
     /* CRL validation errors when a leaf certificate is revoked */
     {
         DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
@@ -336,6 +385,95 @@ int main(int argc, char *argv[])
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CRL_LOOKUP_FAILED);
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+
+    /* CRL validation succeeds when a revoked leaf certificate is marked as DO_NOT_VALIDATE */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_crl;
+        data.crls[1] = root_crl;
+
+        /* return s2n_crl_lookup_do_not_validate for the intermediate certificate */
+        data.validate_options[0] = CRL_DO_NOT_VALIDATE;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_LEAF_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key_out));
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* CRL validation succeeds when a revoked intermediate certificate is marked as DO_NOT_VALIDATE */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_revoked_crl;
+        data.crls[1] = root_crl;
+
+        /* return s2n_crl_lookup_do_not_validate for the intermediate certificate */
+        data.validate_options[1] = CRL_DO_NOT_VALIDATE;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_INTERMEDIATE_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key_out));
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
     }
 
@@ -673,19 +811,43 @@ int main(int argc, char *argv[])
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
     }
 
-    /* Calling s2n_crl_lookup return functions correctly set context fields */
+    /* Calling s2n_crl_lookup return functions correctly set lookup fields */
     {
         struct s2n_crl_lookup lookup = { 0 };
 
+        /* The crl_lookup async return functions require an internal X509 to be set. Set an arbitrary
+         * X509 created by s2n_x509_validator_validate_cert_chain in a previous test. */
+        EXPECT_TRUE(sk_X509_num(received_lookup_data_validator.cert_chain_from_wire) > 1);
+        X509 *cert = sk_X509_value(received_lookup_data_validator.cert_chain_from_wire, 0);
+        EXPECT_NOT_NULL(cert);
+        lookup.cert = cert;
+
         lookup.status = AWAITING_RESPONSE;
+        crl_validate_option *validate_option = NULL;
         EXPECT_SUCCESS(s2n_crl_lookup_set(&lookup, root_crl));
         EXPECT_TRUE(lookup.status == FINISHED);
         EXPECT_NOT_NULL(lookup.crl);
+        validate_option = (crl_validate_option *) X509_get_ex_data(cert, 0);
+        EXPECT_NOT_NULL(validate_option);
+        EXPECT_EQUAL(*validate_option, CRL_VALIDATE);
 
         lookup.status = AWAITING_RESPONSE;
+        validate_option = NULL;
         EXPECT_SUCCESS(s2n_crl_lookup_ignore(&lookup));
         EXPECT_TRUE(lookup.status == FINISHED);
         EXPECT_NULL(lookup.crl);
+        validate_option = (crl_validate_option *) X509_get_ex_data(cert, 0);
+        EXPECT_NOT_NULL(validate_option);
+        EXPECT_EQUAL(*validate_option, CRL_VALIDATE);
+
+        lookup.status = AWAITING_RESPONSE;
+        validate_option = NULL;
+        EXPECT_SUCCESS(s2n_crl_lookup_do_not_validate(&lookup));
+        EXPECT_TRUE(lookup.status == FINISHED);
+        EXPECT_NULL(lookup.crl);
+        validate_option = (crl_validate_option *) X509_get_ex_data(cert, 0);
+        EXPECT_NOT_NULL(validate_option);
+        EXPECT_EQUAL(*validate_option, CRL_DO_NOT_VALIDATE);
     }
 
     /* Certificate issuer hash is retrieved successfully */
@@ -735,6 +897,21 @@ int main(int argc, char *argv[])
 
         /* If the certificate and CRL were issued by different CAs, their hashes should not match */
         EXPECT_TRUE(leaf_cert_hash != root_crl_hash);
+    }
+
+    /* Certificate index is retrieved successfully */
+    {
+        struct s2n_crl_lookup lookup = { 0 };
+
+        for (int i = 0; i < 10; i++) {
+            int cert_idx = i * i;
+            lookup.cert_idx = cert_idx;
+
+            uint16_t retrieved_cert_index = 0;
+            EXPECT_SUCCESS(s2n_crl_lookup_get_cert_index(&lookup, &retrieved_cert_index));
+
+            EXPECT_TRUE(retrieved_cert_index == cert_idx);
+        }
     }
 
     END_TEST();
