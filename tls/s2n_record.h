@@ -41,11 +41,12 @@
 
 /*
  * The minimum amount of space we need to reserve for a message
- * fragment. S2N chooses not to fragment alert messages (of
- * length 2) in order to ensure that we maximize interoperablity.
+ * fragment. We cannot fragment alert messages because not all peer
+ * implementations accept them, even in TLS1.2 where it is not
+ * disallowed by RFC5246.
  * 
  * Specificity we found that GnuTLS rejects fragmented alert messages.
- * This is a simple solution for the Alert attack, although it is
+ * This is a simple solution for the Alert Attack, although it is
  * strictly speaking a violation of the standard.
  */
 #define S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH 2
