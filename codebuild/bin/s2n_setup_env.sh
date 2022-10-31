@@ -53,6 +53,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${CTVERIF_INSTALL_DIR:=$TEST_DEPS_DIR/ctverif}"
 : "${SIDETRAIL_INSTALL_DIR:=$TEST_DEPS_DIR/sidetrail}"
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
+: "${APACHE2_INSTALL_DIR:=$TEST_DEPS_DIR/apache2}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
 
 # Set some environment vars for OS, Distro and architecture.

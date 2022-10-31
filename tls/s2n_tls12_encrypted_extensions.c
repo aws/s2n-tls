@@ -16,9 +16,8 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include "stuffer/s2n_stuffer.h"
-
+#include "tls/extensions/s2n_npn.h"
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_extension_list.h"
 
 int s2n_tls12_encrypted_extensions_send(struct s2n_connection *conn)
 {
@@ -26,7 +25,7 @@ int s2n_tls12_encrypted_extensions_send(struct s2n_connection *conn)
     POSIX_ENSURE(conn->actual_protocol_version < S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
     struct s2n_stuffer *out = &conn->handshake.io;
-    POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, conn, out));
+    POSIX_GUARD(s2n_npn_encrypted_extension.send(conn, out));
 
     POSIX_GUARD_RESULT(s2n_crypto_parameters_switch(conn));
 
@@ -39,7 +38,7 @@ int s2n_tls12_encrypted_extensions_recv(struct s2n_connection *conn)
     POSIX_ENSURE(conn->actual_protocol_version < S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
     struct s2n_stuffer *in = &conn->handshake.io;
-    POSIX_GUARD(s2n_extension_list_recv(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12, conn, in));
+    POSIX_GUARD(s2n_npn_encrypted_extension.recv(conn, in));
 
     return S2N_SUCCESS;
 }
