@@ -594,7 +594,7 @@ int main(int argc, char *const *argv)
         );
     }
 
-    /* GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed"); */
+    GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed");
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
 
