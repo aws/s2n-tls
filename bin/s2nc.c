@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
@@ -41,7 +42,9 @@
 #define OPT_SEND_FILE 1002
 #define OPT_RENEG 1003
 #define OPT_NPN 1004
-#define OPT_BUFFERED_SEND 1005
+#define OPT_PREFER_LOW_LATENCY 1005
+#define OPT_PREFER_THROUGHPUT 1006
+#define OPT_BUFFERED_SEND 1007
 
 void usage()
 {
@@ -114,6 +117,10 @@ void usage()
     fprintf(stderr, "\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
+    fprintf(stderr, "  --prefer-low-latency\n");
+    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
+    fprintf(stderr, "  --prefer-throughput\n");
+    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
     exit(1);
 }
 
@@ -307,6 +314,8 @@ int main(int argc, char *const *argv)
     struct reneg_req_ctx reneg_ctx = { 0 };
     uint32_t send_buffer_byte_size = 0;
     int sscanf_matched_items;
+    bool prefer_low_latency = false;
+    bool prefer_throughput = false;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -336,6 +345,9 @@ int main(int argc, char *const *argv)
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
         {"renegotiation", required_argument, 0, OPT_RENEG},
+        {"buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
+        {"prefer-low-latency", no_argument, NULL, OPT_PREFER_LOW_LATENCY},
+        {"prefer-throughput", no_argument, NULL, OPT_PREFER_THROUGHPUT},
         { 0 },
     };
 
@@ -456,6 +468,12 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
             break;
+        case OPT_PREFER_LOW_LATENCY:
+            prefer_low_latency = true;
+            break;
+        case OPT_PREFER_THROUGHPUT:
+            prefer_throughput = true;
+            break;
         case '?':
         default:
             usage();
@@ -505,6 +523,11 @@ int main(int argc, char *const *argv)
         exit(1);
 #endif
 #endif
+    }
+
+    if (prefer_low_latency && prefer_throughput) {
+        fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
+        exit(1);
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
@@ -633,6 +656,14 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
+
+        if (prefer_throughput) {
+            GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
+        }
+
+        if (prefer_low_latency) {
+            GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
+        }
 
         if (early_data) {
             if (!session_ticket) {

@@ -23,6 +23,12 @@ SEND_BUFFER_SIZES = [
     SEND_BUFFER_SIZE_HUGE
 ]
 
+FRAGMENT_PREFERENCE = [
+    None,
+    "--prefer-low-latency",
+    "--prefer-throughput"
+]
+
 TEST_CERTS = [
     Certificates.RSA_2048_SHA256,
     Certificates.RSA_PSS_2048_SHA256,
@@ -62,7 +68,7 @@ def is_subsequence(s, t):
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
-@pytest.mark.parametrize("fragment_preference", [None, "--prefer-low-latency", "--prefer-throughput"], ids=get_parameter_name)
+@pytest.mark.parametrize("fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name)
 def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provider, protocol, certificate, buffer_size, fragment_preference):
     # Communication Timeline
     # Client [S2N|OpenSSL|GnuTLS]  | Server [S2N]
@@ -96,9 +102,6 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         insecure=True,
         protocol=protocol)
 
-    extra_flags = ['--buffered-send', buffer_size] + \
-        ([] if fragment_preference is None else [fragment_preference])
-
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
         port=port,
@@ -108,7 +111,8 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         protocol=protocol,
         key=certificate.key,
         cert=certificate.cert,
-        extra_flags=extra_flags)
+        extra_flags=['--buffered-send', buffer_size] +
+            ([] if fragment_preference is None else [fragment_preference]))
 
     server = managed_process(provider, server_options, timeout=30, send_marker=[starting_server_send_marker])
     client = managed_process(other_provider, client_options, timeout=30,
@@ -132,7 +136,8 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
-def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provider, protocol, certificate, buffer_size):
+@pytest.mark.parametrize("fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name)
+def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provider, protocol, certificate, buffer_size, fragment_preference):
     # Communication Timeline
     # Client [S2N]                 | Server [S2N|OpenSSL]
     # Handshake                    | Handshake
@@ -153,7 +158,8 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         data_to_send=client_data_to_send,
         insecure=True,
         protocol=protocol,
-        extra_flags=['--buffered-send', buffer_size])
+        extra_flags=['--buffered-send', buffer_size] +
+            ([] if fragment_preference is None else [fragment_preference]))
 
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
