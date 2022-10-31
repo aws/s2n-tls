@@ -31,11 +31,18 @@ typedef enum {
     FINISHED
 } crl_lookup_callback_status;
 
+
+typedef enum {
+    CRL_VALIDATE,
+    CRL_DO_NOT_VALIDATE
+} crl_validate_option;
+
 struct s2n_crl_lookup {
     crl_lookup_callback_status status;
     X509 *cert;
     uint16_t cert_idx;
     struct s2n_crl *crl;
+    crl_validate_option validate_option;
 };
 
 typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *context);
@@ -47,9 +54,12 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
 int s2n_crl_free(struct s2n_crl **crl);
 int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
 int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash);
+int s2n_crl_lookup_get_cert_index(struct s2n_crl_lookup *lookup, uint16_t *cert_index);
 int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl);
 int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup);
+int s2n_crl_lookup_do_not_validate(struct s2n_crl_lookup *lookup);
 
 S2N_RESULT s2n_crl_handle_lookup_callback_result(struct s2n_x509_validator *validator);
 S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s2n_x509_validator *validator);
 S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validator, STACK_OF(X509_CRL) *crl_stack);
+int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx);
