@@ -1465,7 +1465,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
 
     /* POSIX_ENSURE_EQ(conn->config->ktls_requested, true); */
-    POSIX_ENSURE_EQ(conn->managed_send_io, true);
+    /* POSIX_ENSURE_EQ(conn->managed_send_io, true); */
 
     /* ensure that user requested ktls, and has not set custom IO */
     if (conn->config->ktls_requested && conn->managed_send_io) {

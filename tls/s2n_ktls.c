@@ -252,7 +252,7 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_EQ(conn->config->ktls_requested, true);
 
-    RESULT_ENSURE_EQ(conn->managed_send_io, true);
+    /* RESULT_ENSURE_EQ(conn->managed_send_io, true); */
     /* RESULT_ENSURE_EQ(conn->managed_recv_io, true); */
 
     /* should not be called twice */
