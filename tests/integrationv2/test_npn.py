@@ -26,17 +26,7 @@ PROTOCOL_LIST = 'http/1.1,h2,h3'
 PROTOCOL_LIST_ALT_ORDER = 'h2,h3,http/1.1'
 PROTOCOL_LIST_NO_OVERLAP = 'spdy'
 
-
-"""
-The s2n-tls client successfully negotiates an application protocol using NPN.
-"""
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2n_client_npn(managed_process, cipher, curve, certificate, protocol, provider):
+def s2n_client_npn_handshake(managed_process, cipher, curve, certificate, protocol, provider, server_list):
     options = ProviderOptions(
         port=next(available_ports),
         cipher=cipher,
@@ -55,10 +45,25 @@ def test_s2n_client_npn(managed_process, cipher, curve, certificate, protocol, p
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
     # Flags to turn on NPN for OpenSSL server
-    server_options.extra_flags = ['-nextprotoneg', PROTOCOL_LIST]
+    server_options.extra_flags = ['-nextprotoneg', server_list]
 
     server = managed_process(provider, server_options, timeout=5)
-    client = managed_process(S2N, client_options, timeout=5)
+    s2n_client = managed_process(S2N, client_options, timeout=5)
+    
+    return (s2n_client, server)
+
+"""
+The s2n-tls client successfully negotiates an application protocol using NPN.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+def test_s2n_client_npn(managed_process, cipher, curve, certificate, protocol, provider):
+    s2n_client, server = s2n_client_npn_handshake(managed_process, cipher, curve, certificate, protocol, provider, \
+        PROTOCOL_LIST)
 
     expected_protocol = 'http/1.1'
 
@@ -66,7 +71,7 @@ def test_s2n_client_npn(managed_process, cipher, curve, certificate, protocol, p
         results.assert_success()
         assert to_bytes(OPENSSL_SERVER_NPN_MARKER + expected_protocol) in results.stdout
 
-    for results in client.get_results():
+    for results in s2n_client.get_results():
         results.assert_success()
         assert to_bytes(S2N_NPN_MARKER) in results.stdout
         assert to_bytes(S2N_APPLICATION_MARKER + expected_protocol) in results.stdout
@@ -81,28 +86,8 @@ The s2n-tls client chooses a server-preferred protocol.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_npn_server_preference(managed_process, cipher, curve, certificate, protocol, provider):
-    options = ProviderOptions(
-        port=next(available_ports),
-        cipher=cipher,
-        curve=curve,
-        key=certificate.key,
-        cert=certificate.cert,
-        protocol=protocol,
-        insecure=True,
-    )
-
-    client_options = copy.copy(options)
-    client_options.mode = Provider.ClientMode
-    # Flags to turn on NPN for s2nc
-    client_options.extra_flags = ['--alpn', PROTOCOL_LIST, '--npn']
-
-    server_options = copy.copy(options)
-    server_options.mode = Provider.ServerMode
-    # Flags to turn on NPN for OpenSSL server
-    server_options.extra_flags = ['-nextprotoneg', PROTOCOL_LIST_ALT_ORDER]
-
-    server = managed_process(provider, server_options, timeout=5)
-    client = managed_process(S2N, client_options, timeout=5)
+    s2n_client, server = s2n_client_npn_handshake(managed_process, cipher, curve, certificate, protocol, provider, \
+        PROTOCOL_LIST_ALT_ORDER)
 
     expected_protocol = 'h2'
 
@@ -110,7 +95,7 @@ def test_s2n_client_npn_server_preference(managed_process, cipher, curve, certif
         results.assert_success()
         assert to_bytes(OPENSSL_SERVER_NPN_MARKER + expected_protocol) in results.stdout
 
-    for results in client.get_results():
+    for results in s2n_client.get_results():
         results.assert_success()
         assert to_bytes(S2N_NPN_MARKER) in results.stdout
         assert to_bytes(S2N_APPLICATION_MARKER + expected_protocol) in results.stdout
@@ -125,28 +110,8 @@ The s2n-tls client chooses its preferred protocol since there is no overlap.
 @pytest.mark.parametrize("protocol", TLS_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_npn_no_overlap(managed_process, cipher, curve, certificate, protocol, provider):
-    options = ProviderOptions(
-        port=next(available_ports),
-        cipher=cipher,
-        curve=curve,
-        key=certificate.key,
-        cert=certificate.cert,
-        protocol=protocol,
-        insecure=True,
-    )
-
-    client_options = copy.copy(options)
-    client_options.mode = Provider.ClientMode
-    # Flags to turn on NPN for s2nc
-    client_options.extra_flags = ['--alpn', PROTOCOL_LIST, '--npn']
-
-    server_options = copy.copy(options)
-    server_options.mode = Provider.ServerMode
-    # Flags to turn on NPN for OpenSSL server
-    server_options.extra_flags = ['-nextprotoneg', PROTOCOL_LIST_NO_OVERLAP]
-
-    server = managed_process(provider, server_options, timeout=5)
-    client = managed_process(S2N, client_options, timeout=5)
+    s2n_client, server = s2n_client_npn_handshake(managed_process, cipher, curve, certificate, protocol, provider, \
+        PROTOCOL_LIST_NO_OVERLAP)
 
     expected_protocol = 'http/1.1'
 
@@ -154,7 +119,7 @@ def test_s2n_client_npn_no_overlap(managed_process, cipher, curve, certificate, 
         results.assert_success()
         assert to_bytes(OPENSSL_SERVER_NPN_MARKER + expected_protocol) in results.stdout
 
-    for results in client.get_results():
+    for results in s2n_client.get_results():
         results.assert_success()
         assert to_bytes(S2N_NPN_MARKER) in results.stdout
         assert to_bytes(S2N_APPLICATION_MARKER + expected_protocol) in results.stdout

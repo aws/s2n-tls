@@ -107,7 +107,7 @@ void usage()
                     "    reject: Reject all server requests for a new handshake\n"
                     "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
     fprintf(stderr, "  --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The alpn option MUST be used with this option to signal the protocols supported."); 
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "\n");
     exit(1);
 }

@@ -132,6 +132,9 @@ void usage()
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
     fprintf(stderr, "\n Options:\n\n");
+    fprintf(stderr, "  -a [protocol]\n");
+    fprintf(stderr, "  --alpn [protocol]\n");
+    fprintf(stderr, "    Sets a single application protocol supported by this server.\n");
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
@@ -191,7 +194,7 @@ void usage()
     fprintf(stderr, "  -E, --max-early-data \n");
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -N --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The alpn option MUST be used with this option to signal the protocols supported."); 
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
