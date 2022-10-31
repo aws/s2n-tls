@@ -501,7 +501,6 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(premaster_secret);
 
     struct s2n_blob client_random = {.size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random};
     struct s2n_blob server_random = {.size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random};
@@ -516,7 +515,6 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(premaster_secret);
 
     struct s2n_blob client_random = {.size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random};
     struct s2n_blob server_random = {.size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random};
@@ -532,7 +530,6 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(premaster_secret);
 
     POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_KEY);
 

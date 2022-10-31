@@ -64,12 +64,8 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
  **/
 static bool s2n_client_ems_should_send(struct s2n_connection *conn)
 {
-    if (!conn) {
-        return false;
-    }
-
     /* Don't send this extension if the previous session did not negotiate EMS */
-    if (conn->set_session && !conn->ems_negotiated) {
+    if (conn && conn->set_session && !conn->ems_negotiated) {
         return false;
     } else {
         return true;
