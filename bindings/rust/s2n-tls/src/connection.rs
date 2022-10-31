@@ -587,7 +587,7 @@ impl Connection {
         static_const_str!(cipher)
     }
 
-    pub fn is_ktls_enabled(&mut self) -> Result<bool, Error> {
+    pub fn is_ktls_enabled(&self) -> Result<bool, Error> {
         // pub fn s2n_connection_is_ktls_enabled(
         //     conn: *mut s2n_connection,
         //     enabled: *mut bool,

@@ -231,6 +231,11 @@ where
             stream.poll_write(async_context, src)
         })
     }
+
+    pub fn is_ktls_enabled(conn: C) -> Result<bool, Error> {
+        let enabled = conn.as_ref().is_ktls_enabled();
+        enabled
+    }
 }
 
 impl<S, C> AsRef<Connection> for TlsStream<S, C>
