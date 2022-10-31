@@ -165,7 +165,17 @@ where
             error: None,
         }
         .await?;
+        println!("----------handshake done");
+
+        match tls.is_ktls_enabled() {
+            Ok(enabled) => println!("enable check---------: {}", enabled),
+            Err(err) => println!("FAIL while trying to check ktls status--------- {:}", err),
+        }
         Ok(tls)
+    }
+
+    pub fn is_ktls_enabled(&self) -> Result<bool, Error> {
+        self.conn.as_ref().is_ktls_enabled()
     }
 
     fn with_io<F, R>(&mut self, ctx: &mut Context, action: F) -> Poll<Result<R, Error>>
@@ -230,11 +240,6 @@ where
             let src = std::slice::from_raw_parts(buf, len as usize);
             stream.poll_write(async_context, src)
         })
-    }
-
-    pub fn is_ktls_enabled(conn: C) -> Result<bool, Error> {
-        let enabled = conn.as_ref().is_ktls_enabled();
-        enabled
     }
 }
 
