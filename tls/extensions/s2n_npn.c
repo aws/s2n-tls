@@ -24,24 +24,39 @@
 
 bool s2n_npn_should_send(struct s2n_connection *conn)
 {
-    return s2n_client_alpn_should_send(conn) && conn->config->npn_supported;
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+     *# For the same reasons, after a handshake has been performed for a
+     *# given connection, renegotiations on the same connection MUST NOT
+     *# include the "next_protocol_negotiation" extension.
+     */
+    return s2n_client_alpn_should_send(conn) && conn->config->npn_supported && !s2n_handshake_is_renegotiation(conn);
+}
+
+int s2n_client_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* Only use the NPN extension to negotiate a protocol if we don't have
+     * an option to use the ALPN extension.
+     */
+    if (s2n_npn_should_send(conn) && !s2n_server_alpn_should_send(conn)) {
+        conn->npn_negotiated = true;
+    }
+
+    return S2N_SUCCESS;
 }
 
 const s2n_extension_type s2n_client_npn_extension = {
     .iana_value = TLS_EXTENSION_NPN,
     .is_response = false,
     .send = s2n_extension_send_noop,
-    .recv = s2n_extension_recv_noop,
+    .recv = s2n_client_npn_recv,
     .should_send = s2n_npn_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
 bool s2n_server_npn_should_send(struct s2n_connection *conn)
 {
-    /* Only use the NPN extension to negotiate a protocol if we don't have
-     * an option to use the ALPN extension.
-     */
-    return s2n_npn_should_send(conn) && !s2n_server_alpn_should_send(conn);
+    return conn->npn_negotiated;
 }
 
 int s2n_server_npn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -93,6 +108,8 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
         conn->application_protocol[protocol.size] = '\0';
     }
+
+    conn->npn_negotiated = true;
 
     return S2N_SUCCESS;
 }
@@ -167,7 +184,7 @@ int s2n_npn_encrypted_extension_recv(struct s2n_connection *conn, struct s2n_stu
 
 const s2n_extension_type s2n_npn_encrypted_extension = {
     .iana_value = TLS_EXTENSION_NPN,
-    .is_response = true,
+    .is_response = false,
     .send = s2n_npn_encrypted_extension_send,
     .recv = s2n_npn_encrypted_extension_recv,
     .should_send = s2n_npn_encrypted_should_send,

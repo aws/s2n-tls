@@ -14,7 +14,7 @@
 #
 set -eu
 
-export DOXYGEN_VERSION="doxygen-1.9.3"
+export DOXYGEN_VERSION="doxygen-1.9.5"
 curl -L "https://www.doxygen.nl/files/$DOXYGEN_VERSION.linux.bin.tar.gz" -o "$DOXYGEN_VERSION.tar.gz"
 tar -xvf "$DOXYGEN_VERSION.tar.gz"
 

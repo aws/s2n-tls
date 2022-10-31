@@ -46,6 +46,7 @@
 #define TLS_SERVER_CERT_STATUS        22
 #define TLS_SERVER_SESSION_LOOKUP     23
 #define TLS_KEY_UPDATE                24
+#define TLS_NPN                       67
 #define TLS_MESSAGE_HASH             254
 
 /* This is the list of message types that we support */
@@ -62,6 +63,8 @@ typedef enum {
     CLIENT_KEY,
     CLIENT_CERT_VERIFY,
     CLIENT_CHANGE_CIPHER_SPEC,
+    /* Not a standardized message. Defined: https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04 */
+    CLIENT_NPN,
     CLIENT_FINISHED,
     SERVER_CHANGE_CIPHER_SPEC,
     SERVER_FINISHED,

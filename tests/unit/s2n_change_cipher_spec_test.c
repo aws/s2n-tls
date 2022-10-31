@@ -106,8 +106,6 @@ int main(int argc, char **argv)
 
         /* Check for expected updates */
         EXPECT_EQUAL(conn->secure->client_sequence_number[0], 0);
-        EXPECT_BYTEARRAY_NOT_EQUAL(&conn->handshake.client_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
-        EXPECT_EQUAL(conn->handshake.finished_len, S2N_TLS_FINISHED_LEN);
         EXPECT_EQUAL(conn->client, conn->secure);
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
 
@@ -133,8 +131,6 @@ int main(int argc, char **argv)
 
         /* Check for expected updates */
         EXPECT_EQUAL(conn->secure->client_sequence_number[0], 0);
-        EXPECT_BYTEARRAY_NOT_EQUAL(&conn->handshake.client_finished, &empty_finished_array, S2N_TLS_FINISHED_LEN);
-        EXPECT_EQUAL(conn->handshake.finished_len, S2N_SSL_FINISHED_LEN);
         EXPECT_EQUAL(conn->client, conn->secure);
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
     }
