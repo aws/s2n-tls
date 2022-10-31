@@ -399,6 +399,11 @@ impl Builder {
         unsafe { s2n_config_set_max_cert_chain_depth(self.as_mut_ptr(), depth).into_result() }?;
         Ok(self)
     }
+    
+    pub fn set_send_buffer_size(&mut self, size: u32) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_send_buffer_size(self.as_mut_ptr(), size).into_result() }?;
+        Ok(self)
+    }
 
     /// Set a custom callback function which is run after parsing the client hello.
     pub fn set_client_hello_callback<T: 'static + ClientHelloCallback>(
