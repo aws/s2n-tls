@@ -65,6 +65,46 @@ int main(int argc, char **argv)
         client_conn->config->npn_supported = true;
         EXPECT_TRUE(s2n_client_npn_extension.should_send(client_conn));
         EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
+
+        /*
+         *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-04#section-3
+         *= type=test
+         *# For the same reasons, after a handshake has been performed for a
+         *# given connection, renegotiations on the same connection MUST NOT
+         *# include the "next_protocol_negotiation" extension.
+         */
+        client_conn->handshake.renegotiation = true;
+        EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
+        EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
+    }
+
+    /* s2n_client_npn_recv */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+        
+        /* NPN not supported */
+        EXPECT_SUCCESS(s2n_client_npn_extension.recv(server_conn, &extension));
+        EXPECT_FALSE(server_conn->npn_negotiated);
+
+        /* NPN supported */
+        server_conn->config->npn_supported = true;
+        EXPECT_SUCCESS(s2n_client_npn_extension.recv(server_conn, &extension));
+        EXPECT_TRUE(server_conn->npn_negotiated);
+
+        /* Server has already negotiated a protocol with the ALPN extension */
+        uint8_t first_protocol_len = strlen(protocols[0]);
+        EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocols[0], first_protocol_len + 1);
+        server_conn->npn_negotiated = false;
+        EXPECT_SUCCESS(s2n_client_npn_extension.recv(server_conn, &extension));
+        EXPECT_FALSE(server_conn->npn_negotiated);
     }
 
     /* Should-send tests on the server side */
@@ -75,18 +115,13 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        
-        /* NPN not supported */
+
+        /* NPN not negotiated */
         EXPECT_FALSE(s2n_server_npn_extension.should_send(server_conn));
 
-        /* NPN supported */
-        server_conn->config->npn_supported = true;
+        /* NPN negotiated */
+        server_conn->npn_negotiated = true;
         EXPECT_TRUE(s2n_server_npn_extension.should_send(server_conn));
-
-        /* Server has already negotiated a protocol with the ALPN extension */
-        uint8_t first_protocol_len = strlen(protocols[0]);
-        EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, protocols[0], first_protocol_len + 1);
-        EXPECT_FALSE(s2n_server_npn_extension.should_send(server_conn));
     }
 
     /* s2n_server_npn_send */

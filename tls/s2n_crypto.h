@@ -69,3 +69,4 @@ struct s2n_crypto_parameters {
 S2N_RESULT s2n_crypto_parameters_new(struct s2n_crypto_parameters **params);
 S2N_RESULT s2n_crypto_parameters_wipe(struct s2n_crypto_parameters *params);
 S2N_CLEANUP_RESULT s2n_crypto_parameters_free(struct s2n_crypto_parameters **params);
+S2N_RESULT s2n_crypto_parameters_switch(struct s2n_connection *conn);
