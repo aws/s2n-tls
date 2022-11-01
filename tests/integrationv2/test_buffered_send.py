@@ -6,7 +6,7 @@ from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
-SEND_DATA_SIZE = 2 ** 16
+SEND_DATA_SIZE = 2 ** 14
 
 K_BYTES = 1024 
 SEND_BUFFER_SIZE_MIN = 1031
@@ -70,8 +70,6 @@ def is_subsequence(s, t):
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
 @pytest.mark.parametrize("fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name)
 def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provider, protocol, certificate, buffer_size, fragment_preference):
-    if other_provider is GnuTLS and buffer_size is SEND_BUFFER_SIZE_MIN:
-        return
     # Communication Timeline
     # Client [S2N|OpenSSL|GnuTLS]  | Server [S2N]
     # Handshake                    | Handshake
