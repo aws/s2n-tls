@@ -198,7 +198,8 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     return S2N_RESULT_OK;
 }
 
-int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx) {
+int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
+{
     /* If Openssl would have returned successfully, return success. */
     if (default_ossl_ret > 0) {
         return default_ossl_ret;
@@ -252,7 +253,8 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t 
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_get_cert_index(struct s2n_crl_lookup *lookup, uint16_t *cert_index) {
+int s2n_crl_lookup_get_cert_index(struct s2n_crl_lookup *lookup, uint16_t *cert_index)
+{
     POSIX_ENSURE_REF(lookup);
     *cert_index = lookup->cert_idx;
     return S2N_SUCCESS;
@@ -285,7 +287,8 @@ int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup)
     return S2N_SUCCESS;
 }
 
-int s2n_crl_lookup_do_not_validate(struct s2n_crl_lookup *lookup) {
+int s2n_crl_lookup_do_not_validate(struct s2n_crl_lookup *lookup)
+{
     POSIX_ENSURE_REF(lookup);
     lookup->crl = NULL;
     lookup->status = FINISHED;
