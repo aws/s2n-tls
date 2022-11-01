@@ -465,6 +465,7 @@ int main(int argc, char *const *argv)
             break;
         case OPT_NPN:
             npn = true;
+            break;
         case OPT_BUFFERED_SEND:
             sscanf_matched_items = sscanf(optarg, "%"SCNu32, &send_buffer_byte_size);
             if (sscanf_matched_items != 1) {
