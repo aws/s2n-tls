@@ -312,6 +312,7 @@ int main(int argc, char *const *argv)
     char *early_data = NULL;
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
+    bool npn = false;
     uint32_t send_buffer_byte_size = 0;
     int sscanf_matched_items;
     bool prefer_low_latency = false;
