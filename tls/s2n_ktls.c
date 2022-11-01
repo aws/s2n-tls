@@ -121,9 +121,9 @@ int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len) {
     /* On success, the number of bytes written is returned. On failure, -1 is
      * returned and errno is set appropriately. */
 
-    fprintf(stdout, "ktls writing---------- len: %d\n", len);
+    /* fprintf(stdout, "ktls writing---------- len: %d\n", len); */
     ssize_t result = write(wfd, buf, len);
-    fprintf(stdout, "ktls writing done---------- result: %zd\n", result);
+    /* fprintf(stdout, "ktls writing done---------- result: %zd\n", result); */
     POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
     return result;
 }

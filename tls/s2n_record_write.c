@@ -233,12 +233,12 @@ int s2n_record_ktls_writev(struct s2n_connection *conn, uint8_t content_type, co
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true);
 
-    fprintf(stdout, "ktls record write ---------- len: %zu \n", to_write);
+    /* fprintf(stdout, "ktls record write ---------- len: %zu \n", to_write); */
 
     /* Write the plaintext data */
     POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, in_count, offs, to_write));
 
-    fprintf(stdout, "ktls record write ---------- \n");
+    /* fprintf(stdout, "ktls record write ---------- \n"); */
     return to_write;
 }
 

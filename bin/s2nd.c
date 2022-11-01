@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <errno.h>
+#include <time.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
@@ -195,6 +196,13 @@ void usage()
     exit(1);
 }
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+#define DATA_TO_SEND  2000000000 // 1GB 1 000 000 000
+#define MTU_SIZE  1460
+char DATA[MTU_SIZE];
+
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
 {
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -218,6 +226,39 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    {
+        time_t tic, toc;
+        struct tm tm_tic, tm_toc;
+
+        tic = time(0);
+        tm_tic = *localtime (&tic);
+
+        printf ("%04d-%02d-%02d %02d:%02d:%02d\n",
+            tm_tic.tm_year+1900, tm_tic.tm_mon+1, tm_tic.tm_mday,
+            tm_tic.tm_hour, tm_tic.tm_min, tm_tic.tm_sec);
+
+        size_t bytes_to_send = DATA_TO_SEND;
+        do {
+            int to_send = MIN(bytes_to_send, MTU_SIZE);
+            bytes_to_send -= to_send;
+            send_data(conn, fd, DATA, to_send, &blocked);
+        } while (bytes_to_send || blocked);
+
+
+        toc = time(0);
+        tm_toc = *localtime (&toc);
+
+        printf ("%04d-%02d-%02d %02d:%02d:%02d\n",
+            tm_toc.tm_year+1900, tm_toc.tm_mon+1, tm_toc.tm_mday,
+            tm_toc.tm_hour, tm_toc.tm_min, tm_toc.tm_sec);
+
+        unsigned long int diff = difftime(mktime(&tm_toc),mktime(&tm_tic));
+        printf ("%lu\n", diff);
+    }
+
+
+
     if (settings.https_server) {
         https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {
@@ -229,7 +270,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     /* peer fails to send a close_notify. */
     /* TODO: However, we should expect to receive a close_notify from the peer and shutdown gracefully. */
     /* Please see tracking issue for more detail: https://github.com/aws/s2n-tls/issues/2692 */
-    s2n_blocked_status blocked;
+    /* s2n_blocked_status blocked; */
     s2n_shutdown(conn, &blocked);
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
@@ -241,6 +282,10 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
 int main(int argc, char *const *argv)
 {
+    for(int i; i < MTU_SIZE; i++) {
+        DATA[i] = i;
+    }
+
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
 
