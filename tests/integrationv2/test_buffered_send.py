@@ -6,7 +6,7 @@ from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
-SEND_DATA_SIZE = 2 ** 16
+SEND_DATA_SIZE = 2 ** 15
 
 K_BYTES = 1024 
 SEND_BUFFER_SIZE_MIN = 1031
@@ -114,8 +114,8 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         extra_flags=['--buffered-send', buffer_size] +
             ([] if fragment_preference is None else [fragment_preference]))
 
-    server = managed_process(provider, server_options, timeout=30, send_marker=[starting_server_send_marker])
-    client = managed_process(other_provider, client_options, timeout=30,
+    server = managed_process(provider, server_options, timeout=60, send_marker=[starting_server_send_marker])
+    client = managed_process(other_provider, client_options, timeout=60,
         send_marker=[starting_client_send_marker], close_marker=client_close_marker)
 
     for results in client.get_results():
@@ -149,6 +149,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
     # Send Server Close Marker     | Receive the close Marker
     # Close                        | Close
     port = next(available_ports)
+
     server_close_marker = client_sent_final = "SENT_FROM_CLIENT"
     client_data_to_send = data_bytes(SEND_DATA_SIZE) + to_bytes(client_sent_final)
 
@@ -170,8 +171,8 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         key=certificate.key,
         cert=certificate.cert)
 
-    server = managed_process(provider, server_options, close_marker=server_close_marker, timeout=30)
-    client = managed_process(other_provider, client_options, send_marker=["s2n is ready"], timeout=30)
+    server = managed_process(provider, server_options, close_marker=server_close_marker, timeout=60)
+    client = managed_process(other_provider, client_options, send_marker=["s2n is ready"], timeout=60)
 
     for results in client.get_results():
         results.assert_success()
