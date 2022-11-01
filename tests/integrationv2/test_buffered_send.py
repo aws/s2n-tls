@@ -70,6 +70,8 @@ def is_subsequence(s, t):
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
 @pytest.mark.parametrize("fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name)
 def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provider, protocol, certificate, buffer_size, fragment_preference):
+    if other_provider is GnuTLS and buffer_size is SEND_BUFFER_SIZE_MIN:
+        return
     # Communication Timeline
     # Client [S2N|OpenSSL|GnuTLS]  | Server [S2N]
     # Handshake                    | Handshake
