@@ -818,6 +818,7 @@ int main(int argc, char **argv)
                 .allow_chacha20_boosting = true
             };
 
+            
             /* Server and client have chacha20 boosting enabled. SSLv2 Server negotiates its most preferred
              * chacha20 cipher suite (which happens to NOT be the client's most preferred)
              */
@@ -834,8 +835,15 @@ int main(int argc, char **argv)
                 };
 
                 uint8_t count = sizeof(ecdhe_rsa_chacha20_boosted_wire) / S2N_SSLv2_CIPHER_SUITE_LEN;
-                EXPECT_SUCCESS(s2n_set_cipher_as_sslv2_server(connection, ecdhe_rsa_chacha20_boosted_wire, count));
-                EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
+
+                if (s2n_chacha20_poly1305.is_available()) {
+                    EXPECT_SUCCESS(s2n_set_cipher_as_sslv2_server(connection, ecdhe_rsa_chacha20_boosted_wire, count));
+                    EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
+                }
+
+                if (!s2n_chacha20_poly1305.is_available()) {
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_sslv2_server(connection, ecdhe_rsa_chacha20_boosted_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
+                }
             }
         }
 
