@@ -117,7 +117,7 @@ int s2n_crl_validate_next_update(struct s2n_crl *crl)
 
     ASN1_TIME *next_update = X509_CRL_get_nextUpdate(crl->crl);
     if (next_update == NULL) {
-        /* If the CRL has no nextUpdate date, assume it will never expire */
+        /* If the CRL has no nextUpdate field, assume it will never expire */
         return S2N_SUCCESS;
     }
 
