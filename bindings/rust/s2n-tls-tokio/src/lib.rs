@@ -49,11 +49,13 @@ where
         TlsAcceptor { builder }
     }
 
-    pub async fn accept<S>(&self, stream: S) -> Result<TlsStream<S, B::Output>, Error>
+    pub async fn accept<S>(&self, stream: S, fd: i32) -> Result<TlsStream<S, B::Output>, Error>
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
-        let conn = self.builder.build_connection(Mode::Server)?;
+        let mut conn = self.builder.build_connection(Mode::Server)?;
+        // FIXME set fd to support ktls
+        conn.as_mut().set_fd(fd)?;
         TlsStream::open(conn, stream).await
     }
 }

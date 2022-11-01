@@ -588,10 +588,6 @@ impl Connection {
     }
 
     pub fn is_ktls_enabled(&self) -> Result<bool, Error> {
-        // pub fn s2n_connection_is_ktls_enabled(
-        //     conn: *mut s2n_connection,
-        //     enabled: *mut bool,
-        // ) -> ::libc::c_int;
         let mut enabled = false;
         unsafe {
             s2n_tls_sys::s2n_connection_is_ktls_enabled(self.connection.as_ptr(), &mut enabled)
@@ -599,6 +595,13 @@ impl Connection {
         }?;
 
         Ok(enabled)
+    }
+
+    pub fn set_fd(&mut self, fd: i32) -> Result<(), Error> {
+        unsafe {
+            s2n_connection_set_fd(self.connection.as_ptr(), fd).into_result()?;
+        }
+        Ok(())
     }
 }
 

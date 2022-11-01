@@ -103,7 +103,7 @@ S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, siz
         fprintf(stderr, "ktls send cmsg xxxxxxxxxxxxxx: type: %d, errno %s\n", record_type, strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
-        fprintf(stdout, "ktls send cmsg ---------- : type: %d\n", record_type);
+        fprintf(stderr, "ktls send cmsg ---------- : type: %d\n", record_type);
     }
 
     return S2N_RESULT_OK;
@@ -184,7 +184,7 @@ S2N_RESULT s2n_ktls_tx_keys(
         fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
-        fprintf(stdout, "ktls TX keys set---------- \n");
+        fprintf(stderr, "ktls TX keys set---------- \n");
     }
 
     return S2N_RESULT_OK;
@@ -233,13 +233,15 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
 /* Enable the "tls" Upper Level Protocols (ULP) over TCP for this connection */
 S2N_RESULT s2n_ktls_register_ulp(int fd) {
+    fprintf(stderr, "ktls upl for socket fd---------- %d\n", fd);
+
     // todo see if this is already done
     int ret_val = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
     if (ret_val < 0) {
         fprintf(stderr, "ktls register upl failed 2 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
-        fprintf(stdout, "ktls upl enabled---------- \n");
+        fprintf(stderr, "ktls upl enabled---------- \n");
     }
 
     return S2N_RESULT_OK;
