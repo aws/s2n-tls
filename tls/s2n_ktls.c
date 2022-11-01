@@ -262,7 +262,8 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     RESULT_ENSURE_EQ(conn->ktls_enabled_recv_io, false);
 
     const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
-    int fd = peer_socket_ctx->fd;
+    /* int fd = peer_socket_ctx->fd; */
+    int fd = 8;
 
     /* register the tls ULP */
     RESULT_GUARD(s2n_ktls_register_ulp(fd));
