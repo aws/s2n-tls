@@ -6,7 +6,7 @@ from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
-SEND_DATA_SIZE = 2 ** 15
+SEND_DATA_SIZE = 2 ** 16
 
 K_BYTES = 1024 
 SEND_BUFFER_SIZE_MIN = 1031
@@ -88,9 +88,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
     }
     starting_client_send_marker = starting_client_send_markers[other_provider]
 
-    starting_server_send_marker = "CLIENT"
+    starting_server_send_marker = "YTREWQ"
     client_inital_app_data = to_bytes(starting_server_send_marker)
-    client_close_marker = server_sent_final = "SERVER"
+    client_close_marker = server_sent_final = "QWERTY"
     data_bytes_server = data_bytes(SEND_DATA_SIZE) + to_bytes(server_sent_final)
 
     port = next(available_ports)
@@ -114,9 +114,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         extra_flags=['--buffered-send', buffer_size] +
             ([] if fragment_preference is None else [fragment_preference]))
 
-    server = managed_process(provider, server_options, timeout=60, send_marker=[starting_server_send_marker[-1:]])
+    server = managed_process(provider, server_options, timeout=60, send_marker=[starting_server_send_marker])
     client = managed_process(other_provider, client_options, timeout=60,
-        send_marker=[starting_client_send_marker[-1:]], close_marker=client_close_marker[-1:])
+        send_marker=[starting_client_send_marker], close_marker=client_close_marker)
 
     for results in client.get_results():
         # for small buffer sizes the received data will not be contiguous on stdout
@@ -150,7 +150,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
     # Close                        | Close
     port = next(available_ports)
 
-    server_close_marker = client_sent_final = "CLIENT"
+    server_close_marker = client_sent_final = "QWERTY"
     client_data_to_send = data_bytes(SEND_DATA_SIZE) + to_bytes(client_sent_final)
 
     client_options = ProviderOptions(
@@ -171,7 +171,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         key=certificate.key,
         cert=certificate.cert)
 
-    server = managed_process(provider, server_options, close_marker=server_close_marker[-1:], timeout=60)
+    server = managed_process(provider, server_options, close_marker=server_close_marker, timeout=60)
     client = managed_process(other_provider, client_options, send_marker=["s2n is ready"], timeout=60)
 
     for results in client.get_results():
