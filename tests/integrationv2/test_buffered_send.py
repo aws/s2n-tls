@@ -75,9 +75,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
     # Handshake                    | Handshake
     #  Handshake finish indicated
     #  by the client send marker
-    # Send Server Send Marker      | Receive the Server Send Marker "SENT_FROM_CLIENT"
+    # Send Server Send Marker      | Receive the Server Send Marker "CLIENTSENT"
     #                              | Send Data Bytes to Client (stresses the send buffer - center of test)
-    #                              | Send Client Close Marker "SENT_FROM_SERVER"
+    #                              | Send Client Close Marker "SERVERSENT"
     # Close                        | Close
     
     # for the corresponding provider, these strings appear when on stdout when the handshake is finished
@@ -88,9 +88,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
     }
     starting_client_send_marker = starting_client_send_markers[other_provider]
 
-    starting_server_send_marker = "SENT_FROM_CLIENT"
+    starting_server_send_marker = "CLIENT"
     client_inital_app_data = to_bytes(starting_server_send_marker)
-    client_close_marker = server_sent_final = "SENT_FROM_SERVER"
+    client_close_marker = server_sent_final = "SERVER"
     data_bytes_server = data_bytes(SEND_DATA_SIZE) + to_bytes(server_sent_final)
 
     port = next(available_ports)
@@ -114,9 +114,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         extra_flags=['--buffered-send', buffer_size] +
             ([] if fragment_preference is None else [fragment_preference]))
 
-    server = managed_process(provider, server_options, timeout=60, send_marker=[starting_server_send_marker])
+    server = managed_process(provider, server_options, timeout=60, send_marker=[starting_server_send_marker[-1:]])
     client = managed_process(other_provider, client_options, timeout=60,
-        send_marker=[starting_client_send_marker], close_marker=client_close_marker)
+        send_marker=[starting_client_send_marker[-1:]], close_marker=client_close_marker[-1:])
 
     for results in client.get_results():
         # for small buffer sizes the received data will not be contiguous on stdout
@@ -150,7 +150,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
     # Close                        | Close
     port = next(available_ports)
 
-    server_close_marker = client_sent_final = "SENT_FROM_CLIENT"
+    server_close_marker = client_sent_final = "CLIENT"
     client_data_to_send = data_bytes(SEND_DATA_SIZE) + to_bytes(client_sent_final)
 
     client_options = ProviderOptions(
@@ -171,7 +171,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         key=certificate.key,
         cert=certificate.cert)
 
-    server = managed_process(provider, server_options, close_marker=server_close_marker, timeout=60)
+    server = managed_process(provider, server_options, close_marker=server_close_marker[-1:], timeout=60)
     client = managed_process(other_provider, client_options, send_marker=["s2n is ready"], timeout=60)
 
     for results in client.get_results():
