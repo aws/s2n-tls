@@ -103,6 +103,10 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \
     ERR_ENTRY(S2N_ERR_CRL_ISSUER, "Unable to get the CRL issuer certificate") \
     ERR_ENTRY(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION, "Unhandled critical CRL extension") \
+    ERR_ENTRY(S2N_ERR_CRL_INVALID_THIS_UPDATE, "The CRL contains and invalid thisUpdate field") \
+    ERR_ENTRY(S2N_ERR_CRL_INVALID_NEXT_UPDATE, "The CRL contains and invalid nextUpdate field") \
+    ERR_ENTRY(S2N_ERR_CRL_NOT_YET_VALID, "The CRL is not yet valid") \
+    ERR_ENTRY(S2N_ERR_CRL_EXPIRED, "The CRL has expired") \
     ERR_ENTRY(S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered") \
     ERR_ENTRY(S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client") \
     ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by configuration") \
