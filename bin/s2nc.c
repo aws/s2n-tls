@@ -346,6 +346,7 @@ int main(int argc, char *const *argv)
         {"psk", required_argument, 0, 'P'},
         {"early-data", required_argument, 0, 'E'},
         {"renegotiation", required_argument, 0, OPT_RENEG},
+        {"npn", no_argument, 0, OPT_NPN},
         {"buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
         {"prefer-low-latency", no_argument, NULL, OPT_PREFER_LOW_LATENCY},
         {"prefer-throughput", no_argument, NULL, OPT_PREFER_THROUGHPUT},
@@ -462,6 +463,8 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
             break;
+        case OPT_NPN:
+            npn = true;
         case OPT_BUFFERED_SEND:
             sscanf_matched_items = sscanf(optarg, "%"SCNu32, &send_buffer_byte_size);
             if (sscanf_matched_items != 1) {
