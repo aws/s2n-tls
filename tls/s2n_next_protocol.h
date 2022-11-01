@@ -15,7 +15,8 @@
 
 #pragma once
 
-#include "tls/extensions/s2n_extension_type.h"
+#include "utils/s2n_result.h"
 
-extern const s2n_extension_type s2n_client_npn_extension;
-extern const s2n_extension_type s2n_server_npn_extension;
+S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
+int s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *extension);
