@@ -916,6 +916,7 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
 
                     uint8_t dhe_chacha20_boosted_wire[] = {
+                        TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
                         TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
                         TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
                         TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
