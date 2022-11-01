@@ -906,6 +906,8 @@ int main(int argc, char **argv)
                     EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(connection, dhe_chacha20_boosted_wire, count), S2N_ERR_CIPHER_NOT_SUPPORTED);
                 }
             }
+
+            EXPECT_SUCCESS(s2n_config_free(rsa_only_config));
         }
 
         /* Test ChaCha20 boosting behaviour for tls 1.2 connection */
