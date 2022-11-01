@@ -1175,7 +1175,8 @@ bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
 /* Iff the server has enabled allow_chacha20_boosting and the client has a chacha20 cipher suite as its most 
  * preferred cipher suite, then we have mutual chacha20 boosting support.
  */
-static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_preferences *cipher_preferences, const uint8_t *wire, uint32_t cipher_suite_len) {
+static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_preferences *cipher_preferences, const uint8_t *wire,
+     uint32_t cipher_suite_len) {
     RESULT_ENSURE_REF(cipher_preferences);
 
     if (!cipher_preferences->allow_chacha20_boosting) {
@@ -1240,7 +1241,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
     POSIX_ENSURE_REF(cipher_preferences);
 
-    bool mutual_chacha20_boosting_support = s2n_result_is_ok(s2n_validate_chacha20_boosting(cipher_preferences, wire, cipher_suite_len));
+    bool try_chacha20_boosting = s2n_result_is_ok(s2n_validate_chacha20_boosting(cipher_preferences, wire, cipher_suite_len));
 
     /*
      * s2n only respects server preference order and chooses the server's
@@ -1314,13 +1315,13 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             /* The server and client have chacha20 boosting support enabled AND the server identified a negotiable match */
-            if (mutual_chacha20_boosting_support) {
+            if (try_chacha20_boosting) {
                 if (s2n_cipher_suite_uses_chacha20_alg(match)) {
                     conn->secure->cipher_suite = match;
                     return S2N_SUCCESS;
                 }
 
-                /* Don't immediately give up and negotiate the cipher since chacha20 boosting is supported, and we need to continue iterating */
+                /* Save the valid non-chacha20 match in case no valid chacha20 match is found */
                 if (!non_chacha20_match) {
                     non_chacha20_match = match;
                 }

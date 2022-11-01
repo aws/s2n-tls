@@ -540,6 +540,43 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
     }
 
+    /* Test that security policy with invalid chacha20 boosting configuration triggers error on init */
+    {
+        /* Back up the first security policy selection because we will replace it with an invalid selection */
+        struct s2n_security_policy_selection previous = security_policy_selection[0];
+
+        struct s2n_cipher_suite *aes_128_only_cipher_suite_list[] = {
+            &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+        };
+
+        /* Cipher preferences has allow_chacha20_boosting incorrectly set as true even though the ciphersuite list only has aes128 */
+        struct s2n_cipher_preferences invalid_cipher_preferences = {
+            .count = s2n_array_len(aes_128_only_cipher_suite_list),
+            .suites = aes_128_only_cipher_suite_list,
+            .allow_chacha20_boosting = true
+        };
+
+        struct s2n_security_policy invalid_policy = {
+            .minimum_protocol_version = S2N_SSLv3,
+            .cipher_preferences = &invalid_cipher_preferences,
+            .kem_preferences = &kem_preferences_null,
+            .signature_preferences = &s2n_signature_preferences_20201021,
+            .ecc_preferences = &s2n_ecc_preferences_test_all,
+        };
+
+        security_policy_selection[0] = (struct s2n_security_policy_selection){
+            .version="invalid_chacha20_boosting_configuration",
+            .security_policy=&invalid_policy,
+            .ecc_extension_required=0,
+            .pq_kem_extension_required=0
+        };
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_security_policies_init(), S2N_ERR_INVALID_SECURITY_POLICY);
+
+        /* IMPORTANT: restore the old policy selection to return to the old state */
+        security_policy_selection[0] = previous;
+    }
+
     /* Test a security policy not on the official list */
     {
         struct s2n_cipher_suite *fake_suites[] = {
