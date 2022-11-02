@@ -93,7 +93,9 @@ mod mem {
             return s2n_status_code::FAILURE;
         };
 
-        dealloc(ptr as *mut _, layout);
+        if !ptr.is_null() {
+            dealloc(ptr as *mut _, layout);
+        }
 
         s2n_status_code::SUCCESS
     }
