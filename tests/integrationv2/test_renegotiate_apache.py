@@ -23,6 +23,32 @@ def create_get_request(route):
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+def test_change_cipher_suite_endpoint_fails_with_no_reneg(managed_process, protocol):
+    options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host=APACHE_SERVER_IP,
+        port=APACHE_SERVER_PORT,
+        curve=ALL_TEST_CURVES[0],
+        protocol=protocol,
+        trust_store=APACHE_SERVER_CERT,
+    )
+
+    with tempfile.NamedTemporaryFile("w+") as http_request_file:
+        http_request_file.write(create_get_request("/change_cipher_suite/"))
+        http_request_file.flush()
+        options.extra_flags = ["--send-file", http_request_file.name]
+
+        s2n_client = managed_process(S2N, options, timeout=20, close_marker="You don't have permission")
+
+        for results in s2n_client.get_results():
+            results.assert_success()
+
+            assert b"<title>403 Forbidden</title>" in results.stdout
+            assert b"You don't have permission to access this resource." in results.stdout
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
 def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
@@ -49,6 +75,35 @@ def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
 
             assert b"<title>Change Cipher Suite</title>" in results.stdout
             assert b"Success." in results.stdout
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+def test_mutual_auth_endpoint_fails_with_no_reneg(managed_process, protocol):
+    options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host=APACHE_SERVER_IP,
+        port=APACHE_SERVER_PORT,
+        curve=ALL_TEST_CURVES[0],
+        protocol=protocol,
+        trust_store=APACHE_SERVER_CERT,
+        cert=APACHE_CLIENT_CERT,
+        key=APACHE_CLIENT_KEY,
+        use_client_auth=True
+    )
+
+    with tempfile.NamedTemporaryFile("w+") as http_request_file:
+        http_request_file.write(create_get_request("/mutual_auth/"))
+        http_request_file.flush()
+        options.extra_flags = ["--send-file", http_request_file.name]
+
+        s2n_client = managed_process(S2N, options, timeout=20, close_marker="You don't have permission")
+
+        for results in s2n_client.get_results():
+            results.assert_success()
+
+            assert b"<title>403 Forbidden</title>" in results.stdout
+            assert b"You don't have permission to access this resource." in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
