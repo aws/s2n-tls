@@ -909,29 +909,29 @@ int main(int argc, char *argv[])
         EXPECT_TRUE(leaf_cert_hash != root_crl_hash);
     }
 
-    /* s2n_crl_validate_this_update tests */
+    /* s2n_crl_validate_active tests */
     {
         /* Succeeds for valid CRL */
-        EXPECT_SUCCESS(s2n_crl_validate_this_update(intermediate_crl));
+        EXPECT_SUCCESS(s2n_crl_validate_active(intermediate_crl));
 
         /* Succeeds for expired CRL */
-        EXPECT_SUCCESS(s2n_crl_validate_this_update(intermediate_invalid_next_update_crl));
+        EXPECT_SUCCESS(s2n_crl_validate_active(intermediate_invalid_next_update_crl));
 
         /* Fails for CRL that is not yet valid */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_this_update(intermediate_invalid_this_update_crl),
+        EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_active(intermediate_invalid_this_update_crl),
                 S2N_ERR_CRL_NOT_YET_VALID);
     }
 
-    /* s2n_crl_validate_next_update tests */
+    /* s2n_crl_validate_not_expired tests */
     {
         /* Succeeds for valid CRL */
-        EXPECT_SUCCESS(s2n_crl_validate_next_update(intermediate_crl));
+        EXPECT_SUCCESS(s2n_crl_validate_not_expired(intermediate_crl));
 
         /* Succeeds for CRL that is not yet valid */
-        EXPECT_SUCCESS(s2n_crl_validate_next_update(intermediate_invalid_this_update_crl));
+        EXPECT_SUCCESS(s2n_crl_validate_not_expired(intermediate_invalid_this_update_crl));
 
         /* Fails for expired CRL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_next_update(intermediate_invalid_next_update_crl),
+        EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_not_expired(intermediate_invalid_next_update_crl),
                 S2N_ERR_CRL_EXPIRED);
     }
 

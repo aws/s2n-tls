@@ -91,7 +91,7 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash)
     return S2N_SUCCESS;
 }
 
-int s2n_crl_validate_this_update(struct s2n_crl *crl)
+int s2n_crl_validate_active(struct s2n_crl *crl)
 {
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
@@ -106,7 +106,7 @@ int s2n_crl_validate_this_update(struct s2n_crl *crl)
     return S2N_SUCCESS;
 }
 
-int s2n_crl_validate_next_update(struct s2n_crl *crl)
+int s2n_crl_validate_not_expired(struct s2n_crl *crl)
 {
     POSIX_ENSURE_REF(crl);
     POSIX_ENSURE_REF(crl->crl);
