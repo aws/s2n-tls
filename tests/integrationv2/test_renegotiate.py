@@ -10,7 +10,7 @@ from utils import invalid_test_parameters, get_parameter_name
 
 
 # TLS1.3 does not support renegotiation
-TEST_PROTCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
+TEST_PROTOCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
 
 
 # Command line options to enable renegotiation
@@ -193,7 +193,7 @@ This tests the default behavior for customers who do not enable renegotiation.
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_ignores_openssl_hello_request(managed_process, cipher, curve, certificate, protocol, provider):
     (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider)
@@ -219,7 +219,7 @@ Renegotiation request rejected by s2n-tls client.
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_rejects_openssl_hello_request(managed_process, cipher, curve, certificate, protocol, provider):
     (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, \
@@ -242,7 +242,7 @@ Renegotiation request accepted by s2n-tls client.
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
     (s2n_client, server) = basic_reneg_test(managed_process, cipher, curve, certificate, protocol, provider, \
@@ -272,7 +272,7 @@ but does require client auth during the second handshake.
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_client_auth_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
     # We want to use the same messages to test renegotiation,
@@ -319,7 +319,7 @@ The s2n-tls client successfully reads ApplicationData during the renegotiation h
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 def test_s2n_client_renegotiate_with_app_data_with_openssl(managed_process, cipher, curve, certificate, protocol, provider):
     first_server_app_data = Msg.expected_output(RENEG_MESSAGES, Provider.ClientMode)[0];

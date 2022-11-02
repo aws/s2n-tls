@@ -8,7 +8,7 @@ from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY
 
-from test_renegotiate import TEST_PROTCOLS, S2N_RENEG_OPTION, S2N_RENEG_ACCEPT
+from test_renegotiate import TEST_PROTOCOLS, S2N_RENEG_OPTION, S2N_RENEG_ACCEPT
 
 APACHE_SERVER_IP = "127.0.0.1"
 APACHE_SERVER_PORT = 7777
@@ -23,7 +23,7 @@ def create_get_request(route):
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 def test_change_cipher_suite_endpoint_fails_with_no_reneg(managed_process, protocol):
     options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -50,7 +50,7 @@ def test_change_cipher_suite_endpoint_fails_with_no_reneg(managed_process, proto
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
     options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -78,7 +78,7 @@ def test_change_cipher_suite_endpoint(managed_process, curve, protocol):
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 def test_mutual_auth_endpoint_fails_with_no_reneg(managed_process, protocol):
     options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -108,7 +108,7 @@ def test_mutual_auth_endpoint_fails_with_no_reneg(managed_process, protocol):
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
-@pytest.mark.parametrize("protocol", TEST_PROTCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", TEST_PROTOCOLS, ids=get_parameter_name)
 def test_mutual_auth_endpoint(managed_process, curve, protocol):
     options = ProviderOptions(
         mode=Provider.ClientMode,
