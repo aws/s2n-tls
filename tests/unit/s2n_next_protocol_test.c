@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         uint8_t padding_len = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &padding_len));
         EXPECT_TRUE(padding_len > 0);
-        
+
         for(size_t i = 0; i < padding_len; i++) {
             uint8_t byte = UINT8_MAX;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &byte));
@@ -191,10 +191,10 @@ int main(int argc, char **argv)
     }
 
     /*
-        *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
-        *= type=test
-        *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
-        */
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
+     *= type=test
+     *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
+     */
     {
         struct {
             uint8_t protocol_len;
