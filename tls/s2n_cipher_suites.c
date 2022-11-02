@@ -1080,6 +1080,7 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[static S2N_TLS_CIPHER_S
             low = mid + 1;
         }
     }
+    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 1\n");
     RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
@@ -1118,8 +1119,10 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
             break;
         }
     }
+    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 2\n");
     POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
+    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 3\n");
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
@@ -1128,6 +1131,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# indicating a Hash associated with the PSK
      **/
     if (conn->psk_params.chosen_psk) {
+        fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 4\n");
         POSIX_ENSURE(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
@@ -1140,6 +1144,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# otherwise abort the handshake with an "illegal_parameter" alert.
      **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
+        fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 5\n");
         POSIX_ENSURE(conn->secure->cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
@@ -1209,6 +1214,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
+    fprintf(stderr, "proto version xxxxxxxxxxxxxxxxx %d %d %d\n",
+            conn->actual_protocol_version, conn->client_protocol_version, conn->server_protocol_version);
     /* s2n supports only server order */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
@@ -1216,6 +1223,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
             struct s2n_cipher_suite *match = security_policy->cipher_preferences->suites[i];
+
+            fprintf(stderr, "match ------------- %d %s\n", i, match->name);
 
             /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
             if ((conn->actual_protocol_version >= S2N_TLS13) != (match->minimum_required_tls_version >= S2N_TLS13)) {
@@ -1233,9 +1242,10 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             /* Make sure the cipher is valid for available certs */
-            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
-                continue;
-            }
+            /* if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) { */
+            /*     fprintf(stderr, "cert mis match xxxxxxxxxxxxxxxxxxxxxxx %d %s\n", i, match->name); */
+            /*     continue; */
+            /* } */
 
             /* TLS 1.3 does not include key exchange in cipher suites */
             if (match->minimum_required_tls_version < S2N_TLS13) {
@@ -1282,6 +1292,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         return S2N_SUCCESS;
     }
 
+    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 6\n");
     POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 

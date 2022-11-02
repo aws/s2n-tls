@@ -130,6 +130,8 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
 
 static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_authentication_method auth_method)
 {
+    fprintf(stderr, "cert auth 1xxxxxxxxxxxxxxxxxxxxxxx %d\n", auth_method);
+
     if (auth_method == S2N_AUTHENTICATION_METHOD_SENTINEL) {
         return S2N_SUCCESS;
     }
@@ -138,6 +140,7 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         POSIX_GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
 
+        fprintf(stderr, "cert auth 2xxxxxxxxxxxxxxxxxxxxxxx %d %d\n", auth_method, auth_method_for_cert_type);
         if (auth_method != auth_method_for_cert_type) {
             continue;
         }
@@ -145,6 +148,7 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
         if (s2n_get_compatible_cert_chain_and_key(conn, i) != NULL) {
             return S2N_SUCCESS;
         }
+        fprintf(stderr, "cert auth 3xxxxxxxxxxxxxxxxxxxxxxx %d %d\n", auth_method, auth_method_for_cert_type);
     }
     POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
