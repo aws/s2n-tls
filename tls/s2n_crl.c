@@ -244,6 +244,8 @@ int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx) {
     switch (err) {
         case X509_V_ERR_CRL_NOT_YET_VALID:
         case X509_V_ERR_CRL_HAS_EXPIRED:
+        case X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD:
+        case X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD:
             return 1;
         default:
             return default_ossl_ret;
