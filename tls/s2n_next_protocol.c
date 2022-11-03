@@ -26,7 +26,7 @@ S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
      *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
      *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
      */
-    *padding_len = 32 - ((protocol_len + 2) % 32);
+    *padding_len = 32 - (((uint16_t)protocol_len + 2) % 32);
     return S2N_RESULT_OK;
 }
 
