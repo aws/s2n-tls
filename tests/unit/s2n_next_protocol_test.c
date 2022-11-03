@@ -17,10 +17,13 @@
 #include "testlib/s2n_testlib.h"
 
 #include "tls/s2n_tls.h"
-#include "tls/s2n_next_protocol.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
+
+S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
+S2N_RESULT s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *out);
+S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int main(int argc, char **argv)
 {
@@ -94,7 +97,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-        EXPECT_SUCCESS(s2n_write_npn_protocol(client_conn, &out));
+        EXPECT_OK(s2n_write_npn_protocol(client_conn, &out));
 
         uint8_t protocol_len = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &protocol_len));
@@ -107,7 +110,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &padding_len));
         EXPECT_TRUE(padding_len > 0);
 
-        for(size_t i = 0; i < padding_len; i++) {
+        for (size_t i = 0; i < padding_len; i++) {
             uint8_t byte = UINT8_MAX;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &byte));
             EXPECT_EQUAL(byte, 0);
@@ -128,8 +131,8 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-        EXPECT_SUCCESS(s2n_write_npn_protocol(client_conn, &out));
-        EXPECT_SUCCESS(s2n_read_npn_protocol(server_conn, &out));
+        EXPECT_OK(s2n_write_npn_protocol(client_conn, &out));
+        EXPECT_OK(s2n_read_npn_protocol(server_conn, &out));
 
         EXPECT_NOT_NULL(s2n_get_application_protocol(server_conn));
         EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
@@ -148,11 +151,11 @@ int main(int argc, char **argv)
         uint8_t padding_len = 0;
         EXPECT_OK(s2n_calculate_padding(0, &padding_len));
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, padding_len));
-        for(size_t i = 0; i < padding_len; i++) {
+        for (size_t i = 0; i < padding_len; i++) {
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, 0));
         }
 
-        EXPECT_SUCCESS(s2n_read_npn_protocol(server_conn, &out));
+        EXPECT_OK(s2n_read_npn_protocol(server_conn, &out));
         EXPECT_NULL(s2n_get_application_protocol(server_conn));
     }
 
@@ -169,7 +172,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_read_npn_protocol(server_conn, &out), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_read_npn_protocol(server_conn, &out), S2N_ERR_NULL);
     }
 
     /* s2n_read_npn_protocol errors on malformed padding */
@@ -187,7 +190,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_read_npn_protocol(server_conn, &out), S2N_ERR_SAFETY);
+        EXPECT_ERROR_WITH_ERRNO(s2n_read_npn_protocol(server_conn, &out), S2N_ERR_SAFETY);
     }
 
     /*
