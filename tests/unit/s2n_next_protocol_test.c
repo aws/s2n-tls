@@ -23,7 +23,7 @@
 
 S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
 S2N_RESULT s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *out);
-S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *extension);
+S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *in);
 
 int main(int argc, char **argv)
 {
