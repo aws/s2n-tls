@@ -227,35 +227,35 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    {
-        time_t tic, toc;
-        struct tm tm_tic, tm_toc;
+    /* { */
+    /*     time_t tic, toc; */
+    /*     struct tm tm_tic, tm_toc; */
 
-        tic = time(0);
-        tm_tic = *localtime (&tic);
+    /*     tic = time(0); */
+    /*     tm_tic = *localtime (&tic); */
 
-        printf ("%04d-%02d-%02d %02d:%02d:%02d\n",
-            tm_tic.tm_year+1900, tm_tic.tm_mon+1, tm_tic.tm_mday,
-            tm_tic.tm_hour, tm_tic.tm_min, tm_tic.tm_sec);
+    /*     printf ("%04d-%02d-%02d %02d:%02d:%02d\n", */
+    /*         tm_tic.tm_year+1900, tm_tic.tm_mon+1, tm_tic.tm_mday, */
+    /*         tm_tic.tm_hour, tm_tic.tm_min, tm_tic.tm_sec); */
 
-        size_t bytes_to_send = DATA_TO_SEND;
-        do {
-            int to_send = MIN(bytes_to_send, MTU_SIZE);
-            bytes_to_send -= to_send;
-            send_data(conn, fd, DATA, to_send, &blocked);
-        } while (bytes_to_send || blocked);
+    /*     size_t bytes_to_send = DATA_TO_SEND; */
+    /*     do { */
+    /*         int to_send = MIN(bytes_to_send, MTU_SIZE); */
+    /*         bytes_to_send -= to_send; */
+    /*         send_data(conn, fd, DATA, to_send, &blocked); */
+    /*     } while (bytes_to_send || blocked); */
 
 
-        toc = time(0);
-        tm_toc = *localtime (&toc);
+    /*     toc = time(0); */
+    /*     tm_toc = *localtime (&toc); */
 
-        printf ("%04d-%02d-%02d %02d:%02d:%02d\n",
-            tm_toc.tm_year+1900, tm_toc.tm_mon+1, tm_toc.tm_mday,
-            tm_toc.tm_hour, tm_toc.tm_min, tm_toc.tm_sec);
+    /*     printf ("%04d-%02d-%02d %02d:%02d:%02d\n", */
+    /*         tm_toc.tm_year+1900, tm_toc.tm_mon+1, tm_toc.tm_mday, */
+    /*         tm_toc.tm_hour, tm_toc.tm_min, tm_toc.tm_sec); */
 
-        unsigned long int diff = difftime(mktime(&tm_toc),mktime(&tm_tic));
-        printf ("%lu\n", diff);
-    }
+    /*     unsigned long int diff = difftime(mktime(&tm_toc),mktime(&tm_tic)); */
+    /*     printf ("%lu\n", diff); */
+    /* } */
 
 
 

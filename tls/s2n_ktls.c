@@ -166,14 +166,27 @@ S2N_RESULT s2n_ktls_tx_keys(
         uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN],
         uint8_t key[16]
 ) {
-    RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS12);
-
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
-    crypto_info.info.version = TLS_1_2_VERSION;
+
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        crypto_info.info.version = TLS_1_2_VERSION;
+
+        RESULT_CHECKED_MEMCPY(crypto_info.iv, sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE);
+    } else if (conn->actual_protocol_version == S2N_TLS13) {
+        crypto_info.info.version = TLS_1_3_VERSION;
+
+				/* RESULT_ENSURE_EQ(sizeof(implicit_iv), TLS_CIPHER_AES_GCM_128_SALT_SIZE + TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+
+				/* memcpy (crypto_info.iv, iv.data + TLS_CIPHER_AES_GCM_128_SALT_SIZE, */
+				/* TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+        RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
+                TLS_CIPHER_AES_GCM_128_IV_SIZE);
+    } else {
+        fprintf(stderr, "ktls only supported for tls1.2 and tls1.3 xxxxxxxxxxxxxx: %d\n", conn->actual_protocol_version);
+    }
 
     RESULT_CHECKED_MEMCPY(crypto_info.salt, implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     RESULT_CHECKED_MEMCPY(crypto_info.rec_seq, sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
 
     RESULT_CHECKED_MEMCPY(crypto_info.key, key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
@@ -189,7 +202,6 @@ S2N_RESULT s2n_ktls_tx_keys(
 
     return S2N_RESULT_OK;
 }
-
 
 S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     RESULT_ENSURE_REF(conn);
@@ -262,8 +274,8 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     RESULT_ENSURE_EQ(conn->ktls_enabled_recv_io, false);
 
     const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
-    /* int fd = peer_socket_ctx->fd; */
-    int fd = 8;
+    int fd = peer_socket_ctx->fd;
+    /* int fd = 8; */
 
     /* register the tls ULP */
     RESULT_GUARD(s2n_ktls_register_ulp(fd));
