@@ -69,7 +69,7 @@ S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer
     uint8_t *data_ptr = s2n_stuffer_raw_read(in, padding_len);
     RESULT_ENSURE_REF(data_ptr);
     uint8_t empty_array[UINT8_MAX] = { 0 };
-    RESULT_ENSURE_EQ(memcmp(data_ptr, empty_array, padding_len), 0);
+    RESULT_ENSURE_EQ(s2n_constant_time_equals(data_ptr, empty_array, padding_len), 1);
 
     RESULT_ENSURE_EQ(s2n_stuffer_data_available(in), 0);
 
