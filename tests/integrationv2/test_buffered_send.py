@@ -79,14 +79,8 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
     #                              | Send Data Bytes to Client (stresses the send buffer - center of test)
     #                              | Send Client Close Marker "SERVERSENT"
     # Close                        | Close
-    
-    # for the corresponding provider, these strings appear when on stdout when the handshake is finished
-    starting_client_send_markers = {
-        GnuTLS: "Handshake was completed",
-        OpenSSL: "write to",
-        S2N: "ready"
-    }
-    starting_client_send_marker = starting_client_send_markers[other_provider]
+
+    starting_client_send_marker = other_provider.get_send_marker()
 
     starting_server_send_marker = "YTREWQ"
     client_inital_app_data = to_bytes(starting_server_send_marker)
