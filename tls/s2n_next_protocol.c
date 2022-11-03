@@ -31,7 +31,9 @@ S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
 }
 
 S2N_RESULT s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *out)
-{   
+{  
+    RESULT_ENSURE_REF(conn);
+ 
     uint8_t protocol_len = strlen(conn->application_protocol);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, protocol_len));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, (uint8_t*) conn->application_protocol, protocol_len));
@@ -39,15 +41,17 @@ S2N_RESULT s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffe
     uint8_t padding_len = 0;
     RESULT_GUARD(s2n_calculate_padding(protocol_len, &padding_len));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, padding_len));
-    for (size_t i = 0; i < padding_len; i++) {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, 0));
-    }
+    uint8_t *data_ptr = s2n_stuffer_raw_write(out, padding_len);
+    RESULT_ENSURE_REF(data_ptr);
+    RESULT_CHECKED_MEMSET(data_ptr, 0, padding_len);
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *in)
 {   
+    RESULT_ENSURE_REF(conn);
+
     uint8_t protocol_len = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &protocol_len));
 
@@ -62,11 +66,11 @@ S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &padding_len));
     RESULT_ENSURE_EQ(padding_len, expected_padding_len);
 
-    for (size_t i = 0; i < padding_len; i++) {
-        uint8_t byte = 0;
-        RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &byte));
-        RESULT_ENSURE_EQ(byte, 0);
-    }
+    uint8_t *data_ptr = s2n_stuffer_raw_read(in, padding_len);
+    RESULT_ENSURE_REF(data_ptr);
+    uint8_t empty_array[UINT8_MAX] = { 0 };
+    RESULT_ENSURE_EQ(memcmp(data_ptr, empty_array, padding_len), 0);
+
     RESULT_ENSURE_EQ(s2n_stuffer_data_available(in), 0);
 
     return S2N_RESULT_OK;
