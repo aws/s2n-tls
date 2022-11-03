@@ -108,8 +108,8 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         extra_flags=['--buffered-send', buffer_size] +
             ([] if fragment_preference is None else [fragment_preference]))
 
-    server = managed_process(provider, server_options, timeout=60, send_marker=[starting_server_send_marker])
-    client = managed_process(other_provider, client_options, timeout=60,
+    server = managed_process(provider, server_options, send_marker=[starting_server_send_marker])
+    client = managed_process(other_provider, client_options,
         send_marker=[starting_client_send_marker], close_marker=client_close_marker)
 
     for results in client.get_results():
@@ -165,8 +165,8 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         key=certificate.key,
         cert=certificate.cert)
 
-    server = managed_process(provider, server_options, close_marker=server_close_marker, timeout=60)
-    client = managed_process(other_provider, client_options, send_marker=["s2n is ready"], timeout=60)
+    server = managed_process(provider, server_options, close_marker=server_close_marker)
+    client = managed_process(other_provider, client_options, send_marker=["s2n is ready"])
 
     for results in client.get_results():
         results.assert_success()
