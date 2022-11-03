@@ -1056,11 +1056,12 @@ S2N_RESULT s2n_cipher_suites_cleanup(void)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t *iana, struct s2n_cipher_suite **cipher_suite)
+S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t *iana, size_t iana_len, struct s2n_cipher_suite **cipher_suite)
 {
     RESULT_ENSURE_REF(cipher_suite);
     *cipher_suite = NULL;
     RESULT_ENSURE_REF(iana);
+    RESULT_ENSURE_EQ(iana_len, S2N_TLS_CIPHER_SUITE_LEN);
 
     int low = 0;
     int top = s2n_array_len(s2n_all_cipher_suites) - 1;
