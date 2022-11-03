@@ -549,7 +549,11 @@ int main(int argc, char **argv)
             &s2n_tls13_aes_128_gcm_sha256,
         };
 
-        struct s2n_cipher_preferences cipher_preferences = { 0 };
+        struct s2n_cipher_preferences cipher_preferences = {
+            .count = s2n_array_len(aes_128_only_cipher_suite_list),
+            .suites = aes_128_only_cipher_suite_list,
+            .allow_chacha20_boosting = true
+        };
 
         struct s2n_security_policy test_policy  = {
             .minimum_protocol_version = S2N_SSLv3,
@@ -568,22 +572,12 @@ int main(int argc, char **argv)
 
         /* Cipher preferences has allow_chacha20_boosting incorrectly set as true even though the ciphersuite list only has aes128 */
         {
-            cipher_preferences = (struct s2n_cipher_preferences) {
-                .count = s2n_array_len(aes_128_only_cipher_suite_list),
-                .suites = aes_128_only_cipher_suite_list,
-                .allow_chacha20_boosting = true
-            };
-
             EXPECT_FAILURE_WITH_ERRNO(s2n_security_policies_init(), S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         /* Cipher preferences has allow_chacha20_boosting correctly set as false */
         {
-            cipher_preferences = (struct s2n_cipher_preferences) {
-                .count = s2n_array_len(aes_128_only_cipher_suite_list),
-                .suites = aes_128_only_cipher_suite_list,
-                .allow_chacha20_boosting = false
-            };
+            cipher_preferences.allow_chacha20_boosting = false;
 
             EXPECT_SUCCESS(s2n_security_policies_init());
         }
