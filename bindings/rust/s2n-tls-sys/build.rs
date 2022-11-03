@@ -104,6 +104,10 @@ fn build_vendored() {
     // fortify source is only available in release mode
     if env("PROFILE") == "release" {
         build.define("_FORTIFY_SOURCE", "2");
+        build
+            .flag_if_supported("-flto")
+            .flag_if_supported("-ffat-lto-objects")
+            .define("NDEBUG", "1");
     }
 
     if !pq {
