@@ -935,6 +935,7 @@ int main(int argc, char **argv)
                 {
                     cipher_preferences.allow_chacha20_boosting = true;
 
+                    EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, dhe_chacha20_boosted_wire, count));
                     EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_gcm_sha384);
                 }
             }
