@@ -612,7 +612,7 @@ int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
 int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD(s2n_connection_free_managed_send_io(conn));
+    POSIX_ENSURE(s2n_connection_free_managed_send_io(conn)==S2N_SUCCESS,S2N_ERR_CANCELLED);
     conn->send = send;
     return S2N_SUCCESS;
 }

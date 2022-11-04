@@ -116,7 +116,7 @@ S2N_RESULT s2n_get_seed_entropy(struct s2n_blob *blob)
 {
     RESULT_ENSURE_REF(blob);
 
-    RESULT_GUARD_POSIX(s2n_rand_seed_cb(blob->data, blob->size));
+    RESULT_ENSURE(s2n_rand_seed_cb(blob->data, blob->size)==S2N_SUCCESS,S2N_ERR_CANCELLED);
 
     return S2N_RESULT_OK;
 }
@@ -369,7 +369,7 @@ static int s2n_rand_init_impl(void)
 
 S2N_RESULT s2n_rand_init(void)
 {
-    RESULT_GUARD_POSIX(s2n_rand_init_cb());
+    RESULT_ENSURE(s2n_rand_init_cb()==S2N_SUCCESS,S2N_ERR_CANCELLED);
 
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
@@ -409,7 +409,7 @@ static int s2n_rand_cleanup_impl(void)
 
 S2N_RESULT s2n_rand_cleanup(void)
 {
-    RESULT_GUARD_POSIX(s2n_rand_cleanup_cb());
+    RESULT_ENSURE(s2n_rand_cleanup_cb()==S2N_SUCCESS,S2N_ERR_CANCELLED);
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Cleanup our rand ENGINE in libcrypto */

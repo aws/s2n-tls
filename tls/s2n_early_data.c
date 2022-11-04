@@ -149,7 +149,7 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->config);
     if (conn->config->early_data_cb) {
         conn->handshake.early_data_async_state.conn = conn;
-        RESULT_GUARD_POSIX(conn->config->early_data_cb(conn, &conn->handshake.early_data_async_state));
+        RESULT_ENSURE(conn->config->early_data_cb(conn, &conn->handshake.early_data_async_state)==S2N_SUCCESS,S2N_ERR_CANCELLED);
         if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
             RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
         }
