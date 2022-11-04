@@ -47,7 +47,8 @@ static int s2n_server_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 {
     POSIX_ENSURE_REF(conn);
 
-    /* Read nothing. The extension just needs to exist. */
+    /* Read nothing. The extension just needs to exist without any data. */
+    POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_UNSUPPORTED_EXTENSION);
     conn->ems_negotiated = true;
 
     return S2N_SUCCESS;
