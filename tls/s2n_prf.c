@@ -800,6 +800,7 @@ static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuff
     POSIX_ENSURE_REF(client_key.data);
 
     /* for ktls testing lets ensure TLS_CIPHER_AES_GCM_128_KEY_SIZE */
+    fprintf(stderr, "ktls save cipher key---------- client_key %d\n", client_key.size);
     POSIX_ENSURE_EQ(16, client_key.size);
     POSIX_CHECKED_MEMCPY(conn->client_key, client_key.data, client_key.size);
 
@@ -823,6 +824,7 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuff
     POSIX_ENSURE_REF(server_key.data);
 
     /* for ktls testing lets ensure TLS_CIPHER_AES_GCM_128_KEY_SIZE */
+    fprintf(stderr, "ktls save cipher key---------- server_key %d\n", server_key.size);
     POSIX_ENSURE_EQ(16, server_key.size);
     POSIX_CHECKED_MEMCPY(conn->server_key, server_key.data, server_key.size);
 
