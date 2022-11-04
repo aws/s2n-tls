@@ -225,9 +225,9 @@ int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHE
 int s2n_kem_free(struct s2n_kem_params *kem_params)
 {
     if (kem_params != NULL) {
-        POSIX_GUARD(s2n_blob_zeroize_free(&kem_params->private_key));
-        POSIX_GUARD(s2n_blob_zeroize_free(&kem_params->public_key));
-        POSIX_GUARD(s2n_blob_zeroize_free(&kem_params->shared_secret));
+        POSIX_GUARD(s2n_free_or_wipe(&kem_params->private_key));
+        POSIX_GUARD(s2n_free_or_wipe(&kem_params->public_key));
+        POSIX_GUARD(s2n_free_or_wipe(&kem_params->shared_secret));
     }
     return S2N_SUCCESS;
 }
