@@ -417,7 +417,8 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     if (result == S2N_CALLBACK_BLOCKED) {
         POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
     }
-    POSIX_GUARD(result);
+
+    POSIX_ENSURE(result==S2N_SUCCESS,S2N_ERR_CANCELLED);
 
     S2N_ERROR_IF(size != entry.size, S2N_ERR_SIZE_MISMATCH);
 

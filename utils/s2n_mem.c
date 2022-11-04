@@ -246,7 +246,7 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 
 int s2n_mem_init(void)
 {
-    POSIX_GUARD(s2n_mem_init_cb());
+    POSIX_ENSURE(s2n_mem_init_cb()==S2N_SUCCESS,S2N_ERR_CANCELLED);
 
     initialized = true;
 
@@ -266,7 +266,7 @@ uint32_t s2n_mem_get_page_size(void)
 int s2n_mem_cleanup(void)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    POSIX_GUARD(s2n_mem_cleanup_cb());
+    POSIX_ENSURE(s2n_mem_cleanup_cb()==S2N_SUCCESS,S2N_ERR_CANCELLED);
 
     initialized = false;
 
