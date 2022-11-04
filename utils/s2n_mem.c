@@ -289,20 +289,20 @@ int s2n_free_without_wipe(struct s2n_blob *b)
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
-    POSIX_GUARD(s2n_mem_free_cb(b->data, b->allocated));
+    if (b->data) {
+        POSIX_GUARD(s2n_mem_free_cb(b->data, b->allocated));
+    }
 
     *b = (struct s2n_blob) {0};
 
     return S2N_SUCCESS;
 }
 
-int s2n_blob_zeroize_free(struct s2n_blob *b) {
-    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+int s2n_free_or_wipe(struct s2n_blob *b) {
     POSIX_ENSURE_REF(b);
-
-    POSIX_GUARD(s2n_blob_zero(b));
+    int zero_rc = s2n_blob_zero(b);
     if (b->allocated) {
-        POSIX_GUARD(s2n_free(b));
+        POSIX_GUARD(s2n_free_without_wipe(b));
     }
-    return S2N_SUCCESS;
+    return zero_rc;
 }
