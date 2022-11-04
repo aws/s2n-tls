@@ -121,7 +121,6 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
             &secret, key_purpose, &s2n_zero_length_context, &key));
 
     /* for ktls testing lets ensure TLS_CIPHER_AES_GCM_128_KEY_SIZE */
-    fprintf(stderr, "set_key ============================== is_server: %u %u\n", mode == S2N_SERVER, secret_type);
     if (conn->mode == mode) {
         if (conn->mode == S2N_SERVER) {
             RESULT_ENSURE_EQ(16, key.size);

@@ -56,7 +56,6 @@ where
         let mut conn = self.builder.build_connection(Mode::Server)?;
         // FIXME set fd to support ktls
         conn.as_mut().set_fd(fd)?;
-        println!("--------fd1 {}", fd);
         TlsStream::open(conn, stream).await
     }
 }

@@ -1080,7 +1080,6 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[static S2N_TLS_CIPHER_S
             low = mid + 1;
         }
     }
-    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 1\n");
     RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
@@ -1119,10 +1118,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
             break;
         }
     }
-    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 2\n");
     POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
-    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 3\n");
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
@@ -1131,7 +1128,6 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# indicating a Hash associated with the PSK
      **/
     if (conn->psk_params.chosen_psk) {
-        fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 4\n");
         POSIX_ENSURE(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
@@ -1144,7 +1140,6 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# otherwise abort the handshake with an "illegal_parameter" alert.
      **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
-        fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 5\n");
         POSIX_ENSURE(conn->secure->cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
@@ -1292,7 +1287,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         return S2N_SUCCESS;
     }
 
-    fprintf(stderr, "cipher not supported xxxxxxxxxxxxxxxxx 6\n");
     POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
