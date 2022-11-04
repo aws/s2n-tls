@@ -515,10 +515,10 @@ int main(int argc, char **argv)
 
             for (size_t j = 0, j_npn = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_npn < S2N_MAX_HANDSHAKE_LENGTH; j++, j_npn++) {
 
-                /* The original handshake cannot contain the Encrypted Extension message */
+                /* The original handshake cannot contain the Next Protocol message */
                 EXPECT_NOT_EQUAL(messages_original[j], CLIENT_NPN);
 
-                /* Skip the Encrypted Extension message in WITH_NPN handshake */
+                /* Skip the Next Protocol message in WITH_NPN handshake */
                 if (messages_npn[j_npn] == CLIENT_NPN) {
                     j_npn++;
                 }
