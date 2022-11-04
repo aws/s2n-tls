@@ -4,7 +4,7 @@ from configuration import available_ports, PROTOCOLS, ALL_TEST_CIPHERS, Certific
 from common import ProviderOptions, data_bytes
 from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from utils import invalid_test_parameters, get_parameter_name, to_bytes, is_subsequence
 
 SEND_DATA_SIZE = 2 ** 14
 
@@ -35,32 +35,6 @@ TEST_CERTS = [
     Certificates.ECDSA_256
 ]
 
-def is_subsequence(s, t):
-    """predicate: is s a subsequence of t?
-
-    Parameters
-    ----------
-    s: bytes
-        subsequence to look for
-    t: str, bytes
-        sequence to look in
-
-    Returns
-    -------
-    bool
-        True if s is a subsequence, False if not 
-    """
-    s = str(s)[2:-1] # Remove the b' and ' from the converted bytes
-    t = str(t)
-    s_len, t_len = len(s), len(t)
-    s_index, t_index = 0, 0
-    while (s_index < s_len and t_index < t_len):
-        if (s[s_index] == t[t_index]):
-            s_index += 1
-        t_index += 1
-    return s_index == s_len
-
-
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [GnuTLS, OpenSSL, S2N], ids=get_parameter_name)
@@ -75,9 +49,11 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
     # Handshake                    | Handshake
     #  Handshake finish indicated
     #  by the client send marker
-    # Send Server Send Marker      | Receive the Server Send Marker "CLIENTSENT"
-    #                              | Send Data Bytes to Client (stresses the send buffer - center of test)
-    #                              | Send Client Close Marker "SERVERSENT"
+    # Send Server Send Marker      | Receive the Server Send Marker
+    #                              | Send Data Bytes to Client
+    #                                 stresses the send buffer
+    #                                 center of test
+    #                              | Send Client Close Marker
     # Close                        | Close
 
     starting_client_send_marker = other_provider.get_send_marker()
@@ -96,6 +72,10 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         insecure=True,
         protocol=protocol)
 
+    extra_flags = ['--buffered-send', buffer_size]
+    if fragment_preference is not None:
+            extra_flags.append(fragment_preference)
+
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
         port=port,
@@ -105,8 +85,7 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
         protocol=protocol,
         key=certificate.key,
         cert=certificate.cert,
-        extra_flags=['--buffered-send', buffer_size] +
-            ([] if fragment_preference is None else [fragment_preference]))
+        extra_flags=extra_flags)
 
     server = managed_process(provider, server_options, send_marker=[starting_server_send_marker])
     client = managed_process(other_provider, client_options,
@@ -136,7 +115,6 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
     # Client [S2N]                 | Server [S2N|OpenSSL]
     # Handshake                    | Handshake
     #  Handshake finish indicated
-    #  "s2n is ready"
     # Send Data Bytes to Server    | Receive the Data Bytes
     #  stresses the send buffer
     #  center of test
@@ -147,14 +125,17 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
     server_close_marker = client_sent_final = "QWERTY"
     client_data_to_send = data_bytes(SEND_DATA_SIZE) + to_bytes(client_sent_final)
 
+    extra_flags = ['--buffered-send', buffer_size]
+    if fragment_preference is not None:
+        extra_flags.append(fragment_preference)
+
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
         data_to_send=client_data_to_send,
         insecure=True,
         protocol=protocol,
-        extra_flags=['--buffered-send', buffer_size] +
-            ([] if fragment_preference is None else [fragment_preference]))
+        extra_flags=extra_flags)
 
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
@@ -166,7 +147,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         cert=certificate.cert)
 
     server = managed_process(provider, server_options, close_marker=server_close_marker)
-    client = managed_process(other_provider, client_options, send_marker=["s2n is ready"])
+    client = managed_process(other_provider, client_options, send_marker=[other_provider.get_send_marker()])
 
     for results in client.get_results():
         results.assert_success()
