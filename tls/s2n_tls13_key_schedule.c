@@ -114,11 +114,22 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
      *#
      *# [sender]_write_key = HKDF-Expand-Label(Secret, "key", "", key_length)
      **/
+    fprintf(stderr, "set_key ============================== is_server: %u %u\n", mode == S2N_SERVER, secret_type);
     struct s2n_blob key = { 0 };
     uint8_t key_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&key, key_bytes, key_size));
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
             &secret, key_purpose, &s2n_zero_length_context, &key));
+
+    /* for ktls testing lets ensure TLS_CIPHER_AES_GCM_128_KEY_SIZE */
+    if (mode == S2N_SERVER) {
+        RESULT_ENSURE_EQ(16, key.size);
+        RESULT_CHECKED_MEMCPY(conn->server_key, key.data, key.size);
+    } else {
+        RESULT_ENSURE_EQ(16, key.size);
+        RESULT_CHECKED_MEMCPY(conn->client_key, key.data, key.size);
+    }
+
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
      *# [sender]_write_iv  = HKDF-Expand-Label(Secret, "iv", "", iv_length)
