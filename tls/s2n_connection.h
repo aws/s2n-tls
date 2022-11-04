@@ -392,6 +392,8 @@ struct s2n_connection {
 
     uint8_t client_key[16];
     uint8_t server_key[16];
+
+    uint8_t sendfd;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

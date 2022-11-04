@@ -214,7 +214,6 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
-
     /* send plaintext since we are using ktls */
     /* { */
     /*     const char *msg = "hello world\n"; */
@@ -243,8 +242,6 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
 /* Enable the "tls" Upper Level Protocols (ULP) over TCP for this connection */
 S2N_RESULT s2n_ktls_register_ulp(int fd) {
-    fprintf(stderr, "ktls upl for socket fd---------- %d\n", fd);
-
     // todo see if this is already done
     int ret_val = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
     if (ret_val < 0) {
@@ -271,9 +268,10 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     RESULT_ENSURE_EQ(conn->ktls_enabled_send_io, false);
     RESULT_ENSURE_EQ(conn->ktls_enabled_recv_io, false);
 
-    const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
-    int fd = peer_socket_ctx->fd;
+    /* const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context; */
+    int fd = conn->sendfd;
     /* int fd = 8; */
+    fprintf(stderr, "ktls upl for socket fd---------- %d\n", conn->sendfd);
 
     /* register the tls ULP */
     RESULT_GUARD(s2n_ktls_register_ulp(fd));

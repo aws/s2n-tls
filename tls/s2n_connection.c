@@ -838,6 +838,9 @@ int s2n_connection_get_write_fd(struct s2n_connection *conn, int *writefd)
 }
 int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 {
+    // FIXME ktls hack
+    conn->sendfd = fd;
+
     POSIX_GUARD(s2n_connection_set_read_fd(conn, fd));
     POSIX_GUARD(s2n_connection_set_write_fd(conn, fd));
     return 0;

@@ -55,7 +55,8 @@ where
     {
         let mut conn = self.builder.build_connection(Mode::Server)?;
         // FIXME set fd to support ktls
-        // conn.as_mut().set_fd(fd)?;
+        conn.as_mut().set_fd(fd)?;
+        println!("--------fd1 {}", fd);
         TlsStream::open(conn, stream).await
     }
 }
@@ -80,11 +81,14 @@ where
         &self,
         domain: &str,
         stream: S,
+        fd: i32,
     ) -> Result<TlsStream<S, B::Output>, Error>
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
         let mut conn = self.builder.build_connection(Mode::Client)?;
+        // FIXME set fd to support ktls
+        conn.as_mut().set_fd(fd)?;
         conn.as_mut().set_server_name(domain)?;
         TlsStream::open(conn, stream).await
     }
