@@ -62,9 +62,7 @@ int main(int argc, char **argv)
      *= type=test
      *# Handshake messages MAY be coalesced into a single TLSPlaintext record
      *# or fragmented across several records, provided that:
-     */
-    
-    /*
+     *
      *= https://tools.ietf.org/rfc/rfc8446#5.1
      *= type=TEST
      *# -  Handshake messages MUST NOT span key changes.  Implementations
