@@ -15,7 +15,7 @@
 
 CHECKFLAGS += --memory-leak-check
 
-PROOF_UID = s2n_blob_zeroize_free
+PROOF_UID = s2n_free_or_wipe
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 

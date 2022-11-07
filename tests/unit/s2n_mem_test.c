@@ -37,7 +37,7 @@ int main(int argc, char **argv)
             struct s2n_blob blob = { 0 };
             EXPECT_SUCCESS(s2n_free(&blob));
             EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
-            EXPECT_SUCCESS(s2n_blob_zeroize_free(&blob));
+            EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
         }
 
         /* Test: no-op for already freed blob */
@@ -48,14 +48,14 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_free(&blob));
             EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
-            EXPECT_SUCCESS(s2n_blob_zeroize_free(&blob));
+            EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
         }
 
         /* Test: error for NULL */
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_free(NULL), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_free_without_wipe(NULL), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_blob_zeroize_free(NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_free_or_wipe(NULL), S2N_ERR_NULL);
         }
 
         /* Test: faulty / overly strict free implementation
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
             struct s2n_blob blob = { 0 };
             EXPECT_SUCCESS(s2n_free(&blob));
             EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
-            EXPECT_SUCCESS(s2n_blob_zeroize_free(&blob));
+            EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
 
             /* Restore real free callback */
             s2n_mem_free_cb = saved_free_cb;
