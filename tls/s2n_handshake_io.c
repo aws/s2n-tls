@@ -960,6 +960,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records.
+ * 
  * Precondition: secure outbound I/O has already been flushed
  * 
  *= https://tools.ietf.org/rfc/rfc8446#5.1
