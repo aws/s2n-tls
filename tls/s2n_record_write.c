@@ -188,7 +188,6 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_st
          * protocol version in ClientHello, so we're still able to negotiate protocol versions above TLS1.0 */
         record_protocol_version = MIN(record_protocol_version, S2N_TLS10);
     }
-
     record_protocol_version = MIN(record_protocol_version, S2N_TLS12);
 
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
