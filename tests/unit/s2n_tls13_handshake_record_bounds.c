@@ -111,9 +111,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
-        S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
-
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
 
@@ -203,9 +200,6 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
-
-        S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
-        S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
