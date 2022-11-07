@@ -113,7 +113,15 @@ int main(int argc, char **argv)
         }
         /* Record Type is Handshake */
         EXPECT_EQUAL(buf[0], 0x16);
-        /* Protocol version is TLS1.0 */
+        /* Protocol version is TLS1.0 
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *= type=TEST
+         *# In order to maximize backward
+         *# compatibility, a record containing an initial ClientHello SHOULD have
+         *# version 0x0301 (reflecting TLS 1.0) and a record containing a second
+         *# ClientHello or a ServerHello MUST have version 0x0303 (reflecting
+         *# TLS 1.2).
+         */
         EXPECT_EQUAL(buf[1], 0x03);
         EXPECT_EQUAL(buf[2], 0x01);
         /* Handshake Type is ClientHello */

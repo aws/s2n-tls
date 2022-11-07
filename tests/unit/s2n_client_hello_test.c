@@ -592,15 +592,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
             EXPECT_EQUAL(conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
-            /* 
-             *= https://tools.ietf.org/rfc/rfc8446#5.1
-             *= type=TEST
-             *# In order to maximize backward
-             *# compatibility, a record containing an initial ClientHello SHOULD have
-             *# version 0x0301 (reflecting TLS 1.0) and a record containing a second
-             *# ClientHello or a ServerHello MUST have version 0x0303 (reflecting
-             *# TLS 1.2).
-             */
             EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
