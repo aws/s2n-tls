@@ -22,6 +22,11 @@
 
 #define S2N_MAX_HASHLEN SHA384_DIGEST_LENGTH
 
+#define RESULT_ENSURE_CONN_HMAC_ALG(conn) do {           \
+        RESULT_ENSURE_REF((conn)->secure);               \
+        RESULT_ENSURE_REF((conn)->secure->cipher_suite); \
+    } while (0)
+
 #define CONN_HMAC_ALG(conn) ((conn)->secure->cipher_suite->prf_alg)
 #define CONN_SECRETS(conn)  ((conn)->secrets.tls13)
 #define CONN_HASHES(conn)   ((conn)->handshake.hashes)
@@ -103,12 +108,10 @@ S2N_RESULT s2n_tls13_empty_transcripts_init()
 static S2N_RESULT s2n_calculate_transcript_digest(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->handshake.hashes);
 
     s2n_hash_algorithm hash_algorithm = S2N_HASH_NONE;
-    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(conn->secure->cipher_suite->prf_alg, &hash_algorithm));
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(CONN_HMAC_ALG(conn), &hash_algorithm));
 
     uint8_t digest_size = 0;
     RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_algorithm, &digest_size));
@@ -360,6 +363,8 @@ static S2N_RESULT s2n_derive_client_early_traffic_secret(struct s2n_connection *
  */
 static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
 {
+    RESULT_ENSURE_REF(conn);
+
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
@@ -385,6 +390,9 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
  */
 static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(output);
+
     RESULT_GUARD(s2n_derive_secret_with_context(conn,
             S2N_HANDSHAKE_SECRET,
             &s2n_tls13_label_client_handshake_traffic_secret,
@@ -414,6 +422,9 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
  */
 static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connection *conn, struct s2n_blob *output)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(output);
+
     RESULT_GUARD(s2n_derive_secret_with_context(conn,
             S2N_HANDSHAKE_SECRET,
             &s2n_tls13_label_server_handshake_traffic_secret,
@@ -444,6 +455,8 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
  */
 static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
 {
+    RESULT_ENSURE_REF(conn);
+
     struct s2n_blob derived_secret = { 0 };
     uint8_t derived_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
@@ -500,6 +513,7 @@ static S2N_RESULT s2n_derive_server_application_traffic_secret(struct s2n_connec
 S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_CONN_HMAC_ALG(conn);
 
     RESULT_GUARD(s2n_derive_secret_with_context(conn,
             S2N_MASTER_SECRET,
@@ -566,6 +580,8 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
 S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_CONN_HMAC_ALG(conn);
+
     if (conn->actual_protocol_version < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
@@ -593,8 +609,8 @@ S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    
+    RESULT_ENSURE_CONN_HMAC_ALG(conn);
 
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
     switch(message_type) {
@@ -645,6 +661,8 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     RESULT_ENSURE_LT(secret_type, s2n_array_len(secrets));
     RESULT_ENSURE_LTE(secret_type, CONN_SECRETS(conn).extract_secret_type);
     RESULT_ENSURE_REF(secrets[secret_type][mode]);
+
+    RESULT_ENSURE_CONN_HMAC_ALG(conn);
 
     secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));
     RESULT_CHECKED_MEMCPY(secret->data, secrets[secret_type][mode], secret->size);
