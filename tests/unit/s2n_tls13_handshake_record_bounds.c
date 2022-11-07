@@ -79,13 +79,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
-        uint32_t cert_chain_len = 0;
-        uint32_t private_key_len = 0;
-
-        DEFER_CLEANUP(uint8_t *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
-        EXPECT_NOT_NULL(cert_chain);
-        DEFER_CLEANUP(uint8_t *private_key = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
-        EXPECT_NOT_NULL(private_key);
+        uint32_t cert_chain_len = S2N_MAX_TEST_PEM_SIZE;
+        uint32_t private_key_len = S2N_MAX_TEST_PEM_SIZE;
+        uint8_t cert_chain[S2N_MAX_TEST_PEM_SIZE];
+        uint8_t private_key[S2N_MAX_TEST_PEM_SIZE];
 
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
@@ -169,13 +166,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
-        uint32_t cert_chain_len = 0;
-        uint32_t private_key_len = 0;
-
-        DEFER_CLEANUP(uint8_t *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
-        EXPECT_NOT_NULL(cert_chain);
-        DEFER_CLEANUP(uint8_t *private_key = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
-        EXPECT_NOT_NULL(private_key);
+        uint32_t cert_chain_len = S2N_MAX_TEST_PEM_SIZE;
+        uint32_t private_key_len = S2N_MAX_TEST_PEM_SIZE;
+        uint8_t cert_chain[S2N_MAX_TEST_PEM_SIZE];
+        uint8_t private_key[S2N_MAX_TEST_PEM_SIZE];
 
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
