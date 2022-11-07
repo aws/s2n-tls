@@ -184,13 +184,8 @@ void fragmented_message(int write_fd)
 
         uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (length >> 8), length & 0xff };
 
-        if (write(write_fd, record_header, 5) != 5) {
-            _exit(100);
-        }
-
-        if (write(write_fd, server_hello_message + written, length) != length) {
-            _exit(100);
-        }
+        EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+        EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
 
         written += length;
     }
@@ -205,17 +200,9 @@ void coalesced_message(int write_fd)
 
     uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (length >> 8), length & 0xff };
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-
-    if (write(write_fd, server_hello_message, sizeof(server_hello_message)) != sizeof(server_hello_message)) {
-        _exit(100);
-    }
-
-    if (write(write_fd, server_cert, sizeof(server_cert)) != sizeof(server_cert)) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+    EXPECT_EQUAL(write(write_fd, server_cert, sizeof(server_cert)), sizeof(server_cert));
 
     close(write_fd);
 }
@@ -227,12 +214,8 @@ void interleaved_message(int write_fd)
     int written = 0;
 
     /* Write half of the message */
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message, length), length);
     written += length;
 
     /* Write the heartbeat record */
@@ -240,24 +223,16 @@ void interleaved_message(int write_fd)
     record_header[3] = sizeof(heartbeat_message) >> 8;
     record_header[4] = sizeof(heartbeat_message) & 0xff;
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, heartbeat_message, sizeof(heartbeat_message)) != sizeof(heartbeat_message)) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, heartbeat_message, sizeof(heartbeat_message)), sizeof(heartbeat_message));
 
     /* Write the rest of the hello message */
     length = sizeof(server_hello_message) - written;
     record_header[0] = TLS_HANDSHAKE;
     record_header[3] = length >> 8;
     record_header[4] = length & 0xff;
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message + written, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
 
     /* Close the pipe and exit */
     close(write_fd);
@@ -270,12 +245,8 @@ void interleaved_message_tls13(int write_fd)
     int written = 0;
 
     /* Write half of the message */
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message, length), length);
     written += length;
 
     /* Write improper CCS. */
@@ -283,24 +254,16 @@ void interleaved_message_tls13(int write_fd)
     record_header[3] = sizeof(change_cipher_spec) >> 8;
     record_header[4] = sizeof(change_cipher_spec) & 0xff;
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, change_cipher_spec, sizeof(change_cipher_spec)) != sizeof(change_cipher_spec)) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, change_cipher_spec, sizeof(change_cipher_spec)), sizeof(change_cipher_spec));
 
     /* Write the rest of the hello message */
     length = sizeof(server_hello_message) - written;
     record_header[0] = TLS_HANDSHAKE;
     record_header[3] = length >> 8;
     record_header[4] = length & 0xff;
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message + written, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
 
     /* Close the pipe and exit */
     close(write_fd);
@@ -313,12 +276,8 @@ void interleaved_fragmented_fatal_alert(int write_fd)
     int written = 0;
 
     /* Write half of the message */
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message, length), length);
     written += length;
 
     /* Write half of the alert message */
@@ -326,24 +285,16 @@ void interleaved_fragmented_fatal_alert(int write_fd)
     record_header[3] = 0;
     record_header[4] = 1;
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, fatal_alert, 1) != 1) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, fatal_alert, 1), 1);
 
     /* Write another quarter of the of the hello message */
     length = sizeof(server_hello_message) / 4;
     record_header[0] = TLS_HANDSHAKE;
     record_header[3] = length >> 8;
     record_header[4] = length & 0xff;
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message + written, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
     written += length;
 
     /* Write second half of the alert message */
@@ -351,24 +302,16 @@ void interleaved_fragmented_fatal_alert(int write_fd)
     record_header[3] = 0;
     record_header[4] = 1;
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, fatal_alert + 1, 1) != 1) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, fatal_alert + 1, 1), 1);
 
     /* Write the rest of the hello message */
     length = sizeof(server_hello_message) - written;
     record_header[0] = TLS_HANDSHAKE;
     record_header[3] = length >> 8;
     record_header[4] = length & 0xff;
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message + written, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
 
     /* Close the pipe and exit */
     close(write_fd);
@@ -381,33 +324,23 @@ void interleaved_fragmented_warning_alert(int write_fd)
     int written = 0;
 
     /* Write half of the message */
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message, length), length);
     written += length;
 
     /* Write half of the alert message */
     record_header[0] = TLS_ALERT;
     record_header[3] = 0;
     record_header[4] = 1;
-    if (write(write_fd, warning_alert, 1) != 1) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, warning_alert, 1), 1);
 
     /* Write another quarter of the of the hello message */
     length = sizeof(server_hello_message) / 4;
     record_header[0] = TLS_HANDSHAKE;
     record_header[3] = length >> 8;
     record_header[4] = length & 0xff;
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message + written, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
     written += length;
 
     /* Write second half of the alert message */
@@ -415,24 +348,16 @@ void interleaved_fragmented_warning_alert(int write_fd)
     record_header[3] = 0;
     record_header[4] = 1;
 
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, warning_alert + 1, 1) != 1) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, warning_alert + 1, 1), 1);
 
     /* Write the rest of the hello message */
     length = sizeof(server_hello_message) - written;
     record_header[0] = TLS_HANDSHAKE;
     record_header[3] = length >> 8;
     record_header[4] = length & 0xff;
-    if (write(write_fd, record_header, 5) != 5) {
-        _exit(100);
-    }
-    if (write(write_fd, server_hello_message + written, length) != length) {
-        _exit(100);
-    }
+    EXPECT_EQUAL(write(write_fd, record_header, 5), 5);
+    EXPECT_EQUAL(write(write_fd, server_hello_message + written, length), length);
 
     /* Close the pipe and exit */
     close(write_fd);
@@ -484,7 +409,7 @@ int main(int argc, char **argv)
         fragmented_message(p[1]);
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -530,7 +455,7 @@ int main(int argc, char **argv)
         coalesced_message(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -576,7 +501,7 @@ int main(int argc, char **argv)
         interleaved_message(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -622,7 +547,7 @@ int main(int argc, char **argv)
         interleaved_fragmented_warning_alert(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -668,7 +593,7 @@ int main(int argc, char **argv)
         interleaved_fragmented_fatal_alert(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -688,7 +613,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(close(p[0]));
 
-    /* TLS1.3 has diffrent constraints 
+    /* TLS1.3 has different constraints 
      *= https://tools.ietf.org/rfc/rfc8446#5.1
      *= type=test
      *# Handshake messages MAY be coalesced into a single TLSPlaintext record
@@ -730,7 +655,7 @@ int main(int argc, char **argv)
         interleaved_message_tls13(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
