@@ -93,7 +93,9 @@ def test_s2n_buffered_send_server(managed_process, cipher, other_provider, provi
 
     for results in client.get_results():
         # for small buffer sizes the received data will not be contiguous on stdout
-        assert(is_subsequence(data_bytes_server, results.stdout))
+        assert(is_subsequence(
+            data_bytes_server.decode(encoding="ascii", errors="backslashreplace"),
+            results.stdout.decode(encoding="ascii", errors="backslashreplace")))
         results.assert_success()
 
     for results in server.get_results():
@@ -153,5 +155,7 @@ def test_s2n_buffered_send_client(managed_process, cipher, other_provider, provi
         results.assert_success()
 
     for results in server.get_results():
-        assert(is_subsequence(client_data_to_send, results.stdout))
+        assert(is_subsequence(
+            client_data_to_send.decode(encoding="ascii", errors="backslashreplace"),
+            results.stdout.decode(encoding="ascii", errors="backslashreplace")))
         results.assert_success()

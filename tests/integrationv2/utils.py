@@ -14,13 +14,15 @@ def is_subsequence(s, t):
     --------------
     Was the expected data printed to stdout (even if non-contiguously)?
     
-        assert(is_subsequence(data, stdout))
+        assert(is_subsequence(
+                data.decode(encoding="ascii", errors="backslashreplace"),
+                stdout.decode(encoding="ascii", errors="backslashreplace")))
 
     Parameters
     ----------
-    s: bytes
+    s: any array-like
         subsequence to look for
-    t: str, bytes
+    t: any array-like
         sequence to look in
 
     Returns
@@ -28,12 +30,10 @@ def is_subsequence(s, t):
     bool
         True if s is a subsequence, False if not 
     """
-    s = str(s)[2:-1] # Remove the b' and ' from the converted bytes
-    t = str(t)
     s_len, t_len = len(s), len(t)
     s_index, t_index = 0, 0
-    while (s_index < s_len and t_index < t_len):
-        if (s[s_index] == t[t_index]):
+    while s_index < s_len and t_index < t_len:
+        if s[s_index] == t[t_index]:
             s_index += 1
         t_index += 1
     return s_index == s_len
