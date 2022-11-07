@@ -12,34 +12,20 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
+#include <stdint.h>
 #include "s2n_test.h"
 
 #include "testlib/s2n_testlib.h"
 
-#include <stdint.h>
-#include <stdlib.h>
-
 #include "api/s2n.h"
 
-#include "crypto/s2n_fips.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-#include "tls/s2n_quic_support.h"
-#include "tls/s2n_tls13.h"
-#include "tls/s2n_tls13_handshake.h"
-#include "tls/extensions/s2n_server_key_share.h"
-#include "tls/extensions/s2n_client_key_share.h"
-#include "tls/s2n_security_policies.h"
-#include "tls/s2n_client_hello.h"
-#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+
 #include "stuffer/s2n_stuffer.h"
 
 /* Just to get access to the static functions / variables we need to test */
+#include "tls/s2n_connection.h"
 #include "tls/s2n_handshake_io.c"
 #include "tls/s2n_tls13_handshake.c"
 #include "tls/s2n_handshake_transcript.c"
