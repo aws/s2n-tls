@@ -307,16 +307,27 @@ int main(int argc, char **argv)
         /* Safety */
         {
             struct s2n_blob result = { 0 };
-            struct s2n_connection conn = { 0 };
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(NULL, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, NULL), S2N_ERR_NULL);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_NONE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, -1, S2N_CLIENT, &result), S2N_ERR_SAFETY);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, 100, S2N_CLIENT, &result), S2N_ERR_SAFETY);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_EARLY_SECRET, S2N_SERVER, &result), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_NONE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, -1, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, 100, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_EARLY_SECRET, S2N_SERVER, &result), S2N_ERR_SAFETY);
 
-            conn.secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(&conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
+            
+            struct s2n_crypto_parameters *secure = conn->secure;
+            conn->secure = NULL;
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
+            conn->secure = secure;
+
+            struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
+            conn->secure->cipher_suite = NULL;
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
+            conn->secure->cipher_suite = cipher_suite;
+
         }
 
         /* Retrieves a secret */

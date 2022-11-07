@@ -652,6 +652,9 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(secret);
+    /* Getting secrets requires these fields to be non-null.  */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     uint8_t *secrets[][2] = {
         [S2N_EARLY_SECRET]     = { NULL, CONN_SECRETS(conn).client_early_secret },
@@ -662,10 +665,6 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     RESULT_ENSURE_LT(secret_type, s2n_array_len(secrets));
     RESULT_ENSURE_LTE(secret_type, CONN_SECRETS(conn).extract_secret_type);
     RESULT_ENSURE_REF(secrets[secret_type][mode]);
-
-    /* Getting secrets requires these fields to be non-null.  */
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));
     RESULT_CHECKED_MEMCPY(secret->data, secrets[secret_type][mode], secret->size);
