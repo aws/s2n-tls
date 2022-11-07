@@ -70,8 +70,6 @@ static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t 
 
 /* This function returns maximum size of plaintext data to write for the payload.
  * Record overheads are not included here.
- *= https://tools.ietf.org/rfc/rfc8446#section-5.1
- *# The length MUST NOT exceed 2^14 bytes.
  */
 S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size)
 {
@@ -80,6 +78,10 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     RESULT_ENSURE_MUT(max_fragment_size);
     RESULT_ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+     *# The length MUST NOT exceed 2^14 bytes.
+     */
     *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     /* If a custom send buffer is configured, ensure it will be large enough for the payload.
@@ -114,10 +116,7 @@ S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_f
     return S2N_RESULT_OK;
 }
 
-/* Find the largest size that will fit within an ethernet frame for a "small" payload 
- *= https://tools.ietf.org/rfc/rfc8446#section-5.1
- *# The length MUST NOT exceed 2^14 bytes.
- */
+/* Find the largest size that will fit within an ethernet frame for a "small" payload. */
 S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size)
 {
     RESULT_ENSURE_REF(conn);
@@ -127,6 +126,10 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
     const uint16_t min_outgoing_fragment_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
 
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+     *# The length MUST NOT exceed 2^14 bytes.
+     */
     RESULT_ENSURE(min_outgoing_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
     uint16_t size = min_outgoing_fragment_length;
 
