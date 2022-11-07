@@ -22,11 +22,6 @@
 
 #define S2N_MAX_HASHLEN SHA384_DIGEST_LENGTH
 
-#define RESULT_ENSURE_CONN_HMAC_ALG(conn) do {           \
-        RESULT_ENSURE_REF((conn)->secure);               \
-        RESULT_ENSURE_REF((conn)->secure->cipher_suite); \
-    } while (0)
-
 #define CONN_HMAC_ALG(conn) ((conn)->secure->cipher_suite->prf_alg)
 #define CONN_SECRETS(conn)  ((conn)->secrets.tls13)
 #define CONN_HASHES(conn)   ((conn)->handshake.hashes)
@@ -513,7 +508,9 @@ static S2N_RESULT s2n_derive_server_application_traffic_secret(struct s2n_connec
 S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_CONN_HMAC_ALG(conn);
+    /* Secret derivation requires these fields to be non-null.  */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     RESULT_GUARD(s2n_derive_secret_with_context(conn,
             S2N_MASTER_SECRET,
@@ -580,7 +577,9 @@ S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secr
 S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_CONN_HMAC_ALG(conn);
+    /* Secret clean requires these fields to be non-null.  */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     if (conn->actual_protocol_version < S2N_TLS13) {
         return S2N_RESULT_OK;
@@ -610,7 +609,9 @@ S2N_RESULT s2n_tls13_secrets_update(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
     
-    RESULT_ENSURE_CONN_HMAC_ALG(conn);
+    /* Secret update requires these fields to be non-null.  */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
     switch(message_type) {
@@ -662,7 +663,9 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     RESULT_ENSURE_LTE(secret_type, CONN_SECRETS(conn).extract_secret_type);
     RESULT_ENSURE_REF(secrets[secret_type][mode]);
 
-    RESULT_ENSURE_CONN_HMAC_ALG(conn);
+    /* Getting secrets requires these fields to be non-null.  */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));
     RESULT_CHECKED_MEMCPY(secret->data, secrets[secret_type][mode], secret->size);
