@@ -19,7 +19,7 @@
  */
  module S2N {
      explicit module Api {
-         header "api/s2n.h"
+         umbrella "api"
          export *
      }
 

@@ -92,11 +92,13 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 .PHONY : failure-tests
 failure-tests : bitcode
 	@${MAKE} clean-failure-logs
-	@${MAKE} failure_tests/tls_early_ccs.log
-	@${MAKE} failure_tests/tls_missing_full_handshake.log
+# Temporarily disabling patches that don't apply due to handshake array changes
+# Tracking issue: https://github.com/aws/s2n-tls/issues/3516
+#	@${MAKE} failure_tests/tls_early_ccs.log
+#	@${MAKE} failure_tests/tls_missing_full_handshake.log
 	@${MAKE} failure_tests/sha_bad_magic_mod.log
-	@${MAKE} failure_tests/cork_one.log
-	@${MAKE} failure_tests/cork_two.log
+#	@${MAKE} failure_tests/cork_one.log
+#	@${MAKE} failure_tests/cork_two.log
 
 #The bitcode files don't get deleted, in case we want to do tests on them
 .SECONDARY : $(wildcard bitcode/*.bc)
@@ -162,7 +164,8 @@ TLS_DIRS = $(sort $(dir $(TLS_COPY)))
 STUFFER_C = $(wildcard ../../stuffer/*.c) $(wildcard ../../stuffer/*.h) ../../stuffer/Makefile
 STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(STUFFER_C)))
 
-API_COPY =$(addprefix s2n/api/, $(notdir $(wildcard ../../api/*.h)))
+API_COPY = $(subst ../../api, s2n/api, $(wildcard ../../api/*.h ../../api/*/*.h))
+API_DIRS = $(sort $(dir $(API_COPY)))
 
 ERROR_C = $(wildcard ../../error/*.c) $(wildcard ../../error/*.h) ../../error/Makefile
 ERROR_COPY = $(addprefix s2n/error/, $(notdir $(ERROR_C)))
@@ -173,7 +176,7 @@ s2n/error :
 	mkdir -p $@
 
 s2n/api :
-	mkdir -p $@
+	mkdir -p $(API_DIRS)
 
 s2n/crypto :
 	mkdir -p $@

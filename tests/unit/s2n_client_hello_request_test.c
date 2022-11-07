@@ -229,7 +229,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test: Hello requests received after the handshake trigger a no_renegotiation alert
+    /* Test: Hello requests received after the handshake do NOT trigger a no_renegotiation alert
      * if renegotiation callbacks not set.
      *
      *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
@@ -262,10 +262,9 @@ int main(int argc, char **argv)
         /* Send the hello request message. */
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
-        /* no_renegotation alert sent and received */
+        /* no_renegotation alert NOT sent and received */
         EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(client_conn, server_conn), S2N_ERR_ALERT);
-        EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_NO_RENEGOTIATION);
+        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
 
         /* Callback was not set */
         EXPECT_NULL(client_conn->config->renegotiate_request_cb);
@@ -273,6 +272,11 @@ int main(int argc, char **argv)
 
     /* Test: Hello requests received after the handshake trigger a no_renegotiation alert
      * if the application rejects the renegotiation request
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#5
+     *= type=test
+     *# TLS implementations SHOULD provide a mechanism to disable and enable
+     *# renegotiation.
      *
      *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
      *= type=test
@@ -318,9 +322,52 @@ int main(int argc, char **argv)
 
     /* Test: Hello requests received after the handshake do not trigger a no_renegotiation alert
      * if the application accepts the renegotiation request
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#5
+     *= type=test
+     *# TLS implementations SHOULD provide a mechanism to disable and enable
+     *# renegotiation.
      */
     {
         struct s2n_test_reneg_req_ctx ctx = { .app_decision = S2N_RENEGOTIATE_ACCEPT };
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_reneg_cb));
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, &ctx));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Complete the handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(client_conn->secure_renegotiation);
+
+        /* Send the hello request message. */
+        EXPECT_OK(s2n_send_client_hello_request(server_conn));
+
+        /* no_renegotation alert NOT sent and received */
+        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
+        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+
+        /* Callback triggered */
+        EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
+        EXPECT_EQUAL(ctx.call_count, 1);
+    }
+
+    /* Test: Hello requests received after the handshake do not trigger a no_renegotiation alert
+     * if the application ignores the renegotiation request
+     */
+    {
+        struct s2n_test_reneg_req_ctx ctx = { .app_decision = S2N_RENEGOTIATE_IGNORE };
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -407,6 +454,97 @@ int main(int argc, char **argv)
         /* Callback was not triggered */
         EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
         EXPECT_EQUAL(ctx.call_count, 0);
+    }
+
+    /* Test: Application callback method fails */
+    {
+        struct s2n_test_reneg_req_ctx ctx = { .app_decision = S2N_RENEGOTIATE_ACCEPT };
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_reneg_cb));
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, &ctx));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Complete the handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Send the hello request message. */
+        EXPECT_OK(s2n_send_client_hello_request(server_conn));
+
+        /* Force the callback to fail.
+         * We're only allowed to call it UINT8_MAX times, so calling
+         * one more time will cause it to fail with S2N_ERR_SAFETY.
+         */
+        EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
+        ctx.call_count = UINT8_MAX;
+
+        /* s2n_recv should not surface the callback error as S2N_ERR_SAFETY.
+         * Applications won't be able to set s2n_errno to a meaningful value,
+         * so we need to set it to S2N_ERR_CANCELED for them.
+         */
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(server_conn, client_conn), S2N_ERR_CANCELLED);
+    }
+
+    /* Test: SSLv3 sends a fatal handshake_failure alert instead of no_renegotiate
+     *
+     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= type=test
+     *# SSLv3 does not define the "no_renegotiation" alert (and does
+     *# not offer a way to indicate a refusal to renegotiate at a "warning"
+     *# level).  SSLv3 clients that refuse renegotiation SHOULD use a fatal
+     *# handshake_failure alert.
+     **/
+    if (s2n_hash_is_available(S2N_HASH_MD5)) {
+        struct s2n_test_reneg_req_ctx ctx = { .app_decision = S2N_RENEGOTIATE_REJECT };
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_reneg_cb));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, &ctx));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Force an SSLv3 handshake */
+        client_conn->client_protocol_version = S2N_SSLv3;
+        client_conn->actual_protocol_version = S2N_SSLv3;
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_SSLv3);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_SSLv3);
+
+        /* Send the hello request message. */
+        EXPECT_OK(s2n_send_client_hello_request(server_conn));
+
+        /* handshake_failure alert sent and received */
+        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(client_conn, server_conn), S2N_ERR_ALERT);
+        EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+        EXPECT_TRUE(client_conn->closed);
+        EXPECT_TRUE(server_conn->closed);
+
+        /* Callback triggered */
+        EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
+        EXPECT_EQUAL(ctx.call_count, 1);
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

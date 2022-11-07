@@ -31,6 +31,7 @@
 #define S2N_PEM_DH_PARAMETERS               "DH PARAMETERS"
 #define S2N_PEM_EC_PARAMETERS               "EC PARAMETERS"
 #define S2N_PEM_CERTIFICATE                 "CERTIFICATE"
+#define S2N_PEM_CRL                         "X509 CRL"
 
 static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char* encap_marker, const char *keyword) {
 
@@ -163,6 +164,10 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
 int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
     return s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_CERTIFICATE);
+}
+
+int s2n_stuffer_crl_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1) {
+    return s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_CRL);
 }
 
 int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3)

@@ -24,24 +24,39 @@
 
 bool s2n_npn_should_send(struct s2n_connection *conn)
 {
-    return s2n_client_alpn_should_send(conn) && conn->config->npn_supported;
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
+     *# For the same reasons, after a handshake has been performed for a
+     *# given connection, renegotiations on the same connection MUST NOT
+     *# include the "next_protocol_negotiation" extension.
+     */
+    return s2n_client_alpn_should_send(conn) && conn->config->npn_supported && !s2n_handshake_is_renegotiation(conn);
+}
+
+int s2n_client_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* Only use the NPN extension to negotiate a protocol if we don't have
+     * an option to use the ALPN extension.
+     */
+    if (s2n_npn_should_send(conn) && !s2n_server_alpn_should_send(conn)) {
+        conn->npn_negotiated = true;
+    }
+
+    return S2N_SUCCESS;
 }
 
 const s2n_extension_type s2n_client_npn_extension = {
     .iana_value = TLS_EXTENSION_NPN,
     .is_response = false,
     .send = s2n_extension_send_noop,
-    .recv = s2n_extension_recv_noop,
+    .recv = s2n_client_npn_recv,
     .should_send = s2n_npn_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
 bool s2n_server_npn_should_send(struct s2n_connection *conn)
 {
-    /* Only use the NPN extension to negotiate a protocol if we don't have
-     * an option to use the ALPN extension.
-     */
-    return s2n_npn_should_send(conn) && !s2n_server_alpn_should_send(conn);
+    return conn->npn_negotiated;
 }
 
 int s2n_server_npn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -66,7 +81,35 @@ int s2n_server_npn_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
+     *# The "extension_data" field of a "next_protocol_negotiation" extension
+     *# in a "ServerHello" contains an optional list of protocols advertised
+     *# by the server.
+     */
+    if (s2n_stuffer_data_available(extension)) {
+        POSIX_GUARD_RESULT(s2n_select_server_preference_protocol(conn, extension, supported_protocols));
+    }
+
+    /*
+     *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-4
+     *# In the event that the client doesn't support any of server's protocols, or
+     *# the server doesn't advertise any, it SHOULD select the first protocol
+     *# that it supports.
+     */
+    if (s2n_get_application_protocol(conn) == NULL) {
+        struct s2n_stuffer stuffer = { 0 };
+        POSIX_GUARD(s2n_stuffer_init(&stuffer, supported_protocols));
+        POSIX_GUARD(s2n_stuffer_skip_write(&stuffer, supported_protocols->size));
+        struct s2n_blob protocol = { 0 };
+        POSIX_GUARD_RESULT(s2n_protocol_preferences_read(&stuffer, &protocol));
+
+        POSIX_ENSURE_LT(protocol.size, sizeof(conn->application_protocol));
+        POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
+        conn->application_protocol[protocol.size] = '\0';
+    }
+
+    conn->npn_negotiated = true;
 
     return S2N_SUCCESS;
 }

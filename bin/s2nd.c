@@ -29,6 +29,7 @@
 #endif
 
 #include "api/s2n.h"
+#include "api/unstable/npn.h"
 #include "common.h"
 
 #include "utils/s2n_safety.h"
@@ -131,6 +132,9 @@ void usage()
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
     fprintf(stderr, "\n Options:\n\n");
+    fprintf(stderr, "  -a [protocol]\n");
+    fprintf(stderr, "  --alpn [protocol]\n");
+    fprintf(stderr, "    Sets a single application protocol supported by this server.\n");
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
@@ -189,6 +193,8 @@ void usage()
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E, --max-early-data \n");
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
+    fprintf(stderr, "  -N --npn \n");
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -273,6 +279,7 @@ int main(int argc, char *const *argv)
     conn_settings.max_conns = -1;
     conn_settings.psk_list_len = 0;
     int max_early_data = 0;
+    bool npn = false;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -299,6 +306,7 @@ int main(int argc, char *const *argv)
         {"https-server", no_argument, 0, 'w'},
         {"https-bench", required_argument, 0, 'b'},
         {"alpn", required_argument, 0, 'A'},
+        {"npn", no_argument, 0, 'N'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
@@ -418,6 +426,9 @@ int main(int argc, char *const *argv)
             break;
         case 'E':
             max_early_data = atoi(optarg);
+            break;
+        case 'N':
+            npn = true;
             break;
         case '?':
         default:
@@ -577,6 +588,10 @@ int main(int argc, char *const *argv)
     if (alpn) {
         const char *protocols[] = { alpn };
         GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
+    }
+
+    if (npn) {
+        GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
     }
 
     FILE *key_log_file = NULL;

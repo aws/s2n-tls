@@ -14,6 +14,7 @@
  */
 
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <poll.h>
 #include <netdb.h>
 
@@ -21,8 +22,10 @@
 #include <errno.h>
 
 #include "api/s2n.h"
+#include "api/unstable/renegotiate.h"
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <sys/param.h>
 
 #include "crypto/s2n_pkey.h"
 #include "common.h"
@@ -230,7 +233,7 @@ int print_connection_info(struct s2n_connection *conn)
 int negotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked;
-    while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
+    while(s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
                     s2n_strerror(s2n_errno, "EN"),
@@ -251,6 +254,75 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
+int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
+{
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    uint8_t buffer[STDIO_BUFSIZE] = { 0 };
+    ssize_t data_read = 0;
+
+    GUARD_RETURN(s2n_renegotiate_wipe(conn), "Unable to prepare connection for renegotiate");
+    GUARD_RETURN(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
+
+    fprintf(stdout, "RENEGOTIATE\n");
+    fflush(stdout);
+
+    /* Do not proceed with renegotiation until we receive more data from the server */
+    if (wait_for_more_data) {
+        fd_set fds = { 0 };
+        FD_SET(fd, &fds);
+        select(FD_SETSIZE, &fds, NULL, NULL, NULL);
+    }
+
+    while(s2n_renegotiate(conn, buffer, sizeof(buffer), &data_read, &blocked) != S2N_SUCCESS) {
+        uint8_t *data_ptr = buffer;
+        while(data_read > 0) {
+            ssize_t data_written = write(STDOUT_FILENO, data_ptr, data_read);
+            GUARD_RETURN(data_written, "Error writing to stdout\n");
+            data_read -= data_written;
+            data_ptr += data_written;
+        }
+
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            fprintf(stderr, "Failed to renegotiate: '%s'. %s\n", s2n_strerror(s2n_errno, NULL),
+                    s2n_strerror_debug(s2n_errno, NULL));
+            if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_ALERT) {
+                fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
+            }
+            return S2N_FAILURE;
+        }
+
+        GUARD_RETURN(wait_for_event(fd, blocked), "Error polling IO for renegotiate");
+    }
+
+    print_connection_info(conn);
+    printf("s2n is ready, again\n");
+    return S2N_SUCCESS;
+}
+
+void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64_t len, s2n_blocked_status *blocked)
+{
+    uint64_t bytes_remaining = len;
+    const char *data_ptr = data;
+    do {
+        ssize_t send_len = MIN(bytes_remaining, SSIZE_MAX);
+        ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, blocked);
+        if (bytes_written < 0) {
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                fprintf(stderr, "Error writing to connection: '%s'\n",
+                        s2n_strerror(s2n_errno, "EN"));
+                exit(1);
+            }
+
+            GUARD_EXIT(wait_for_event(sockfd, *blocked), "Unable to send data");
+            continue;
+        }
+
+        bytes_remaining -= bytes_written;
+        data_ptr += bytes_written;
+
+    } while (bytes_remaining > 0);
+}
+
 int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 {
     struct pollfd readers[2];
@@ -265,14 +337,13 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
     /* Act as a simple proxy between stdin and the SSL connection */
     int p = 0;
-    s2n_blocked_status blocked;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     do {
         /* echo will send and receive Application Data back and forth between
-         * client and server, until stop_echo is true. */
+         * client and server, until stop_echo is true or stdin EOF is reached. */
         while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
-            ssize_t bytes_written = 0;
 
             if (readers[0].revents & POLLIN) {
                 s2n_errno = S2N_ERR_T_OK;
@@ -292,7 +363,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
                 char *buf_ptr = buffer;
                 do {
-                    bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
+                    ssize_t bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
                     if (bytes_written < 0) {
                         fprintf(stderr, "Error writing to stdout\n");
                         exit(1);
@@ -331,26 +402,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
                     /* We may not be able to write all the data we read in one shot, so
                      * keep sending until we have cleared our buffer. */
-                    char *buf_ptr = buffer;
-                    do {
-                        s2n_errno = S2N_ERR_T_OK;
-                        bytes_written = s2n_send(conn, buf_ptr, bytes_read, &blocked);
-                        if (bytes_written < 0) {
-                            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-                                fprintf(stderr, "Error writing to connection: '%s'\n",
-                                        s2n_strerror(s2n_errno, "EN"));
-                                exit(1);
-                            }
-
-                            if (wait_for_event(sockfd, blocked) != S2N_SUCCESS) {
-                                S2N_ERROR_PRESERVE_ERRNO();
-                            }
-                        } else {
-                            // Only modify the counts if we successfully wrote the data
-                            bytes_read -= bytes_written;
-                            buf_ptr += bytes_written;
-                        }
-                    } while (bytes_read > 0);
+                    send_data(conn, sockfd, buffer, bytes_read, &blocked);
 
                 } while (bytes_available || blocked);
 

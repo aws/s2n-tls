@@ -41,6 +41,13 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->config);
     RESULT_GUARD(s2n_client_hello_request_validate(conn));
 
+    /* Maintain the old s2n-tls behavior by default.
+     * Traditionally, s2n-tls has just ignored all hello requests.
+     */
+    if (!conn->config->renegotiate_request_cb) {
+        return S2N_RESULT_OK;
+    }
+
     /*
      *= https://tools.ietf.org/rfc/rfc5746#section-4.2
      *# This text applies if the connection's "secure_renegotiation" flag is
@@ -61,10 +68,8 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
     }
 
     s2n_renegotiate_response response = S2N_RENEGOTIATE_REJECT;
-    if (conn->config->renegotiate_request_cb) {
-        RESULT_GUARD_POSIX((conn->config->renegotiate_request_cb)(
-                conn, conn->config->renegotiate_request_ctx, &response));
-    }
+    int result = conn->config->renegotiate_request_cb(conn, conn->config->renegotiate_request_ctx, &response);
+    RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     /*
      *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
@@ -72,7 +77,7 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
      *# the client if it does not wish to renegotiate a session, or the
      *# client may, if it wishes, respond with a no_renegotiation alert.
      */
-    if (response != S2N_RENEGOTIATE_ACCEPT) {
+    if (response == S2N_RENEGOTIATE_REJECT) {
         RESULT_GUARD(s2n_queue_reader_no_renegotiation_alert(conn));
         return S2N_RESULT_OK;
     }
