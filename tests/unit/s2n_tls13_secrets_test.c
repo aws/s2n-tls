@@ -327,7 +327,6 @@ int main(int argc, char **argv)
             conn->secure->cipher_suite = NULL;
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
             conn->secure->cipher_suite = cipher_suite;
-
         }
 
         /* Retrieves a secret */
