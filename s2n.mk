@@ -15,6 +15,8 @@ else ifeq ($(PLATFORM),FreeBSD)
     LIBS = -lthr
 else ifeq ($(PLATFORM),NetBSD)
     LIBS = -pthread
+else ifeq ($(PLATFORM),OpenBSD)
+    LIBS = -pthread
 else
     LIBS = -pthread -ldl -lrt
 endif
