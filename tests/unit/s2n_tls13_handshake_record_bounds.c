@@ -47,6 +47,8 @@
 #define S2N_SECRET_TYPE_COUNT 5
 #define S2N_TEST_PSK_COUNT 10
 
+DEFINE_POINTER_CLEANUP_FUNC(uint8_t *, free);
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -71,37 +73,37 @@ int main(int argc, char **argv)
      *#    connection with an "unexpected_message" alert.
      */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-
-        struct s2n_config *server_config, *client_config;
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
-        uint8_t *cert_chain = NULL;
-        uint8_t *private_key = NULL;
         uint32_t cert_chain_len = 0;
         uint32_t private_key_len = 0;
 
-        EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+        DEFER_CLEANUP(uint8_t *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
+        EXPECT_NOT_NULL(cert_chain);
+        DEFER_CLEANUP(uint8_t *private_key = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
+        EXPECT_NOT_NULL(private_key);
 
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
 
-        struct s2n_cert_chain_and_key *default_cert;
-        EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *default_cert = s2n_cert_chain_and_key_new(), s2n_cert_chain_and_key_ptr_free);
+        EXPECT_NOT_NULL(default_cert);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(default_cert, cert_chain, cert_chain_len, private_key, private_key_len));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_cert));
 
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        DEFER_CLEANUP(struct s2n_stuffer client_to_server = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_to_client = { 0 }, s2n_stuffer_free);
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
@@ -150,23 +152,9 @@ int main(int argc, char **argv)
         /* Server reads ClientHello */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
         EXPECT_FAILURE_WITH_ERRNO (s2n_handshake_read_io(server_conn), S2N_ERR_BAD_MESSAGE);
-
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
-        EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));
-
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-
-        free(private_key);
-        free(cert_chain);
     }
 
-    /* Try to construct a situation in which a bad implemention might not align
+    /* Try to construct a situation in which a bad implementation might not align
      * these messages with a record boundary. We send the Client hello and then
      * ensure we are at a record boundary by checking the out messages.
      *
@@ -178,37 +166,37 @@ int main(int argc, char **argv)
      *# MUST send these messages in alignment with a record boundary.
      */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-
-        struct s2n_config *server_config, *client_config;
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
-        uint8_t *cert_chain = NULL;
-        uint8_t *private_key = NULL;
         uint32_t cert_chain_len = 0;
         uint32_t private_key_len = 0;
 
-        EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+        DEFER_CLEANUP(uint8_t *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
+        EXPECT_NOT_NULL(cert_chain);
+        DEFER_CLEANUP(uint8_t *private_key = malloc(S2N_MAX_TEST_PEM_SIZE), free_pointer);
+        EXPECT_NOT_NULL(private_key);
 
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
 
-        struct s2n_cert_chain_and_key *default_cert;
-        EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *default_cert = s2n_cert_chain_and_key_new(), s2n_cert_chain_and_key_ptr_free);
+        EXPECT_NOT_NULL(default_cert);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(default_cert, cert_chain, cert_chain_len, private_key, private_key_len));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_cert));
 
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        DEFER_CLEANUP(struct s2n_stuffer client_to_server = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_to_client = { 0 }, s2n_stuffer_free);
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
@@ -240,20 +228,6 @@ int main(int argc, char **argv)
         /* Server reads ClientHello */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
-
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
-        EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));
-
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-
-        free(private_key);
-        free(cert_chain);
     }
 
     END_TEST();
