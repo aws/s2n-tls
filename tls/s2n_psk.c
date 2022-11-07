@@ -40,7 +40,7 @@ S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
     return S2N_RESULT_OK;
 }
 
-struct s2n_psk* s2n_external_psk_new(void)
+struct s2n_psk* s2n_external_psk_new()
 {
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_psk)));
@@ -342,7 +342,7 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
     return S2N_SUCCESS;
 }
 
-struct s2n_offered_psk* s2n_offered_psk_new(void)
+struct s2n_offered_psk* s2n_offered_psk_new()
 {
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_offered_psk)));
