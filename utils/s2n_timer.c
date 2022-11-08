@@ -22,7 +22,8 @@
 S2N_RESULT s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
 {
 
-    RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, &timer->time)==S2N_SUCCESS,S2N_ERR_CANCELLED);
+    RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, &timer->time) >= S2N_SUCCESS,
+                  S2N_ERR_CANCELLED);
 
     return S2N_RESULT_OK;
 }
@@ -30,8 +31,9 @@ S2N_RESULT s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
 S2N_RESULT s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64_t * nanoseconds)
 {
     uint64_t current_time;
-    ;
-    RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, &current_time)==S2N_SUCCESS,S2N_ERR_CANCELLED);
+
+    RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, &current_time) >= S2N_SUCCESS,
+                  S2N_ERR_CANCELLED);
 
     *nanoseconds = current_time - timer->time;
 

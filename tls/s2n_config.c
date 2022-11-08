@@ -783,7 +783,7 @@ int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enable
 {
     POSIX_ENSURE_REF(config);
     if (enabled && config->cache_store && config->cache_retrieve && config->cache_delete) {
-        POSIX_ENSURE(s2n_config_init_session_ticket_keys(config)==S2N_SUCCESS,S2N_ERR_CANCELLED);
+        POSIX_ENSURE(s2n_config_init_session_ticket_keys(config) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
         config->use_session_cache = 1;
     }
     else {
@@ -887,7 +887,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     if (intro_time_in_seconds_from_epoch == 0) {
         uint64_t now = 0;
 
-        POSIX_ENSURE(config->wall_clock(config->sys_clock_ctx, &now)==S2N_SUCCESS,S2N_ERR_CANCELLED);
+        POSIX_ENSURE(config->wall_clock(config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
         session_ticket_key->intro_timestamp = now;
     } else {
