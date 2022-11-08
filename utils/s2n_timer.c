@@ -21,7 +21,6 @@
 
 S2N_RESULT s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
 {
-
     RESULT_ENSURE(config->monotonic_clock(config->monotonic_clock_ctx, &timer->time) >= S2N_SUCCESS,
                   S2N_ERR_CANCELLED);
 
