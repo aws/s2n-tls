@@ -100,7 +100,7 @@ int s2n_crl_validate_active(struct s2n_crl *crl)
     POSIX_ENSURE_REF(this_update);
 
     int ret = X509_cmp_time(this_update, NULL);
-    POSIX_ENSURE(ret != 0, S2N_ERR_CRL_INVALID_NEXT_UPDATE);
+    POSIX_ENSURE(ret != 0, S2N_ERR_CRL_INVALID_THIS_UPDATE);
     POSIX_ENSURE(ret < 0, S2N_ERR_CRL_NOT_YET_VALID);
 
     return S2N_SUCCESS;
@@ -118,7 +118,7 @@ int s2n_crl_validate_not_expired(struct s2n_crl *crl)
     }
 
     int ret = X509_cmp_time(next_update, NULL);
-    POSIX_ENSURE(ret != 0, S2N_ERR_CRL_INVALID_THIS_UPDATE);
+    POSIX_ENSURE(ret != 0, S2N_ERR_CRL_INVALID_NEXT_UPDATE);
     POSIX_ENSURE(ret > 0, S2N_ERR_CRL_EXPIRED);
 
     return S2N_SUCCESS;
