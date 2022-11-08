@@ -163,6 +163,16 @@ impl Builder {
             s2n_config_set_ctx(config.as_ptr(), context)
                 .into_result()
                 .unwrap();
+
+            // The client hello callback originally did not support async operations,
+            // so defaults to blocking mode for backwards compatibility with old integrations.
+            // But these bindings use a polling model, so assume non-blocking mode.
+            s2n_config_set_client_hello_cb_mode(
+                config.as_ptr(),
+                s2n_client_hello_cb_mode::NONBLOCKING,
+            )
+            .into_result()
+            .unwrap();
         }
 
         Self(Config(config))
@@ -425,11 +435,6 @@ impl Builder {
         context.client_hello_callback = Some(handler);
 
         unsafe {
-            s2n_config_set_client_hello_cb_mode(
-                self.as_mut_ptr(),
-                s2n_client_hello_cb_mode::NONBLOCKING,
-            )
-            .into_result()?;
             s2n_config_set_client_hello_cb(
                 self.as_mut_ptr(),
                 Some(client_hello_cb),
