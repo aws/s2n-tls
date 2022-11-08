@@ -221,6 +221,7 @@ type handshake = {handshake_type : [32]
                  ,message_number : [32]
                  }
 
+type HANDSHAKE_ACTION_TOTAL = 21
 type S2N_HANDSHAKES_COUNT = 256
 type S2N_MAX_HANDSHAKE_LENGTH = 32
 
@@ -229,7 +230,7 @@ type S2N_MAX_HANDSHAKE_LENGTH = 32
 IS_TLS13_HANDSHAKE : connection -> Bit
 IS_TLS13_HANDSHAKE conn = conn.actual_protocol_version == S2N_TLS13
 
-ACTIVE_STATE_MACHINE : connection -> [21]handshake_action
+ACTIVE_STATE_MACHINE : connection -> [HANDSHAKE_ACTION_TOTAL]handshake_action
 ACTIVE_STATE_MACHINE conn = if IS_TLS13_HANDSHAKE conn then tls13_state_machine else state_machine # zero
 
 ACTIVE_HANDSHAKES : connection -> [S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH][32]
@@ -272,8 +273,8 @@ mkAct : [8] -> [8] -> [8] -> handshake_action
 mkAct r m w = {record_type = r, message_type = m, writer = w}
 
 // A model of the tls1.3 handshake states (array state_machine in C)
-tls13_state_machine : [21]handshake_action
-tls13_state_machine = [tls13_state_machine_fn m | m <- [0..20]]
+tls13_state_machine : [HANDSHAKE_ACTION_TOTAL]handshake_action
+tls13_state_machine = [tls13_state_machine_fn m | m <- [0..(HANDSHAKE_ACTION_TOTAL-1)]]
 
 // Function that tells a handshake_action for a given tls1.3 state
 tls13_state_machine_fn : [5] -> handshake_action
@@ -296,8 +297,8 @@ tls13_state_machine_fn m =
   else zero
 
 // A model of the handshake states (array state_machine in C)
-state_machine : [21]handshake_action
-state_machine = [state_machine_fn m | m <- [0..20]]
+state_machine : [HANDSHAKE_ACTION_TOTAL]handshake_action
+state_machine = [state_machine_fn m | m <- [0..(HANDSHAKE_ACTION_TOTAL-1)]]
 
 // Function that tells a handshake_action for a given state
 state_machine_fn : [5] -> handshake_action
