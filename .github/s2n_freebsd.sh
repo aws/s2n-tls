@@ -15,10 +15,10 @@
 set -eu
 export CTEST_PARALLEL_LEVEL=$(sysctl hw.ncpu | awk '{print $2}')
 
-cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Release
-cmake --build ./build -j $CTEST_PARALLEL_LEVEL
-ninja -C build test
-cmake --build ./build --target clean #Saves on copy back rsync time
+cmake . -Brelease -GNinja -DCMAKE_BUILD_TYPE=Release
+cmake --build ./release -j $CTEST_PARALLEL_LEVEL
+ninja -C release test
+cmake --build ./release --target clean #Saves on copy back rsync time
 
 cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
 cmake --build ./build -j $CTEST_PARALLEL_LEVEL
