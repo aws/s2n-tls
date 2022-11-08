@@ -149,6 +149,8 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
 
 static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
 {
+    RESULT_ENSURE_REF(conn);
+
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
 
     /**
@@ -224,6 +226,8 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
 
 static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
 {
+    RESULT_ENSURE_REF(conn);
+
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
 
     /**
