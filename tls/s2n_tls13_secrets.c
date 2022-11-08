@@ -365,7 +365,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
     RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_EARLY_SECRET, &derived_secret));
 
-    DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_blob_zeroize_free);
+    DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free_or_wipe);
     RESULT_GUARD_POSIX(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
     RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
