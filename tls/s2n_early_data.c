@@ -216,7 +216,7 @@ int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_si
 
     const uint8_t cipher_suite_iana[] = { cipher_suite_first_byte, cipher_suite_second_byte };
     struct s2n_cipher_suite *cipher_suite = NULL;
-    POSIX_GUARD_RESULT(s2n_cipher_suite_from_iana(cipher_suite_iana, &cipher_suite));
+    POSIX_GUARD_RESULT(s2n_cipher_suite_from_iana(cipher_suite_iana, sizeof(cipher_suite_iana), &cipher_suite));
     POSIX_ENSURE_REF(cipher_suite);
     POSIX_ENSURE(cipher_suite->prf_alg == psk->hmac_alg, S2N_ERR_INVALID_ARGUMENT);
 
