@@ -46,7 +46,8 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 {
     POSIX_ENSURE_REF(conn);
 
-    /* Read nothing. The extension just needs to exist. */
+    /* Read nothing. The extension just needs to exist without data. */
+    POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_UNSUPPORTED_EXTENSION);
     conn->ems_negotiated = true;
 
     return S2N_SUCCESS;
@@ -65,7 +66,7 @@ static int s2n_client_ems_recv(struct s2n_connection *conn, struct s2n_stuffer *
 static bool s2n_client_ems_should_send(struct s2n_connection *conn)
 {
     /* Don't send this extension if the previous session did not negotiate EMS */
-    if (conn->set_session && !conn->ems_negotiated) {
+    if (conn && conn->set_session && !conn->ems_negotiated) {
         return false;
     } else {
         return true;

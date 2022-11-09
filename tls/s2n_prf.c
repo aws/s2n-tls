@@ -500,6 +500,8 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 
 int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
+    POSIX_ENSURE_REF(conn);
+
     struct s2n_blob client_random = {.size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random};
     struct s2n_blob server_random = {.size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random};
     struct s2n_blob master_secret = {.size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret};
@@ -512,6 +514,8 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
 
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
+    POSIX_ENSURE_REF(conn);
+
     struct s2n_blob client_random = {.size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random};
     struct s2n_blob server_random = {.size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random};
     struct s2n_blob master_secret = {.size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret};
@@ -575,6 +579,8 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
  */
 S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash)
 {
+    RESULT_ENSURE_REF(conn);
+
     struct s2n_blob extended_master_secret = {.size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret};
 
     uint8_t extended_master_secret_label[] = "extended master secret";
@@ -590,6 +596,7 @@ S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_bl
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->handshake.hashes);
+    RESULT_ENSURE_REF(message);
     RESULT_ENSURE_REF(output);
 
     struct s2n_hash_state *hash_state = &conn->handshake.hashes->hash_workspace;

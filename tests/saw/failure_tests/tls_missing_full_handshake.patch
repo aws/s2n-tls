@@ -1,8 +1,8 @@
 diff --git a/tls/s2n_handshake_io.c b/tls/s2n_handshake_io.c
-index 14e6bb9f..e2e8869f 100644
+index 60f1f38d..361767c6 100755
 --- a/tls/s2n_handshake_io.c
 +++ b/tls/s2n_handshake_io.c
-@@ -169,7 +169,7 @@ static message_type_t handshakes[128][32] = {
+@@ -241,7 +241,7 @@ static message_type_t handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH]
              APPLICATION_DATA
      },
  
@@ -11,7 +11,7 @@ index 14e6bb9f..e2e8869f 100644
              CLIENT_HELLO,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_HELLO_DONE,
              CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-@@ -177,7 +177,7 @@ static message_type_t handshakes[128][32] = {
+@@ -257,7 +257,7 @@ static message_type_t handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH]
              APPLICATION_DATA
      },
  
@@ -20,7 +20,7 @@ index 14e6bb9f..e2e8869f 100644
              CLIENT_HELLO,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_HELLO_DONE,
              CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-@@ -265,14 +265,6 @@ static message_type_t handshakes[128][32] = {
+@@ -433,14 +433,6 @@ static message_type_t handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH]
             APPLICATION_DATA
      },
  
@@ -32,6 +32,6 @@ index 14e6bb9f..e2e8869f 100644
 -           APPLICATION_DATA
 -    },
 -
-     [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+     [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | CLIENT_AUTH | WITH_NPN ] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_CERT_REQ, SERVER_HELLO_DONE,

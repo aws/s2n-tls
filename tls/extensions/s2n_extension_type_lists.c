@@ -128,10 +128,6 @@ static const s2n_extension_type *const encrypted_extensions[] = {
         &s2n_server_early_data_indication_extension,
 };
 
-static const s2n_extension_type *const tls12_encrypted_extensions[] = {
-        &s2n_npn_encrypted_extension,
-};
-
 static const s2n_extension_type *const cert_req_extensions[] = {
         &s2n_server_signature_algorithms_extension,
 };
@@ -156,7 +152,6 @@ static s2n_extension_type_list extension_lists[] = {
         [S2N_EXTENSION_LIST_CERT_REQ] = S2N_EXTENSION_LIST(cert_req_extensions),
         [S2N_EXTENSION_LIST_CERTIFICATE] = S2N_EXTENSION_LIST(certificate_extensions),
         [S2N_EXTENSION_LIST_NST] = S2N_EXTENSION_LIST(nst_extensions),
-        [S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS_TLS12] = S2N_EXTENSION_LIST(tls12_encrypted_extensions),
         [S2N_EXTENSION_LIST_EMPTY] = { .extension_types = NULL, .count = 0 },
 };
 

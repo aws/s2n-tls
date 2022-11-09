@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build and test in FreeBSD
         id: test
-        uses: vmactions/freebsd-vm@v0.2.4
+        uses: vmactions/freebsd-vm@v0.3.0
         with:
           prepare: pkg install -y ninja cmake
           run: |
@@ -24,4 +24,6 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: all_test_output
-          path: build/Testing/Temporary
+          path: |
+            release/Testing/Temporary
+            build/Testing/Temporary
