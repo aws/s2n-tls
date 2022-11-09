@@ -262,7 +262,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
     struct s2n_cipher_suite *cipher_suite = NULL;
-    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
+    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, sizeof(iana_id), &cipher_suite));
     RESULT_ENSURE_REF(cipher_suite);
     psk.hmac_alg = cipher_suite->prf_alg;
 
