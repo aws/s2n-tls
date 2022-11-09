@@ -350,7 +350,14 @@ mod tests {
                 &self,
                 connection: &mut crate::connection::Connection,
             ) -> Poll<Result<(), error::Error>> {
+                // Test that the config can be changed
+                connection
+                    .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
+                    .unwrap();
+
+                // Test that server_name_extension_used can be invoked
                 connection.server_name_extension_used();
+
                 self.0.fetch_add(1, Ordering::Relaxed);
                 Poll::Ready(Ok(()))
             }
