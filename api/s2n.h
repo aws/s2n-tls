@@ -2824,7 +2824,7 @@ extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
  * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
  *
  * @param conn A pointer to the connection
- * @returns returns the protocol version number supported by the client
+ * @returns returns the highest protocol version supported by the client
  */
 S2N_API
 extern int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
@@ -2836,7 +2836,7 @@ extern int s2n_connection_get_client_protocol_version(struct s2n_connection *con
  * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
  *
  * @param conn A pointer to the connection
- * @returns Returns the protocol version number supported by the server
+ * @returns Returns the highest protocol version supported by the server
  */
 S2N_API
 extern int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
@@ -2848,7 +2848,7 @@ extern int s2n_connection_get_server_protocol_version(struct s2n_connection *con
  * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
  *
  * @param conn A pointer to the connection
- * @returns The protocol version number actually used by s2n-tls for the connection
+ * @returns The protocol version actually negotiated by the handshake
  */
 S2N_API
 extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
@@ -2856,6 +2856,9 @@ extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *con
 /**
  * Access the client hello protocol version for the connection.
  *
+ * @note The return value corresponds to the macros defined as S2N_SSLv2,
+ * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
+ * 
  * @param conn A pointer to the connection
  * @returns The protocol version used to send the initial client hello message. 
  */
