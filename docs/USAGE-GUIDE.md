@@ -536,14 +536,13 @@ Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates 
 
 To enable CRL validation in s2n-tls, the s2n CRL lookup callback must be implemented via `s2n_config_set_crl_lookup_callback()`. This callback is triggered once for each certificate received in the handshake. The received certificate's issuer hash can be retrieved in the callback via `s2n_crl_lookup_get_cert_issuer_hash()`. The issuer hash can be used to find the correct CRL for the given certificate.
 
-The s2n CRL lookup callback expects a CRL to be returned via `s2n_crl_lookup_set()`. `s2n_crl`s can be created from PEMs via `s2n_crl_new()` and `s2n_crl_load_pem()`, and then freed via `s2n_crl_free()`. The issuer hash of the CRL can be obtained with `s2n_crl_get_issuer_hash()`. This issuer hash of a certificate contained in a CRL will match the issuer hash of that CRL.
+The s2n CRL lookup callback expects a CRL to be returned via `s2n_crl_lookup_set()`. `s2n_crl`s can be created from PEMs via `s2n_crl_new()` and `s2n_crl_load_pem()`, and then freed via `s2n_crl_free()`. The issuer hash of the CRL can be obtained with `s2n_crl_get_issuer_hash()`. This issuer hash of a certificate will match the issuer hash of its CRL.
 
-Calling `s2n_crl_lookup_set` will add the provided CRL to a list that will be used to verify the certificate chain. Received certificates can also be ignored from the callback, via `s2n_crl_lookup_ignore`. When a CRL lookup callback calls `s2n_crl_lookup_ignore`, no CRL is added to this list. If a certificate in the chain of trust cannot find a corresponding CRL in this list, the handshake fails with a `S2N_ERR_CRL_LOOKUP_FAILED` error.
+Calling `s2n_crl_lookup_set` will add the provided CRL to the list of CRLs that will be used to verify the certificate chain. Received certificates can also be ignored from the callback, via `s2n_crl_lookup_ignore`. When a certificate is ignored from the callback, no CRL is added to this list. If a certificate in the chain of trust cannot find a corresponding CRL in this list, the handshake will fail with a `S2N_ERR_CRL_LOOKUP_FAILED` error.
 
-Some received certificates, however, may be extraneous. These certificates are additional certificates that aren't ultimately included in the chain of trust used to validate the end-entity certificate. If such a certificate is ignored from the callback, the handshake will proceed with no error.
+Some received certificates may be extraneous. Extraneous certificates are additional certificates that aren't ultimately included in the chain of trust used to validate the end-entity certificate. If such a certificate is ignored from the callback, the handshake will proceed with no error.
 
 By default, CRL timestamp validation is not performed. If a CRL returned from the CRL lookup callback is not yet active, or is expired, the CRL validation checks will continue and can succeed. If timestamp validation is desired, it should be performed in the CRL lookup callback with `s2n_crl_validate_active` and `s2n_crl_validate_not_expired`.
-
 
 ### Certificate Transparency
 

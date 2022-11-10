@@ -23,11 +23,12 @@ struct s2n_crl_lookup;
  * A callback which can be implemented to provide s2n-tls with CRLs to use for CRL validation.
  *
  * This callback is triggered once for each certificate received during the handshake. To provide s2n-tls with a CRL for
- * the certificate, use `s2n_crl_lookup_set()`. To skip the certificate ant not provide a CRL, use
+ * the certificate, use `s2n_crl_lookup_set()`. To ignore the certificate and not provide a CRL, use
  * `s2n_crl_lookup_ignore()`. See the CRL Validation section in the usage guide for more information.
  *
  * This callback can be synchronous or asynchronous. For asynchronous behavior, return success without calling
- * `s2n_crl_lookup_set()` or `s2n_crl_lookup_ignore()`. The connection will block until one these functions is called.
+ * `s2n_crl_lookup_set()` or `s2n_crl_lookup_ignore()`. The connection will block until one of these functions is
+ * called.
  *
  * @param lookup The CRL lookup for the given certificate.
  * @param context Context for the callback function.
@@ -39,30 +40,30 @@ typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *con
  * Set a callback to provide CRLs to use for CRL validation.
  *
  * @param config A pointer to the connection config
- * @param crl_lookup_fn A pointer to the implementation of the callback
- * @param data A user supplied opaque context to pass back to the callback
+ * @param s2n_crl_lookup_callback The function to be called for each received certificate.
+ * @param context Context to be passed to the callback function.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure
  */
 S2N_API
 int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callback callback, void *context);
 
 /**
- * Allocates a new s2n_crl struct.
+ * Allocates a new `s2n_crl` struct.
  *
  * Use `s2n_crl_load_pem()` to load the struct with a CRL pem.
  *
  * The allocated struct must be freed with `s2n_crl_free()`.
  *
- * @return A pointer to the new s2n_crl struct.
+ * @return A pointer to the allocated `s2n_crl` struct.
  */
 S2N_API
 struct s2n_crl *s2n_crl_new(void);
 
 /**
- * Loads a s2n_crl with a CRL pem.
+ * Loads a CRL with pem data.
  *
- * @param crl The CRL to load with the PEM.
- * @param pem The pem data to use to load the s2n_crl with.
+ * @param crl The CRL to load with the PEM data.
+ * @param pem The PEM data to load `crl` with.
  * @param len The length of the pem data.
  * @return S2N_SUCCESS on success, S2N_FAILURE on error.
  */
@@ -70,9 +71,9 @@ S2N_API
 int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
 
 /**
- * Frees a s2n_crl.
+ * Frees a CRL.
  *
- * Frees an allocated s2n_crl and sets `crl` to NULL.
+ * Frees an allocated `s2n_crl` and sets `crl` to NULL.
  *
  * @param crl The CRL to free.
  * @return S2N_SUCCESS on success, S2N_FAILURE on error.
@@ -81,13 +82,13 @@ S2N_API
 int s2n_crl_free(struct s2n_crl **crl);
 
 /**
- * Retrieves the issuer hash of a s2n_crl.
+ * Retrieves the issuer hash of a CRL.
  *
  * This function can be used to find the CRL associated with a certificate received in the s2n_crl_lookup callback. The
  * hash value, `hash`, corresponds with the issuer hash of a certificate, retrieved via
  * `s2n_crl_lookup_get_cert_issuer_hash()`.
  *
- * @param crl The CRL to obtain the hash value from.
+ * @param crl The CRL to obtain the hash value of.
  * @param hash A pointer that will be set to the hash value.
  * @return S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -98,7 +99,7 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
  * Determines if the CRL is currently active.
  *
  * CRLs contain a thisUpdate field, which specifies the date at which the CRL becomes valid. This function can be called
- * to check this field relative to the current time. If the thisUpdate field is in the past, the CRL is considered
+ * to check this field relative to the current time. If the thisUpdate date is in the past, the CRL is considered
  * active.
  *
  * @param crl The CRL to validate.
@@ -110,8 +111,9 @@ int s2n_crl_validate_active(struct s2n_crl *crl);
 /**
  * Determines if the CRL has expired.
  *
- * CRLs contain a nextUpdate field, which specifies the date at which the CRL is expired. This function can be called
- * to check this field relative to the current time. If the nextUpdate field is in the future, the CRL has not expired.
+ * CRLs contain a nextUpdate field, which specifies the date at which the CRL becomes expired. This function can be
+ * called to check this field relative to the current time. If the nextUpdate date is in the future, the CRL has not
+ * expired.
  *
  * If the CRL does not contain a thisUpdate field, the CRL is assumed to never expire.
  *
@@ -145,7 +147,7 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t 
  * To skip providing a CRL from the callback, use `s2n_crl_lookup_ignore()`.
  *
  * @param lookup The CRL lookup for the given certificate.
- * @param crl The CRL to include in the list of CRLs to validate the certificate chain.
+ * @param crl The CRL to include in the list of CRLs used to validate the certificate chain.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
 S2N_API
