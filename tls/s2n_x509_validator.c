@@ -400,6 +400,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     DEFER_CLEANUP(STACK_OF(X509_CRL) *crl_stack = NULL, sk_X509_CRL_free_pointer);
 
     if (conn->config->crl_lookup_cb) {
+        X509_STORE_CTX_set_verify_cb(validator->store_ctx, s2n_crl_ossl_verify_callback);
+
         crl_stack = sk_X509_CRL_new_null();
         RESULT_GUARD(s2n_crl_get_crls_from_lookup_list(validator, crl_stack));
 
