@@ -345,7 +345,7 @@ If you are trying to use FIPS mode, you must enable FIPS in your libcrypto libra
 
 ## Connection
 
-Users will need to create a `s2n_connection` struct to store all of the state necessary to negotiate a TLS connection. Call `s2n_connection_new()` to create a new server or client connection.Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
+Users will need to create a `s2n_connection` struct to store all of the state necessary to negotiate a TLS connection. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
 
 ### Connection Memory
 The connection struct is roughly 4KB with some variation depending on how it is configured. Maintainers of the s2n-tls library carefully consider increases to the size of the connection struct as they are aware some users are memory-constrained.
