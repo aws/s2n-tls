@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ cpp, python ]
+        language: [ c, python ]
 
     steps:
       - name: Checkout
@@ -34,7 +34,7 @@ jobs:
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v2
-        if: ${{ matrix.language == 'cpp' || matrix.language == 'python' }}
+        if: ${{ matrix.language == 'c' || matrix.language == 'python' }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
