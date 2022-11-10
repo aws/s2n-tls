@@ -1,91 +1,18 @@
-      1 10.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      2 13.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      3 14.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      4 15.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      5 15.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      6 16.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      7 16.1  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      8 16.3  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      9 16.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     10 16.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     11 16.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     12 17.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     13 17.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      1  8.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      2 12.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      3 14.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      4 15.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      5 15.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      6 15.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      7 15.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      8 17.1  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      9 18.3  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     10 18.4  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     11 18.4  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     12 18.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     13 19.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     14 19.4  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     15 19.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      1  6.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      2 10.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      3 12.3  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      4 12.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      5 12.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      6 12.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      7 12.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      8 12.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      9 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     10 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     11 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     12 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     13 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     14 13.1  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     15 13.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     16 13.1  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      1  7.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      2 11.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      3 12.3  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      4 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      5 13.4  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      6 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      7 12.8  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      8 12.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      9 12.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     10 12.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     11 12.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     12 12.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     13 12.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     14 12.3  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     15 12.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     16 12.1  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     17 12.1  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     18 12.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      0  0.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      1 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      2 16.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      3 17.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      4 18.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      5 19.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      6 19.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      7 19.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      8 19.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      9 19.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     10 19.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     11 19.9  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     12 19.9  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     13 19.9  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     14 19.9  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      1  0.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      2  7.5  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      3 10.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      4 12.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      5 13.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      6 14.0  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      7 14.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      8 15.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-      9 15.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     10 15.9  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     11 16.2  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     12 16.4  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     13 16.6  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
-     14 16.7  0.0 ./build/bin/s2nc --send-file sample.txt.400k -i -c default_tls13 34.219.192.115 5000
+1,10,8,6,7,13,0
+2,13.5,12,10,11.5,16.5,7.5
+3,14.6,14,12.3,12.3,17.6,10.6
+4,15.2,15,12.7,13,18.2,12
+5,15.8,15.2,12.8,13.4,19,13
+6,16,15.5,12.8,13,19,14
+7,16.1,15.7,12.8,12.8,19.2,14.7
+8,16.3,17.1,12.8,12.7,19.5,15.2
+9,16.5,18.3,13,12.6,19.5,15.6
+10,16.6,18.4,13,12.7,19.7,15.9
+11,16.8,18.4,13,12.6,19.9,16.2
+12,17,18.8,13,12.6,19.9,16.4
+13,17,19,13,12.5,19.9,16.6
+14,,19.4,13.1,12.3,19.9,16.7
+15,,19.7,13.2,12.2,,
+16,,,13.1,12.1,,
+17,,,,12.1,,
+18,,,,12,,

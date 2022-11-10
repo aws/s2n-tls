@@ -1,44 +1,15 @@
-      0  0.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      1 14.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      2 13.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      3 12.6  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      4 12.5  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      5 12.2  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      6 12.1  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      7 12.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      8 11.8  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      9 11.7  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     10 11.7  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     12 10.6  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     13 10.7  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     14 10.7  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     15 10.4  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      1  2.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      2  6.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      3  7.6  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      4  8.7  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      5  9.4  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      6  9.6  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      7 10.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      8 10.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      9 10.1  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     10 10.2  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     11 10.3  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     12 10.4  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     13 10.4  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     14 10.5  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     15  9.8  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      1  5.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      2  8.5  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      3  9.3  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      4 10.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      5 10.4  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      6 10.6  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      7 10.8  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      8 11.0  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-      9 11.1  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     10 11.2  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     11 11.2  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     13 10.4  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     14 10.5  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
-     15 10.6  0.0 ./build/bin/s2nc -i --echo -c default_tls13 34.219.192.115 5000
+1,14,2,5
+2,13,6,8.5
+3,12.6,7.6,9.3
+4,12.5,8.7,10
+5,12.2,9.4,10.4
+6,12.1,9.6,10.6
+7,12,10,10.8
+8,11.8,10,11
+9,11.7,10.1,11.1
+10,11.7,10.2,11.2
+12,10.6,10.3,11.2
+13,10.7,10.4,10.4
+14,10.7,10.4,10.5
+15,10.4,10.5,10.6
+,,9.8,
