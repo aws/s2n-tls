@@ -75,10 +75,8 @@ let prove_handshake_io_lowlevel = do {
 
     print "Proving correctness of get_auth_type";
     auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); (w4_unint_yices []);});
-    // Removing tests that fail for handshake array changes
-    // Tracking issue: https://github.com/aws/s2n-tls/issues/3516
-    // print "Proving correctness of s2n_advance_message";
-    // s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec (w4_unint_yices []);
+    print "Proving correctness of s2n_advance_message";
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec (w4_unint_yices []);
     // To prove s2n_conn_set_handshake_type's correctness, we invoke its
     // specification (s2n_conn_set_handshake_type_spec) twice: once where
     // chosen_psk is assumed to be NULL, and once again where chosen_psk is
@@ -105,10 +103,8 @@ let prove_handshake_io_lowlevel = do {
 //
 //   FOTArray unimplemented for backend
 let prove_state_machine = do {
-    // TLS1.2 is temporarily removed from SAW testing
-    // Tracking issue: https://github.com/aws/s2n-tls/issues/3516
-    // print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
-    // prove_print (w4_unint_z3 []) {{ tls12rfcSimulatesS2N `{16} }};
+    print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
+    prove_print (w4_unint_z3 []) {{ tls12rfcSimulatesS2N `{16} }};
 
     print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
     prove_print (w4_unint_z3 []) {{ tls13rfcSimulatesS2N `{16} }};
