@@ -300,6 +300,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
     do {
         /* echo will send and receive Application Data back and forth between
          * client and server, until stop_echo is true. */
+        ssize_t total_bytes_read = 0;
         while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
@@ -307,6 +308,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
             if (readers[0].revents & POLLIN) {
                 s2n_errno = S2N_ERR_T_OK;
                 bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
+                total_bytes_read += bytes_read;
 
                 /* fprintf(stdout, "s2n_recv data ------------ bytes: %zd\n", bytes_read); */
                 if (bytes_read == 0) {
@@ -322,18 +324,19 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
                     exit(1);
                 }
 
-                char *buf_ptr = buffer;
-                do {
-                    ssize_t bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
-                    if (bytes_written < 0) {
-                        fprintf(stderr, "Error writing to stdout\n");
-                        exit(1);
-                    }
+                /* char *buf_ptr = buffer; */
+                /* do { */
+                /*     ssize_t bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read); */
+                /*     if (bytes_written < 0) { */
+                /*         fprintf(stderr, "Error writing to stdout\n"); */
+                /*         exit(1); */
+                /*     } */
 
-                    bytes_read -= bytes_written;
-                    buf_ptr += bytes_written;
-                } while (bytes_read > 0);
+                /*     bytes_read -= bytes_written; */
+                /*     buf_ptr += bytes_written; */
+                /* } while (bytes_read > 0); */
             }
+            fprintf(stderr, "done %zd\n", total_bytes_read);
 
             if (readers[1].revents & POLLIN) {
                 size_t bytes_available = 0;
@@ -364,7 +367,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
                     /* We may not be able to write all the data we read in one shot, so
                      * keep sending until we have cleared our buffer. */
-                    send_data(conn, sockfd, buffer, bytes_read, &blocked);
+                    /* send_data(conn, sockfd, buffer, bytes_read, &blocked); */
 
                 } while (bytes_available || blocked);
 

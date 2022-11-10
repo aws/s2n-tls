@@ -618,7 +618,11 @@ int main(int argc, char *const *argv)
         GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
         if (send_file != NULL) {
-            printf("Sending file contents:\n%s\n", send_file);
+
+            /* send files in a loop */
+            /* send_file = load_file_to_cstring(optarg); */
+
+            /* printf("Sending file contents:\n%s\n", send_file); */
 
             unsigned long send_file_len = strlen(send_file);
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
