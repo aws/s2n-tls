@@ -624,8 +624,8 @@ int main(int argc, char *const *argv)
         if (send_file != NULL) {
 
             /* int send_times = 1000000; // 2gb sample.txt.2k */
-            int send_times = 10000; // 4gb sample.txt.400k
-            /* int send_times = 1000; // 4gb sample.txt.4m */
+            int send_times = 5000; // 2gb sample.txt.400k
+            /* int send_times = 500; // 2gb sample.txt.4m */
             fprintf(stderr, "starting send -------------- times: %s, %d \n", send_file_name , send_times);
 
             if (conn->mode == S2N_CLIENT) {
