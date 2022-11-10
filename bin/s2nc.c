@@ -63,7 +63,6 @@ void usage()
     fprintf(stderr, "  -n [server name]\n");
     fprintf(stderr, "  --name [server name]\n");
     fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "  -m,--mfl\n");

@@ -343,6 +343,23 @@ An application can override s2n-tls’s internal memory management by calling `s
 
 If you are trying to use FIPS mode, you must enable FIPS in your libcrypto library (probably by calling `FIPS_mode_set(1)`) before calling `s2n_init()`.
 
+## Connection
+
+Users will need to create a `s2n_connection` struct to store all of the state necessary to negotiate a TLS connection. Call `s2n_connection_new()` to create a new server or client connection.Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
+
+### Connection Memory
+The connection struct is roughly 4KB with some variation depending on how it is configured. Maintainers of the s2n-tls library carefully consider increases to the size of the connection struct as they are aware some users are memory-constrained.
+
+The TLS handshake requires a significant amount of memory, but once a connection is established the handshake memory can be freed by calling `s2n_connection_free_handshake()`. This function should be called after the handshake is successfully negotiated and logging or recording of handshake data is complete.
+
+The input and output buffers consume the most memory on the connection after the handshake. It may not be necessary to keep these buffers allocated when a connection is in a keep-alive or idle state. Call `s2n_connection_release_buffers()` to wipe and free the `in` and `out` buffers associated with a connection to reduce memory overhead of long-lived connections.
+
+### Connection Reuse
+Connection objects should be re-used across many connections (to avoid excessive de-allocating and allocating memory). Calling `s2n_connection_wipe()` will wipe an individual connection's state and allow the connection object to be re-used for a new TLS connection.
+
+### Connection Info
+Use the connection getter methods to interrogate the connection object about the TLS handshake. `s2n_connection_get_client_protocol_version()` and `s2n_connection_get_server_protocol_version()` return the protocol version number supported by the client or the server respectively. `s2n_connection_get_actual_protocol_version()` returns the protocol version actually negotiated by the handshake. `s2n_connection_get_cipher()` returns the cipher suite selected by the handshake. More connection getters can be found in the [doxygen guide](https://aws.github.io/s2n-tls/doxygen/).
+
 ## Security Policies
 
 s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.
@@ -655,24 +672,6 @@ would normally produce, the lower value will be used.
 
 ## Connection-oriented functions
 
-### s2n\_connection\_new
-
-```c
-struct s2n_connection * s2n_connection_new(s2n_mode mode);
-```
-
-**s2n_connection_new** creates a new connection object. Each s2n-tls SSL/TLS
-connection uses one of these objects. These connection objects can be operated
-on by up to two threads at a time, one sender and one receiver, but neither
-sending nor receiving are atomic, so if these objects are being called by
-multiple sender or receiver threads, you must perform your own locking to
-ensure that only one sender or receiver is active at a time. The **mode**
-parameters specifies if the caller is a server, or is a client.
-
-Connections objects are re-usable across many connections, and should be
-re-used (to avoid deallocating and allocating memory). You should wipe
-connections immediately after use.
-
 ### s2n\_connection\_set\_config
 
 ```c
@@ -703,25 +702,6 @@ types of I/O).
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_connection\_get\_protocol\_version
-
-```c
-int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
-int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
-int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
-int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_client_protocol_version** returns the protocol version
-number supported by the client, **s2n_connection_get_server_protocol_version**
-returns the protocol version number supported by the server and
-**s2n_connection_get_actual_protocol_version** returns the protocol version
-number actually used by s2n-tls for the connection. **s2n_connection_get_client_hello_version**
-returns the protocol version used to send the initial client hello message.
-
-Each version number value corresponds to the macros defined as **S2N_SSLv2**,
-**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11**, **S2N_TLS12**, and **S2N_TLS13**.
 
 ### s2n\_connection\_get\_client\_hello
 
@@ -807,49 +787,6 @@ These functions retrieve the session id as sent by the client in the ClientHello
 **s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
 
 **s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
-
-### s2n\_connection\_free\_handshake
-
-```c
-int s2n_connection_free_handshake(struct s2n_connection *conn);
-```
-
-**s2n_connection_free_handshake** wipes and releases buffers and memory
-allocated during the TLS handshake.  This function should be called after the
-handshake is successfully negotiated and logging or recording of handshake data
-is complete.
-
-### s2n\_connection\_release\_buffers
-
-```c
-int s2n_connection_release_buffers(struct s2n_connection *conn);
-```
-
-**s2n_connection_release_buffers** wipes and free the `in` and `out` buffers
-associated with a connection.  This function may be called when a connection is
-in keep-alive or idle state to reduce memory overhead of long lived connections.
-
-### s2n\_connection\_wipe
-
-```c
-int s2n_connection_wipe(struct s2n_connection *conn);
-```
-
-**s2n_connection_wipe** wipes an existing connection and allows it to be reused. It erases all data associated with a connection including
-pending reads. This function should be called after all I/O is completed and [s2n_shutdown](#s2n\_shutdown) has been called.
-Reusing the same connection handle(s) is more performant than repeatedly calling [s2n_connection_new](#s2n\_connection\_new) and
-[s2n_connection_free](#s2n\_connection\_free)
-
-### s2n\_connection\_free
-
-```c
-int s2n_connection_free(struct s2n_connection *conn);
-```
-
-**s2n_connection_free** frees the memory associated with an s2n_connection
-handle. The handle is considered invalid after **s2n_connection_free** is used.
-[s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
-of sensitive data.
 
 ## Private Key Operation Related Calls
 
