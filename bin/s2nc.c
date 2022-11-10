@@ -238,6 +238,7 @@ int main(int argc, char *const *argv)
     int r, sockfd = 0;
     bool session_ticket_recv = 0;
     /* Optional args */
+    const char *send_file_name = NULL;
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
     const char *ca_file = NULL;
@@ -324,7 +325,8 @@ int main(int argc, char *const *argv)
             echo_input = 1;
             break;
         case OPT_SEND_FILE:
-            send_file = load_file_to_cstring(optarg);
+            send_file_name = optarg;
+            send_file = load_file_to_cstring(send_file_name);
             break;
         case 'h':
             usage();
@@ -527,7 +529,9 @@ int main(int argc, char *const *argv)
             );
         }
 
-        GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed");
+        if (send_file == NULL) {
+            GUARD_EXIT(s2n_config_ktls_enable(config), "s2n_config_ktls_enable call failed");
+        }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
@@ -619,14 +623,23 @@ int main(int argc, char *const *argv)
 
         if (send_file != NULL) {
 
-            /* send files in a loop */
-            /* send_file = load_file_to_cstring(optarg); */
+            /* int send_times = 1000000; // 2gb sample.txt.2k */
+            int send_times = 10000; // 4gb sample.txt.400k
+            /* int send_times = 1000; // 4gb sample.txt.4m */
+            fprintf(stderr, "starting send -------------- times: %s, %d \n", send_file_name , send_times);
 
-            /* printf("Sending file contents:\n%s\n", send_file); */
+            if (conn->mode == S2N_CLIENT) {
+                for (int i = 0; i <= send_times; i++) {
+                    /* send files in a loop */
+                    /* send_file = load_file_to_cstring(optarg); */
 
-            unsigned long send_file_len = strlen(send_file);
-            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            send_data(conn, sockfd, send_file, send_file_len, &blocked);
+                    /* printf("Sending file contents:\n%s\n", send_file); */
+
+                    unsigned long send_file_len = strlen(send_file);
+                    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                    send_data(conn, sockfd, send_file, send_file_len, &blocked);
+                }
+            }
         }
 
         if (echo_input == 1) {

@@ -216,23 +216,36 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
-    if (conn->mode == S2N_CLIENT) {
-        fprintf(stderr, "starting sendfile -------------- \n");
-        int fd1;
-        struct stat stbuf;
-        /* open */
-        if ((fd1 = open("sample.txt", O_RDWR)) < 0) {
-            fprintf(stderr, "error open file sample.txt xxxxxxxxxxxxxx  %s\n", strerror(errno));
-        }
+    /* char filename[] = "sample.txt.2k"; */
+    /* int send_times = 1000000; // 2gb */
 
-        fstat(fd1, &stbuf);
-        fprintf(stderr, "sending file of size -------------- %ld\n", stbuf.st_size);
-        int rv;
-        /* sendfile */
-        if ((rv = sendfile(fd, fd1, 0, stbuf.st_size)) < 0) {
-            fprintf(stderr, "error sendfile xxxxxxxxxxxxxx  %d %s\n", rv, strerror(errno));
+    /* char filename[] = "sample.txt.400k"; */
+    /* int send_times = 10000; // 4gb */
+
+    char filename[] = "sample.txt.4m";
+    int send_times = 1000; // 4gb
+
+    fprintf(stderr, "starting sendfile -------------- file: %s times: %d \n", filename, send_times);
+
+    if (conn->mode == S2N_CLIENT) {
+        for (int i = 0; i <= send_times; i++) {
+            int fd1;
+            struct stat stbuf;
+            /* open */
+            if ((fd1 = open(filename, O_RDWR)) < 0) {
+                fprintf(stderr, "error open file sample.txt xxxxxxxxxxxxxx  %s\n", strerror(errno));
+            }
+
+            fstat(fd1, &stbuf);
+            /* fprintf(stderr, "file of size sent -------------- %ld\n", stbuf.st_size); */
+            int rv;
+            /* sendfile */
+            if ((rv = sendfile(fd, fd1, 0, stbuf.st_size)) < 0) {
+                fprintf(stderr, "error sendfile xxxxxxxxxxxxxx  %d %s\n", rv, strerror(errno));
+            }
         }
     }
+    fprintf(stderr, "file sent -------------- \n");
 
     /* send plaintext since we are using ktls */
     /* { */

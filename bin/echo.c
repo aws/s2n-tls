@@ -336,7 +336,8 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
                 /*     buf_ptr += bytes_written; */
                 /* } while (bytes_read > 0); */
             }
-            fprintf(stderr, "done %zd\n", total_bytes_read);
+            fprintf(stderr, "total received. kb: %zd, mb: %zd, gb: %zd\n",
+                    total_bytes_read / 1000, total_bytes_read / 1000000, total_bytes_read / 1000000000);
 
             if (readers[1].revents & POLLIN) {
                 size_t bytes_available = 0;
