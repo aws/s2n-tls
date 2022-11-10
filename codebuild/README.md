@@ -1,5 +1,7 @@
 ### CodeBuild script info
 
+Note: The create_projects.py script, associated *.config files, and non-batch CodeBuild jobs are being deprecated.
+
 #### Design
 
 - How does CodeBuild decide what to install/test ?
@@ -7,8 +9,6 @@
    dictate what is installed and which tests get run. CodeBuild has a pattern where environment
    variables can be over-ridden by CloudWatch events or batch jobs, so in some cases the CodeBuild job definition
    is generic or filled with placeholders (e.g. s2nFuzzScheduled).
-- Why not build docker images with the dependencies layered in ?
-  This is the end goal: get tests running in CodeBuild first, then optimize the containers where it makes sense.
 
 #### Dep tree
 
@@ -93,14 +93,6 @@ With extensive testing, we've learned this number appears to be weighted based o
 The `spec/buildspec_omnibus_batch.yml` contains a complete list of all CodeBuild jobs.  In the future, this will replace the individual jobs created by the create_project.py script.
 
 The broken out batch jobs: fuzz, integration and general, are created with the script create_batch.sh, which uses jq to parse out the jobs by title.
-
-### Notes on moving from Travis-ci
-
-- Install_clang from Travis is using google chromium clang commit from 2017- which requires python2.7 (EOL); updated for CodeBuild.
-- CodeBuild's environment is more restrictive than Travis- these jobs require elevated privilege to function.
-- Warning message from the fuzzer about test speed appear in CodeBuild output, but not in Travis-CI with the same test (See comments on AWS forums about a difference in ANSI TERM support); this also affects colorized output.
-- macOS/OSX platform files were not copied because CodeBuild does not support macOS builds.
-
 
 ### Querying CodeBuild projects
 
