@@ -17,6 +17,7 @@
 
 #include "api/s2n.h"
 #include "utils/s2n_result.h"
+#include "api/unstable/crl.h"
 
 #include <openssl/x509v3.h>
 
@@ -37,8 +38,6 @@ struct s2n_crl_lookup {
     uint16_t cert_idx;
     struct s2n_crl *crl;
 };
-
-typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *context);
 
 /* TODO: APIs are part of an unfinished CRL validation feature and are temporarily hidden
  * https://github.com/aws/s2n-tls/issues/3499 */
