@@ -530,6 +530,21 @@ To use OCSP stapling, both server and client must call `s2n_config_set_status_re
 
 The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
 
+### CRL Validation
+
+Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A peer wishing to verify a certificate can obtain a CRL from the CA, validate the CRL to make sure it was issued by the CA, and check to ensure the given certificate’s serial number is not contained in the list, and thus has not been revoked by the CA.
+
+To enable CRL validation in s2n-tls, the s2n CRL lookup callback must be implemented via `s2n_config_set_crl_lookup_callback()`. This callback is triggered once for each certificate received in the handshake. The received certificate's issuer hash can be retrieved in the callback via `s2n_crl_lookup_get_cert_issuer_hash()`. The issuer hash can be used to find the correct CRL for the given certificate.
+
+The s2n CRL lookup callback expects a CRL to be returned via `s2n_crl_lookup_set()`. `s2n_crl`s can be created from PEMs via `s2n_crl_new()` and `s2n_crl_load_pem()`, and then freed via `s2n_crl_free()`. The issuer hash of the CRL can be obtained with `s2n_crl_get_issuer_hash()`. This issuer hash of a certificate contained in a CRL will match the issuer hash of that CRL.
+
+Calling `s2n_crl_lookup_set` will add the provided CRL to a list that will be used to verify the certificate chain. Received certificates can also be ignored from the callback, via `s2n_crl_lookup_ignore`. When a CRL lookup callback calls `s2n_crl_lookup_ignore`, no CRL is added to this list. If a certificate in the chain of trust cannot find a corresponding CRL in this list, the handshake fails with a `S2N_ERR_CRL_LOOKUP_FAILED` error.
+
+Some received certificates, however, may be extraneous. These certificates are additional certificates that aren't ultimately included in the chain of trust used to validate the end-entity certificate. If such a certificate is ignored from the callback, the handshake will proceed with no error.
+
+By default, CRL timestamp validation is not performed. If a CRL returned from the CRL lookup callback is not yet active, or is expired, the CRL validation checks will continue and can succeed. If timestamp validation is desired, it should be performed in the CRL lookup callback with `s2n_crl_validate_active` and `s2n_crl_validate_not_expired`.
+
+
 ### Certificate Transparency
 
 Certificate transparency is a framework to store public logs of CA-issued certificates. If requested, certificate owners can send a signed certificate timestamp (SCT) to prove that their certificate exists in these logs. The requester can choose whether or not to accept a certificate based on this information.
