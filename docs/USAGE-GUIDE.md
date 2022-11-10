@@ -348,17 +348,27 @@ If you are trying to use FIPS mode, you must enable FIPS in your libcrypto libra
 Users will need to create a `s2n_connection` struct to store all of the state necessary to negotiate a TLS connection. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
 
 ### Connection Memory
+
 The connection struct is roughly 4KB with some variation depending on how it is configured. Maintainers of the s2n-tls library carefully consider increases to the size of the connection struct as they are aware some users are memory-constrained.
 
-The TLS handshake requires a significant amount of memory, but once a connection is established the handshake memory can be freed by calling `s2n_connection_free_handshake()`. This function should be called after the handshake is successfully negotiated and logging or recording of handshake data is complete.
+The TLS handshake requires a significant amount of memory, but if necessary the handshake memory can be freed by calling `s2n_connection_free_handshake()`. This function should be called after the handshake is successfully negotiated and logging or recording of handshake data is complete. This function should not be called if you're planning to reuse the connection object for multiple connections. See [connection reuse](#connection-reuse).
 
 The input and output buffers consume the most memory on the connection after the handshake. It may not be necessary to keep these buffers allocated when a connection is in a keep-alive or idle state. Call `s2n_connection_release_buffers()` to wipe and free the `in` and `out` buffers associated with a connection to reduce memory overhead of long-lived connections.
 
 ### Connection Reuse
-Connection objects should be re-used across many connections (to avoid excessive de-allocating and allocating memory). Calling `s2n_connection_wipe()` will wipe an individual connection's state and allow the connection object to be re-used for a new TLS connection.
+
+Connection objects can be re-used across many connections to reduce memory allocation. Calling `s2n_connection_wipe()` will wipe an individual connection's state and allow the connection object to be re-used for a new TLS connection.
 
 ### Connection Info
-Use the connection getter methods to interrogate the connection object about the TLS handshake. `s2n_connection_get_client_protocol_version()` and `s2n_connection_get_server_protocol_version()` return the protocol version number supported by the client or the server respectively. `s2n_connection_get_actual_protocol_version()` returns the protocol version actually negotiated by the handshake. `s2n_connection_get_cipher()` returns the cipher suite selected by the handshake. More connection getters can be found in the [doxygen guide](https://aws.github.io/s2n-tls/doxygen/).
+
+s2n-tls provides many methods to retrieve details about the handshake and connection, such as the parameters negotiated with the peer. For a full list, see our [doxygen guide](https://aws.github.io/s2n-tls/doxygen/).
+
+#### Protocol Version
+
+s2n-tls provides multiple different methods to get the TLS protocol version of the connection. They should be called after the handshake has completed.
+* `s2n_connection_get_actual_protocol_version()`: The actual TLS protocol version negotiated during the handshake. This is the primary value referred to as "protocol_version", and the most commonly used.
+* `s2n_connection_get_server_protocol_version()`: The highest TLS protocol version the server supports.
+* `s2n_connection_get_client_protocol_version()`: The highest TLS protocol version the client advertised.
 
 ## Security Policies
 
