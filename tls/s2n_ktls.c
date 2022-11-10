@@ -216,12 +216,15 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
+    char filename[] = "sample.txt";
+    int send_times = 1000000; // 2gb
+
     /* char filename[] = "sample.txt.2k"; */
     /* int send_times = 1000000; // 2gb */
     /* char filename[] = "sample.txt.400k"; */
     /* int send_times = 5000; // 2gb */
-    char filename[] = "sample.txt.4m";
-    int send_times = 500; // 2gb
+    /* char filename[] = "sample.txt.4m"; */
+    /* int send_times = 500; // 2gb */
     fprintf(stderr, "starting sendfile -------------- file: %s times: %d \n", filename, send_times);
 
     if (conn->mode == S2N_CLIENT) {
