@@ -468,7 +468,7 @@ int main(int argc, char *const *argv)
         case OPT_BUFFERED_SEND:
             errno = 0;
             unsigned long send_buffer_byte_size_long = strtoul(optarg, 0, 10);
-            if (errno == ERANGE || send_buffer_byte_size_long > (1ul << 31)) {
+            if (errno == ERANGE || send_buffer_byte_size_long > UINT32_MAX) {
                 fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
