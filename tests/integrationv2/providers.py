@@ -396,7 +396,7 @@ class OpenSSL(Provider):
 
         # Additional debugging that will be captured incase of failure
         if self.options.verbose:
-            cmd_line.append(['-debug'])
+            cmd_line.append('-debug')
 
         cmd_line.extend(['-tlsextdebug', '-state'])
 
@@ -469,7 +469,7 @@ class OpenSSL(Provider):
 
         # Additional debugging that will be captured incase of failure
         if self.options.verbose:
-            cmd_line.append(['-debug'])
+            cmd_line.append('-debug')
 
         cmd_line.extend(['-tlsextdebug', '-state'])
 
