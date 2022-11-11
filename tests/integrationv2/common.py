@@ -469,7 +469,8 @@ class ProviderOptions(object):
             enable_client_ocsp=False,
             ocsp_response=None,
             signature_algorithm=None,
-            record_size=None
+            record_size=None,
+            verbose=True
     ):
 
         # Client or server
@@ -543,3 +544,6 @@ class ProviderOptions(object):
         self.signature_algorithm = signature_algorithm
 
         self.record_size = record_size
+
+        # If False received data should be printed contiguously
+        self.verbose = verbose

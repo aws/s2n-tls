@@ -395,7 +395,10 @@ class OpenSSL(Provider):
             ['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
+        if self.options.verbose:
+            cmd_line.append(['-debug'])
+
+        cmd_line.extend(['-tlsextdebug', '-state'])
 
         if self.options.key is not None:
             cmd_line.extend(['-key', self.options.key])
@@ -465,7 +468,10 @@ class OpenSSL(Provider):
             cmd_line.extend(['-naccept', '1'])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
+        if self.options.verbose:
+            cmd_line.append(['-debug'])
+
+        cmd_line.extend(['-tlsextdebug', '-state'])
 
         if self.options.cert is not None:
             cmd_line.extend(['-cert', self.options.cert])
@@ -509,7 +515,7 @@ class OpenSSL(Provider):
 
 class JavaSSL(Provider):
     """
-    NOTE: Only a Java SSL client has been set up. The server has not been 
+    NOTE: Only a Java SSL client has been set up. The server has not been
     implemented yet.
     """
 
@@ -730,9 +736,11 @@ class GnuTLS(Provider):
             "gnutls-cli",
             "--port", str(self.options.port),
             self.options.host,
-            "--debug", "9999",
-            "--verbose"
+            "--debug", "9999"
         ]
+
+        if self.options.verbose:
+            cmd_line.append("--verbose")
 
         if self.options.cert and self.options.key:
             cmd_line.extend(["--x509certfile", self.options.cert])

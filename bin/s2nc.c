@@ -113,7 +113,7 @@ void usage()
                     "    reject: Reject all server requests for a new handshake\n"
                     "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
     fprintf(stderr, "  --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
     fprintf(stderr, "\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
@@ -314,7 +314,6 @@ int main(int argc, char *const *argv)
     struct reneg_req_ctx reneg_ctx = { 0 };
     bool npn = false;
     uint32_t send_buffer_byte_size = 0;
-    int sscanf_matched_items;
     bool prefer_low_latency = false;
     bool prefer_throughput = false;
 
@@ -467,11 +466,13 @@ int main(int argc, char *const *argv)
             npn = true;
             break;
         case OPT_BUFFERED_SEND:
-            sscanf_matched_items = sscanf(optarg, "%"SCNu32, &send_buffer_byte_size);
-            if (sscanf_matched_items != 1) {
+            errno = 0;
+            unsigned long send_buffer_byte_size_long = strtoul(optarg, 0, 10);
+            if (errno == ERANGE || send_buffer_byte_size_long > (1 << 31)) {
                 fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
+            send_buffer_byte_size = (uint32_t) send_buffer_byte_size_long;
             break;
         case OPT_PREFER_LOW_LATENCY:
             prefer_low_latency = true;
@@ -635,7 +636,7 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
- 
+
         GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");

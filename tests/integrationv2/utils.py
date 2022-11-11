@@ -6,38 +6,8 @@ from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
 
-
-def is_subsequence(s, t):
-    """predicate: is s a subsequence of t?
-
-    Expected Usage
-    --------------
-    Was the expected data printed to stdout (even if non-contiguously)?
-    
-        assert(is_subsequence(
-                data.decode(encoding="ascii", errors="backslashreplace"),
-                stdout.decode(encoding="ascii", errors="backslashreplace")))
-
-    Parameters
-    ----------
-    s: any array-like
-        subsequence to look for
-    t: any array-like
-        sequence to look in
-
-    Returns
-    -------
-    bool
-        True if s is a subsequence, False if not 
-    """
-    s_len, t_len = len(s), len(t)
-    s_index, t_index = 0, 0
-    while s_index < s_len and t_index < t_len:
-        if s[s_index] == t[t_index]:
-            s_index += 1
-        t_index += 1
-    return s_index == s_len
-
+def to_string(val: bytes):
+    return val.decode(encoding="ascii", errors="backslashreplace")
 
 def get_expected_s2n_version(protocol, provider):
     """
