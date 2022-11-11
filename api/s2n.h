@@ -188,7 +188,7 @@ struct s2n_config;
 struct s2n_connection;
 
 /**
- * Prevents S2N from calling `OPENSSL_crypto_init`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
+ * Prevents S2N from calling `OPENSSL_init_crypto`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
  * prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate
  * with S2N.
  *
@@ -197,7 +197,7 @@ struct s2n_connection;
  *
  * @note If you disable this and are using a version of OpenSSL/libcrypto < 1.1.x, you will
  * be responsible for library init and cleanup (specifically `OPENSSL_add_all_algorithms()`
- * or `OPENSSL_crypto_init()`, and EVP_* APIs will not be usable unless the library is initialized.
+ * or `OPENSSL_init_crypto()`, and EVP_* APIs will not be usable unless the library is initialized.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
@@ -2818,19 +2818,25 @@ S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 
 /**
- * Access the protocol version supported by the client of the connection.
+ * Access the protocol version supported by the client.
+ *
+ * @note The return value corresponds to the macros defined as S2N_SSLv2,
+ * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
  *
  * @param conn A pointer to the connection
- * @returns returns the protocol version number supported by the client_auth_type
+ * @returns returns the highest protocol version supported by the client
  */
 S2N_API
 extern int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
 
 /**
- * Access the protocol version supported by the server of the connection.
+ * Access the protocol version supported by the server.
+ *
+ * @note The return value corresponds to the macros defined as S2N_SSLv2,
+ * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
  *
  * @param conn A pointer to the connection
- * @returns Returns the protocol version number supported by the server
+ * @returns Returns the highest protocol version supported by the server
  */
 S2N_API
 extern int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
@@ -2838,8 +2844,11 @@ extern int s2n_connection_get_server_protocol_version(struct s2n_connection *con
 /**
  * Access the protocol version selected for the connection.
  *
+ * @note The return value corresponds to the macros defined as S2N_SSLv2,
+ * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
+ *
  * @param conn A pointer to the connection
- * @returns The protocol version number actually used by s2n-tls for the connection
+ * @returns The protocol version actually negotiated by the handshake
  */
 S2N_API
 extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
@@ -2847,6 +2856,9 @@ extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *con
 /**
  * Access the client hello protocol version for the connection.
  *
+ * @note The return value corresponds to the macros defined as S2N_SSLv2,
+ * S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.
+ * 
  * @param conn A pointer to the connection
  * @returns The protocol version used to send the initial client hello message. 
  */
