@@ -1,5 +1,38 @@
 name: "CodeQL"
 
+query-filters:
+  - exclude:
+    id: cpp/bad-strncpy-size
+    id: cpp/certificate-not-checked
+    id: cpp/cgi-xss
+    id: cpp/cleartext-storage-buffer
+    id: cpp/cleartext-storage-file
+    id: cpp/command-line-injection
+    id: cpp/external-entity-expansion
+    id: cpp/incorrect-allocation-error-handling
+    id: cpp/insufficient-key-size
+    id: cpp/missing-check-scanf
+    id: cpp/non-https-url
+    id: cpp/path-injection
+    id: cpp/pointer-overflow-check
+    id: cpp/potential-system-data-exposure
+    id: cpp/resource-not-released-in-destructor
+    id: cpp/return-stack-allocated-memory
+    id: cpp/signed-overflow-check
+    id: cpp/sql-injection
+    id: cpp/system-data-exposure
+    id: cpp/tainted-format-string
+    id: cpp/tainted-format-string-through-global
+    id: cpp/tainted-permissions-check
+    id: cpp/unbounded-write
+    id: cpp/uncontrolled-allocation-size
+    id: cpp/uncontrolled-arithmetic
+    id: cpp/uncontrolled-process-operation
+    id: cpp/unsafe-strncat
+    id: cpp/unsafe-use-of-this
+    id: cpp/user-controlled-bypass
+    id: cpp/using-expired-stack-address
+
 on:
   push:
     branches: [ "main" ]
@@ -31,38 +64,6 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
-          query-filters:
-           - exclude:
-                      id: cpp/bad-strncpy-size
-                      id: cpp/certificate-not-checked
-                      id: cpp/cgi-xss
-                      id: cpp/cleartext-storage-buffer
-                      id: cpp/cleartext-storage-file
-                      id: cpp/command-line-injection
-                      id: cpp/external-entity-expansion
-                      id: cpp/incorrect-allocation-error-handling
-                      id: cpp/insufficient-key-size
-                      id: cpp/missing-check-scanf
-                      id: cpp/non-https-url
-                      id: cpp/path-injection
-                      id: cpp/pointer-overflow-check
-                      id: cpp/potential-system-data-exposure
-                      id: cpp/resource-not-released-in-destructor
-                      id: cpp/return-stack-allocated-memory
-                      id: cpp/signed-overflow-check
-                      id: cpp/sql-injection
-                      id: cpp/system-data-exposure
-                      id: cpp/tainted-format-string
-                      id: cpp/tainted-format-string-through-global
-                      id: cpp/tainted-permissions-check
-                      id: cpp/unbounded-write
-                      id: cpp/uncontrolled-allocation-size
-                      id: cpp/uncontrolled-arithmetic
-                      id: cpp/uncontrolled-process-operation
-                      id: cpp/unsafe-strncat
-                      id: cpp/unsafe-use-of-this
-                      id: cpp/user-controlled-bypass
-                      id: cpp/using-expired-stack-address
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v2
