@@ -283,7 +283,8 @@ int main(int argc, char *const *argv)
     conn_settings.max_conns = -1;
     conn_settings.psk_list_len = 0;
     int max_early_data = 0;
-    uint32_t send_buffer_byte_size = 0;
+    long send_buffer_size_scanned_value = 0;
+    uint32_t send_buffer_size = 0;
     bool npn = false;
 
     struct option long_options[] = {
@@ -415,13 +416,12 @@ int main(int argc, char *const *argv)
             conn_settings.https_bench = bytes;
             break;
         case OPT_BUFFERED_SEND:
-            errno = 0;
-            unsigned long send_buffer_byte_size_long = strtoul(optarg, 0, 10);
-            if (errno == ERANGE || send_buffer_byte_size_long > UINT32_MAX) {
+            send_buffer_size_scanned_value = strtol(optarg, 0, 10);
+            if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
                 fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
-            send_buffer_byte_size = (uint32_t) send_buffer_byte_size_long;
+            send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
             break;
         case 'A':
             alpn = optarg;
@@ -605,8 +605,8 @@ int main(int argc, char *const *argv)
         GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
     }
 
-    if (send_buffer_byte_size != 0) {
-        GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size.");
+    if (send_buffer_size != 0) {
+        GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_size), "Error setting send buffer size.");
     }
 
     if (npn) {

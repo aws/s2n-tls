@@ -545,5 +545,8 @@ class ProviderOptions(object):
 
         self.record_size = record_size
 
-        # If False received data should be printed contiguously
+        # How verbose should the provider be when printing to stdout?
+        # Default to more information, leave the option for less.
+        # Useful if you find that debugging information is printed between
+        # application data you expect the provider to print on stdout.
         self.verbose = verbose

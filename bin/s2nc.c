@@ -313,7 +313,8 @@ int main(int argc, char *const *argv)
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
     bool npn = false;
-    uint32_t send_buffer_byte_size = 0;
+    long send_buffer_size_scanned_value = 0;
+    uint32_t send_buffer_size = 0;
     bool prefer_low_latency = false;
     bool prefer_throughput = false;
 
@@ -466,13 +467,12 @@ int main(int argc, char *const *argv)
             npn = true;
             break;
         case OPT_BUFFERED_SEND:
-            errno = 0;
-            unsigned long send_buffer_byte_size_long = strtoul(optarg, 0, 10);
-            if (errno == ERANGE || send_buffer_byte_size_long > UINT32_MAX) {
+            send_buffer_size_scanned_value = strtol(optarg, 0, 10);
+            if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
                 fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
-            send_buffer_byte_size = (uint32_t) send_buffer_byte_size_long;
+            send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
             break;
         case OPT_PREFER_LOW_LATENCY:
             prefer_low_latency = true;
@@ -576,8 +576,8 @@ int main(int argc, char *const *argv)
         struct s2n_config *config = s2n_config_new();
         setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
 
-        if (send_buffer_byte_size != 0) {
-            GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_byte_size), "Error setting send buffer size");
+        if (send_buffer_size != 0) {
+            GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_size), "Error setting send buffer size");
         }
 
         if (client_cert_input != client_key_input) {
