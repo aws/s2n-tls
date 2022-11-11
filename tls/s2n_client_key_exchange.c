@@ -226,7 +226,7 @@ int s2n_client_key_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure->cipher_suite);
 
     const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
-    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
+    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_free_or_wipe);
     POSIX_GUARD_RESULT(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
     POSIX_GUARD(s2n_calculate_keys(conn, &shared_key));
@@ -325,7 +325,7 @@ int s2n_client_key_send(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure->cipher_suite);
 
     const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
-    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_blob_zeroize_free);
+    DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_free_or_wipe);
 
     POSIX_GUARD_RESULT(s2n_kex_client_key_send(key_exchange, conn, &shared_key));
 

@@ -246,7 +246,7 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 
 int s2n_mem_init(void)
 {
-    POSIX_GUARD(s2n_mem_init_cb());
+    POSIX_ENSURE(s2n_mem_init_cb() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     initialized = true;
 
@@ -266,7 +266,7 @@ uint32_t s2n_mem_get_page_size(void)
 int s2n_mem_cleanup(void)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    POSIX_GUARD(s2n_mem_cleanup_cb());
+    POSIX_ENSURE(s2n_mem_cleanup_cb() >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     initialized = false;
 
@@ -290,7 +290,7 @@ int s2n_free_without_wipe(struct s2n_blob *b)
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
     if (b->data) {
-        POSIX_GUARD(s2n_mem_free_cb(b->data, b->allocated));
+        POSIX_ENSURE(s2n_mem_free_cb(b->data, b->allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
     *b = (struct s2n_blob) {0};
@@ -298,13 +298,11 @@ int s2n_free_without_wipe(struct s2n_blob *b)
     return S2N_SUCCESS;
 }
 
-int s2n_blob_zeroize_free(struct s2n_blob *b) {
-    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+int s2n_free_or_wipe(struct s2n_blob *b) {
     POSIX_ENSURE_REF(b);
-
-    POSIX_GUARD(s2n_blob_zero(b));
+    int zero_rc = s2n_blob_zero(b);
     if (b->allocated) {
-        POSIX_GUARD(s2n_free(b));
+        POSIX_GUARD(s2n_free_without_wipe(b));
     }
-    return S2N_SUCCESS;
+    return zero_rc;
 }

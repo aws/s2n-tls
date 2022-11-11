@@ -231,6 +231,11 @@ impl ClientHelloCallback for MockClientHelloHandler {
             return Poll::Pending;
         }
 
+        // Test that the config can be changed
+        connection
+            .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
+            .unwrap();
+
         // Test that server_name_extension_used can be invoked
         connection.server_name_extension_used();
 
