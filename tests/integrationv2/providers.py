@@ -694,27 +694,27 @@ class GnuTLS(Provider):
     def create_priority_str(self):
         priority_str = "NONE"
 
-        if self.options.protocol:
-            priority_str += ":+" + \
-                self.protocol_to_priority_str(self.options.protocol)
+        protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
+        if protocol_to_priority_str:
+            priority_str += ":+" + protocol_to_priority_str
         else:
             priority_str += ":+VERS-ALL"
 
-        if self.options.cipher:
-            priority_str += ":+" + \
-                self.cipher_to_priority_str(self.options.cipher)
+        cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
+        if cipher_to_priority_str:
+            priority_str += ":+" + cipher_to_priority_str
         else:
             priority_str += ":+KX-ALL:+CIPHER-ALL:+MAC-ALL"
 
-        if self.options.curve:
-            priority_str += ":+" + \
-                self.curve_to_priority_str(self.options.curve)
+        curve_to_priority_str = self.curve_to_priority_str(self.options.curve)
+        if curve_to_priority_str:
+            priority_str += ":+" + curve_to_priority_str
         else:
             priority_str += ":+GROUP-ALL"
 
-        if self.options.signature_algorithm:
-            priority_str += ":+" + \
-                self.sigalg_to_priority_str(self.options.signature_algorithm)
+        sigalg_to_priority_str = self.sigalg_to_priority_str(self.options.signature_algorithm)
+        if sigalg_to_priority_str:
+            priority_str += ":+" + sigalg_to_priority_str
         else:
             priority_str += ":+SIGN-ALL"
 
