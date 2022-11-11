@@ -197,7 +197,7 @@ void usage()
     fprintf(stderr, "  -E, --max-early-data \n");
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -N --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
@@ -285,7 +285,6 @@ int main(int argc, char *const *argv)
     int max_early_data = 0;
     uint32_t send_buffer_byte_size = 0;
     bool npn = false;
-    int sscanf_matched_items;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -416,11 +415,13 @@ int main(int argc, char *const *argv)
             conn_settings.https_bench = bytes;
             break;
         case OPT_BUFFERED_SEND:
-            sscanf_matched_items = sscanf(optarg, "%"SCNu32, &send_buffer_byte_size);
-            if (sscanf_matched_items != 1) {
+            errno = 0;
+            unsigned long send_buffer_byte_size_long = strtoul(optarg, 0, 10);
+            if (errno == ERANGE || send_buffer_byte_size_long > (1 << 31)) {
                 fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
+            send_buffer_byte_size = (uint32_t) send_buffer_byte_size_long;
             break;
         case 'A':
             alpn = optarg;
