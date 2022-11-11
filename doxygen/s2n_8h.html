@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.27-da835102</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.27-f36f4f8d</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -5471,13 +5471,14 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Access the protocol version selected for the connection.</p>
+<dl class="section note"><dt>Note</dt><dd>The return value corresponds to the macros defined as S2N_SSLv2, S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The protocol version number actually used by s2n-tls for the connection </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The protocol version actually negotiated by the handshake </dd></dl>
 
 </div>
 </div>
@@ -5706,6 +5707,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Access the client hello protocol version for the connection.</p>
+<dl class="section note"><dt>Note</dt><dd>The return value corresponds to the macros defined as S2N_SSLv2, S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
@@ -5731,14 +5733,15 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Access the protocol version supported by the client of the connection.</p>
+<p >Access the protocol version supported by the client.</p>
+<dl class="section note"><dt>Note</dt><dd>The return value corresponds to the macros defined as S2N_SSLv2, S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>returns the protocol version number supported by the client_auth_type </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>returns the highest protocol version supported by the client </dd></dl>
 
 </div>
 </div>
@@ -6459,14 +6462,15 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Access the protocol version supported by the server of the connection.</p>
+<p >Access the protocol version supported by the server.</p>
+<dl class="section note"><dt>Note</dt><dd>The return value corresponds to the macros defined as S2N_SSLv2, S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12, and S2N_TLS13.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Returns the protocol version number supported by the server </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Returns the highest protocol version supported by the server </dd></dl>
 
 </div>
 </div>
@@ -7896,9 +7900,9 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Prevents S2N from calling <code>OPENSSL_crypto_init</code>/<code>OPENSSL_cleanup</code>/<code>EVP_cleanup</code> on OpenSSL versions prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate with S2N.</p>
+<p >Prevents S2N from calling <code>OPENSSL_init_crypto</code>/<code>OPENSSL_cleanup</code>/<code>EVP_cleanup</code> on OpenSSL versions prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate with S2N.</p>
 <dl class="section warning"><dt>Warning</dt><dd>This function must be called BEFORE <a class="el" href="s2n_8h.html#a41b65ad20272f232f12c8ae36578d372">s2n_init()</a> to have any effect. It will return an error if s2n is already initialized.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>If you disable this and are using a version of OpenSSL/libcrypto &lt; 1.1.x, you will be responsible for library init and cleanup (specifically <code>OPENSSL_add_all_algorithms()</code> or <code>OPENSSL_crypto_init()</code>, and EVP_* APIs will not be usable unless the library is initialized.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>If you disable this and are using a version of OpenSSL/libcrypto &lt; 1.1.x, you will be responsible for library init and cleanup (specifically <code>OPENSSL_add_all_algorithms()</code> or <code>OPENSSL_init_crypto()</code>, and EVP_* APIs will not be usable unless the library is initialized.</dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
