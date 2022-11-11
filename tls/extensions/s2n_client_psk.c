@@ -166,7 +166,9 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* Write obfuscated ticket age */
         uint32_t obfuscated_ticket_age = 0;
         uint64_t current_time = 0;
+        
         POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config,&current_time));
+
         POSIX_GUARD_RESULT(s2n_generate_obfuscated_ticket_age(psk, current_time, &obfuscated_ticket_age));
         POSIX_GUARD(s2n_stuffer_write_uint32(out, obfuscated_ticket_age));
 

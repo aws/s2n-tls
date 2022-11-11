@@ -24,4 +24,6 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: all_test_output
-          path: build/Testing/Temporary
+          path: |
+            release/Testing/Temporary
+            build/Testing/Temporary

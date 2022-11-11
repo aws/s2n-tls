@@ -262,7 +262,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
     struct s2n_cipher_suite *cipher_suite = NULL;
-    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
+    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, sizeof(iana_id), &cipher_suite));
     RESULT_ENSURE_REF(cipher_suite);
     psk.hmac_alg = cipher_suite->prf_alg;
 
@@ -275,7 +275,9 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
      *# and MAY delete tickets earlier based on local policy.
      */
     uint64_t current_time = 0;
+
     RESULT_GUARD(s2n_config_wall_clock(conn->config,&current_time));
+
     RESULT_GUARD(s2n_validate_ticket_age(current_time, psk.ticket_issue_time));
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &psk.ticket_age_add));
@@ -576,6 +578,7 @@ int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
     uint64_t now;
     struct s2n_ticket_key *ticket_key = NULL;
     POSIX_GUARD_RESULT(s2n_config_wall_clock(config,&now));
+
     POSIX_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
@@ -659,6 +662,7 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
 
     uint64_t now;
     PTR_GUARD_RESULT(s2n_config_wall_clock(config,&now));
+    
     PTR_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
@@ -700,6 +704,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
     uint64_t now;
     struct s2n_ticket_key *ticket_key = NULL;
     PTR_GUARD_RESULT(s2n_config_wall_clock(config,&now));
+
     PTR_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
