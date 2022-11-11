@@ -23,7 +23,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <stdin.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>

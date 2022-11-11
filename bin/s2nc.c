@@ -21,7 +21,7 @@
 #include <getopt.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
