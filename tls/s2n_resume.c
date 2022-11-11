@@ -55,7 +55,7 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     S2N_ERROR_IF(s2n_stuffer_space_remaining(to) < S2N_TLS12_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_IS_FULL);
 
     /* Get the time */
-    POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
+    POSIX_ENSURE(conn->config->wall_clock(conn->config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     /* Write the entry */
     POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V3));
@@ -99,7 +99,8 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Get the time */
-    RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
+    RESULT_ENSURE(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time) >= S2N_SUCCESS,
+                  S2N_ERR_CANCELLED);
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, S2N_SERIALIZED_FORMAT_TLS13_V1));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
@@ -152,7 +153,8 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     S2N_ERROR_IF(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     uint64_t now;
-    POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
+    POSIX_ENSURE(conn->config->wall_clock(conn->config->sys_clock_ctx, &now) >= S2N_SUCCESS,
+                 S2N_ERR_CANCELLED);
 
     uint64_t then;
     POSIX_GUARD(s2n_stuffer_read_uint64(from, &then));
@@ -262,7 +264,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
     struct s2n_cipher_suite *cipher_suite = NULL;
-    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
+    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, sizeof(iana_id), &cipher_suite));
     RESULT_ENSURE_REF(cipher_suite);
     psk.hmac_alg = cipher_suite->prf_alg;
 
@@ -275,7 +277,8 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
      *# and MAY delete tickets earlier based on local policy.
      */
     uint64_t current_time = 0;
-    RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
+    RESULT_ENSURE(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time) >= S2N_SUCCESS,
+                  S2N_ERR_CANCELLED);
     RESULT_GUARD(s2n_validate_ticket_age(current_time, psk.ticket_issue_time));
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &psk.ticket_age_add));
@@ -417,7 +420,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     if (result == S2N_CALLBACK_BLOCKED) {
         POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);
     }
-    POSIX_GUARD(result);
+    POSIX_ENSURE(result >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     S2N_ERROR_IF(size != entry.size, S2N_ERR_SIZE_MISMATCH);
 
@@ -575,7 +578,7 @@ int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
 {
     uint64_t now;
     struct s2n_ticket_key *ticket_key = NULL;
-    POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+    POSIX_ENSURE(config->wall_clock(config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     POSIX_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
@@ -658,7 +661,7 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
     struct s2n_ticket_key *ticket_key = NULL;
 
     uint64_t now;
-    PTR_GUARD_POSIX(config->wall_clock(config->sys_clock_ctx, &now));
+    PTR_ENSURE(config->wall_clock(config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     PTR_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
@@ -699,7 +702,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
 {
     uint64_t now;
     struct s2n_ticket_key *ticket_key = NULL;
-    PTR_GUARD_POSIX(config->wall_clock(config->sys_clock_ctx, &now));
+    PTR_ENSURE(config->wall_clock(config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     PTR_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
@@ -830,7 +833,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &from->blob, &state_stuffer));
 
     uint64_t now;
-    POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
+    POSIX_ENSURE(conn->config->wall_clock(conn->config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     /* If the key is in decrypt-only state, then a new key is assigned
      * for the ticket.
@@ -924,7 +927,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
     }
 
     uint64_t now;
-    POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+    POSIX_ENSURE(config->wall_clock(config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     POSIX_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;

@@ -29,7 +29,7 @@
 #define S2N_CRL_ROOT_CRL                                "../pems/crl/root_crl.pem"
 #define S2N_CRL_INTERMEDIATE_CRL                        "../pems/crl/intermediate_crl.pem"
 #define S2N_CRL_INTERMEDIATE_REVOKED_CRL                "../pems/crl/intermediate_revoked_crl.pem"
-#define S2N_CRL_INTERMEDIATE_INVALID_LAST_UPDATE_CRL    "../pems/crl/intermediate_invalid_last_update_crl.pem"
+#define S2N_CRL_INTERMEDIATE_INVALID_THIS_UPDATE_CRL    "../pems/crl/intermediate_invalid_this_update_crl.pem"
 #define S2N_CRL_INTERMEDIATE_INVALID_NEXT_UPDATE_CRL    "../pems/crl/intermediate_invalid_next_update_crl.pem"
 
 #define CRL_TEST_CHAIN_LEN 2
@@ -164,6 +164,14 @@ int main(int argc, char *argv[])
 
     DEFER_CLEANUP(struct s2n_crl *intermediate_revoked_crl = load_test_crl(S2N_CRL_INTERMEDIATE_REVOKED_CRL), s2n_crl_free);
     EXPECT_NOT_NULL(intermediate_revoked_crl);
+
+    DEFER_CLEANUP(struct s2n_crl *intermediate_invalid_this_update_crl =
+            load_test_crl(S2N_CRL_INTERMEDIATE_INVALID_THIS_UPDATE_CRL), s2n_crl_free);
+    EXPECT_NOT_NULL(intermediate_invalid_this_update_crl);
+
+    DEFER_CLEANUP(struct s2n_crl *intermediate_invalid_next_update_crl =
+                      load_test_crl(S2N_CRL_INTERMEDIATE_INVALID_NEXT_UPDATE_CRL), s2n_crl_free);
+    EXPECT_NOT_NULL(intermediate_invalid_next_update_crl);
 
     /* Save a list of received X509s for s2n_crl_lookup tests */
     struct crl_lookup_data received_lookup_data = { 0 };
@@ -487,6 +495,170 @@ int main(int argc, char *argv[])
                 chain_len, &pkey_type, &public_key_out), S2N_ERR_CANCELLED);
     }
 
+    /* CRL validation succeeds for a CRL with an invalid thisUpdate date */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_invalid_this_update_crl;
+        data.crls[1] = root_crl;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_NONE_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key_out));
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* CRL validation fails for a revoked leaf certificate, with a CRL that has an invalid thisUpdate date */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_invalid_this_update_crl;
+        data.crls[1] = root_crl;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_LEAF_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
+                &pkey_type, &public_key_out), S2N_ERR_CERT_REVOKED);
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* CRL validation succeeds for a CRL with an invalid nextUpdate date */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_invalid_next_update_crl;
+        data.crls[1] = root_crl;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_NONE_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key_out));
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
+    /* CRL validation fails for a revoked leaf certificate, with a CRL that has an invalid nextUpdate date */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        char root_cert[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_CRL_ROOT_CERT, root_cert, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, root_cert));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        struct crl_lookup_data data = { 0 };
+        data.crls[0] = intermediate_invalid_next_update_crl;
+        data.crls[1] = root_crl;
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        config->crl_lookup_cb = crl_lookup_test_callback;
+        config->crl_lookup_ctx = (void*) &data;
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_config(connection, config));
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_CRL_LEAF_REVOKED_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
+                &pkey_type, &public_key_out), S2N_ERR_CERT_REVOKED);
+        EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
+    }
+
     /* Self-talk: server certificate is not revoked */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -735,6 +907,32 @@ int main(int argc, char *argv[])
 
         /* If the certificate and CRL were issued by different CAs, their hashes should not match */
         EXPECT_TRUE(leaf_cert_hash != root_crl_hash);
+    }
+
+    /* s2n_crl_validate_active tests */
+    {
+        /* Succeeds for valid CRL */
+        EXPECT_SUCCESS(s2n_crl_validate_active(intermediate_crl));
+
+        /* Succeeds for expired CRL */
+        EXPECT_SUCCESS(s2n_crl_validate_active(intermediate_invalid_next_update_crl));
+
+        /* Fails for CRL that is not yet valid */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_active(intermediate_invalid_this_update_crl),
+                S2N_ERR_CRL_NOT_YET_VALID);
+    }
+
+    /* s2n_crl_validate_not_expired tests */
+    {
+        /* Succeeds for valid CRL */
+        EXPECT_SUCCESS(s2n_crl_validate_not_expired(intermediate_crl));
+
+        /* Succeeds for CRL that is not yet valid */
+        EXPECT_SUCCESS(s2n_crl_validate_not_expired(intermediate_invalid_this_update_crl));
+
+        /* Fails for expired CRL */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_not_expired(intermediate_invalid_next_update_crl),
+                S2N_ERR_CRL_EXPIRED);
     }
 
     END_TEST();
