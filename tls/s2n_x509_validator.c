@@ -418,7 +418,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     }
 
     uint64_t current_sys_time = 0;
-    conn->config->wall_clock(conn->config->sys_clock_ctx, &current_sys_time);
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
 
     /* this wants seconds not nanoseconds */
     time_t current_time = (time_t)(current_sys_time / 1000000000);
@@ -606,7 +606,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     }
 
     uint64_t current_time = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config,&current_time));
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));
     RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
     RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
 

@@ -696,9 +696,7 @@ S2N_RESULT s2n_psk_validate_keying_material(struct s2n_connection *conn)
     uint32_t min_lifetime = ONE_SEC_IN_NANOS;
 
     uint64_t current_time = 0;
-
-    RESULT_GUARD(s2n_config_wall_clock(conn->config,&current_time));
-
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));
     RESULT_ENSURE(chosen_psk->keying_material_expiration > current_time + min_lifetime, S2N_ERR_KEYING_MATERIAL_EXPIRED);
 
     return S2N_RESULT_OK;
