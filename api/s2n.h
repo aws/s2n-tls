@@ -188,7 +188,7 @@ struct s2n_config;
 struct s2n_connection;
 
 /**
- * Prevents S2N from calling `OPENSSL_crypto_init`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
+ * Prevents S2N from calling `OPENSSL_init_crypto`/`OPENSSL_cleanup`/`EVP_cleanup` on OpenSSL versions
  * prior to 1.1.x. This allows applications or languages that also init OpenSSL to interoperate
  * with S2N.
  *
@@ -197,7 +197,7 @@ struct s2n_connection;
  *
  * @note If you disable this and are using a version of OpenSSL/libcrypto < 1.1.x, you will
  * be responsible for library init and cleanup (specifically `OPENSSL_add_all_algorithms()`
- * or `OPENSSL_crypto_init()`, and EVP_* APIs will not be usable unless the library is initialized.
+ * or `OPENSSL_init_crypto()`, and EVP_* APIs will not be usable unless the library is initialized.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
