@@ -792,10 +792,10 @@ int main(int argc, char **argv)
         }
 
         /*
-         * Testing chacha20 boosting behaviour when chacha20 implementation is available. 
+         * Testing chacha20 boosting behaviour when a chacha20 implementation is available. 
          * NOTE: many of the mocked client wires have associated comments that document the expected behaviour
-         * in the test setup. In particular, the `>` symbol is used to document the expected cipher preference order
-         * where we `A > B` documents the expectation that ciphersuite A is more preferred than ciphersuite B.
+         * in the test setup. In particular, the `>` symbol is used to indicate the expected cipher preference order
+         * where `A > B` indicates that ciphersuite A is more preferred than ciphersuite B.
          */
         if (s2n_chacha20_poly1305.is_available()) {
             /* Test ChaCha20 boosting behaviour for tls 1.2 connection w/ that supports only rsa certs */ 
