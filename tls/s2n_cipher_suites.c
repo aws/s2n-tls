@@ -1179,6 +1179,7 @@ bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
 static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_preferences *cipher_preferences, const uint8_t *wire,
     uint32_t cipher_suite_len) {
     RESULT_ENSURE_REF(cipher_preferences);
+    RESULT_ENSURE_REF(wire);
 
     if (!cipher_preferences->allow_chacha20_boosting) {
         RESULT_BAIL(S2N_ERR_CHACHA20_BOOSTING_UNSUPPORTED);

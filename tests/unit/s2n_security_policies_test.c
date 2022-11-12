@@ -572,12 +572,14 @@ int main(int argc, char **argv)
 
         /* Cipher preferences has allow_chacha20_boosting incorrectly set as true even though the ciphersuite list only has aes128 */
         {
+            EXPECT_TRUE(cipher_preferences.allow_chacha20_boosting);
             EXPECT_FAILURE_WITH_ERRNO(s2n_security_policies_init(), S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         /* Cipher preferences has allow_chacha20_boosting correctly set as false */
         {
             cipher_preferences.allow_chacha20_boosting = false;
+            EXPECT_FALSE(cipher_preferences.allow_chacha20_boosting);
 
             EXPECT_SUCCESS(s2n_security_policies_init());
         }
