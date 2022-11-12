@@ -91,6 +91,39 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash)
     return S2N_SUCCESS;
 }
 
+int s2n_crl_validate_active(struct s2n_crl *crl)
+{
+    POSIX_ENSURE_REF(crl);
+    POSIX_ENSURE_REF(crl->crl);
+
+    ASN1_TIME *this_update = X509_CRL_get_lastUpdate(crl->crl);
+    POSIX_ENSURE_REF(this_update);
+
+    int ret = X509_cmp_time(this_update, NULL);
+    POSIX_ENSURE(ret != 0, S2N_ERR_CRL_INVALID_THIS_UPDATE);
+    POSIX_ENSURE(ret < 0, S2N_ERR_CRL_NOT_YET_VALID);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_crl_validate_not_expired(struct s2n_crl *crl)
+{
+    POSIX_ENSURE_REF(crl);
+    POSIX_ENSURE_REF(crl->crl);
+
+    ASN1_TIME *next_update = X509_CRL_get_nextUpdate(crl->crl);
+    if (next_update == NULL) {
+        /* If the CRL has no nextUpdate field, assume it will never expire */
+        return S2N_SUCCESS;
+    }
+
+    int ret = X509_cmp_time(next_update, NULL);
+    POSIX_ENSURE(ret != 0, S2N_ERR_CRL_INVALID_NEXT_UPDATE);
+    POSIX_ENSURE(ret > 0, S2N_ERR_CRL_EXPIRED);
+
+    return S2N_SUCCESS;
+}
+
 S2N_RESULT s2n_crl_get_crls_from_lookup_list(struct s2n_x509_validator *validator, STACK_OF(X509_CRL) *crl_stack)
 {
     RESULT_ENSURE_REF(validator);
@@ -196,6 +229,19 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     }
 
     return S2N_RESULT_OK;
+}
+
+int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx) {
+    int err = X509_STORE_CTX_get_error(ctx);
+    switch (err) {
+        case X509_V_ERR_CRL_NOT_YET_VALID:
+        case X509_V_ERR_CRL_HAS_EXPIRED:
+        case X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD:
+        case X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD:
+            return 1;
+        default:
+            return default_ossl_ret;
+    }
 }
 
 int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash)

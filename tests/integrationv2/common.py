@@ -53,7 +53,7 @@ class AvailablePorts(object):
         worker = os.getenv('PYTEST_XDIST_WORKER')
         worker_id = 0
         if worker is not None:
-            worker_id = re.findall('gw(\d+)', worker)
+            worker_id = re.findall(r"gw(\d+)", worker)
             if len(worker_id) != 0:
                 worker_id = int(worker_id[0])
 

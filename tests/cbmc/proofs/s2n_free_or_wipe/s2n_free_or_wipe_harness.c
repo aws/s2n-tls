@@ -21,7 +21,7 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
 
-void s2n_blob_zeroize_free_harness()
+void s2n_free_or_wipe_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
@@ -33,7 +33,7 @@ void s2n_blob_zeroize_free_harness()
     const struct s2n_blob old_blob = *blob;
 
     /* Operation under verification. */
-    int result = s2n_blob_zeroize_free(blob);
+    int result = s2n_free_or_wipe(blob);
     if (result == S2N_SUCCESS) {
         /* Postconditions. */
         assert(S2N_IMPLIES(s2n_blob_is_growable(&old_blob), blob->data == NULL));
@@ -52,6 +52,6 @@ void s2n_blob_zeroize_free_harness()
         */
         free(blob->data);
     }
-    /* 3. `free` our heap-allocated `blob` since `s2n_blob_zeroize_free` only `free`s the contents. */
+    /* 3. `free` our heap-allocated `blob` since `s2n_free_or_wipe` only `free`s the contents. */
     free(blob);
 }
