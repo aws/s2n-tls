@@ -17,6 +17,17 @@
 
 #include <s2n.h>
 
+/**
+ * @file crl.h
+ *
+ * The following APIs enable applications to determine if a received certificate has been revoked by its CA, via
+ * Certificate Revocation Lists (CRLs). Please see the CRL Validation section in the usage guide for more information.
+ *
+ * The CRL APIs are currently considered unstable, since they have been recently added to s2n-tls. After gaining more
+ * confidence in the correctness and usability of these APIs, they will be made stable.
+ *
+ */
+
 struct s2n_crl_lookup;
 
 /**
@@ -24,7 +35,7 @@ struct s2n_crl_lookup;
  *
  * This callback is triggered once for each certificate received during the handshake. To provide s2n-tls with a CRL for
  * the certificate, use `s2n_crl_lookup_set()`. To ignore the certificate and not provide a CRL, use
- * `s2n_crl_lookup_ignore()`. See the CRL Validation section in the usage guide for more information.
+ * `s2n_crl_lookup_ignore()`.
  *
  * This callback can be synchronous or asynchronous. For asynchronous behavior, return success without calling
  * `s2n_crl_lookup_set()` or `s2n_crl_lookup_ignore()`. The connection will block until one of these functions is
@@ -32,7 +43,7 @@ struct s2n_crl_lookup;
  *
  * @param lookup The CRL lookup for the given certificate.
  * @param context Context for the callback function.
- * @returns A POSIX error signal.
+ * @returns 0 on success, -1 on failure.
  */
 typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *context);
 
@@ -99,7 +110,7 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
  * Determines if the CRL is currently active.
  *
  * CRLs contain a thisUpdate field, which specifies the date at which the CRL becomes valid. This function can be called
- * to check this field relative to the current time. If the thisUpdate date is in the past, the CRL is considered
+ * to check thisUpdate relative to the current time. If the thisUpdate date is in the past, the CRL is considered
  * active.
  *
  * @param crl The CRL to validate.
@@ -112,7 +123,7 @@ int s2n_crl_validate_active(struct s2n_crl *crl);
  * Determines if the CRL has expired.
  *
  * CRLs contain a nextUpdate field, which specifies the date at which the CRL becomes expired. This function can be
- * called to check this field relative to the current time. If the nextUpdate date is in the future, the CRL has not
+ * called to check nextUpdate relative to the current time. If the nextUpdate date is in the future, the CRL has not
  * expired.
  *
  * If the CRL does not contain a thisUpdate field, the CRL is assumed to never expire.
@@ -159,9 +170,9 @@ int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl);
  * A return function for `s2n_crl_lookup_cb`. This function should be used from within the CRL lookup callback to ignore
  * the certificate, and skip providing s2n-tls with a CRL.
  *
- * If a certificate is ignored, and is ultimately included in the chain of trust, the handshake will fail with a
- * S2N_ERR_CRL_LOOKUP_FAILED error. However, if the certificate is extraneous and not included in the chain of trust,
- * the handshake will proceed.
+ * If a certificate is ignored, and is ultimately included in the chain of trust, certificate chain validation will
+ * fail with a S2N_ERR_CRL_LOOKUP_FAILED error. However, if the certificate is extraneous and not included in the chain
+ * of trust, validation is able to proceed.
  *
  * @param lookup The CRL lookup for the given certificate.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure.
