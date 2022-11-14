@@ -1322,7 +1322,7 @@ dl.bug dt a, dl.deprecated dt a, dl.todo dt a {
     font-weight: bold !important;
 }
 
-dl.warning, dl.attention, dl.note, dl.deprecated, dl.bug, dl.invariant, dl.pre, dl.todo, dl.remark {
+dl.warning, dl.attention, dl.note, dl.deprecated, dl.bug, dl.invariant, dl.pre, dl.post, dl.todo, dl.remark {
     padding: var(--spacing-medium);
     margin: var(--spacing-medium) 0;
     color: var(--page-background-color);
@@ -1393,13 +1393,13 @@ dl.section dd, dl.bug dd, dl.deprecated dd, dl.todo dd {
     margin-inline-start: 0px;
 }
 
-dl.invariant, dl.pre {
+dl.invariant, dl.pre, dl.post {
     background: var(--invariant-color);
     border-left: 8px solid var(--invariant-color-dark);
     color: var(--invariant-color-darker);
 }
 
-dl.invariant dt, dl.pre dt {
+dl.invariant dt, dl.pre dt, dl.post dt {
     color: var(--invariant-color-dark);
 }
 
