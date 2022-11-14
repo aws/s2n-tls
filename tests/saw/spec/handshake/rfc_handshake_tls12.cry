@@ -199,8 +199,6 @@ handshakeTransition params old =
           
           ,(serverFinishedSent, True, applicationDataTransmission)
           
-          ,(serverNewSessionTicketSent, True, serverChangeCipherSpecWithTicketSent)
-          
           ,(serverChangeCipherSpecWithTicketSent, True, serverFinishedWithTicketSent)
           
           ,(serverFinishedWithTicketSent, True, clientChangeCipherSpecWithTicketSent)
