@@ -101,9 +101,11 @@ fn build_vendored() {
         .flag_if_supported("-Wno-deprecated-declarations")
         .define("_POSIX_C_SOURCE", "200112L");
 
-    // fortify source is only available in release mode
     if env("PROFILE") == "release" {
+        // fortify source is only available in release mode
         build.define("_FORTIFY_SOURCE", "2");
+
+        // build s2n-tls with LTO if supported
         build
             .flag_if_supported("-flto")
             .flag_if_supported("-ffat-lto-objects")
