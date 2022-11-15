@@ -122,7 +122,7 @@ failure_tests/cork_%.log : bitcode/cork_%.bc
 	cp $< bitcode/all_llvm.bc 
 	set -o pipefail; \
 	! (saw verify_cork_uncork.saw 2>&1 | tee $@)
-	grep "error: in _SAW_verify_prestate" $@
+	grep "error: in llvm_ghost_value" $@
 
 
 # we patch the s2n dir, build it with the top level s2n makefile, and
