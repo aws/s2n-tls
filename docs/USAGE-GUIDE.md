@@ -522,9 +522,11 @@ Additionally s2n-tls has functions for parsing certificate extensions on a certi
 
 ### Certificate Revocation
 
-Certificate revocation is a method in which CAs inform validators that an active certificate should not be trusted. This can occur when, for example, a private key has been leaked and the identity of the certificate's owner can no longer be trusted.
+Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate's owner can no longer be trusted.
 
-s2n-tls supports two methods of certificate revocation validation: OCSP stapling, and CRLs. OCSP stapling differs from CRLs in that OCSP stapling is optional. A requester can ask a responder to send a stapled revocation status, but the responder may not actually send this response. However, CRLs exist for all valid certificates. If it can be assumed that OCSP stapling is supported by the peer of the application, it should be used as the method of certificate revocation validation. If this can not be assumed, and the CRLs for all received certificates can be obtained in advance, CRLs should be used instead.
+s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer can choose not to send a certificate status response.  Applications using this method will have to decide whether or not to fail certificate validation in this case. In contrast, with CRLs the application can check the revocation status of any certificate encountered without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.
+
+Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you're sure your peer supports OCSP stapling. Use CRLs if you're able to obtain CRLs for all certificates you expect to encounter.
 
 #### OCSP Stapling
 
@@ -544,11 +546,11 @@ Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates 
 
 The s2n CRL lookup callback must be implemented and set via `s2n_config_set_crl_lookup_cb()` to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain. 
 
-The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback invocation, externally from s2n-tls. Applications should load these CRLs into memory, either in advance or in the callback, by creating `s2n_crl`s via `s2n_crl_new()`, and adding the obtained CRL data via `s2n_crl_load_pem()`. The `s2n_crl` should be freed via `s2n_crl_free()` when no longer needed.
+The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. Applications should load these CRLs into memory, by creating `s2n_crl`s via `s2n_crl_new()`, and adding the obtained CRL data via `s2n_crl_load_pem()`. The `s2n_crl` should be freed via `s2n_crl_free()` when no longer needed.
 
-The application must implement a way to look up the correct CRL for the given certificate. This lookup should use the hash of the received certificate's issuer, and the hash of the CRL's issuer, which will match. The certificate's issuer hash is retrieved via `s2n_crl_lookup_get_cert_issuer_hash()`, and the CRL's issuer hash is retrieved via `s2n_crl_get_issuer_hash()`. After the correct CRL is retrieved, call `s2n_crl_lookup_set()` to provide s2n-tls with this CRL, which will be used to validate the certificate with.
+The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate's issuer with the hash of the CRL's issuer. The certificate's issuer hash is retrieved via `s2n_crl_lookup_get_cert_issuer_hash()`, and the CRL's issuer hash is retrieved via `s2n_crl_get_issuer_hash()`. Once a CRL is found with a matching issuer hash, call `s2n_crl_lookup_set()` to provide s2n-tls with this CRL.
 
-If the CRL for a given certificate can't be found, call `s2n_crl_lookup_ignore()` to ignore this certificate. This will generally cause the certificate validation logic to fail with a `S2N_ERR_CRL_LOOKUP_FAILED` error. However, some received certificates are extraneous, and won't be included in the chain of trust. If an extraneous certificate is ignored, it will not cause the certificate validation logic to fail.
+Call `s2n_crl_lookup_ignore()` to ignore a received certificate if its CRL can't be found. This will cause the certificate validation logic to fail with a `S2N_ERR_CRL_LOOKUP_FAILED` error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.
 
 By default, the CRL validation logic will not fail on CRLs that are not yet active, or are expired. Timestamp validation can optionally be performed in the CRL lookup callback by calling `s2n_crl_validate_active()` and `s2n_crl_validate_not_expired()`.
 
