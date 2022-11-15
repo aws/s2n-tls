@@ -37,7 +37,7 @@ struct s2n_session_key {
 #endif
 };
 
-struct s2n_stream_cipher {
+const struct s2n_stream_cipher {
     int (*decrypt) (struct s2n_session_key * key, struct s2n_blob * in, struct s2n_blob * out);
     int (*encrypt) (struct s2n_session_key * key, struct s2n_blob * in, struct s2n_blob * out);
 };
@@ -87,18 +87,18 @@ struct s2n_cipher {
 extern int s2n_session_key_alloc(struct s2n_session_key *key);
 extern int s2n_session_key_free(struct s2n_session_key *key);
 
-extern struct s2n_cipher s2n_null_cipher;
-extern struct s2n_cipher s2n_rc4;
-extern struct s2n_cipher s2n_aes128;
-extern struct s2n_cipher s2n_aes256;
-extern struct s2n_cipher s2n_3des;
-extern struct s2n_cipher s2n_aes128_gcm;
-extern struct s2n_cipher s2n_aes256_gcm;
-extern struct s2n_cipher s2n_aes128_sha;
-extern struct s2n_cipher s2n_aes256_sha;
-extern struct s2n_cipher s2n_aes128_sha256;
-extern struct s2n_cipher s2n_aes256_sha256;
-extern struct s2n_cipher s2n_chacha20_poly1305;
+extern const struct s2n_cipher s2n_null_cipher;
+extern const struct s2n_cipher s2n_rc4;
+extern const struct s2n_cipher s2n_aes128;
+extern const struct s2n_cipher s2n_aes256;
+extern const struct s2n_cipher s2n_3des;
+extern const struct s2n_cipher s2n_aes128_gcm;
+extern const struct s2n_cipher s2n_aes256_gcm;
+extern const struct s2n_cipher s2n_aes128_sha;
+extern const struct s2n_cipher s2n_aes256_sha;
+extern const struct s2n_cipher s2n_aes128_sha256;
+extern const struct s2n_cipher s2n_aes256_sha256;
+extern const struct s2n_cipher s2n_chacha20_poly1305;
 
-extern struct s2n_cipher s2n_tls13_aes128_gcm;
-extern struct s2n_cipher s2n_tls13_aes256_gcm;
+extern const struct s2n_cipher s2n_tls13_aes128_gcm;
+extern const struct s2n_cipher s2n_tls13_aes256_gcm;
