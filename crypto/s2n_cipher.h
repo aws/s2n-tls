@@ -37,7 +37,7 @@ struct s2n_session_key {
 #endif
 };
 
-const struct s2n_stream_cipher {
+struct s2n_stream_cipher {
     int (*decrypt) (struct s2n_session_key * key, struct s2n_blob * in, struct s2n_blob * out);
     int (*encrypt) (struct s2n_session_key * key, struct s2n_blob * in, struct s2n_blob * out);
 };
