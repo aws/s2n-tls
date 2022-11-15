@@ -107,7 +107,7 @@ failure_tests/sha_%.log : bitcode/sha_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
 	@set -o pipefail; \
-	! (saw verify_s2n_hmac_sha256.saw 2>&1 | tee $@)
+	! (saw verify_HMAC.saw 2>&1 | tee $@)
 
 failure_tests/tls_%.log : bitcode/tls_%.bc
         #this might not be necessary
