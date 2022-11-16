@@ -352,7 +352,8 @@ testConnection = {
             no_client_cert = True,
             early_data_state = zero,
             chosen_psk_null = True,
-            quic_enabled = False
+            quic_enabled = False,
+            npn_negotiated = False
         }
 
 type Character = [8]

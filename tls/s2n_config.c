@@ -886,7 +886,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     if (intro_time_in_seconds_from_epoch == 0) {
         uint64_t now = 0;
-        POSIX_ENSURE(config->wall_clock(config->sys_clock_ctx, &now) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+        POSIX_GUARD_RESULT(s2n_config_wall_clock(config, &now));
         session_ticket_key->intro_timestamp = now;
     } else {
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
@@ -1039,4 +1039,14 @@ int s2n_config_set_npn(struct s2n_config *config, bool enable)
     config->npn_supported = enable;
 
     return S2N_SUCCESS;
+}
+
+/*
+ * Wrapper for wall_clock callback. This wrapper will ensure right return of s2n_errno everytime wall_clock
+ * callback is called.
+ */
+S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output)
+{
+    RESULT_ENSURE(config->wall_clock(config->sys_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    return S2N_RESULT_OK;
 }
