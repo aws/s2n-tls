@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
