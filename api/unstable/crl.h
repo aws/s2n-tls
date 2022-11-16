@@ -38,8 +38,8 @@ struct s2n_crl_lookup;
  * `s2n_crl_lookup_ignore()`.
  *
  * This callback can be synchronous or asynchronous. For asynchronous behavior, return success without calling
- * `s2n_crl_lookup_set()` or `s2n_crl_lookup_ignore()`. The connection will block until one of these functions is
- * called.
+ * `s2n_crl_lookup_set()` or `s2n_crl_lookup_ignore()`. `s2n_negotiate()` will return S2N_BLOCKED_ON_APPLICATION_INPUT
+ * until one of these functions is called for each invoked callback.
  *
  * @param lookup The CRL lookup for the given certificate.
  * @param context Context for the callback function.
