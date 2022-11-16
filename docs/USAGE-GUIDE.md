@@ -372,7 +372,7 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 
 ## Config
 
-`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object and `s2n_config_free()` to free the object when no longer needed. It is not necessary to create a config object per connection; one config object can be used for many connections. To associate a connection with a config call `s2n_connection_set_config()`. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and alter the list of cipher suite preferences. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object and `s2n_config_free()` to free the object when no longer needed. It is not necessary to create a config object per connection; one config object can be used for many connections. To associate a connection with a config call `s2n_connection_set_config()`. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
 
 ### Overriding the Config
 
