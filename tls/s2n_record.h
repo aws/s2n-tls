@@ -49,7 +49,7 @@
  * This is a simple solution for the Alert Attack, although it is
  * strictly speaking a violation of the standard.
  */
-#define S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH 2
+#define S2N_MAX_FRAGMENT_LENGTH_MIN 2
 
 /* The TLS1.2 record length allows for 1024 bytes of compression expansion and
  * 1024 bytes of encryption expansion and padding.

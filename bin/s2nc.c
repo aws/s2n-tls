@@ -313,7 +313,6 @@ int main(int argc, char *const *argv)
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
     bool npn = false;
-    long send_buffer_size_scanned_value = 0;
     uint32_t send_buffer_size = 0;
     bool prefer_low_latency = false;
     bool prefer_throughput = false;
@@ -466,14 +465,15 @@ int main(int argc, char *const *argv)
         case OPT_NPN:
             npn = true;
             break;
-        case OPT_BUFFERED_SEND:
-            send_buffer_size_scanned_value = strtol(optarg, 0, 10);
+        case OPT_BUFFERED_SEND: {
+            intmax_t send_buffer_size_scanned_value = strtoimax(optarg, 0, 10);
             if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
                 fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
                 exit(1);
             }
             send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
             break;
+        }
         case OPT_PREFER_LOW_LATENCY:
             prefer_low_latency = true;
             break;

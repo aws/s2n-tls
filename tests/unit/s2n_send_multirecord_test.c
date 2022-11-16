@@ -200,7 +200,7 @@ int main(int argc, char **argv)
          * application data is also fragmented into 2 byte chucks, which is pretty silly,
          * but is an edge case.
          */
-        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH);
+        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
 
         DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(min_buffer_config);

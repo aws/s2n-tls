@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            size_t small_frag_len = S2N_TLS_MINIMUM_FRAGMENT_RESERVE_LENGTH;
+            size_t small_frag_len = S2N_MAX_FRAGMENT_LENGTH_MIN;
             client_conn->max_outgoing_fragment_length = small_frag_len;
 
             EXPECT_EQUAL(s2n_send(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
