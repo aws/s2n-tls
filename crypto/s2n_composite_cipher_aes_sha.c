@@ -303,7 +303,7 @@ static int s2n_composite_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
     return 0;
 }
 
-struct s2n_cipher s2n_aes128_sha = {
+const struct s2n_cipher s2n_aes128_sha = {
     .key_material_size = 16,
     .type = S2N_COMPOSITE,
     .io.comp = {
@@ -321,7 +321,7 @@ struct s2n_cipher s2n_aes128_sha = {
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
-struct s2n_cipher s2n_aes256_sha = {
+const struct s2n_cipher s2n_aes256_sha = {
     .key_material_size = 32,
     .type = S2N_COMPOSITE,
     .io.comp = {
@@ -339,7 +339,7 @@ struct s2n_cipher s2n_aes256_sha = {
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
-struct s2n_cipher s2n_aes128_sha256 = {
+const struct s2n_cipher s2n_aes128_sha256 = {
     .key_material_size = 16,
     .type = S2N_COMPOSITE,
     .io.comp = {
@@ -357,7 +357,7 @@ struct s2n_cipher s2n_aes128_sha256 = {
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
-struct s2n_cipher s2n_aes256_sha256 = {
+const struct s2n_cipher s2n_aes256_sha256 = {
     .key_material_size = 32,
     .type = S2N_COMPOSITE,
     .io.comp = {

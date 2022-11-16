@@ -116,7 +116,7 @@ static int s2n_cbc_cipher_aes_destroy_key(struct s2n_session_key *key)
     return 0;
 }
 
-struct s2n_cipher s2n_aes128 = {
+const struct s2n_cipher s2n_aes128 = {
     .key_material_size = 16,
     .type = S2N_CBC,
     .io.cbc = {
@@ -131,7 +131,7 @@ struct s2n_cipher s2n_aes128 = {
     .destroy_key = s2n_cbc_cipher_aes_destroy_key,
 };
 
-struct s2n_cipher s2n_aes256 = {
+const struct s2n_cipher s2n_aes256 = {
     .key_material_size = 32,
     .type = S2N_CBC,
     .io.cbc = {
