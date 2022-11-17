@@ -1408,7 +1408,7 @@ int main(int argc, char **argv)
              * Although the server's most preferred ciphersuite is a chacha20 ciphersuite, its unable to negotiate
              * it since there's not available in the given libcrypto. In second preferred, there is the one-and-only
              * non-chacha20 ciphersuite in the list (meaning that it's the only ciphersuite eligible for negotiation).
-            * The last two ciphersuites are both chacha20 ciphersuites.
+             * The last two ciphersuites are both chacha20 ciphersuites.
              */
             static struct s2n_cipher_suite *tls12_chacha20_boosted_ciphersuites[] = {
                 &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
