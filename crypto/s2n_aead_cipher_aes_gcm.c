@@ -378,7 +378,7 @@ static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 
 #endif
 
-struct s2n_cipher s2n_aes128_gcm = {
+const struct s2n_cipher s2n_aes128_gcm = {
     .key_material_size = S2N_TLS_AES_128_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
@@ -394,7 +394,7 @@ struct s2n_cipher s2n_aes128_gcm = {
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };
 
-struct s2n_cipher s2n_aes256_gcm = {
+const struct s2n_cipher s2n_aes256_gcm = {
     .key_material_size = S2N_TLS_AES_256_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
@@ -411,7 +411,7 @@ struct s2n_cipher s2n_aes256_gcm = {
 };
 
 /* TLS 1.3 GCM ciphers */
-struct s2n_cipher s2n_tls13_aes128_gcm = {
+const struct s2n_cipher s2n_tls13_aes128_gcm = {
     .key_material_size = S2N_TLS_AES_128_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
@@ -427,7 +427,7 @@ struct s2n_cipher s2n_tls13_aes128_gcm = {
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };
 
-struct s2n_cipher s2n_tls13_aes256_gcm = {
+const struct s2n_cipher s2n_tls13_aes256_gcm = {
     .key_material_size = S2N_TLS_AES_256_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {

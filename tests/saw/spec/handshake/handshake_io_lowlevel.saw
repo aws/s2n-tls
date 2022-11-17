@@ -220,10 +220,9 @@ let setup_connection_common chosen_psk_null = do {
 
    let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
 
-   // TODO: we currently assume that the npn_negotiated bit in s2n_connection must
-   // be zero. This essentially disable the NPN extension feature in the proof.
-   // A full proof including the NPN extension feature is WIP.
-   llvm_points_to_bitfield pconn "npn_negotiated" (llvm_term {{ 0 : [1] }});
+   npn_negotiated <- llvm_fresh_var "npn_negotiated" (llvm_int 1);
+   llvm_points_to_bitfield pconn "npn_negotiated" (llvm_term npn_negotiated);
+   let npn_negotiated_bit = {{ bv1_to_bit npn_negotiated }};
 
    // This returns a connection containing a handshake. If the connection or the handshake
    // definitions are changed, they must also be changed here.
@@ -245,6 +244,7 @@ let setup_connection_common chosen_psk_null = do {
                      ,early_data_state = early_data_state
                      ,chosen_psk_null = chosen_psk_null_bit
                      ,quic_enabled = quic_enabled_bit
+                     ,npn_negotiated = npn_negotiated_bit
                      }
                   }}); 
 };

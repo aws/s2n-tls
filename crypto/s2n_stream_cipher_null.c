@@ -50,7 +50,7 @@ static int s2n_stream_cipher_null_init(struct s2n_session_key *key)
     return 0;
 }
 
-struct s2n_cipher s2n_null_cipher = {
+const struct s2n_cipher s2n_null_cipher = {
     .type = S2N_STREAM,
     .key_material_size = 0,
     .io.stream = {
