@@ -6,6 +6,8 @@ from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
 
+def to_string(val: bytes):
+    return val.decode(encoding="ascii", errors="backslashreplace")
 
 def get_expected_s2n_version(protocol, provider):
     """

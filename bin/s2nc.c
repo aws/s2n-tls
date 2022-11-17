@@ -20,6 +20,10 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <inttypes.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
 #include <openssl/crypto.h>
@@ -39,6 +43,9 @@
 #define OPT_SEND_FILE 1002
 #define OPT_RENEG 1003
 #define OPT_NPN 1004
+#define OPT_PREFER_LOW_LATENCY 1005
+#define OPT_PREFER_THROUGHPUT 1006
+#define OPT_BUFFERED_SEND 1007
 
 void usage()
 {
@@ -107,8 +114,14 @@ void usage()
                     "    reject: Reject all server requests for a new handshake\n"
                     "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
     fprintf(stderr, "  --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported."); 
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  --buffered-send <buffer size>\n");
+    fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
+    fprintf(stderr, "  --prefer-low-latency\n");
+    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
+    fprintf(stderr, "  --prefer-throughput\n");
+    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
     exit(1);
 }
 
@@ -301,6 +314,9 @@ int main(int argc, char *const *argv)
     bool setup_reneg_cb = false;
     struct reneg_req_ctx reneg_ctx = { 0 };
     bool npn = false;
+    uint32_t send_buffer_size = 0;
+    bool prefer_low_latency = false;
+    bool prefer_throughput = false;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -331,6 +347,9 @@ int main(int argc, char *const *argv)
         {"early-data", required_argument, 0, 'E'},
         {"renegotiation", required_argument, 0, OPT_RENEG},
         {"npn", no_argument, 0, OPT_NPN},
+        {"buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
+        {"prefer-low-latency", no_argument, NULL, OPT_PREFER_LOW_LATENCY},
+        {"prefer-throughput", no_argument, NULL, OPT_PREFER_THROUGHPUT},
         { 0 },
     };
 
@@ -447,6 +466,21 @@ int main(int argc, char *const *argv)
         case OPT_NPN:
             npn = true;
             break;
+        case OPT_BUFFERED_SEND: {
+            intmax_t send_buffer_size_scanned_value = strtoimax(optarg, 0, 10);
+            if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
+                fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
+                exit(1);
+            }
+            send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
+            break;
+        }
+        case OPT_PREFER_LOW_LATENCY:
+            prefer_low_latency = true;
+            break;
+        case OPT_PREFER_THROUGHPUT:
+            prefer_throughput = true;
+            break;
         case '?':
         default:
             usage();
@@ -498,6 +532,11 @@ int main(int argc, char *const *argv)
 #endif
     }
 
+    if (prefer_low_latency && prefer_throughput) {
+        fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
+        exit(1);
+    }
+
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
@@ -537,6 +576,10 @@ int main(int argc, char *const *argv)
 
         struct s2n_config *config = s2n_config_new();
         setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
+
+        if (send_buffer_size != 0) {
+            GUARD_EXIT(s2n_config_set_send_buffer_size(config, send_buffer_size), "Error setting send buffer size");
+        }
 
         if (client_cert_input != client_key_input) {
             print_s2n_error("Client cert/key pair must be given.");
@@ -594,7 +637,7 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
- 
+
         GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
@@ -620,6 +663,14 @@ int main(int argc, char *const *argv)
         }
 
         GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
+
+        if (prefer_throughput) {
+            GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
+        }
+
+        if (prefer_low_latency) {
+            GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
+        }
 
         if (early_data) {
             if (!session_ticket) {

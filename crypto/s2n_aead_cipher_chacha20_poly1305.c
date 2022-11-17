@@ -262,7 +262,7 @@ static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 
 #endif
 
-struct s2n_cipher s2n_chacha20_poly1305 = {
+const struct s2n_cipher s2n_chacha20_poly1305 = {
     .key_material_size = S2N_TLS_CHACHA20_POLY1305_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
