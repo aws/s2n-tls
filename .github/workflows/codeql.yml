@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: "CodeQL - Python"
 
 on:
   push:
@@ -20,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ c, python ]
+        # Disabling c analysis (for now) as this takes ~2 hours to complete
+        language: [ python ]
 
     steps:
       - name: Checkout
