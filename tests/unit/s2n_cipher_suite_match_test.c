@@ -1170,12 +1170,9 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = false;
                 EXPECT_FALSE(cipher_preferences.allow_chacha20_boosting);
 
-                count = sizeof(chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_boosted_wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
-                cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_TRUE(cipher_preferences.allow_chacha20_boosting);
                 /*
                  * Client did not signal chacha20 boosting.
                  * TLS_AES_256_GCM_SHA384 > TLS_CHACHA20_POLY1305_SHA256 
@@ -1186,24 +1183,11 @@ int main(int argc, char **argv)
                 };
 
                 count = sizeof(wire_aes_256_and_chacha20) / S2N_TLS_CIPHER_SUITE_LEN;
+                cipher_preferences.allow_chacha20_boosting = true;
+                EXPECT_TRUE(cipher_preferences.allow_chacha20_boosting);
+
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire_aes_256_and_chacha20, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
-
-                /* Server has chacha20 boosting disabled but we can still negotiate it if it's the only option */
-                cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_FALSE(cipher_preferences.allow_chacha20_boosting);
-                /*
-                 * Client signalled chacha20 boosting.
-                 * TLS_CHACHA20_POLY1305_SHA256 is the only option
-                 */
-                uint8_t chacha20_only_wire[] = {
-                    TLS_CHACHA20_POLY1305_SHA256,
-                };
-
-                count = sizeof(chacha20_only_wire) / S2N_TLS_CIPHER_SUITE_LEN;
-
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, chacha20_only_wire, count));
-                EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
 
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
