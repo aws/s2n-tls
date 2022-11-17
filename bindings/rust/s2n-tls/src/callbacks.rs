@@ -126,16 +126,19 @@ pub(crate) trait AsyncCallback {
 /// Use in conjunction with
 /// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
 pub trait ClientHelloCallback {
-    fn poll_client_hello(&self, connection: &mut Connection) -> Poll<Result<(), Error>>;
+    fn poll_client_hello(&mut self, connection: &mut Connection) -> Poll<Result<(), Error>>;
 }
 
 pub(crate) struct AsyncClientHelloCallback {}
 impl AsyncCallback for AsyncClientHelloCallback {
     fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>> {
+        // let waker = conn.waker().unwrap().clone();
+        // let mut ctx = core::task::Context::from_waker(&waker);
+
         let result = conn
             .config()
-            .as_ref()
-            .and_then(|config| config.context().client_hello_callback.as_ref())
+            .as_mut()
+            .and_then(|config| config.context_mut().client_hello_callback.as_mut())
             .map(|callback| callback.poll_client_hello(conn))
             .unwrap_or(READY_OK);
         if result == READY_OK {

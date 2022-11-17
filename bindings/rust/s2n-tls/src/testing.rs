@@ -222,7 +222,7 @@ impl MockClientHelloHandler {
 
 impl ClientHelloCallback for MockClientHelloHandler {
     fn poll_client_hello(
-        &self,
+        self: &mut testing::MockClientHelloHandler,
         connection: &mut crate::connection::Connection,
     ) -> core::task::Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {

@@ -347,7 +347,7 @@ mod tests {
         }
         impl ClientHelloCallback for ClientHelloSyncCallback {
             fn poll_client_hello(
-                &self,
+                self: &mut testing::s2n_tls::tests::client_hello_callback_sync::ClientHelloSyncCallback,
                 connection: &mut crate::connection::Connection,
             ) -> Poll<Result<(), error::Error>> {
                 // Test that the config can be changed
