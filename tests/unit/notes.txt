@@ -1,0 +1,19 @@
+1. Test chacha20 boosting w/ ciphersuite validation
+
+2. Test server negotiates its most preferred chacha20 ciphersuite 
+
+3. Server does not negotiate the client's most pref. chacha20 ciph suite
+
+4. Chacha20 boosting is disabled when client did not indicate chacha20 pref
+
+5. Test server negotiates its most preferred chacha20 ciphersuite for 1.3
+
+6. Server can negotiate chacha20 ciphersuite, even when boosting is disabled
+
+7. Chacha20 can't be negotiated when it's not available in libcrypto
+
+8. sslv2 server correctly negotiates ciphersuite
+
+9. server is able to negotiate without chacha20 in its cipher pref 
+
+10. Test chacha20 boosting when the most pref. ciphersuite fails version validation

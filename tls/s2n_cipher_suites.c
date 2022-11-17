@@ -1181,9 +1181,7 @@ static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_prefere
     RESULT_ENSURE_REF(cipher_preferences);
     RESULT_ENSURE_REF(wire);
 
-    if (!cipher_preferences->allow_chacha20_boosting) {
-        RESULT_BAIL(S2N_ERR_CHACHA20_BOOSTING_UNSUPPORTED);
-    }
+    RESULT_ENSURE_EQ(cipher_preferences->allow_chacha20_boosting, true);
 
     const uint8_t *clients_first_cipher_iana = wire + cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -1191,11 +1189,8 @@ static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_prefere
     RESULT_GUARD(s2n_cipher_suite_from_iana(clients_first_cipher_iana, S2N_TLS_CIPHER_SUITE_LEN, &client_first_cipher_suite));
     RESULT_ENSURE_REF(client_first_cipher_suite);
 
-    if (s2n_cipher_suite_uses_chacha20_alg(client_first_cipher_suite)) {
-        return S2N_RESULT_OK;
-    }
-
-    RESULT_BAIL(S2N_ERR_CHACHA20_BOOSTING_UNSUPPORTED);
+    RESULT_ENSURE_EQ(s2n_cipher_suite_uses_chacha20_alg(client_first_cipher_suite), true);
+    return S2N_RESULT_OK;
 }
 
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
