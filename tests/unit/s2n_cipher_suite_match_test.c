@@ -944,6 +944,7 @@ int main(int argc, char **argv)
                 uint8_t count = sizeof(dhe_chacha20_boosted_wire) / S2N_TLS_CIPHER_SUITE_LEN;
 
                 cipher_preferences.allow_chacha20_boosting = true;
+                EXPECT_TRUE(cipher_preferences.allow_chacha20_boosting);
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, dhe_chacha20_boosted_wire, count));
                 /* Server prefers ecdsa chacha20 but the connection only supports rsa. Servers moves on to the next chacha20 ciphersuite */
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256);
@@ -1120,7 +1121,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256);
             }
 
-            /* 5. Server negotiates its most preferred chacha20 ciphersuite for tls 1.3 */
+            /* Server negotiates its most preferred chacha20 ciphersuite for tls 1.3 */
             {
                 DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(connection);
