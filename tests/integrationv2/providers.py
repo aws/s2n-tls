@@ -58,7 +58,7 @@ class Provider(ABC):
         Provider specific setup code goes here.
         This will probably include creating the command line based on ProviderOptions.
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def setup_server(self):
@@ -66,26 +66,26 @@ class Provider(ABC):
         Provider specific setup code goes here.
         This will probably include creating the command line based on ProviderOptions.
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def get_send_marker(cls):
         """
         This should be the last message printed before the client/server can send data.
         """
-        return None
+        pass
 
     @abstractmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def supports_signature(cls, signature):
-        return True
+        pass
 
     def get_cmd_line(self):
         return self.cmd_line
