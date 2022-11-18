@@ -106,20 +106,23 @@ failure-tests : bitcode
 failure_tests/sha_%.log : bitcode/sha_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	@set -o pipefail; \
-	! (saw verify_s2n_hmac_sha256.saw 2>&1 | tee $@)
+	set -o pipefail; \
+	! (saw verify_HMAC.saw 2>&1 | tee $@)
+	grep "error: in _SAW_verify_prestate" $@
 
 failure_tests/tls_%.log : bitcode/tls_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	@set -o pipefail; \
+	set -o pipefail; \
 	! (saw verify_state_machine.saw 2>&1 | tee $@)
+	grep "error: in _SAW_verify_prestate" $@
 
 failure_tests/cork_%.log : bitcode/cork_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	@set -o pipefail; \
+	set -o pipefail; \
 	! (saw verify_cork_uncork.saw 2>&1 | tee $@)
+	grep "error: in llvm_ghost_value" $@
 
 
 # we patch the s2n dir, build it with the top level s2n makefile, and
