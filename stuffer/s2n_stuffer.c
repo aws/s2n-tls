@@ -54,8 +54,7 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
 
     if (reserve_obj.length > 0) {
         RESULT_ENSURE(reserve_obj.write_cursor < stuffer_obj.write_cursor, S2N_ERR_SAFETY);
-        RESULT_ENSURE(S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor,
-                          reserve_obj.length),
+        RESULT_ENSURE(S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length),
             S2N_ERR_SAFETY);
     }
 
@@ -136,8 +135,7 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     if (size < stuffer->blob.size) {
-        POSIX_CHECKED_MEMSET(stuffer->blob.data + size, S2N_WIPE_PATTERN,
-            (stuffer->blob.size - size));
+        POSIX_CHECKED_MEMSET(stuffer->blob.data + size, S2N_WIPE_PATTERN, (stuffer->blob.size - size));
         if (stuffer->read_cursor > size) {
             stuffer->read_cursor = size;
         }
@@ -259,8 +257,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
 {
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
-    void *ptr =
-        (stuffer->blob.data) ? (stuffer->blob.data + stuffer->read_cursor - out->size) : NULL;
+    void *ptr = (stuffer->blob.data) ? (stuffer->blob.data + stuffer->read_cursor - out->size) : NULL;
     POSIX_ENSURE(S2N_MEM_IS_READABLE(ptr, out->size), S2N_ERR_NULL);
 
     POSIX_CHECKED_MEMCPY(out->data, ptr, out->size);
@@ -340,8 +337,8 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *data, co
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count,
-    uint32_t offs, uint32_t size)
+int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs,
+    uint32_t size)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(iov);
@@ -372,8 +369,7 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *io
     return S2N_SUCCESS;
 }
 
-static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *to,
-    const uint32_t len)
+static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
 {
     POSIX_GUARD(s2n_stuffer_skip_read(from, len));
     POSIX_GUARD(s2n_stuffer_skip_write(to, len));
@@ -392,8 +388,7 @@ int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
     if (s2n_stuffer_space_remaining(stuffer) < n) {
         POSIX_ENSURE(stuffer->growable, S2N_ERR_STUFFER_IS_FULL);
         /* Always grow a stuffer by at least 1k */
-        const uint32_t growth =
-            MAX(n - s2n_stuffer_space_remaining(stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES);
+        const uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES);
         uint32_t new_size = 0;
         POSIX_GUARD(s2n_add_overflow(stuffer->blob.size, growth, &new_size));
         POSIX_GUARD(s2n_stuffer_resize(stuffer, new_size));
@@ -426,8 +421,7 @@ int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
     POSIX_GUARD(s2n_realloc(out, s2n_stuffer_data_available(stuffer)));
 
     if (s2n_stuffer_data_available(stuffer) > 0) {
-        POSIX_CHECKED_MEMCPY(out->data, stuffer->blob.data + stuffer->read_cursor,
-            s2n_stuffer_data_available(stuffer));
+        POSIX_CHECKED_MEMCPY(out->data, stuffer->blob.data + stuffer->read_cursor, s2n_stuffer_data_available(stuffer));
     }
 
     POSIX_POSTCONDITION(s2n_blob_validate(out));

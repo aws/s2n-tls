@@ -32,15 +32,15 @@
 #define S2N_PEM_CERTIFICATE           "CERTIFICATE"
 #define S2N_PEM_CRL                   "X509 CRL"
 
-static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem,
-    const char *encap_marker, const char *keyword)
+static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char *encap_marker,
+    const char *keyword)
 {
     /* Skip any number of Chars until a "-" is reached */
     POSIX_GUARD(s2n_stuffer_skip_to_char(pem, S2N_PEM_DELIMTER_CHAR));
 
     /* Ensure between 1 and 64 '-' chars at start of line */
-    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR,
-        S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT,
+        S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Ensure next string in stuffer is "BEGIN " or "END " */
     POSIX_GUARD(s2n_stuffer_read_expected_str(pem, encap_marker));
@@ -49,8 +49,8 @@ static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem,
     POSIX_GUARD(s2n_stuffer_read_expected_str(pem, keyword));
 
     /* Ensure between 1 and 64 '-' chars at end of line */
-    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR,
-        S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT,
+        S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Check for missing newline between dashes case: "-----END CERTIFICATE----------BEGIN CERTIFICATE-----" */
     if (strncmp(encap_marker, S2N_PEM_END_TOKEN, strlen(S2N_PEM_END_TOKEN)) == 0
@@ -112,8 +112,7 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
     return S2N_SUCCESS;
 }
 
-static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1,
-    const char *keyword)
+static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(pem));
     POSIX_PRECONDITION(s2n_stuffer_validate(asn1));
