@@ -26,8 +26,6 @@ use crate::{connection::Connection, enums::CallbackResult, error::Error};
 use core::{mem::ManuallyDrop, ptr::NonNull, task::Poll, time::Duration};
 use s2n_tls_sys::s2n_connection;
 
-const READY_OK: Poll<Result<(), Error>> = Poll::Ready(Ok(()));
-
 /// Convert the connection pointer provided to a callback into a Connection
 /// useable with the Rust bindings.
 ///
@@ -83,7 +81,7 @@ where
 /// |   AsyncCallback::poll                     (Rust)
 /// |   +-> return Poll::Ready                  (Rust)
 /// |   s2n_negotiate                           (C)
-/// |                          
+/// |
 /// v   ...handshake continues.
 ///
 /// Note that "s2n_client_hello_cb" is only called once.
@@ -121,30 +119,63 @@ pub(crate) trait AsyncCallback {
     fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>>;
 }
 
+pub trait AsyncClientHelloFuture {
+    fn poll_client_hello(
+        &mut self,
+        connection: &mut Connection,
+        ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), Error>>;
+}
+
 /// A trait for the callback executed after parsing the TLS Client Hello.
 ///
 /// Use in conjunction with
 /// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
 pub trait ClientHelloCallback {
-    fn poll_client_hello(&mut self, connection: &mut Connection) -> Poll<Result<(), Error>>;
+    fn on_client_hello(
+        &mut self,
+        connection: &mut Connection,
+    ) -> Option<Box<dyn AsyncClientHelloFuture>>;
 }
 
 pub(crate) struct AsyncClientHelloCallback {}
 impl AsyncCallback for AsyncClientHelloCallback {
     fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>> {
-        // let waker = conn.waker().unwrap().clone();
-        // let mut ctx = core::task::Context::from_waker(&waker);
+        // if there is already a future set on the connection then poll it
+        if let Some(mut fut) = conn.take_client_hello_future() {
+            let waker = conn.waker().unwrap().clone();
+            let mut ctx = core::task::Context::from_waker(&waker);
+            println!("------binding, async_client_hello_future exits");
 
-        let result = conn
+            match fut.poll_client_hello(conn, &mut ctx) {
+                Poll::Ready(_) => return Poll::Ready(conn.mark_client_hello_cb_done()),
+                Poll::Pending => {
+                    // replace the client_hello_future
+                    conn.set_client_hello_future(fut);
+                    return Poll::Pending;
+                }
+            }
+        }
+
+        // otherwise call the on_client_hello to make progress.. potentially
+        // storing the future
+        let async_future = conn
             .config()
             .as_mut()
             .and_then(|config| config.context_mut().client_hello_callback.as_mut())
-            .map(|callback| callback.poll_client_hello(conn))
-            .unwrap_or(READY_OK);
-        if result == READY_OK {
-            conn.mark_client_hello_cb_done()?;
+            .and_then(|callback| callback.on_client_hello(conn));
+        match async_future {
+            Some(fut) => {
+                println!("------binding, async_client_hello_future setting");
+                // store on connection
+                conn.set_client_hello_future(fut);
+                Poll::Pending
+            }
+            None => {
+                println!("------binding, no future, done");
+                Poll::Ready(conn.mark_client_hello_cb_done())
+            }
         }
-        result
     }
 }
 

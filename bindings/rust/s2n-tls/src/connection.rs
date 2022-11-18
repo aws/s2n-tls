@@ -499,6 +499,18 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
+    pub(crate) fn take_client_hello_future(&mut self) -> Option<Box<dyn AsyncClientHelloFuture>> {
+        let ctx = self.context_mut();
+        ctx.client_hello_future.take()
+    }
+
+    pub(crate) fn set_client_hello_future(&mut self, f: Box<dyn AsyncClientHelloFuture>) {
+        let ctx = self.context_mut();
+        debug_assert!(ctx.client_hello_future.is_none());
+
+        ctx.client_hello_future = Some(f);
+    }
+
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
     fn context_mut(&mut self) -> &mut Context {
         unsafe {
@@ -592,6 +604,7 @@ impl Connection {
 struct Context {
     waker: Option<Waker>,
     pending_callback: Option<Box<dyn AsyncCallback>>,
+    client_hello_future: Option<Box<dyn AsyncClientHelloFuture>>,
 }
 
 #[cfg(feature = "quic")]
