@@ -4,6 +4,7 @@ import pytest
 
 from configuration import available_ports, ALL_TEST_CURVES, ALL_TEST_CERTS, TLS13_CIPHERS
 from common import ProviderOptions, Protocols, Curves, data_bytes
+from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N as S2NBase, OpenSSL as OpenSSLBase
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 

@@ -5,6 +5,7 @@ from enum import Enum, auto
 
 from configuration import available_ports, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Cipher, Ciphers, Curves
+from fixtures import managed_process # lgtm [py/unused-import]
 from providers import S2N
 from utils import get_parameter_name, invalid_test_parameters
 from global_flags import get_flag, S2N_PROVIDER_VERSION 
