@@ -477,7 +477,7 @@ if (S2N_INTERN_LIBCRYPTO)
           mkdir s2n_libcrypto &&
           cd s2n_libcrypto &&
           # extract libcrypto objects from the archive
-	   ${CMAKE_AR} x ../s2n_libcrypto.a &&
+	  ${CMAKE_AR} x ../s2n_libcrypto.a &&
           # rename all of the object files so we don't have any object name collisions
           bash -c "find . -name '*.o' -type f -print0 | xargs -0 -n1 -- basename | xargs -I{} mv {} s2n_crypto__{}"
         VERBATIM
