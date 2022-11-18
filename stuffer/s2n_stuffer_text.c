@@ -68,7 +68,8 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expec
     if (expected_length == 0) {
         return S2N_SUCCESS;
     }
-    POSIX_ENSURE(s2n_stuffer_data_available(stuffer) >= expected_length, S2N_ERR_STUFFER_OUT_OF_DATA);
+    POSIX_ENSURE(s2n_stuffer_data_available(stuffer) >= expected_length,
+        S2N_ERR_STUFFER_OUT_OF_DATA);
     uint8_t *actual = stuffer->blob.data + stuffer->read_cursor;
     POSIX_ENSURE_REF(actual);
     POSIX_ENSURE(!memcmp(actual, expected, expected_length), S2N_ERR_STUFFER_NOT_FOUND);
@@ -119,7 +120,8 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 }
 
 /* Skips an expected character in the stuffer between min and max times */
-int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped)
+int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected,
+    const uint32_t min, const uint32_t max, uint32_t *skipped)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE(min <= max, S2N_ERR_SAFETY);
@@ -150,7 +152,8 @@ int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token
     POSIX_GUARD(s2n_stuffer_read_token(stuffer, token, '\n'));
 
     /* Snip off the carriage return if it's present */
-    if ((s2n_stuffer_data_available(token) > 0) && (token->blob.data[(token->write_cursor - 1)] == '\r')) {
+    if ((s2n_stuffer_data_available(token) > 0)
+        && (token->blob.data[(token->write_cursor - 1)] == '\r')) {
         token->write_cursor--;
     }
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));

@@ -24,7 +24,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
+int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len,
+    uint32_t *bytes_written)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
 
@@ -49,7 +50,8 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent)
+int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len,
+    uint32_t *bytes_sent)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
 
