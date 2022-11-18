@@ -90,7 +90,7 @@ static int s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
     return 0;
 }
 
-struct s2n_cipher s2n_3des = {
+const struct s2n_cipher s2n_3des = {
     .key_material_size = 24,
     .type = S2N_CBC,
     .io.cbc = {

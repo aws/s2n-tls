@@ -1,13 +1,26 @@
-diff -r -u s2n/crypto/s2n_hmac.c s2n_break/crypto/s2n_hmac.c
---- s2n/crypto/s2n_hmac.c	2016-05-23 09:59:56.600873694 -0700
-+++ s2n_break/crypto/s2n_hmac.c	2016-05-27 16:12:24.278698053 -0700
-@@ -265,6 +265,6 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+diff --git a/crypto/s2n_hmac.c b/crypto/s2n_hmac.c
+index 29ded952..f7a24a01 100644
+--- a/crypto/s2n_hmac.c
++++ b/crypto/s2n_hmac.c
+@@ -266,8 +266,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
       * input. On some platforms, including Intel, the operation can take a
       * smaller number of cycles if the input is "small".
       */
 -    const uint32_t HIGHEST_32_BIT = 4294949760;
+-    POSIX_ENSURE(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
 +    const uint32_t HIGHEST_32_BIT = 4294949761;
-     POSIX_ENSURE(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
      uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
-Binary files s2n/.git/index and s2n_break/.git/index differ
-Only in s2n/tests/saw: bad_magic_mod.patch
+     POSIX_GUARD(s2n_add_overflow(state->currently_in_hash_block, value, &state->currently_in_hash_block));
+     state->currently_in_hash_block %= state->hash_block_size;
+diff --git a/utils/s2n_safety.c b/utils/s2n_safety.c
+index b26e2d9c..e662c8da 100644
+--- a/utils/s2n_safety.c
++++ b/utils/s2n_safety.c
+@@ -198,7 +198,6 @@ int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
+ {
+     POSIX_ENSURE_REF(out);
+     uint64_t result = ((uint64_t) a) + ((uint64_t) b);
+-    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+     *out = (uint32_t) result;
+     return S2N_SUCCESS;
+ }
