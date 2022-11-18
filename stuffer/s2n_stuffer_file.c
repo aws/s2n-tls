@@ -43,8 +43,9 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
     /* Record just how many bytes we have written */
     POSIX_ENSURE(r <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t) r));
-    if (bytes_written != NULL)
+    if (bytes_written != NULL) {
         *bytes_written = r;
+    }
     return S2N_SUCCESS;
 }
 
@@ -66,8 +67,9 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
 
     POSIX_ENSURE(w <= UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
     stuffer->read_cursor += w;
-    if (bytes_sent != NULL)
+    if (bytes_sent != NULL) {
         *bytes_sent = w;
+    }
     return S2N_SUCCESS;
 }
 

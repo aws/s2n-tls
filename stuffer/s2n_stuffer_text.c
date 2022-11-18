@@ -53,8 +53,9 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipp
             break;
         }
     }
-    if (skipped != NULL)
+    if (skipped != NULL) {
         *skipped = s2n_stuffer->read_cursor - initial_read_cursor;
+    }
     POSIX_POSTCONDITION(s2n_stuffer_validate(s2n_stuffer));
     return S2N_SUCCESS;
 }
