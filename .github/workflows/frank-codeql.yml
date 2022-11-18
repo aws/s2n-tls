@@ -1,12 +1,15 @@
 name: "CodeQL - Python"
 
+- uses: github/codeql-action/init@v2
+
+  with:
+    config-file: ./.github/codeql-config.yml
+
 on:
   push:
-    paths-ignore:
-      - 'tests/integration/**'
+    branches: [ "main" ]
   pull_request:
-    paths-ignore:
-      - 'tests/integration/**'
+    branches: [ "main" ]
   schedule:
     - cron: "1 18 * * 0"
 
