@@ -427,6 +427,13 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
+if (NOT DEFINED CMAKE_AR)
+	message(STATUS "CMAKE_AR undefined, setting to `ar` by default")
+	SET(CMAKE_AR ar)
+else()
+	message(STATUS "CMAKE_AR found: ${CMAKE_AR}")
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
 
     # Check if the AWS::crypto target has beeen added and handle it
@@ -470,7 +477,7 @@ if (S2N_INTERN_LIBCRYPTO)
           mkdir s2n_libcrypto &&
           cd s2n_libcrypto &&
           # extract libcrypto objects from the archive
-          gcc-ar x ../s2n_libcrypto.a &&
+	   ${CMAKE_AR} x ../s2n_libcrypto.a &&
           # rename all of the object files so we don't have any object name collisions
           bash -c "find . -name '*.o' -type f -print0 | xargs -0 -n1 -- basename | xargs -I{} mv {} s2n_crypto__{}"
         VERBATIM
