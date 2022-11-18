@@ -135,8 +135,9 @@ int s2n_stuffer_skip_expected_char(
         }
     }
     POSIX_ENSURE(skip >= min, S2N_ERR_STUFFER_NOT_FOUND);
-    if (skipped != NULL)
+    if (skipped != NULL) {
         *skipped = skip;
+    }
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
