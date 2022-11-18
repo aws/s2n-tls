@@ -3,7 +3,6 @@ import pytest
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS, PROTOCOLS
 from common import ProviderOptions, Protocols
-from fixtures import managed_process
 from providers import OpenSSL, S2N, Provider
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 

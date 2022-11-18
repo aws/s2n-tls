@@ -66,22 +66,22 @@ class Provider(object):
         raise NotImplementedError
 
     @classmethod
-    def get_send_marker(cls):
+    def get_send_marker(self):
         """
         This should be the last message printed before the client/server can send data.
         """
         return None
 
     @classmethod
-    def supports_protocol(cls, protocol, with_cert=None):
+    def supports_protocol(self, protocol, with_cert=None):
         raise NotImplementedError
 
     @classmethod
-    def supports_cipher(cls, cipher, with_curve=None):
+    def supports_cipher(self, cipher, with_curve=None):
         raise NotImplementedError
 
     @classmethod
-    def supports_signature(cls, signature):
+    def supports_signature(self, signature):
         return True
 
     def get_cmd_line(self):

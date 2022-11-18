@@ -1,13 +1,9 @@
 import copy
 import os
 import pytest
-import time
-from enum import Enum
-from collections import namedtuple
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS, TLS13_CIPHERS
+from configuration import available_ports, ALL_TEST_CURVES, ALL_TEST_CERTS, TLS13_CIPHERS
 from common import ProviderOptions, Protocols, Curves, data_bytes
-from fixtures import managed_process
 from providers import Provider, S2N as S2NBase, OpenSSL as OpenSSLBase
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
@@ -338,7 +334,6 @@ def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, 
                                              other_provider, early_data_size):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
-    early_data = get_early_data_bytes(early_data_file, early_data_size)
 
     options = ProviderOptions(
         port=next(available_ports),

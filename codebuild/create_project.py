@@ -397,7 +397,6 @@ def get_account_number():
 def main(args, config):
     """ Create the CFN template and do stuff with said template. """
     codebuild = Template()
-    config
     codebuild.set_version('2010-09-09')
     # Create a single CloudWatch Event role to allow codebuild:startBuild
     cw_event_role = build_cw_cb_role(codebuild, config)

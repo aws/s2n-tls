@@ -1,9 +1,8 @@
 import pytest
 
 from constants import TRUST_STORE_BUNDLE
-from configuration import available_ports, PROTOCOLS
-from common import ProviderOptions, Protocols, Ciphers, pq_enabled
-from fixtures import managed_process
+from configuration import PROTOCOLS
+from common import ProviderOptions, Ciphers, pq_enabled
 from global_flags import get_flag, S2N_FIPS_MODE
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
