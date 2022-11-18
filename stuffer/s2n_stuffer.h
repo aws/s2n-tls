@@ -56,10 +56,10 @@ struct s2n_stuffer {
     unsigned int tainted : 1;
 };
 
-#define s2n_stuffer_data_available(s) ((s)->write_cursor - (s)->read_cursor)
+#define s2n_stuffer_data_available(s)  ((s)->write_cursor - (s)->read_cursor)
 #define s2n_stuffer_space_remaining(s) ((s)->blob.size - (s)->write_cursor)
-#define s2n_stuffer_is_wiped(s) ((s)->high_water_mark == 0)
-#define s2n_stuffer_is_freed(s) ((s)->blob.data == NULL)
+#define s2n_stuffer_is_wiped(s)        ((s)->high_water_mark == 0)
+#define s2n_stuffer_is_freed(s)        ((s)->blob.data == NULL)
 /* Check basic validity constraints on the stuffer: e.g. that cursors point within the blob */
 extern S2N_RESULT s2n_stuffer_validate(const struct s2n_stuffer *stuffer);
 
@@ -91,8 +91,7 @@ extern int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob 
 extern int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *out, uint32_t n);
 extern int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t size);
 extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *in, const uint32_t n);
-extern int s2n_stuffer_writev_bytes(
-    struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs, uint32_t size);
+extern int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs, uint32_t size);
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
 extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
 
@@ -106,8 +105,7 @@ extern void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, const uint32_t d
 extern void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len);
 
 /* Send/receive stuffer to/from a file descriptor */
-extern int s2n_stuffer_recv_from_fd(
-    struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written);
+extern int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written);
 extern int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent);
 
 /* Read and write integers in network order */
@@ -146,11 +144,11 @@ extern int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuff
 extern int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in);
 
 /* Useful for text manipulation ... */
-#define s2n_stuffer_write_char(stuffer, c) s2n_stuffer_write_uint8((stuffer), (uint8_t) (c))
-#define s2n_stuffer_read_char(stuffer, c) s2n_stuffer_read_uint8((stuffer), (uint8_t *) (c))
-#define s2n_stuffer_write_str(stuffer, c) s2n_stuffer_write_bytes((stuffer), (const uint8_t *) (c), strlen((c)))
+#define s2n_stuffer_write_char(stuffer, c)    s2n_stuffer_write_uint8((stuffer), (uint8_t) (c))
+#define s2n_stuffer_read_char(stuffer, c)     s2n_stuffer_read_uint8((stuffer), (uint8_t *) (c))
+#define s2n_stuffer_write_str(stuffer, c)     s2n_stuffer_write_bytes((stuffer), (const uint8_t *) (c), strlen((c)))
 #define s2n_stuffer_write_text(stuffer, c, n) s2n_stuffer_write_bytes((stuffer), (const uint8_t *) (c), (n))
-#define s2n_stuffer_read_text(stuffer, c, n) s2n_stuffer_read_bytes((stuffer), (uint8_t *) (c), (n))
+#define s2n_stuffer_read_text(stuffer, c, n)  s2n_stuffer_read_bytes((stuffer), (uint8_t *) (c), (n))
 extern int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected);
 extern int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
 extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
@@ -158,8 +156,8 @@ extern int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer
 extern int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected);
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer, uint32_t *skipped);
 extern int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
-extern int s2n_stuffer_skip_expected_char(
-    struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped);
+extern int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max,
+    uint32_t *skipped);
 extern int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target);
 extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
 extern int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);

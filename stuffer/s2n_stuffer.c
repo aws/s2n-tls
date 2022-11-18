@@ -54,8 +54,7 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
 
     if (reserve_obj.length > 0) {
         RESULT_ENSURE(reserve_obj.write_cursor < stuffer_obj.write_cursor, S2N_ERR_SAFETY);
-        RESULT_ENSURE(
-            S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length), S2N_ERR_SAFETY);
+        RESULT_ENSURE(S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length), S2N_ERR_SAFETY);
     }
 
     return S2N_RESULT_OK;
@@ -337,8 +336,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *data, co
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_writev_bytes(
-    struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs, uint32_t size)
+int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs, uint32_t size)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(iov);

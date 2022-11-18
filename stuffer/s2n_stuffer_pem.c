@@ -19,28 +19,26 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_PEM_DELIMTER_CHAR '-'
-#define S2N_PEM_DELIMITER_MIN_COUNT 1
-#define S2N_PEM_DELIMITER_MAX_COUNT 64
-#define S2N_PEM_BEGIN_TOKEN "BEGIN "
-#define S2N_PEM_END_TOKEN "END "
+#define S2N_PEM_DELIMTER_CHAR         '-'
+#define S2N_PEM_DELIMITER_MIN_COUNT   1
+#define S2N_PEM_DELIMITER_MAX_COUNT   64
+#define S2N_PEM_BEGIN_TOKEN           "BEGIN "
+#define S2N_PEM_END_TOKEN             "END "
 #define S2N_PEM_PKCS1_RSA_PRIVATE_KEY "RSA PRIVATE KEY"
-#define S2N_PEM_PKCS1_EC_PRIVATE_KEY "EC PRIVATE KEY"
-#define S2N_PEM_PKCS8_PRIVATE_KEY "PRIVATE KEY"
-#define S2N_PEM_DH_PARAMETERS "DH PARAMETERS"
-#define S2N_PEM_EC_PARAMETERS "EC PARAMETERS"
-#define S2N_PEM_CERTIFICATE "CERTIFICATE"
-#define S2N_PEM_CRL "X509 CRL"
+#define S2N_PEM_PKCS1_EC_PRIVATE_KEY  "EC PRIVATE KEY"
+#define S2N_PEM_PKCS8_PRIVATE_KEY     "PRIVATE KEY"
+#define S2N_PEM_DH_PARAMETERS         "DH PARAMETERS"
+#define S2N_PEM_EC_PARAMETERS         "EC PARAMETERS"
+#define S2N_PEM_CERTIFICATE           "CERTIFICATE"
+#define S2N_PEM_CRL                   "X509 CRL"
 
-static int s2n_stuffer_pem_read_encapsulation_line(
-    struct s2n_stuffer *pem, const char *encap_marker, const char *keyword)
+static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char *encap_marker, const char *keyword)
 {
     /* Skip any number of Chars until a "-" is reached */
     POSIX_GUARD(s2n_stuffer_skip_to_char(pem, S2N_PEM_DELIMTER_CHAR));
 
     /* Ensure between 1 and 64 '-' chars at start of line */
-    POSIX_GUARD(s2n_stuffer_skip_expected_char(
-        pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Ensure next string in stuffer is "BEGIN " or "END " */
     POSIX_GUARD(s2n_stuffer_read_expected_str(pem, encap_marker));
@@ -49,8 +47,7 @@ static int s2n_stuffer_pem_read_encapsulation_line(
     POSIX_GUARD(s2n_stuffer_read_expected_str(pem, keyword));
 
     /* Ensure between 1 and 64 '-' chars at end of line */
-    POSIX_GUARD(s2n_stuffer_skip_expected_char(
-        pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Check for missing newline between dashes case: "-----END CERTIFICATE----------BEGIN CERTIFICATE-----" */
     if (strncmp(encap_marker, S2N_PEM_END_TOKEN, strlen(S2N_PEM_END_TOKEN)) == 0
