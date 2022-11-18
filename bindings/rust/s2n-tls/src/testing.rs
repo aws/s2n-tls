@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    callbacks::{ClientHelloCallback, VerifyHostNameCallback},
+    callbacks::{AsyncClientHelloFuture, ClientHelloCallback, VerifyHostNameCallback},
     config::*,
     error, security,
     testing::s2n_tls::Harness,
@@ -220,11 +220,17 @@ impl MockClientHelloHandler {
     }
 }
 
-impl ClientHelloCallback for MockClientHelloHandler {
+pub struct MockClientHelloFuture {
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
+}
+
+impl AsyncClientHelloFuture for MockClientHelloFuture {
     fn poll_client_hello(
-        self: &mut testing::MockClientHelloHandler,
+        &mut self,
         connection: &mut crate::connection::Connection,
-    ) -> core::task::Poll<Result<(), error::Error>> {
+        _ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
             // confirm the callback can access the waker
             connection.waker().unwrap().wake_by_ref();
@@ -240,5 +246,18 @@ impl ClientHelloCallback for MockClientHelloHandler {
         connection.server_name_extension_used();
 
         Poll::Ready(Ok(()))
+    }
+}
+
+impl ClientHelloCallback for MockClientHelloHandler {
+    fn on_client_hello(
+        &mut self,
+        _connection: &mut crate::connection::Connection,
+    ) -> Option<Box<dyn crate::callbacks::AsyncClientHelloFuture>> {
+        let fut = MockClientHelloFuture {
+            require_pending_count: self.require_pending_count,
+            invoked: self.invoked.clone(),
+        };
+        Some(Box::new(fut))
     }
 }

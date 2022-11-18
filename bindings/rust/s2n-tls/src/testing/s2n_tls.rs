@@ -346,10 +346,10 @@ mod tests {
             }
         }
         impl ClientHelloCallback for ClientHelloSyncCallback {
-            fn poll_client_hello(
-                self: &mut testing::s2n_tls::tests::client_hello_callback_sync::ClientHelloSyncCallback,
+            fn on_client_hello(
+                &mut self,
                 connection: &mut crate::connection::Connection,
-            ) -> Poll<Result<(), error::Error>> {
+            ) -> Option<Box<dyn crate::callbacks::AsyncClientHelloFuture>> {
                 // Test that the config can be changed
                 connection
                     .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
@@ -359,7 +359,7 @@ mod tests {
                 connection.server_name_extension_used();
 
                 self.0.fetch_add(1, Ordering::Relaxed);
-                Poll::Ready(Ok(()))
+                None
             }
         }
         let callback = ClientHelloSyncCallback::new();
