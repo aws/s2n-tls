@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - 'tests/integration/**'
   pull_request:
-    branches: [ "main" ]
     paths-ignore:
       - 'tests/integration/**'
   schedule:
