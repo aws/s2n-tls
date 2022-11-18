@@ -1,5 +1,8 @@
 // This module provides an specification of the TLS 1.2 handshake message
 // state machine according to RFCs 5246, 5077 and 6066 (OCSP extension only).
+// The NPN extension is based on the draft
+// https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-03
+
 
 module rfc_handshake_tls12 where
 
@@ -46,6 +49,8 @@ type State = [5]
 (clientChangeCipherSpecWithTicketSent : State) = 21
 (clientFinishedWithTicketSent : State) = 22
 (serverCertificateStatusSent : State) = 23
+(nextProtocolSent : State) = 24
+(nextProtocolWithTicketSent : State) = 25
 
 // TLS protocol types
 type Protocol = [2]
@@ -69,6 +74,7 @@ type MessageType = [4]
 (finished           : MessageType) = 9
 (newSessionTicket   : MessageType) = 10
 (certificateStatus  : MessageType) = 11
+(nextProtocol       : MessageType) = 12
 
 // ChangeCipherSpec message types
 (changeCipherSpecMessage : MessageType) = 0
@@ -111,6 +117,10 @@ type Parameters = {keyExchange : KeyExchange
                   ,includeSessionTicket : Bit
                    //^ Whether the server includes a session ticket extension in
                    //  SERVER_HELLO
+                  ,npnNegotiated : Bit
+                   //^ Whether the client sends a ``NextProtocol'' message.
+                   // This allows the application layer to negotiate which
+                   // protocol should be performed over the secure connection.
                   }
 
 // A relation between the s2n_connection struct and the parameters
@@ -123,6 +133,7 @@ connectionParameters conn params =
  /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
  /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
  /\ conn.client_auth_flag == params.requestClientCert
+ /\ conn.npn_negotiated == params.npnNegotiated
  /\ conn.actual_protocol_version != S2N_TLS13
 
 // A predicate that tells whether key-exchange is non-ephemeral and uses server certificate
@@ -173,7 +184,10 @@ handshakeTransition params old =
 
           ,(certificateVerifySent, True, clientChangeCipherSpecSent)
 
-          ,(clientChangeCipherSpecSent, True, clientFinishedSent)
+          ,(clientChangeCipherSpecSent, ~params.npnNegotiated, clientFinishedSent)
+          ,(clientChangeCipherSpecSent, params.npnNegotiated, nextProtocolSent)
+
+          ,(nextProtocolSent, True, clientFinishedSent)
 
           ,(clientFinishedSent, ~params.includeSessionTicket, serverChangeCipherSpecSent)
           ,(clientFinishedSent, params.includeSessionTicket, serverNewSessionTicketSent)
@@ -184,13 +198,13 @@ handshakeTransition params old =
           
           ,(serverFinishedSent, True, applicationDataTransmission)
           
-          ,(serverNewSessionTicketSent, True, serverChangeCipherSpecWithTicketSent)
-          
           ,(serverChangeCipherSpecWithTicketSent, True, serverFinishedWithTicketSent)
           
           ,(serverFinishedWithTicketSent, True, clientChangeCipherSpecWithTicketSent)
           
-          ,(clientChangeCipherSpecWithTicketSent, True, clientFinishedWithTicketSent)
+          ,(clientChangeCipherSpecWithTicketSent, ~params.npnNegotiated, clientFinishedWithTicketSent)
+          ,(clientChangeCipherSpecWithTicketSent, params.npnNegotiated, nextProtocolWithTicketSent)
+          ,(nextProtocolWithTicketSent, True, clientFinishedWithTicketSent)
           
           ,(clientFinishedWithTicketSent, True, applicationDataTransmission)
 
@@ -236,6 +250,8 @@ message = lookupDefault messages (mkMessage noSender data error)
             ,(clientChangeCipherSpecWithTicketSent, mkMessage client changeCipherSpec changeCipherSpecMessage)
             ,(clientFinishedWithTicketSent, mkMessage client handshake finished)
             ,(serverCertificateStatusSent, mkMessage server handshake certificateStatus)
+            ,(nextProtocolSent, mkMessage client handshake nextProtocol)
+            ,(nextProtocolWithTicketSent, mkMessage client handshake nextProtocol)
             ]
 
 // a mapping from RFC messages to s2n handshake_action's
@@ -280,6 +296,7 @@ s2nMessageType msg =
                        else if mt == finished then TLS_FINISHED
                        else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
                        else if mt == certificateStatus then TLS_CERTIFICATE_STATUS
+                       else if mt == nextProtocol then TLS_NPN
                        else ERROR_MESSAGE)
 
   else 0

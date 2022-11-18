@@ -24,6 +24,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_record.h"
 
 #include "unstable/npn.h"
 
@@ -452,7 +453,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_set_send_buffer_size */
     {
-        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(1);
+        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
 
         /* Safety */
         {

@@ -76,7 +76,6 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_MUT(max_fragment_size);
-    RESULT_ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
     *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
@@ -93,6 +92,9 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
             *max_fragment_size = send_buffer_override - overhead;
         }
     }
+
+    /* Ensure that we don't reserve too little space.  */
+    RESULT_ENSURE(*max_fragment_size >= S2N_MAX_FRAGMENT_LENGTH_MIN, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
     return S2N_RESULT_OK;
 }

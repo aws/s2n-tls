@@ -23,6 +23,7 @@
 #include "api/s2n.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_record.h"
 #include "utils/s2n_random.h"
 
 #define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
@@ -194,10 +195,12 @@ int main(int argc, char **argv)
      * Send smaller records.
      */
     {
-        /* At the minimum buffer size, all records would only contain 1 byte of payload.
-         * This would be pretty silly, but is an edge case.
+        /* The minimum buffer size we allow generates a fragment size of 2, to prevent
+         * fragmenting alert messages, which are always 2 bytes. At this minimum size,
+         * application data is also fragmented into 2 byte chucks, which is pretty silly,
+         * but is an edge case.
          */
-        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(1);
+        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
 
         DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(min_buffer_config);
@@ -217,10 +220,10 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, test_data, send_size, &blocked), send_size);
 
-        /* Since each record only contains one bytes of payload,
-         * we need to send a number of records equal to our total send size.
+        /* Since each record only contains two bytes of payload,
+         * we need to send a number of records equal to our total send ceil(size / 2).
          */
-        EXPECT_EQUAL(context.calls, send_size);
+        EXPECT_EQUAL(context.calls, (send_size+1)/2);
         EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
         EXPECT_TRUE(context.bytes_sent > send_size);
 
