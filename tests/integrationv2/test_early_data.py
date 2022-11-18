@@ -335,6 +335,7 @@ def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, 
                                              other_provider, early_data_size):
     ticket_file = str(tmp_path / TICKET_FILE)
     early_data_file = str(tmp_path / EARLY_DATA_FILE)
+    get_early_data_bytes(early_data_file, early_data_size)
 
     options = ProviderOptions(
         port=next(available_ports),
