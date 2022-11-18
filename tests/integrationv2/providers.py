@@ -1,7 +1,8 @@
 import pytest
 import threading
+from abc import ABC, abstractmethod
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
+from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
@@ -11,7 +12,7 @@ TLS_13_LIBCRYPTOS = {
 }
 
 
-class Provider(object):
+class Provider(ABC):
     """
     A provider defines a specific provider of TLS. This could be
     S2N, OpenSSL, BoringSSL, etc.
@@ -51,6 +52,7 @@ class Provider(object):
         elif self.options.mode == Provider.ClientMode:
             self.cmd_line = self.setup_client()
 
+    @abstractmethod
     def setup_client(self):
         """
         Provider specific setup code goes here.
@@ -58,6 +60,7 @@ class Provider(object):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def setup_server(self):
         """
         Provider specific setup code goes here.
@@ -65,22 +68,22 @@ class Provider(object):
         """
         raise NotImplementedError
 
-    @classmethod
+    @abstractmethod
     def get_send_marker(cls):
         """
         This should be the last message printed before the client/server can send data.
         """
         return None
 
-    @classmethod
+    @abstractmethod
     def supports_protocol(cls, protocol, with_cert=None):
         raise NotImplementedError
 
-    @classmethod
+    @abstractmethod
     def supports_cipher(cls, cipher, with_curve=None):
         raise NotImplementedError
 
-    @classmethod
+    @abstractmethod
     def supports_signature(cls, signature):
         return True
 
