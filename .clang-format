@@ -55,7 +55,7 @@ CommentPragmas:  '^ clang-format pragma:'
 CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 4
-ContinuationIndentWidth: 4
+ContinuationIndentWidth: 8
 Cpp11BracedListStyle: false
 DisableFormat:   false
 ExperimentalAutoDetectBinPacking: false

@@ -91,7 +91,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
          * everything has to be a valid character.
          */
         POSIX_ENSURE(!(value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255),
-            S2N_ERR_INVALID_BASE64);
+                S2N_ERR_INVALID_BASE64);
 
         if (o.data[2] == '=') {
             /* If there is only one output byte, then the second value

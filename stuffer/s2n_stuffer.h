@@ -92,7 +92,7 @@ extern int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *out, uin
 extern int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t size);
 extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *in, const uint32_t n);
 extern int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count,
-    uint32_t offs, uint32_t size);
+        uint32_t offs, uint32_t size);
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
 extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
 
@@ -107,7 +107,7 @@ extern void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len
 
 /* Send/receive stuffer to/from a file descriptor */
 extern int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len,
-    uint32_t *bytes_written);
+        uint32_t *bytes_written);
 extern int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent);
 
 /* Read and write integers in network order */
@@ -159,7 +159,7 @@ extern int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer, uint32_t *skipped);
 extern int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
 extern int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
-    const uint32_t max, uint32_t *skipped);
+        const uint32_t max, uint32_t *skipped);
 extern int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target);
 extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
 extern int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
