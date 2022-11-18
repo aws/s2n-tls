@@ -10,7 +10,7 @@ use crate::{
 use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
 use core::{sync::atomic::Ordering, task::Poll};
-use std::sync::atomic::AtomicUsize;
+use std::{pin::Pin, sync::atomic::AtomicUsize};
 
 pub mod s2n_tls;
 
@@ -227,7 +227,7 @@ pub struct MockClientHelloFuture {
 
 impl AsyncClientHelloFuture for MockClientHelloFuture {
     fn poll_client_hello(
-        &mut self,
+        self: Pin<&mut Self>,
         connection: &mut crate::connection::Connection,
         _ctx: &mut core::task::Context,
     ) -> Poll<Result<(), error::Error>> {
@@ -251,13 +251,13 @@ impl AsyncClientHelloFuture for MockClientHelloFuture {
 
 impl ClientHelloCallback for MockClientHelloHandler {
     fn on_client_hello(
-        &mut self,
+        &self,
         _connection: &mut crate::connection::Connection,
-    ) -> Option<Box<dyn crate::callbacks::AsyncClientHelloFuture>> {
+    ) -> Option<Pin<Box<dyn crate::callbacks::AsyncClientHelloFuture>>> {
         let fut = MockClientHelloFuture {
             require_pending_count: self.require_pending_count,
             invoked: self.invoked.clone(),
         };
-        Some(Box::new(fut))
+        Some(Box::pin(fut))
     }
 }

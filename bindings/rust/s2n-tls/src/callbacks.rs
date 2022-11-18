@@ -22,9 +22,11 @@
 //!   [Connection::waker()](`crate::connection::Connection::waker()`)
 //!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
 
-use crate::{connection::Connection, enums::CallbackResult, error::Error};
+use crate::{config::Config, connection::Connection, enums::CallbackResult, error::Error};
 use core::{mem::ManuallyDrop, ptr::NonNull, task::Poll, time::Duration};
+use pin_project_lite::pin_project;
 use s2n_tls_sys::s2n_connection;
+use std::{future::Future, pin::Pin};
 
 /// Convert the connection pointer provided to a callback into a Connection
 /// useable with the Rust bindings.
@@ -116,15 +118,55 @@ pub(crate) fn trigger_async_callback<T: 'static + AsyncCallback>(
 /// and calling any "mark done" style methods necessary to unblock the
 /// connection once the callback has succeeded.
 pub(crate) trait AsyncCallback {
-    fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>>;
+    fn poll(
+        // this should NEVER be a `&mut` since its would be possible to
+        // mutate the Config on the Connection. Since one Config can be
+        // used for multiple Connections that would be undefined-behavior
+        &self,
+        conn: &mut Connection,
+    ) -> Poll<Result<(), Error>>;
 }
 
 pub trait AsyncClientHelloFuture {
     fn poll_client_hello(
-        &mut self,
+        self: Pin<&mut Self>,
         connection: &mut Connection,
         ctx: &mut core::task::Context,
     ) -> Poll<Result<(), Error>>;
+}
+
+pin_project! {
+pub struct ConfigResolver<F: Future<Output = Result<Config, Error>>> {
+    #[pin]
+    fut: F,
+}
+}
+
+impl<F: Future<Output = Result<Config, Error>>> ConfigResolver<F> {
+    pub fn new(fut: F) -> Self {
+        ConfigResolver { fut }
+    }
+}
+
+impl<F: Future<Output = Result<Config, Error>>> AsyncClientHelloFuture for ConfigResolver<F> {
+    fn poll_client_hello(
+        self: Pin<&mut Self>,
+        connection: &mut Connection,
+        ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), Error>> {
+        let this = self.project();
+        let config = match this.fut.poll(ctx) {
+            Poll::Ready(config) => config?,
+            Poll::Pending => return Poll::Pending,
+        };
+
+        // assume that SNI was used to config the connection since that
+        // is the most likely usecase from an async ClientHelloCallback
+        connection.server_name_extension_used();
+        connection.set_config(config)?;
+
+        Poll::Ready(Ok(()))
+    }
 }
 
 /// A trait for the callback executed after parsing the TLS Client Hello.
@@ -133,21 +175,24 @@ pub trait AsyncClientHelloFuture {
 /// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
 pub trait ClientHelloCallback {
     fn on_client_hello(
-        &mut self,
+        // this should NEVER be a `&mut` since its would be possible to
+        // mutate the Config on the Connection. Since one Config can be
+        // used for multiple Connections that would be undefined-behavior
+        &self,
         connection: &mut Connection,
-    ) -> Option<Box<dyn AsyncClientHelloFuture>>;
+    ) -> Option<Pin<Box<dyn AsyncClientHelloFuture>>>;
 }
 
 pub(crate) struct AsyncClientHelloCallback {}
 impl AsyncCallback for AsyncClientHelloCallback {
-    fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>> {
+    fn poll(&self, conn: &mut Connection) -> Poll<Result<(), Error>> {
         // if there is already a future set on the connection then poll it
         if let Some(mut fut) = conn.take_client_hello_future() {
             let waker = conn.waker().unwrap().clone();
             let mut ctx = core::task::Context::from_waker(&waker);
             println!("------binding, async_client_hello_future exits");
 
-            match fut.poll_client_hello(conn, &mut ctx) {
+            match fut.as_mut().poll_client_hello(conn, &mut ctx) {
                 Poll::Ready(_) => return Poll::Ready(conn.mark_client_hello_cb_done()),
                 Poll::Pending => {
                     // replace the client_hello_future

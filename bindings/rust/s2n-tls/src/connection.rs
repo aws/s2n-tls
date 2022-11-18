@@ -19,7 +19,7 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem, time::Duration};
+use std::{ffi::CStr, mem, pin::Pin, time::Duration};
 
 mod builder;
 pub use builder::*;
@@ -499,12 +499,14 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
-    pub(crate) fn take_client_hello_future(&mut self) -> Option<Box<dyn AsyncClientHelloFuture>> {
+    pub(crate) fn take_client_hello_future(
+        &mut self,
+    ) -> Option<Pin<Box<dyn AsyncClientHelloFuture>>> {
         let ctx = self.context_mut();
         ctx.client_hello_future.take()
     }
 
-    pub(crate) fn set_client_hello_future(&mut self, f: Box<dyn AsyncClientHelloFuture>) {
+    pub(crate) fn set_client_hello_future(&mut self, f: Pin<Box<dyn AsyncClientHelloFuture>>) {
         let ctx = self.context_mut();
         debug_assert!(ctx.client_hello_future.is_none());
 
@@ -604,7 +606,7 @@ impl Connection {
 struct Context {
     waker: Option<Waker>,
     pending_callback: Option<Box<dyn AsyncCallback>>,
-    client_hello_future: Option<Box<dyn AsyncClientHelloFuture>>,
+    client_hello_future: Option<Pin<Box<dyn AsyncClientHelloFuture>>>,
 }
 
 #[cfg(feature = "quic")]

@@ -347,9 +347,9 @@ mod tests {
         }
         impl ClientHelloCallback for ClientHelloSyncCallback {
             fn on_client_hello(
-                &mut self,
+                &self,
                 connection: &mut crate::connection::Connection,
-            ) -> Option<Box<dyn crate::callbacks::AsyncClientHelloFuture>> {
+            ) -> Option<Pin<Box<dyn crate::callbacks::AsyncClientHelloFuture>>> {
                 // Test that the config can be changed
                 connection
                     .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
