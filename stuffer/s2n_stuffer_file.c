@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_safety.h"
 
 int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
@@ -44,8 +42,9 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
 
     /* Record just how many bytes we have written */
     POSIX_ENSURE(r <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t)r));
-    if (bytes_written != NULL) *bytes_written = r;
+    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t) r));
+    if (bytes_written != NULL)
+        *bytes_written = r;
     return S2N_SUCCESS;
 }
 
@@ -67,14 +66,15 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
 
     POSIX_ENSURE(w <= UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
     stuffer->read_cursor += w;
-    if (bytes_sent != NULL) *bytes_sent = w;
+    if (bytes_sent != NULL)
+        *bytes_sent = w;
     return S2N_SUCCESS;
 }
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
     POSIX_ENSURE_MUT(stuffer);
-    struct stat st = {0};
+    struct stat st = { 0 };
 
     POSIX_ENSURE(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
 
@@ -84,8 +84,8 @@ int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
     uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
     POSIX_ENSURE(map != MAP_FAILED, S2N_ERR_MMAP);
 
-    struct s2n_blob b = {0};
-    POSIX_ENSURE(s2n_blob_init(&b, map, (uint32_t)st.st_size), S2N_FAILURE);
+    struct s2n_blob b = { 0 };
+    POSIX_ENSURE(s2n_blob_init(&b, map, (uint32_t) st.st_size), S2N_FAILURE);
     return s2n_stuffer_init(stuffer, &b);
 }
 
