@@ -16,7 +16,7 @@
 set -e
 
 usage() {
-    echo "run_cppcheck.sh install_dir"
+    echo "run_cppcheck.sh install_dir cache_dir"
     exit 1
 }
 
@@ -26,7 +26,7 @@ fi
 
 INSTALL_DIR=$1
 CACHE_DIR=$2
-mkdir -p $CACHE_DIR||true
+mkdir -p "$CACHE_DIR" || true
 
 CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck
 
