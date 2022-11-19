@@ -39,7 +39,7 @@ jobs:
         run: ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
 
       - name: Check
-        run: ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+        run: ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR" "$CPPCHECK_CACHE_DIR"
 
   copyright:
     runs-on: ubuntu-latest
