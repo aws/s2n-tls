@@ -25,12 +25,14 @@ if [ "$#" -ne "1" ]; then
 fi
 
 INSTALL_DIR=$1
+CACHE_DIR=$2
+mkdir -p $CACHE_DIR||true
 
 CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck
 
 FAILED=0
 $CPPCHECK_EXECUTABLE --version
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet --force -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet --force -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --cppcheck-build-dir "$CACHE_DIR" --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
 if [ $FAILED == 1 ];
 then
 	printf "\\033[31;1mFAILED cppcheck\\033[0m\\n"

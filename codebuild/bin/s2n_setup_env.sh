@@ -50,6 +50,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${AWSLC_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips}"
 : "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl-3.4.3}"
 : "${CPPCHECK_INSTALL_DIR:=$TEST_DEPS_DIR/cppcheck}"
+: "${CPPCHECK_CACHE_DIR:=$TEST_DEPS_DIR/cppcheck-cache}"
 : "${CTVERIF_INSTALL_DIR:=$TEST_DEPS_DIR/ctverif}"
 : "${SIDETRAIL_INSTALL_DIR:=$TEST_DEPS_DIR/sidetrail}"
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
