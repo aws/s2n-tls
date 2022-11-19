@@ -38,19 +38,19 @@ pushd generate
 cargo run -- ../s2n-tls-sys
 popd 
 
-# # make sure everything builds and passes sanity checks
-# pushd s2n-tls-sys
-# cargo test
-# cargo test --features pq
-# cargo test --features quic
-# cargo test --features internal
-# cargo test --release
-# cargo publish --dry-run --allow-dirty 
-# cargo publish --dry-run --allow-dirty --all-features
-# popd
+# make sure everything builds and passes sanity checks
+pushd s2n-tls-sys
+cargo test
+cargo test --features pq
+cargo test --features quic
+cargo test --features internal
+cargo test --release
+cargo publish --dry-run --allow-dirty 
+cargo publish --dry-run --allow-dirty --all-features
+popd
 
-# pushd integration
-# cargo run
-# popd
+pushd integration
+cargo run
+popd
 
 popd

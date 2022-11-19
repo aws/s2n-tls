@@ -359,6 +359,9 @@ mod tests {
                 connection.server_name_extension_used();
 
                 self.0.fetch_add(1, Ordering::Relaxed);
+
+                // returning `None` indicates that the client_hello callback is
+                // finished and the handshake can proceed.
                 None
             }
         }

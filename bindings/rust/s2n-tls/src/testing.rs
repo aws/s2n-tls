@@ -205,21 +205,10 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
     pair
 }
 
-#[derive(Clone)]
-pub struct MockClientHelloHandler {
-    require_pending_count: usize,
-    invoked: Arc<AtomicUsize>,
-}
-
-impl MockClientHelloHandler {
-    pub fn new(require_pending_count: usize) -> Self {
-        Self {
-            require_pending_count,
-            invoked: Arc::new(AtomicUsize::new(0)),
-        }
-    }
-}
-
+// The Future returned by MockClientHelloHandler.
+//
+// An instance of this Future is stored on the connection and
+// polled to make progress in the async client_hello_callback
 pub struct MockClientHelloFuture {
     require_pending_count: usize,
     invoked: Arc<AtomicUsize>,
@@ -249,6 +238,21 @@ impl AsyncClientHelloFuture for MockClientHelloFuture {
     }
 }
 
+#[derive(Clone)]
+pub struct MockClientHelloHandler {
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
+}
+
+impl MockClientHelloHandler {
+    pub fn new(require_pending_count: usize) -> Self {
+        Self {
+            require_pending_count,
+            invoked: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
 impl ClientHelloCallback for MockClientHelloHandler {
     fn on_client_hello(
         &self,
@@ -258,6 +262,10 @@ impl ClientHelloCallback for MockClientHelloHandler {
             require_pending_count: self.require_pending_count,
             invoked: self.invoked.clone(),
         };
+
+        // returning `Some` indicates that the client_hello callback is
+        // not yet finished and that the supplied MockClientHelloFuture
+        // needs to be `poll`ed to make progress.
         Some(Box::pin(fut))
     }
 }

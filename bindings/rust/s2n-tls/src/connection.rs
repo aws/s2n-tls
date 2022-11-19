@@ -380,7 +380,7 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
         // If we blocked on a callback, poll the callback again.
-        if let Some(mut callback) = self.context_mut().pending_callback.take() {
+        if let Some(callback) = self.context_mut().pending_callback.take() {
             match callback.poll(self) {
                 Poll::Ready(r) => r?,
                 Poll::Pending => {
@@ -499,6 +499,11 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
+    /// Takes the Option client_hello_future stored on the connection
+    /// context if set.
+    ///
+    /// If the Future returns `Poll::Pending` and has not completed then it
+    /// should be re-set using [`Self::set_client_hello_future`]
     pub(crate) fn take_client_hello_future(
         &mut self,
     ) -> Option<Pin<Box<dyn AsyncClientHelloFuture>>> {
@@ -506,6 +511,7 @@ impl Connection {
         ctx.client_hello_future.take()
     }
 
+    /// Sets a client_hello_future on the connection context.
     pub(crate) fn set_client_hello_future(&mut self, f: Pin<Box<dyn AsyncClientHelloFuture>>) {
         let ctx = self.context_mut();
         debug_assert!(ctx.client_hello_future.is_none());
@@ -537,6 +543,9 @@ impl Connection {
     pub fn server_name_extension_used(&mut self) {
         // TODO: requiring the application to call this method is a pretty sharp edge.
         // Figure out if its possible to automatically call this from the Rust bindings.
+        //
+        // This is currently done from [`callback::ConfigResolver`], which is an
+        // improvement from having the application call it manually.
         unsafe {
             s2n_connection_server_name_extension_used(self.connection.as_ptr())
                 .into_result()
