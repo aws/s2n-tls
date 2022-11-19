@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
+      CPPCHECK_CACHE_DIR: test-deps/cppcheck-cache
     steps:
       - uses: actions/checkout@v2
 
