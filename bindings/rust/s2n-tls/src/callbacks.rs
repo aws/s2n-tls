@@ -211,10 +211,13 @@ impl AsyncCallback for AsyncClientHelloCallback {
     fn poll(&self, conn: &mut Connection) -> Poll<Result<(), Error>> {
         // if there is already a future set on the connection then take it and poll it
         if let Some(mut fut) = conn.take_client_hello_future() {
-            let waker = conn.waker().unwrap().clone();
+            let waker = conn.waker().ok_or(Error::CALLBACK_EXECUTION)?.clone();
             let mut ctx = core::task::Context::from_waker(&waker);
             match fut.as_mut().poll_client_hello(conn, &mut ctx) {
-                Poll::Ready(_) => return Poll::Ready(conn.mark_client_hello_cb_done()),
+                Poll::Ready(result) => {
+                    let result = result.and_then(|_| conn.mark_client_hello_cb_done());
+                    return Poll::Ready(result);
+                }
                 Poll::Pending => {
                     // replace the client_hello_future if it hasn't completed yet
                     conn.set_client_hello_future(fut);

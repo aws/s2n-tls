@@ -47,6 +47,7 @@ impl From<libc::c_int> for ErrorType {
 #[derive(Clone, PartialEq)]
 pub enum Context {
     InvalidInput,
+    CallbackExection,
     Code(s2n_status_code::Type, Errno),
 }
 
@@ -148,6 +149,7 @@ impl<T: Fallible> Pollable for T {
 
 impl Error {
     pub(crate) const INVALID_INPUT: Error = Self(Context::InvalidInput);
+    pub const CALLBACK_EXECUTION: Error = Self(Context::CallbackExection);
 
     pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
         value.into_result()
@@ -171,6 +173,7 @@ impl Error {
     pub fn name(&self) -> &'static str {
         match self.0 {
             Context::InvalidInput => "InvalidInput",
+            Context::CallbackExection => "CallbackExection",
             Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror_name(code))
@@ -181,6 +184,7 @@ impl Error {
     pub fn message(&self) -> &'static str {
         match self.0 {
             Context::InvalidInput => "A parameter was incorrect",
+            Context::CallbackExection => "An error occurred while resolving a callback",
             Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror(code, core::ptr::null()))
@@ -191,6 +195,7 @@ impl Error {
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
             Context::InvalidInput => None,
+            Context::CallbackExection => None,
             Context::Code(code, _) => unsafe {
                 let debug_info = s2n_strerror_debug(code, core::ptr::null());
 
@@ -210,14 +215,14 @@ impl Error {
 
     pub fn kind(&self) -> ErrorType {
         match self.0 {
-            Context::InvalidInput => ErrorType::UsageError,
+            Context::InvalidInput | Context::CallbackExection => ErrorType::UsageError,
             Context::Code(code, _) => unsafe { ErrorType::from(s2n_error_get_type(code)) },
         }
     }
 
     pub fn source(&self) -> ErrorSource {
         match self.0 {
-            Context::InvalidInput => ErrorSource::Bindings,
+            Context::InvalidInput | Context::CallbackExection => ErrorSource::Bindings,
             Context::Code(_, _) => ErrorSource::Library,
         }
     }
@@ -237,7 +242,7 @@ impl Error {
     /// This API is currently incomplete and should not be relied upon.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
-            Context::InvalidInput => None,
+            Context::InvalidInput | Context::CallbackExection => None,
             Context::Code(code, _) => {
                 let mut alert = 0;
                 let r = unsafe { s2n_error_get_alert(code, &mut alert) };
