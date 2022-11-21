@@ -1,3 +1,5 @@
 # .git-blame-ignore-revs
 # autopep8 python PR3268
 b9dbef317197b2f450b3e963fb4744cc4dc5e087
+# add clang-format of stuffer/
+918f0791002616f81bf0a5347de83bb0815101ac
