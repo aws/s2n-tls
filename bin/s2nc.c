@@ -13,39 +13,37 @@
  * permissions and limitations under the License.
  */
 
+#include <fcntl.h>
+#include <getopt.h>
+#include <inttypes.h>
+#include <netdb.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <netdb.h>
-
 #include <unistd.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <inttypes.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
-#include <openssl/crypto.h>
-#include <openssl/err.h>
+    #include <openssl/crypto.h>
+    #include <openssl/err.h>
 #endif
 
 #include "api/s2n.h"
-#include "api/unstable/renegotiate.h"
 #include "api/unstable/npn.h"
+#include "api/unstable/renegotiate.h"
 #include "common.h"
 #include "error/s2n_errno.h"
-
 #include "tls/s2n_connection.h"
 
-#define OPT_TICKET_IN 1000
-#define OPT_TICKET_OUT 1001
-#define OPT_SEND_FILE 1002
-#define OPT_RENEG 1003
-#define OPT_NPN 1004
+#define OPT_TICKET_IN          1000
+#define OPT_TICKET_OUT         1001
+#define OPT_SEND_FILE          1002
+#define OPT_RENEG              1003
+#define OPT_NPN                1004
 #define OPT_PREFER_LOW_LATENCY 1005
-#define OPT_PREFER_THROUGHPUT 1006
-#define OPT_BUFFERED_SEND 1007
+#define OPT_PREFER_THROUGHPUT  1006
+#define OPT_BUFFERED_SEND      1007
 
 void usage()
 {
@@ -60,7 +58,8 @@ void usage()
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
-    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr,
+            "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  --send-file [file path]\n");
@@ -69,16 +68,21 @@ void usage()
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");
     fprintf(stderr, "  --name [server name]\n");
-    fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
+    fprintf(stderr,
+            "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "  -m,--mfl\n");
     fprintf(stderr, "    Request maximum fragment length from: 512, 1024, 2048, 4096\n");
     fprintf(stderr, "  -f,--ca-file [file path]\n");
-    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.\n");
+    fprintf(stderr,
+            "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will "
+            "be used.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
-    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
+    fprintf(stderr,
+            "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be "
+            "used.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -l,--cert [file path]\n");
@@ -86,7 +90,9 @@ void usage()
     fprintf(stderr, "  -k,--key [file path]\n");
     fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Will only be used for client auth\n");
     fprintf(stderr, "  -r,--reconnect\n");
-    fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
+    fprintf(stderr,
+            "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the "
+            "connection using Session-ID \n");
     fprintf(stderr, "  -T,--no-session-ticket \n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  --ticket-out [file path]\n");
@@ -103,18 +109,26 @@ void usage()
     fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
-    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
-                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
-                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
-                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr,
+            "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+            "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+            "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace "
+            "is not allowed before or after the commas.\n"
+            "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E ,--early-data <file path>\n");
-    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.\n");
-    fprintf(stderr, "  --renegotiation [accept|reject|wait]\n"
-                    "    accept: Accept all server requests for a new handshake\n"
-                    "    reject: Reject all server requests for a new handshake\n"
-                    "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
+    fprintf(stderr,
+            "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a "
+            "session ticket and resumes a session.\n");
+    fprintf(stderr,
+            "  --renegotiation [accept|reject|wait]\n"
+            "    accept: Accept all server requests for a new handshake\n"
+            "    reject: Reject all server requests for a new handshake\n"
+            "    wait: Wait for additional application data before accepting server requests. Intended for the integ "
+            "tests.\n");
     fprintf(stderr, "  --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
+    fprintf(stderr,
+            "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal "
+            "the protocols supported.");
     fprintf(stderr, "\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
@@ -134,13 +148,13 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
 
     GUARD_EXIT(s2n_session_ticket_get_data_len(ticket, &session_state_length), "Error getting ticket length ");
     session_state = realloc(session_state, session_state_length);
-    if(session_state == NULL) {
+    if (session_state == NULL) {
         print_s2n_error("Error getting new session state");
         exit(1);
     }
     GUARD_EXIT(s2n_session_ticket_get_data(ticket, session_state_length, session_state), "Error getting ticket data");
 
-    bool *session_ticket_recv = (bool *)ctx;
+    bool *session_ticket_recv = (bool *) ctx;
     *session_ticket_recv = 1;
 
     return S2N_SUCCESS;
@@ -167,8 +181,8 @@ static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegoti
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
-    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
-
+        struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value)
+{
     if (config == NULL) {
         print_s2n_error("Error getting new config");
         exit(1);
@@ -176,15 +190,17 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
-    GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+    GUARD_EXIT(s2n_config_set_status_request_type(config, type),
+            "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 
     if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) < 0) {
         print_s2n_error("Error setting host name verification function.");
     }
 
     if (type == S2N_STATUS_REQUEST_OCSP) {
-        if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
-            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        if (s2n_config_set_check_stapled_ocsp_response(config, 1)) {
+            print_s2n_error(
+                    "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
         }
     }
 
@@ -240,7 +256,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
             protocols[idx][length] = '\0';
         }
 
-        GUARD_EXIT(s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count), "Failed to set protocol preferences");
+        GUARD_EXIT(s2n_config_set_protocol_preferences(config, (const char *const *) protocols, protocol_count),
+                "Failed to set protocol preferences");
 
         while (protocol_count) {
             protocol_count--;
@@ -251,7 +268,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
     uint8_t mfl_code = 0;
     if (mfl_value > 0) {
-        switch(mfl_value) {
+        switch (mfl_value) {
             case 512:
                 mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
                 break;
@@ -319,37 +336,37 @@ int main(int argc, char *const *argv)
     bool prefer_throughput = false;
 
     static struct option long_options[] = {
-        {"alpn", required_argument, 0, 'a'},
-        {"ciphers", required_argument, 0, 'c'},
-        {"enter-fips-mode", no_argument, NULL, 'F'},
-        {"echo", no_argument, 0, 'e'},
-        {"send-file", required_argument, 0, OPT_SEND_FILE},
-        {"help", no_argument, 0, 'h'},
-        {"name", required_argument, 0, 'n'},
-        {"status", no_argument, 0, 's'},
-        {"mfl", required_argument, 0, 'm'},
-        {"ca-file", required_argument, 0, 'f'},
-        {"ca-dir", required_argument, 0, 'd'},
-        {"cert", required_argument, 0, 'l'},
-        {"key", required_argument, 0, 'k'},
-        {"insecure", no_argument, 0, 'i'},
-        {"reconnect", no_argument, 0, 'r'},
-        {"ticket-out", required_argument, 0, OPT_TICKET_OUT},
-        {"ticket-in", required_argument, 0, OPT_TICKET_IN},
-        {"no-session-ticket", no_argument, 0, 'T'},
-        {"dynamic", required_argument, 0, 'D'},
-        {"timeout", required_argument, 0, 't'},
-        {"corked-io", no_argument, 0, 'C'},
-        {"tls13", no_argument, 0, '3'},
-        {"non-blocking", no_argument, 0, 'B'},
-        {"key-log", required_argument, 0, 'L'},
-        {"psk", required_argument, 0, 'P'},
-        {"early-data", required_argument, 0, 'E'},
-        {"renegotiation", required_argument, 0, OPT_RENEG},
-        {"npn", no_argument, 0, OPT_NPN},
-        {"buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
-        {"prefer-low-latency", no_argument, NULL, OPT_PREFER_LOW_LATENCY},
-        {"prefer-throughput", no_argument, NULL, OPT_PREFER_THROUGHPUT},
+        { "alpn", required_argument, 0, 'a' },
+        { "ciphers", required_argument, 0, 'c' },
+        { "enter-fips-mode", no_argument, NULL, 'F' },
+        { "echo", no_argument, 0, 'e' },
+        { "send-file", required_argument, 0, OPT_SEND_FILE },
+        { "help", no_argument, 0, 'h' },
+        { "name", required_argument, 0, 'n' },
+        { "status", no_argument, 0, 's' },
+        { "mfl", required_argument, 0, 'm' },
+        { "ca-file", required_argument, 0, 'f' },
+        { "ca-dir", required_argument, 0, 'd' },
+        { "cert", required_argument, 0, 'l' },
+        { "key", required_argument, 0, 'k' },
+        { "insecure", no_argument, 0, 'i' },
+        { "reconnect", no_argument, 0, 'r' },
+        { "ticket-out", required_argument, 0, OPT_TICKET_OUT },
+        { "ticket-in", required_argument, 0, OPT_TICKET_IN },
+        { "no-session-ticket", no_argument, 0, 'T' },
+        { "dynamic", required_argument, 0, 'D' },
+        { "timeout", required_argument, 0, 't' },
+        { "corked-io", no_argument, 0, 'C' },
+        { "tls13", no_argument, 0, '3' },
+        { "non-blocking", no_argument, 0, 'B' },
+        { "key-log", required_argument, 0, 'L' },
+        { "psk", required_argument, 0, 'P' },
+        { "early-data", required_argument, 0, 'E' },
+        { "renegotiation", required_argument, 0, OPT_RENEG },
+        { "npn", no_argument, 0, OPT_NPN },
+        { "buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
+        { "prefer-low-latency", no_argument, NULL, OPT_PREFER_LOW_LATENCY },
+        { "prefer-throughput", no_argument, NULL, OPT_PREFER_THROUGHPUT },
         { 0 },
     };
 
@@ -360,131 +377,131 @@ int main(int argc, char *const *argv)
             break;
         }
         switch (c) {
-        case 'a':
-            alpn_protocols = optarg;
-            break;
-        case 'C':
-            use_corked_io = 1;
-            break;
-        case 'c':
-            cipher_prefs = optarg;
-            break;
-        case 'F':
-            fips_mode = 1;
-            break;
-        case 'e':
-            echo_input = true;
-            break;
-        case OPT_SEND_FILE:
-            send_file = load_file_to_cstring(optarg);
-            break;
-        case 'h':
-            usage();
-            break;
-        case 'n':
-            server_name = optarg;
-            break;
-        case 's':
-            type = S2N_STATUS_REQUEST_OCSP;
-            break;
-        case 'm':
-            mfl_value = (uint16_t) atoi(optarg);
-            break;
-        case 'f':
-            ca_file = optarg;
-            break;
-        case 'd':
-            ca_dir = optarg;
-            break;
-        case 'l':
-            client_cert = load_file_to_cstring(optarg);
-            client_cert_input = true;
-            break;
-        case 'k':
-            client_key = load_file_to_cstring(optarg);
-            client_key_input = true;
-            break;
-        case 'i':
-            insecure = 1;
-            break;
-        case 'r':
-            reconnect = 5;
-            break;
-        case OPT_TICKET_OUT:
-            ticket_out = optarg;
-            break;
-        case OPT_TICKET_IN:
-            ticket_in = optarg;
-            break;
-        case 'T':
-            session_ticket = 0;
-            break;
-        case 't':
-            dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
-            break;
-        case 'D':
-            errno = 0;
-            dyn_rec_threshold = strtoul(optarg, 0, 10);
-            if (errno == ERANGE) {
-                dyn_rec_threshold = 0;
+            case 'a':
+                alpn_protocols = optarg;
+                break;
+            case 'C':
+                use_corked_io = 1;
+                break;
+            case 'c':
+                cipher_prefs = optarg;
+                break;
+            case 'F':
+                fips_mode = 1;
+                break;
+            case 'e':
+                echo_input = true;
+                break;
+            case OPT_SEND_FILE:
+                send_file = load_file_to_cstring(optarg);
+                break;
+            case 'h':
+                usage();
+                break;
+            case 'n':
+                server_name = optarg;
+                break;
+            case 's':
+                type = S2N_STATUS_REQUEST_OCSP;
+                break;
+            case 'm':
+                mfl_value = (uint16_t) atoi(optarg);
+                break;
+            case 'f':
+                ca_file = optarg;
+                break;
+            case 'd':
+                ca_dir = optarg;
+                break;
+            case 'l':
+                client_cert = load_file_to_cstring(optarg);
+                client_cert_input = true;
+                break;
+            case 'k':
+                client_key = load_file_to_cstring(optarg);
+                client_key_input = true;
+                break;
+            case 'i':
+                insecure = 1;
+                break;
+            case 'r':
+                reconnect = 5;
+                break;
+            case OPT_TICKET_OUT:
+                ticket_out = optarg;
+                break;
+            case OPT_TICKET_IN:
+                ticket_in = optarg;
+                break;
+            case 'T':
+                session_ticket = 0;
+                break;
+            case 't':
+                dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
+                break;
+            case 'D':
+                errno = 0;
+                dyn_rec_threshold = strtoul(optarg, 0, 10);
+                if (errno == ERANGE) {
+                    dyn_rec_threshold = 0;
+                }
+                break;
+            case '3':
+                /* Do nothing -- this argument is deprecated. */
+                break;
+            case 'B':
+                non_blocking = 1;
+                break;
+            case 'L':
+                key_log_path = optarg;
+                break;
+            case 'P':
+                if (psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
+                    fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
+                    exit(1);
+                }
+                psk_optarg_list[psk_list_len++] = optarg;
+                break;
+            case 'E':
+                early_data = load_file_to_cstring(optarg);
+                GUARD_EXIT_NULL(early_data);
+                break;
+            case OPT_RENEG:
+                setup_reneg_cb = true;
+                if (strcmp(optarg, "accept") == 0) {
+                    reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
+                } else if (strcmp(optarg, "reject") == 0) {
+                    reneg_ctx.response = S2N_RENEGOTIATE_REJECT;
+                } else if (strcmp(optarg, "wait") == 0) {
+                    reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
+                    reneg_ctx.wait = true;
+                } else {
+                    fprintf(stderr, "Unrecognized option: %s\n", optarg);
+                    exit(1);
+                }
+                break;
+            case OPT_NPN:
+                npn = true;
+                break;
+            case OPT_BUFFERED_SEND: {
+                intmax_t send_buffer_size_scanned_value = strtoimax(optarg, 0, 10);
+                if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
+                    fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
+                    exit(1);
+                }
+                send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
+                break;
             }
-            break;
-        case '3':
-            /* Do nothing -- this argument is deprecated. */
-            break;
-        case 'B':
-            non_blocking = 1;
-            break;
-        case 'L':
-            key_log_path = optarg;
-            break;
-        case 'P':
-            if (psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
-                fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
-                exit(1);
-            }
-            psk_optarg_list[psk_list_len++] = optarg;
-            break;
-        case 'E':
-            early_data = load_file_to_cstring(optarg);
-            GUARD_EXIT_NULL(early_data);
-            break;
-        case OPT_RENEG:
-            setup_reneg_cb = true;
-            if (strcmp(optarg, "accept") == 0) {
-                reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
-            } else if (strcmp(optarg, "reject") == 0) {
-                reneg_ctx.response = S2N_RENEGOTIATE_REJECT;
-            } else if (strcmp(optarg, "wait") == 0) {
-                reneg_ctx.response = S2N_RENEGOTIATE_ACCEPT;
-                reneg_ctx.wait = true;
-            } else {
-                fprintf(stderr, "Unrecognized option: %s\n", optarg);
-                exit(1);
-            }
-            break;
-        case OPT_NPN:
-            npn = true;
-            break;
-        case OPT_BUFFERED_SEND: {
-            intmax_t send_buffer_size_scanned_value = strtoimax(optarg, 0, 10);
-            if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
-                fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
-                exit(1);
-            }
-            send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
-            break;
-        }
-        case OPT_PREFER_LOW_LATENCY:
-            prefer_low_latency = true;
-            break;
-        case OPT_PREFER_THROUGHPUT:
-            prefer_throughput = true;
-            break;
-        case '?':
-        default:
-            usage();
-            break;
+            case OPT_PREFER_LOW_LATENCY:
+                prefer_low_latency = true;
+                break;
+            case OPT_PREFER_THROUGHPUT:
+                prefer_throughput = true;
+                break;
+            case '?':
+            default:
+                usage();
+                break;
         }
     }
 
@@ -517,18 +534,19 @@ int main(int argc, char *const *argv)
 
     if (fips_mode) {
 #ifndef S2N_INTERN_LIBCRYPTO
-#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
+    #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc,
+                    ERR_error_string(fips_rc, ssl_error_buf));
             exit(1);
         }
         printf("s2nc entered FIPS mode\n");
-#else
+    #else
         fprintf(stderr, "Error entering FIPS mode. s2nc was not built against a FIPS-capable libcrypto.\n");
         exit(1);
-#endif
+    #endif
 #endif
     }
 
@@ -587,8 +605,10 @@ int main(int argc, char *const *argv)
 
         if (client_cert_input) {
             struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-            GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, client_cert, client_key), "Error getting certificate/key");
-            GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
+            GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, client_cert, client_key),
+                    "Error getting certificate/key");
+            GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key),
+                    "Error setting certificate/key");
         }
 
         if (ca_file || ca_dir) {
@@ -596,28 +616,22 @@ int main(int argc, char *const *argv)
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
-        }
-        else if (insecure) {
+        } else if (insecure) {
             GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
         }
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
-            GUARD_EXIT(s2n_config_set_session_ticket_cb(config, test_session_ticket_cb, &session_ticket_recv), "Error setting session ticket callback");
+            GUARD_EXIT(s2n_config_set_session_ticket_cb(config, test_session_ticket_cb, &session_ticket_recv),
+                    "Error setting session ticket callback");
             session_ticket_recv = 0;
         }
 
         if (key_log_path) {
             key_log_file = fopen(key_log_path, "a");
             GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
-            GUARD_EXIT(
-                s2n_config_set_key_log_cb(
-                    config,
-                    key_log_callback,
-                    (void *)key_log_file
-                ),
-                "Failed to set key log callback"
-            );
+            GUARD_EXIT(s2n_config_set_key_log_cb(config, key_log_callback, (void *) key_log_file),
+                    "Failed to set key log callback");
         }
 
         if (setup_reneg_cb) {
@@ -640,9 +654,10 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
-        GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
+        GUARD_EXIT(s2n_connection_set_fd(conn, sockfd), "Error setting file descriptor");
 
-        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
+        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
+                "Error setting ClientAuth optional");
 
         if (use_corked_io) {
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
@@ -654,12 +669,14 @@ int main(int argc, char *const *argv)
             free(session_state);
             session_state = calloc(session_state_length, sizeof(uint8_t));
             GUARD_EXIT_NULL(session_state);
-            GUARD_EXIT(load_file_to_array(ticket_in, session_state, session_state_length), "Failed to read ticket-in file");
+            GUARD_EXIT(load_file_to_array(ticket_in, session_state, session_state_length),
+                    "Failed to read ticket-in file");
         }
 
         /* Update session state in connection if exists */
         if (session_state_length > 0) {
-            GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
+            GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length),
+                    "Error setting session state in connection");
         }
 
         GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
@@ -680,7 +697,8 @@ int main(int argc, char *const *argv)
             /* Send early data if we have a received a session ticket from the server */
             if (session_state_length) {
                 uint32_t early_data_length = strlen(early_data);
-                GUARD_EXIT(early_data_send(conn, (uint8_t *)early_data, early_data_length), "Error sending early data");
+                GUARD_EXIT(early_data_send(conn, (uint8_t *) early_data, early_data_length),
+                        "Error sending early data");
             }
         }
 
@@ -714,8 +732,9 @@ int main(int argc, char *const *argv)
                     exit(1);
                 }
             }
-            if(ticket_out) {
-                GUARD_EXIT(write_array_to_file(ticket_out, session_state, session_state_length), "Failed to write to ticket-out file");
+            if (ticket_out) {
+                GUARD_EXIT(write_array_to_file(ticket_out, session_state, session_state_length),
+                        "Failed to write to ticket-out file");
             }
         }
 

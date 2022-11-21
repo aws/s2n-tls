@@ -13,120 +13,118 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <netdb.h>
-#include <signal.h>
-#include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <inttypes.h>
+#include <netdb.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef S2N_INTERN_LIBCRYPTO
-#include <openssl/crypto.h>
-#include <openssl/err.h>
+    #include <openssl/crypto.h>
+    #include <openssl/err.h>
 #endif
 
 #include "api/s2n.h"
 #include "api/unstable/npn.h"
 #include "common.h"
-
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
 
 static char default_certificate_chain[] =
-    "-----BEGIN CERTIFICATE-----"
-    "MIIDHTCCAgWgAwIBAgIUPxywpg3/+VHmj8jJSvK62XC06zMwDQYJKoZIhvcNAQEL"
-    "BQAwHjEcMBoGA1UEAwwTczJuVGVzdEludGVybWVkaWF0ZTAgFw0yMDAxMjQwMTEw"
-    "MjFaGA8yMTE5MTIzMTAxMTAyMVowGDEWMBQGA1UEAwwNczJuVGVzdFNlcnZlcjCC"
-    "ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJUbMpdROM6cjb8xgr5kgKHn"
-    "JVDfhbLg4pxBwWwlayb6/N60JLG9KzWAWhZBmz+Px6kr/1dL6+bL3mLuNBCQpYBS"
-    "Pee2n7KL9PvsMYZmnYFyn94bXbjBCRxGR+a9lcGHLlZ4C+rrLNi9pUwxf7VIRglR"
-    "zwHWAFg5xTX6lCmziNM4OMkq8lHkLopHDUg5yI4VTc3EEGqDIf3+0BheIHcUFbIW"
-    "kFOjRDdL3lMGKEj0+LErzzbhJczBlRMqSMiuYeaWgORLpRNtMeNmbR8oLJFchpF0"
-    "A9fIO2/Yg+nclcDDhsUBkkfcIKRySGDumKLuYM+hOHp5vQo8tcvyQ6s3U5YULQUC"
-    "AwEAAaNXMFUwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUkVKVmfjICpx4fkvJO6YJ"
-    "mdoKz3owDgYDVR0PAQH/BAQDAgPoMBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMBMA0G"
-    "CSqGSIb3DQEBCwUAA4IBAQBXoWDI1Gi9snC4K6S7E0AoLmGEPUWzc4fd4Cbj9PRp"
-    "mSKpsJOYjmneIV34WqnvUXrBkkzblEb9RdszN96WuRAaZJQegRtKOWN5Iggd4sHM"
-    "8XEx/LeJHc08uSb2d/TnhhOPALoJl/w6M5e6yOezCEJorsOXuVBcbuEKfne7oMA1"
-    "GziFnVPtwiwXxsX16KilsQRylnK0bV/x1BOgYByCDcXorMndsAYjn4yG1D4l8TbC"
-    "kCtK1bafEVoASpOFQ8tSeOXBL7Fvw9mFFzs3/ajBTz2nBLDsnP8XH5C/vy8wNGSd"
-    "Tdcs7DRLYhNJxYopcMgCwyyCAtEFcHkovCSrJ6HUl/ko"
-    "-----END CERTIFICATE-----"
-    "-----BEGIN CERTIFICATE-----"
-    "MIIDCTCCAfGgAwIBAgIUfdybeOdDMd7cPXk6RTcEqeM3IEIwDQYJKoZIhvcNAQEL"
-    "BQAwFjEUMBIGA1UEAwwLczJuVGVzdFJvb3QwIBcNMjAwMTI0MDEwOTUzWhgPMjEx"
-    "OTEyMzEwMTA5NTNaMB4xHDAaBgNVBAMME3MyblRlc3RJbnRlcm1lZGlhdGUwggEi"
-    "MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC2NsDkrZjYbyVeF1R9337y9OHM"
-    "C2xSRGB6SHrVG1bQZlPxI+E6DqDJcMB4tFLkA7AJxxRLxA7KvO9PzcHAlsqvYcMV"
-    "gOSAjUZ0Eiwwf6Rtgo2yByj2n1K5XDN3bpt1rROD0BIEnaU9GZd3U0QUYHBRfp0E"
-    "IdeWuRrlFbPpWXnBaQB/2jEfCuZzpPOiKMWt99GQ4bFBOSzpYdXLALGfb15Kr6RF"
-    "YoMlsyeijNeePxLeYgracu+vzJLvEzx1U7OGnlWz+VKBw/mz3gABqFfxurN5E8yb"
-    "4AWJ5kEUJobYcxwe+DoimPdPTWgByJlMpKjfIbnroz/oTZMiNfUCtKT3GTejAgMB"
-    "AAGjRTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYEFEasSJIPBZTXyYjI"
-    "CN2m1Ttz3sUJMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG9w0BAQsFAAOCAQEAxveh"
-    "GKJPu7DXjoMePzlRGML2iIDT6MgKpsMnO5sNgUbJTFV3KeuASRm1SXVrVFHcQDov"
-    "l9P10ff0J9KOVrRCawMZZxjjtNAIrSW0G7fwmTgJMTuM5vaaGRjKy018LApcr//Q"
-    "Nwjh4sw9KOtNIE9krT06kli9zjsgr/EWwPCHSin8oONDgCNn1WgtrSMexsF1BSzU"
-    "OTq+nyn4nOPOEUthjmepG2eDkd17MNJ6GdKYnFRmC+ctSH028akERhz+EtavU4Cd"
-    "2eSFTKtbxOuZXyfsOwjhrufp/Ss9i57x3XotBNJ8Fv7VpxI19+Zag4DMGzd3Pisu"
-    "Q1VpfValnMGtVWPleg=="
-    "-----END CERTIFICATE-----"
-    "-----BEGIN CERTIFICATE-----"
-    "MIIC/jCCAeagAwIBAgIUFFjxpSf0mUsrVbyLPQhccDYfixowDQYJKoZIhvcNAQEL"
-    "BQAwFjEUMBIGA1UEAwwLczJuVGVzdFJvb3QwIBcNMjAwMTI0MDEwODIyWhgPMjEx"
-    "OTEyMzEwMTA4MjJaMBYxFDASBgNVBAMMC3MyblRlc3RSb290MIIBIjANBgkqhkiG"
-    "9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz3AaOAlkcxJHryCI9SfwB9q4PA53hv5tz4ZL"
-    "be37b69v58mfP+D18cWIBHUmkmN6gWWoWZ/9hv75pxcNXW0zPn7+wOVvXLUjtmkq"
-    "1IGT/mykhasw00viaBFAuBHZ5iLwfc4/cjUFAPVCKLmfv5Xs7TJVzWA/0mR4r1h8"
-    "uFqqXczkVMklIbsOIrlZXz8ifQs3DpFA2FeoziEh+Pcb4c3QBPgCHFDEGyTSdqo9"
-    "+NbS+iRlw0T6tqUOpC0DdKXo/3mJNBmy4XPahTi9zgsu7b+UVqemL7eXXf/iSr5y"
-    "iwJKJjz+N/rLpcF1VJtF8q0fpHagzljQaN7/emjg7BplUUyLawIDAQABo0IwQDAP"
-    "BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTDmXkyQEJ7ZciyE4KF7wAJKDxMfDAO"
-    "BgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAFobyhsc7mYoGaA7N4Pp"
-    "it+MQZZNzWte5vWal/3/2V7ZGrJsgeCPwLblzzTmey85RilX6ovMQHEqT1vBFSHq"
-    "nntMZnHkEl2QLU8XopJWR4MXK7LzjjQYaXiZhGbJbtylVSfATAa/ZzdgjBx1C8aD"
-    "IM1+ELGCP/UHD0YEJkFoxSUwXGAXoV8I+cPDAWHC6VnC4mY8qubhx95FpX02ERnz"
-    "1Cw2YWtntyO8P52dEJD1+0EJjtVX4Bj5wwgJHHbDkPP1IzFrR/uBC2LCjtRY+UtZ"
-    "kfoDfWu2tslkLK7/LaC5qZyCPKnpPHLLz8gUWKlvbuejM99FTlBg/tcH+bv5x7WB"
-    "MZ8="
-    "-----END CERTIFICATE-----";
+        "-----BEGIN CERTIFICATE-----"
+        "MIIDHTCCAgWgAwIBAgIUPxywpg3/+VHmj8jJSvK62XC06zMwDQYJKoZIhvcNAQEL"
+        "BQAwHjEcMBoGA1UEAwwTczJuVGVzdEludGVybWVkaWF0ZTAgFw0yMDAxMjQwMTEw"
+        "MjFaGA8yMTE5MTIzMTAxMTAyMVowGDEWMBQGA1UEAwwNczJuVGVzdFNlcnZlcjCC"
+        "ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJUbMpdROM6cjb8xgr5kgKHn"
+        "JVDfhbLg4pxBwWwlayb6/N60JLG9KzWAWhZBmz+Px6kr/1dL6+bL3mLuNBCQpYBS"
+        "Pee2n7KL9PvsMYZmnYFyn94bXbjBCRxGR+a9lcGHLlZ4C+rrLNi9pUwxf7VIRglR"
+        "zwHWAFg5xTX6lCmziNM4OMkq8lHkLopHDUg5yI4VTc3EEGqDIf3+0BheIHcUFbIW"
+        "kFOjRDdL3lMGKEj0+LErzzbhJczBlRMqSMiuYeaWgORLpRNtMeNmbR8oLJFchpF0"
+        "A9fIO2/Yg+nclcDDhsUBkkfcIKRySGDumKLuYM+hOHp5vQo8tcvyQ6s3U5YULQUC"
+        "AwEAAaNXMFUwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUkVKVmfjICpx4fkvJO6YJ"
+        "mdoKz3owDgYDVR0PAQH/BAQDAgPoMBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMBMA0G"
+        "CSqGSIb3DQEBCwUAA4IBAQBXoWDI1Gi9snC4K6S7E0AoLmGEPUWzc4fd4Cbj9PRp"
+        "mSKpsJOYjmneIV34WqnvUXrBkkzblEb9RdszN96WuRAaZJQegRtKOWN5Iggd4sHM"
+        "8XEx/LeJHc08uSb2d/TnhhOPALoJl/w6M5e6yOezCEJorsOXuVBcbuEKfne7oMA1"
+        "GziFnVPtwiwXxsX16KilsQRylnK0bV/x1BOgYByCDcXorMndsAYjn4yG1D4l8TbC"
+        "kCtK1bafEVoASpOFQ8tSeOXBL7Fvw9mFFzs3/ajBTz2nBLDsnP8XH5C/vy8wNGSd"
+        "Tdcs7DRLYhNJxYopcMgCwyyCAtEFcHkovCSrJ6HUl/ko"
+        "-----END CERTIFICATE-----"
+        "-----BEGIN CERTIFICATE-----"
+        "MIIDCTCCAfGgAwIBAgIUfdybeOdDMd7cPXk6RTcEqeM3IEIwDQYJKoZIhvcNAQEL"
+        "BQAwFjEUMBIGA1UEAwwLczJuVGVzdFJvb3QwIBcNMjAwMTI0MDEwOTUzWhgPMjEx"
+        "OTEyMzEwMTA5NTNaMB4xHDAaBgNVBAMME3MyblRlc3RJbnRlcm1lZGlhdGUwggEi"
+        "MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC2NsDkrZjYbyVeF1R9337y9OHM"
+        "C2xSRGB6SHrVG1bQZlPxI+E6DqDJcMB4tFLkA7AJxxRLxA7KvO9PzcHAlsqvYcMV"
+        "gOSAjUZ0Eiwwf6Rtgo2yByj2n1K5XDN3bpt1rROD0BIEnaU9GZd3U0QUYHBRfp0E"
+        "IdeWuRrlFbPpWXnBaQB/2jEfCuZzpPOiKMWt99GQ4bFBOSzpYdXLALGfb15Kr6RF"
+        "YoMlsyeijNeePxLeYgracu+vzJLvEzx1U7OGnlWz+VKBw/mz3gABqFfxurN5E8yb"
+        "4AWJ5kEUJobYcxwe+DoimPdPTWgByJlMpKjfIbnroz/oTZMiNfUCtKT3GTejAgMB"
+        "AAGjRTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYEFEasSJIPBZTXyYjI"
+        "CN2m1Ttz3sUJMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG9w0BAQsFAAOCAQEAxveh"
+        "GKJPu7DXjoMePzlRGML2iIDT6MgKpsMnO5sNgUbJTFV3KeuASRm1SXVrVFHcQDov"
+        "l9P10ff0J9KOVrRCawMZZxjjtNAIrSW0G7fwmTgJMTuM5vaaGRjKy018LApcr//Q"
+        "Nwjh4sw9KOtNIE9krT06kli9zjsgr/EWwPCHSin8oONDgCNn1WgtrSMexsF1BSzU"
+        "OTq+nyn4nOPOEUthjmepG2eDkd17MNJ6GdKYnFRmC+ctSH028akERhz+EtavU4Cd"
+        "2eSFTKtbxOuZXyfsOwjhrufp/Ss9i57x3XotBNJ8Fv7VpxI19+Zag4DMGzd3Pisu"
+        "Q1VpfValnMGtVWPleg=="
+        "-----END CERTIFICATE-----"
+        "-----BEGIN CERTIFICATE-----"
+        "MIIC/jCCAeagAwIBAgIUFFjxpSf0mUsrVbyLPQhccDYfixowDQYJKoZIhvcNAQEL"
+        "BQAwFjEUMBIGA1UEAwwLczJuVGVzdFJvb3QwIBcNMjAwMTI0MDEwODIyWhgPMjEx"
+        "OTEyMzEwMTA4MjJaMBYxFDASBgNVBAMMC3MyblRlc3RSb290MIIBIjANBgkqhkiG"
+        "9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz3AaOAlkcxJHryCI9SfwB9q4PA53hv5tz4ZL"
+        "be37b69v58mfP+D18cWIBHUmkmN6gWWoWZ/9hv75pxcNXW0zPn7+wOVvXLUjtmkq"
+        "1IGT/mykhasw00viaBFAuBHZ5iLwfc4/cjUFAPVCKLmfv5Xs7TJVzWA/0mR4r1h8"
+        "uFqqXczkVMklIbsOIrlZXz8ifQs3DpFA2FeoziEh+Pcb4c3QBPgCHFDEGyTSdqo9"
+        "+NbS+iRlw0T6tqUOpC0DdKXo/3mJNBmy4XPahTi9zgsu7b+UVqemL7eXXf/iSr5y"
+        "iwJKJjz+N/rLpcF1VJtF8q0fpHagzljQaN7/emjg7BplUUyLawIDAQABo0IwQDAP"
+        "BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTDmXkyQEJ7ZciyE4KF7wAJKDxMfDAO"
+        "BgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAFobyhsc7mYoGaA7N4Pp"
+        "it+MQZZNzWte5vWal/3/2V7ZGrJsgeCPwLblzzTmey85RilX6ovMQHEqT1vBFSHq"
+        "nntMZnHkEl2QLU8XopJWR4MXK7LzjjQYaXiZhGbJbtylVSfATAa/ZzdgjBx1C8aD"
+        "IM1+ELGCP/UHD0YEJkFoxSUwXGAXoV8I+cPDAWHC6VnC4mY8qubhx95FpX02ERnz"
+        "1Cw2YWtntyO8P52dEJD1+0EJjtVX4Bj5wwgJHHbDkPP1IzFrR/uBC2LCjtRY+UtZ"
+        "kfoDfWu2tslkLK7/LaC5qZyCPKnpPHLLz8gUWKlvbuejM99FTlBg/tcH+bv5x7WB"
+        "MZ8="
+        "-----END CERTIFICATE-----";
 
 static char default_private_key[] =
-    "-----BEGIN RSA PRIVATE KEY-----"
-    "MIIEogIBAAKCAQEAlRsyl1E4zpyNvzGCvmSAoeclUN+FsuDinEHBbCVrJvr83rQk"
-    "sb0rNYBaFkGbP4/HqSv/V0vr5sveYu40EJClgFI957afsov0++wxhmadgXKf3htd"
-    "uMEJHEZH5r2VwYcuVngL6uss2L2lTDF/tUhGCVHPAdYAWDnFNfqUKbOI0zg4ySry"
-    "UeQuikcNSDnIjhVNzcQQaoMh/f7QGF4gdxQVshaQU6NEN0veUwYoSPT4sSvPNuEl"
-    "zMGVEypIyK5h5paA5EulE20x42ZtHygskVyGkXQD18g7b9iD6dyVwMOGxQGSR9wg"
-    "pHJIYO6You5gz6E4enm9Cjy1y/JDqzdTlhQtBQIDAQABAoIBAGTaSJXg8jON4LJ5"
-    "op11DSx1U+An0B71zVEziMjFZnyvN2rLHia6dQdzEXwMVB3h+oKKp+M8DwvEyV7R"
-    "D5ZEwCzTc9vOwqXZ1JKxZ64oqlBsX4WzrOjSaH8fanK/uRN1g/ooqKb0+xh+7ddj"
-    "g6XyhKy5EPOE9Ca4rJOeMakjLmDuleQecT/DixYV6azhfaJoD70XZJWv3YzSpu/X"
-    "Ma+i3of0alsG/lROjNtEXE3nKzcTUgyAUoQeYRwCVpgssg/4VAUPJNDP4dVmxW8f"
-    "eNmjlTyXmR9S08SXkqmCHe2mBUsZY9nqcDE6ZWILZKFWIfZD9W+j2ce0FMvcc9kz"
-    "psxaUQECgYEAxqwsb5aQy6HBF54tdkHbUQEJMelSLNW0G1GUrcLB7eqL7qo3dUA8"
-    "8PDQ/dTwmmJ7aE0SK2xkQDVKXNbV4OvUNgP6tbzLWEbvmuFAEg5X1jFH2VSdwQhl"
-    "RDwTQw3wPZ5udy64L6gmsdDch+I7l1v4ex66RWFW+4WIs1altsLiJa0CgYEAwCGW"
-    "2cjtZ3kIzWgxf7DdnoUTwBM1ATBUYvx7uqVq+dbc/p8cSeMSPz3LUluaVJ2EOjEV"
-    "QWhx0Ih5qeitzReHRU0OHgxEgjbpJwhseD9O5POSd+fE3TtDQArOxyw4CIJKk4Z2"
-    "QmqzaO/LboN3Tp+/N9zfVoNZKHcCNra/uKNTH7kCgYA3QFazSdpG51s96D2Yb8RA"
-    "iNs3yD2UPnJyToPctxcbxWjZHPmDYDQShcZ5cSjgppbPcO+mp+RRfwCJRS4B+VPx"
-    "GbY1qKWcjU3BcvdQjjCbXuUuabvdnSocieCJe2zelhr+hj2u80KfnQhXufD8rRUz"
-    "mF4RQXrhREe6KFS5uQUPmQKBgE4rXFyvSyfWLqajxb/WDdT4/9gd+GrLZwn+/7go"
-    "pSWRLcjKo4/MOxhP4/FWI6xZifrDDYrXG7dkT1u5tzzCXd7sQtom05jHDoU7ACbM"
-    "WyT7lJQEUCxSeEIOI6MVcpbDq+PpySOsleIT7gjApEHw7LOlwZhJSHUWNmhcYhSV"
-    "HrTBAoGADAvBqV7JItjm2+qkXXEdPVzOunqjQdnXZjMAJ75PhHnLCCfnTRu53hT3"
-    "JxDETLLa/r42PlqGZ6bqSW+C+ObgYOvvySqvX8CE9o208ZwCLjHYxuYLH/86Lppr"
-    "ggF9KQ0xWz7Km3GXv5+bwM5bcgt1A/s6sZCimXuj3Fle3RqOTF0="
-    "-----END RSA PRIVATE KEY-----";
-
+        "-----BEGIN RSA PRIVATE KEY-----"
+        "MIIEogIBAAKCAQEAlRsyl1E4zpyNvzGCvmSAoeclUN+FsuDinEHBbCVrJvr83rQk"
+        "sb0rNYBaFkGbP4/HqSv/V0vr5sveYu40EJClgFI957afsov0++wxhmadgXKf3htd"
+        "uMEJHEZH5r2VwYcuVngL6uss2L2lTDF/tUhGCVHPAdYAWDnFNfqUKbOI0zg4ySry"
+        "UeQuikcNSDnIjhVNzcQQaoMh/f7QGF4gdxQVshaQU6NEN0veUwYoSPT4sSvPNuEl"
+        "zMGVEypIyK5h5paA5EulE20x42ZtHygskVyGkXQD18g7b9iD6dyVwMOGxQGSR9wg"
+        "pHJIYO6You5gz6E4enm9Cjy1y/JDqzdTlhQtBQIDAQABAoIBAGTaSJXg8jON4LJ5"
+        "op11DSx1U+An0B71zVEziMjFZnyvN2rLHia6dQdzEXwMVB3h+oKKp+M8DwvEyV7R"
+        "D5ZEwCzTc9vOwqXZ1JKxZ64oqlBsX4WzrOjSaH8fanK/uRN1g/ooqKb0+xh+7ddj"
+        "g6XyhKy5EPOE9Ca4rJOeMakjLmDuleQecT/DixYV6azhfaJoD70XZJWv3YzSpu/X"
+        "Ma+i3of0alsG/lROjNtEXE3nKzcTUgyAUoQeYRwCVpgssg/4VAUPJNDP4dVmxW8f"
+        "eNmjlTyXmR9S08SXkqmCHe2mBUsZY9nqcDE6ZWILZKFWIfZD9W+j2ce0FMvcc9kz"
+        "psxaUQECgYEAxqwsb5aQy6HBF54tdkHbUQEJMelSLNW0G1GUrcLB7eqL7qo3dUA8"
+        "8PDQ/dTwmmJ7aE0SK2xkQDVKXNbV4OvUNgP6tbzLWEbvmuFAEg5X1jFH2VSdwQhl"
+        "RDwTQw3wPZ5udy64L6gmsdDch+I7l1v4ex66RWFW+4WIs1altsLiJa0CgYEAwCGW"
+        "2cjtZ3kIzWgxf7DdnoUTwBM1ATBUYvx7uqVq+dbc/p8cSeMSPz3LUluaVJ2EOjEV"
+        "QWhx0Ih5qeitzReHRU0OHgxEgjbpJwhseD9O5POSd+fE3TtDQArOxyw4CIJKk4Z2"
+        "QmqzaO/LboN3Tp+/N9zfVoNZKHcCNra/uKNTH7kCgYA3QFazSdpG51s96D2Yb8RA"
+        "iNs3yD2UPnJyToPctxcbxWjZHPmDYDQShcZ5cSjgppbPcO+mp+RRfwCJRS4B+VPx"
+        "GbY1qKWcjU3BcvdQjjCbXuUuabvdnSocieCJe2zelhr+hj2u80KfnQhXufD8rRUz"
+        "mF4RQXrhREe6KFS5uQUPmQKBgE4rXFyvSyfWLqajxb/WDdT4/9gd+GrLZwn+/7go"
+        "pSWRLcjKo4/MOxhP4/FWI6xZifrDDYrXG7dkT1u5tzzCXd7sQtom05jHDoU7ACbM"
+        "WyT7lJQEUCxSeEIOI6MVcpbDq+PpySOsleIT7gjApEHw7LOlwZhJSHUWNmhcYhSV"
+        "HrTBAoGADAvBqV7JItjm2+qkXXEdPVzOunqjQdnXZjMAJ75PhHnLCCfnTRu53hT3"
+        "JxDETLLa/r42PlqGZ6bqSW+C+ObgYOvvySqvX8CE9o208ZwCLjHYxuYLH/86Lppr"
+        "ggF9KQ0xWz7Km3GXv5+bwM5bcgt1A/s6sZCimXuj3Fle3RqOTF0="
+        "-----END RSA PRIVATE KEY-----";
 
 #define OPT_BUFFERED_SEND 1000
 
@@ -143,11 +141,14 @@ void usage()
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
-    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr,
+            "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  --cert\n");
     fprintf(stderr, "    Path to a PEM encoded certificate [chain]. Option can be repeated to load multiple certs.\n");
     fprintf(stderr, "  --key\n");
-    fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Option can be repeated to load multiple certs.\n");
+    fprintf(stderr,
+            "    Path to a PEM encoded private key that matches cert. Option can be repeated to load multiple "
+            "certs.\n");
     fprintf(stderr, "  -m\n");
     fprintf(stderr, "  --mutualAuth\n");
     fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
@@ -155,8 +156,12 @@ void usage()
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
     fprintf(stderr, "  --parallelize\n");
-    fprintf(stderr, "    Create a new Connection handler thread for each new connection. Useful for tests with lots of connections.\n");
-    fprintf(stderr, "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session cache.\n");
+    fprintf(stderr,
+            "    Create a new Connection handler thread for each new connection. Useful for tests with lots of "
+            "connections.\n");
+    fprintf(stderr,
+            "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session "
+            "cache.\n");
     fprintf(stderr, "  --prefer-low-latency\n");
     fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
@@ -168,12 +173,18 @@ void usage()
     fprintf(stderr, "  -s\n");
     fprintf(stderr, "  --self-service-blinding\n");
     fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors. \n");
-    fprintf(stderr, "    Warning: this should only be used for testing since skipping blinding may allow timing side channels.\n");
+    fprintf(stderr,
+            "    Warning: this should only be used for testing since skipping blinding may allow timing side "
+            "channels.\n");
     fprintf(stderr, "  -t,--ca-file [file path]\n");
-    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will be used.");
+    fprintf(stderr,
+            "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will "
+            "be used.");
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
-    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be used.");
+    fprintf(stderr,
+            "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be "
+            "used.");
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
@@ -191,14 +202,18 @@ void usage()
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
-    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
-                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
-                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
-                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr,
+            "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+            "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+            "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace "
+            "is not allowed before or after the commas.\n"
+            "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E, --max-early-data \n");
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -N --npn \n");
-    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
+    fprintf(stderr,
+            "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal "
+            "the protocols supported.");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
@@ -288,36 +303,36 @@ int main(int argc, char *const *argv)
     bool npn = false;
 
     struct option long_options[] = {
-        {"ciphers", required_argument, NULL, 'c'},
-        {"enable-mfl", no_argument, NULL, 'e'},
-        {"enter-fips-mode", no_argument, NULL, 'f'},
-        {"help", no_argument, NULL, 'h'},
-        {"key", required_argument, NULL, 'k'},
-        {"prefer-low-latency", no_argument, NULL, 'l'},
-        {"mutualAuth", no_argument, NULL, 'm'},
-        {"negotiate", no_argument, NULL, 'n'},
-        {"ocsp", required_argument, NULL, 'o'},
-        {"parallelize", no_argument, &parallelize, 1},
-        {"prefer-throughput", no_argument, NULL, 'p'},
-        {"cert", required_argument, NULL, 'r'},
-        {"self-service-blinding", no_argument, NULL, 's'},
-        {"ca-dir", required_argument, 0, 'd'},
-        {"ca-file", required_argument, 0, 't'},
-        {"insecure", no_argument, 0, 'i'},
-        {"stk-file", required_argument, 0, 'a'},
-        {"no-session-ticket", no_argument, 0, 'T'},
-        {"corked-io", no_argument, 0, 'C'},
-        {"max-conns", optional_argument, 0, 'X'},
-        {"tls13", no_argument, 0, '3'},
-        {"https-server", no_argument, 0, 'w'},
-        {"https-bench", required_argument, 0, 'b'},
-        {"alpn", required_argument, 0, 'A'},
-        {"npn", no_argument, 0, 'N'},
-        {"non-blocking", no_argument, 0, 'B'},
-        {"key-log", required_argument, 0, 'L'},
-        {"psk", required_argument, 0, 'P'},
-        {"max-early-data", required_argument, 0, 'E'},
-        {"buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
+        { "ciphers", required_argument, NULL, 'c' },
+        { "enable-mfl", no_argument, NULL, 'e' },
+        { "enter-fips-mode", no_argument, NULL, 'f' },
+        { "help", no_argument, NULL, 'h' },
+        { "key", required_argument, NULL, 'k' },
+        { "prefer-low-latency", no_argument, NULL, 'l' },
+        { "mutualAuth", no_argument, NULL, 'm' },
+        { "negotiate", no_argument, NULL, 'n' },
+        { "ocsp", required_argument, NULL, 'o' },
+        { "parallelize", no_argument, &parallelize, 1 },
+        { "prefer-throughput", no_argument, NULL, 'p' },
+        { "cert", required_argument, NULL, 'r' },
+        { "self-service-blinding", no_argument, NULL, 's' },
+        { "ca-dir", required_argument, 0, 'd' },
+        { "ca-file", required_argument, 0, 't' },
+        { "insecure", no_argument, 0, 'i' },
+        { "stk-file", required_argument, 0, 'a' },
+        { "no-session-ticket", no_argument, 0, 'T' },
+        { "corked-io", no_argument, 0, 'C' },
+        { "max-conns", optional_argument, 0, 'X' },
+        { "tls13", no_argument, 0, '3' },
+        { "https-server", no_argument, 0, 'w' },
+        { "https-bench", required_argument, 0, 'b' },
+        { "alpn", required_argument, 0, 'A' },
+        { "npn", no_argument, 0, 'N' },
+        { "non-blocking", no_argument, 0, 'B' },
+        { "key-log", required_argument, 0, 'L' },
+        { "psk", required_argument, 0, 'P' },
+        { "max-early-data", required_argument, 0, 'E' },
+        { "buffered-send", required_argument, 0, OPT_BUFFERED_SEND },
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -329,128 +344,128 @@ int main(int argc, char *const *argv)
         }
 
         switch (c) {
-        case 0:
-            /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
-            break;
-        case 'C':
-            conn_settings.use_corked_io = 1;
-            break;
-        case 'c':
-            cipher_prefs = optarg;
-            break;
-        case 'e':
-            conn_settings.enable_mfl = 1;
-            break;
-        case 'f':
-            fips_mode = 1;
-            break;
-        case 'h':
-            usage();
-            break;
-        case 'k':
-            if (num_user_private_keys == MAX_CERTIFICATES) {
-                fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
-                exit(1);
+            case 0:
+                /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
+                break;
+            case 'C':
+                conn_settings.use_corked_io = 1;
+                break;
+            case 'c':
+                cipher_prefs = optarg;
+                break;
+            case 'e':
+                conn_settings.enable_mfl = 1;
+                break;
+            case 'f':
+                fips_mode = 1;
+                break;
+            case 'h':
+                usage();
+                break;
+            case 'k':
+                if (num_user_private_keys == MAX_CERTIFICATES) {
+                    fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
+                    exit(1);
+                }
+                private_keys[num_user_private_keys] = load_file_to_cstring(optarg);
+                num_user_private_keys++;
+                break;
+            case 'l':
+                conn_settings.prefer_low_latency = 1;
+                break;
+            case 'm':
+                conn_settings.mutual_auth = 1;
+                break;
+            case 'n':
+                conn_settings.only_negotiate = 1;
+                break;
+            case 'o':
+                ocsp_response_file_path = optarg;
+                break;
+            case 'p':
+                conn_settings.prefer_throughput = 1;
+                break;
+            case 'r':
+                if (num_user_certificates == MAX_CERTIFICATES) {
+                    fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
+                    exit(1);
+                }
+                certificates[num_user_certificates] = load_file_to_cstring(optarg);
+                num_user_certificates++;
+                break;
+            case 's':
+                conn_settings.self_service_blinding = 1;
+                break;
+            case 'd':
+                conn_settings.ca_dir = optarg;
+                break;
+            case 't':
+                conn_settings.ca_file = optarg;
+                break;
+            case 'i':
+                conn_settings.insecure = 1;
+                break;
+            case 'a':
+                session_ticket_key_file_path = optarg;
+                break;
+            case 'T':
+                conn_settings.session_ticket = 0;
+                break;
+            case '3':
+                /* Do nothing -- this argument is deprecated */
+                break;
+            case 'X':
+                if (optarg == NULL) {
+                    conn_settings.max_conns = 1;
+                } else {
+                    conn_settings.max_conns = atoi(optarg);
+                }
+                break;
+            case 'w':
+                fprintf(stdout, "Running s2nd in simple https server mode\n");
+                conn_settings.https_server = 1;
+                break;
+            case 'b':
+                bytes = strtoul(optarg, NULL, 10);
+                GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
+                conn_settings.https_bench = bytes;
+                break;
+            case OPT_BUFFERED_SEND: {
+                intmax_t send_buffer_size_scanned_value = strtoimax(optarg, 0, 10);
+                if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
+                    fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
+                    exit(1);
+                }
+                send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
+                break;
             }
-            private_keys[num_user_private_keys] = load_file_to_cstring(optarg);
-            num_user_private_keys++;
-            break;
-        case 'l':
-            conn_settings.prefer_low_latency = 1;
-            break;
-        case 'm':
-            conn_settings.mutual_auth = 1;
-            break;
-        case 'n':
-            conn_settings.only_negotiate = 1;
-            break;
-        case 'o':
-            ocsp_response_file_path = optarg;
-            break;
-        case 'p':
-            conn_settings.prefer_throughput = 1;
-            break;
-        case 'r':
-            if (num_user_certificates == MAX_CERTIFICATES) {
-                fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
-                exit(1);
-            }
-            certificates[num_user_certificates] = load_file_to_cstring(optarg);
-            num_user_certificates++;
-            break;
-        case 's':
-            conn_settings.self_service_blinding = 1;
-            break;
-        case 'd':
-            conn_settings.ca_dir = optarg;
-            break;
-        case 't':
-            conn_settings.ca_file = optarg;
-            break;
-        case 'i':
-            conn_settings.insecure = 1;
-            break;
-        case 'a':
-            session_ticket_key_file_path = optarg;
-            break;
-        case 'T':
-            conn_settings.session_ticket = 0;
-            break;
-        case '3':
-            /* Do nothing -- this argument is deprecated */
-            break;
-        case 'X':
-            if (optarg == NULL) {
-                conn_settings.max_conns = 1;
-            } else {
-                conn_settings.max_conns = atoi(optarg);
-            }
-            break;
-        case 'w':
-            fprintf(stdout, "Running s2nd in simple https server mode\n");
-            conn_settings.https_server = 1;
-            break;
-        case 'b':
-            bytes = strtoul(optarg, NULL, 10);
-            GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
-            conn_settings.https_bench = bytes;
-            break;
-        case OPT_BUFFERED_SEND: {
-            intmax_t send_buffer_size_scanned_value = strtoimax(optarg, 0, 10);
-            if (send_buffer_size_scanned_value > UINT32_MAX || send_buffer_size_scanned_value < 0) {
-                fprintf(stderr, "<buffer size> must be a positive 32 bit value\n");
-                exit(1);
-            }
-            send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
-            break;
-        }
-        case 'A':
-            alpn = optarg;
-            break;
-        case 'B':
-            non_blocking = 1;
-            break;
-        case 'L':
-            key_log_path = optarg;
-            break;
-        case 'P':
-            if (conn_settings.psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
-                fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
-                exit(1);
-            }
-            conn_settings.psk_optarg_list[conn_settings.psk_list_len++] = optarg;
-            break;
-        case 'E':
-            max_early_data = atoi(optarg);
-            break;
-        case 'N':
-            npn = true;
-            break;
-        case '?':
-        default:
-            fprintf(stdout, "getopt_long returned: %d", c);
-            usage();
-            break;
+            case 'A':
+                alpn = optarg;
+                break;
+            case 'B':
+                non_blocking = 1;
+                break;
+            case 'L':
+                key_log_path = optarg;
+                break;
+            case 'P':
+                if (conn_settings.psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
+                    fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
+                    exit(1);
+                }
+                conn_settings.psk_optarg_list[conn_settings.psk_list_len++] = optarg;
+                break;
+            case 'E':
+                max_early_data = atoi(optarg);
+                break;
+            case 'N':
+                npn = true;
+                break;
+            case '?':
+            default:
+                fprintf(stdout, "getopt_long returned: %d", c);
+                usage();
+                break;
         }
     }
 
@@ -520,18 +535,19 @@ int main(int argc, char *const *argv)
 
     if (fips_mode) {
 #ifndef S2N_INTERN_LIBCRYPTO
-#if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
+    #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc,
+                    ERR_error_string(fips_rc, ssl_error_buf));
             exit(1);
         }
         printf("s2nd entered FIPS mode\n");
-#else
+    #else
         fprintf(stderr, "Error entering FIPS mode. s2nd was not built against a FIPS-capable libcrypto.\n");
         exit(1);
-#endif
+    #endif
 #endif
     }
 
@@ -546,7 +562,8 @@ int main(int argc, char *const *argv)
     }
 
     if (num_user_certificates != num_user_private_keys) {
-        fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates, num_user_private_keys);
+        fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates,
+                num_user_private_keys);
         exit(1);
     }
 
@@ -561,7 +578,8 @@ int main(int argc, char *const *argv)
 
     for (int i = 0; i < num_certificates; i++) {
         struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-        GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]), "Error getting certificate/key");
+        GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]),
+                "Error getting certificate/key");
 
         if (ocsp_response_file_path) {
             int fd = open(ocsp_response_file_path, O_RDONLY);
@@ -570,7 +588,7 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
 
-            struct stat st = {0};
+            struct stat st = { 0 };
             if (fstat(fd, &st) < 0) {
                 fprintf(stderr, "Error fstat-ing OCSP response file: '%s'\n", strerror(errno));
                 exit(1);
@@ -603,7 +621,8 @@ int main(int argc, char *const *argv)
 
     if (alpn) {
         const char *protocols[] = { alpn };
-        GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
+        GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)),
+                "Failed to set alpn");
     }
 
     if (send_buffer_size != 0) {
@@ -619,19 +638,12 @@ int main(int argc, char *const *argv)
     if (key_log_path) {
         key_log_file = fopen(key_log_path, "a");
         GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
-        GUARD_EXIT(
-            s2n_config_set_key_log_cb(
-                config,
-                key_log_callback,
-                (void *)key_log_file
-            ),
-            "Failed to set key log callback"
-        );
+        GUARD_EXIT(s2n_config_set_key_log_cb(config, key_log_callback, (void *) key_log_file),
+                "Failed to set key log callback");
     }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-
         if (non_blocking) {
             int flags = fcntl(sockfd, F_GETFL, 0);
             if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
@@ -651,7 +663,7 @@ int main(int argc, char *const *argv)
              * unlimited connections are allow, so ignore the variable. */
             if (conn_settings.max_conns > 0) {
                 if (conn_settings.max_conns-- == 1) {
-                    GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
+                    GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
                     exit(0);
                 }
             }
@@ -680,7 +692,7 @@ int main(int argc, char *const *argv)
         fclose(key_log_file);
     }
 
-    GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
+    GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 
     return 0;
 }
