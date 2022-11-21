@@ -42,7 +42,8 @@ static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 {
     const struct s2n_security_policy *security_policy;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
-            && s2n_pq_kem_is_extension_required(security_policy) && s2n_pq_is_enabled();
+            && s2n_pq_kem_is_extension_required(security_policy)
+            && s2n_pq_is_enabled();
 }
 
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out)

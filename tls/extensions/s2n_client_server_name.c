@@ -61,8 +61,7 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
 /* Read the extension up to the first item in ServerNameList. Store the first entry's length in server_name_len.
  * For now s2n ignores all subsequent items in ServerNameList.
  */
-static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension,
-        uint16_t *server_name_len)
+static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension, uint16_t *server_name_len)
 {
     POSIX_ENSURE_REF(conn);
 

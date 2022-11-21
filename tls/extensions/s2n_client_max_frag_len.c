@@ -62,8 +62,7 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
      *# for a value other than the allowed values, it MUST abort the
      *# handshake with an "illegal_parameter" alert.
      */
-    if (mfl_code >= s2n_array_len(mfl_code_to_length)
-            || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
+    if (mfl_code >= s2n_array_len(mfl_code_to_length) || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
         return S2N_SUCCESS;
     }
 

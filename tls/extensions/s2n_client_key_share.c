@@ -231,8 +231,7 @@ static int s2n_client_key_share_parse_ecc(struct s2n_stuffer *key_share, const s
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n_stuffer *key_share,
-        uint16_t curve_iana_id)
+static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t curve_iana_id)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(key_share);
@@ -295,8 +294,7 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *key_share,
-        uint16_t kem_group_iana_id)
+static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t kem_group_iana_id)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(key_share);
@@ -408,7 +406,8 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &share_size));
         POSIX_ENSURE(s2n_stuffer_data_available(extension) >= share_size, S2N_ERR_BAD_MESSAGE);
 
-        POSIX_GUARD(s2n_blob_init(&key_share_blob, s2n_stuffer_raw_read(extension, share_size), share_size));
+        POSIX_GUARD(s2n_blob_init(&key_share_blob,
+                s2n_stuffer_raw_read(extension, share_size), share_size));
         POSIX_GUARD(s2n_stuffer_init(&key_share, &key_share_blob));
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
         keyshare_count++;
@@ -450,8 +449,9 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
-    uint32_t s2n_client_key_share_extension_size =
-            S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
+    uint32_t s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
+            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+            + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
 
     s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
     s2n_client_key_share_extension_size += ecc_pref->ecc_curves[0]->share_size;

@@ -56,18 +56,29 @@ static const s2n_extension_type *const client_hello_extensions[] = {
     /* We MUST process key_share after supported_groups,
          * because we need to choose the keyshare based on the
          * mutually supported groups. */
-    &s2n_client_supported_groups_extension, &s2n_client_key_share_extension,
+    &s2n_client_supported_groups_extension,
+    &s2n_client_key_share_extension,
 
-    &s2n_client_signature_algorithms_extension, &s2n_client_server_name_extension,
+    &s2n_client_signature_algorithms_extension,
+    &s2n_client_server_name_extension,
 
     /* We MUST process the NPN extension after the ALPN extension
          * because NPN is only negotiated if ALPN is not */
-    &s2n_client_alpn_extension, &s2n_client_npn_extension,
+    &s2n_client_alpn_extension,
+    &s2n_client_npn_extension,
 
-    &s2n_client_status_request_extension, &s2n_client_sct_list_extension, &s2n_client_max_frag_len_extension,
-    &s2n_client_session_ticket_extension, &s2n_client_ec_point_format_extension, &s2n_client_pq_kem_extension,
-    &s2n_client_renegotiation_info_extension, &s2n_client_cookie_extension, &s2n_quic_transport_parameters_extension,
-    &s2n_psk_key_exchange_modes_extension, &s2n_client_early_data_indication_extension, &s2n_client_ems_extension,
+    &s2n_client_status_request_extension,
+    &s2n_client_sct_list_extension,
+    &s2n_client_max_frag_len_extension,
+    &s2n_client_session_ticket_extension,
+    &s2n_client_ec_point_format_extension,
+    &s2n_client_pq_kem_extension,
+    &s2n_client_renegotiation_info_extension,
+    &s2n_client_cookie_extension,
+    &s2n_quic_transport_parameters_extension,
+    &s2n_psk_key_exchange_modes_extension,
+    &s2n_client_early_data_indication_extension,
+    &s2n_client_ems_extension,
     &s2n_client_psk_extension /* MUST be last */
 };
 
@@ -103,7 +114,8 @@ static const s2n_extension_type *const hello_retry_request_extensions[] = {
 };
 
 static const s2n_extension_type *const tls13_server_hello_extensions[] = {
-    &s2n_server_supported_versions_extension, &s2n_server_key_share_extension,
+    &s2n_server_supported_versions_extension,
+    &s2n_server_key_share_extension,
     &s2n_server_psk_extension, /* MUST appear after keyshare extension */
 };
 
