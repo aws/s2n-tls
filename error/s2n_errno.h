@@ -15,9 +15,10 @@
 
 #pragma once
 
-#include "api/s2n.h"
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+#include "api/s2n.h"
 #include "utils/s2n_ensure.h"
 
 /*
@@ -28,14 +29,14 @@
 #define S2N_ERR_NUM_VALUE_BITS 26
 
 /* Start value for each error type. */
-#define S2N_ERR_T_OK_START (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_IO_START (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_CLOSED_START (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_BLOCKED_START (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_ALERT_START (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_PROTO_START (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_OK_START       (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_IO_START       (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_CLOSED_START   (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_BLOCKED_START  (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_ALERT_START    (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_PROTO_START    (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
 #define S2N_ERR_T_INTERNAL_START (S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_USAGE_START (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_USAGE_START    (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
 
 /* clang-format off */
 /* Order of values in this enum is important. New error values should be placed at the end of their respective category.

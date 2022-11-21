@@ -9,6 +9,7 @@ jobs:
         path:
           - 'bin'
           - 'stuffer'
+          - 'error'
           - 'tls/extensions'
     steps:
       - uses: actions/checkout@v3
