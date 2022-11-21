@@ -24,7 +24,7 @@ typedef struct {
     uint16_t extension_type;
     struct s2n_blob extension;
     uint16_t wire_index;
-    unsigned processed:1;
+    unsigned processed : 1;
 } s2n_parsed_extension;
 
 typedef struct {

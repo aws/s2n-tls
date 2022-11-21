@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_max_frag_len.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_max_frag_len_should_send(struct s2n_connection *conn);
@@ -62,7 +62,8 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
      *# for a value other than the allowed values, it MUST abort the
      *# handshake with an "illegal_parameter" alert.
      */
-    if (mfl_code >= s2n_array_len(mfl_code_to_length) || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
+    if (mfl_code >= s2n_array_len(mfl_code_to_length)
+            || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
         return S2N_SUCCESS;
     }
 

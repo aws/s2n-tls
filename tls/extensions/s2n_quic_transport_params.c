@@ -15,10 +15,9 @@
 
 #include "tls/extensions/s2n_quic_transport_params.h"
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 /*
