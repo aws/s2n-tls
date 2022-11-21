@@ -7,6 +7,10 @@ use libc::c_char;
 use s2n_tls_sys::*;
 use std::{convert::TryFrom, ffi::CStr};
 
+mod public;
+
+pub use public::ApplicationError;
+
 #[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub enum ErrorType {
@@ -149,7 +153,7 @@ impl<T: Fallible> Pollable for T {
 
 impl Error {
     pub(crate) const INVALID_INPUT: Error = Self(Context::InvalidInput);
-    pub const CALLBACK_EXECUTION: Error = Self(Context::CallbackExection);
+    pub(crate) const CALLBACK_EXECUTION: Error = Self(Context::CallbackExection);
 
     pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
         value.into_result()
