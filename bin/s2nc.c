@@ -47,6 +47,7 @@
 
 void usage()
 {
+    /* clang-format off */
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
     fprintf(stderr, " host: hostname or IP address to connect to\n");
     fprintf(stderr, " port: port to connect to\n");
@@ -58,8 +59,7 @@ void usage()
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
-    fprintf(stderr,
-            "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -e,--echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  --send-file [file path]\n");
@@ -68,21 +68,16 @@ void usage()
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");
     fprintf(stderr, "  --name [server name]\n");
-    fprintf(stderr,
-            "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
+    fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "  -m,--mfl\n");
     fprintf(stderr, "    Request maximum fragment length from: 512, 1024, 2048, 4096\n");
     fprintf(stderr, "  -f,--ca-file [file path]\n");
-    fprintf(stderr,
-            "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will "
-            "be used.\n");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
-    fprintf(stderr,
-            "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be "
-            "used.\n");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -l,--cert [file path]\n");
@@ -90,9 +85,7 @@ void usage()
     fprintf(stderr, "  -k,--key [file path]\n");
     fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Will only be used for client auth\n");
     fprintf(stderr, "  -r,--reconnect\n");
-    fprintf(stderr,
-            "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the "
-            "connection using Session-ID \n");
+    fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
     fprintf(stderr, "  -T,--no-session-ticket \n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  --ticket-out [file path]\n");
@@ -109,26 +102,18 @@ void usage()
     fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
-    fprintf(stderr,
-            "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
-            "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
-            "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace "
-            "is not allowed before or after the commas.\n"
-            "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E ,--early-data <file path>\n");
-    fprintf(stderr,
-            "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a "
-            "session ticket and resumes a session.\n");
-    fprintf(stderr,
-            "  --renegotiation [accept|reject|wait]\n"
-            "    accept: Accept all server requests for a new handshake\n"
-            "    reject: Reject all server requests for a new handshake\n"
-            "    wait: Wait for additional application data before accepting server requests. Intended for the integ "
-            "tests.\n");
+    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.\n");
+    fprintf(stderr, "  --renegotiation [accept|reject|wait]\n"
+                    "    accept: Accept all server requests for a new handshake\n"
+                    "    reject: Reject all server requests for a new handshake\n"
+                    "    wait: Wait for additional application data before accepting server requests. Intended for the integ tests.\n");
     fprintf(stderr, "  --npn \n");
-    fprintf(stderr,
-            "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal "
-            "the protocols supported.");
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
     fprintf(stderr, "\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
@@ -137,6 +122,7 @@ void usage()
     fprintf(stderr, "  --prefer-throughput\n");
     fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
     exit(1);
+    /* clang-format on */
 }
 
 size_t session_state_length = 0;

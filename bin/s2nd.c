@@ -130,6 +130,7 @@ static char default_private_key[] =
 
 void usage()
 {
+    /* clang-format off */
     fprintf(stderr, "usage: s2nd [options] host port\n");
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
@@ -141,14 +142,11 @@ void usage()
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
-    fprintf(stderr,
-            "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  --cert\n");
     fprintf(stderr, "    Path to a PEM encoded certificate [chain]. Option can be repeated to load multiple certs.\n");
     fprintf(stderr, "  --key\n");
-    fprintf(stderr,
-            "    Path to a PEM encoded private key that matches cert. Option can be repeated to load multiple "
-            "certs.\n");
+    fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Option can be repeated to load multiple certs.\n");
     fprintf(stderr, "  -m\n");
     fprintf(stderr, "  --mutualAuth\n");
     fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
@@ -156,12 +154,8 @@ void usage()
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
     fprintf(stderr, "  --parallelize\n");
-    fprintf(stderr,
-            "    Create a new Connection handler thread for each new connection. Useful for tests with lots of "
-            "connections.\n");
-    fprintf(stderr,
-            "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session "
-            "cache.\n");
+    fprintf(stderr, "    Create a new Connection handler thread for each new connection. Useful for tests with lots of connections.\n");
+    fprintf(stderr, "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session cache.\n");
     fprintf(stderr, "  --prefer-low-latency\n");
     fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
@@ -173,18 +167,12 @@ void usage()
     fprintf(stderr, "  -s\n");
     fprintf(stderr, "  --self-service-blinding\n");
     fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors. \n");
-    fprintf(stderr,
-            "    Warning: this should only be used for testing since skipping blinding may allow timing side "
-            "channels.\n");
+    fprintf(stderr, "    Warning: this should only be used for testing since skipping blinding may allow timing side channels.\n");
     fprintf(stderr, "  -t,--ca-file [file path]\n");
-    fprintf(stderr,
-            "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will "
-            "be used.");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will be used.");
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
-    fprintf(stderr,
-            "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be "
-            "used.");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be used.");
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
@@ -202,23 +190,20 @@ void usage()
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
-    fprintf(stderr,
-            "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
-            "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
-            "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace "
-            "is not allowed before or after the commas.\n"
-            "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -E, --max-early-data \n");
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -N --npn \n");
-    fprintf(stderr,
-            "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal "
-            "the protocols supported.");
+    fprintf(stderr, "    Indicates support for the NPN extension. The '--alpn' option MUST be used with this option to signal the protocols supported.");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
     exit(1);
+    /* clang-format on */
 }
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
