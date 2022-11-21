@@ -42,7 +42,6 @@
  * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
  * immediately before S2N_ERR_T_INTERNAL_START(the first value of he next category).
  */
-/* clang-format off */
 typedef enum {
     /* S2N_ERR_T_OK */
     S2N_ERR_OK = S2N_ERR_T_OK_START,
@@ -307,7 +306,6 @@ typedef enum {
     S2N_ERR_INTERNAL_LIBCRYPTO_ERROR,
     S2N_ERR_T_USAGE_END,
 } s2n_error;
-/* clang-format on */
 
 #define S2N_DEBUG_STR_LEN 128
 extern __thread const char *s2n_debug_str;
