@@ -362,5 +362,3 @@ extern int s2n_calculate_stacktrace(void);
 extern int s2n_print_stacktrace(FILE *fptr);
 extern int s2n_free_stacktrace(void);
 extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
-
-/* clang-format on */
