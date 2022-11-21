@@ -370,6 +370,14 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 * `s2n_connection_get_server_protocol_version()`: The highest TLS protocol version the server supports.
 * `s2n_connection_get_client_protocol_version()`: The highest TLS protocol version the client advertised.
 
+## Config
+
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+
+### Overriding the Config
+
+Some `s2n_config` settings can be overridden on a specific connection if desired. For example, `s2n_config_append_protocol_preference()` appends a list of ALPN protocols to a `s2n_config`. Calling the `s2n_connection_append_protocol_preference()` API will override the list of ALPN protocols for an individual connection. Not all config APIs have a corresponding connection API so if there is one missing contact us with an explanation on why it is required for your use-case.
+
 ## Security Policies
 
 s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.
@@ -681,16 +689,6 @@ And if the maximum fragment length negotiated with the peer is lower than what d
 would normally produce, the lower value will be used.
 
 ## Connection-oriented functions
-
-### s2n\_connection\_set\_config
-
-```c
-int s2n_connection_set_config(struct s2n_connection *conn,
-                              struct s2n_config *config);
-```
-
-**s2n_connection_set_config** Associates a configuration object with a
-connection.
 
 ### s2n\_connection\_set\_fd
 
