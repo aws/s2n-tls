@@ -84,7 +84,7 @@ run_integration_v2_tests() {
 }
 
 # Run Multiple tests on one flag.
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log failure-tests; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC_all.log tmp/verify_drbg.log failure-tests; fi
 
 # Run Individual tests
 if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -D${CMAKE_PQ_OPTION} -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True -DBUILD_SHARED_LIBS=on; cmake --build ./build; make -C build test ARGS=-j$(nproc); fi

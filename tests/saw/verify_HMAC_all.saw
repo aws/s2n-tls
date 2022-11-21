@@ -1,0 +1,4 @@
+
+include "HMAC/spec/verify_HMAC.saw";
+
+verify_s2n_hmac;

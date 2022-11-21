@@ -283,6 +283,7 @@ let hmac_invariants
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
     // Specify the HMAC algorithm.
     crucible_equal (crucible_term {{ st.alg }}) (crucible_term cfg.hmac_alg);
@@ -304,6 +305,7 @@ let hmac_init_spec
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
     alg0 <- crucible_fresh_var "alg" (llvm_int 32);
     hash_block_size0 <- crucible_fresh_var "hash_block_size" (llvm_int 16);
@@ -341,6 +343,7 @@ let hmac_update_spec
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
     let digest_size = cfg.digest_size;
     let block_size = cfg.block_size;
@@ -355,7 +358,8 @@ let hmac_update_spec
 
     size <- crucible_fresh_var "size" (llvm_int 32);
     let uint32_max = {{~0 : [32]}};
-    let highest_32_bit = {{4294949760 : [32]}};
+    let highest_32_bit = cfg.highest_32_bit;
+    let highest_32_bit = {{ `highest_32_bit : [32] }};
     crucible_precond {{ size <= uint32_max - highest_32_bit }};
     crucible_precond {{ ((highest_32_bit + size) % (0 # st0.hash_block_size)) <= uint32_max - st0.currently_in_hash_block }};
 
@@ -378,6 +382,7 @@ let hmac_digest_spec
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
     (out, pout) <- ptr_to_fresh "out" (llvm_array cfg.digest_size (llvm_int 8));
 
@@ -413,6 +418,7 @@ let hmac_digest_size_spec
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
     psize <- crucible_alloc (llvm_int 8);
     crucible_execute_func [crucible_term cfg.hmac_alg, psize];

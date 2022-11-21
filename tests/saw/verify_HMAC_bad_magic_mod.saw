@@ -1,0 +1,13 @@
+
+include "HMAC/spec/verify_HMAC.saw";
+
+let sha256_bad_magic_mod_cfg =
+  { name            = "SHA256_bad_magic_mod"
+  , hmac_alg        = {{ S2N_HMAC_SHA256 }}
+  , digest_size     = 32
+  , block_size      = 64
+  , hash_block_size = 64
+  , highest_32_bit  = 4294949761
+  };
+
+verify_s2n_hmac_at_config sha256_bad_magic_mod_cfg;

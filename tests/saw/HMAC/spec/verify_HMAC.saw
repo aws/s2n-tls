@@ -21,9 +21,9 @@
 
 enable_experimental;
 
-include "HMAC/spec/HMAC.saw";
+include "HMAC.saw";
 
-m <- llvm_load_module "bitcode/all_llvm.bc";
+m <- llvm_load_module "../../bitcode/all_llvm.bc";
 
 // Verifies s2n_hmac_init at 3 key sizes in the given config
 let verify_s2n_hmac_init
@@ -32,6 +32,7 @@ let verify_s2n_hmac_init
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
   set_base 16;
   
@@ -73,6 +74,7 @@ let verify_s2n_hmac_update
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
   set_base 16;
   
@@ -92,6 +94,7 @@ let verify_s2n_hmac_digest
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
   set_base 16;
   
@@ -122,6 +125,7 @@ let none_cfg =
   , digest_size     = 0
   , block_size      = 64
   , hash_block_size = 64
+  , highest_32_bit  = 4294949760
   };
 
 // let sslv3_md5_cfg = <not supported>
@@ -132,6 +136,7 @@ let md5_cfg =
   , digest_size     = 16
   , block_size      = 64
   , hash_block_size = 64
+  , highest_32_bit  = 4294949760
   };
 
 // let sslv3_sha1_cfg = <not supported>
@@ -142,6 +147,7 @@ let sha1_cfg =
   , digest_size     = 20
   , block_size      = 64
   , hash_block_size = 64
+  , highest_32_bit  = 4294949760
   };
 
 let sha224_cfg =
@@ -150,6 +156,7 @@ let sha224_cfg =
   , digest_size     = 28
   , block_size      = 64
   , hash_block_size = 64
+  , highest_32_bit  = 4294949760
   };
 
 let sha256_cfg =
@@ -158,6 +165,7 @@ let sha256_cfg =
   , digest_size     = 32
   , block_size      = 64
   , hash_block_size = 64
+  , highest_32_bit  = 4294949760
   };
 
 let sha384_cfg =
@@ -166,6 +174,7 @@ let sha384_cfg =
   , digest_size     = 48
   , block_size      = 128
   , hash_block_size = 128
+  , highest_32_bit  = 4294949760
   };
 
 let sha512_cfg =
@@ -174,6 +183,7 @@ let sha512_cfg =
   , digest_size     = 64
   , block_size      = 128
   , hash_block_size = 128
+  , highest_32_bit  = 4294949760
   };
 
 let verify_s2n_hmac_at_config
@@ -182,6 +192,7 @@ let verify_s2n_hmac_at_config
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
+             , highest_32_bit  : Int
              }) = do {
   verify_s2n_hmac_init cfg;
   verify_s2n_hmac_update cfg;
@@ -193,5 +204,3 @@ let verify_s2n_hmac = do {
   
   for configs (\config -> verify_s2n_hmac_at_config config);
 };
-
-verify_s2n_hmac;
