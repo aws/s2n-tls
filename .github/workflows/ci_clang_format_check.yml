@@ -7,6 +7,7 @@ jobs:
     strategy:
       matrix:
         path:
+          - 'bin'
           - 'stuffer'
           - 'tls/extensions'
     steps:
