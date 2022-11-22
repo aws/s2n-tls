@@ -31,8 +31,10 @@
 #include "utils/s2n_safety.h"
 uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
-uint8_t default_ticket_key[32] = { 0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc, 0x3f, 0x0d, 0xc4, 0x7b,
-    0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b, 0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2, 0xb3, 0xe5 };
+uint8_t default_ticket_key[32] = { 0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+    0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+    0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+    0xb3, 0xe5 };
 
 struct session_cache_entry session_cache[256];
 
@@ -184,18 +186,24 @@ int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, 
 
 /* An inverse map from an ascii value to a hexadecimal nibble value
  * accounts for all possible char values, where 255 is invalid value */
-static const uint8_t hex_inverse[256] = { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 255, 255, 255, 255, 255, 255, 255,
-    10, 11, 12, 13, 14, 15, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 10, 11, 12, 13, 14, 15, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255 };
+static const uint8_t hex_inverse[256] = {
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 255, 255, 255, 255, 255, 255,
+    255, 10, 11, 12, 13, 14, 15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 10, 11, 12, 13, 14, 15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+};
 
 int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len)
 {
@@ -266,8 +274,7 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
                 uint32_t max_secret_len = strlen(token) / 2;
                 uint8_t *secret = malloc(max_secret_len);
                 GUARD_EXIT_NULL(secret);
-                GUARD_EXIT(s2n_str_hex_to_bytes((const unsigned char *) token, secret, max_secret_len),
-                        "Error converting hex-encoded psk secret to bytes\n");
+                GUARD_EXIT(s2n_str_hex_to_bytes((const unsigned char *) token, secret, max_secret_len), "Error converting hex-encoded psk secret to bytes\n");
                 GUARD_EXIT(s2n_psk_set_secret(*psk, secret, max_secret_len), "Error setting psk secret\n");
                 free(secret);
             } break;
@@ -284,8 +291,7 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     return S2N_SUCCESS;
 }
 
-int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH],
-        size_t psk_list_len)
+int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH], size_t psk_list_len)
 {
     GUARD_EXIT_NULL(conn);
     GUARD_EXIT_NULL(psk_optarg_list);
@@ -300,8 +306,7 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
     return S2N_SUCCESS;
 }
 
-int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings,
-        const char *cipher_prefs, const char *session_ticket_key_file_path)
+int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path)
 {
     GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
 
@@ -309,18 +314,14 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
-    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache),
-            "Error setting cache store callback");
+    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache), "Error setting cache store callback");
 
-    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache),
-            "Error setting cache retrieve callback");
+    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache), "Error setting cache retrieve callback");
 
-    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache),
-            "Error setting cache retrieve callback");
+    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache), "Error setting cache retrieve callback");
 
     if (conn_settings.enable_mfl) {
-        GUARD_EXIT(s2n_config_accept_max_fragment_length(config),
-                "Error enabling TLS maximum fragment length extension in server");
+        GUARD_EXIT(s2n_config_accept_max_fragment_length(config), "Error enabling TLS maximum fragment length extension in server");
     }
 
     if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
@@ -359,9 +360,7 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
             st_key_length = sizeof(default_ticket_key);
         }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key,
-                    st_key_length, 0)
-                != 0) {
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
@@ -369,8 +368,7 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
     return 0;
 }
 
-int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config,
-        struct conn_settings settings)
+int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings)
 {
     if (settings.self_service_blinding) {
         s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
@@ -380,8 +378,7 @@ int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_
         GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED), "Error setting client auth type");
 
         if (settings.ca_dir || settings.ca_file) {
-            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir),
-                    "Error adding verify location");
+            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir), "Error adding verify location");
         }
 
         if (settings.insecure) {
@@ -405,15 +402,15 @@ int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_
         GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
     }
 
-    GUARD_RETURN(s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
+    GUARD_RETURN(
+            s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
             "Error setting external psk list");
 
     GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
     return 0;
 }
 
-int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size,
-        const void *value, uint64_t value_size)
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -431,8 +428,7 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
     return 0;
 }
 
-int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value,
-        uint64_t *value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size)
 {
     struct session_cache_entry *cache = ctx;
 

@@ -202,8 +202,8 @@ void usage()
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
-    exit(1);
     /* clang-format on */
+    exit(1);
 }
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -524,8 +524,7 @@ int main(int argc, char *const *argv)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc,
-                    ERR_error_string(fips_rc, ssl_error_buf));
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
             exit(1);
         }
         printf("s2nd entered FIPS mode\n");
@@ -547,8 +546,7 @@ int main(int argc, char *const *argv)
     }
 
     if (num_user_certificates != num_user_private_keys) {
-        fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates,
-                num_user_private_keys);
+        fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates, num_user_private_keys);
         exit(1);
     }
 
@@ -563,8 +561,7 @@ int main(int argc, char *const *argv)
 
     for (int i = 0; i < num_certificates; i++) {
         struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-        GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]),
-                "Error getting certificate/key");
+        GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]), "Error getting certificate/key");
 
         if (ocsp_response_file_path) {
             int fd = open(ocsp_response_file_path, O_RDONLY);
@@ -606,8 +603,7 @@ int main(int argc, char *const *argv)
 
     if (alpn) {
         const char *protocols[] = { alpn };
-        GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)),
-                "Failed to set alpn");
+        GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
     }
 
     if (send_buffer_size != 0) {
@@ -623,7 +619,11 @@ int main(int argc, char *const *argv)
     if (key_log_path) {
         key_log_file = fopen(key_log_path, "a");
         GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
-        GUARD_EXIT(s2n_config_set_key_log_cb(config, key_log_callback, (void *) key_log_file),
+        GUARD_EXIT(
+                s2n_config_set_key_log_cb(
+                        config,
+                        key_log_callback,
+                        (void *) key_log_file),
                 "Failed to set key log callback");
     }
 

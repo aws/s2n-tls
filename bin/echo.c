@@ -87,8 +87,7 @@ int wait_for_event(int fd, s2n_blocked_status blocked)
 int early_data_recv(struct s2n_connection *conn)
 {
     uint32_t max_early_data_size = 0;
-    GUARD_RETURN(s2n_connection_get_max_early_data_size(conn, &max_early_data_size),
-            "Error getting max early data size");
+    GUARD_RETURN(s2n_connection_get_max_early_data_size(conn, &max_early_data_size), "Error getting max early data size");
     if (max_early_data_size == 0) {
         return S2N_SUCCESS;
     }
@@ -127,7 +126,8 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     ssize_t data_sent = 0;
     bool client_success = 0;
     do {
-        client_success = (s2n_send_early_data(conn, data + total_data_sent, len - total_data_sent, &data_sent, &blocked)
+        client_success = (s2n_send_early_data(conn, data + total_data_sent,
+                                  len - total_data_sent, &data_sent, &blocked)
                 >= S2N_SUCCESS);
         total_data_sent += data_sent;
     } while (total_data_sent < len && !client_success);
@@ -206,13 +206,11 @@ int print_connection_info(struct s2n_connection *conn)
     }
 
     uint16_t identity_length = 0;
-    GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length),
-            "Error getting negotiated psk identity length from the connection\n");
+    GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length), "Error getting negotiated psk identity length from the connection\n");
     if (identity_length != 0 && !session_resumed) {
         uint8_t *identity = (uint8_t *) malloc(identity_length);
         GUARD_EXIT_NULL(identity);
-        GUARD_EXIT(s2n_connection_get_negotiated_psk_identity(conn, identity, identity_length),
-                "Error getting negotiated psk identity from the connection\n");
+        GUARD_EXIT(s2n_connection_get_negotiated_psk_identity(conn, identity, identity_length), "Error getting negotiated psk identity from the connection\n");
         printf("Negotiated PSK identity: %s\n", identity);
         free(identity);
     }
@@ -245,9 +243,11 @@ int negotiate(struct s2n_connection *conn, int fd)
     s2n_blocked_status blocked;
     while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"),
+            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
+                    s2n_strerror(s2n_errno, "EN"),
                     s2n_strerror_debug(s2n_errno, "EN"));
-            fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
+            fprintf(stderr, "Alert: %d\n",
+                    s2n_connection_get_alert(conn));
             S2N_ERROR_PRESERVE_ERRNO();
         }
 
@@ -269,8 +269,7 @@ int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
     ssize_t data_read = 0;
 
     GUARD_RETURN(s2n_renegotiate_wipe(conn), "Unable to prepare connection for renegotiate");
-    GUARD_RETURN(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
-            "Error setting ClientAuth optional");
+    GUARD_RETURN(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
 
     fprintf(stdout, "RENEGOTIATE\n");
     fflush(stdout);
@@ -317,7 +316,8 @@ void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64
         ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, blocked);
         if (bytes_written < 0) {
             if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-                fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                fprintf(stderr, "Error writing to connection: '%s'\n",
+                        s2n_strerror(s2n_errno, "EN"));
                 exit(1);
             }
 
@@ -365,8 +365,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
                         continue;
                     }
 
-                    fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"),
-                            s2n_connection_get_alert(conn));
+                    fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
                     exit(1);
                 }
 
@@ -423,13 +422,15 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
             if (readers[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 fprintf(stderr, "Error polling from socket: err=%d hup=%d nval=%d\n",
-                        (readers[0].revents & POLLERR) ? 1 : 0, (readers[0].revents & POLLHUP) ? 1 : 0,
+                        (readers[0].revents & POLLERR) ? 1 : 0,
+                        (readers[0].revents & POLLHUP) ? 1 : 0,
                         (readers[0].revents & POLLNVAL) ? 1 : 0);
                 POSIX_BAIL(S2N_ERR_POLLING_FROM_SOCKET);
             }
 
             if (readers[1].revents & (POLLERR | POLLNVAL)) {
-                fprintf(stderr, "Error polling from socket: err=%d nval=%d\n", (readers[1].revents & POLLERR) ? 1 : 0,
+                fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
+                        (readers[1].revents & POLLERR) ? 1 : 0,
                         (readers[1].revents & POLLNVAL) ? 1 : 0);
                 POSIX_BAIL(S2N_ERR_POLLING_FROM_SOCKET);
             }

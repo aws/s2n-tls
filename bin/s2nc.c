@@ -121,8 +121,8 @@ void usage()
     fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
     fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
-    exit(1);
     /* clang-format on */
+    exit(1);
 }
 
 size_t session_state_length = 0;
@@ -176,8 +176,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
-    GUARD_EXIT(s2n_config_set_status_request_type(config, type),
-            "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+    GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 
     if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) < 0) {
         print_s2n_error("Error setting host name verification function.");
@@ -185,8 +184,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
     if (type == S2N_STATUS_REQUEST_OCSP) {
         if (s2n_config_set_check_stapled_ocsp_response(config, 1)) {
-            print_s2n_error(
-                    "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
         }
     }
 
@@ -242,8 +240,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
             protocols[idx][length] = '\0';
         }
 
-        GUARD_EXIT(s2n_config_set_protocol_preferences(config, (const char *const *) protocols, protocol_count),
-                "Failed to set protocol preferences");
+        GUARD_EXIT(s2n_config_set_protocol_preferences(config, (const char *const *) protocols, protocol_count), "Failed to set protocol preferences");
 
         while (protocol_count) {
             protocol_count--;
@@ -524,8 +521,7 @@ int main(int argc, char *const *argv)
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
             char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc,
-                    ERR_error_string(fips_rc, ssl_error_buf));
+            fprintf(stderr, "s2nc failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
             exit(1);
         }
         printf("s2nc entered FIPS mode\n");
@@ -591,10 +587,8 @@ int main(int argc, char *const *argv)
 
         if (client_cert_input) {
             struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-            GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, client_cert, client_key),
-                    "Error getting certificate/key");
-            GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key),
-                    "Error setting certificate/key");
+            GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, client_cert, client_key), "Error getting certificate/key");
+            GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
         }
 
         if (ca_file || ca_dir) {
@@ -608,15 +602,18 @@ int main(int argc, char *const *argv)
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
-            GUARD_EXIT(s2n_config_set_session_ticket_cb(config, test_session_ticket_cb, &session_ticket_recv),
-                    "Error setting session ticket callback");
+            GUARD_EXIT(s2n_config_set_session_ticket_cb(config, test_session_ticket_cb, &session_ticket_recv), "Error setting session ticket callback");
             session_ticket_recv = 0;
         }
 
         if (key_log_path) {
             key_log_file = fopen(key_log_path, "a");
             GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
-            GUARD_EXIT(s2n_config_set_key_log_cb(config, key_log_callback, (void *) key_log_file),
+            GUARD_EXIT(
+                    s2n_config_set_key_log_cb(
+                            config,
+                            key_log_callback,
+                            (void *) key_log_file),
                     "Failed to set key log callback");
         }
 
@@ -642,8 +639,7 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd), "Error setting file descriptor");
 
-        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL),
-                "Error setting ClientAuth optional");
+        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
 
         if (use_corked_io) {
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
@@ -655,14 +651,12 @@ int main(int argc, char *const *argv)
             free(session_state);
             session_state = calloc(session_state_length, sizeof(uint8_t));
             GUARD_EXIT_NULL(session_state);
-            GUARD_EXIT(load_file_to_array(ticket_in, session_state, session_state_length),
-                    "Failed to read ticket-in file");
+            GUARD_EXIT(load_file_to_array(ticket_in, session_state, session_state_length), "Failed to read ticket-in file");
         }
 
         /* Update session state in connection if exists */
         if (session_state_length > 0) {
-            GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length),
-                    "Error setting session state in connection");
+            GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
         GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
@@ -683,8 +677,7 @@ int main(int argc, char *const *argv)
             /* Send early data if we have a received a session ticket from the server */
             if (session_state_length) {
                 uint32_t early_data_length = strlen(early_data);
-                GUARD_EXIT(early_data_send(conn, (uint8_t *) early_data, early_data_length),
-                        "Error sending early data");
+                GUARD_EXIT(early_data_send(conn, (uint8_t *) early_data, early_data_length), "Error sending early data");
             }
         }
 
@@ -719,8 +712,7 @@ int main(int argc, char *const *argv)
                 }
             }
             if (ticket_out) {
-                GUARD_EXIT(write_array_to_file(ticket_out, session_state, session_state_length),
-                        "Failed to write to ticket-out file");
+                GUARD_EXIT(write_array_to_file(ticket_out, session_state, session_state_length), "Failed to write to ticket-out file");
             }
         }
 
