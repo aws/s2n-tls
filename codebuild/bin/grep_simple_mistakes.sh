@@ -168,7 +168,7 @@ done
 #############################################
 ## Assert all ".[c|h]" source files have the correct file mode.
 #############################################
-S2N_FILES_WITH_WRONG_MODE=$(find . \( -name "*.c" -o -name "*.h" \) -a ! -perm 644)
+S2N_FILES_WITH_WRONG_MODE=$(find "$PWD" \( -name '*.c' -o -name '*.h' \) -a \! -perm 644)
 if [[ -n $S2N_FILES_WITH_WRONG_MODE ]]; then
   for file in $S2N_FILES_WITH_WRONG_MODE; do
     FAILED=1
