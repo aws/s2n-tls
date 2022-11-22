@@ -34,48 +34,11 @@
                                 SIZEOF_UINT24   + /* message len */ \
                                 sizeof(uint8_t)   /* message */
 
-bool s2n_post_handshake_is_known(uint8_t message_type);
 int s2n_key_update_write(struct s2n_blob *out);
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    /* Test: s2n_post_handshake_is_known
-     *
-     * Unfortunately, s2n_post_handshake_is_known relies on a hardcoded list
-     * to identify known handshake messages not allowed post-handshake.
-     *
-     * This test verifies that list is correct and enforces that we keep it up to date.
-     */
-    {
-        /* We rely on record type being set to identify invalid state machine entries.
-         * Verify that assumption.
-         */
-        EXPECT_NOT_EQUAL(TLS_HANDSHAKE, 0);
-
-        for (size_t i = 0; i < UINT8_MAX; i++) {
-            for (size_t j = 0; j < s2n_array_len(state_machine); j++) {
-                if (state_machine[j].record_type != TLS_HANDSHAKE) {
-                    continue;
-                }
-                if (state_machine[j].message_type != i) {
-                    continue;
-                }
-                EXPECT_TRUE(s2n_post_handshake_is_known(i));
-            }
-
-            for (size_t j = 0; j < s2n_array_len(tls13_state_machine); j++) {
-                if (tls13_state_machine[j].record_type != TLS_HANDSHAKE) {
-                    continue;
-                }
-                if (tls13_state_machine[j].message_type != i) {
-                    continue;
-                }
-                EXPECT_TRUE(s2n_post_handshake_is_known(i));
-            }
-        }
-    }
 
     /* s2n_post_handshake_recv */
     {   
@@ -98,7 +61,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
 
-        /* post_handshake_recv processes an unknown post handshake message */
+        /* post_handshake_recv rejects an unknown post handshake message */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -111,7 +74,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, S2N_KEY_UPDATE_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
-            EXPECT_OK(s2n_post_handshake_recv(conn));
+            EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 

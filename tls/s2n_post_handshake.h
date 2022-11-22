@@ -19,7 +19,7 @@ struct s2n_connection;
 
 struct s2n_post_handshake {
     struct s2n_stuffer in;
-    uint8_t in_bytes[TLS_HANDSHAKE_HEADER_LENGTH];
+    uint8_t header_in[TLS_HANDSHAKE_HEADER_LENGTH];
 };
 
 S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn);

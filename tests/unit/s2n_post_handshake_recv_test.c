@@ -33,7 +33,6 @@
 
 #define S2N_TEST_MESSAGE_COUNT 5
 
-bool s2n_post_handshake_is_known(uint8_t message_type);
 int s2n_key_update_write(struct s2n_blob *out);
 
 static s2n_mem_malloc_callback original_malloc_callback = NULL;
@@ -189,7 +188,6 @@ int main(int argc, char **argv)
     s2n_mem_malloc_cb = s2n_count_mallocs_cb;
 
     const uint8_t unknown_message_type = UINT8_MAX;
-    EXPECT_FALSE(s2n_post_handshake_is_known(unknown_message_type));
     const uint32_t test_large_message_size = 3001;
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -217,7 +215,6 @@ int main(int argc, char **argv)
         S2N_TLS_MAXIMUM_FRAGMENT_LENGTH,
     };
     const uint8_t modes[] = { S2N_CLIENT, S2N_SERVER };
-    const uint32_t test_message_sizes[] = { 0, 1, 2, test_large_message_size };
 
     /* Test: client and server receive small post-handshake messages (KeyUpdates) */
     for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
@@ -457,7 +454,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test: client and server ignore unknown messages */
+    /* Test: client and server reject unknown messages */
     for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
         uint32_t fragment_size = fragment_sizes[frag_i];
 
@@ -469,25 +466,20 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_sender_and_receiver(config, sender, receiver, &io_pair));
 
-            /* Write unknown messages */
-            DEFER_CLEANUP(struct s2n_stuffer messages = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&messages, 0));
-            for (size_t i = 0; i < s2n_array_len(test_message_sizes); i++) {
-                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&messages, unknown_message_type));
-                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&messages, test_message_sizes[i]));
-                EXPECT_SUCCESS(s2n_stuffer_skip_write(&messages, test_message_sizes[i]));
+            /* Send unknown message */
+            DEFER_CLEANUP(struct s2n_stuffer message = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&message, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&message, unknown_message_type));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&message, test_large_message_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&message, test_large_message_size));
+            EXPECT_OK(s2n_test_send_records(sender, message, fragment_size));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(sender, receiver), S2N_ERR_BAD_MESSAGE);
+
+            /* No post-handshake message should trigger the server to allocate memory */
+            if (mode == S2N_SERVER) {
+                EXPECT_EQUAL(mallocs_count, 0);
             }
-
-            EXPECT_OK(s2n_test_send_records(sender, messages, fragment_size));
-            EXPECT_OK(s2n_test_basic_recv(sender, receiver));
-            /* No memory should be allocated. We don't need to parse the message. */
-            EXPECT_EQUAL(mallocs_count, 0);
-
-            EXPECT_OK(s2n_test_send_records(sender, messages, fragment_size));
-            EXPECT_OK(s2n_test_blocking_recv(sender, receiver, &io_pair));
-
-            /* No memory should be allocated. We don't need to parse the message. */
-            EXPECT_EQUAL(mallocs_count, 0);
         }
     }
 
@@ -509,20 +501,12 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
         EXPECT_OK(s2n_test_init_sender_and_receiver(config, sender, receiver, &io_pair));
 
-        /* Write an unknown message */
+        /* Write a partial message */
         DEFER_CLEANUP(struct s2n_stuffer message = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&message, 0));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&message, unknown_message_type));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint24(&message, test_large_message_size));
-        EXPECT_SUCCESS(s2n_stuffer_skip_write(&message, test_large_message_size));
-
-        /* Verify we can receive the records */
-        EXPECT_OK(s2n_test_send_records(sender, message, fragment_size));
-        EXPECT_OK(s2n_test_basic_recv(sender, receiver));
-
-        /* Write only a partial message */
-        EXPECT_SUCCESS(s2n_stuffer_reread(&message));
-        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&message, 1));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&message, TLS_KEY_UPDATE));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint24(&message, S2N_KEY_UPDATE_LENGTH));
+        /* Don't write the actual message body -- we want the message to be incomplete */
 
         /* Verify we can't receive the records: s2n_test_send_records does not send
          * the complete handshake message, so we receive the application data sent by

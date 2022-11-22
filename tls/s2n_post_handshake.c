@@ -22,35 +22,6 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-/* Check if a handshake message is supported by s2n-tls.
- * This includes ALL handshake messages, including messages
- * not allowed as post-handshake.
- */
-bool s2n_post_handshake_is_known(uint8_t message_type)
-{
-    switch (message_type) {
-        case TLS_SERVER_NEW_SESSION_TICKET:
-        case TLS_HELLO_REQUEST:
-        case TLS_KEY_UPDATE:
-        case TLS_CLIENT_HELLO:
-        case TLS_SERVER_HELLO:
-        case TLS_END_OF_EARLY_DATA:
-        case TLS_ENCRYPTED_EXTENSIONS:
-        case TLS_CERTIFICATE:
-        case TLS_SERVER_KEY:
-        case TLS_CERT_REQ:
-        case TLS_SERVER_HELLO_DONE:
-        case TLS_CERT_VERIFY:
-        case TLS_CLIENT_KEY:
-        case TLS_FINISHED:
-        case TLS_SERVER_CERT_STATUS:
-        case TLS_NPN:
-            return true;
-        default:
-            return false;
-    }
-}
-
 static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
 {
     RESULT_ENSURE_REF(conn);
@@ -65,15 +36,29 @@ static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct
         case TLS_HELLO_REQUEST:
             RESULT_GUARD(s2n_client_hello_request_recv(conn));
             break;
+        case TLS_CERT_REQ:
+            /* TODO: TLS1.3 requires that clients send at least an empty
+             * response after receiving a post-handshake CertificateRequest.
+             * However, we currently treat these requests as errors.
+             */
+            RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
         default:
-            /* Ignore unknown messages */
-            RESULT_ENSURE(!s2n_post_handshake_is_known(message_type), S2N_ERR_BAD_MESSAGE);
-            break;
+            /* All other messages are unexpected */
+            RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 
     return S2N_RESULT_OK;
 }
 
+/*
+ * Read a handshake message from conn->in.
+ *
+ * Handshake messages can be fragmented, meaning that a single message
+ * may be split between multiple records. conn->in only holds a single
+ * record at a time, so we may need to call this method multiple
+ * times to construct the complete message. We store the partial message
+ * in conn->post_handshake.in between calls.
+ */
 S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -83,18 +68,26 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     uint8_t message_type = 0;
     uint32_t message_len = 0;
 
-    /* We always start reading from the beginning of the message */
+    /* We always start reading from the beginning of the message.
+     * Reset the read progress, but keep the write progress since we
+     * may already have read a partial message.
+     */
     RESULT_GUARD_POSIX(s2n_stuffer_reread(message));
 
-    /* If no space for the fragment exists, start with the minimum, static space */
+    /* At minimum, the message stuffer needs to have enough space to read the header.
+     * For small messages like KeyUpdate and HelloRequest, this is all the space we will need.
+     */
     if (s2n_stuffer_is_freed(message)) {
         struct s2n_blob b = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&b, conn->post_handshake.in_bytes,
-                sizeof(conn->post_handshake.in_bytes)));
+        RESULT_GUARD_POSIX(s2n_blob_init(&b, conn->post_handshake.header_in,
+                sizeof(conn->post_handshake.header_in)));
         RESULT_GUARD_POSIX(s2n_stuffer_init(message, &b));
     }
 
-    /* Try to read the header */
+    /* Try to copy the header into the message stuffer.
+     * The message stuffer may already contain some or all of the header if
+     * we have read fragments of this message from previous records.
+     */
     if (s2n_stuffer_data_available(message) < TLS_HANDSHAKE_HEADER_LENGTH) {
         uint32_t remaining = TLS_HANDSHAKE_HEADER_LENGTH - s2n_stuffer_data_available(message);
         uint32_t to_read = MIN(remaining, s2n_stuffer_data_available(in));
@@ -107,8 +100,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     RESULT_ENSURE(message_len == 0 || s2n_stuffer_data_available(in), S2N_ERR_IO_BLOCKED);
 
     /* If the message is not fragmented, just process it directly from conn->in.
-     * This will be the most common case, and does not require us to allocate
-     * any new memory.
+     * This will be the most common case, and does not require us to allocate any new memory.
      */
     if (s2n_stuffer_data_available(message) == 0 && s2n_stuffer_data_available(in) >= message_len) {
         struct s2n_stuffer full_message = { 0 };
@@ -120,24 +112,11 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Skip unknown message types.
-     * If we can't parse a message, there's no reason to actually allocate memory to store it.
+    /* If the message is fragmented, then the current fragment will be wiped from conn->in
+     * in order to read the next record. So the message stuffer needs enough space to store
+     * the full message as we reconstruct it from multiple records.
+     * For large messages like NewSessionTicket, this will require allocating new memory.
      */
-    if (!s2n_post_handshake_is_known(message_type)) {
-        uint32_t to_skip = MIN(s2n_stuffer_data_available(in), message_len);
-        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(in, to_skip));
-        if (to_skip < message_len) {
-            /* Rewrite header for next fragment */
-            RESULT_GUARD_POSIX(s2n_stuffer_wipe(message));
-            RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(message, message_type));
-            RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(message, message_len - to_skip));
-            RESULT_BAIL(S2N_ERR_IO_BLOCKED);
-        } else {
-            return S2N_RESULT_OK;
-        }
-    }
-
-    /* If insufficient buffer space, resize */
     if (s2n_stuffer_space_remaining(message) < message_len) {
         /* We want to avoid servers allocating memory in response to post-handshake messages
          * to avoid a potential DDOS / resource exhaustion attack.
@@ -147,18 +126,21 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
          */
         RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_BAD_MESSAGE);
 
-        uint32_t total_size = message_len + TLS_HANDSHAKE_HEADER_LENGTH;;
+        uint32_t total_size = message_len + TLS_HANDSHAKE_HEADER_LENGTH;
         if (message->alloced) {
             RESULT_GUARD_POSIX(s2n_stuffer_resize(message, total_size));
         } else {
             /* Manually convert our static stuffer to a growable stuffer */
             RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(message, total_size));
-            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(message, conn->post_handshake.in_bytes, TLS_HANDSHAKE_HEADER_LENGTH));
+            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(message, conn->post_handshake.header_in, TLS_HANDSHAKE_HEADER_LENGTH));
             RESULT_GUARD_POSIX(s2n_stuffer_skip_read(message, TLS_HANDSHAKE_HEADER_LENGTH));
         }
     }
 
-    /* Try to read the rest of the message */
+    /* Try to copy the message body into the message stuffer.
+     * The message stuffer may already contain some of the message body if
+     * we have already read fragments from previous records.
+     */
     if (s2n_stuffer_data_available(message) < message_len) {
         uint32_t remaining = message_len - s2n_stuffer_data_available(message);
         uint32_t to_read = MIN(remaining, s2n_stuffer_data_available(in));
@@ -166,7 +148,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     }
     RESULT_ENSURE(s2n_stuffer_data_available(message) == message_len, S2N_ERR_IO_BLOCKED);
 
-    /* Finish processing */
+    /* Now that the full message is available, process it. */
     RESULT_GUARD(s2n_post_handshake_process(conn, message, message_type));
     return S2N_RESULT_OK;
 }

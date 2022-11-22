@@ -738,8 +738,8 @@ int main(int argc, char **argv)
             /* Test with static buffer */
             for (size_t i = 0; i < 3; i++) {
                 struct s2n_blob static_blob = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&static_blob, conn->post_handshake.in_bytes,
-                        sizeof(conn->post_handshake.in_bytes)));
+                EXPECT_SUCCESS(s2n_blob_init(&static_blob, conn->post_handshake.header_in,
+                        sizeof(conn->post_handshake.header_in)));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
@@ -769,8 +769,8 @@ int main(int argc, char **argv)
             /* Test with static memory */
             for (size_t i = 0; i < 3; i++) {
                 struct s2n_blob static_blob = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&static_blob, conn->post_handshake.in_bytes,
-                        sizeof(conn->post_handshake.in_bytes)));
+                EXPECT_SUCCESS(s2n_blob_init(&static_blob, conn->post_handshake.header_in,
+                        sizeof(conn->post_handshake.header_in)));
                 EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
