@@ -312,8 +312,7 @@ typedef int (*s2n_clock_time_nanoseconds)(void *, uint64_t *);
  *
  * This will cause s2n_negotiate() to return S2N_BLOCKED_ON_APPLICATION_INPUT.
  */
-typedef int (*s2n_cache_retrieve_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size,
-        void *value, uint64_t *value_size);
+typedef int (*s2n_cache_retrieve_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
 
 /**
  * Cache callback function that allows the caller to store SSL session data in a
@@ -328,8 +327,7 @@ typedef int (*s2n_cache_retrieve_callback)(struct s2n_connection *conn, void *, 
  * a pointer to a value which should be stored, 
  * and a 64 bit unsigned integer specified the size of this value.
  */
-typedef int (*s2n_cache_store_callback)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key,
-        uint64_t key_size, const void *value, uint64_t value_size);
+typedef int (*s2n_cache_store_callback)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
 
 /**
 *  Cache callback function that allows the caller to set a callback function 
@@ -471,8 +469,7 @@ extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback,
-        void *data);
+extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
 
 /**
  * Allows the caller to set a callback function that will be used to retrieve SSL
@@ -484,8 +481,7 @@ extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_ca
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config,
-        s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
+extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
 
 /**
  * Allows the caller to set a callback function that will be used to delete SSL
@@ -497,8 +493,7 @@ extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config,
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_cache_delete_callback(struct s2n_config *config,
-        s2n_cache_delete_callback cache_delete_callback, void *data);
+extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data);
 
 /**
  * Called when `s2n_init` is executed.
@@ -574,9 +569,8 @@ typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback,
-        s2n_rand_cleanup_callback rand_cleanup_callback, s2n_rand_seed_callback rand_seed_callback,
-        s2n_rand_mix_callback rand_mix_callback);
+extern int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback,
+        s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback);
 
 /**
  * TLS extensions supported by s2n-tls
@@ -653,8 +647,7 @@ extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem,
-        const char *private_key_pem);
+extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 
 /**
  * Associates a certificate chain and private key with an `s2n_cert_chain_and_key` object.
@@ -672,8 +665,7 @@ extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem,
-        uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
+extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
 
 /**
  * Associates a public certificate chain with a `s2n_cert_chain_and_key` object. It does
@@ -687,8 +679,7 @@ extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key,
-        uint8_t *chain_pem, uint32_t chain_pem_len);
+extern int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len);
 
 /**
  * Frees the memory associated with an `s2n_cert_chain_and_key` object.
@@ -736,8 +727,7 @@ extern s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_c
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data,
-        uint32_t length);
+extern int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 
 /**
  * Set the signed certificate timestamp (SCT) for a certificate chain.
@@ -749,8 +739,7 @@ extern int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *c
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data,
-        uint32_t length);
+extern int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 
 /**
  * A callback function that is invoked if s2n-tls cannot resolve a conflict between 
@@ -764,8 +753,7 @@ extern int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *ch
  * If NULL is returned, the first certificate will be used. Typically an application
  * will use properties like trust and expiry to implement tiebreaking.
  */
-typedef struct s2n_cert_chain_and_key *(*s2n_cert_tiebreak_callback)(struct s2n_cert_chain_and_key *cert1,
-        struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
+typedef struct s2n_cert_chain_and_key *(*s2n_cert_tiebreak_callback)(struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
 
 /**
  * Sets the `s2n_cert_tiebreak_callback` for resolving domain name conflicts. 
@@ -777,8 +765,7 @@ typedef struct s2n_cert_chain_and_key *(*s2n_cert_tiebreak_callback)(struct s2n_
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config,
-        s2n_cert_tiebreak_callback cert_tiebreak_cb);
+extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);
 
 /**
  * Associates a certificate chain and private key with an `s2n_config` object.
@@ -795,8 +782,7 @@ extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config,
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API
-extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem,
-        const char *private_key_pem);
+extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 
 /**
  * The preferred method of associating a certificate chain and private key pair with an `s2n_config` object.
@@ -816,8 +802,7 @@ extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const ch
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
-        struct s2n_cert_chain_and_key *cert_key_pair);
+extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 
 /**
  * Explicitly sets certificate chain and private key pairs to be used as defaults for each auth
@@ -840,7 +825,8 @@ extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
  */
 S2N_API
 extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
-        struct s2n_cert_chain_and_key **cert_key_pairs, uint32_t num_cert_key_pairs);
+        struct s2n_cert_chain_and_key **cert_key_pairs,
+        uint32_t num_cert_key_pairs);
 
 /**
  * Adds to the trust store from a CA file or directory containing trusted certificates.
@@ -855,8 +841,7 @@ extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename,
-        const char *ca_dir);
+extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 
 /**
  * Adds a PEM to the trust store. This will allocate memory, and load PEM into the
@@ -886,7 +871,8 @@ extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const ch
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
-typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED, S2N_VERIFY_AFTER_SIGN_ENABLED } s2n_verify_after_sign;
+typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED,
+    S2N_VERIFY_AFTER_SIGN_ENABLED } s2n_verify_after_sign;
 
 /**
  * Toggle whether generated signatures are verified before being sent.
@@ -1029,8 +1015,7 @@ extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const ch
  * @param protocol_len The length of bytes that should be read from `protocol`. Note: this value cannot be 0, otherwise an error will be returned.
  */
 S2N_API
-extern int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol,
-        uint8_t protocol_len);
+extern int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, uint8_t protocol_len);
 
 /**
  * Sets the application protocol preferences on an `s2n_config` object. 
@@ -1050,15 +1035,15 @@ extern int s2n_config_append_protocol_preference(struct s2n_config *config, cons
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols,
-        int protocol_count);
+extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count);
 
 /**
  * Enum used to define the type, if any, of certificate status request
  * an S2N_CLIENT should make during the handshake. The only supported status request type is
  * OCSP, `S2N_STATUS_REQUEST_OCSP`.
 */
-typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
+typedef enum { S2N_STATUS_REQUEST_NONE = 0,
+    S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
 
 /**
  * Sets up an S2N_CLIENT to request the server certificate status during an SSL handshake. If set
@@ -1074,7 +1059,8 @@ extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_sta
 /**
  * Enum to set Certificate Transparency Support level. 
  */
-typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
+typedef enum { S2N_CT_SUPPORT_NONE = 0,
+    S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
 
 /**
  * Set the Certificate Transparency Support level.
@@ -1096,7 +1082,8 @@ extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_sup
  * @note TLS1.3 terminates a connection for all alerts except user_canceled.
  * @warning S2N_ALERT_FAIL_ON_WARNINGS is the recommended behavior. Past TLS protocol vulnerabilities have involved downgrading alerts to warnings.
  */
-typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0, S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
+typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0,
+    S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
 
 /**
  * Sets the config's alert behavior based on the `s2n_alert_behavior` enum.
@@ -1122,8 +1109,7 @@ extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_be
  * @param length Length of the `data` buffer
  */
 S2N_API
-extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data,
-        uint32_t length);
+extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 
 /**
  * Allows the caller to set a TLS Maximum Fragment Length extension that will be used
@@ -1226,8 +1212,10 @@ extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config,
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len,
-        uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
+extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
+        const uint8_t *name, uint32_t name_len,
+        uint8_t *key, uint32_t key_len,
+        uint64_t intro_time_in_seconds_from_epoch);
 /**
  * Sets user defined context on the `s2n_config` object.
  *
@@ -1252,7 +1240,8 @@ extern int s2n_config_get_ctx(struct s2n_config *config, void **ctx);
 /**
  * Used to declare connections as server or client type, respectively.
  */
-typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
+typedef enum { S2N_SERVER,
+    S2N_CLIENT } s2n_mode;
 
 /**
  * Creates a new connection object. Each s2n-tls SSL/TLS connection uses
@@ -1316,7 +1305,8 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
  * - `S2N_CLIENT_HELLO_CB_NONBLOCKING`:
  *   - In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback returns a response code of 0 s2n-tls will return `S2N_FAILURE` with `S2N_ERR_T_BLOCKED` error type and `s2n_blocked_status` set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. The handshake is paused and further calls to `s2n_negotiate` will continue to return the same error until `s2n_client_hello_cb_done` is invoked for the `s2n_connection` to resume the handshake. This allows s2n-tls clients to process client_hello without blocking and then resume the handshake at a later time. If any of the connection properties were changed on the basis of the server_name extension then `s2n_connection_server_name_extension_used` must be invoked before marking the callback done.
  */
-typedef enum { S2N_CLIENT_HELLO_CB_BLOCKING, S2N_CLIENT_HELLO_CB_NONBLOCKING } s2n_client_hello_cb_mode;
+typedef enum { S2N_CLIENT_HELLO_CB_BLOCKING,
+    S2N_CLIENT_HELLO_CB_NONBLOCKING } s2n_client_hello_cb_mode;
 
 /**
  * Allows the caller to set a callback function that will be called after ClientHello was parsed.
@@ -1327,8 +1317,7 @@ typedef enum { S2N_CLIENT_HELLO_CB_BLOCKING, S2N_CLIENT_HELLO_CB_NONBLOCKING } s
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback,
-        void *ctx);
+extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
 
 /**
  * Sets the callback execution mode.
@@ -1460,8 +1449,7 @@ extern ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint
  * @returns The number of bytes the given extension type takes
  */
 S2N_API
-extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch,
-        s2n_tls_extension_type extension_type);
+extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
 
 /**
  * Copies into the `out` buffer `max_length` bytes of a given extension type on the ClientHello
@@ -1475,8 +1463,7 @@ extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch
  * @returns The number of copied bytes
  */
 S2N_API
-extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type,
-        uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
 
 /**
  * Used to check if a particular extension exists in the client hello.
@@ -1518,8 +1505,7 @@ extern int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, u
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length,
-        uint32_t max_length);
+extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
  * Sets the file descriptor for a s2n connection.
@@ -1710,8 +1696,7 @@ extern int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool 
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold,
-        uint16_t timeout_threshold);
+extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 
 /** 
  * Sets the callback to use for verifying that a hostname from an X.509 certificate is trusted.
@@ -1742,7 +1727,8 @@ extern int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, 
  * activity on the connection  for the specified number of nanoseconds before calling
  * close() or shutdown().
  */
-typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
+typedef enum { S2N_BUILT_IN_BLINDING,
+    S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
 /**
  * Used to configure s2n-tls to either use built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or 
@@ -1785,8 +1771,7 @@ extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, co
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol,
-        uint8_t protocol_len);
+extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, uint8_t protocol_len);
 
 /**
  * Sets the protocol preference override for the s2n_connection. Calling this function is not necessary unless you want
@@ -1798,8 +1783,7 @@ extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char *const *protocols,
-        int protocol_count);
+extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char *const *protocols, int protocol_count);
 
 /**
  * Sets the server name for the connection.
@@ -1922,8 +1906,7 @@ extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t si
  * @returns The number of bytes written, and may indicate a partial write. 
  */
 S2N_API
-extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count,
-        s2n_blocked_status *blocked);
+extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
 
 /**
  * Works in the same way as s2n_send() except that it accepts vectorized buffers. Will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. 
@@ -1956,8 +1939,7 @@ extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, 
  * @returns The number of bytes written, and may indicate a partial write. 
  */
 S2N_API
-extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs,
-        s2n_blocked_status *blocked);
+extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 
 /**
  * Decrypts and reads **size* to `buf` data from the associated
@@ -2071,7 +2053,9 @@ extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked
  *
  * Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
  */
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
+typedef enum { S2N_CERT_AUTH_NONE,
+    S2N_CERT_AUTH_REQUIRED,
+    S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 
 /**
  * Gets Client Certificate authentication method the s2n_config object is using.
@@ -2131,8 +2115,7 @@ extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out,
-        uint32_t *cert_chain_len);
+extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
 /**
  * Sets the initial number of session tickets to send after a >=TLS1.3 handshake. The default value is one ticket.
@@ -2384,8 +2367,7 @@ typedef enum {
  * @returns S2N_SUCCESS on success. S2N_FAILURE if bad parameters are received. 
  */
 S2N_API
-extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn,
-        s2n_tls_signature_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
 
 /**
  * Get the connection's selected digest algorithm.
@@ -2396,8 +2378,7 @@ extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection
  * @returns S2N_SUCCESS on success. S2N_FAILURE if bad parameters are received. 
  */
 S2N_API
-extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn,
-        s2n_tls_hash_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 
 /**
  * Get the client certificate's signature algorithm.
@@ -2408,8 +2389,7 @@ extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *c
  * @returns S2N_SUCCESS on success. S2N_FAILURE if bad parameters are received. 
  */
 S2N_API
-extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn,
-        s2n_tls_signature_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
 
 /**
  * Get the client certificate's digest algorithm.
@@ -2420,8 +2400,7 @@ extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2
  * @returns S2N_SUCCESS on success. S2N_FAILURE if bad parameters are received. 
  */
 S2N_API
-extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn,
-        s2n_tls_hash_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 
 /**
  * Get the certificate used during the TLS handshake
@@ -2466,8 +2445,7 @@ extern int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_
  * @param cert_idx The certificate index for the requested certificate within the s2n certificate chain.
  */
 S2N_API
-extern int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert,
-        const uint32_t cert_idx);
+extern int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 
 /**
  * Returns the s2n certificate in DER format along with its length.
@@ -2508,8 +2486,7 @@ extern int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cer
  * @param cert_chain The returned validated peer certificate chain `cert_chain` retrieved from the s2n connection.
  */
 S2N_API
-extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn,
-        struct s2n_cert_chain_and_key *cert_chain);
+extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain);
 
 /**
  * Returns the length of the DER encoded extension value of the ASN.1 X.509 certificate extension.
@@ -2533,8 +2510,7 @@ extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const
  * @param critical This return value contains the boolean value for `critical`.
  */
 S2N_API
-extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value,
-        uint32_t *ext_value_len, bool *critical);
+extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 
 /**
  * Returns the UTF8 String length of the ASN.1 X.509 certificate extension data. 
@@ -2544,8 +2520,7 @@ extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_
  * @param utf8_str_len This return value contains the UTF8 String length of the ASN.1 X.509 certificate extension data.
  */
 S2N_API
-extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len,
-        uint32_t *utf8_str_len);
+extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
 
 /**
  * Returns the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
@@ -2559,8 +2534,7 @@ extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *ex
  * When used as an output parameter, `out_len` holds the actual length of UTF8 String returned.
  */
 S2N_API
-extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len,
-        uint8_t *out_data, uint32_t *out_len);
+extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
 
 /** 
  * Pre-shared key (PSK) Hash Algorithm - RFC 8446 Section-2.2
@@ -2661,7 +2635,10 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
  * using the previous connection via session resumption, and `S2N_PSK_MODE_EXTERNAL`, which represents PSKs 
  * established out-of-band/externally using a secure mutually agreed upon mechanism.
  */
-typedef enum { S2N_PSK_MODE_RESUMPTION, S2N_PSK_MODE_EXTERNAL } s2n_psk_mode;
+typedef enum {
+    S2N_PSK_MODE_RESUMPTION,
+    S2N_PSK_MODE_EXTERNAL
+} s2n_psk_mode;
 
 /**
  * Sets the PSK mode on the s2n config object. 
@@ -2715,8 +2692,7 @@ int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *con
  * greater than this `max_identity_length` value an error will be returned.
  */
 S2N_API
-int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity,
-        uint16_t max_identity_length);
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
 
 struct s2n_offered_psk;
 
@@ -2816,8 +2792,8 @@ S2N_API int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_lis
  * @param context A pointer to a context for the caller to pass state to the callback, if needed.
  * @param psk_list A pointer to the offered PSK list being read.
  */
-typedef int (
-        *s2n_psk_selection_callback)(struct s2n_connection *conn, void *context, struct s2n_offered_psk_list *psk_list);
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
+        struct s2n_offered_psk_list *psk_list);
 
 /**
  * Sets the callback to select the matching PSK. 
@@ -3018,12 +2994,14 @@ struct s2n_async_pkey_op;
  * - `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
  * - `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
  */
-typedef enum { S2N_ASYNC_PKEY_VALIDATION_FAST, S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
+typedef enum { S2N_ASYNC_PKEY_VALIDATION_FAST,
+    S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
 
 /**
  * The type of private key operation
  */
-typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
+typedef enum { S2N_ASYNC_DECRYPT,
+    S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
 
 /**
  * Callback function for handling private key operations
@@ -3241,8 +3219,7 @@ S2N_API int s2n_connection_set_server_max_early_data_size(struct s2n_connection 
  * @param context_size The size of the data to read from the `context` pointer.
  * @returns A POSIX error signal. If successful, the context was updated.
  */
-S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context,
-        uint16_t context_size);
+S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context, uint16_t context_size);
 
 /**
  * Configures a particular pre-shared key to allow early data.
@@ -3326,8 +3303,7 @@ S2N_API int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2
  * @param allowed_early_data_size A pointer which will be set to the remaining early data currently allowed by `conn`
  * @returns A POSIX error signal.
  */
-S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn,
-        uint32_t *allowed_early_data_size);
+S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
 
 /**
  * Reports the maximum size of the early data allowed by a connection.
@@ -3356,8 +3332,8 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
  * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
  * @returns A POSIX error signal. The error should be handled as in `s2n_negotiate`.
  */
-S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len, ssize_t *data_sent,
-        s2n_blocked_status *blocked);
+S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
+        ssize_t *data_sent, s2n_blocked_status *blocked);
 
 /**
  * Called by the server to begin negotiation and accept any early data the client sends.
@@ -3423,8 +3399,7 @@ S2N_API int s2n_offered_early_data_get_context_length(struct s2n_offered_early_d
  * @param max_len The size of `context`. Must be >= to the result of `s2n_offered_early_data_get_context_length`.
  * @returns A POSIX error signal.
  */
-S2N_API int s2n_offered_early_data_get_context(struct s2n_offered_early_data *early_data, uint8_t *context,
-        uint16_t max_len);
+S2N_API int s2n_offered_early_data_get_context(struct s2n_offered_early_data *early_data, uint8_t *context, uint16_t max_len);
 
 /**
  * Reject early data offered by the client.

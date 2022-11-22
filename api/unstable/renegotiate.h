@@ -71,8 +71,7 @@ typedef enum {
  * @param response How the request should be handled.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-typedef int (
-        *s2n_renegotiate_request_cb)(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response);
+typedef int (*s2n_renegotiate_request_cb)(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response);
 
 /**
  * Sets a method to be called when the client receives a request to renegotiate.
@@ -83,8 +82,7 @@ typedef int (
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
 S2N_API
-int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb callback,
-        void *context);
+int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb callback, void *context);
 
 /**
  * Reset the connection so that it can be renegotiated.
