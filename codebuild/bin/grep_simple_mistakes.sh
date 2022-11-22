@@ -168,10 +168,10 @@ done
 #############################################
 ## Assert all ".[c|h]" source files have the correct file mode.
 #############################################
-S2N_FILES_WITH_WRONG_MODE=$(find "$PWD" \( -name "*.c" -o -name "*.h" \) -a ! -perm a+rwx,u-x,g-wx,o-wx | xargs)
+S2N_FILES_WITH_WRONG_MODE=$(find "$PWD" \( -name "*.c" -o -name "*.h" \) -a ! -perm a+rwx,u-x,g-wx,o-wx)
 for file in $S2N_FILES_WITH_WRONG_MODE; do
   FAILED=1
-  printf "\\033[31;1mFile mode of %s is not 644. Please run \`find s2n-tls/ -name '*.c' -o -name '*.h' | xargs chmod 644\` to fix all file modes.\\033[0m\\n" "$file"
+  printf "\\033[31;1mFile mode of %s is not 644. Please run \`find s2n-tls/ -name '*.c' -o -name '*.h' -exec chmod 644 {} \\;\` to fix all file modes.\\033[0m\\n" "$file"
 done
 
 if [ $FAILED == 1 ]; then
