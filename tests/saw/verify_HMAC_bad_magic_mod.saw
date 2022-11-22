@@ -1,6 +1,11 @@
 
 include "HMAC/spec/verify_HMAC.saw";
 
+/*
+ * The sha_bad_magic_mod patch changes the highest_32_bit value in s2n_hmac_update from 4294949760 to 4294949761. To
+ * ensure SAW tests this function with the correct values when this patch is applied, the highest_32_bit value is
+ * increased in SAW as well, via this config.
+ */
 let sha256_bad_magic_mod_cfg =
   { name            = "SHA256_bad_magic_mod"
   , hmac_alg        = {{ S2N_HMAC_SHA256 }}
