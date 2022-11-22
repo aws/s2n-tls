@@ -1,5 +1,5 @@
 name: clang-format Check
-on: [push, pull_request]
+on: [pull_request]
 jobs:
   formatting-check:
     name: Formatting Check
@@ -8,6 +8,7 @@ jobs:
       matrix:
         path:
           - 'stuffer'
+          - 'tls/extensions'
     steps:
       - uses: actions/checkout@v3
       - name: Run clang-format style check for C.

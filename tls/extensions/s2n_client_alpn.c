@@ -13,16 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_alpn.h"
+
+#include <stdint.h>
+#include <sys/param.h>
 
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_protocol_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 bool s2n_client_alpn_should_send(struct s2n_connection *conn);
@@ -75,7 +74,7 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
     }
-    
+
     struct s2n_blob client_protocols = { 0 };
     POSIX_GUARD(s2n_blob_init(&client_protocols, s2n_stuffer_raw_read(extension, wire_size), wire_size));
 

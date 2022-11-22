@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_supported_versions.h"
+
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_security_policies.h"
-
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version)
