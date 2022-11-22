@@ -198,8 +198,7 @@ impl Error {
 
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
-            Context::InvalidInput => None,
-            Context::CallbackExection => None,
+            Context::InvalidInput | Context::CallbackExection => None,
             Context::Code(code, _) => unsafe {
                 let debug_info = s2n_strerror_debug(code, core::ptr::null());
 

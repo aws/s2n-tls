@@ -138,7 +138,9 @@ pub(crate) trait AsyncCallback {
 ///
 /// The calling application can provide an instance of [`AsyncClientHelloFuture`]
 /// when implementing the [`ClientHelloCallback`] if it wants to run an
-/// asynchronous operation (disk read, network call).
+/// asynchronous operation (disk read, network call). The application can return
+/// an error, [`Err(error::ApplicationError)`], to indicate failure and cancel the
+/// connection.
 ///
 /// [`ConfigResolver`] should be used if the application wants to set a new
 /// [`Config`] on the connection.
@@ -151,7 +153,7 @@ pub trait AsyncClientHelloFuture {
 }
 
 pin_project! {
-/// An implementation of [`AsyncClientHelloFuture`] which, resolves the provided
+/// An implementation of [`AsyncClientHelloFuture`] which resolves the provided
 /// future and sets the config on the [`connection::Connection`].
 pub struct ConfigResolver<F: Future<Output = Result<Config, Error>>> {
     #[pin]
@@ -177,9 +179,6 @@ impl<F: Future<Output = Result<Config, Error>>> AsyncClientHelloFuture for Confi
             Poll::Pending => return Poll::Pending,
         };
 
-        // Assume that `sni` was used to configure the connection since that
-        // is the most likely usecase of a ClientHelloCallback.
-        connection.server_name_extension_used();
         connection.set_config(config)?;
 
         Poll::Ready(Ok(()))
@@ -197,6 +196,9 @@ pub trait ClientHelloCallback {
     ///
     /// [`ConfigResolver`], which implements [`AsyncClientHelloFuture`] can be
     /// returned if the application wants to set a new [`Config`] on the connection.
+    ///
+    /// If the server_name is used to configure the connection then the application
+    /// should call [`connection::Connection::server_name_extension_used()`].
     fn on_client_hello(
         // this should NEVER be a `&mut` since its would be possible to
         // mutate the Config on the Connection. Since one Config can be
