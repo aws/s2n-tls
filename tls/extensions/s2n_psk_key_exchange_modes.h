@@ -15,9 +15,9 @@
 
 #pragma once
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
 
 #define PSK_KEY_EXCHANGE_MODE_SIZE sizeof(uint8_t)
 

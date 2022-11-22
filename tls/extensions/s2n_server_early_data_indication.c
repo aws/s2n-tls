@@ -14,9 +14,7 @@
  */
 
 #include "api/s2n.h"
-
 #include "tls/extensions/s2n_early_data_indication.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_early_data.h"
 #include "tls/s2n_handshake.h"
