@@ -1033,11 +1033,9 @@ int main(int argc, char **argv)
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
                     /* Skipped because not a chacha20 ciphersuite. If chacha20 boosting is off then this is negotiated.*/
                     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,         
-                    /* First chacha20 ciphersuite and is not negotiated (not in client wire) */
-                    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, 
-                    /* Second chacha20 ciphersuite and is negotiated (client's second preferred ciphersuite) */
+                    /* First chacha20 ciphersuite and is negotiated (client's second preferred ciphersuite) */
                     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   
-                    /* Third chacha20 ciphersuite and is the client's most preferred ciphersuite. Not negotiated. */
+                    /* Second chacha20 ciphersuite and is the client's most preferred ciphersuite. Not negotiated. */
                     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     
                 };
 
