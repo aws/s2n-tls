@@ -109,6 +109,31 @@ int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_co
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_io_stuffer_pair_init(struct s2n_test_io_stuffer_pair *io_pair)
+{
+    RESULT_ENSURE_REF(io_pair);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->client_in, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->server_in, 0));
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_io_stuffer_pair_free(struct s2n_test_io_stuffer_pair *io_pair)
+{
+    RESULT_ENSURE_REF(io_pair);
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io_pair->client_in));
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io_pair->server_in));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_connections_set_io_stuffer_pair(struct s2n_connection *client, struct s2n_connection *server,
+        struct s2n_test_io_stuffer_pair *io_pair)
+{
+    RESULT_ENSURE_REF(io_pair);
+    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&io_pair->client_in, &io_pair->server_in, client));
+    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&io_pair->server_in, &io_pair->client_in, server));
+    return S2N_RESULT_OK;
+}
+
 int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 {
     signal(SIGPIPE, SIG_IGN);

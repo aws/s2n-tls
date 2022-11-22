@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "stuffer/s2n_stuffer.h"
-
-#include "tls/s2n_connection.h"
 #include "tls/extensions/s2n_server_server_name.h"
+
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_connection.h"
 
 static bool s2n_server_name_should_send(struct s2n_connection *conn);
 static int s2n_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out);

@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-
-#include "error/s2n_errno.h"
 #include "tls/extensions/s2n_extension_type.h"
+
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_bitmap.h"
@@ -90,8 +90,7 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not send response if request not received. */
-    if (extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_received, extension_id)) {
+    if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_received, extension_id)) {
         return S2N_SUCCESS;
     }
 
@@ -109,7 +108,7 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
 
     /* Reserve space for extension size */
-    struct s2n_stuffer_reservation extension_size_bytes = {0};
+    struct s2n_stuffer_reservation extension_size_bytes = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &extension_size_bytes));
 
     /* Write extension data */
@@ -154,8 +153,7 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
      *# ClientHello, with the exception of optionally the "cookie" (see
      *# Section 4.2.2) extension.
      **/
-    if (extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
+    if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
         POSIX_BAIL(S2N_ERR_UNSUPPORTED_EXTENSION);
     }
 
@@ -186,8 +184,7 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not consider an extension missing if we did not send a request */
-    if(extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
+    if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
         return S2N_SUCCESS;
     }
 
