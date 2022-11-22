@@ -388,6 +388,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_update_application_traffic_keys(client, client->mode, SENDING));
 
         EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(client, server), S2N_ERR_BAD_MESSAGE);
+
         /* No post-handshake message should trigger the server to allocate memory */
         EXPECT_EQUAL(mallocs_count, 0);
     }
@@ -448,8 +449,11 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_send_records(sender, message, fragment_size));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(sender, receiver), S2N_ERR_BAD_MESSAGE);
-            /* No memory should be allocated. We don't need to parse the message. */
-            EXPECT_EQUAL(mallocs_count, 0);
+
+            /* No post-handshake message should trigger the server to allocate memory */
+            if (mode == S2N_SERVER) {
+                EXPECT_EQUAL(mallocs_count, 0);
+            }
         }
     }
 
@@ -481,6 +485,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_test_send_records(sender, messages, fragment_size));
             EXPECT_OK(s2n_test_blocking_recv(sender, receiver, &io_pair));
+
             /* No memory should be allocated. We don't need to parse the message. */
             EXPECT_EQUAL(mallocs_count, 0);
         }

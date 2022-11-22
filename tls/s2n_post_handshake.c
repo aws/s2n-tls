@@ -51,24 +51,9 @@ bool s2n_post_handshake_is_known(uint8_t message_type)
     }
 }
 
-bool s2n_post_handshake_is_valid_to_recv(s2n_mode mode, uint8_t message_type)
-{
-    switch (message_type) {
-        case TLS_SERVER_NEW_SESSION_TICKET:
-        case TLS_HELLO_REQUEST:
-            return mode == S2N_CLIENT;
-        case TLS_KEY_UPDATE:
-            return true;
-        default:
-            /* Unknown messages are valid to receive */
-            return !s2n_post_handshake_is_known(message_type);
-    }
-}
-
 static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE(s2n_post_handshake_is_valid_to_recv(conn->mode, message_type), S2N_ERR_BAD_MESSAGE);
 
     switch (message_type) {
         case TLS_KEY_UPDATE:
@@ -81,7 +66,8 @@ static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct
             RESULT_GUARD(s2n_client_hello_request_recv(conn));
             break;
         default:
-            /* Ignore all other messages */
+            /* Ignore unknown messages */
+            RESULT_ENSURE(!s2n_post_handshake_is_known(message_type), S2N_ERR_BAD_MESSAGE);
             break;
     }
 
@@ -118,7 +104,6 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
 
     /* Parse the header */
     RESULT_GUARD(s2n_handshake_parse_header(message, &message_type, &message_len));
-    RESULT_ENSURE(s2n_post_handshake_is_valid_to_recv(conn->mode, message_type), S2N_ERR_BAD_MESSAGE);
     RESULT_ENSURE(message_len == 0 || s2n_stuffer_data_available(in), S2N_ERR_IO_BLOCKED);
 
     /* If the message is not fragmented, just process it directly from conn->in.
