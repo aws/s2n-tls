@@ -205,7 +205,7 @@ pub trait ClientHelloCallback {
         // used for multiple Connections that would be undefined-behavior
         &self,
         connection: &mut Connection,
-    ) -> Option<Pin<Box<dyn AsyncClientHelloFuture>>>;
+    ) -> Result<Option<Pin<Box<dyn AsyncClientHelloFuture>>>, Error>;
 }
 
 pub(crate) struct AsyncClientHelloCallback {}
@@ -234,11 +234,11 @@ impl AsyncCallback for AsyncClientHelloCallback {
             .config()
             .as_mut()
             .and_then(|config| config.context_mut().client_hello_callback.as_mut())
-            .and_then(|callback| callback.on_client_hello(conn));
+            .and_then(|callback| callback.on_client_hello(conn).transpose());
         match async_future {
             Some(fut) => {
                 // Store the future on connection. This is Asynchronous resolution.
-                conn.set_client_hello_future(fut);
+                conn.set_client_hello_future(fut?);
                 Poll::Pending
             }
             None => {
