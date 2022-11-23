@@ -42,23 +42,21 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
     s2n_options = ProviderOptions(mode=Provider.ServerMode,
         port=port,
         data_to_send="test",
-        extra_flags=['--buffered-send', SEND_BUFFER_SIZE_MIN-1])
+        extra_flags=['--buffered-send', SEND_BUFFER_SIZE_MIN])
 
     s2nd = managed_process(S2N, s2n_options)
 
     s2n_options.mode = Provider.ClientMode
-
+    s2n_options.extra_flags = SEND_BUFFER_SIZE_MIN - 1
     s2nc = managed_process(S2N, s2n_options)
 
-    error_string = "Error setting send buffer size"
+    for results in s2nc.get_results():
+        assert error_string in str("Error setting send buffer size")
+        assert results.exit_code != 0
 
     for results in s2nd.get_results():
-        assert error_string in str(results.stderr)
         assert results.exit_code != 0
 
-    for results in s2nc.get_results():
-        assert error_string in str(results.stderr)
-        assert results.exit_code != 0
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
