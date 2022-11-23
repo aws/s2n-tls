@@ -504,15 +504,13 @@ impl Connection {
     ///
     /// If the Future returns `Poll::Pending` and has not completed then it
     /// should be re-set using [`Self::set_client_hello_future`]
-    pub(crate) fn take_client_hello_future(
-        &mut self,
-    ) -> Option<Pin<Box<dyn AsyncClientHelloFuture>>> {
+    pub(crate) fn take_client_hello_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
         let ctx = self.context_mut();
         ctx.client_hello_future.take()
     }
 
     /// Sets a client_hello_future on the connection context.
-    pub(crate) fn set_client_hello_future(&mut self, f: Pin<Box<dyn AsyncClientHelloFuture>>) {
+    pub(crate) fn set_client_hello_future(&mut self, f: Pin<Box<dyn ConnectionFuture>>) {
         let ctx = self.context_mut();
         debug_assert!(ctx.client_hello_future.is_none());
 
@@ -615,7 +613,7 @@ impl Connection {
 struct Context {
     waker: Option<Waker>,
     pending_callback: Option<Box<dyn AsyncCallback>>,
-    client_hello_future: Option<Pin<Box<dyn AsyncClientHelloFuture>>>,
+    client_hello_future: Option<Pin<Box<dyn ConnectionFuture>>>,
 }
 
 #[cfg(feature = "quic")]

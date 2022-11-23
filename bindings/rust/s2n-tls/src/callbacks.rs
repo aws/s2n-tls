@@ -69,7 +69,7 @@ where
 /// |   |   |   trigger_async_callback                            (Rust)
 /// |   |   |   |   AsyncCallback::poll                           (Rust)
 /// |   |   |   |   |   ClientHelloCallback::on_client_hello      (Rust)
-/// |   |   |   |   |   +-> return Some(AsyncClientHelloFuture)   (Rust)
+/// |   |   |   |   |   +-> return Ok(Some(ConnectionFuture))     (Rust)
 /// |   |   |   |   +-> return Poll::Pending                      (Rust)
 /// |   |   |   +-> return Callback::Success                      (Rust)
 /// |   |   +-> return S2N_SUCCESS                                (C)
@@ -78,14 +78,14 @@ where
 ///
 /// Connection::poll_negotiate                                    (Rust)
 /// |   AsyncCallback::poll                                       (Rust)
-/// |   |   AsyncClientHelloFuture::poll_client_hello             (Rust)
+/// |   |   ConnectionFuture::poll                                (Rust)
 /// |   |   +-> return Poll::Pending                              (Rust)
 /// |   +-> return Poll::Pending                                  (Rust)
 /// +-> return Poll::Pending                                      (Rust)
 ///
 /// Connection::poll_negotiate                                    (Rust)
 /// |   AsyncCallback::poll                                       (Rust)
-/// |   |   AsyncClientHelloFuture::poll_client_hello             (Rust)
+/// |   |   ConnectionFuture::poll                                (Rust)
 /// |   |   +-> return Poll::Ready                                (Rust)
 /// |   +-> return Poll::Ready                                    (Rust)
 /// |   s2n_negotiate                                             (C)
@@ -136,7 +136,7 @@ pub(crate) trait AsyncCallback {
 /// The Future associated with the async [`ClientHelloCallback`] and stored
 /// on the connection.
 ///
-/// The calling application can provide an instance of [`AsyncClientHelloFuture`]
+/// The calling application can provide an instance of [`ConnectionFuture`]
 /// when implementing the [`ClientHelloCallback`] if it wants to run an
 /// asynchronous operation (disk read, network call). The application can return
 /// an error, [`Err(error::ApplicationError)`], to indicate failure and cancel the
@@ -144,8 +144,8 @@ pub(crate) trait AsyncCallback {
 ///
 /// [`ConfigResolver`] should be used if the application wants to set a new
 /// [`Config`] on the connection.
-pub trait AsyncClientHelloFuture {
-    fn poll_client_hello(
+pub trait ConnectionFuture {
+    fn poll(
         self: Pin<&mut Self>,
         connection: &mut Connection,
         ctx: &mut core::task::Context,
@@ -153,7 +153,7 @@ pub trait AsyncClientHelloFuture {
 }
 
 pin_project! {
-/// An implementation of [`AsyncClientHelloFuture`] which resolves the provided
+/// An implementation of [`ConnectionFuture`] which resolves the provided
 /// future and sets the config on the [`connection::Connection`].
 pub struct ConfigResolver<F: Future<Output = Result<Config, Error>>> {
     #[pin]
@@ -167,8 +167,8 @@ impl<F: Future<Output = Result<Config, Error>>> ConfigResolver<F> {
     }
 }
 
-impl<F: Future<Output = Result<Config, Error>>> AsyncClientHelloFuture for ConfigResolver<F> {
-    fn poll_client_hello(
+impl<F: Future<Output = Result<Config, Error>>> ConnectionFuture for ConfigResolver<F> {
+    fn poll(
         self: Pin<&mut Self>,
         connection: &mut Connection,
         ctx: &mut core::task::Context,
@@ -190,11 +190,11 @@ impl<F: Future<Output = Result<Config, Error>>> AsyncClientHelloFuture for Confi
 /// Use in conjunction with
 /// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
 pub trait ClientHelloCallback {
-    /// The application can return a `None` to resolve the client_hello_callback
-    /// synchronously or return a `Some(AsyncClientHelloFuture)` if it wants to
+    /// The application can return a `Ok(None)` to resolve the client_hello_callback
+    /// synchronously or return a `Ok(Some(ConnectionFuture))` if it wants to
     /// run some asynchronous task beforing resolving the callback.
     ///
-    /// [`ConfigResolver`], which implements [`AsyncClientHelloFuture`] can be
+    /// [`ConfigResolver`], which implements [`ConnectionFuture`] can be
     /// returned if the application wants to set a new [`Config`] on the connection.
     ///
     /// If the server_name is used to configure the connection then the application
@@ -205,7 +205,7 @@ pub trait ClientHelloCallback {
         // used for multiple Connections that would be undefined-behavior
         &self,
         connection: &mut Connection,
-    ) -> Result<Option<Pin<Box<dyn AsyncClientHelloFuture>>>, Error>;
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, Error>;
 }
 
 pub(crate) struct AsyncClientHelloCallback {}
@@ -215,7 +215,7 @@ impl AsyncCallback for AsyncClientHelloCallback {
         if let Some(mut fut) = conn.take_client_hello_future() {
             let waker = conn.waker().ok_or(Error::CALLBACK_EXECUTION)?.clone();
             let mut ctx = core::task::Context::from_waker(&waker);
-            match fut.as_mut().poll_client_hello(conn, &mut ctx) {
+            match fut.as_mut().poll(conn, &mut ctx) {
                 Poll::Ready(result) => {
                     let result = result.and_then(|_| conn.mark_client_hello_cb_done());
                     return Poll::Ready(result);
@@ -237,9 +237,22 @@ impl AsyncCallback for AsyncClientHelloCallback {
             .and_then(|callback| callback.on_client_hello(conn).transpose());
         match async_future {
             Some(fut) => {
+                let mut fut = fut?;
+
                 // Store the future on connection. This is Asynchronous resolution.
-                conn.set_client_hello_future(fut?);
-                Poll::Pending
+                let waker = conn.waker().ok_or(Error::CALLBACK_EXECUTION)?.clone();
+                let mut ctx = core::task::Context::from_waker(&waker);
+                match fut.as_mut().poll(conn, &mut ctx) {
+                    Poll::Ready(result) => {
+                        let result = result.and_then(|_| conn.mark_client_hello_cb_done());
+                        Poll::Ready(result)
+                    }
+                    Poll::Pending => {
+                        // replace the client_hello_future if it hasn't completed yet
+                        conn.set_client_hello_future(fut);
+                        return Poll::Pending;
+                    }
+                }
             }
             None => {
                 // Done with the client_hello_callback. This is Synchronous resolution.
