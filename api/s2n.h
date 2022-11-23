@@ -871,8 +871,10 @@ extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const ch
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
-typedef enum { S2N_VERIFY_AFTER_SIGN_DISABLED,
-    S2N_VERIFY_AFTER_SIGN_ENABLED } s2n_verify_after_sign;
+typedef enum {
+    S2N_VERIFY_AFTER_SIGN_DISABLED,
+    S2N_VERIFY_AFTER_SIGN_ENABLED
+} s2n_verify_after_sign;
 
 /**
  * Toggle whether generated signatures are verified before being sent.
@@ -1042,8 +1044,10 @@ extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const 
  * an S2N_CLIENT should make during the handshake. The only supported status request type is
  * OCSP, `S2N_STATUS_REQUEST_OCSP`.
 */
-typedef enum { S2N_STATUS_REQUEST_NONE = 0,
-    S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
+typedef enum {
+    S2N_STATUS_REQUEST_NONE = 0,
+    S2N_STATUS_REQUEST_OCSP = 1
+} s2n_status_request_type;
 
 /**
  * Sets up an S2N_CLIENT to request the server certificate status during an SSL handshake. If set
@@ -1059,8 +1063,10 @@ extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_sta
 /**
  * Enum to set Certificate Transparency Support level. 
  */
-typedef enum { S2N_CT_SUPPORT_NONE = 0,
-    S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
+typedef enum {
+    S2N_CT_SUPPORT_NONE = 0,
+    S2N_CT_SUPPORT_REQUEST = 1
+} s2n_ct_support_level;
 
 /**
  * Set the Certificate Transparency Support level.
@@ -1082,8 +1088,10 @@ extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_sup
  * @note TLS1.3 terminates a connection for all alerts except user_canceled.
  * @warning S2N_ALERT_FAIL_ON_WARNINGS is the recommended behavior. Past TLS protocol vulnerabilities have involved downgrading alerts to warnings.
  */
-typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0,
-    S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
+typedef enum {
+    S2N_ALERT_FAIL_ON_WARNINGS = 0,
+    S2N_ALERT_IGNORE_WARNINGS = 1
+} s2n_alert_behavior;
 
 /**
  * Sets the config's alert behavior based on the `s2n_alert_behavior` enum.
@@ -1212,10 +1220,8 @@ extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config,
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API
-extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
-        const uint8_t *name, uint32_t name_len,
-        uint8_t *key, uint32_t key_len,
-        uint64_t intro_time_in_seconds_from_epoch);
+extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len,
+        uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
 /**
  * Sets user defined context on the `s2n_config` object.
  *
@@ -1240,8 +1246,10 @@ extern int s2n_config_get_ctx(struct s2n_config *config, void **ctx);
 /**
  * Used to declare connections as server or client type, respectively.
  */
-typedef enum { S2N_SERVER,
-    S2N_CLIENT } s2n_mode;
+typedef enum {
+    S2N_SERVER,
+    S2N_CLIENT
+} s2n_mode;
 
 /**
  * Creates a new connection object. Each s2n-tls SSL/TLS connection uses
@@ -1305,8 +1313,10 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
  * - `S2N_CLIENT_HELLO_CB_NONBLOCKING`:
  *   - In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback returns a response code of 0 s2n-tls will return `S2N_FAILURE` with `S2N_ERR_T_BLOCKED` error type and `s2n_blocked_status` set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. The handshake is paused and further calls to `s2n_negotiate` will continue to return the same error until `s2n_client_hello_cb_done` is invoked for the `s2n_connection` to resume the handshake. This allows s2n-tls clients to process client_hello without blocking and then resume the handshake at a later time. If any of the connection properties were changed on the basis of the server_name extension then `s2n_connection_server_name_extension_used` must be invoked before marking the callback done.
  */
-typedef enum { S2N_CLIENT_HELLO_CB_BLOCKING,
-    S2N_CLIENT_HELLO_CB_NONBLOCKING } s2n_client_hello_cb_mode;
+typedef enum {
+    S2N_CLIENT_HELLO_CB_BLOCKING,
+    S2N_CLIENT_HELLO_CB_NONBLOCKING
+} s2n_client_hello_cb_mode;
 
 /**
  * Allows the caller to set a callback function that will be called after ClientHello was parsed.
@@ -1727,8 +1737,10 @@ extern int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, 
  * activity on the connection  for the specified number of nanoseconds before calling
  * close() or shutdown().
  */
-typedef enum { S2N_BUILT_IN_BLINDING,
-    S2N_SELF_SERVICE_BLINDING } s2n_blinding;
+typedef enum {
+    S2N_BUILT_IN_BLINDING,
+    S2N_SELF_SERVICE_BLINDING
+} s2n_blinding;
 
 /**
  * Used to configure s2n-tls to either use built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or 
@@ -2053,9 +2065,11 @@ extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked
  *
  * Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
  */
-typedef enum { S2N_CERT_AUTH_NONE,
+typedef enum {
+    S2N_CERT_AUTH_NONE,
     S2N_CERT_AUTH_REQUIRED,
-    S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
+    S2N_CERT_AUTH_OPTIONAL
+} s2n_cert_auth_type;
 
 /**
  * Gets Client Certificate authentication method the s2n_config object is using.
@@ -2994,14 +3008,18 @@ struct s2n_async_pkey_op;
  * - `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
  * - `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
  */
-typedef enum { S2N_ASYNC_PKEY_VALIDATION_FAST,
-    S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
+typedef enum {
+    S2N_ASYNC_PKEY_VALIDATION_FAST,
+    S2N_ASYNC_PKEY_VALIDATION_STRICT
+} s2n_async_pkey_validation_mode;
 
 /**
  * The type of private key operation
  */
-typedef enum { S2N_ASYNC_DECRYPT,
-    S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
+typedef enum {
+    S2N_ASYNC_DECRYPT,
+    S2N_ASYNC_SIGN
+} s2n_async_pkey_op_type;
 
 /**
  * Callback function for handling private key operations
