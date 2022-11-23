@@ -360,33 +360,23 @@ impl Connection {
         Ok(self)
     }
 
-    /// Sets the currently executing async callback.
+    /// Performs the TLS handshake to completion
     ///
     /// Multiple callbacks can be configured for a connection and config, but
     /// [`poll_negotiate`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback. It does not continue execution (and
-    /// therefore can't call any other callbacks) until the blocking async callback
-    /// reports completion and is no longer the "pending" callback.
-    pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
-        debug_assert!(self.context_mut().pending_callback.is_none());
-        if let Some(callback) = callback {
-            let _ = self.context_mut().pending_callback.insert(callback);
-        }
-    }
-
-    /// Performs the TLS handshake to completion
+    /// it encounters an async callback. The async task is stored on the
+    /// [`Context`]; `client_hello_future` for the client_hello_callback. The
+    /// handshake does not continue execution (and therefore can't call any
+    /// other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
-        // If we blocked on a callback, poll the callback again.
-        if let Some(callback) = self.context_mut().pending_callback.take() {
-            match callback.poll(self) {
-                Poll::Ready(r) => r?,
-                Poll::Pending => {
-                    self.set_pending_callback(Some(callback));
-                    return Poll::Pending;
-                }
+        // check if an async task for the client_hello_callback exists and
+        // poll it to completion
+        if let Some(fut) = self.take_client_hello_future() {
+            if poll_client_hello_callback(self, Some(fut)).is_pending() {
+                return Poll::Pending;
             }
         }
 
@@ -504,7 +494,7 @@ impl Connection {
     ///
     /// If the Future returns `Poll::Pending` and has not completed then it
     /// should be re-set using [`Self::set_client_hello_future`]
-    pub(crate) fn take_client_hello_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
+    pub fn take_client_hello_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
         let ctx = self.context_mut();
         ctx.client_hello_future.take()
     }
@@ -612,7 +602,6 @@ impl Connection {
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
-    pending_callback: Option<Box<dyn AsyncCallback>>,
     client_hello_future: Option<Pin<Box<dyn ConnectionFuture>>>,
 }
 

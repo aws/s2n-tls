@@ -330,6 +330,7 @@ mod tests {
             handle.invoked.load(Ordering::SeqCst),
             require_pending_count + 1
         );
+
         Ok(())
     }
 
