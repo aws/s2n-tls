@@ -197,9 +197,9 @@ struct s2n_kem_kat_test_vector {
     const struct s2n_kem *kem;
     const char *kat_file;
     bool (*asm_is_enabled)();
-    S2N_RESULT (*enable_asm)
+    S2N_RESULT(*enable_asm)
     ();
-    S2N_RESULT (*disable_asm)
+    S2N_RESULT(*disable_asm)
     ();
 };
 S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
