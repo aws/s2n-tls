@@ -47,7 +47,7 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
     s2nd = managed_process(S2N, s2n_options)
 
     s2n_options.mode = Provider.ClientMode
-    s2n_options.extra_flags = SEND_BUFFER_SIZE_MIN - 1
+    s2n_options.extra_flags = ['--buffered-send', SEND_BUFFER_SIZE_MIN-1]
     s2nc = managed_process(S2N, s2n_options)
 
     for results in s2nc.get_results():
