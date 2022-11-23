@@ -34,7 +34,7 @@ FAILED=0
 $CPPCHECK_EXECUTABLE --version
 
 # NOTE: cppcheck should be run in single thread to ensure we are check for `unusedFunction`. Do not add the `-j` flag.
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --force --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --cppcheck-build-dir "$CACHE_DIR" --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I api || FAILED=1
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --force --enable=all -j=2 --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --cppcheck-build-dir "$CACHE_DIR" --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I api || FAILED=1
 # remaining: ./tests bin crypto error stuffer ./tests/unit tls utils
 
 if [ $FAILED == 1 ];
