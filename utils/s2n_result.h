@@ -15,8 +15,9 @@
 
 #pragma once
 
-#include "api/s2n.h"
 #include <stdbool.h>
+
+#include "api/s2n.h"
 
 /* A value which indicates the outcome of a function */
 typedef struct {
@@ -24,15 +25,15 @@ typedef struct {
 } s2n_result;
 
 /* used to signal a successful function return */
-#define S2N_RESULT_OK ((s2n_result) { S2N_SUCCESS })
+#define S2N_RESULT_OK ((s2n_result){ S2N_SUCCESS })
 
 /* used to signal an error while executing a function */
-#define S2N_RESULT_ERROR ((s2n_result) { S2N_FAILURE })
+#define S2N_RESULT_ERROR ((s2n_result){ S2N_FAILURE })
 
 #if defined(__clang__) || defined(__GNUC__)
-#define S2N_RESULT_MUST_USE __attribute__((warn_unused_result))
+    #define S2N_RESULT_MUST_USE __attribute__((warn_unused_result))
 #else
-#define S2N_RESULT_MUST_USE
+    #define S2N_RESULT_MUST_USE
 #endif
 
 /* returns true when the result is S2N_RESULT_OK */

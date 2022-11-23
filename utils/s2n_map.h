@@ -17,7 +17,6 @@
 #include <string.h>
 
 #include "crypto/s2n_hash.h"
-
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 

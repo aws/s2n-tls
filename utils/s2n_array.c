@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "utils/s2n_array.h"
+
 #include <sys/param.h>
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_array.h"
 
 S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 {
@@ -86,7 +87,7 @@ S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t elemen
 {
     RESULT_ENSURE_REF(array);
 
-    *array = (struct s2n_array) { .element_size = element_size };
+    *array = (struct s2n_array){ .element_size = element_size };
 
     RESULT_GUARD(s2n_array_enlarge(array, capacity));
 
@@ -109,9 +110,9 @@ S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t idx, void **element)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void* element)
+S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void *element)
 {
-    void* insert_location = NULL;
+    void *insert_location = NULL;
     RESULT_GUARD(s2n_array_insert(array, idx, &insert_location));
     RESULT_CHECKED_MEMCPY(insert_location, element, array->element_size);
     return S2N_RESULT_OK;
@@ -170,8 +171,8 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
 
     /* After shifting, zero the last element */
     RESULT_CHECKED_MEMSET(array->mem.data + array->element_size * array->len,
-                   0,
-                   array->element_size);
+            0,
+            array->element_size);
 
     RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
@@ -210,7 +211,7 @@ S2N_CLEANUP_RESULT s2n_array_free_p(struct s2n_array **parray)
     RESULT_GUARD_POSIX(s2n_free(&array->mem));
 
     /* And finally the array */
-    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **)parray, sizeof(struct s2n_array)));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) parray, sizeof(struct s2n_array)));
 
     return S2N_RESULT_OK;
 }

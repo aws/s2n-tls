@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
-#include <ctype.h>
-#include <sys/param.h>
-
-#include "error/s2n_errno.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#include "api/s2n.h"
+#include <ctype.h>
+#include <string.h>
+#include <sys/param.h>
 
-S2N_RESULT s2n_blob_validate(const struct s2n_blob* b)
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
+
+S2N_RESULT s2n_blob_validate(const struct s2n_blob *b)
 {
     RESULT_ENSURE_REF(b);
     RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->size == 0), S2N_ERR_SAFETY);
@@ -36,11 +35,11 @@ S2N_RESULT s2n_blob_validate(const struct s2n_blob* b)
     return S2N_RESULT_OK;
 }
 
-int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
+int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size)
 {
     POSIX_ENSURE_REF(b);
     POSIX_ENSURE(S2N_MEM_IS_READABLE(data, size), S2N_ERR_SAFETY);
-    *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0};
+    *b = (struct s2n_blob){ .data = data, .size = size, .allocated = 0, .growable = 0 };
     POSIX_POSTCONDITION(s2n_blob_validate(b));
     return S2N_SUCCESS;
 }
@@ -86,10 +85,10 @@ static const uint8_t hex_inverse[256] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-      0,   1,   2,   3,   4,   5,   6,   7,   8,   9, 255, 255, 255, 255, 255, 255,
-    255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 255, 255, 255, 255, 255, 255,
+    255, 10, 11, 12, 13, 14, 15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 10, 11, 12, 13, 14, 15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -107,7 +106,7 @@ int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
 {
     POSIX_ENSURE_REF(str);
     POSIX_PRECONDITION(s2n_blob_validate(blob));
-    uint32_t len_with_spaces = strlen((const char*)str);
+    uint32_t len_with_spaces = strlen((const char *) str);
 
     size_t i = 0, j = 0;
     while (j < len_with_spaces) {
@@ -126,7 +125,7 @@ int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
         blob->data[i] = high_nibble << 4 | low_nibble;
 
         i++;
-        j+=2;
+        j += 2;
     }
     blob->size = i;
 
