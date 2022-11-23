@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    callbacks::{AsyncClientHelloFuture, ClientHelloCallback, VerifyHostNameCallback},
+    callbacks::{ClientHelloCallback, ConnectionFuture, VerifyHostNameCallback},
     config::*,
     error, security,
     testing::s2n_tls::Harness,
@@ -214,8 +214,8 @@ pub struct MockClientHelloFuture {
     invoked: Arc<AtomicUsize>,
 }
 
-impl AsyncClientHelloFuture for MockClientHelloFuture {
-    fn poll_client_hello(
+impl ConnectionFuture for MockClientHelloFuture {
+    fn poll(
         self: Pin<&mut Self>,
         connection: &mut crate::connection::Connection,
         _ctx: &mut core::task::Context,
@@ -257,7 +257,7 @@ impl ClientHelloCallback for MockClientHelloHandler {
     fn on_client_hello(
         &self,
         _connection: &mut crate::connection::Connection,
-    ) -> Option<Pin<Box<dyn crate::callbacks::AsyncClientHelloFuture>>> {
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, crate::error::Error> {
         let fut = MockClientHelloFuture {
             require_pending_count: self.require_pending_count,
             invoked: self.invoked.clone(),
@@ -266,6 +266,6 @@ impl ClientHelloCallback for MockClientHelloHandler {
         // returning `Some` indicates that the client_hello callback is
         // not yet finished and that the supplied MockClientHelloFuture
         // needs to be `poll`ed to make progress.
-        Some(Box::pin(fut))
+        Ok(Some(Box::pin(fut)))
     }
 }

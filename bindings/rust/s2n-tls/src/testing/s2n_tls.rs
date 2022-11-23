@@ -349,7 +349,7 @@ mod tests {
             fn on_client_hello(
                 &self,
                 connection: &mut crate::connection::Connection,
-            ) -> Option<Pin<Box<dyn crate::callbacks::AsyncClientHelloFuture>>> {
+            ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, crate::error::Error> {
                 // Test that the config can be changed
                 connection
                     .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
@@ -362,7 +362,7 @@ mod tests {
 
                 // returning `None` indicates that the client_hello callback is
                 // finished and the handshake can proceed.
-                None
+                Ok(None)
             }
         }
         let callback = ClientHelloSyncCallback::new();
