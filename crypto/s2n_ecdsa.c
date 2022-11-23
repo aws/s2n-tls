@@ -13,42 +13,41 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_ecdsa.h"
+
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/x509.h>
 
+#include "crypto/s2n_ecc_evp.h"
+#include "crypto/s2n_evp_signing.h"
+#include "crypto/s2n_hash.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_pkey.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety_macros.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
-
-#include "crypto/s2n_ecdsa.h"
-#include "crypto/s2n_ecc_evp.h"
-#include "crypto/s2n_evp_signing.h"
-#include "crypto/s2n_hash.h"
-#include "crypto/s2n_openssl.h"
-#include "crypto/s2n_pkey.h"
-
+#include "utils/s2n_safety_macros.h"
 
 #define S2N_ECDSA_TYPE 0
 
-EC_KEY *s2n_unsafe_ecdsa_get_non_const(const struct s2n_ecdsa_key *ecdsa_key) {
+EC_KEY *s2n_unsafe_ecdsa_get_non_const(const struct s2n_ecdsa_key *ecdsa_key)
+{
     PTR_ENSURE_REF(ecdsa_key);
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
     EC_KEY *out_ec_key = (EC_KEY *) ecdsa_key->ec_key;
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
-#pragma GCC diagnostic pop
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    #pragma GCC diagnostic pop
 #endif
 
     return out_ec_key;
@@ -82,7 +81,8 @@ int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, 
 
     /* Safety: ECDSA_sign does not mutate the key */
     POSIX_GUARD_OSSL(ECDSA_sign(S2N_ECDSA_TYPE, digest->data, digest->size, signature->data, &signature_size,
-                s2n_unsafe_ecdsa_get_non_const(key)), S2N_ERR_SIGN);
+                             s2n_unsafe_ecdsa_get_non_const(key)),
+            S2N_ERR_SIGN);
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -129,7 +129,8 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm 
     /* Safety: ECDSA_verify does not mutate the key */
     /* ECDSA_verify ignores the first parameter */
     POSIX_GUARD_OSSL(ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size,
-                s2n_unsafe_ecdsa_get_non_const(key)), S2N_ERR_VERIFY_SIGNATURE);
+                             s2n_unsafe_ecdsa_get_non_const(key)),
+            S2N_ERR_VERIFY_SIGNATURE);
 
     POSIX_GUARD(s2n_hash_reset(digest));
 
@@ -202,7 +203,8 @@ int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *
     return 0;
 }
 
-int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
+int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey)
+{
     pkey->size = &s2n_ecdsa_der_signature_size;
     pkey->sign = &s2n_ecdsa_sign;
     pkey->verify = &s2n_ecdsa_verify;

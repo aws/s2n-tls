@@ -15,19 +15,18 @@
 
 #pragma once
 
-#include <openssl/evp.h>
 #include <openssl/aes.h>
-#include <openssl/rc4.h>
 #include <openssl/des.h>
-#include <openssl/rsa.h>
 #include <openssl/dh.h>
+#include <openssl/evp.h>
+#include <openssl/rc4.h>
+#include <openssl/rsa.h>
 
 #include "crypto/s2n_crypto.h"
-
 #include "utils/s2n_blob.h"
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-#define S2N_CIPHER_AEAD_API_AVAILABLE
+    #define S2N_CIPHER_AEAD_API_AVAILABLE
 #endif
 
 struct s2n_session_key {
@@ -38,38 +37,41 @@ struct s2n_session_key {
 };
 
 struct s2n_stream_cipher {
-    int (*decrypt) (struct s2n_session_key * key, struct s2n_blob * in, struct s2n_blob * out);
-    int (*encrypt) (struct s2n_session_key * key, struct s2n_blob * in, struct s2n_blob * out);
+    int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out);
 };
 
 struct s2n_cbc_cipher {
     uint8_t block_size;
     uint8_t record_iv_size;
-    int (*decrypt) (struct s2n_session_key * key, struct s2n_blob * iv, struct s2n_blob * in, struct s2n_blob * out);
-    int (*encrypt) (struct s2n_session_key * key, struct s2n_blob * iv, struct s2n_blob * in, struct s2n_blob * out);
+    int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
 };
 
 struct s2n_aead_cipher {
     uint8_t fixed_iv_size;
     uint8_t record_iv_size;
     uint8_t tag_size;
-    int (*decrypt) (struct s2n_session_key * key, struct s2n_blob * iv, struct s2n_blob * add, struct s2n_blob * in, struct s2n_blob * out);
-    int (*encrypt) (struct s2n_session_key * key, struct s2n_blob * iv, struct s2n_blob * add, struct s2n_blob * in, struct s2n_blob * out);
+    int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out);
 };
 
 struct s2n_composite_cipher {
     uint8_t block_size;
     uint8_t record_iv_size;
     uint8_t mac_key_size;
-    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
-    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
-    int (*set_mac_write_key) (struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size);
-    int (*initial_hmac) (struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
-                         uint16_t payload_and_eiv_len, int *extra);
+    int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
+    int (*set_mac_write_key)(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size);
+    int (*initial_hmac)(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
+            uint16_t payload_and_eiv_len, int *extra);
 };
 
 struct s2n_cipher {
-    enum { S2N_STREAM, S2N_CBC, S2N_AEAD, S2N_COMPOSITE } type;
+    enum { S2N_STREAM,
+        S2N_CBC,
+        S2N_AEAD,
+        S2N_COMPOSITE } type;
     union {
         struct s2n_stream_cipher stream;
         struct s2n_aead_cipher aead;
@@ -77,11 +79,11 @@ struct s2n_cipher {
         struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
-    uint8_t (*is_available) (void);
-    int     (*init) (struct s2n_session_key *key);
-    int     (*set_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
-    int     (*set_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
-    int     (*destroy_key) (struct s2n_session_key *key);
+    uint8_t (*is_available)(void);
+    int (*init)(struct s2n_session_key *key);
+    int (*set_decryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
+    int (*set_encryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
+    int (*destroy_key)(struct s2n_session_key *key);
 };
 
 extern int s2n_session_key_alloc(struct s2n_session_key *key);

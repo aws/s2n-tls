@@ -8,6 +8,7 @@ jobs:
       matrix:
         path:
           - 'bin'
+          - 'crypto'
           - 'stuffer'
           - 'error'
           - 'tls/extensions'
