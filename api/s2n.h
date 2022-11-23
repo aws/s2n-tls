@@ -24,13 +24,13 @@
 
 #if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
     /**
- * Marks a function as belonging to the public s2n API.
- */
+     * Marks a function as belonging to the public s2n API.
+     */
     #define S2N_API __attribute__((visibility("default")))
 #else
     /**
- * Marks a function as belonging to the public s2n API.
- */
+     * Marks a function as belonging to the public s2n API.
+     */
     #define S2N_API
 #endif /* __GNUC__ >= 4 || defined(__clang__) */
 
@@ -825,8 +825,7 @@ extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
  */
 S2N_API
 extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
-        struct s2n_cert_chain_and_key **cert_key_pairs,
-        uint32_t num_cert_key_pairs);
+        struct s2n_cert_chain_and_key **cert_key_pairs, uint32_t num_cert_key_pairs);
 
 /**
  * Adds to the trust store from a CA file or directory containing trusted certificates.
