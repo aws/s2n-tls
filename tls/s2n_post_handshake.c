@@ -37,9 +37,13 @@ static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct
             RESULT_GUARD(s2n_client_hello_request_recv(conn));
             break;
         case TLS_CERT_REQ:
-            /* TODO: TLS1.3 requires that clients send at least an empty
-             * response after receiving a post-handshake CertificateRequest.
-             * However, we currently treat these requests as errors.
+            /*
+             * s2n-tls does not support post-handshake authentication.
+             *
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.2
+             *# A client that receives a CertificateRequest message without having
+             *# sent the "post_handshake_auth" extension MUST send an
+             *# "unexpected_message" fatal alert.
              */
             RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
         default:
@@ -99,7 +103,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     RESULT_GUARD(s2n_handshake_parse_header(message, &message_type, &message_len));
     RESULT_ENSURE(message_len == 0 || s2n_stuffer_data_available(in), S2N_ERR_IO_BLOCKED);
 
-    /* If the message is not fragmented, just process it directly from conn->in.
+    /* If the message body is not fragmented, just process it directly from conn->in.
      * This will be the most common case, and does not require us to allocate any new memory.
      */
     if (s2n_stuffer_data_available(message) == 0 && s2n_stuffer_data_available(in) >= message_len) {
@@ -112,7 +116,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* If the message is fragmented, then the current fragment will be wiped from conn->in
+    /* If the message body is fragmented, then the current fragment will be wiped from conn->in
      * in order to read the next record. So the message stuffer needs enough space to store
      * the full message as we reconstruct it from multiple records.
      * For large messages like NewSessionTicket, this will require allocating new memory.
@@ -148,7 +152,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     }
     RESULT_ENSURE(s2n_stuffer_data_available(message) == message_len, S2N_ERR_IO_BLOCKED);
 
-    /* Now that the full message is available, process it. */
+    /* Now that the full message body is available, process it. */
     RESULT_GUARD(s2n_post_handshake_process(conn, message, message_type));
     return S2N_RESULT_OK;
 }
