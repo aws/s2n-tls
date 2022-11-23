@@ -13,9 +13,8 @@
  * limitations under the License.
  */
 
-#include <cbmc_proof/nondet.h>
-
 #include <assert.h>
+#include <cbmc_proof/nondet.h>
 #include <errno.h>
 
 #include "error/s2n_errno.h"
@@ -23,7 +22,9 @@
 int madvise(void *addr, size_t length, int advice)
 {
     assert(S2N_MEM_IS_WRITABLE(addr, length));
-    if (nondet_bool()) { return 0; }
+    if (nondet_bool()) {
+        return 0;
+    }
     errno = nondet_int();
     return -1;
 }

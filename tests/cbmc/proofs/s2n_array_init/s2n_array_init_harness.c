@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_array.h"
-
-#include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/cbmc_utils.h>
-
 #include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+
+#include "utils/s2n_array.h"
 
 void s2n_array_init_harness()
 {
@@ -30,10 +29,9 @@ void s2n_array_init_harness()
 
     /* Operation under verification. */
     if (s2n_result_is_ok(s2n_array_init(array, element_size))) {
-
         /* Post-conditions. */
         assert(s2n_result_is_ok(s2n_array_validate(array)));
-        assert_all_zeroes((uint8_t*) &array->mem, sizeof(array->mem));
+        assert_all_zeroes((uint8_t *) &array->mem, sizeof(array->mem));
         assert(array->element_size == element_size);
         assert(array->len == 0);
     }

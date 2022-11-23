@@ -14,7 +14,8 @@
  */
 
 #include <cpuid.h>
-int main() {
+int main()
+{
     __get_cpuid_max(0, 0);
     return 0;
 }

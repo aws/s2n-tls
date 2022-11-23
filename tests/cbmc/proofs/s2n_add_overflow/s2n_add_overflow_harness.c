@@ -21,13 +21,13 @@
 
 int s2n_add_overflow_harness()
 {
-    uint32_t  a;
-    uint32_t  b;
+    uint32_t a;
+    uint32_t b;
     uint32_t *out = malloc(sizeof(uint32_t));
 
     if (s2n_add_overflow(a, b, out) == S2N_SUCCESS) {
         assert(*out == a + b);
     } else {
-        assert(( uint64_t )a + ( uint64_t )b > UINT32_MAX || out == NULL);
+        assert((uint64_t) a + (uint64_t) b > UINT32_MAX || out == NULL);
     }
 }

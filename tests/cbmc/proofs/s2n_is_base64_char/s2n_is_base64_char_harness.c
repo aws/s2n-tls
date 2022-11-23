@@ -21,7 +21,7 @@
 void s2n_is_base64_char_harness()
 {
     unsigned char c;
-    bool          is_base_64 =
-        ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || c == '+' || c == '/' || c == '=';
+    bool is_base_64 =
+            ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || c == '+' || c == '/' || c == '=';
     assert(is_base_64 == s2n_is_base64_char(c));
 }

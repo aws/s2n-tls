@@ -31,12 +31,12 @@ void s2n_stuffer_read_token_harness()
     char delim;
 
     /* Store previous state from the stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Store previous state from the token. */
-    struct s2n_stuffer            old_token = *token;
+    struct s2n_stuffer old_token = *token;
     struct store_byte_from_buffer old_byte_from_token;
     save_byte_from_blob(&token->blob, &old_byte_from_token);
 
@@ -47,7 +47,7 @@ void s2n_stuffer_read_token_harness()
         uint32_t token_size = token->write_cursor - old_token.write_cursor;
         if (token_size != 0)
             assert_bytes_match(token->blob.data + old_token.write_cursor, stuffer->blob.data + old_stuffer.read_cursor,
-                               token_size);
+                    token_size);
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         /*

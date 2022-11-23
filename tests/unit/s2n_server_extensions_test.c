@@ -13,14 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
+#include "tls/s2n_server_extensions.h"
 
 #include "api/s2n.h"
-
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_psk.h"
@@ -28,18 +25,18 @@
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_server_extensions.h"
-
-#include "utils/s2n_safety.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_bitmap.h"
+#include "utils/s2n_safety.h"
 
 const uint8_t EXTENSION_LEN = 2;
 const uint8_t SECURE_RENEGOTIATION_SIZE = 5;
 const uint8_t NEW_SESSION_TICKET_SIZE = 4;
 
 const uint8_t SUPPORTED_VERSION_SIZE = 6;
-const uint8_t P256_KEYSHARE_SIZE = ( 32 * 2 ) + 1 + 8;
-const uint8_t MIN_TLS13_EXTENSION_SIZE = ( 32 * 2 ) + 1 + 8 + 6; /* expanded from
+const uint8_t P256_KEYSHARE_SIZE = (32 * 2) + 1 + 8;
+const uint8_t MIN_TLS13_EXTENSION_SIZE = (32 * 2) + 1 + 8 + 6; /* expanded from
                     P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE because gcc... */
 
 /* set up minimum parameters for a tls13 connection so server extensions can work */
@@ -192,7 +189,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
-            struct s2n_cert_chain_and_key fake_chain_and_key = {0};
+            struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
             static uint8_t sct_list[] = { 0xff, 0xff, 0xff };
             s2n_blob_init(&fake_chain_and_key.sct_list, sct_list, sizeof(sct_list));
 
@@ -222,7 +219,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
-            struct s2n_cert_chain_and_key fake_chain_and_key = {0};
+            struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
             static uint8_t fake_ocsp[] = { 0xff, 0xff, 0xff };
             s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp));
 
@@ -239,7 +236,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -419,7 +415,7 @@ int main(int argc, char **argv)
 
         /* Test TLS13 Extensions with null key exchange alg cipher suites */
         {
-            struct s2n_cipher_suite *tls12_cipher_suite = cipher_preferences_20170210.suites[cipher_preferences_20170210.count-1];
+            struct s2n_cipher_suite *tls12_cipher_suite = cipher_preferences_20170210.suites[cipher_preferences_20170210.count - 1];
             uint8_t wire_ciphers_with_tls13[] = {
                 TLS_AES_128_GCM_SHA256,
                 TLS_AES_256_GCM_SHA384,
@@ -506,7 +502,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_extension_list_parse(io_stuffer, &parsed_extensions));
 
                 bool psk_extension_sent = (parsed_extensions.parsed_extensions[psk_extension_id].extension_type
-                             == s2n_server_psk_extension.iana_value);
+                        == s2n_server_psk_extension.iana_value);
                 EXPECT_NOT_EQUAL(psk_extension_sent, is_hrr);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -549,7 +545,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
-        struct s2n_cert_chain_and_key fake_chain_and_key = {0};
+        struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
         static uint8_t fake_ocsp[] = { 0xff, 0xff, 0xff };
         s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp));
 
@@ -571,7 +567,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Write extensions - just status_request */
-            struct s2n_stuffer_reservation extension_list_size = {0};
+            struct s2n_stuffer_reservation extension_list_size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_status_request_extension,
                     server_conn, &stuffer));
@@ -600,7 +596,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Write extensions - supported_versions + status_request */
-            struct s2n_stuffer_reservation extension_list_size = {0};
+            struct s2n_stuffer_reservation extension_list_size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_supported_versions_extension,
                     server_conn, &stuffer));
@@ -650,7 +646,7 @@ int main(int argc, char **argv)
 
                 for (size_t i = 0; i <= test_wire_index; i++) {
                     struct s2n_psk *psk = NULL;
-                    EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &psk));
+                    EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void **) &psk));
                 }
 
                 if (is_hrr) {

@@ -25,12 +25,12 @@ void s2n_calculate_stacktrace() {}
 void s2n_stuffer_read_bytes_harness()
 {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    struct s2n_blob *   blob    = cbmc_allocate_s2n_blob();
+    struct s2n_blob *blob = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    struct s2n_blob    old_blob    = *blob;
+    struct s2n_blob old_blob = *blob;
 
     /* Store a byte from the stuffer to compare if the copy fails */
     struct store_byte_from_buffer old_byte_from_stuffer;
@@ -39,7 +39,7 @@ void s2n_stuffer_read_bytes_harness()
     /* Store a byte from the stuffer to compare if the copy succeeds */
     struct store_byte_from_buffer copied_byte;
     if (stuffer->blob.data && s2n_stuffer_data_available(stuffer) >= blob->size) {
-        save_byte_from_array(&stuffer->blob.data[ old_stuffer.read_cursor ], blob->size, &copied_byte);
+        save_byte_from_array(&stuffer->blob.data[old_stuffer.read_cursor], blob->size, &copied_byte);
     }
 
     if (s2n_stuffer_read_bytes(stuffer, blob->data, blob->size) == S2N_SUCCESS) {

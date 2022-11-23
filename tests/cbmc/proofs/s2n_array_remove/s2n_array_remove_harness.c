@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_array.h"
-#include "utils/s2n_result.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "utils/s2n_array.h"
+#include "utils/s2n_result.h"
 
 void s2n_array_remove_harness()
 {
@@ -30,15 +29,16 @@ void s2n_array_remove_harness()
 
     struct s2n_array old_array = *array;
     struct store_byte_from_buffer old_byte;
-    if (array->len != 0) save_byte_from_array(array->mem.data, array->len - 1, &old_byte);
+    if (array->len != 0)
+        save_byte_from_array(array->mem.data, array->len - 1, &old_byte);
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_array_remove(array, idx))) {
-       /* Post-conditions. */
+    if (s2n_result_is_ok(s2n_array_remove(array, idx))) {
+        /* Post-conditions. */
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len - 1));
         assert(idx < old_array.len);
-        if(array->len != 0 && idx == old_array.len - 1) {
+        if (array->len != 0 && idx == old_array.len - 1) {
             assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
     }

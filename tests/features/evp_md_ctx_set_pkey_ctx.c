@@ -14,7 +14,8 @@
  */
 
 #include <openssl/evp.h>
-int main() {
+int main()
+{
     EVP_MD_CTX_set_pkey_ctx(NULL, NULL);
     return 0;
 }

@@ -30,11 +30,11 @@
 void s2n_dup_harness()
 {
     struct s2n_blob *from = cbmc_allocate_s2n_blob();
-    struct s2n_blob *to   = cbmc_allocate_s2n_blob();
+    struct s2n_blob *to = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(from)));
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(to)));
-    const struct s2n_blob         old_from = *from;
-    const struct s2n_blob         old_to   = *to;
+    const struct s2n_blob old_from = *from;
+    const struct s2n_blob old_to = *to;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(from, &old_byte);
 
@@ -49,7 +49,7 @@ void s2n_dup_harness()
 
         uint32_t idx;
         __CPROVER_assume(idx < from->size);
-        assert(from->data[ idx ] == to->data[ idx ]);
+        assert(from->data[idx] == to->data[idx]);
     }
     assert(s2n_result_is_ok(s2n_blob_validate(from)));
     assert(s2n_result_is_ok(s2n_blob_validate(to)));

@@ -16,7 +16,10 @@
 #include <cbmc_proof/make_common_datastructures.h>
 #include <utils/s2n_safety_macros.h>
 
-bool s2n_blob_is_bounded(const struct s2n_blob *blob, const size_t max_size) { return (blob->size <= max_size); }
+bool s2n_blob_is_bounded(const struct s2n_blob *blob, const size_t max_size)
+{
+    return (blob->size <= max_size);
+}
 
 bool s2n_stuffer_is_bounded(const struct s2n_stuffer *stuffer, const size_t max_size)
 {
@@ -61,7 +64,7 @@ const char *ensure_c_str_is_allocated(size_t max_size)
     /* Ensure that its a valid c string. Since all bytes are nondeterminstic, the actual
      * string length is 0..str_cap
      */
-    __CPROVER_assume(IMPLIES(str != NULL, str[ cap - 1 ] == '\0'));
+    __CPROVER_assume(IMPLIES(str != NULL, str[cap - 1] == '\0'));
     return str;
 }
 
@@ -73,7 +76,7 @@ const char *nondet_c_str_is_allocated(size_t max_size)
     /* Ensure that its a valid c string. Since all bytes are nondeterminstic, the actual
      * string length is 0..str_cap
      */
-    __CPROVER_assume(IMPLIES(str != NULL, str[ cap - 1 ] == 0));
+    __CPROVER_assume(IMPLIES(str != NULL, str[cap - 1] == 0));
     return str;
 }
 
@@ -123,7 +126,7 @@ static int nondet_comparator(const void *a, const void *b)
 void cbmc_populate_s2n_set(struct s2n_set *set)
 {
     CBMC_ENSURE_REF(set);
-    set->data       = cbmc_allocate_s2n_array();
+    set->data = cbmc_allocate_s2n_array();
     set->comparator = nondet_comparator;
 }
 
@@ -176,7 +179,7 @@ EC_GROUP *cbmc_allocate_EC_GROUP()
 void cbmc_populate_EC_KEY(EC_KEY *ec_key)
 {
     CBMC_ENSURE_REF(ec_key);
-    ec_key->group    = cbmc_allocate_EC_GROUP();
+    ec_key->group = cbmc_allocate_EC_GROUP();
     ec_key->priv_key = cbmc_allocate_BIGNUM();
 }
 
@@ -216,9 +219,9 @@ EVP_PKEY_CTX *cbmc_allocate_EVP_PKEY_CTX()
 void cbmc_populate_EVP_MD_CTX(EVP_MD_CTX *ctx)
 {
     CBMC_ENSURE_REF(ctx);
-    ctx->digest  = malloc(sizeof(*(ctx->digest)));
+    ctx->digest = malloc(sizeof(*(ctx->digest)));
     ctx->md_data = malloc(EVP_MAX_MD_SIZE);
-    ctx->pctx    = cbmc_allocate_EVP_PKEY_CTX();
+    ctx->pctx = cbmc_allocate_EVP_PKEY_CTX();
 }
 
 EVP_MD_CTX *cbmc_allocate_EVP_MD_CTX()
@@ -228,7 +231,8 @@ EVP_MD_CTX *cbmc_allocate_EVP_MD_CTX()
     return ctx;
 }
 
-void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest) {
+void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest)
+{
     CBMC_ENSURE_REF(evp_digest);
     /* `evp_digest->md` is never allocated.
      * It is always initialized based on the hashing algorithm.
@@ -237,7 +241,7 @@ void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest) {
     evp_digest->ctx = cbmc_allocate_EVP_MD_CTX();
 }
 
-struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
+struct s2n_evp_digest *cbmc_allocate_s2n_evp_digest()
 {
     struct s2n_evp_digest *evp_digest = malloc(sizeof(*evp_digest));
     cbmc_populate_s2n_evp_digest(evp_digest);
@@ -262,7 +266,7 @@ struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state()
     return evp_hmac_state;
 }
 
-void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
+void cbmc_populate_s2n_hash_state(struct s2n_hash_state *state)
 {
     CBMC_ENSURE_REF(state);
     /* `state->hash_impl` is never allocated.
@@ -273,7 +277,7 @@ void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
     cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp_md5_secondary);
 }
 
-struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
+struct s2n_hash_state *cbmc_allocate_s2n_hash_state()
 {
     struct s2n_hash_state *state = malloc(sizeof(*state));
     cbmc_populate_s2n_hash_state(state);
@@ -289,7 +293,7 @@ void cbmc_populate_s2n_hmac_state(struct s2n_hmac_state *state)
     cbmc_populate_s2n_hash_state(&state->outer_just_key);
 }
 
-struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state()
+struct s2n_hmac_state *cbmc_allocate_s2n_hmac_state()
 {
     struct s2n_hmac_state *state = malloc(sizeof(*state));
     cbmc_populate_s2n_hmac_state(state);
@@ -309,7 +313,7 @@ void cbmc_populate_s2n_hmac_evp_backup(struct s2n_hmac_evp_backup *backup)
     cbmc_populate_s2n_evp_digest(&backup->outer_just_key.evp_md5_secondary);
 }
 
-struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup()
+struct s2n_hmac_evp_backup *cbmc_allocate_s2n_hmac_evp_backup()
 {
     struct s2n_hmac_evp_backup *backup = malloc(sizeof(*backup));
     cbmc_populate_s2n_hmac_evp_backup(backup);
@@ -361,11 +365,11 @@ struct s2n_security_policy *cbmc_allocate_s2n_security_policy()
 {
     struct s2n_security_policy *s2n_security_policy = malloc(sizeof(*s2n_security_policy));
     PTR_ENSURE_REF(s2n_security_policy);
-    s2n_security_policy->cipher_preferences                = cbmc_allocate_s2n_cipher_preferences();
-    s2n_security_policy->kem_preferences                   = cbmc_allocate_s2n_kem_preferences();
-    s2n_security_policy->signature_preferences             = cbmc_allocate_s2n_signature_preferences();
+    s2n_security_policy->cipher_preferences = cbmc_allocate_s2n_cipher_preferences();
+    s2n_security_policy->kem_preferences = cbmc_allocate_s2n_kem_preferences();
+    s2n_security_policy->signature_preferences = cbmc_allocate_s2n_signature_preferences();
     s2n_security_policy->certificate_signature_preferences = cbmc_allocate_s2n_signature_preferences();
-    s2n_security_policy->ecc_preferences                   = cbmc_allocate_s2n_ecc_preferences();
+    s2n_security_policy->ecc_preferences = cbmc_allocate_s2n_ecc_preferences();
     return s2n_security_policy;
 }
 
@@ -385,26 +389,26 @@ struct s2n_config *cbmc_allocate_s2n_config()
 {
     struct s2n_config *s2n_config = malloc(sizeof(*s2n_config));
     PTR_ENSURE_REF(s2n_config);
-    s2n_config->dhparams                = cbmc_allocate_dh_params();
+    s2n_config->dhparams = cbmc_allocate_dh_params();
     s2n_config->domain_name_to_cert_map = cbmc_allocate_s2n_map();
     /* `s2n_config->default_certs_by_type` is never allocated.
      * If required, this initialization should be done in the proof harness.
      */
     cbmc_populate_s2n_blob(&s2n_config->application_protocols);
-    s2n_config->security_policy      = cbmc_allocate_s2n_security_policy();
-    s2n_config->sys_clock_ctx        = malloc(sizeof(*(s2n_config->sys_clock_ctx)));
-    s2n_config->monotonic_clock_ctx  = malloc(sizeof(*(s2n_config->monotonic_clock_ctx)));
-    s2n_config->client_hello_cb      = malloc(sizeof(*(s2n_config->client_hello_cb))); /* Function pointer. */
-    s2n_config->client_hello_cb_ctx  = malloc(sizeof(*(s2n_config->client_hello_cb_ctx)));
-    s2n_config->ticket_keys          = cbmc_allocate_s2n_set();
-    s2n_config->ticket_key_hashes    = cbmc_allocate_s2n_set();
-    s2n_config->cache_store_data     = malloc(sizeof(*(s2n_config->cache_store_data)));
-    s2n_config->cache_retrieve_data  = malloc(sizeof(*(s2n_config->cache_retrieve_data)));
-    s2n_config->cache_delete_data    = malloc(sizeof(*(s2n_config->cache_delete_data)));
+    s2n_config->security_policy = cbmc_allocate_s2n_security_policy();
+    s2n_config->sys_clock_ctx = malloc(sizeof(*(s2n_config->sys_clock_ctx)));
+    s2n_config->monotonic_clock_ctx = malloc(sizeof(*(s2n_config->monotonic_clock_ctx)));
+    s2n_config->client_hello_cb = malloc(sizeof(*(s2n_config->client_hello_cb))); /* Function pointer. */
+    s2n_config->client_hello_cb_ctx = malloc(sizeof(*(s2n_config->client_hello_cb_ctx)));
+    s2n_config->ticket_keys = cbmc_allocate_s2n_set();
+    s2n_config->ticket_key_hashes = cbmc_allocate_s2n_set();
+    s2n_config->cache_store_data = malloc(sizeof(*(s2n_config->cache_store_data)));
+    s2n_config->cache_retrieve_data = malloc(sizeof(*(s2n_config->cache_retrieve_data)));
+    s2n_config->cache_delete_data = malloc(sizeof(*(s2n_config->cache_delete_data)));
     s2n_config->data_for_verify_host = malloc(sizeof(*(s2n_config->data_for_verify_host)));
     cbmc_populate_s2n_x509_trust_store(&s2n_config->trust_store);
-    s2n_config->psk_selection_ctx  = malloc(sizeof(*(s2n_config->psk_selection_ctx)));
-    s2n_config->key_log_ctx        = malloc(sizeof(*(s2n_config->key_log_ctx)));
+    s2n_config->psk_selection_ctx = malloc(sizeof(*(s2n_config->psk_selection_ctx)));
+    s2n_config->key_log_ctx = malloc(sizeof(*(s2n_config->key_log_ctx)));
     s2n_config->session_ticket_ctx = malloc(sizeof(*(s2n_config->session_ticket_ctx)));
     return s2n_config;
 }
@@ -484,7 +488,7 @@ struct s2n_kem_group *cbmc_allocate_s2n_kem_group()
      * If required, this initialization should be done in the proof harness.
      */
     s2n_kem_group->curve = cbmc_allocate_s2n_ecc_named_curve();
-    s2n_kem_group->kem   = cbmc_allocate_s2n_kem();
+    s2n_kem_group->kem = cbmc_allocate_s2n_kem();
     return s2n_kem_group;
 }
 
@@ -570,7 +574,7 @@ struct s2n_cipher_suite *cbmc_allocate_s2n_cipher_suite()
      * If required, these initializations should be done in the proof harness.
      */
     s2n_cipher_suite->key_exchange_alg = cbmc_allocate_s2n_kex();
-    s2n_cipher_suite->record_alg       = cbmc_allocate_s2n_record_algorithm();
+    s2n_cipher_suite->record_alg = cbmc_allocate_s2n_record_algorithm();
     s2n_cipher_suite->sslv3_record_alg = cbmc_allocate_s2n_record_algorithm();
     return s2n_cipher_suite;
 }
@@ -583,18 +587,18 @@ void cbmc_populate_s2n_session_key(struct s2n_session_key *s2n_session_key)
 
 void cbmc_populate_s2n_kex_parameters(struct s2n_kex_parameters *s2n_kex_parameters)
 {
-	cbmc_populate_s2n_dh_params(&(s2n_kex_parameters->server_dh_params));
-	cbmc_populate_s2n_ecc_evp_params(&(s2n_kex_parameters->server_ecc_evp_params));
-	/* `s2n_crypto_parameters->mutually_supported_curves`
+    cbmc_populate_s2n_dh_params(&(s2n_kex_parameters->server_dh_params));
+    cbmc_populate_s2n_ecc_evp_params(&(s2n_kex_parameters->server_ecc_evp_params));
+    /* `s2n_crypto_parameters->mutually_supported_curves`
 	 * `s2n_crypto_parameters->client_ecc_evp_params`
 	 * `s2n_crypto_parameters->client_kem_group_params`
 	 * `s2n_crypto_parameters->mutually_supported_kem_groups` are never allocated.
 	 * If required, these initializations should be done in the proof harness.
 	 */
-	cbmc_populate_s2n_kem_group_params(&(s2n_kex_parameters->server_kem_group_params));
-	cbmc_populate_s2n_kem_params(&(s2n_kex_parameters->kem_params));
-	cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_key_exchange_message));
-	cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_pq_kem_extension));
+    cbmc_populate_s2n_kem_group_params(&(s2n_kex_parameters->server_kem_group_params));
+    cbmc_populate_s2n_kem_params(&(s2n_kex_parameters->kem_params));
+    cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_key_exchange_message));
+    cbmc_populate_s2n_blob(&(s2n_kex_parameters->client_pq_kem_extension));
 }
 
 void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypto_parameters)
@@ -646,13 +650,13 @@ struct s2n_cert_chain *cbmc_allocate_s2n_cert_chain()
 void cbmc_populate_s2n_cert_chain_and_key(struct s2n_cert_chain_and_key *s2n_cert_chain_and_key)
 {
     CBMC_ENSURE_REF(s2n_cert_chain_and_key);
-    s2n_cert_chain_and_key->cert_chain  = cbmc_allocate_s2n_cert_chain();
+    s2n_cert_chain_and_key->cert_chain = cbmc_allocate_s2n_cert_chain();
     s2n_cert_chain_and_key->private_key = cbmc_allocate_s2n_pkey();
     cbmc_populate_s2n_blob(&(s2n_cert_chain_and_key->ocsp_status));
     cbmc_populate_s2n_blob(&(s2n_cert_chain_and_key->sct_list));
     s2n_cert_chain_and_key->san_names = cbmc_allocate_s2n_array();
-    s2n_cert_chain_and_key->cn_names  = cbmc_allocate_s2n_array();
-    s2n_cert_chain_and_key->context   = malloc(sizeof(*(s2n_cert_chain_and_key->context)));
+    s2n_cert_chain_and_key->cn_names = cbmc_allocate_s2n_array();
+    s2n_cert_chain_and_key->context = malloc(sizeof(*(s2n_cert_chain_and_key->context)));
 }
 
 void cbmc_populate_s2n_handshake_parameters(struct s2n_handshake_parameters *s2n_handshake_parameters)
@@ -712,7 +716,7 @@ void cbmc_populate_s2n_prf_working_space(struct s2n_prf_working_space *s2n_prf_w
     cbmc_populate_s2n_evp_hmac_state(&(s2n_prf_working_space->p_hash.evp_hmac));
 }
 
-struct s2n_prf_working_space* cbmc_allocate_s2n_prf_working_space()
+struct s2n_prf_working_space *cbmc_allocate_s2n_prf_working_space()
 {
     struct s2n_prf_working_space *workspace = malloc(sizeof(*workspace));
     cbmc_populate_s2n_prf_working_space(workspace);
@@ -750,7 +754,7 @@ void cbmc_populate_s2n_x509_validator(struct s2n_x509_validator *s2n_x509_valida
     if (s2n_x509_validator->trust_store != NULL) {
         s2n_x509_validator->trust_store->trust_store = malloc(sizeof(*(s2n_x509_validator->trust_store->trust_store)));
     }
-    s2n_x509_validator->store_ctx            = malloc(sizeof(*(s2n_x509_validator->store_ctx)));
+    s2n_x509_validator->store_ctx = malloc(sizeof(*(s2n_x509_validator->store_ctx)));
     s2n_x509_validator->cert_chain_from_wire = malloc(sizeof(*(s2n_x509_validator->cert_chain_from_wire)));
 }
 
@@ -763,15 +767,15 @@ void cbmc_populate_s2n_ticket_fields(struct s2n_ticket_fields *s2n_ticket_fields
 void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
 {
     CBMC_ENSURE_REF(s2n_connection);
-    s2n_connection->config                   = cbmc_allocate_s2n_config();
+    s2n_connection->config = cbmc_allocate_s2n_config();
     s2n_connection->security_policy_override = cbmc_allocate_s2n_security_policy();
-    s2n_connection->context                  = malloc(sizeof(*(s2n_connection->context)));
-    s2n_connection->secret_cb                = malloc(sizeof(*(s2n_connection->secret_cb))); /* Function pointer. */
-    s2n_connection->secret_cb_context        = malloc(sizeof(*(s2n_connection->secret_cb_context)));
-    s2n_connection->send                     = malloc(sizeof(*(s2n_connection->send))); /* Function pointer. */
-    s2n_connection->recv                     = malloc(sizeof(*(s2n_connection->recv))); /* Function pointer. */
-    s2n_connection->send_io_context          = malloc(sizeof(*(s2n_connection->secret_cb)));
-    s2n_connection->recv_io_context          = malloc(sizeof(*(s2n_connection->secret_cb)));
+    s2n_connection->context = malloc(sizeof(*(s2n_connection->context)));
+    s2n_connection->secret_cb = malloc(sizeof(*(s2n_connection->secret_cb))); /* Function pointer. */
+    s2n_connection->secret_cb_context = malloc(sizeof(*(s2n_connection->secret_cb_context)));
+    s2n_connection->send = malloc(sizeof(*(s2n_connection->send))); /* Function pointer. */
+    s2n_connection->recv = malloc(sizeof(*(s2n_connection->recv))); /* Function pointer. */
+    s2n_connection->send_io_context = malloc(sizeof(*(s2n_connection->secret_cb)));
+    s2n_connection->recv_io_context = malloc(sizeof(*(s2n_connection->secret_cb)));
     cbmc_populate_s2n_crypto_parameters(&(s2n_connection->initial));
     cbmc_populate_s2n_crypto_parameters(&(s2n_connection->secure));
     cbmc_populate_s2n_kex_parameters(&(s2n_connection->kex_params));
@@ -793,7 +797,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     cbmc_populate_s2n_blob(&(s2n_connection->peer_quic_transport_parameters));
     cbmc_populate_s2n_client_hello(&(s2n_connection->client_hello));
     cbmc_populate_s2n_x509_validator(&(s2n_connection->x509_validator));
-    s2n_connection->verify_host_fn       = malloc(sizeof(*(s2n_connection->verify_host_fn))); /* Function pointer. */
+    s2n_connection->verify_host_fn = malloc(sizeof(*(s2n_connection->verify_host_fn))); /* Function pointer. */
     s2n_connection->data_for_verify_host = malloc(sizeof(*(s2n_connection->data_for_verify_host)));
     cbmc_populate_s2n_blob(&(s2n_connection->client_ticket));
     cbmc_populate_s2n_ticket_fields(&(s2n_connection->tls13_ticket_fields));

@@ -25,13 +25,13 @@ int open(const char *path, int flag, ...)
     assert(path != NULL);
     assert(flag == O_RDONLY || flag == O_WRONLY || flag == O_RDWR);
     int rval = 0;
-    errno    = nondet_int();
+    errno = nondet_int();
     if (loop_flag) {
         __CPROVER_assume(errno != EINTR);
         return rval;
     }
     loop_flag = true;
-    rval      = nondet_int();
+    rval = nondet_int();
     __CPROVER_assume(rval >= -1 && rval <= 65536 /* File descriptor limit. */);
     return rval;
 }

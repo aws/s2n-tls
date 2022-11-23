@@ -13,30 +13,30 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/extensions/s2n_client_supported_versions.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-#define PROTOCOL_VERSION_ALERT 70
+#define PROTOCOL_VERSION_ALERT                     70
 #define GREASED_SUPPORTED_VERSION_EXTENSION_VALUES 0x0A0A, 0x1A1A, 0x2A2A, 0x3A3A, 0x4A4A, 0x5A5A, 0x6A6A, 0x7A7A, 0x8A8A, 0x9A9A, 0xAAAA, 0xBABA, 0xCACA, 0xDADA, 0xEAEA, 0xFAFA
 
-int get_alert(struct s2n_connection *conn) {
+int get_alert(struct s2n_connection *conn)
+{
     uint8_t error[2];
     POSIX_GUARD(s2n_stuffer_read_bytes(&conn->reader_alert_out, error, 2));
     return error[1];
 }
 
-int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length) {
+int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length)
+{
     POSIX_GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
     for (int i = 0; i < length; i++) {

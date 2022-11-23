@@ -30,7 +30,7 @@ void s2n_stuffer_alloc_ro_from_string_harness()
     char *str = ensure_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -40,7 +40,7 @@ void s2n_stuffer_alloc_ro_from_string_harness()
     if (s2n_stuffer_alloc_ro_from_string(stuffer, str) == S2N_SUCCESS) {
         /* Post-conditions. */
         uint32_t length = strlen(str);
-        assert_bytes_match(stuffer->blob.data, ( const uint8_t * )str, length);
+        assert_bytes_match(stuffer->blob.data, (const uint8_t *) str, length);
         assert(stuffer->alloced);
         assert(stuffer->blob.size == length + 1);
         assert(stuffer->write_cursor == length);

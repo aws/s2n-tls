@@ -32,7 +32,7 @@ void s2n_stuffer_reserve_space_harness()
     nondet_s2n_mem_init();
 
     /* Save previous state. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -42,8 +42,8 @@ void s2n_stuffer_reserve_space_harness()
         if (s2n_stuffer_space_remaining(&old_stuffer) < size) {
             /* Always grow a stuffer by at least 1k */
             assert(stuffer->blob.size
-                   == (MAX(size - s2n_stuffer_space_remaining(&old_stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES)
-                       + old_stuffer.blob.size));
+                    == (MAX(size - s2n_stuffer_space_remaining(&old_stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES)
+                            + old_stuffer.blob.size));
             assert(stuffer->blob.allocated >= size);
         } else {
             assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

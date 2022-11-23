@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_sct_list.h"
 
 int main(int argc, char **argv)

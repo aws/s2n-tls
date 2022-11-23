@@ -23,7 +23,8 @@
 #include <stddef.h>
 #include <sys/mman.h>
 
-int main() {
+int main()
+{
     minherit(NULL, 0, 0);
     return 0;
 }

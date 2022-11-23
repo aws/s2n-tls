@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_tls13_key_schedule.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_tls13_key_schedule.h"
 #include "tls/s2n_cipher_suites.h"
 
 /* For access to secret handlers.
  * We override them for mocking purposees. */
 #include "tls/s2n_tls13_secrets.c"
 
-#define NO_TRIGGER_MSG APPLICATION_DATA
+#define NO_TRIGGER_MSG       APPLICATION_DATA
 #define TRAFFIC_SECRET_COUNT 5
 
 static uint8_t empty_secret[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
@@ -40,10 +40,10 @@ struct s2n_test_secrets {
     struct s2n_blob blobs[TRAFFIC_SECRET_COUNT];
 };
 
-static int s2n_test_secret_cb(void* context, struct s2n_connection *conn,
+static int s2n_test_secret_cb(void *context, struct s2n_connection *conn,
         s2n_secret_type_t secret_type, uint8_t *secret_bytes, uint8_t secret_size)
 {
-    struct s2n_test_secrets *secrets = (struct s2n_test_secrets*) context;
+    struct s2n_test_secrets *secrets = (struct s2n_test_secrets *) context;
     POSIX_ENSURE_REF(secrets);
 
     POSIX_ENSURE_GTE(secret_type, 0);
@@ -102,8 +102,8 @@ int main(int argc, char **argv)
     struct s2n_tls13_key_schedule_test_case test_cases[2000] = { 0 };
     size_t test_cases_count = 0;
     struct s2n_connection handshake_test_conn = {
-            .actual_protocol_version = S2N_TLS13,
-            .handshake = { .message_number = 1 },
+        .actual_protocol_version = S2N_TLS13,
+        .handshake = { .message_number = 1 },
     };
     for (uint32_t handshake_type = 0; handshake_type < S2N_HANDSHAKES_COUNT; handshake_type++) {
         handshake_test_conn.handshake.handshake_type = handshake_type;
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
                         /* Skip unavailable ciphers */
                         continue;
                     }
-                    test_cases[test_cases_count] = (struct s2n_tls13_key_schedule_test_case) {
+                    test_cases[test_cases_count] = (struct s2n_tls13_key_schedule_test_case){
                         .conn_mode = modes[mode_i],
                         .handshake_type = handshake_type,
                         .cipher_suite = ciphers->suites[cipher_i],
@@ -147,9 +147,9 @@ int main(int argc, char **argv)
 
             /* Minimal client connection that triggers an update */
             struct s2n_connection empty_client_conn = {
-                    .mode = S2N_CLIENT,
-                    .client_protocol_version = S2N_TLS13,
-                    .early_data_state = S2N_EARLY_DATA_REQUESTED
+                .mode = S2N_CLIENT,
+                .client_protocol_version = S2N_TLS13,
+                .early_data_state = S2N_EARLY_DATA_REQUESTED
             };
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_key_schedule_update(&empty_client_conn), S2N_ERR_NULL);
             empty_client_conn.client_protocol_version = S2N_TLS12;
@@ -157,9 +157,9 @@ int main(int argc, char **argv)
 
             /* Minimal server connection that triggers an update */
             struct s2n_connection empty_server_conn = {
-                    .mode = S2N_SERVER,
-                    .actual_protocol_version = S2N_TLS13,
-                    .handshake = { .message_number = 1 }
+                .mode = S2N_SERVER,
+                .actual_protocol_version = S2N_TLS13,
+                .handshake = { .message_number = 1 }
             };
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_key_schedule_update(&empty_server_conn), S2N_ERR_NULL);
             empty_server_conn.actual_protocol_version = S2N_TLS12;
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 
             for (size_t i = 0; i < test_cases_count; i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
-                    s2n_connection_ptr_free);
+                        s2n_connection_ptr_free);
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->handshake.handshake_type = test_cases[i].handshake_type;
                 conn->secure->cipher_suite = test_cases[i].cipher_suite;
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 
                 struct s2n_test_secrets secrets = { 0 };
                 EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn,
-                        s2n_test_secret_cb, (void*)&secrets));
+                        s2n_test_secret_cb, (void *) &secrets));
 
                 /* Perform the handshake */
                 while (s2n_conn_get_current_message_type(conn) != APPLICATION_DATA) {
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
                      * We know what secrets every message should be encrypted with.
                      * Verify those secrets are available in time for each message.
                      */
-                    switch(s2n_conn_get_current_message_type(conn)) {
+                    switch (s2n_conn_get_current_message_type(conn)) {
                         case CLIENT_HELLO:
                             /* Expect not encrypted */
                             EXPECT_EQUAL(conn->client, conn->initial);

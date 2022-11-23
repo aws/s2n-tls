@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 #include "crypto/s2n_hash.h"
-
-#include <assert.h>
 
 void s2n_hash_new_harness()
 {

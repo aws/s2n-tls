@@ -18,28 +18,27 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <openssl/conf.h>
+#include <openssl/dh.h>
+#include <openssl/ec.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/x509.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <openssl/ssl.h>
-#include <openssl/conf.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/dh.h>
-#include <openssl/ec.h>
-
 #include "api/s2n.h"
+#include "crypto/s2n_certificate.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_config.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "crypto/s2n_certificate.h"
 
 static int openssl_parse_cert_chain(struct s2n_stuffer *in)
 {
@@ -60,7 +59,6 @@ static int openssl_parse_cert_chain(struct s2n_stuffer *in)
     BIO_free(membio);
 
     return chain_len;
-
 }
 
 static int s2n_parse_cert_chain(struct s2n_stuffer *in)
@@ -75,7 +73,7 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
 
     int chain_len = 0;
     struct s2n_cert *next = chain_and_key->cert_chain->head;
-    while(next != NULL) {
+    while (next != NULL) {
         chain_len++;
         next = next->next;
     }
@@ -87,7 +85,7 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
-    struct s2n_stuffer in = {0};
+    struct s2n_stuffer in = { 0 };
     POSIX_GUARD(s2n_stuffer_alloc(&in, len + 1));
     POSIX_GUARD(s2n_stuffer_write_bytes(&in, buf, len));
     in.blob.data[len] = 0;

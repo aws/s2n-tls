@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include "utils/s2n_mem.h"
+
 #include <stdint.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "error/s2n_errno.h"
-
 #include "utils/s2n_blob.h"
-#include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
 static long page_size = 4096;
@@ -48,11 +48,11 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
     return 0;
 }
 
-void *realloc( void *ptr, size_t new_size )
+void *realloc(void *ptr, size_t new_size)
 {
-  /* just leave it undet for now */
-  void* ret = malloc(new_size);
-  return ret;
+    /* just leave it undet for now */
+    void *ret = malloc(new_size);
+    return ret;
 }
 
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
@@ -90,7 +90,7 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
     POSIX_ENSURE_EQ(to->data, NULL);
 
     POSIX_GUARD(s2n_alloc(to, from->size));
-    
+
     POSIX_CHECKED_MEMCPY(to->data, from->data, to->size);
 
     return 0;

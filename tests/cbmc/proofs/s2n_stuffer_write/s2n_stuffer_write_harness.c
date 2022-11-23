@@ -42,17 +42,17 @@ void s2n_stuffer_write_harness()
     } else {
         __CPROVER_assume(idx < old_stuffer.write_cursor || idx >= old_stuffer.write_cursor + blob->size);
     }
-    uint8_t untouched_byte = stuffer->blob.data[ idx ];
+    uint8_t untouched_byte = stuffer->blob.data[idx];
 
     /* Store a byte from the blob to compare. */
-    struct s2n_blob               old_blob = *blob;
+    struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte_from_blob;
     save_byte_from_blob(blob, &old_byte_from_blob);
 
     /* Operation under verification. */
     if (s2n_stuffer_write(stuffer, blob) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + blob->size);
-        assert(stuffer->blob.data[ idx ] == untouched_byte);
+        assert(stuffer->blob.data[idx] == untouched_byte);
         assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {

@@ -25,7 +25,8 @@
  * hex-encoded bytes. This is how we would expect it to appear on the wire. */
 static struct s2n_kem_params kem_params = { .kem = &s2n_kyber_512_r3 };
 
-int s2n_fuzz_test(const uint8_t *buf, size_t len) {
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
+{
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kem_params));
     return S2N_SUCCESS;
 }

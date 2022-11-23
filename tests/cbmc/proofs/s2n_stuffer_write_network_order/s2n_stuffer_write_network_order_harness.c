@@ -30,10 +30,10 @@ void s2n_stuffer_write_network_order_harness()
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint64_t input;
-    uint8_t  length;
+    uint8_t length;
 
     /* Store a byte from the stuffer to compare if the write fails */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -49,7 +49,7 @@ void s2n_stuffer_write_network_order_harness()
             uint8_t *data = stuffer->blob.data + old_stuffer.write_cursor;
             for (int i = 0; i < length; i++) {
                 uint8_t shift = (length - i - 1) * CHAR_BIT;
-                assert(data[ i ] == ((input >> (shift)) & UINT8_MAX));
+                assert(data[i] == ((input >> (shift)) & UINT8_MAX));
             }
         }
     } else {

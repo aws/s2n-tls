@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/extensions/s2n_server_max_fragment_length.h"
@@ -23,19 +22,21 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
-#define SET_PARSED_EXTENSION(list, entry) do {                                              \
-    s2n_extension_type_id id = 0;                                                           \
-    EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(entry.extension_type, &id));    \
-    list.parsed_extensions[id] = entry;                                                     \
-} while(0)
+#define SET_PARSED_EXTENSION(list, entry)                                                    \
+    do {                                                                                     \
+        s2n_extension_type_id id = 0;                                                        \
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(entry.extension_type, &id)); \
+        list.parsed_extensions[id] = entry;                                                  \
+    } while (0)
 
-#define IS_EXTENSION_PROCESSED(list, id) ((list).parsed_extensions[id].processed)
+#define IS_EXTENSION_PROCESSED(list, id)     ((list).parsed_extensions[id].processed)
 #define EXPECT_EXTENSION_PROCESSED(list, id) EXPECT_TRUE(IS_EXTENSION_PROCESSED(list, id))
-#define EXPECT_NO_EXTENSIONS_PROCESSED(list) do {\
-    for(size_t i = 0; i < S2N_PARSED_EXTENSIONS_COUNT; i++) { \
-        EXPECT_FALSE(IS_EXTENSION_PROCESSED(list, i)); \
-    } \
-} while(0)
+#define EXPECT_NO_EXTENSIONS_PROCESSED(list)                       \
+    do {                                                           \
+        for (size_t i = 0; i < S2N_PARSED_EXTENSIONS_COUNT; i++) { \
+            EXPECT_FALSE(IS_EXTENSION_PROCESSED(list, i));         \
+        }                                                          \
+    } while (0)
 
 static int s2n_setup_test_parsed_extension(const s2n_extension_type *extension_type,
         s2n_parsed_extension *parsed_extension, struct s2n_connection *conn, struct s2n_stuffer *stuffer)
@@ -69,12 +70,12 @@ int main()
         EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
 
         const s2n_extension_type test_extension_type = {
-                .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
-                .is_response = false,
-                .should_send = s2n_extension_never_send,
-                .send = s2n_extension_send_unimplemented,
-                .recv = s2n_extension_test_recv,
-                .if_missing = s2n_extension_noop_if_missing,
+            .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
+            .is_response = false,
+            .should_send = s2n_extension_never_send,
+            .send = s2n_extension_send_unimplemented,
+            .recv = s2n_extension_test_recv,
+            .if_missing = s2n_extension_noop_if_missing,
         };
 
         s2n_extension_type_id test_extension_type_internal_id;
@@ -96,8 +97,8 @@ int main()
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
             const s2n_parsed_extension test_parsed_extension = {
-                  .extension_type = test_extension_type.iana_value,
-                  .extension = extension_blob,
+                .extension_type = test_extension_type.iana_value,
+                .extension = extension_blob,
             };
 
             struct s2n_connection *conn;
@@ -118,8 +119,8 @@ int main()
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
             const s2n_parsed_extension test_parsed_extension = {
-                  .extension_type = test_extension_type.iana_value,
-                  .extension = extension_blob,
+                .extension_type = test_extension_type.iana_value,
+                .extension = extension_blob,
             };
 
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -149,8 +150,8 @@ int main()
             struct s2n_blob empty_blob = extension_blob;
             empty_blob.size = 0;
             const s2n_parsed_extension test_parsed_extension = {
-                  .extension_type = test_extension_type.iana_value,
-                  .extension = empty_blob,
+                .extension_type = test_extension_type.iana_value,
+                .extension = empty_blob,
             };
 
             struct s2n_connection *conn;
@@ -171,8 +172,8 @@ int main()
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
             const s2n_parsed_extension test_parsed_extension = {
-                  .extension_type = test_extension_type.iana_value - 1,
-                  .extension = extension_blob,
+                .extension_type = test_extension_type.iana_value - 1,
+                .extension = extension_blob,
             };
 
             struct s2n_connection *conn;

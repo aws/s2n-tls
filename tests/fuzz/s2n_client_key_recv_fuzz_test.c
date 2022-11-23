@@ -18,27 +18,25 @@
                      s2n_rsa_client_key_recv s2n_dhe_client_key_recv
                      s2n_ecdhe_client_key_recv s2n_kem_client_key_recv */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
-
-#include "tls/s2n_kem.h"
-#include "tls/s2n_client_key_exchange.h"
-#include "tls/s2n_kex.h"
-#include "tls/s2n_security_policies.h"
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_client_key_exchange.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
 /* Connection setup variables */
 uint8_t *cert_chain_pem = NULL;

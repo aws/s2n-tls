@@ -184,7 +184,7 @@ void cbmc_populate_EVP_MD_CTX(EVP_MD_CTX *ctx);
 /*
  * Properly allocates EVP_MD_CTX for CBMC proofs.
  */
-EVP_MD_CTX* cbmc_allocate_EVP_MD_CTX();
+EVP_MD_CTX *cbmc_allocate_EVP_MD_CTX();
 
 /*
  * Populates the fields of a pre-allocated s2n_evp_digest for CBMC proofs.
@@ -194,7 +194,7 @@ void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest);
 /*
  * Properly allocates s2n_evp_digest for CBMC proofs.
  */
-struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest();
+struct s2n_evp_digest *cbmc_allocate_s2n_evp_digest();
 
 /*
  * Populates the fields of a pre-allocated s2n_evp_digest for CBMC proofs.
@@ -224,7 +224,7 @@ void cbmc_populate_s2n_hmac_state(struct s2n_hmac_state *state);
 /*
  * Properly allocates s2n_hmac_state for CBMC proofs.
  */
-struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state();
+struct s2n_hmac_state *cbmc_allocate_s2n_hmac_state();
 
 /*
  * Populates the fields of a pre-allocated s2n_hmac_evp_backup for CBMC proofs.
@@ -234,7 +234,7 @@ void cbmc_populate_s2n_hmac_evp_backup(struct s2n_hmac_evp_backup *backup);
 /*
  * Properly allocates s2n_hmac_state for CBMC proofs.
  */
-struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup();
+struct s2n_hmac_evp_backup *cbmc_allocate_s2n_hmac_evp_backup();
 
 /*
  * Populates the fields of a pre-allocated s2n_map for CBMC proofs.

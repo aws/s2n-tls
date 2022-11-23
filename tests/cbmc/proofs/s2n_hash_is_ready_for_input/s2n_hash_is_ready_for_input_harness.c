@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_hash.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "crypto/s2n_hash.h"
 
 void s2n_hash_is_ready_for_input_harness()
 {
@@ -26,8 +25,7 @@ void s2n_hash_is_ready_for_input_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(state)));
 
     /* Operation under verification. */
-    if(s2n_hash_is_ready_for_input(state))
-    {
+    if (s2n_hash_is_ready_for_input(state)) {
         /* Post-conditions. */
         assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
     }

@@ -15,21 +15,20 @@
 
 /* Target Functions: s2n_tls13_server_finished_recv */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_hash.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13 };
 
 #ifdef S2N_TEST_IN_FIPS_MODE
 const struct s2n_cipher_preferences *cipher_prefs = &cipher_preferences_test_all_fips;
@@ -37,10 +36,8 @@ const struct s2n_cipher_preferences *cipher_prefs = &cipher_preferences_test_all
 const struct s2n_cipher_preferences *cipher_prefs = &cipher_preferences_test_all;
 #endif
 
-
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
-
     /* We need at least one byte of input to set parameters */
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 

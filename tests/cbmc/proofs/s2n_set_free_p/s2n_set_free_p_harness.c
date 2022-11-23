@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_set.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "utils/s2n_set.h"
 
 void s2n_set_free_p_harness()
 {

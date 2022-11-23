@@ -22,7 +22,7 @@
 void s2n_stuffer_init_harness()
 {
     struct s2n_stuffer *stuffer = malloc(sizeof(*stuffer));
-    struct s2n_blob *   in      = cbmc_allocate_s2n_blob();
+    struct s2n_blob *in = cbmc_allocate_s2n_blob();
     if (s2n_stuffer_init(stuffer, in) == S2N_SUCCESS) {
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
         assert(s2n_result_is_ok(s2n_blob_validate(in)));

@@ -18,7 +18,8 @@
 #include <sched.h>
 #include <stddef.h>
 
-int main() {
+int main()
+{
     clone(NULL, NULL, 0, NULL);
     return 0;
 }

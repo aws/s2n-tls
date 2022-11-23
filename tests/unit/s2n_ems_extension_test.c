@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_ems.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"

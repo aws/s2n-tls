@@ -14,7 +14,6 @@
  */
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
@@ -22,7 +21,7 @@
 #define SIZEOF_UINT24 3
 
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint64_t input, uint8_t length);
-int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation* reservation, const uint32_t u);
+int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation *reservation, const uint32_t u);
 
 int main(int argc, char **argv)
 {
@@ -279,7 +278,7 @@ int main(int argc, char **argv)
 
         /* Happy cases */
         uint16_t test_sizes[] = { 0, 1, 5, 0x88, 0xF0, 0xFF };
-        for( int i = 0; i < s2n_array_len(test_sizes); i++) {
+        for (int i = 0; i < s2n_array_len(test_sizes); i++) {
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, test_sizes[i]));

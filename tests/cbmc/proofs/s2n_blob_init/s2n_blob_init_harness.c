@@ -24,12 +24,14 @@ void s2n_blob_init_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = malloc(sizeof(*blob));
-    uint32_t         size;
-    uint8_t *        data = malloc(size);
+    uint32_t size;
+    uint8_t *data = malloc(size);
 
     /* Pre-conditions. */
     __CPROVER_assume(S2N_IMPLIES(size != 0, data != NULL));
 
     /* Operation under verification. */
-    if (s2n_blob_init(blob, data, size) == S2N_SUCCESS) { assert(s2n_result_is_ok(s2n_blob_validate(blob))); }
+    if (s2n_blob_init(blob, data, size) == S2N_SUCCESS) {
+        assert(s2n_result_is_ok(s2n_blob_validate(blob)));
+    }
 }

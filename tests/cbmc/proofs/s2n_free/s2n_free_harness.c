@@ -35,7 +35,7 @@ void s2n_free_harness()
     if (result == S2N_SUCCESS) {
         /* Postconditions. */
         assert(S2N_IMPLIES(old_blob.allocated, blob->data == NULL));
-        assert_all_zeroes((const uint8_t *)blob, sizeof(*blob));
+        assert_all_zeroes((const uint8_t *) blob, sizeof(*blob));
         if (old_blob.size != 0 && s2n_blob_is_growable(&old_blob)) {
             assert(!S2N_MEM_IS_READABLE(blob->data, old_blob.size));
         }

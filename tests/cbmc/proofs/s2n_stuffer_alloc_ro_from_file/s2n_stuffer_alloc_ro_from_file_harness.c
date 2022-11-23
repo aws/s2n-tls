@@ -28,10 +28,10 @@ void s2n_stuffer_alloc_ro_from_file_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    char *              file    = nondet_c_str_is_allocated(MAX_STRING_LEN);
+    char *file = nondet_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Store a byte from the stuffer to compare if the write fails */
-    struct s2n_stuffer            old_stuffer;
+    struct s2n_stuffer old_stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     if (s2n_result_is_ok(s2n_stuffer_validate(stuffer))) {
         old_stuffer = *stuffer;
@@ -43,8 +43,8 @@ void s2n_stuffer_alloc_ro_from_file_harness()
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         if (s2n_result_is_ok(s2n_stuffer_validate(stuffer)) && errno != EBADF
-            && /* The stuffer might not be equivalent if close() fails. */
-            errno != EINTR && errno != EIO) {
+                && /* The stuffer might not be equivalent if close() fails. */
+                errno != EINTR && errno != EIO) {
             assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         }
     }

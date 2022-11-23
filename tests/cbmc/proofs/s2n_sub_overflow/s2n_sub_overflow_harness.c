@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+
 #include "api/s2n.h"
 #include "utils/s2n_safety.h"
-
-#include <assert.h>
 
 int s2n_sub_overflow_harness()
 {

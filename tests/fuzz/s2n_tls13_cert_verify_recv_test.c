@@ -16,18 +16,17 @@
 /* Target Functions: s2n_tls13_cert_verify_recv s2n_get_and_validate_negotiated_signature_scheme
                      s2n_tls13_cert_read_and_verify_signature */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
 uint8_t *cert_chain = NULL;
 uint8_t *private_key = NULL;

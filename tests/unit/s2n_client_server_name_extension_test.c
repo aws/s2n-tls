@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_server_name.h"
 
 int main(int argc, char **argv)
@@ -167,7 +166,7 @@ int main(int argc, char **argv)
         uint8_t test_bytes = extension_size - strlen(test_server_name);
 
         /* Check that inverting any byte in the sizes / name type causes us to skip the extension */
-        for (int i = 0; i < test_bytes; i++ ) {
+        for (int i = 0; i < test_bytes; i++) {
             /* Mess something up! */
             stuffer.blob.data[i] = ~stuffer.blob.data[i];
 

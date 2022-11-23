@@ -26,7 +26,7 @@ void s2n_stuffer_read_uint64_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    uint64_t *         dest        = malloc(sizeof(uint64_t *));
+    uint64_t *dest = malloc(sizeof(uint64_t *));
 
     /* Store a byte from the stuffer to compare after the read */
     struct store_byte_from_buffer old_byte_from_stuffer;
@@ -35,14 +35,14 @@ void s2n_stuffer_read_uint64_harness()
     if (s2n_stuffer_read_uint64(stuffer, dest) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + sizeof(uint64_t));
         /* If successful, ensure uint was assembled correctly from stuffer */
-        assert((( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor ]) << 56
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 1 ]) << 48
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 2 ]) << 40
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 3 ]) << 32
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 4 ]) << 24
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 5 ]) << 16
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 6 ]) << 8
-               | (( uint64_t )stuffer->blob.data[ old_stuffer.read_cursor + 7 ]) == *dest);
+        assert(((uint64_t) stuffer->blob.data[old_stuffer.read_cursor]) << 56
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 1]) << 48
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 2]) << 40
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 3]) << 32
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 4]) << 24
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 5]) << 16
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 6]) << 8
+                | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 7]) == *dest);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }

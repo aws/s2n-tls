@@ -111,7 +111,8 @@ const char *ecdsa_private_key =
         "uHMW/qLZVZYYWz82qMeBFbYSxMSWbpsfIA=="
         "-----END EC PRIVATE KEY-----";
 
-void usage() {
+void usage()
+{
     fprintf(stderr, "usage: s2n_benchmark [options] host port\n");
     fprintf(stderr, " host: hostname or IP address to connect to\n");
     fprintf(stderr, " port: port to connect to\n");
@@ -142,17 +143,18 @@ void usage() {
     exit(1);
 }
 
-int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup) {
+int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State &state, bool warmup)
+{
     s2n_blocked_status blocked;
     int s2n_ret;
     if (!warmup) {
         state.ResumeTiming();
     }
-    benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked)); //forces the result to be stored in either memory or a register.
+    benchmark::DoNotOptimize(s2n_ret = s2n_negotiate(conn, &blocked));  //forces the result to be stored in either memory or a register.
     if (!warmup) {
         state.PauseTiming();
     }
-    benchmark::ClobberMemory(); //forces the compiler to perform all pending writes to global memory
+    benchmark::ClobberMemory();  //forces the compiler to perform all pending writes to global memory
 
     if (s2n_ret != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
@@ -179,9 +181,10 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
     return 0;
 }
 
-void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    std::string& file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions,
-                    std::string& gb_options, std::vector<int> &data_sizes) {
+void argument_parse(int argc, char **argv, int &use_corked_io, int &insecure, char *bench_format,
+        std::string &file_prefix, long int &warmup_iters, size_t &iterations, size_t &repetitions,
+        std::string &gb_options, std::vector<int> &data_sizes)
+{
     while (1) {
         int c = getopt(argc, argv, "ci:r:w:o:t:p:g:d:sD");
         if (c == -1) {
@@ -212,19 +215,17 @@ void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, ch
             case 'p':
                 pem_dir = optarg;
                 break;
-            case 'd':
-                {
-                    std::string s = std::string(optarg);
-                    size_t pos = 0;
-                    std::string token;
-                    while ((pos = s.find(";")) != std::string::npos) {
-                        token = s.substr(0, pos);
-                        data_sizes.push_back(stoi(token));
-                        s.erase(0, pos + 1);
-                    }
-                    data_sizes.push_back(stoi(s));
+            case 'd': {
+                std::string s = std::string(optarg);
+                size_t pos = 0;
+                std::string token;
+                while ((pos = s.find(";")) != std::string::npos) {
+                    token = s.substr(0, pos);
+                    data_sizes.push_back(stoi(token));
+                    s.erase(0, pos + 1);
                 }
-                break;
+                data_sizes.push_back(stoi(s));
+            } break;
             case 's':
                 insecure = 1;
                 break;

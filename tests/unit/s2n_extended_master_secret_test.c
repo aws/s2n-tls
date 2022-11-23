@@ -15,14 +15,13 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "utils/s2n_bitmap.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Test s2n_conn_set_handshake_type is processing EMS data correctly */    
+    /* Test s2n_conn_set_handshake_type is processing EMS data correctly */
     {
         struct s2n_config *config;
         uint64_t current_time = 0;
@@ -36,10 +35,10 @@ int main(int argc, char **argv)
          *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
          *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
          **/
-        S2N_BLOB_FROM_HEX(ticket_key, 
-            "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                        ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
+        S2N_BLOB_FROM_HEX(ticket_key,
+                "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+                ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
 
         /**
          *= https://tools.ietf.org/rfc/rfc7627#section-5.3
@@ -159,7 +158,7 @@ int main(int argc, char **argv)
 
             EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, FULL_HANDSHAKE));
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));   
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         EXPECT_SUCCESS(s2n_config_free(config));
@@ -175,7 +174,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -226,7 +225,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -271,7 +270,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);

@@ -13,45 +13,40 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "crypto/s2n_ecdsa.h"
 
 #include <string.h>
 
-#include "testlib/s2n_testlib.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_config.h"
-
-#include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_fips.h"
-
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_config.h"
+#include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-
 static uint8_t unmatched_private_key[] =
-    "-----BEGIN EC PRIVATE KEY-----\n"
-    "MIIB+gIBAQQwuenHFMJsDm5tCQgthH8kGXQ1dHkKACmHH3ZqIGteoghhGow6vGmr\n"
-    "xzA8gAdD2bJ0oIIBWzCCAVcCAQEwPAYHKoZIzj0BAQIxAP//////////////////\n"
-    "///////////////////////+/////wAAAAAAAAAA/////zB7BDD/////////////\n"
-    "/////////////////////////////v////8AAAAAAAAAAP////wEMLMxL6fiPufk\n"
-    "mI4Fa+P4LRkYHZxu/oFBEgMUCI9QE4daxlY5jYou0Z0qhcjt0+wq7wMVAKM1kmqj\n"
-    "GaJ6HQCJamdzpIJ6zaxzBGEEqofKIr6LBTeOscce8yCtdG4dO2KLp5uYWfdB4IJU\n"
-    "KjhVAvJdv1UpbDpUXjhydgq3NhfeSpYmLG9dnpi/kpLcKfj0Hb0omhR86doxE7Xw\n"
-    "uMAKYLHOHX6BnXpDHXyQ6g5fAjEA////////////////////////////////x2NN\n"
-    "gfQ3Ld9YGg2ySLCneuzsGWrMxSlzAgEBoWQDYgAE8oYPSRINnKlr5ZBHWacYEq4Y\n"
-    "j18l5f9yoMhBhpl7qvzf7uNFQ1SHzgHu0/v662d8Z0Pc0ujIms3/9uYxXVUY73vm\n"
-    "iwVevOxBJ1GL0usqhWNqOKoNp048H4rCmfyMN97E\n"
-    "-----END EC PRIVATE KEY-----\n";
+        "-----BEGIN EC PRIVATE KEY-----\n"
+        "MIIB+gIBAQQwuenHFMJsDm5tCQgthH8kGXQ1dHkKACmHH3ZqIGteoghhGow6vGmr\n"
+        "xzA8gAdD2bJ0oIIBWzCCAVcCAQEwPAYHKoZIzj0BAQIxAP//////////////////\n"
+        "///////////////////////+/////wAAAAAAAAAA/////zB7BDD/////////////\n"
+        "/////////////////////////////v////8AAAAAAAAAAP////wEMLMxL6fiPufk\n"
+        "mI4Fa+P4LRkYHZxu/oFBEgMUCI9QE4daxlY5jYou0Z0qhcjt0+wq7wMVAKM1kmqj\n"
+        "GaJ6HQCJamdzpIJ6zaxzBGEEqofKIr6LBTeOscce8yCtdG4dO2KLp5uYWfdB4IJU\n"
+        "KjhVAvJdv1UpbDpUXjhydgq3NhfeSpYmLG9dnpi/kpLcKfj0Hb0omhR86doxE7Xw\n"
+        "uMAKYLHOHX6BnXpDHXyQ6g5fAjEA////////////////////////////////x2NN\n"
+        "gfQ3Ld9YGg2ySLCneuzsGWrMxSlzAgEBoWQDYgAE8oYPSRINnKlr5ZBHWacYEq4Y\n"
+        "j18l5f9yoMhBhpl7qvzf7uNFQ1SHzgHu0/v662d8Z0Pc0ujIms3/9uYxXVUY73vm\n"
+        "iwVevOxBJ1GL0usqhWNqOKoNp048H4rCmfyMN97E\n"
+        "-----END EC PRIVATE KEY-----\n";
 
 int main(int argc, char **argv)
 {
-    struct s2n_stuffer certificate_in = {0}, certificate_out = {0};
-    struct s2n_stuffer ecdsa_key_in = {0}, ecdsa_key_out = {0};
-    struct s2n_stuffer unmatched_ecdsa_key_in = {0}, unmatched_ecdsa_key_out = {0};
-    struct s2n_blob b = {0};
+    struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
+    struct s2n_stuffer ecdsa_key_in = { 0 }, ecdsa_key_out = { 0 };
+    struct s2n_stuffer unmatched_ecdsa_key_in = { 0 }, unmatched_ecdsa_key_out = { 0 };
+    struct s2n_blob b = { 0 };
     char *cert_chain_pem = NULL;
     char *private_key_pem = NULL;
 
@@ -116,10 +111,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&ecdsa_key_in, &ecdsa_key_out));
     EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&unmatched_ecdsa_key_in, &unmatched_ecdsa_key_out));
 
-    struct s2n_pkey pub_key = {0};
-    struct s2n_pkey priv_key = {0};
-    struct s2n_pkey unmatched_priv_key = {0};
-    s2n_pkey_type pkey_type = {0};
+    struct s2n_pkey pub_key = { 0 };
+    struct s2n_pkey priv_key = { 0 };
+    struct s2n_pkey unmatched_priv_key = { 0 };
+    s2n_pkey_type pkey_type = { 0 };
     uint32_t available_size = 0;
 
     available_size = s2n_stuffer_data_available(&certificate_out);
@@ -139,8 +134,8 @@ int main(int argc, char **argv)
 
     /* Try signing and verification with ECDSA */
     uint8_t inputpad[] = "Hello world!";
-    struct s2n_blob signature = {0}, bad_signature = {0};
-    struct s2n_hash_state hash_one = {0}, hash_two = {0};
+    struct s2n_blob signature = { 0 }, bad_signature = { 0 };
+    struct s2n_hash_state hash_one = { 0 }, hash_two = { 0 };
 
     uint32_t maximum_signature_length = 0;
     EXPECT_OK(s2n_pkey_size(&priv_key, &maximum_signature_length));

@@ -13,18 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "crypto/s2n_locking.h"
+
 #include <pthread.h>
 
-#include "crypto/s2n_locking.h"
+#include "s2n_test.h"
 
 #define LOCK_N 1
 
 #if !(S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0))
 
-static void* s2n_test_thread(void *arg)
+static void *s2n_test_thread(void *arg)
 {
-    bool *lock_was_acquired = (bool*) arg;
+    bool *lock_was_acquired = (bool *) arg;
     CRYPTO_lock(CRYPTO_LOCK, LOCK_N, NULL, 0);
     *lock_was_acquired = true;
     CRYPTO_lock(CRYPTO_UNLOCK, LOCK_N, NULL, 0);

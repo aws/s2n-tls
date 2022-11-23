@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_set.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "utils/s2n_set.h"
 
 void s2n_set_get_harness()
 {
@@ -29,15 +28,15 @@ void s2n_set_get_harness()
     void **element = malloc(sizeof(void *));
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_set_get(set, idx, element))) {
+    if (s2n_result_is_ok(s2n_set_get(set, idx, element))) {
         /*
          * In the case s2n_set_get is successful, we can ensure the array isn't empty
          * and index is within bounds.
          */
-         assert(set->data->mem.data != NULL);
-         assert(set->data->len != 0);
-         assert(idx < set->data->len);
-         assert(*element == (set->data->mem.data + (set->data->element_size * idx)));
+        assert(set->data->mem.data != NULL);
+        assert(set->data->len != 0);
+        assert(idx < set->data->len);
+        assert(*element == (set->data->mem.data + (set->data->element_size * idx)));
     }
 
     /* Post-condition. */

@@ -23,7 +23,9 @@ static bool loop_flag = false;
 int close(int fd)
 {
     assert(fd >= -1 && fd <= 65536 /* File descriptor limit. */);
-    if (nondet_bool()) { return 0; }
+    if (nondet_bool()) {
+        return 0;
+    }
     __CPROVER_assume(errno == EBADF || errno == EINTR || errno == EIO);
     return -1;
 }

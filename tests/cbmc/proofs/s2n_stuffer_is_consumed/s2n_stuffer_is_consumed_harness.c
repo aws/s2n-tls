@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
-
-#include <assert.h>
 
 void s2n_stuffer_is_consumed_harness()
 {
@@ -28,7 +27,7 @@ void s2n_stuffer_is_consumed_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     /* Save previous state. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 

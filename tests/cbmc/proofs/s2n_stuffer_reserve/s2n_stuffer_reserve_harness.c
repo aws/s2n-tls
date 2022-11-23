@@ -31,10 +31,12 @@ void s2n_stuffer_reserve_harness()
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
-    const uint8_t                   length;
+    const uint8_t length;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if (nondet_bool()) { s2n_mem_init(); }
+    if (nondet_bool()) {
+        s2n_mem_init();
+    }
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -50,9 +52,9 @@ void s2n_stuffer_reserve_harness()
         if (old_stuffer.blob.size > 0 && reservation->length > 0) {
             size_t idx;
             __CPROVER_assume(idx >= reservation->write_cursor
-                             && idx < (reservation->write_cursor + reservation->length));
-            assert(stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
-            assert(reservation->stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
+                    && idx < (reservation->write_cursor + reservation->length));
+            assert(stuffer->blob.data[idx] == S2N_WIPE_PATTERN);
+            assert(reservation->stuffer->blob.data[idx] == S2N_WIPE_PATTERN);
         }
         assert(stuffer == reservation->stuffer);
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));

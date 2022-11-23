@@ -14,14 +14,10 @@
  */
 
 #include "crypto/s2n_sequence.h"
-
 #include "error/s2n_errno.h"
-
-#include "tls/s2n_crypto.h"
-
 #include "s2n_test.h"
-
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_crypto.h"
 
 int main(int argc, char **argv)
 {
@@ -32,61 +28,61 @@ int main(int argc, char **argv)
         /* Converts zero */
         {
             uint64_t output = 1;
-            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
-            struct s2n_blob sequence_number = {0};
-            
+            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+            struct s2n_blob sequence_number = { 0 };
+
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
-            EXPECT_EQUAL(output, 0); 
+            EXPECT_EQUAL(output, 0);
         }
 
         /* Converts one */
         {
             uint64_t output = 0;
-            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
+            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
             data[S2N_TLS_SEQUENCE_NUM_LEN - 1] = 1;
-            struct s2n_blob sequence_number = {0};
-            
+            struct s2n_blob sequence_number = { 0 };
+
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
-            
-            EXPECT_EQUAL(output, 1); 
+
+            EXPECT_EQUAL(output, 1);
         }
 
         /* Converts max possible sequence number */
         {
             uint64_t output = 0;
-            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
-            struct s2n_blob sequence_number = {0};
-            
+            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+            struct s2n_blob sequence_number = { 0 };
+
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
             EXPECT_SUCCESS(s2n_blob_zero(&sequence_number));
 
             for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 sequence_number.data[i] = UINT8_MAX;
             }
-            
+
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
-            EXPECT_EQUAL(output, 18446744073709551615U);     
+            EXPECT_EQUAL(output, 18446744073709551615U);
         }
 
         /* Converts max record number value */
         {
             uint64_t output = 0;
-            
+
             /* The maximum record number converted to base 256 */
-            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
-            struct s2n_blob sequence_number = {0};
-            
+            uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0, 0, 0, 0, 1, 106, 9, 229 };
+            struct s2n_blob sequence_number = { 0 };
+
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
-            
+
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
-            EXPECT_EQUAL(output, S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER);   
+            EXPECT_EQUAL(output, S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER);
         }
 
         /* Matches network order stuffer methods */

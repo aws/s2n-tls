@@ -25,16 +25,16 @@ void s2n_constant_time_pkcs1_unpad_or_dont_harness()
     const uint32_t len;
     const uint32_t destlen;
     const uint32_t srclen;
-    const uint8_t  dont;
+    const uint8_t dont;
     __CPROVER_assume(len < MAX_ARR_LEN);
     __CPROVER_assume(destlen >= len);
 
     /* This bound is required for our loop unwindings to be reasonably bound. */
     __CPROVER_assume(srclen >= len + 1 && srclen <= BOUND);
     uint8_t *dest = malloc(destlen);
-    uint8_t *src  = malloc(srclen);
-    uint8_t  old_src_byte;
-    uint8_t  old_dest_byte;
+    uint8_t *src = malloc(srclen);
+    uint8_t old_src_byte;
+    uint8_t old_dest_byte;
     uint32_t idx;
 
     /* Pre-conditions. */
@@ -42,8 +42,8 @@ void s2n_constant_time_pkcs1_unpad_or_dont_harness()
     __CPROVER_assume(src != NULL);
     if (len != 0) {
         __CPROVER_assume(idx < len);
-        old_src_byte  = src[ srclen - len + idx ];
-        old_dest_byte = dest[ idx ];
+        old_src_byte = src[srclen - len + idx];
+        old_dest_byte = dest[idx];
     }
 
     s2n_constant_time_pkcs1_unpad_or_dont(dest, src, srclen, len);
@@ -51,16 +51,18 @@ void s2n_constant_time_pkcs1_unpad_or_dont_harness()
     if (len != 0) {
         bool has_zero = false;
         for (uint32_t i = 2; i < srclen - len - 1; i++) {
-            if (src[ i ] == 0x00) { has_zero = true; }
+            if (src[i] == 0x00) {
+                has_zero = true;
+            }
         }
 
         /* This statement is the inverse of the failure checks found in s2n_constant_time_pkcs1_unpad_or_dont. */
-        if (srclen >= (len + 3) && src[ 0 ] == 0x00 && src[ 1 ] == 0x02 && src[ srclen - len - 1 ] == 0x00
-            && has_zero == false) {
-            assert(dest[ idx ] == old_src_byte);
+        if (srclen >= (len + 3) && src[0] == 0x00 && src[1] == 0x02 && src[srclen - len - 1] == 0x00
+                && has_zero == false) {
+            assert(dest[idx] == old_src_byte);
         } else {
-            assert(dest[ idx ] == old_dest_byte);
+            assert(dest[idx] == old_dest_byte);
         }
-        assert(src[ srclen - len + idx ] == old_src_byte);
+        assert(src[srclen - len + idx] == old_src_byte);
     }
 }

@@ -23,11 +23,11 @@
 void s2n_stuffer_read_harness()
 {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    struct s2n_blob *   blob    = cbmc_allocate_s2n_blob();
+    struct s2n_blob *blob = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
-    struct s2n_stuffer            old_stuffer = *stuffer;
-    struct s2n_blob               old_blob    = *blob;
+    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
 

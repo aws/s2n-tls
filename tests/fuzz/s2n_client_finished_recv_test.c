@@ -15,17 +15,16 @@
 
 /* Target Functions: s2n_client_finished_recv */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {

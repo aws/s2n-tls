@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_server_sct_list.h"
 
 const uint8_t sct_list_data[] = "SCT LIST DATA";

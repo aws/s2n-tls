@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include <benchmark/benchmark.h>
-#include <netdb.h>
 #include <getopt.h>
-#include "tls/s2n_cipher_suites.h"
+#include <netdb.h>
+
+#include "api/s2n.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_cipher_suites.h"
 
 extern struct s2n_cipher_suite **all_suites;
 extern unsigned int num_suites;
@@ -34,7 +35,7 @@ extern const char *rsa_private_key;
 extern const char *ecdsa_certificate_chain;
 extern const char *ecdsa_private_key;
 
-int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& state, bool warmup);
-void argument_parse(int argc, char** argv, int& use_corked_io, int& insecure, char* bench_format,
-                    std::string& file_prefix, long int& warmup_iters, size_t& iterations, size_t& repetitions,
-                    std::string& gb_options, std::vector<int> &data_sizes);
+int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State &state, bool warmup);
+void argument_parse(int argc, char **argv, int &use_corked_io, int &insecure, char *bench_format,
+        std::string &file_prefix, long int &warmup_iters, size_t &iterations, size_t &repetitions,
+        std::string &gb_options, std::vector<int> &data_sizes);

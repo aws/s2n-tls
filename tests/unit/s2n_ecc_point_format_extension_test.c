@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_resume.h"

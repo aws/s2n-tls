@@ -25,8 +25,9 @@ int getsockopt(int socket, int level, int option_name, void *option_value, sockl
     /* assert(socket >= -1 && socket <= 65536); // File descriptor limit. 
     assert(level == IPPROTO_IP || level == IPPROTO_IPV6 || level == IPPROTO_ICMP || level == IPPROTO_RAW || level == IPPROTO_TCP || level == IPPROTO_UDP); 
     assert(option_name == SO_DEBUG || option_name == SO_ACCEPTCONN || option_name == SO_BROADCAST || option_name == SO_REUSEADDR || option_name == SO_KEEPALIVE || option_name == SO_LINGER || option_name == SO_OOBINLINE || option_name == SO_SNDBUF || option_name == SO_RCVBUF || option_name == SO_ERROR || option_name == SO_TYPE || option_name == SO_DONTROUTE || option_name == SO_RCVLOWAT || option_name == SO_RCVTIMEO || option_name == SO_SNDLOWAT || option_name == SO_SNDTIMEO);  */
-    if(nondet_bool()) { return 0; }
-    else {
+    if (nondet_bool()) {
+        return 0;
+    } else {
         errno = nondet_int();
         __CPROVER_assume(errno == EBADF || errno == EINVAL || errno == ENOPROTOOPT || errno == ENOTSOCK || errno == EACCES || errno == ENOBUFS);
         return -1;

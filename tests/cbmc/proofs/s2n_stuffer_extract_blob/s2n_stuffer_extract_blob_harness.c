@@ -33,7 +33,7 @@ void s2n_stuffer_extract_blob_harness()
     nondet_s2n_mem_init();
 
     /* Save previous state. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -44,7 +44,7 @@ void s2n_stuffer_extract_blob_harness()
         if (blob->size > 0) {
             uint32_t idx;
             __CPROVER_assume(idx < blob->size);
-            assert(blob->data[ idx ] == stuffer->blob.data[ stuffer->read_cursor + idx ]);
+            assert(blob->data[idx] == stuffer->blob.data[stuffer->read_cursor + idx]);
         }
     }
 

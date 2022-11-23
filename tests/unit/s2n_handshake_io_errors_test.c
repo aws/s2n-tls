@@ -14,7 +14,6 @@
  */
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_result.h"
@@ -86,7 +85,6 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
     }
 
     /* Decrypt failure closes connection and invokes blinding */

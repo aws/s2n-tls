@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <string.h>
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
-
-#include <assert.h>
 
 void s2n_hex_string_to_bytes_harness()
 {
@@ -30,7 +29,7 @@ void s2n_hex_string_to_bytes_harness()
     char *str = ensure_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Save previous state. */
-    struct s2n_blob               old_blob = *blob;
+    struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte_from_blob;
     save_byte_from_blob(blob, &old_byte_from_blob);
 

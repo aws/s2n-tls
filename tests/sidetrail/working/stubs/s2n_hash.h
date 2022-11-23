@@ -15,9 +15,9 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <openssl/sha.h>
 #include <openssl/md5.h>
+#include <openssl/sha.h>
+#include <stdint.h>
 
 #include "crypto/s2n_evp.h"
 
@@ -37,8 +37,8 @@ typedef enum {
 } s2n_hash_algorithm;
 
 struct s2n_hash_state {
-  s2n_hash_algorithm alg;
-  int currently_in_hash_block;
+    s2n_hash_algorithm alg;
+    int currently_in_hash_block;
 };
 
 /* SHA1
@@ -51,18 +51,18 @@ struct s2n_hash_state {
  * to a location already in cache.
  */
 enum {
-  PER_BLOCK_COST = 1000,
-  PER_BYTE_COST = 1,
-  BLOCK_SIZE = 64,
-  LENGTH_FIELD_SIZE = 8,
-  DIGEST_SIZE = 20
+    PER_BLOCK_COST = 1000,
+    PER_BYTE_COST = 1,
+    BLOCK_SIZE = 64,
+    LENGTH_FIELD_SIZE = 8,
+    DIGEST_SIZE = 20
 };
 
 #define MAX_SIZE 1024
 
 enum {
-  SUCCESS = 0,
-  FAILURE = -1
+    SUCCESS = 0,
+    FAILURE = -1
 };
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);

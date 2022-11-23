@@ -13,38 +13,40 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "tls/s2n_kem.h"
 #include "pq-crypto/s2n_pq.h"
+#include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
+#include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 
 struct s2n_kem_test_vector {
     const struct s2n_kem *kem;
     bool (*asm_is_enabled)();
-    S2N_RESULT (*enable_asm)();
-    S2N_RESULT (*disable_asm)();
+    S2N_RESULT(*enable_asm)
+    ();
+    S2N_RESULT(*disable_asm)
+    ();
 };
 
 static const struct s2n_kem_test_vector test_vectors[] = {
-        {
-                .kem = &s2n_kyber_512_r3,
-                .asm_is_enabled = s2n_pq_no_asm_available,
-                .enable_asm = s2n_pq_noop_asm,
-                .disable_asm = s2n_pq_noop_asm,
-        },
-        {
-                .kem = &s2n_kyber_512_r3,
-                .asm_is_enabled = s2n_kyber512r3_is_avx2_bmi2_enabled,
-                .enable_asm = s2n_try_enable_kyber512r3_opt_avx2_bmi2,
-                .disable_asm = s2n_disable_kyber512r3_opt_avx2_bmi2,
-        },
+    {
+            .kem = &s2n_kyber_512_r3,
+            .asm_is_enabled = s2n_pq_no_asm_available,
+            .enable_asm = s2n_pq_noop_asm,
+            .disable_asm = s2n_pq_noop_asm,
+    },
+    {
+            .kem = &s2n_kyber_512_r3,
+            .asm_is_enabled = s2n_kyber512r3_is_avx2_bmi2_enabled,
+            .enable_asm = s2n_try_enable_kyber512r3_opt_avx2_bmi2,
+            .disable_asm = s2n_disable_kyber512r3_opt_avx2_bmi2,
+    },
 };
 
 /* EXPECT_SUCCESS checks explicitly function_call != -1; the PQ KEM functions may return
  * any non-zero int to indicate failure.*/
-#define EXPECT_PQ_KEM_SUCCESS( function_call )  EXPECT_EQUAL( (function_call) , 0 )
-#define EXPECT_PQ_KEM_FAILURE( function_call )  EXPECT_NOT_EQUAL( (function_call) , 0 )
+#define EXPECT_PQ_KEM_SUCCESS(function_call) EXPECT_EQUAL((function_call), 0)
+#define EXPECT_PQ_KEM_FAILURE(function_call) EXPECT_NOT_EQUAL((function_call), 0)
 
 int main()
 {
@@ -88,8 +90,7 @@ int main()
                 ciphertext.data[0] ^= 1; /* Flip a bit to invalidate the ciphertext */
 
                 EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
-                EXPECT_BYTEARRAY_NOT_EQUAL(server_shared_secret.data, client_shared_secret.data,kem->shared_secret_key_length);
-
+                EXPECT_BYTEARRAY_NOT_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
             }
         } else {
 #if defined(S2N_NO_PQ)

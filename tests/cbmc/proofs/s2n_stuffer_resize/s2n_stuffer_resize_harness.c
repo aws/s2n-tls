@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
-
-#include <assert.h>
 
 void s2n_stuffer_resize_harness()
 {
@@ -32,7 +31,7 @@ void s2n_stuffer_resize_harness()
     nondet_s2n_mem_init();
 
     /* Save previous state. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -65,7 +64,7 @@ void s2n_stuffer_resize_harness()
             size_t idx;
             /* Confirms wiped portion. */
             __CPROVER_assume(idx >= size && idx < old_stuffer.blob.size);
-            assert(stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
+            assert(stuffer->blob.data[idx] == S2N_WIPE_PATTERN);
             assert(stuffer->blob.allocated == old_stuffer.blob.allocated);
             assert(stuffer->blob.growable == old_stuffer.blob.growable);
         }

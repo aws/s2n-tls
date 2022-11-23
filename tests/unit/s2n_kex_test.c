@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "tests/s2n_test.h"
-
 #include "tls/s2n_kex.h"
+
+#include "tests/s2n_test.h"
 
 int main(int argc, char **argv)
 {

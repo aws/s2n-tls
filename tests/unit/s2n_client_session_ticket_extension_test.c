@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_client_session_ticket.h"
 #include "tls/s2n_resume.h"
 

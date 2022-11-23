@@ -19,17 +19,20 @@
 #include <crypto/s2n_hash.h>
 #include <stddef.h>
 #include <stdint.h>
+
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 
 #define IMPLIES(a, b) (!(a) || (b))
-#define CBMC_ENSURE_REF(cond)    \
-    do {                         \
-        if (!(cond)) { return; } \
+#define CBMC_ENSURE_REF(cond) \
+    do {                      \
+        if (!(cond)) {        \
+            return;           \
+        }                     \
     } while (0)
 
 struct store_byte_from_buffer {
-    size_t  idx;
+    size_t idx;
     uint8_t byte;
 };
 
@@ -66,7 +69,7 @@ struct rc_keys_from_hash_state {
  * assert all bytes from blob.data match.
  */
 void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs, const struct s2n_stuffer *rhs,
-                                                const struct store_byte_from_buffer *stored_byte_from_rhs);
+        const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts two s2n_blob instances are equivalent. In order to be considered equivalent,
@@ -76,7 +79,7 @@ void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs, c
  * so it can properly assert all bytes from *data match.
  */
 void assert_blob_equivalence(const struct s2n_blob *lhs, const struct s2n_blob *rhs,
-                             const struct store_byte_from_buffer *stored_byte_from_rhs);
+        const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts two s2n_stuffer instances are equivalent. In order to be considered equivalent,
@@ -86,7 +89,7 @@ void assert_blob_equivalence(const struct s2n_blob *lhs, const struct s2n_blob *
  * so it can properly assert all bytes from blob.data match.
  */
 void assert_stuffer_equivalence(const struct s2n_stuffer *lhs, const struct s2n_stuffer *rhs,
-                                const struct store_byte_from_buffer *stored_byte_from_rhs);
+        const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts whether all bytes from two arrays of same length match.

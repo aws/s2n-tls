@@ -27,6 +27,8 @@ void s2n_blob_zero_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
     /* Operation under verification. */
-    if (s2n_blob_zero(blob) == S2N_SUCCESS && blob->size != 0) { assert_all_zeroes(blob->data, blob->size); }
+    if (s2n_blob_zero(blob) == S2N_SUCCESS && blob->size != 0) {
+        assert_all_zeroes(blob->data, blob->size);
+    }
     assert(s2n_result_is_ok(s2n_blob_validate(blob)));
 }

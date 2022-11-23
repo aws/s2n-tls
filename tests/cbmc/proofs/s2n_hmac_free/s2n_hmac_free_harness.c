@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_fips.h"
-#include "crypto/s2n_hash.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_hash.h"
 
 void s2n_hmac_free_harness()
 {
@@ -29,7 +28,7 @@ void s2n_hmac_free_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_hmac_state_validate(state)));
 
     struct rc_keys_from_hash_state saved_inner_hash_state, saved_inner_just_key_hash_state,
-                                   saved_outer_hash_state, saved_outer_just_key_hash_state;
+            saved_outer_hash_state, saved_outer_just_key_hash_state;
 
     save_rc_keys_from_hash_state(&state->inner, &saved_inner_hash_state);
     save_rc_keys_from_hash_state(&state->inner_just_key, &saved_inner_just_key_hash_state);
@@ -43,7 +42,7 @@ void s2n_hmac_free_harness()
         assert(state->inner_just_key.hash_impl->free != NULL);
         assert(state->outer.hash_impl->free != NULL);
         assert(state->outer_just_key.hash_impl->free != NULL);
-        
+
         if (s2n_is_in_fips_mode()) {
             assert(state->inner.digest.high_level.evp.ctx == NULL);
             assert(state->inner.digest.high_level.evp_md5_secondary.ctx == NULL);

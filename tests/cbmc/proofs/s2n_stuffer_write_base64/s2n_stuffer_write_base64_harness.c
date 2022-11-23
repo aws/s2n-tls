@@ -34,7 +34,7 @@ void s2n_stuffer_write_base64_harness()
     struct s2n_stuffer old_stuffer = *stuffer;
 
     /* Save previous state from out. */
-    struct s2n_stuffer            old_in = *in;
+    struct s2n_stuffer old_in = *in;
     struct store_byte_from_buffer old_byte_from_in;
     save_byte_from_blob(&in->blob, &old_byte_from_in);
 
@@ -45,7 +45,7 @@ void s2n_stuffer_write_base64_harness()
         if (s2n_stuffer_data_available(&old_stuffer) >= 2) {
             size_t idx;
             __CPROVER_assume(idx >= old_stuffer.write_cursor && idx < stuffer->write_cursor);
-            assert(s2n_is_base64_char(stuffer->blob.data[ idx ]));
+            assert(s2n_is_base64_char(stuffer->blob.data[idx]));
         }
     }
 

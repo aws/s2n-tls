@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "api/s2n.h"
 #include "tls/s2n_tls.h"
 
 int main(int argc, char **argv)

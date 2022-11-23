@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "api/s2n.h"
-
-#include "testlib/s2n_testlib.h"
-#include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_hkdf.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 /*
@@ -30,35 +28,37 @@
  */
 int main(int argc, char **argv)
 {
-    char client_handshake_message_hex_in[] = "010000c003032724c0ba613abd59"
-                                             "4894f19ff6d59cde8364549555119b96ec1158fb9ac"
-                                             "ba397000006130113031302010000910000000b0009"
-                                             "000006736572766572ff01000100000a00140012001"
-                                             "d001700180019010001010102010301040023000000"
-                                             "3300260024001d00207e74fe9d31f2bb96f4f553465"
-                                             "b92ea8210971e71e258d6cf622c3b086db26104002b"
-                                             "0003027f1c000d0020001e040305030603020308040"
-                                             "805080604010501060102010402050206020202002d"
-                                             "00020101001c00024001";
+    char client_handshake_message_hex_in[] =
+            "010000c003032724c0ba613abd59"
+            "4894f19ff6d59cde8364549555119b96ec1158fb9ac"
+            "ba397000006130113031302010000910000000b0009"
+            "000006736572766572ff01000100000a00140012001"
+            "d001700180019010001010102010301040023000000"
+            "3300260024001d00207e74fe9d31f2bb96f4f553465"
+            "b92ea8210971e71e258d6cf622c3b086db26104002b"
+            "0003027f1c000d0020001e040305030603020308040"
+            "805080604010501060102010402050206020202002d"
+            "00020101001c00024001";
 
-    char server_handshake_message_hex_in[] = "020000560303b9206e3d30c43c8a"
-                                             "cb1c234f9d004c6a2fecb84c6811ca285c1bbce322"
-                                             "bed16000130100002e00330024001d0020bba1ffe6"
-                                             "d10f92d4a8444aa51913fea27c3d2bfdf24489da40"
-                                             "92dfbfbfd67c53002b00027f1c";
+    char server_handshake_message_hex_in[] =
+            "020000560303b9206e3d30c43c8a"
+            "cb1c234f9d004c6a2fecb84c6811ca285c1bbce322"
+            "bed16000130100002e00330024001d0020bba1ffe6"
+            "d10f92d4a8444aa51913fea27c3d2bfdf24489da40"
+            "92dfbfbfd67c53002b00027f1c";
 
-    char expected_secret_hex_in[] ="33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a";
-    char expected_expanded_hex_in[] ="6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
+    char expected_secret_hex_in[] = "33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a";
+    char expected_expanded_hex_in[] = "6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
 
-    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = {0}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = {0}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = {0}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = { 0 }, s2n_stuffer_free);
 
-    char client_handshake_message[ sizeof(client_handshake_message_hex_in) / 2 ] = { 0 };
-    char server_handshake_message[ sizeof(server_handshake_message_hex_in) / 2 ] = { 0 };
-    char expected_secret[ sizeof(expected_secret_hex_in) / 2 ] = { 0 };
-    char expected_expanded[ sizeof(expected_expanded_hex_in) / 2 ] = { 0 };
+    char client_handshake_message[sizeof(client_handshake_message_hex_in) / 2] = { 0 };
+    char server_handshake_message[sizeof(server_handshake_message_hex_in) / 2] = { 0 };
+    char expected_secret[sizeof(expected_secret_hex_in) / 2] = { 0 };
+    char expected_expanded[sizeof(expected_expanded_hex_in) / 2] = { 0 };
 
     uint8_t digest_buf[SHA256_DIGEST_LENGTH];
     uint8_t secret_buf[SHA256_DIGEST_LENGTH];
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     /* Validate the derived secret */
     S2N_BLOB_LABEL(label, "derived");
 
-    struct s2n_hmac_state hmac = {0};
+    struct s2n_hmac_state hmac = { 0 };
 
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
     EXPECT_SUCCESS(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));

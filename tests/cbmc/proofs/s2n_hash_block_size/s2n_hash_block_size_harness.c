@@ -13,32 +13,33 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 
 #include "crypto/s2n_hash.h"
-
-#include <assert.h>
 
 void s2n_hash_block_size_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hash_algorithm alg;
-    uint64_t *         block_size = malloc(sizeof(*block_size));
+    uint64_t* block_size = malloc(sizeof(*block_size));
 
     /* Operation under verification. */
     if (s2n_hash_block_size(alg, block_size) == S2N_SUCCESS) {
         /* Post-conditions. */
-        switch(alg) {
+        switch (alg) {
             case S2N_HASH_NONE:
             case S2N_HASH_MD5:
             case S2N_HASH_SHA1:
             case S2N_HASH_SHA224:
             case S2N_HASH_SHA256:
             case S2N_HASH_MD5_SHA1:
-                assert(*block_size == 64); break;
+                assert(*block_size == 64);
+                break;
             case S2N_HASH_SHA384:
             case S2N_HASH_SHA512:
-                assert(*block_size == 128); break;
+                assert(*block_size == 128);
+                break;
             default:
                 __CPROVER_assert(0, "Unsupported algorithm.");
         }

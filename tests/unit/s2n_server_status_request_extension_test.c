@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_server_status_request.h"
 
 const uint8_t ocsp_data[] = "OCSP DATA";

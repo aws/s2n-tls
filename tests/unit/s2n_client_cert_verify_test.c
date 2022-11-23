@@ -14,16 +14,15 @@
  */
 
 #include <stdint.h>
-#include "api/s2n.h"
 
+#include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_tls.h"
+#include "tls/s2n_async_pkey.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
-#include "tls/s2n_async_pkey.h"
 
 static bool async_callback_invoked = false;
 static bool async_sign_operation_called_s2n_client = false;
@@ -34,7 +33,7 @@ const uint8_t test_signature_data[] = "I signed this";
 const uint32_t test_signature_size = sizeof(test_signature_data);
 const uint32_t test_max_signature_size = 2 * sizeof(test_signature_data);
 
-typedef int (async_handler)(struct s2n_connection *conn, s2n_blocked_status *block);
+typedef int(async_handler)(struct s2n_connection *conn, s2n_blocked_status *block);
 
 static S2N_RESULT test_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
@@ -145,7 +144,7 @@ static int s2n_test_apply_with_invalid_signature_handler(struct s2n_connection *
 }
 
 static int s2n_try_handshake_with_async_pkey_op(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
-                                                async_handler handler)
+        async_handler handler)
 {
     s2n_blocked_status server_blocked = { 0 };
     s2n_blocked_status client_blocked = { 0 };
@@ -238,7 +237,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_try_handshake_with_async_pkey_op(server_conn, client_conn,
-                                                            s2n_test_negotiate_with_async_pkey_op_handler));
+                s2n_test_negotiate_with_async_pkey_op_handler));
 
         /* Make sure async callback was used during the handshake. */
         EXPECT_TRUE(async_callback_invoked);
@@ -296,7 +295,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_try_handshake_with_async_pkey_op(server_conn, client_conn,
-                                                            s2n_test_apply_with_invalid_signature_handler));
+                s2n_test_apply_with_invalid_signature_handler));
 
         /* Make sure async callback was used during the handshake. */
         EXPECT_TRUE(async_callback_invoked);

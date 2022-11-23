@@ -16,23 +16,22 @@
 /* Target Functions: s2n_encrypted_extensions_recv s2n_server_encrypted_extensions_parse s2n_recv_server_server_name */
 /* Target Functions: s2n_recv_server_alpn s2n_recv_server_max_fragment_length */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
 
 /* This test is for TLS versions 1.3 and up only */
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS13 };
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {

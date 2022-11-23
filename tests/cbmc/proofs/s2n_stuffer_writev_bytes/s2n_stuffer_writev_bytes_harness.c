@@ -33,7 +33,7 @@ void s2n_stuffer_writev_bytes_harness()
     struct iovec *iov = malloc(iov_count * sizeof(*iov));
     __CPROVER_assume(iov != NULL);
     for (int i = 0; i < iov_count; i++) {
-        iov[ i ].iov_base = malloc(iov[ i ].iov_len);
+        iov[i].iov_base = malloc(iov[i].iov_len);
     }
 
     uint32_t offs;
@@ -42,7 +42,7 @@ void s2n_stuffer_writev_bytes_harness()
     nondet_s2n_mem_init();
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 

@@ -24,7 +24,8 @@
  * case, this stub at least checks for the preconditions and make sure to
  * havoc all elements pointed by *dest up to n.
  */
-void *memmove_impl(void *dest, const void *src, size_t n) {
+void *memmove_impl(void *dest, const void *src, size_t n)
+{
 __CPROVER_HIDE:;
     __CPROVER_precondition(src != NULL && __CPROVER_r_ok(src, n), "memmove source region readable");
     __CPROVER_precondition(dest != NULL && __CPROVER_w_ok(dest, n), "memmove destination region writeable");
@@ -32,19 +33,21 @@ __CPROVER_HIDE:;
     if (n > 0) {
         size_t idx;
         __CPROVER_assume(idx < n);
-        ((uint8_t *)dest)[idx] = nondet_uint8_t();
+        ((uint8_t *) dest)[idx] = nondet_uint8_t();
     }
 
     return dest;
 }
 
-void *memmove(void *dest, const void *src, size_t n) {
+void *memmove(void *dest, const void *src, size_t n)
+{
 __CPROVER_HIDE:;
     return memmove_impl(dest, src, n);
 }
 
-void *__builtin___memmove_chk(void *dest, const void *src, size_t n, size_t size) {
-  __CPROVER_HIDE:;
-    (void)size;
+void *__builtin___memmove_chk(void *dest, const void *src, size_t n, size_t size)
+{
+__CPROVER_HIDE:;
+    (void) size;
     return memmove_impl(dest, src, n);
 }

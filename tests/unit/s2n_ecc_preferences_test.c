@@ -13,11 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "tls/s2n_ecc_preferences.h"
+
+#include "s2n_test.h"
 #include "tls/s2n_tls_parameters.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 

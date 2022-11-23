@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_array.h"
-#include "utils/s2n_result.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "utils/s2n_array.h"
+#include "utils/s2n_result.h"
 
 void s2n_array_get_harness()
 {
@@ -30,8 +29,8 @@ void s2n_array_get_harness()
     void **element = malloc(sizeof(void *));
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_array_get(array, idx, element))) {
-       /*
+    if (s2n_result_is_ok(s2n_array_get(array, idx, element))) {
+        /*
         * In the case s2n_array_get is successful, we can ensure the array isn't empty
         * and index is within bounds.
         */

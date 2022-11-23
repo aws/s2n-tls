@@ -13,24 +13,20 @@
  * permissions and limitations under the License.
  */
 
+#include "error/s2n_errno.h"
 #include "s2n_test.h"
-
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_key_share.h"
+#include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
-
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_internal.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
-
-#include "tls/extensions/s2n_server_key_share.h"
-
-#include "error/s2n_errno.h"
-#include "utils/s2n_result.h"
-#include "tls/s2n_internal.h"
 #include "utils/s2n_bitmap.h"
+#include "utils/s2n_result.h"
 
 #define HELLO_RETRY_MSG_NO 1
 
@@ -45,8 +41,8 @@ struct client_hello_context {
 };
 
 int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
-                struct s2n_connection *client_conn,
-                struct client_hello_context *client_hello_ctx)
+        struct s2n_connection *client_conn,
+        struct client_hello_context *client_hello_ctx)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client_conn, &blocked), S2N_ERR_IO_BLOCKED);
@@ -114,10 +110,11 @@ int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
+S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll)
+{
     struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
-        S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+            S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
     EXPECT_NOT_NULL(tls13_chain_and_key);
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -143,13 +140,14 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll) {
     client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
     /* setup the client hello callback */
-    struct client_hello_context client_hello_ctx = {.invocations = 0,
-        .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING, .mark_done = false,
+    struct client_hello_context client_hello_ctx = { .invocations = 0,
+        .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING,
+        .mark_done = false,
         .enable_poll = enable_poll };
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config,
-        s2n_client_hello_poll_cb, &client_hello_ctx));
+            s2n_client_hello_poll_cb, &client_hello_ctx));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config,
-        S2N_CLIENT_HELLO_CB_NONBLOCKING));
+            S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
     if (enable_poll) {
         /* Enable callback polling mode */
@@ -192,11 +190,11 @@ int main(int argc, char **argv)
         struct s2n_stuffer *server_stuffer = &server_conn->handshake.io;
 
         uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
-            + S2N_TLS_RANDOM_DATA_LEN
-            + SESSION_ID_SIZE
-            + server_conn->session_id_len
-            + S2N_TLS_CIPHER_SUITE_LEN
-            + COMPRESSION_METHOD_SIZE;
+                + S2N_TLS_RANDOM_DATA_LEN
+                + SESSION_ID_SIZE
+                + server_conn->session_id_len
+                + S2N_TLS_CIPHER_SUITE_LEN
+                + COMPRESSION_METHOD_SIZE;
 
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
@@ -265,11 +263,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 % 10));
 
         /* random data */
-        uint8_t bad_retry_random[S2N_TLS_RANDOM_DATA_LEN] = {0};
+        uint8_t bad_retry_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, bad_retry_random, S2N_TLS_RANDOM_DATA_LEN));
 
         /* session id */
-        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
+        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS_SESSION_ID_MAX_LEN));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, session_id, S2N_TLS_SESSION_ID_MAX_LEN));
 
@@ -295,7 +293,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
+        struct s2n_stuffer *extension_stuffer = &server_conn->handshake.io;
 
         EXPECT_SUCCESS(s2n_connection_allow_response_extension(client_conn, s2n_server_key_share_extension.iana_value));
         EXPECT_SUCCESS(s2n_connection_allow_response_extension(server_conn, s2n_server_key_share_extension.iana_value));
@@ -355,22 +353,22 @@ int main(int argc, char **argv)
          * generated from the transcript recreation.
          * https://tools.ietf.org/html/rfc8448#section-5 */
         S2N_BLOB_FROM_HEX(client_hello1,
-            "010000c00303cb34ecb1e78163"
-            "ba1c38c6dacb196a6dffa21a8d9912ec18a2ef6283"
-            "024dece7000006130113031302010000910000000b"
-            "0009000006736572766572ff01000100000a001400"
-            "12001d001700180019010001010102010301040023"
-            "0000003300260024001d002099381de560e4bd43d2"
-            "3d8e435a7dbafeb3c06e51c13cae4d5413691e529a"
-            "af2c002b0003020304000d0020001e040305030603"
-            "020308040805080604010501060102010402050206"
-            "020202002d00020101001c00024001");
+                "010000c00303cb34ecb1e78163"
+                "ba1c38c6dacb196a6dffa21a8d9912ec18a2ef6283"
+                "024dece7000006130113031302010000910000000b"
+                "0009000006736572766572ff01000100000a001400"
+                "12001d001700180019010001010102010301040023"
+                "0000003300260024001d002099381de560e4bd43d2"
+                "3d8e435a7dbafeb3c06e51c13cae4d5413691e529a"
+                "af2c002b0003020304000d0020001e040305030603"
+                "020308040805080604010501060102010402050206"
+                "020202002d00020101001c00024001");
 
         S2N_BLOB_FROM_HEX(client_hello1_expected_hash,
-            "4db255f30da09a407c841720be831a06a5aa9b3662a5f44267d37706b73c2b8c");
+                "4db255f30da09a407c841720be831a06a5aa9b3662a5f44267d37706b73c2b8c");
 
         S2N_BLOB_FROM_HEX(synthetic_message_with_ch1_expected_hash,
-            "ff1135ed878322e29699da3e451d2f08bf11fc693038769978e75bb63304a225");
+                "ff1135ed878322e29699da3e451d2f08bf11fc693038769978e75bb63304a225");
 
         EXPECT_SUCCESS(s2n_conn_update_handshake_hashes(conn, &client_hello1));
 
@@ -429,7 +427,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        struct client_hello_context client_hello_ctx = {.invocations = 0, .mode = S2N_CLIENT_HELLO_CB_BLOCKING };
+        struct client_hello_context client_hello_ctx = { .invocations = 0, .mode = S2N_CLIENT_HELLO_CB_BLOCKING };
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, client_hello_detect_duplicate_calls, &client_hello_ctx));
 
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
@@ -441,7 +439,7 @@ int main(int argc, char **argv)
         /* Send the first CH message */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
+                s2n_stuffer_data_available(&client_conn->handshake.io)));
 
         /* Receive the CH and send an HRR, which will execute the HRR code paths */
         EXPECT_EQUAL(client_hello_ctx.invocations, 0);
@@ -456,7 +454,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+                s2n_stuffer_data_available(&server_conn->handshake.io)));
         client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
@@ -464,7 +462,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
+                s2n_stuffer_data_available(&client_conn->handshake.io)));
 
         /* Verify that receiving the second CH message does not execute the callback */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
@@ -515,12 +513,12 @@ int main(int argc, char **argv)
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* setup the client hello callback */
-        struct client_hello_context client_hello_ctx = {.invocations = 0,
+        struct client_hello_context client_hello_ctx = { .invocations = 0,
             .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING };
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config,
                 client_hello_detect_duplicate_calls, &client_hello_ctx));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(server_config,
-            S2N_CLIENT_HELLO_CB_NONBLOCKING));
+                S2N_CLIENT_HELLO_CB_NONBLOCKING));
 
         /* ensure that handshake succeeds via HRR path using non_blocking CH */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

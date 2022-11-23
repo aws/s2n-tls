@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 
 #include "crypto/s2n_hmac.h"
-
-#include <assert.h>
 
 void s2n_hmac_hash_alg_harness()
 {
@@ -28,18 +27,36 @@ void s2n_hmac_hash_alg_harness()
     /* Operation under verification. */
     if (s2n_hmac_hash_alg(hmac_alg, out) == S2N_SUCCESS) {
         /* Post-conditions. */
-        switch(hmac_alg) {
-        case S2N_HMAC_NONE:       assert(*out == S2N_HASH_NONE);   break;
-        case S2N_HMAC_MD5:        assert(*out == S2N_HASH_MD5);    break;
-        case S2N_HMAC_SHA1:       assert(*out == S2N_HASH_SHA1);   break;
-        case S2N_HMAC_SHA224:     assert(*out == S2N_HASH_SHA224); break;
-        case S2N_HMAC_SHA256:     assert(*out == S2N_HASH_SHA256); break;
-        case S2N_HMAC_SHA384:     assert(*out == S2N_HASH_SHA384); break;
-        case S2N_HMAC_SHA512:     assert(*out == S2N_HASH_SHA512); break;
-        case S2N_HMAC_SSLv3_MD5:  assert(*out == S2N_HASH_MD5);    break;
-        case S2N_HMAC_SSLv3_SHA1: assert(*out == S2N_HASH_SHA1);   break;
-        default:
-            __CPROVER_assert(0, "Unsupported algorithm.");
+        switch (hmac_alg) {
+            case S2N_HMAC_NONE:
+                assert(*out == S2N_HASH_NONE);
+                break;
+            case S2N_HMAC_MD5:
+                assert(*out == S2N_HASH_MD5);
+                break;
+            case S2N_HMAC_SHA1:
+                assert(*out == S2N_HASH_SHA1);
+                break;
+            case S2N_HMAC_SHA224:
+                assert(*out == S2N_HASH_SHA224);
+                break;
+            case S2N_HMAC_SHA256:
+                assert(*out == S2N_HASH_SHA256);
+                break;
+            case S2N_HMAC_SHA384:
+                assert(*out == S2N_HASH_SHA384);
+                break;
+            case S2N_HMAC_SHA512:
+                assert(*out == S2N_HASH_SHA512);
+                break;
+            case S2N_HMAC_SSLv3_MD5:
+                assert(*out == S2N_HASH_MD5);
+                break;
+            case S2N_HMAC_SSLv3_SHA1:
+                assert(*out == S2N_HASH_SHA1);
+                break;
+            default:
+                __CPROVER_assert(0, "Unsupported algorithm.");
         }
     }
 }

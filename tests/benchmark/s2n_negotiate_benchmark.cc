@@ -14,15 +14,16 @@
  */
 
 #include <unistd.h>
+
 #include "utils/s2n_negotiate_client_benchmark.h"
 #include "utils/s2n_negotiate_server_benchmark.h"
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     int pid_server = fork();
     if (pid_server == 0) {
         start_negotiate_benchmark_server(argc, argv);
-    }
-    else {
+    } else {
         start_negotiate_benchmark_client(argc, argv);
     }
     return 0;

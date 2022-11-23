@@ -13,20 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <stdlib.h>
 
 #include "api/s2n.h"
-
-#include "tls/s2n_tls13_handshake.c"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.c"
 
-int main(int argc, char **argv) {
-
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     if (!s2n_is_tls13_fully_supported()) {
@@ -61,9 +58,9 @@ int main(int argc, char **argv) {
         client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
         /* Recreating conditions where negotiated curve was not set */
-        struct s2n_ecc_evp_params missing_params = {NULL,NULL};
+        struct s2n_ecc_evp_params missing_params = { NULL, NULL };
         client_conn->kex_params.server_ecc_evp_params = missing_params;
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
         /* Compute fails because server's curve and public key are missing. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
 
@@ -89,7 +86,7 @@ int main(int argc, char **argv) {
         /* Set curve server sent in server hello */
         client_conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
         /* Compute fails because server's public key is missing */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
 
@@ -117,7 +114,7 @@ int main(int argc, char **argv) {
 
         /* Generate public key server sent in server hello */
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.server_ecc_evp_params));
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -143,11 +140,11 @@ int main(int argc, char **argv) {
                 s2n_stuffer_data_available(&server_conn->handshake.io)));
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
         EXPECT_TRUE(client_shared_secret.size > 0);
 
-        DEFER_CLEANUP(struct s2n_blob server_shared_secret = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(server_conn, &server_shared_secret));
         EXPECT_TRUE(server_shared_secret.size > 0);
 

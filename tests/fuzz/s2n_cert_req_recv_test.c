@@ -27,7 +27,9 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -35,8 +37,6 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
 static char *cert_chain, *private_key;
 struct s2n_cert_chain_and_key *default_cert;
@@ -57,7 +57,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
     return S2N_SUCCESS;
 }
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {

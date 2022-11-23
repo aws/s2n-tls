@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include <stdlib.h>
-#include "s2n_test.h"
 
+#include "api/s2n.h"
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    
+
     const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));

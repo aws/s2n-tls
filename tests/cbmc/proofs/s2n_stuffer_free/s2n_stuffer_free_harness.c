@@ -36,7 +36,7 @@ void s2n_stuffer_free_harness()
     /* Operation under verification. */
     int result = s2n_stuffer_free(stuffer);
     if (result == S2N_SUCCESS && stuffer != NULL) {
-        assert_all_zeroes((const uint8_t *)stuffer, sizeof(*stuffer));
+        assert_all_zeroes((const uint8_t *) stuffer, sizeof(*stuffer));
     } else if (result == S2N_FAILURE && s2n_errno == S2N_ERR_FREE_STATIC_BLOB) {
         assert(!old_blob.growable);
     }

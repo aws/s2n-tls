@@ -26,9 +26,9 @@ void s2n_dh_p_g_Ys_to_dh_params_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_dh_params *server_dh_params = cbmc_allocate_dh_params();
-    struct s2n_blob *     p                = cbmc_allocate_s2n_blob();
-    struct s2n_blob *     g                = cbmc_allocate_s2n_blob();
-    struct s2n_blob *     Ys               = cbmc_allocate_s2n_blob();
+    struct s2n_blob *p = cbmc_allocate_s2n_blob();
+    struct s2n_blob *g = cbmc_allocate_s2n_blob();
+    struct s2n_blob *Ys = cbmc_allocate_s2n_blob();
 
     /* Assumptions. */
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(p)));

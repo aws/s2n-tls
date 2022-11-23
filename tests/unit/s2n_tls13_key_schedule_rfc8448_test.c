@@ -18,11 +18,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls13_key_schedule.h"
 #include "tls/s2n_tls13_secrets.h"
-
-#include "tls/s2n_cipher_suites.h"
 
 const s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
 
@@ -44,17 +42,17 @@ static int s2n_test_set_recv_key(struct s2n_session_key *key, struct s2n_blob *i
     return S2N_SUCCESS;
 }
 
-#define EXPECT_IVS_EQUAL(conn, iv, iv_mode) \
-    if ((iv_mode) == S2N_CLIENT) { \
+#define EXPECT_IVS_EQUAL(conn, iv, iv_mode)                                               \
+    if ((iv_mode) == S2N_CLIENT) {                                                        \
         EXPECT_BYTEARRAY_EQUAL((conn)->secure->client_implicit_iv, (iv).data, (iv).size); \
-    } else { \
+    } else {                                                                              \
         EXPECT_BYTEARRAY_EQUAL((conn)->secure->server_implicit_iv, (iv).data, (iv).size); \
     }
 
-#define EXPECT_KEYS_EQUAL(conn, key, key_mode) \
-    if ((conn)->mode == (key_mode)) { \
+#define EXPECT_KEYS_EQUAL(conn, key, key_mode)                         \
+    if ((conn)->mode == (key_mode)) {                                  \
         EXPECT_BYTEARRAY_EQUAL(test_send_key, (key).data, (key).size); \
-    } else { \
+    } else {                                                           \
         EXPECT_BYTEARRAY_EQUAL(test_recv_key, (key).data, (key).size); \
     }
 
@@ -101,9 +99,9 @@ int main(int argc, char **argv)
     {
         const uint32_t one_rtt_handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         const int one_rtt_message_nums[] = {
-                [SERVER_HELLO] = 1,
-                [SERVER_FINISHED] = 5,
-                [CLIENT_FINISHED] = 6,
+            [SERVER_HELLO] = 1,
+            [SERVER_FINISHED] = 5,
+            [CLIENT_FINISHED] = 6,
         };
 
         /* Derive server handshake traffic keys */
@@ -130,9 +128,11 @@ int main(int argc, char **argv)
              *#
              *#       iv expanded (12 octets):  5d 31 3e b2 67 12 76 ee 13 00 0b 30
              */
-            S2N_BLOB_FROM_HEX(secret, "b6 7b 7d 69 0c c1 6c 4e 75 e5 42 13 cb 2d 37 b4 \
+            S2N_BLOB_FROM_HEX(secret,
+                    "b6 7b 7d 69 0c c1 6c 4e 75 e5 42 13 cb 2d 37 b4 \
                          e9 c9 12 bc de d9 10 5d 42 be fd 59 d3 91 ad 38");
-            S2N_BLOB_FROM_HEX(key, "3f ce 51 60 09 c2 17 27 d0 f2 e4 e8 6e \
+            S2N_BLOB_FROM_HEX(key,
+                    "3f ce 51 60 09 c2 17 27 d0 f2 e4 e8 6e \
                          e4 03 bc");
             S2N_BLOB_FROM_HEX(iv, "5d 31 3e b2 67 12 76 ee 13 00 0b 30");
 
@@ -176,9 +176,11 @@ int main(int argc, char **argv)
              *#
              *#       iv expanded (12 octets):  5b d3 c7 1b 83 6e 0b 76 bb 73 26 5f
              */
-            S2N_BLOB_FROM_HEX(secret, "b3 ed db 12 6e 06 7f 35 a7 80 b3 ab f4 5e 2d 8f \
+            S2N_BLOB_FROM_HEX(secret,
+                    "b3 ed db 12 6e 06 7f 35 a7 80 b3 ab f4 5e 2d 8f \
                          3b 1a 95 07 38 f5 2e 96 00 74 6a 0e 27 a5 5a 21");
-            S2N_BLOB_FROM_HEX(key, "db fa a6 93 d1 76 2c 5b 66 6a f5 d9 50 \
+            S2N_BLOB_FROM_HEX(key,
+                    "db fa a6 93 d1 76 2c 5b 66 6a f5 d9 50 \
                          25 8d 01");
             S2N_BLOB_FROM_HEX(iv, "5b d3 c7 1b 83 6e 0b 76 bb 73 26 5f");
 
@@ -222,15 +224,17 @@ int main(int argc, char **argv)
              *#
              *#       iv expanded (12 octets):  cf 78 2b 88 dd 83 54 9a ad f1 e9 84
              */
-            S2N_BLOB_FROM_HEX(secret, "a1 1a f9 f0 55 31 f8 56 ad 47 11 6b 45 a9 50 32 \
+            S2N_BLOB_FROM_HEX(secret,
+                    "a1 1a f9 f0 55 31 f8 56 ad 47 11 6b 45 a9 50 32 \
                          82 04 b4 f4 4b fb 6b 3a 4b 4f 1f 3f cb 63 16 43");
-            S2N_BLOB_FROM_HEX(key, "9f 02 28 3b 6c 9c 07 ef c2 6b b9 f2 ac \
+            S2N_BLOB_FROM_HEX(key,
+                    "9f 02 28 3b 6c 9c 07 ef c2 6b b9 f2 ac \
                          92 e3 56");
             S2N_BLOB_FROM_HEX(iv, "cf 78 2b 88 dd 83 54 9a ad f1 e9 84");
 
             const message_type_t trigger_messages[] = {
-                    [S2N_CLIENT] = CLIENT_FINISHED,
-                    [S2N_SERVER] = SERVER_FINISHED,
+                [S2N_CLIENT] = CLIENT_FINISHED,
+                [S2N_SERVER] = SERVER_FINISHED,
             };
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
@@ -274,9 +278,11 @@ int main(int argc, char **argv)
              *#
              *#       iv expanded (12 octets):  5b 78 92 3d ee 08 57 90 33 e5 23 d9
              */
-            S2N_BLOB_FROM_HEX(secret, "9e 40 64 6c e7 9a 7f 9d c0 5a f8 88 9b ce 65 52 \
+            S2N_BLOB_FROM_HEX(secret,
+                    "9e 40 64 6c e7 9a 7f 9d c0 5a f8 88 9b ce 65 52 \
                          87 5a fa 0b 06 df 00 87 f7 92 eb b7 c1 75 04 a5");
-            S2N_BLOB_FROM_HEX(key, "17 42 2d da 59 6e d5 d9 ac d8 90 e3 c6 \
+            S2N_BLOB_FROM_HEX(key,
+                    "17 42 2d da 59 6e d5 d9 ac d8 90 e3 c6 \
                          3f 50 51");
             S2N_BLOB_FROM_HEX(iv, "5b 78 92 3d ee 08 57 90 33 e5 23 d9");
 
@@ -301,8 +307,8 @@ int main(int argc, char **argv)
     {
         const uint32_t resumed_handshake_type = NEGOTIATED | WITH_EARLY_DATA;
         const int resumed_message_nums[] = {
-                [CLIENT_HELLO] = 0,
-                [SERVER_FINISHED] = 3,
+            [CLIENT_HELLO] = 0,
+            [SERVER_FINISHED] = 3,
         };
 
         /* Derive early application traffic keys */
@@ -329,15 +335,17 @@ int main(int argc, char **argv)
              *#
              *#       iv expanded (12 octets):  6d 47 5f 09 93 c8 e5 64 61 0d b2 b9
              */
-            S2N_BLOB_FROM_HEX(secret, "3f bb e6 a6 0d eb 66 c3 0a 32 79 5a ba 0e ff 7e \
+            S2N_BLOB_FROM_HEX(secret,
+                    "3f bb e6 a6 0d eb 66 c3 0a 32 79 5a ba 0e ff 7e \
                          aa 10 10 55 86 e7 be 5c 09 67 8d 63 b6 ca ab 62");
-            S2N_BLOB_FROM_HEX(key, "92 02 05 a5 b7 bf 21 15 e6 fc 5c 29 42 \
+            S2N_BLOB_FROM_HEX(key,
+                    "92 02 05 a5 b7 bf 21 15 e6 fc 5c 29 42 \
                          83 4f 54");
             S2N_BLOB_FROM_HEX(iv, "6d 47 5f 09 93 c8 e5 64 61 0d b2 b9");
 
             const message_type_t trigger_messages[] = {
-                    [S2N_CLIENT] = CLIENT_HELLO,
-                    [S2N_SERVER] = SERVER_FINISHED,
+                [S2N_CLIENT] = CLIENT_HELLO,
+                [S2N_SERVER] = SERVER_FINISHED,
             };
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {

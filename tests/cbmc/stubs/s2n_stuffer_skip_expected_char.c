@@ -21,7 +21,7 @@
 
 /* Skips an expected character in the stuffer between min and max times */
 int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
-                                   const uint32_t max, uint32_t *skipped)
+        const uint32_t max, uint32_t *skipped)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE(min <= max, S2N_FAILURE);

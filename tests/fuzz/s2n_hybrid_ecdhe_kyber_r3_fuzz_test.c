@@ -25,16 +25,15 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "tls/s2n_kex.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_safety.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_security_policies.h"
 
-static struct s2n_kem_params server_kem_params = {.kem = &s2n_kyber_512_r3};
+static struct s2n_kem_params server_kem_params = { .kem = &s2n_kyber_512_r3 };
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.

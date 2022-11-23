@@ -26,7 +26,7 @@ void s2n_stuffer_read_uint16_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    uint16_t *         dest        = malloc(sizeof(uint16_t *));
+    uint16_t *dest = malloc(sizeof(uint16_t *));
 
     /* Store a byte from the stuffer to compare after the read */
     struct store_byte_from_buffer old_byte_from_stuffer;
@@ -35,8 +35,8 @@ void s2n_stuffer_read_uint16_harness()
     if (s2n_stuffer_read_uint16(stuffer, dest) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + sizeof(uint16_t));
         /* If successful, ensure uint was assembled correctly from stuffer */
-        assert((( uint16_t )stuffer->blob.data[ old_stuffer.read_cursor ]) << 8
-               | (( uint16_t )stuffer->blob.data[ old_stuffer.read_cursor + 1 ]) == *dest);
+        assert(((uint16_t) stuffer->blob.data[old_stuffer.read_cursor]) << 8
+                | ((uint16_t) stuffer->blob.data[old_stuffer.read_cursor + 1]) == *dest);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }

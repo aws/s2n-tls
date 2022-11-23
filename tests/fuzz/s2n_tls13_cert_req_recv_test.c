@@ -16,18 +16,17 @@
 /* Target Functions: s2n_tls13_cert_req_recv s2n_extension_list_recv s2n_extension_process
                      s2n_extension_list_process s2n_extension_parse s2n_extension_list_parse */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
 static char *cert_chain, *private_key;
 struct s2n_cert_chain_and_key *default_cert;

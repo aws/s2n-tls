@@ -14,7 +14,6 @@
  */
 
 #include <benchmark/benchmark.h>
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,10 +26,10 @@ extern "C" {
 #include "utils/s2n_random.h"
 }
 
-
 class TestFixture : public benchmark::Fixture {
-public:
-    void SetUp(const ::benchmark::State& state) {
+   public:
+    void SetUp(const ::benchmark::State& state)
+    {
         s2n_result result;
         int rc;
 
@@ -41,7 +40,7 @@ public:
         rc = s2n_blob_init(&r, pad.data(), pad.size());
         assert(rc == 0);
 
-        result  = s2n_get_public_random_data(&r);
+        result = s2n_get_public_random_data(&r);
         assert(s2n_result_is_ok(result));
         rc = s2n_stuffer_alloc(&entropy, pad.size());
         assert(rc == 0);
@@ -49,19 +48,21 @@ public:
         assert(rc == 0);
     }
 
-    void TearDown(const ::benchmark::State& state) {
+    void TearDown(const ::benchmark::State& state)
+    {
     }
 
-    std::vector<uint8_t>pad;
+    std::vector<uint8_t> pad;
     struct s2n_blob r;
     struct s2n_stuffer entropy;
-
 };
 
-BENCHMARK_DEFINE_F(TestFixture, Base64EncodeDecode)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(TestFixture, Base64EncodeDecode)
+(benchmark::State& state)
+{
     for (auto _ : state) {
-        struct s2n_stuffer stuffer = {0};
-        struct s2n_stuffer mirror = {0};
+        struct s2n_stuffer stuffer = { 0 };
+        struct s2n_stuffer mirror = { 0 };
         s2n_stuffer_write_base64(&stuffer, &entropy);
         s2n_stuffer_read_base64(&stuffer, &mirror);
     }
@@ -69,17 +70,17 @@ BENCHMARK_DEFINE_F(TestFixture, Base64EncodeDecode)(benchmark::State& state) {
 
 BENCHMARK_REGISTER_F(TestFixture, Base64EncodeDecode)->DenseRange(1024, 1024 * 1024, 128 * 1024);
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     ::benchmark::Initialize(&argc, argv);
 
     int rc = s2n_init();
     assert(rc == 0);
 
-    if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;
+    if (::benchmark::ReportUnrecognizedArguments(argc, argv))
+        return 1;
     ::benchmark::RunSpecifiedBenchmarks();
 
     rc = s2n_cleanup();
     assert(rc == 0);
 }
-
-

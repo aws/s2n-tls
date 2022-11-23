@@ -28,6 +28,6 @@ ssize_t read(int fd, void *buf, size_t nbyte)
     }
     loop_flag = true;
     ssize_t rval;
-    __CPROVER_assume(rval <= ( ssize_t )nbyte);
+    __CPROVER_assume(rval <= (ssize_t) nbyte);
     return rval;
 }

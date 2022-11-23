@@ -27,10 +27,10 @@ void s2n_stuffer_alloc_ro_from_fd_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    int                 rfd;
+    int rfd;
 
     /* Store a byte from the stuffer to compare if the write fails */
-    struct s2n_stuffer            old_stuffer;
+    struct s2n_stuffer old_stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     if (s2n_result_is_ok(s2n_stuffer_validate(stuffer))) {
         old_stuffer = *stuffer;

@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include "crypto/s2n_fips.h"
 #include "crypto/s2n_evp.h"
+#include "crypto/s2n_fips.h"
 #include "utils/s2n_result.h"
-
-#include <assert.h>
 
 void s2n_digest_is_md5_allowed_for_fips_harness()
 {

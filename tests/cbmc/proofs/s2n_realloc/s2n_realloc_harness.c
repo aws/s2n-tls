@@ -25,23 +25,27 @@ void s2n_realloc_harness()
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
     uint32_t size;
-    size_t   idx;
+    size_t idx;
     __CPROVER_assume(idx < blob->size || (blob->size == 0 && idx == 0));
 
     nondet_s2n_mem_init();
 
     const struct s2n_blob old_blob = *blob;
-    uint8_t               old_data;
-    if (blob->size > 0) { old_data = blob->data[ idx ]; }
+    uint8_t old_data;
+    if (blob->size > 0) {
+        old_data = blob->data[idx];
+    }
 
     if (s2n_realloc(blob, size) == S2N_SUCCESS) {
         assert(s2n_result_is_ok(s2n_blob_validate(blob)));
         assert(blob->allocated >= size);
         assert(blob->size == size);
         if (size >= old_blob.size) {
-            if (old_blob.size > 0) { assert(blob->data[ idx ] == old_data); }
+            if (old_blob.size > 0) {
+                assert(blob->data[idx] == old_data);
+            }
         } else {
-            if(blob->data) {
+            if (blob->data) {
                 assert_all_zeroes(blob->data + blob->size, old_blob.size - blob->size);
             }
         }

@@ -17,17 +17,18 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -36,9 +37,6 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
 struct host_verify_data {
     const char *name;
@@ -53,7 +51,7 @@ static uint8_t verify_host_accept_everything(const char *host_name, size_t host_
     return 1;
 }
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13 };
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
@@ -74,7 +72,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     uint8_t randval = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
 
-    if(randval % 2) {
+    if (randval % 2) {
         POSIX_GUARD(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
         POSIX_GUARD(s2n_connection_set_verify_host_callback(server_conn, verify_host_accept_everything, &verify_data));
     }

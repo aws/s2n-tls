@@ -29,7 +29,7 @@ void s2n_stuffer_skip_whitespace_harness()
     uint32_t skipped;
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -39,14 +39,14 @@ void s2n_stuffer_skip_whitespace_harness()
         if (skipped > 0) {
             assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
             __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < stuffer->read_cursor);
-            assert(stuffer->blob.data[ idx ] == ' ' || stuffer->blob.data[ idx ] == '\t'
-                   || stuffer->blob.data[ idx ] == '\n' || stuffer->blob.data[ idx ] == '\r');
+            assert(stuffer->blob.data[idx] == ' ' || stuffer->blob.data[idx] == '\t'
+                    || stuffer->blob.data[idx] == '\n' || stuffer->blob.data[idx] == '\r');
         } else {
             assert((stuffer->read_cursor >= stuffer->write_cursor)
-                   || (stuffer->blob.data[ old_stuffer.read_cursor ] != ' '
-                       && stuffer->blob.data[ old_stuffer.read_cursor ] != '\t'
-                       && stuffer->blob.data[ old_stuffer.read_cursor ] != '\n'
-                       && stuffer->blob.data[ old_stuffer.read_cursor ] != '\r'));
+                    || (stuffer->blob.data[old_stuffer.read_cursor] != ' '
+                            && stuffer->blob.data[old_stuffer.read_cursor] != '\t'
+                            && stuffer->blob.data[old_stuffer.read_cursor] != '\n'
+                            && stuffer->blob.data[old_stuffer.read_cursor] != '\r'));
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);

@@ -13,48 +13,44 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_handshake.h"
+#include "tls/s2n_handshake_io.c"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
-#include "tls/s2n_handshake_io.c"
 
 /* A full record that has an "APPLICATION_DATA" inside according to s2n's
  * handshake message_types.
  */
 uint8_t record[] = {
-        /* Record type HANDSHAKE */
-        0x16,
-        /* Protocol version TLS 1.2 */
-        0x03, 0x03,
-        /* record len */
-        0x00, 0x05,
-        /* Type(s2n has this as expected message type for APPLICATION_DATA handler.
+    /* Record type HANDSHAKE */
+    0x16,
+    /* Protocol version TLS 1.2 */
+    0x03, 0x03,
+    /* record len */
+    0x00, 0x05,
+    /* Type(s2n has this as expected message type for APPLICATION_DATA handler.
          * This is not a standardized value, just something s2n has hardcoded as a placeholder
          * For the APPLICATON_DATA state in the state machine.
          */
-        0x00,
-        /* Len */
-        0x00, 0x00, 0x01,
-        /* Data */
-        0x00
+    0x00,
+    /* Len */
+    0x00, 0x00, 0x01,
+    /* Data */
+    0x00
 };
 static int amt_written = 0;
 
@@ -91,4 +87,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-

@@ -45,9 +45,9 @@ void s2n_stuffer_reserve_uint24_harness()
         if (old_stuffer.blob.size > 0) {
             size_t idx;
             __CPROVER_assume(idx >= reservation->write_cursor
-                             && idx < (reservation->write_cursor + reservation->length));
-            assert(stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
-            assert(reservation->stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
+                    && idx < (reservation->write_cursor + reservation->length));
+            assert(stuffer->blob.data[idx] == S2N_WIPE_PATTERN);
+            assert(reservation->stuffer->blob.data[idx] == S2N_WIPE_PATTERN);
         }
         assert(stuffer == reservation->stuffer);
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));

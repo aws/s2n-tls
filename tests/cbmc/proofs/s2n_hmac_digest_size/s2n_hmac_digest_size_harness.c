@@ -13,33 +13,50 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 
 #include "crypto/s2n_hmac.h"
-
-#include <assert.h>
 
 void s2n_hmac_digest_size_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hmac_algorithm hmac_alg;
-    uint8_t *          out = malloc(sizeof(*out));
+    uint8_t* out = malloc(sizeof(*out));
 
     /* Operation under verification. */
     if (s2n_hmac_digest_size(hmac_alg, out) == S2N_SUCCESS) {
         /* Post-conditions. */
         switch (hmac_alg) {
-        case S2N_HMAC_NONE:       assert(*out == 0);                    break;
-        case S2N_HMAC_MD5:        assert(*out == MD5_DIGEST_LENGTH);    break;
-        case S2N_HMAC_SHA1:       assert(*out == SHA_DIGEST_LENGTH);    break;
-        case S2N_HMAC_SHA224:     assert(*out == SHA224_DIGEST_LENGTH); break;
-        case S2N_HMAC_SHA256:     assert(*out == SHA256_DIGEST_LENGTH); break;
-        case S2N_HMAC_SHA384:     assert(*out == SHA384_DIGEST_LENGTH); break;
-        case S2N_HMAC_SHA512:     assert(*out == SHA512_DIGEST_LENGTH); break;
-        case S2N_HMAC_SSLv3_MD5:  assert(*out == MD5_DIGEST_LENGTH);    break;
-        case S2N_HMAC_SSLv3_SHA1: assert(*out == SHA_DIGEST_LENGTH);    break;
-        default:
-            __CPROVER_assert(0, "Unsupported algorithm.");
+            case S2N_HMAC_NONE:
+                assert(*out == 0);
+                break;
+            case S2N_HMAC_MD5:
+                assert(*out == MD5_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SHA1:
+                assert(*out == SHA_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SHA224:
+                assert(*out == SHA224_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SHA256:
+                assert(*out == SHA256_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SHA384:
+                assert(*out == SHA384_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SHA512:
+                assert(*out == SHA512_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SSLv3_MD5:
+                assert(*out == MD5_DIGEST_LENGTH);
+                break;
+            case S2N_HMAC_SSLv3_SHA1:
+                assert(*out == SHA_DIGEST_LENGTH);
+                break;
+            default:
+                __CPROVER_assert(0, "Unsupported algorithm.");
         }
     }
 }

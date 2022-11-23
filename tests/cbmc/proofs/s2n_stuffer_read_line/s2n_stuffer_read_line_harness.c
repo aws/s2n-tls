@@ -30,12 +30,12 @@ void s2n_stuffer_read_line_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(line)));
 
     /* Store previous state from the stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Store previous state from the line. */
-    struct s2n_stuffer            old_line = *line;
+    struct s2n_stuffer old_line = *line;
     struct store_byte_from_buffer old_byte_from_line;
     save_byte_from_blob(&line->blob, &old_byte_from_line);
 
@@ -44,11 +44,11 @@ void s2n_stuffer_read_line_harness()
     if (s2n_stuffer_read_line(stuffer, line) == S2N_SUCCESS) {
         assert(s2n_result_is_ok(s2n_stuffer_validate(line)));
         if (line->write_cursor > old_line.write_cursor) {
-            assert(line->blob.data[ line->write_cursor - 1 ] != '\n');
+            assert(line->blob.data[line->write_cursor - 1] != '\n');
             uint32_t line_size = line->write_cursor - old_line.write_cursor;
             if (line_size != 0)
                 assert_bytes_match(line->blob.data + old_line.write_cursor,
-                                   stuffer->blob.data + old_stuffer.read_cursor, line_size);
+                        stuffer->blob.data + old_stuffer.read_cursor, line_size);
         }
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

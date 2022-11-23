@@ -40,7 +40,9 @@ void s2n_stuffer_skip_write_harness()
     if (s2n_stuffer_skip_write(stuffer, data_len) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + data_len);
         assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + data_len, old_stuffer.high_water_mark));
-        if (old_stuffer.blob.size > 0) { assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer); }
+        if (old_stuffer.blob.size > 0) {
+            assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);
+        }
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);

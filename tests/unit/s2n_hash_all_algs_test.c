@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
-#define INPUT_DATA_SIZE 100
+#define INPUT_DATA_SIZE  100
 #define OUTPUT_DATA_SIZE 100
 
 const uint8_t input_data[INPUT_DATA_SIZE] = "hello hash";
@@ -29,17 +28,19 @@ const uint8_t input_data[INPUT_DATA_SIZE] = "hello hash";
  * They are useful to validate that the results of the low level implementation
  * never change and match the results of the EVP implementation.
  */
-const char* expected_result_hex[S2N_HASH_SENTINEL] = {
-        [S2N_HASH_NONE]     = "",
-        [S2N_HASH_MD5]      = "f5d589043253ca6ae54124c31be43701",
-        [S2N_HASH_SHA1]     = "ccf8abd6b03ef5054a4f257e7c712e17f965272d",
-        [S2N_HASH_SHA224]   = "dae80554ab74bf098b1a39e48c85c58e4af4628d2a357ee5cf6b1b85",
-        [S2N_HASH_SHA256]   = "a8a7fb9d2d3ff62eee5bed1bfcc7b2e17ffebf00c3c77fdf43259d690022041f",
-        [S2N_HASH_SHA384]   = "d7131b24ea0985fc9f6462139969decff21f24967f6df17e31ce2410fda6534a5c"
-                              "f85cb4be737961eddce0c201c0dac0",
-        [S2N_HASH_SHA512]   = "b11305336d6071d8cbab6709fc1019f874961e13a04611f8e7d4c1f9164a2c923f"
-                              "7b3da0a37001cef5fdb71584a0f92020a45f23a6fc06cc3ab42ceaa0467a34",
-        [S2N_HASH_MD5_SHA1] = "f5d589043253ca6ae54124c31be43701ccf8abd6b03ef5054a4f257e7c712e17f965272d",
+const char *expected_result_hex[S2N_HASH_SENTINEL] = {
+    [S2N_HASH_NONE] = "",
+    [S2N_HASH_MD5] = "f5d589043253ca6ae54124c31be43701",
+    [S2N_HASH_SHA1] = "ccf8abd6b03ef5054a4f257e7c712e17f965272d",
+    [S2N_HASH_SHA224] = "dae80554ab74bf098b1a39e48c85c58e4af4628d2a357ee5cf6b1b85",
+    [S2N_HASH_SHA256] = "a8a7fb9d2d3ff62eee5bed1bfcc7b2e17ffebf00c3c77fdf43259d690022041f",
+    [S2N_HASH_SHA384] =
+            "d7131b24ea0985fc9f6462139969decff21f24967f6df17e31ce2410fda6534a5c"
+            "f85cb4be737961eddce0c201c0dac0",
+    [S2N_HASH_SHA512] =
+            "b11305336d6071d8cbab6709fc1019f874961e13a04611f8e7d4c1f9164a2c923f"
+            "7b3da0a37001cef5fdb71584a0f92020a45f23a6fc06cc3ab42ceaa0467a34",
+    [S2N_HASH_MD5_SHA1] = "f5d589043253ca6ae54124c31be43701ccf8abd6b03ef5054a4f257e7c712e17f965272d",
 };
 
 S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algorithm hash_alg, struct s2n_blob *digest)
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
         struct s2n_blob expected_result = { 0 };
         uint8_t expected_result_data[OUTPUT_DATA_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&expected_result, expected_result_data, OUTPUT_DATA_SIZE));
-        EXPECT_SUCCESS(s2n_hex_string_to_bytes((const uint8_t*) expected_result_hex[hash_alg], &expected_result));
+        EXPECT_SUCCESS(s2n_hex_string_to_bytes((const uint8_t *) expected_result_hex[hash_alg], &expected_result));
 
         EXPECT_OK(s2n_hash_test(hash_alg, &actual_result));
         EXPECT_EQUAL(expected_result.size, actual_result.size);

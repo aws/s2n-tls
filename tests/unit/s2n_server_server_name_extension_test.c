@@ -14,12 +14,11 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_server_server_name.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-#define S2N_TEST_RESUMPTION_HANDSHAKE (NEGOTIATED)
+#define S2N_TEST_RESUMPTION_HANDSHAKE     (NEGOTIATED)
 #define S2N_TEST_NOT_RESUMPTION_HANDSHAKE (NEGOTIATED | FULL_HANDSHAKE)
 
 int main(int argc, char **argv)

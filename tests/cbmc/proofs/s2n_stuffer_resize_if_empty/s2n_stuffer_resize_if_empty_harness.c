@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
-
-#include <assert.h>
 
 /*
  * The reason we don't have full coverage is that we only call s2n_realloc
@@ -36,7 +35,7 @@ void s2n_stuffer_resize_if_empty_harness()
     nondet_s2n_mem_init();
 
     /* Save previous state. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
 

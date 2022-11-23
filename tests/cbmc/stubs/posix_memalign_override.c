@@ -25,16 +25,15 @@
  */
 int posix_memalign(void **ptr, __CPROVER_size_t alignment, __CPROVER_size_t size)
 {
-    __CPROVER_HIDE:;
+__CPROVER_HIDE:;
 
     __CPROVER_size_t multiplier = alignment / sizeof(void *);
     /* Modeling the posix_memalign checks on alignment. */
-    if (alignment % sizeof(void *) != 0 ||
-        ((multiplier) & (multiplier - 1)) != 0 || alignment == 0) {
-      return EINVAL;
+    if (alignment % sizeof(void *) != 0 || ((multiplier) & (multiplier - 1)) != 0 || alignment == 0) {
+        return EINVAL;
     }
     void *tmp = malloc(size);
-    if(tmp != NULL) {
+    if (tmp != NULL) {
         *ptr = tmp;
         return 0;
     }

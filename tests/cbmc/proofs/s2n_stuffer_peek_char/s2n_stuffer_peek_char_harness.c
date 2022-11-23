@@ -28,14 +28,14 @@ void s2n_stuffer_peek_char_harness()
     uint8_t dest;
 
     /* Store a byte from the stuffer to compare after the read */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
     if (s2n_stuffer_peek_char(stuffer, &dest) == S2N_SUCCESS) {
         /* If successful, ensure uint was assembled correctly from stuffer */
-        assert(stuffer->blob.data[ old_stuffer.read_cursor ] == dest);
+        assert(stuffer->blob.data[old_stuffer.read_cursor] == dest);
         assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

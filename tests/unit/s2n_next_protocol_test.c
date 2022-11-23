@@ -14,11 +14,9 @@
  */
 
 #include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_tls.h"
-
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
@@ -182,9 +180,11 @@ int main(int argc, char **argv)
 
         uint8_t wire_bytes[] = {
             /* Zero-length protocol */
-            0x00, 0x00,
+            0x00,
+            0x00,
             /* Padding character is not zero */
-            0x01, 0xFF,
+            0x01,
+            0xFF,
         };
 
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);

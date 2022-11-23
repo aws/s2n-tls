@@ -25,14 +25,14 @@ void s2n_constant_time_copy_or_dont_harness()
     const uint32_t len;
     const uint32_t destlen;
     const uint32_t srclen;
-    const uint8_t  dont;
+    const uint8_t dont;
     __CPROVER_assume(len < MAX_ARR_LEN);
     __CPROVER_assume(destlen >= len);
     __CPROVER_assume(srclen >= len);
     uint8_t *dest = malloc(destlen);
-    uint8_t *src  = malloc(srclen);
-    uint8_t  old_src_byte;
-    uint8_t  old_dest_byte;
+    uint8_t *src = malloc(srclen);
+    uint8_t old_src_byte;
+    uint8_t old_dest_byte;
     uint32_t idx;
 
     /* Pre-conditions. */
@@ -40,23 +40,29 @@ void s2n_constant_time_copy_or_dont_harness()
         __CPROVER_assume(dest != NULL);
         __CPROVER_assume(src != NULL);
         __CPROVER_assume(idx < len);
-        old_src_byte  = src[ idx ];
-        old_dest_byte = dest[ idx ];
+        old_src_byte = src[idx];
+        old_dest_byte = dest[idx];
     }
 
     s2n_constant_time_copy_or_dont(dest, src, len, dont);
 
     if (dont == 0) {
         if (src != NULL) {
-            if (len != 0) { assert(src[ idx ] == old_src_byte); }
+            if (len != 0) {
+                assert(src[idx] == old_src_byte);
+            }
             if (dest != NULL) {
                 uint32_t rand;
                 __CPROVER_assume(rand < len);
-                assert(dest[ rand ] == src[ rand ]);
+                assert(dest[rand] == src[rand]);
             }
         }
     } else {
-        if (src != NULL && len != 0) { assert(src[ idx ] == old_src_byte); }
-        if (dest != NULL && len != 0) { assert(dest[ idx ] == old_dest_byte); }
+        if (src != NULL && len != 0) {
+            assert(src[idx] == old_src_byte);
+        }
+        if (dest != NULL && len != 0) {
+            assert(dest[idx] == old_dest_byte);
+        }
     }
 }

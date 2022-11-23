@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 #define NUM_TIED_CERTS 100
 
-struct s2n_connection *create_conn(s2n_mode mode, struct s2n_config *config) {
+struct s2n_connection *create_conn(s2n_mode mode, struct s2n_config *config)
+{
     struct s2n_connection *conn = s2n_connection_new(mode);
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, config));
     return conn;
@@ -95,7 +93,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(tied_certs[i] = s2n_cert_chain_and_key_new());
             EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tied_certs[i], alligator_cert, alligator_key));
             tiebreak_priorites[i] = i;
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ctx(tied_certs[i], (void*) &tiebreak_priorites[i]));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ctx(tied_certs[i], (void *) &tiebreak_priorites[i]));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tied_certs[i]));
         }
 
@@ -109,7 +107,7 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *selected_cert = s2n_connection_get_selected_cert(server_conn);
         /* The last alligator certificate should have the highest priority */
         EXPECT_EQUAL(selected_cert, tied_certs[(NUM_TIED_CERTS - 1)]);
-        EXPECT_EQUAL(s2n_cert_chain_and_key_get_ctx(selected_cert), (void*) &tiebreak_priorites[(NUM_TIED_CERTS - 1)]);
+        EXPECT_EQUAL(s2n_cert_chain_and_key_get_ctx(selected_cert), (void *) &tiebreak_priorites[(NUM_TIED_CERTS - 1)]);
         EXPECT_EQUAL(*((int *) s2n_cert_chain_and_key_get_ctx(selected_cert)), NUM_TIED_CERTS - 1);
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

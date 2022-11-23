@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_fips.h"
-
-#include <assert.h>
 
 void s2n_digest_allow_md5_for_fips_boringssl_awslc_harness()
 {
@@ -28,7 +27,8 @@ void s2n_digest_allow_md5_for_fips_boringssl_awslc_harness()
 
     /* Save previous state. */
     unsigned long old_flags;
-    if (evp_digest != NULL && evp_digest->ctx != NULL) old_flags = evp_digest->ctx->flags;
+    if (evp_digest != NULL && evp_digest->ctx != NULL)
+        old_flags = evp_digest->ctx->flags;
 
     /* Operation under verification. */
     if (s2n_digest_allow_md5_for_fips(evp_digest) == S2N_SUCCESS) {

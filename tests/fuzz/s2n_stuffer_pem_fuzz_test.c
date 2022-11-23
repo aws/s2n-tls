@@ -30,8 +30,8 @@
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
-    struct s2n_stuffer in = {0};
-    struct s2n_stuffer out = {0};
+    struct s2n_stuffer in = { 0 };
+    struct s2n_stuffer out = { 0 };
 
     POSIX_GUARD(s2n_stuffer_alloc(&in, len + 1));
     POSIX_GUARD(s2n_stuffer_alloc(&out, len));

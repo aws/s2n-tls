@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <tls/s2n_connection.h>
-
 #include <assert.h>
+#include <tls/s2n_connection.h>
 
 void s2n_connection_get_last_message_name_harness()
 {
     /* Non-deterministic inputs. */
-    struct s2n_connection *s2n_connection = malloc(sizeof(*s2n_connection));
+    struct s2n_connection* s2n_connection = malloc(sizeof(*s2n_connection));
 
     /* Operation under verification. */
     const char* last_message_name = s2n_connection_get_last_message_name(s2n_connection);
 
     /* Post-conditions. */
     assert(S2N_IMPLIES(
-      s2n_connection != NULL && s2n_result_is_ok(s2n_handshake_validate(&(s2n_connection->handshake))),
-      last_message_name != NULL
-    ));
+            s2n_connection != NULL && s2n_result_is_ok(s2n_handshake_validate(&(s2n_connection->handshake))),
+            last_message_name != NULL));
 }

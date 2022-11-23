@@ -15,16 +15,17 @@
 
 #define FALL_THROUGH __attribute__((fallthrough))
 
-int main() {
+int main()
+{
     char val = 'A';
     switch (val) {
-        case 'A' :
+        case 'A':
             val++;
             FALL_THROUGH;
-        case 'B' :
+        case 'B':
             val *= 2;
             break;
-        default :
+        default:
             break;
     }
 

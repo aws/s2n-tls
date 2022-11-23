@@ -13,24 +13,38 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <math.h>
 #include <pthread.h>
-
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
+#include <sys/param.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_post_handshake.h"
-#include "tls/s2n_tls.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
-#define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
-#define BLOCK_SEND_RESULT { .result = -1, .error = EAGAIN }
-#define PARTIAL_SEND_RESULT(bytes) { .result = bytes, .error = EAGAIN }
-#define EXPECTED_SEND_RESULT(bytes) { .result = bytes, .assert_result = true }
-#define OK_SEND_RESULT { .result = INT_MAX }
+#define CLOSED_SEND_RESULT           \
+    {                                \
+        .result = -1, .error = EPIPE \
+    }
+#define BLOCK_SEND_RESULT             \
+    {                                 \
+        .result = -1, .error = EAGAIN \
+    }
+#define PARTIAL_SEND_RESULT(bytes)       \
+    {                                    \
+        .result = bytes, .error = EAGAIN \
+    }
+#define EXPECTED_SEND_RESULT(bytes)            \
+    {                                          \
+        .result = bytes, .assert_result = true \
+    }
+#define OK_SEND_RESULT    \
+    {                     \
+        .result = INT_MAX \
+    }
 
 int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size);
@@ -50,7 +64,7 @@ struct s2n_send_context {
 
 static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_send_context *context = (struct s2n_send_context*) io_context;
+    struct s2n_send_context *context = (struct s2n_send_context *) io_context;
     POSIX_ENSURE_REF(context);
 
     POSIX_ENSURE_LT(context->calls, context->results_len);
@@ -89,8 +103,8 @@ int main(int argc, char **argv)
         results_all_ok[i] = (struct s2n_send_result) OK_SEND_RESULT;
     }
     const struct s2n_send_context context_all_ok = {
-            .results = results_all_ok,
-            .results_len = s2n_array_len(results_all_ok)
+        .results = results_all_ok,
+        .results_len = s2n_array_len(results_all_ok)
     };
 
     /* Setup a large output buffer that can contain all of large_test_data */
@@ -109,274 +123,274 @@ int main(int argc, char **argv)
     {
         /* Flush if multirecord send not enabled */
         {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
 
-            /* Multirecord send not enabled */
-            EXPECT_FALSE(conn->multirecord_send);
-            EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
+    /* Multirecord send not enabled */
+    EXPECT_FALSE(conn->multirecord_send);
+    EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
 
-            /* Multirecord send enabled */
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_TRUE(conn->multirecord_send);
-            EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
-        }
+    /* Multirecord send enabled */
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+    EXPECT_TRUE(conn->multirecord_send);
+    EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
+}
 
-        /* Flush if all data sent */
-        {
-            ssize_t send_size = 100;
+/* Flush if all data sent */
+{
+    ssize_t send_size = 100;
 
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* No data sent */
-            EXPECT_FALSE(s2n_should_flush(conn, send_size));
+    /* No data sent */
+    EXPECT_FALSE(s2n_should_flush(conn, send_size));
 
-            /* Some data sent */
-            conn->current_user_data_consumed = send_size / 2;
-            EXPECT_FALSE(s2n_should_flush(conn, send_size));
+    /* Some data sent */
+    conn->current_user_data_consumed = send_size / 2;
+    EXPECT_FALSE(s2n_should_flush(conn, send_size));
 
-            /* All data sent */
-            conn->current_user_data_consumed = send_size;
-            EXPECT_TRUE(s2n_should_flush(conn, send_size));
-        }
+    /* All data sent */
+    conn->current_user_data_consumed = send_size;
+    EXPECT_TRUE(s2n_should_flush(conn, send_size));
+}
 
-        /* Flush if buffer can't hold max size record */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+/* Flush if buffer can't hold max size record */
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Unitialized buffer */
-            EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
+    /* Unitialized buffer */
+    EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
 
-            /* Empty buffer */
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
-            EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
+    /* Empty buffer */
+    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
+    EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
 
-            /* Buffer not empty, but sufficient space remains */
-            size_t max_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(conn->max_outgoing_fragment_length);
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, buffer_size - max_record_size));
-            EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
+    /* Buffer not empty, but sufficient space remains */
+    size_t max_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(conn->max_outgoing_fragment_length);
+    EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, buffer_size - max_record_size));
+    EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
 
-            /* Insufficient space in buffer */
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
-            EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
-        }
-    }
+    /* Insufficient space in buffer */
+    EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
+    EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
+}
+}
 
-    /* Total data fits in a single record.
+/* Total data fits in a single record.
      * Equivalent to not using multirecord.
      */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        struct s2n_send_context context = context_all_ok;
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+    struct s2n_send_context context = context_all_ok;
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        s2n_blocked_status blocked = 0;
-        EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+    s2n_blocked_status blocked = 0;
+    EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
 
-        EXPECT_EQUAL(context.calls, 1);
-        EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
-        EXPECT_TRUE(context.bytes_sent > sizeof(test_data));
+    EXPECT_EQUAL(context.calls, 1);
+    EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
+    EXPECT_TRUE(context.bytes_sent > sizeof(test_data));
 
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+}
 
-    /* Send buffer was configured too small for even a single record.
+/* Send buffer was configured too small for even a single record.
      * Send smaller records.
      */
-    {
-        /* The minimum buffer size we allow generates a fragment size of 2, to prevent
+{
+    /* The minimum buffer size we allow generates a fragment size of 2, to prevent
          * fragmenting alert messages, which are always 2 bytes. At this minimum size,
          * application data is also fragmented into 2 byte chucks, which is pretty silly,
          * but is an edge case.
          */
-        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
+    uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
 
-        DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(min_buffer_config);
-        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(min_buffer_config, min_buffer_size));
+    DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(min_buffer_config);
+    EXPECT_SUCCESS(s2n_config_set_send_buffer_size(min_buffer_config, min_buffer_size));
 
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, min_buffer_config));
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, min_buffer_config));
 
-        struct s2n_send_context context = context_all_ok;
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+    struct s2n_send_context context = context_all_ok;
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        ssize_t send_size = 5;
-        s2n_blocked_status blocked = 0;
-        EXPECT_EQUAL(s2n_send(conn, test_data, send_size, &blocked), send_size);
+    ssize_t send_size = 5;
+    s2n_blocked_status blocked = 0;
+    EXPECT_EQUAL(s2n_send(conn, test_data, send_size, &blocked), send_size);
 
-        /* Since each record only contains two bytes of payload,
+    /* Since each record only contains two bytes of payload,
          * we need to send a number of records equal to our total send ceil(size / 2).
          */
-        EXPECT_EQUAL(context.calls, (send_size+1)/2);
-        EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
-        EXPECT_TRUE(context.bytes_sent > send_size);
+    EXPECT_EQUAL(context.calls, (send_size + 1) / 2);
+    EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
+    EXPECT_TRUE(context.bytes_sent > send_size);
 
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, min_buffer_size);
-    }
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, min_buffer_size);
+}
 
-    /* Total data fits in multiple records.
+/* Total data fits in multiple records.
      * Without multirecord, this would result in multiple calls to send.
      */
-    uint16_t large_test_data_send_size = 0;
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+uint16_t large_test_data_send_size = 0;
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        struct s2n_send_context context = context_all_ok;
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+    struct s2n_send_context context = context_all_ok;
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        s2n_blocked_status blocked = 0;
-        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
+    s2n_blocked_status blocked = 0;
+    EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
 
-        EXPECT_EQUAL(context.calls, 1);
-        EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
-        EXPECT_TRUE(context.bytes_sent > sizeof(large_test_data));
-        large_test_data_send_size = context.bytes_sent;
+    EXPECT_EQUAL(context.calls, 1);
+    EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
+    EXPECT_TRUE(context.bytes_sent > sizeof(large_test_data));
+    large_test_data_send_size = context.bytes_sent;
 
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+}
 
-    /* Total data with multiple records too large for the send buffer.
+/* Total data with multiple records too large for the send buffer.
      * Call send multiple times.
      */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, smaller_buffer_config));
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, smaller_buffer_config));
 
-        struct s2n_send_context context = context_all_ok;
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+    struct s2n_send_context context = context_all_ok;
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        s2n_blocked_status blocked = 0;
-        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
+    s2n_blocked_status blocked = 0;
+    EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
 
-        EXPECT_EQUAL(context.calls, 2);
-        EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
-        /* Even though it took more send calls,
+    EXPECT_EQUAL(context.calls, 2);
+    EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
+    /* Even though it took more send calls,
          * we still sent the same number of records with the same overhead.
          */
-        EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
+    EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
 
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, smaller_buffer_size);
-    }
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, smaller_buffer_size);
+}
 
-    /* Block while buffering multiple records.
+/* Block while buffering multiple records.
      * Send blocks until all buffered data is sent.
      */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        const uint32_t partial_send = 10;
-        const uint32_t at_least_one_record = large_test_data_send_size - partial_send - 1;
-        const struct s2n_send_result results[] = {
-                /* First send writes less than one record before blocking */
-                PARTIAL_SEND_RESULT(partial_send), BLOCK_SEND_RESULT,
-                /* Second send writes at least one record before blocking */
-                PARTIAL_SEND_RESULT(at_least_one_record), BLOCK_SEND_RESULT,
-                /* Third send completes */
-                OK_SEND_RESULT
-        };
-        struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+    const uint32_t partial_send = 10;
+    const uint32_t at_least_one_record = large_test_data_send_size - partial_send - 1;
+    const struct s2n_send_result results[] = {
+        /* First send writes less than one record before blocking */
+        PARTIAL_SEND_RESULT(partial_send), BLOCK_SEND_RESULT,
+        /* Second send writes at least one record before blocking */
+        PARTIAL_SEND_RESULT(at_least_one_record), BLOCK_SEND_RESULT,
+        /* Third send completes */
+        OK_SEND_RESULT
+    };
+    struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        s2n_blocked_status blocked = 0;
+    s2n_blocked_status blocked = 0;
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
-        EXPECT_EQUAL(context.bytes_sent, partial_send);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), S2N_ERR_IO_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+    EXPECT_EQUAL(context.bytes_sent, partial_send);
 
-        /* Unlike when we buffer a single record at a time, s2n_send does not report each fragment / record flushed.
+    /* Unlike when we buffer a single record at a time, s2n_send does not report each fragment / record flushed.
          * Instead, it won't report any data as sent until all buffered data is flushed.
          */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
-        EXPECT_EQUAL(context.bytes_sent, at_least_one_record + partial_send);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), S2N_ERR_IO_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+    EXPECT_EQUAL(context.bytes_sent, at_least_one_record + partial_send);
 
-        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
-        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-        EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
+    EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
+    EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+    EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
 
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+}
 
-    /* Block while buffering multiple records across multiple send calls.
+/* Block while buffering multiple records across multiple send calls.
      * Each send blocks until all buffered data is flushed.
      */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, smaller_buffer_config));
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, smaller_buffer_config));
 
-        const uint32_t partial_send = 10;
-        const uint32_t at_least_one_flush = smaller_buffer_size - partial_send;
-        const struct s2n_send_result results[] = {
-                /* First send writes less than one record before blocking */
-                PARTIAL_SEND_RESULT(partial_send), BLOCK_SEND_RESULT,
-                /* Second send flushes the output buffer before blocking */
-                PARTIAL_SEND_RESULT(at_least_one_flush), BLOCK_SEND_RESULT,
-                /* Third send completes */
-                OK_SEND_RESULT
-        };
-        struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+    const uint32_t partial_send = 10;
+    const uint32_t at_least_one_flush = smaller_buffer_size - partial_send;
+    const struct s2n_send_result results[] = {
+        /* First send writes less than one record before blocking */
+        PARTIAL_SEND_RESULT(partial_send), BLOCK_SEND_RESULT,
+        /* Second send flushes the output buffer before blocking */
+        PARTIAL_SEND_RESULT(at_least_one_flush), BLOCK_SEND_RESULT,
+        /* Third send completes */
+        OK_SEND_RESULT
+    };
+    struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        s2n_blocked_status blocked = 0;
+    s2n_blocked_status blocked = 0;
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
-        EXPECT_EQUAL(context.bytes_sent, partial_send);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), S2N_ERR_IO_BLOCKED);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+    EXPECT_EQUAL(context.bytes_sent, partial_send);
 
-        /* Write the buffer, which contains two records. */
-        ssize_t expected_sent = S2N_DEFAULT_FRAGMENT_LENGTH * 2;
-        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), expected_sent);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+    /* Write the buffer, which contains two records. */
+    ssize_t expected_sent = S2N_DEFAULT_FRAGMENT_LENGTH * 2;
+    EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), expected_sent);
+    EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
 
-        size_t offset = expected_sent;
-        expected_sent = sizeof(large_test_data) - offset;
-        EXPECT_EQUAL(s2n_send(conn, large_test_data + offset, sizeof(large_test_data) - offset, &blocked), expected_sent);
-        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-        EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
+    size_t offset = expected_sent;
+    expected_sent = sizeof(large_test_data) - offset;
+    EXPECT_EQUAL(s2n_send(conn, large_test_data + offset, sizeof(large_test_data) - offset, &blocked), expected_sent);
+    EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+    EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
 
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, smaller_buffer_size);
-    }
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, smaller_buffer_size);
+}
 
-    /* Send a post-handshake message when records are buffered.
+/* Send a post-handshake message when records are buffered.
      *
      * We only test the KeyUpdate post-handshake message. That can trigger
      * part way through a call to s2n_send if the encryption limit is reached.
@@ -386,71 +400,71 @@ int main(int argc, char **argv)
      * part way through a call to s2n_send, which requires calling from another thread
      * at just the right (wrong?) time.
      */
+{
+    s2n_blocked_status blocked = 0;
+
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    EXPECT_NOT_NULL(conn);
+    EXPECT_OK(s2n_connection_set_secrets(conn));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+
+    /* Find size of a KeyUpdate record */
+    size_t key_update_size = 0;
     {
-        s2n_blocked_status blocked = 0;
+        struct s2n_send_context context = context_all_ok;
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-
-        /* Find size of a KeyUpdate record */
-        size_t key_update_size = 0;
-        {
-            struct s2n_send_context context = context_all_ok;
-            EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
-
-            conn->key_update_pending = true;
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_FALSE(conn->key_update_pending);
-            key_update_size = context.bytes_sent;
-        }
-        EXPECT_TRUE(key_update_size > 0);
-
-        const struct s2n_send_result results[] = {
-                /* We expect the buffer to be flushed before the post handshake message */
-                OK_SEND_RESULT,
-                /* We expect the buffer to be flushed again after the post handshake message */
-                EXPECTED_SEND_RESULT(key_update_size),
-                OK_SEND_RESULT
-        };
-        struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
-
-        /* Find record limit */
-        uint64_t limit = conn->secure->cipher_suite->record_alg->encryption_limit;
-        EXPECT_TRUE(limit > 0);
-
-        /* Initialize sequence number */
-        struct s2n_blob seq_num_blob = { 0 };
-        struct s2n_stuffer seq_num_stuffer = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        EXPECT_SUCCESS(s2n_stuffer_init(&seq_num_stuffer, &seq_num_blob));
-
-        /* Set the sequence number so that a KeyUpdate triggers after one more record. */
-        uint64_t initial_seq_num = limit - 1;
-        EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
-        EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
+        conn->key_update_pending = true;
+        EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
         EXPECT_FALSE(conn->key_update_pending);
-
-        /* Send */
-        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
-
-        /* Verify KeyUpdate happened: the sequence number was reset */
-        uint64_t final_seq_num = 0;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint64(&seq_num_stuffer, &final_seq_num));
-        EXPECT_TRUE(final_seq_num < initial_seq_num);
-
-        /* Verify expected send behavior */
-        size_t expected_calls = 1 /* first record */ + 1 /* KeyUpdate */ + 1 /* remaining records */;
-        EXPECT_EQUAL(context.calls, expected_calls);
-        EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size + key_update_size);
-
-        /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+        key_update_size = context.bytes_sent;
     }
+    EXPECT_TRUE(key_update_size > 0);
 
-    END_TEST();
+    const struct s2n_send_result results[] = {
+        /* We expect the buffer to be flushed before the post handshake message */
+        OK_SEND_RESULT,
+        /* We expect the buffer to be flushed again after the post handshake message */
+        EXPECTED_SEND_RESULT(key_update_size),
+        OK_SEND_RESULT
+    };
+    struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
+    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
+
+    /* Find record limit */
+    uint64_t limit = conn->secure->cipher_suite->record_alg->encryption_limit;
+    EXPECT_TRUE(limit > 0);
+
+    /* Initialize sequence number */
+    struct s2n_blob seq_num_blob = { 0 };
+    struct s2n_stuffer seq_num_stuffer = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    EXPECT_SUCCESS(s2n_stuffer_init(&seq_num_stuffer, &seq_num_blob));
+
+    /* Set the sequence number so that a KeyUpdate triggers after one more record. */
+    uint64_t initial_seq_num = limit - 1;
+    EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
+    EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
+    EXPECT_FALSE(conn->key_update_pending);
+
+    /* Send */
+    EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
+
+    /* Verify KeyUpdate happened: the sequence number was reset */
+    uint64_t final_seq_num = 0;
+    EXPECT_SUCCESS(s2n_stuffer_read_uint64(&seq_num_stuffer, &final_seq_num));
+    EXPECT_TRUE(final_seq_num < initial_seq_num);
+
+    /* Verify expected send behavior */
+    size_t expected_calls = 1 /* first record */ + 1 /* KeyUpdate */ + 1 /* remaining records */;
+    EXPECT_EQUAL(context.calls, expected_calls);
+    EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size + key_update_size);
+
+    /* Verify output buffer */
+    EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+}
+
+END_TEST();
 }

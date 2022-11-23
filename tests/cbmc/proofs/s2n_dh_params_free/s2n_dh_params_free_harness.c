@@ -33,7 +33,7 @@ void s2n_dh_params_free_harness()
     if (s2n_dh_params_free(dh_params) == S2N_SUCCESS) {
         assert(dh_params->dh == NULL);
     }
-    
+
     /* Cleanup before memory leak check.
      * `free` our heap-allocated `dh_params` object,
      * since `s2n_dh_params_free` only `free`s the contents.

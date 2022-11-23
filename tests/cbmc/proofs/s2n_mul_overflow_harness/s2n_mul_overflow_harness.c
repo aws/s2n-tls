@@ -21,8 +21,8 @@
 
 int s2n_mul_overflow_harness()
 {
-    uint32_t  a;
-    uint32_t  b;
+    uint32_t a;
+    uint32_t b;
     uint32_t *out = malloc(sizeof(uint32_t));
 
     /* a check on *out == a*b should be added here but the CBMC checking is too slow */

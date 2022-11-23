@@ -26,7 +26,7 @@ void s2n_stuffer_read_uint32_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    uint32_t *         dest        = malloc(sizeof(uint32_t *));
+    uint32_t *dest = malloc(sizeof(uint32_t *));
 
     /* Store a byte from the stuffer to compare after the read */
     struct store_byte_from_buffer old_byte_from_stuffer;
@@ -35,10 +35,10 @@ void s2n_stuffer_read_uint32_harness()
     if (s2n_stuffer_read_uint32(stuffer, dest) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + sizeof(uint32_t));
         /* If successful, ensure uint was assembled correctly from stuffer */
-        assert((( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor ]) << 24
-               | (( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor + 1 ]) << 16
-               | (( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor + 2 ]) << 8
-               | (( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor + 3 ]) == *dest);
+        assert(((uint32_t) stuffer->blob.data[old_stuffer.read_cursor]) << 24
+                | ((uint32_t) stuffer->blob.data[old_stuffer.read_cursor + 1]) << 16
+                | ((uint32_t) stuffer->blob.data[old_stuffer.read_cursor + 2]) << 8
+                | ((uint32_t) stuffer->blob.data[old_stuffer.read_cursor + 3]) == *dest);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }

@@ -23,7 +23,7 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-time_t time (time_t *__timer)
+time_t time(time_t *__timer)
 {
     /* Always assume the time is zero when fuzzing the server, this is to ensure that Fuzz tests are deterministic and
      * don't depend on the time the test was run.
@@ -31,9 +31,8 @@ time_t time (time_t *__timer)
     return 0;
 }
 
-
 int RSA_verify(int dtype, const unsigned char *m, unsigned int m_len,
-                 const unsigned char *sigbuf, unsigned int siglen, RSA *rsa)
+        const unsigned char *sigbuf, unsigned int siglen, RSA *rsa)
 {
     /* Always assume that the RSA_verify function passes */
     return 1;
@@ -50,7 +49,7 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len)
 int s2n_rsa_server_key_recv(struct s2n_connection *conn)
 {
     /* Perform the original function */
-    typedef int (*orig_s2n_rsa_server_key_recv_func_type)(struct s2n_connection *conn);
+    typedef int (*orig_s2n_rsa_server_key_recv_func_type)(struct s2n_connection * conn);
     orig_s2n_rsa_server_key_recv_func_type orig_s2n_rsa_server_key_recv;
     orig_s2n_rsa_server_key_recv = (orig_s2n_rsa_server_key_recv_func_type) dlsym(RTLD_NEXT, "s2n_rsa_server_key_recv");
     int original_return_code = orig_s2n_rsa_server_key_recv(conn);
@@ -60,4 +59,3 @@ int s2n_rsa_server_key_recv(struct s2n_connection *conn)
 
     return original_return_code;
 }
-

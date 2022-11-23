@@ -15,15 +15,16 @@
 
 #include <assert.h>
 #include <cbmc_proof/nondet.h>
-#include <sys/socket.h>
 #include <errno.h>
+#include <sys/socket.h>
 
 /* https://pubs.opengroup.org/onlinepubs/009695399/functions/getpeername.html */
 int getpeername(int socket, struct sockaddr *address, socklen_t *address_len)
 {
-    // assert(socket >= -1 && socket <= 65536); /* File descriptor limit. */   
-    if(nondet_bool()) { return 0; }
-    else {
+    // assert(socket >= -1 && socket <= 65536); /* File descriptor limit. */
+    if (nondet_bool()) {
+        return 0;
+    } else {
         errno = nondet_int();
         __CPROVER_assume(errno == EBADF || errno == EINVAL || errno == ENOTCONN || errno == ENOTSOCK || errno == EOPNOTSUPP || errno == ENOBUFS);
         return -1;

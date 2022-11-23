@@ -30,26 +30,26 @@ void s2n_stuffer_write_uint24_harness()
     uint32_t idx;
 
     /* Store a byte from the stuffer to compare if the write fails */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Store a byte from the stuffer that won't be overwritten to compare if the write succeeds. */
     __CPROVER_assume(
-        idx < stuffer->blob.size
-        && (idx < old_stuffer.write_cursor || idx >= old_stuffer.write_cursor + ( size_t )SIZEOF_UINT24));
-    uint8_t untouched_byte = stuffer->blob.data[ idx ];
+            idx < stuffer->blob.size
+            && (idx < old_stuffer.write_cursor || idx >= old_stuffer.write_cursor + (size_t) SIZEOF_UINT24));
+    uint8_t untouched_byte = stuffer->blob.data[idx];
 
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
     if (s2n_stuffer_write_uint24(stuffer, src) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + SIZEOF_UINT24);
-        assert(stuffer->blob.data[ idx ] == untouched_byte);
+        assert(stuffer->blob.data[idx] == untouched_byte);
         /* Ensure uint was correctly written to the stuffer */
-        assert((( uint32_t )stuffer->blob.data[ old_stuffer.write_cursor ]) << 16
-               | (( uint32_t )stuffer->blob.data[ old_stuffer.write_cursor + 1 ]) << 8
-               | (( uint32_t )stuffer->blob.data[ old_stuffer.write_cursor + 2 ]) == (src & 0xFFFFFF));
+        assert(((uint32_t) stuffer->blob.data[old_stuffer.write_cursor]) << 16
+                | ((uint32_t) stuffer->blob.data[old_stuffer.write_cursor + 1]) << 8
+                | ((uint32_t) stuffer->blob.data[old_stuffer.write_cursor + 2]) == (src & 0xFFFFFF));
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);

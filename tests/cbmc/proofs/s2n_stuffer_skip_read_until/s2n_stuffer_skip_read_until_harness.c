@@ -30,7 +30,7 @@ void s2n_stuffer_skip_read_until_harness()
     char *target = nondet_bool() ? ensure_c_str_is_allocated(MAX_STRING_LEN) : NULL;
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -39,7 +39,7 @@ void s2n_stuffer_skip_read_until_harness()
     if (len > 0 && s2n_stuffer_skip_read_until(stuffer, target) == S2N_SUCCESS) {
         if (s2n_stuffer_data_available(stuffer) >= len) {
             uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
-            assert((strncmp(( char * )actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));
+            assert((strncmp((char *) actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));
         }
     }
 

@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 #include "tls/s2n_alerts.h"
 
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_quic_support.h"
 
 #define ALERT_LEN (sizeof(uint16_t))
@@ -90,12 +90,11 @@ int main(int argc, char **argv)
 
     /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and close_notify_received */
     {
-        const uint8_t close_notify_alert[] = {  2 /* AlertLevel = fatal */,
-                                                0 /* AlertDescription = close_notify */ };
+        const uint8_t close_notify_alert[] = { 2 /* AlertLevel = fatal */,
+            0 /* AlertDescription = close_notify */ };
 
-        const uint8_t not_close_notify_alert[] = {  2 /* AlertLevel = fatal */,
-                                                   10 /* AlertDescription = unexpected_msg */ };
-
+        const uint8_t not_close_notify_alert[] = { 2 /* AlertLevel = fatal */,
+            10 /* AlertDescription = unexpected_msg */ };
 
         /* Don't mark close_notify_received = true if we receive an alert other than close_notify alert */
         {
@@ -134,7 +133,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-
     }
 
     /* Test s2n_process_alert_fragment */
@@ -169,11 +167,11 @@ int main(int argc, char **argv)
 
         /* Test warning behavior */
         {
-            const uint8_t warning_alert[] = {  1 /* AlertLevel = warning */,
-                                              70 /* AlertDescription = protocol_version (arbitrary value) */};
+            const uint8_t warning_alert[] = { 1 /* AlertLevel = warning */,
+                70 /* AlertDescription = protocol_version (arbitrary value) */ };
 
-            const uint8_t user_canceled_alert[] = {  1 /* AlertLevel = warning */,
-                                                    90 /* AlertDescription = user_canceled */ };
+            const uint8_t user_canceled_alert[] = { 1 /* AlertLevel = warning */,
+                90 /* AlertDescription = user_canceled */ };
 
             /* Warnings treated as errors by default in TLS1.2 */
             {

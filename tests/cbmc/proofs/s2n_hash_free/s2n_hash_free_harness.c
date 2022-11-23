@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_fips.h"
-#include "crypto/s2n_hash.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_hash.h"
 
 void s2n_hash_free_harness()
 {

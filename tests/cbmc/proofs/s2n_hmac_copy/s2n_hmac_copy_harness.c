@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_hmac.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "crypto/s2n_hmac.h"
 
 int __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(struct s2n_hash_state *);
 
@@ -40,8 +39,7 @@ void s2n_hmac_copy_harness()
     __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&from->outer_just_key);
 
     /* Operation under verification. */
-    if (s2n_hmac_copy(to, from) == S2N_SUCCESS)
-    {
+    if (s2n_hmac_copy(to, from) == S2N_SUCCESS) {
         /* Post-conditions. */
         assert(s2n_result_is_ok(s2n_hmac_state_validate(to)));
         assert(s2n_result_is_ok(s2n_hmac_state_validate(from)));

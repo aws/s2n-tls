@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_set.h"
-
+#include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include <assert.h>
+#include "utils/s2n_set.h"
 
 void s2n_set_add_harness()
 {
@@ -34,13 +33,13 @@ void s2n_set_add_harness()
     struct store_byte_from_buffer old_byte;
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_set_add(set, element))) {
+    if (s2n_result_is_ok(s2n_set_add(set, element))) {
         /*
          * In the case s2n_set_add is successful, we can ensure the array isn't empty
          * and index is within bounds.
          */
-         assert(set->data->mem.data != NULL);
-         assert(set->data->len == (old_array.len + 1));
-         assert(s2n_result_is_ok(s2n_set_validate(set)));
+        assert(set->data->mem.data != NULL);
+        assert(set->data->len == (old_array.len + 1));
+        assert(s2n_result_is_ok(s2n_set_validate(set)));
     }
 }

@@ -14,7 +14,8 @@
  */
 
 #include <openssl/evp.h>
-int main() {
+int main()
+{
     EVP_rc4();
     return 0;
 }

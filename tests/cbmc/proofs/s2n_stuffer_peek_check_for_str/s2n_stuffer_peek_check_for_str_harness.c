@@ -29,7 +29,7 @@ void s2n_stuffer_peek_check_for_str_harness()
     char *expected = ensure_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Store a byte from the stuffer to compare after the read */
-    struct s2n_stuffer            old_stuffer = *stuffer;
+    struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 

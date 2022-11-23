@@ -28,7 +28,7 @@ void s2n_blob_char_to_lower_harness()
     __CPROVER_assume(s2n_blob_is_bounded(blob, MAX_BLOB_SIZE));
 
     /* Save previous state. */
-    struct s2n_blob               old_blob = *blob;
+    struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte_from_blob;
     save_byte_from_blob(blob, &old_byte_from_blob);
 
@@ -36,7 +36,7 @@ void s2n_blob_char_to_lower_harness()
     if (s2n_blob_char_to_lower(blob) == S2N_SUCCESS) {
         if (blob->size != 0) {
             if (old_byte_from_blob.byte >= 'A' && old_byte_from_blob.byte <= 'Z') {
-                assert(blob->data[ old_byte_from_blob.idx ] == (old_byte_from_blob.byte + ('a' - 'A')));
+                assert(blob->data[old_byte_from_blob.idx] == (old_byte_from_blob.byte + ('a' - 'A')));
             }
         }
     }

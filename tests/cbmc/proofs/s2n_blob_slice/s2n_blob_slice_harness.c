@@ -31,10 +31,10 @@ void s2n_blob_slice_harness()
     uint32_t size;
 
     /* Save previous state. */
-    struct s2n_blob               old_blob = *blob;
+    struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte_from_blob;
     save_byte_from_blob(blob, &old_byte_from_blob);
-    struct s2n_blob               old_slice = *slice;
+    struct s2n_blob old_slice = *slice;
     struct store_byte_from_buffer old_byte_from_slice;
     save_byte_from_blob(slice, &old_byte_from_slice);
 
