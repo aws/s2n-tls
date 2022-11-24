@@ -1,7 +1,9 @@
+#include "kyber512r3_polyvec.h"
+
 #include <stdint.h>
+
 #include "kyber512r3_params.h"
 #include "kyber512r3_poly.h"
-#include "kyber512r3_polyvec.h"
 
 S2N_ENSURE_PORTABLE_OPTIMIZATIONS
 
@@ -14,15 +16,17 @@ S2N_ENSURE_PORTABLE_OPTIMIZATIONS
 *                            (needs space for S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES)
 *              - polyvec *a: pointer to input vector of polynomials
 **************************************************/
-void polyvec_compress(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES], polyvec *a) {
+void polyvec_compress(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES], polyvec *a)
+{
     polyvec_csubq(a);
 
     uint16_t t[4];
     for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
-        for (unsigned int  j = 0; j < S2N_KYBER_512_R3_N / 4; j++) {
-            for (unsigned int  k = 0; k < 4; k++)
-                t[k] = ((((uint32_t)a->vec[i].coeffs[4 * j + k] << 10) + S2N_KYBER_512_R3_Q / 2)
-                        / S2N_KYBER_512_R3_Q) & 0x3ff;
+        for (unsigned int j = 0; j < S2N_KYBER_512_R3_N / 4; j++) {
+            for (unsigned int k = 0; k < 4; k++)
+                t[k] = ((((uint32_t) a->vec[i].coeffs[4 * j + k] << 10) + S2N_KYBER_512_R3_Q / 2)
+                               / S2N_KYBER_512_R3_Q)
+                        & 0x3ff;
 
             r[0] = (t[0] >> 0);
             r[1] = (t[0] >> 8) | (t[1] << 2);
@@ -44,18 +48,19 @@ void polyvec_compress(uint8_t r[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES], polyve
 *              - const uint8_t *a: pointer to input byte array
 *                                  (of length S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES)
 **************************************************/
-void polyvec_decompress(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES]) {
+void polyvec_decompress(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES])
+{
     uint16_t t[4];
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
-        for (unsigned int  j = 0; j < S2N_KYBER_512_R3_N / 4; j++) {
-            t[0] = (a[0] >> 0) | ((uint16_t)a[1] << 8);
-            t[1] = (a[1] >> 2) | ((uint16_t)a[2] << 6);
-            t[2] = (a[2] >> 4) | ((uint16_t)a[3] << 4);
-            t[3] = (a[3] >> 6) | ((uint16_t)a[4] << 2);
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
+        for (unsigned int j = 0; j < S2N_KYBER_512_R3_N / 4; j++) {
+            t[0] = (a[0] >> 0) | ((uint16_t) a[1] << 8);
+            t[1] = (a[1] >> 2) | ((uint16_t) a[2] << 6);
+            t[2] = (a[2] >> 4) | ((uint16_t) a[3] << 4);
+            t[3] = (a[3] >> 6) | ((uint16_t) a[4] << 2);
             a += 5;
 
-            for (unsigned int  k = 0; k < 4; k++) {
-                r->vec[i].coeffs[4 * j + k] = ((uint32_t)(t[k] & 0x3FF) * S2N_KYBER_512_R3_Q + 512) >> 10;
+            for (unsigned int k = 0; k < 4; k++) {
+                r->vec[i].coeffs[4 * j + k] = ((uint32_t) (t[k] & 0x3FF) * S2N_KYBER_512_R3_Q + 512) >> 10;
             }
         }
     }
@@ -70,8 +75,9 @@ void polyvec_decompress(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECCOMP
 *                            (needs space for S2N_KYBER_512_R3_POLYVECBYTES)
 *              - polyvec *a: pointer to input vector of polynomials
 **************************************************/
-void polyvec_tobytes(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], polyvec *a) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_tobytes(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], polyvec *a)
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_tobytes(r + i * S2N_KYBER_512_R3_POLYBYTES, &a->vec[i]);
     }
 }
@@ -86,8 +92,9 @@ void polyvec_tobytes(uint8_t r[S2N_KYBER_512_R3_POLYVECBYTES], polyvec *a) {
 *              - const polyvec *a: pointer to input vector of polynomials
 *                                  (of length S2N_KYBER_512_R3_POLYVECBYTES)
 **************************************************/
-void polyvec_frombytes(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECBYTES]) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_frombytes(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECBYTES])
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_frombytes(&r->vec[i], a + i * S2N_KYBER_512_R3_POLYBYTES);
     }
 }
@@ -99,8 +106,9 @@ void polyvec_frombytes(polyvec *r, const uint8_t a[S2N_KYBER_512_R3_POLYVECBYTES
 *
 * Arguments:   - polyvec *r: pointer to in/output vector of polynomials
 **************************************************/
-void polyvec_ntt(polyvec *r) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_ntt(polyvec *r)
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_ntt(&r->vec[i]);
     }
 }
@@ -113,8 +121,9 @@ void polyvec_ntt(polyvec *r) {
 *
 * Arguments:   - polyvec *r: pointer to in/output vector of polynomials
 **************************************************/
-void polyvec_invntt_tomont(polyvec *r) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_invntt_tomont(polyvec *r)
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_invntt_tomont(&r->vec[i]);
     }
 }
@@ -129,11 +138,12 @@ void polyvec_invntt_tomont(polyvec *r) {
 *            - const polyvec *a: pointer to first input vector of polynomials
 *            - const polyvec *b: pointer to second input vector of polynomials
 **************************************************/
-void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *a, const polyvec *b) {
+void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *a, const polyvec *b)
+{
     poly t;
 
     poly_basemul_montgomery(r, &a->vec[0], &b->vec[0]);
-    for (unsigned int  i = 1; i < S2N_KYBER_512_R3_K; i++) {
+    for (unsigned int i = 1; i < S2N_KYBER_512_R3_K; i++) {
         poly_basemul_montgomery(&t, &a->vec[i], &b->vec[i]);
         poly_add(r, r, &t);
     }
@@ -150,8 +160,9 @@ void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *a, const polyvec *
 *
 * Arguments:   - poly *r: pointer to input/output polynomial
 **************************************************/
-void polyvec_reduce(polyvec *r) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_reduce(polyvec *r)
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_reduce(&r->vec[i]);
     }
 }
@@ -166,8 +177,9 @@ void polyvec_reduce(polyvec *r) {
 *
 * Arguments:   - poly *r: pointer to input/output polynomial
 **************************************************/
-void polyvec_csubq(polyvec *r) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_csubq(polyvec *r)
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_csubq(&r->vec[i]);
     }
 }
@@ -181,8 +193,9 @@ void polyvec_csubq(polyvec *r) {
 *            - const polyvec *a: pointer to first input vector of polynomials
 *            - const polyvec *b: pointer to second input vector of polynomials
 **************************************************/
-void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b) {
-    for (unsigned int  i = 0; i < S2N_KYBER_512_R3_K; i++) {
+void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
+{
+    for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
     }
 }

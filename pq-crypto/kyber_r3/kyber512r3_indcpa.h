@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kyber512r3_params.h"
 
 #define indcpa_keypair S2N_KYBER_512_R3_NAMESPACE(indcpa_keypair)

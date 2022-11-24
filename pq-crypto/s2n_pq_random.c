@@ -13,30 +13,34 @@
  * permissions and limitations under the License.
  */
 
+#include "s2n_pq_random.h"
+
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
-#include "s2n_pq_random.h"
 
 static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_bytes);
 
 static s2n_get_random_bytes_callback s2n_get_random_bytes_cb = s2n_get_random_bytes_default;
 
-S2N_RESULT s2n_get_random_bytes(uint8_t *buffer, uint32_t num_bytes) {
+S2N_RESULT s2n_get_random_bytes(uint8_t *buffer, uint32_t num_bytes)
+{
     RESULT_ENSURE_REF(buffer);
     RESULT_GUARD(s2n_get_random_bytes_cb(buffer, num_bytes));
 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_bytes) {
+static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_bytes)
+{
     struct s2n_blob out = { .data = buffer, .size = num_bytes };
     RESULT_GUARD(s2n_get_private_random_data(&out));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_callback rand_bytes_callback) {
+S2N_RESULT s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_callback rand_bytes_callback)
+{
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     s2n_get_random_bytes_cb = rand_bytes_callback;

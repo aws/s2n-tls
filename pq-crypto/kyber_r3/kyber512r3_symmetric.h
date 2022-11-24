@@ -1,8 +1,9 @@
 #pragma once
 
-#include "kyber512r3_params.h"
-#include "kyber512r3_fips202.h"
 #include <stdint.h>
+
+#include "kyber512r3_fips202.h"
+#include "kyber512r3_params.h"
 
 #define keccak_state S2N_KYBER_512_R3_NAMESPACE(keccak_state)
 typedef shake128ctx keccak_state;

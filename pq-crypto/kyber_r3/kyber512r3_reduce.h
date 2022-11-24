@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kyber512r3_params.h"
 
 #define S2N_KYBER_512_R3_QINV 62209 /* q^-1 mod 2^16 */

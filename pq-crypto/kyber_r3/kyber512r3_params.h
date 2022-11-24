@@ -15,13 +15,13 @@
 #define S2N_KYBER_512_R3_N 256
 #define S2N_KYBER_512_R3_Q 3329
 
-#define S2N_KYBER_512_R3_SYMBYTES 32   /* size in bytes of hashes, and seeds */
-#define S2N_KYBER_512_R3_SSBYTES  32   /* size in bytes of shared key */
+#define S2N_KYBER_512_R3_SYMBYTES 32 /* size in bytes of hashes, and seeds */
+#define S2N_KYBER_512_R3_SSBYTES  32 /* size in bytes of shared key */
 
-#define S2N_KYBER_512_R3_POLYBYTES     384
-#define S2N_KYBER_512_R3_POLYVECBYTES  (S2N_KYBER_512_R3_K * S2N_KYBER_512_R3_POLYBYTES)
+#define S2N_KYBER_512_R3_POLYBYTES    384
+#define S2N_KYBER_512_R3_POLYVECBYTES (S2N_KYBER_512_R3_K * S2N_KYBER_512_R3_POLYBYTES)
 
-#define S2N_KYBER_512_R3_ETA1 3
+#define S2N_KYBER_512_R3_ETA1                   3
 #define S2N_KYBER_512_R3_POLYCOMPRESSEDBYTES    128
 #define S2N_KYBER_512_R3_POLYVECCOMPRESSEDBYTES 640
 

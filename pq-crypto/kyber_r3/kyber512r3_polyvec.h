@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kyber512r3_params.h"
 #include "kyber512r3_poly.h"
 

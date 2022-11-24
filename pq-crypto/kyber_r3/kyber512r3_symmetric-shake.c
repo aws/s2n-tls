@@ -1,7 +1,8 @@
-#include "kyber512r3_params.h"
-#include "kyber512r3_fips202.h"
-#include "kyber512r3_symmetric.h"
 #include <stdlib.h>
+
+#include "kyber512r3_fips202.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_symmetric.h"
 
 /*************************************************
 * Name:        kyber_shake128_absorb
@@ -13,7 +14,8 @@
 *              - uint8_t i                  additional byte of input
 *              - uint8_t j                  additional byte of input
 **************************************************/
-void kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uint8_t y) {
+void kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uint8_t y)
+{
     size_t i;
     uint8_t extseed[S2N_KYBER_512_R3_SYMBYTES + 2];
 
@@ -21,7 +23,7 @@ void kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uin
         extseed[i] = input[i];
     }
     extseed[i++] = x;
-    extseed[i]   = y;
+    extseed[i] = y;
     shake128_absorb(s, extseed, S2N_KYBER_512_R3_SYMBYTES + 2);
 }
 
@@ -36,7 +38,8 @@ void kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uin
 *              - const uint8_t * key:  pointer to the key (of length S2N_KYBER_512_R3_SYMBYTES)
 *              - uint8_t nonce:  single-byte nonce (public PRF input)
 **************************************************/
-void shake256_prf(uint8_t *output, size_t outlen, const uint8_t *key, uint8_t nonce) {
+void shake256_prf(uint8_t *output, size_t outlen, const uint8_t *key, uint8_t nonce)
+{
     uint8_t extkey[S2N_KYBER_512_R3_SYMBYTES + 1];
     size_t i;
 

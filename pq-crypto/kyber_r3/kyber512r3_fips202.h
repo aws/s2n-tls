@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
 #include "kyber512r3_params.h"
 
 #define S2N_KYBER_512_R3_SHAKE128_RATE 168
