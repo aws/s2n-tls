@@ -514,7 +514,8 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 
             /* Treat either all 1 or all 0 bits in either the high or low order
              * bits as failure */
-            if (output.i386_fields.u_low == 0 || output.i386_fields.u_low == UINT32_MAX || output.i386_fields.u_high == 0 || output.i386_fields.u_high == UINT32_MAX) {
+            if (output.i386_fields.u_low == 0 || output.i386_fields.u_low == UINT32_MAX
+                    || output.i386_fields.u_high == 0 || output.i386_fields.u_high == UINT32_MAX) {
                 success = 0;
             }
     #else
