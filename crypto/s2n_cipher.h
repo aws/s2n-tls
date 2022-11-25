@@ -68,10 +68,12 @@ struct s2n_composite_cipher {
 };
 
 struct s2n_cipher {
-    enum { S2N_STREAM,
+    enum {
+        S2N_STREAM,
         S2N_CBC,
         S2N_AEAD,
-        S2N_COMPOSITE } type;
+        S2N_COMPOSITE
+    } type;
     union {
         struct s2n_stream_cipher stream;
         struct s2n_aead_cipher aead;

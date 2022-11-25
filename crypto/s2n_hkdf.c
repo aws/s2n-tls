@@ -83,8 +83,8 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
     return 0;
 }
 
-int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
-        const struct s2n_blob *context, struct s2n_blob *output)
+int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret,
+        const struct s2n_blob *label, const struct s2n_blob *context, struct s2n_blob *output)
 {
     /* Per RFC8446: 7.1, a HKDF label is a 2 byte length field, and two 1...255 byte arrays with a one byte length field each. */
     uint8_t hkdf_label_buf[2 + 256 + 256];

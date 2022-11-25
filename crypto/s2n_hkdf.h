@@ -26,5 +26,5 @@ extern int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const s
 extern int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
 
-extern int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
-        const struct s2n_blob *context, struct s2n_blob *output);
+extern int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret,
+        const struct s2n_blob *label, const struct s2n_blob *context, struct s2n_blob *output);

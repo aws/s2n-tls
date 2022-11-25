@@ -126,7 +126,8 @@ int s2n_is_rsa_pss_signing_supported()
 static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD *digest_alg)
 {
     POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, (EVP_MD *) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, (EVP_MD *) (uintptr_t) digest_alg),
+            S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     return 0;
 }
 
@@ -160,7 +161,8 @@ int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash
     POSIX_ENSURE(signature_len <= signature_out->size, S2N_ERR_SIZE_MISMATCH);
 
     /* Actually sign the digest */
-    POSIX_GUARD_OSSL(EVP_PKEY_sign(ctx, signature_out->data, &signature_len, digest_in->data, digest_in->size), S2N_ERR_SIGN);
+    POSIX_GUARD_OSSL(EVP_PKEY_sign(ctx, signature_out->data, &signature_len, digest_in->data, digest_in->size),
+            S2N_ERR_SIGN);
     signature_out->size = signature_len;
 
     return S2N_SUCCESS;
