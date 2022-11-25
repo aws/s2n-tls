@@ -197,10 +197,8 @@ struct s2n_kem_kat_test_vector {
     const struct s2n_kem *kem;
     const char *kat_file;
     bool (*asm_is_enabled)();
-    S2N_RESULT(*enable_asm)
-    ();
-    S2N_RESULT(*disable_asm)
-    ();
+    S2N_RESULT (*enable_asm)();
+    S2N_RESULT (*disable_asm)();
 };
 S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
