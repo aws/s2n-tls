@@ -53,8 +53,8 @@
     #define RESULT_EVP_CTX_INIT(ctx) EVP_CIPHER_CTX_init(ctx)
 #endif
 
-#if !defined(OPENSSL_IS_BORINGSSL) \
-        && !defined(OPENSSL_FIPS)  \
+#if !defined(OPENSSL_IS_BORINGSSL)           \
+        && !defined(OPENSSL_FIPS)            \
         && !defined(LIBRESSL_VERSION_NUMBER) \
         && !defined(OPENSSL_IS_AWSLC)        \
         && !defined(OPENSSL_NO_ENGINE)
