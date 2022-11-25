@@ -23,9 +23,9 @@ struct s2n_socket_read_io_context {
     int fd;
 
     /* Has TCP_QUICKACK been set since the last read */
-    unsigned int tcp_quickack_set:1;
+    unsigned int tcp_quickack_set : 1;
     /* Original SO_RCVLOWAT socket option settings before s2n takes over the fd */
-    unsigned int original_rcvlowat_is_set:1;
+    unsigned int original_rcvlowat_is_set : 1;
     int original_rcvlowat_val;
 };
 
@@ -33,9 +33,9 @@ struct s2n_socket_read_io_context {
 struct s2n_socket_write_io_context {
     /* The peer's fd */
     int fd;
-    
+
     /* Original TCP_CORK socket option settings before s2n takes over the fd */
-    unsigned int original_cork_is_set:1;
+    unsigned int original_cork_is_set : 1;
     int original_cork_val;
 };
 
