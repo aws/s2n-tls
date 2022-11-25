@@ -43,7 +43,8 @@ S2N_RESULT s2n_increment_drbg_counter(struct s2n_blob *counter)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_drbg_block_encrypt(EVP_CIPHER_CTX *ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
+static S2N_RESULT s2n_drbg_block_encrypt(EVP_CIPHER_CTX *ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE],
+        uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
     RESULT_ENSURE_REF(ctx);
 
@@ -157,7 +158,8 @@ static S2N_RESULT s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
+S2N_RESULT s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string,
+        const s2n_drbg_mode mode)
 {
     RESULT_ENSURE_REF(drbg);
     RESULT_ENSURE_REF(personalization_string);

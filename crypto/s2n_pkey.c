@@ -75,16 +75,16 @@ S2N_RESULT s2n_pkey_size(const struct s2n_pkey *pkey, uint32_t *size_out)
     return S2N_RESULT_OK;
 }
 
-int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature)
+int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+        struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pkey->sign);
 
     return pkey->sign(pkey, sig_alg, digest, signature);
 }
 
-int s2n_pkey_verify(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature)
+int s2n_pkey_verify(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+        struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(pkey);
     POSIX_ENSURE_REF(pkey->verify);
@@ -134,7 +134,8 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     uint8_t *key_to_parse = asn1der->data;
 
     /* Detect key type */
-    DEFER_CLEANUP(EVP_PKEY *evp_private_key = d2i_AutoPrivateKey(NULL, (const unsigned char **) (void *) &key_to_parse, asn1der->size),
+    DEFER_CLEANUP(EVP_PKEY *evp_private_key =
+                          d2i_AutoPrivateKey(NULL, (const unsigned char **) (void *) &key_to_parse, asn1der->size),
             EVP_PKEY_free_pointer);
     S2N_ERROR_IF(evp_private_key == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
 

@@ -69,7 +69,9 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expec
     RESULT_ENSURE_REF(expected_version_name);
     RESULT_ENSURE_REF(s2n_libcrypto_get_version_name());
     RESULT_ENSURE_EQ(strlen(expected_version_name), strlen(s2n_libcrypto_get_version_name()));
-    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_version_name, (const uint8_t *) s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_version_name)), S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
+    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_version_name,
+                          (const uint8_t *) s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_version_name)),
+            S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
 
     return S2N_RESULT_OK;
 }

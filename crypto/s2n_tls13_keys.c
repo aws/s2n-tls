@@ -123,18 +123,18 @@ int s2n_tls13_keys_free(struct s2n_tls13_keys *keys)
 /*
  * Derive Traffic Key and IV based on input secret
  */
-int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *secret,
-        struct s2n_blob *key, struct s2n_blob *iv)
+int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *secret, struct s2n_blob *key,
+        struct s2n_blob *iv)
 {
     POSIX_ENSURE_REF(keys);
     POSIX_ENSURE_REF(secret);
     POSIX_ENSURE_REF(key);
     POSIX_ENSURE_REF(iv);
 
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret,
-            &s2n_tls13_label_traffic_secret_key, &zero_length_blob, key));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret,
-            &s2n_tls13_label_traffic_secret_iv, &zero_length_blob, iv));
+    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret, &s2n_tls13_label_traffic_secret_key,
+            &zero_length_blob, key));
+    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret, &s2n_tls13_label_traffic_secret_iv,
+            &zero_length_blob, iv));
     return 0;
 }
 
@@ -145,8 +145,8 @@ int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *
 int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *secret_key,
         struct s2n_blob *output_finish_key)
 {
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret_key,
-            &s2n_tls13_label_finished, &zero_length_blob, output_finish_key));
+    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret_key, &s2n_tls13_label_finished,
+            &zero_length_blob, output_finish_key));
 
     return 0;
 }

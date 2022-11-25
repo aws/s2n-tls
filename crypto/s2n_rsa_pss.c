@@ -63,8 +63,8 @@ static int s2n_rsa_is_private_key(const RSA *rsa_key)
     return 0;
 }
 
-int s2n_rsa_pss_key_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature_out)
+int s2n_rsa_pss_key_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+        struct s2n_blob *signature_out)
 {
     POSIX_ENSURE_REF(priv);
     sig_alg_check(sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
@@ -76,8 +76,8 @@ int s2n_rsa_pss_key_sign(const struct s2n_pkey *priv, s2n_signature_algorithm si
     return s2n_rsa_pss_sign(priv, digest, signature_out);
 }
 
-int s2n_rsa_pss_key_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature_in)
+int s2n_rsa_pss_key_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+        struct s2n_blob *signature_in)
 {
     POSIX_ENSURE_REF(pub);
     sig_alg_check(sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);

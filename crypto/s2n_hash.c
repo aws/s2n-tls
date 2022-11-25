@@ -239,7 +239,8 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
             POSIX_GUARD_OSSL(SHA512_Update(&state->digest.low_level.sha512, data, size), S2N_ERR_HASH_UPDATE_FAILED);
             break;
         case S2N_HASH_MD5_SHA1:
-            POSIX_GUARD_OSSL(SHA1_Update(&state->digest.low_level.md5_sha1.sha1, data, size), S2N_ERR_HASH_UPDATE_FAILED);
+            POSIX_GUARD_OSSL(SHA1_Update(&state->digest.low_level.md5_sha1.sha1, data, size),
+                    S2N_ERR_HASH_UPDATE_FAILED);
             POSIX_GUARD_OSSL(MD5_Update(&state->digest.low_level.md5_sha1.md5, data, size), S2N_ERR_HASH_UPDATE_FAILED);
             break;
         default:
@@ -285,7 +286,8 @@ static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, ui
             break;
         case S2N_HASH_MD5_SHA1:
             POSIX_ENSURE_EQ(size, MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH);
-            POSIX_GUARD_OSSL(SHA1_Final(((uint8_t *) out) + MD5_DIGEST_LENGTH, &state->digest.low_level.md5_sha1.sha1), S2N_ERR_HASH_DIGEST_FAILED);
+            POSIX_GUARD_OSSL(SHA1_Final(((uint8_t *) out) + MD5_DIGEST_LENGTH, &state->digest.low_level.md5_sha1.sha1),
+                    S2N_ERR_HASH_DIGEST_FAILED);
             POSIX_GUARD_OSSL(MD5_Final(out, &state->digest.low_level.md5_sha1.md5), S2N_ERR_HASH_DIGEST_FAILED);
             break;
         default:
@@ -359,13 +361,16 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
 
     if (alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx);
-        POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL), S2N_ERR_HASH_INIT_FAILED);
-        POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL), S2N_ERR_HASH_INIT_FAILED);
+        POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL),
+                S2N_ERR_HASH_INIT_FAILED);
+        POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL),
+                S2N_ERR_HASH_INIT_FAILED);
         return S2N_SUCCESS;
     }
 
     POSIX_ENSURE_REF(s2n_hash_alg_to_evp_md(alg));
-    POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, s2n_hash_alg_to_evp_md(alg), NULL), S2N_ERR_HASH_INIT_FAILED);
+    POSIX_GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, s2n_hash_alg_to_evp_md(alg), NULL),
+            S2N_ERR_HASH_INIT_FAILED);
     return S2N_SUCCESS;
 }
 
@@ -384,7 +389,8 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 
     if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
-        POSIX_GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
+        POSIX_GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size),
+                S2N_ERR_HASH_UPDATE_FAILED);
     }
 
     return S2N_SUCCESS;
@@ -418,15 +424,21 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         unsigned int md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
 
         POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= sha1_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-        POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) <= md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+        POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) <= md5_secondary_digest_size,
+                S2N_ERR_HASH_DIGEST_FAILED);
 
-        POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
-        POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
+        POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH,
+                                 &sha1_primary_digest_size),
+                S2N_ERR_HASH_DIGEST_FAILED);
+        POSIX_GUARD_OSSL(
+                EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size),
+                S2N_ERR_HASH_DIGEST_FAILED);
         return S2N_SUCCESS;
     }
 
     POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-    POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
+    POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size),
+            S2N_ERR_HASH_DIGEST_FAILED);
     return S2N_SUCCESS;
 }
 
@@ -442,11 +454,14 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     }
 
     POSIX_ENSURE_REF(to->digest.high_level.evp.ctx);
-    POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
+    POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx),
+            S2N_ERR_HASH_COPY_FAILED);
 
     if (from->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
         POSIX_ENSURE_REF(to->digest.high_level.evp_md5_secondary.ctx);
-        POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_COPY_FAILED);
+        POSIX_GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx,
+                                 from->digest.high_level.evp_md5_secondary.ctx),
+                S2N_ERR_HASH_COPY_FAILED);
     }
 
     bool is_md5_allowed_for_fips = false;
@@ -468,7 +483,8 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 
     POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
     if (state->alg == S2N_HASH_MD5_SHA1 && s2n_use_custom_md5_sha1()) {
-        POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
+        POSIX_GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx),
+                S2N_ERR_HASH_WIPE_FAILED);
     }
 
     if (reset_md5_for_fips) {

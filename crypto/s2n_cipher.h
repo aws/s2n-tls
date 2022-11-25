@@ -52,8 +52,10 @@ struct s2n_aead_cipher {
     uint8_t fixed_iv_size;
     uint8_t record_iv_size;
     uint8_t tag_size;
-    int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out);
-    int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out);
+    int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in,
+            struct s2n_blob *out);
+    int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in,
+            struct s2n_blob *out);
 };
 
 struct s2n_composite_cipher {
@@ -63,8 +65,8 @@ struct s2n_composite_cipher {
     int (*decrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
     int (*encrypt)(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
     int (*set_mac_write_key)(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size);
-    int (*initial_hmac)(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
-            uint16_t payload_and_eiv_len, int *extra);
+    int (*initial_hmac)(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
+            uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra);
 };
 
 struct s2n_cipher {

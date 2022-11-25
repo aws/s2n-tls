@@ -45,8 +45,8 @@ static uint8_t s2n_aead_cipher_aes256_gcm_available()
 
 #if defined(S2N_AEAD_AES_GCM_AVAILABLE) /* BoringSSL and AWS-LC AEAD API implementation */
 
-static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv,
-        struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad,
+        struct s2n_blob *in, struct s2n_blob *out)
 {
     POSIX_ENSURE_REF(in);
     POSIX_ENSURE_REF(out);
@@ -64,8 +64,8 @@ static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s
     /* out_len is set by EVP_AEAD_CTX_seal and checked post operation */
     size_t out_len = 0;
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_seal(key->evp_aead_ctx, out->data, &out_len, out->size, iv->data, iv->size,
-                             in->data, in_len, aad->data, aad->size),
+    POSIX_GUARD_OSSL(EVP_AEAD_CTX_seal(key->evp_aead_ctx, out->data, &out_len, out->size, iv->data, iv->size, in->data,
+                             in_len, aad->data, aad->size),
             S2N_ERR_ENCRYPT);
 
     S2N_ERROR_IF((in_len + S2N_TLS_GCM_TAG_LEN) != out_len, S2N_ERR_ENCRYPT);

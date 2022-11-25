@@ -89,8 +89,8 @@ int s2n_ecdsa_sign_digest(const struct s2n_pkey *priv, struct s2n_blob *digest, 
     return S2N_SUCCESS;
 }
 
-static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+        struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(digest);
     sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
@@ -111,8 +111,8 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm s
     return S2N_SUCCESS;
 }
 
-static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
-        struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+        struct s2n_blob *signature)
 {
     sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
 

@@ -52,8 +52,8 @@ int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
     return 0;
 }
 
-int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg,
-        struct s2n_blob *digest, struct s2n_blob *signature)
+int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg, struct s2n_blob *digest,
+        struct s2n_blob *signature)
 {
     POSIX_ENSURE_REF(priv);
     POSIX_ENSURE_REF(digest);
@@ -136,8 +136,8 @@ static void s2n_evp_pkey_ctx_free(EVP_PKEY_CTX **ctx)
     EVP_PKEY_CTX_free(*ctx);
 }
 
-int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg,
-        struct s2n_blob *digest_in, struct s2n_blob *signature_out)
+int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg, struct s2n_blob *digest_in,
+        struct s2n_blob *signature_out)
 {
     POSIX_ENSURE_REF(priv);
     POSIX_ENSURE_REF(digest_in);
@@ -204,16 +204,15 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     POSIX_GUARD(s2n_evp_pkey_ctx_set_rsa_signature_digest(ctx, digest_alg));
     POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_VERIFY_SIGNATURE);
 
-    POSIX_GUARD_OSSL(EVP_PKEY_verify(ctx, signature_in->data, signature_in->size,
-                             digest_data, digest_length),
+    POSIX_GUARD_OSSL(EVP_PKEY_verify(ctx, signature_in->data, signature_in->size, digest_data, digest_length),
             S2N_ERR_VERIFY_SIGNATURE);
     return S2N_SUCCESS;
 }
 
 #else
 
-int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg,
-        struct s2n_blob *digest_in, struct s2n_blob *signature_out)
+int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash_alg, struct s2n_blob *digest_in,
+        struct s2n_blob *signature_out)
 {
     POSIX_BAIL(S2N_RSA_PSS_NOT_SUPPORTED);
 }

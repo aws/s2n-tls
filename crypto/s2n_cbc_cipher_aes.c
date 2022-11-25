@@ -31,7 +31,8 @@ static uint8_t s2n_cbc_cipher_aes256_available()
     return (EVP_aes_256_cbc() ? 1 : 0);
 }
 
-static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in,
+        struct s2n_blob *out)
 {
     POSIX_ENSURE_GTE(out->size, in->size);
 
@@ -45,7 +46,8 @@ static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_bl
     return 0;
 }
 
-int s2n_cbc_cipher_aes_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+int s2n_cbc_cipher_aes_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in,
+        struct s2n_blob *out)
 {
     POSIX_ENSURE_GTE(out->size, in->size);
 
@@ -65,7 +67,8 @@ int s2n_cbc_cipher_aes128_set_decryption_key(struct s2n_session_key *key, struct
 
     /* Always returns 1 */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL),
+            S2N_ERR_KEY_INIT);
 
     return 0;
 }
@@ -75,7 +78,8 @@ static int s2n_cbc_cipher_aes128_set_encryption_key(struct s2n_session_key *key,
     POSIX_ENSURE_EQ(in->size, 128 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL),
+            S2N_ERR_KEY_INIT);
 
     return 0;
 }
@@ -85,7 +89,8 @@ static int s2n_cbc_cipher_aes256_set_decryption_key(struct s2n_session_key *key,
     POSIX_ENSURE_EQ(in->size, 256 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL),
+            S2N_ERR_KEY_INIT);
 
     return 0;
 }
@@ -95,7 +100,8 @@ int s2n_cbc_cipher_aes256_set_encryption_key(struct s2n_session_key *key, struct
     POSIX_ENSURE_EQ(in->size, 256 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL),
+            S2N_ERR_KEY_INIT);
 
     return 0;
 }

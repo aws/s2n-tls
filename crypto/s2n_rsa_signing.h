@@ -21,8 +21,8 @@
 #include "utils/s2n_blob.h"
 
 /* Check for libcrypto 1.1 for RSA PSS Signing and EV_Key usage */
-#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1) || defined(OPENSSL_IS_AWSLC)) \
-        && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1) || defined(OPENSSL_IS_AWSLC)) && !defined(LIBRESSL_VERSION_NUMBER) \
+        && !defined(OPENSSL_IS_BORINGSSL)
     #define RSA_PSS_SIGNING_SUPPORTED 1
 #else
     #define RSA_PSS_SIGNING_SUPPORTED 0

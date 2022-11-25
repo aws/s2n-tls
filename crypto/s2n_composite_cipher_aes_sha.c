@@ -125,8 +125,8 @@ static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
     return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? 1 : 0);
 }
 
-static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
-        uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
+static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number,
+        uint8_t content_type, uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
     /* BoringSSL and AWS-LC(AWSLC_API_VERSION <= 17) do not support these composite ciphers with the existing EVP API, and they took out the
      * constants used below. This method should never be called with BoringSSL or AWS-LC(AWSLC_API_VERSION <= 17) because the isAvaliable checked
@@ -160,7 +160,8 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 #endif
 }
 
-static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in,
+        struct s2n_blob *out)
 {
     POSIX_ENSURE_EQ(out->size, in->size);
 
@@ -175,7 +176,8 @@ static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, str
     return 0;
 }
 
-static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in,
+        struct s2n_blob *out)
 {
     POSIX_ENSURE_EQ(out->size, in->size);
     POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
@@ -188,7 +190,8 @@ static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, str
     return 0;
 }
 
-static int s2n_composite_cipher_aes_sha_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
+static int s2n_composite_cipher_aes_sha_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key,
+        uint32_t mac_size)
 {
     POSIX_ENSURE_EQ(mac_size, SHA_DIGEST_LENGTH);
 
@@ -197,7 +200,8 @@ static int s2n_composite_cipher_aes_sha_set_mac_write_key(struct s2n_session_key
     return 0;
 }
 
-static int s2n_composite_cipher_aes_sha256_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
+static int s2n_composite_cipher_aes_sha256_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key,
+        uint32_t mac_size)
 {
     POSIX_ENSURE_EQ(mac_size, SHA256_DIGEST_LENGTH);
 
