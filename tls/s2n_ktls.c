@@ -216,11 +216,29 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
-    char filename[] = "sample.txt";
-    int send_times = 1000000; // 2gb
+    /* char filename[] = "sample.txt"; */
+    /* int send_times = 1000000; // 2gb */
 
+    /* char filename[] = "sample.txt.500b"; */
+    /* int send_times = 4000000; // 2gb */
+    /* char filename[] = "sample.txt.1k"; */
+    /* int send_times = 2000000; // 2gb */
     /* char filename[] = "sample.txt.2k"; */
     /* int send_times = 1000000; // 2gb */
+    char filename[] = "sample.txt.4k";
+    int send_times = 500000; // 2gb
+    /* char filename[] = "sample.txt.8k"; */
+    /* int send_times = 250000; // 2gb */
+    /* char filename[] = "sample.txt.16k"; */
+    /* int send_times = 125000; // 2gb */
+    /* char filename[] = "sample.txt.33k"; */
+    /* int send_times = 60600; // 2gb */
+    /* char filename[] = "sample.txt.67k"; */
+    /* int send_times = 30300; // 2gb */
+    /* char filename[] = "sample.txt.133k"; */
+    /* int send_times = 15000; // 2gb */
+    /* char filename[] = "sample.txt.266k"; */
+    /* int send_times = 7500; // 2gb */
     /* char filename[] = "sample.txt.400k"; */
     /* int send_times = 5000; // 2gb */
     /* char filename[] = "sample.txt.4m"; */

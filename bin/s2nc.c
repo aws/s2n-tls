@@ -623,8 +623,17 @@ int main(int argc, char *const *argv)
 
         if (send_file != NULL) {
 
+            int send_times = 4000000; // 500b
+            /* int send_times = 2000000; // 1k */
             /* int send_times = 1000000; // 2gb sample.txt.2k */
-            int send_times = 5000; // 2gb sample.txt.400k
+            /* int send_times = 500000; // 4k */
+            /* int send_times = 250000; // 8k */
+            /* int send_times = 125000; // 16k */
+            /* int send_times = 60600; // 33k */
+            /* int send_times = 30300; // 67k */
+            /* int send_times = 15000; // 133k */
+            /* int send_times = 7500; // 266k */
+            /* int send_times = 5000; // 2gb sample.txt.400k */
             /* int send_times = 500; // 2gb sample.txt.4m */
             fprintf(stderr, "starting send -------------- times: %s, %d \n", send_file_name , send_times);
 
