@@ -57,11 +57,12 @@ where
 ///
 /// The C-style callback method passed to the underlying s2n-tls implementation
 /// should call this method instead of using the Rust callback implementation
-/// directly. The C-style callback will only execute once, so this method
-/// ensures that the Rust callback implementation is polled until it completes.
+/// directly. The C-style callback will only execute once, so the underlying
+/// poll implementation should ensures that the Rust callback is polled until
+/// it completes.
 ///
-/// Using [`config::set_client_hello_callback`] as an example, the
-/// execution roughly looks like:
+/// Using [`config::set_client_hello_callback`] as an example, the execution
+/// roughly looks like:
 ///
 /// Connection::poll_negotiate                                    (Rust)
 /// |   s2n_negotiate                                             (C)
@@ -202,8 +203,8 @@ pub(crate) fn poll_client_hello_callback(
                 Poll::Ready(result)
             }
             Poll::Pending => {
-                // replace the client_hello_future if it hasn't completed yet
-                conn.set_client_hello_future(fut);
+                // replace the client_hello future if it hasn't completed yet
+                conn.set_connection_future(fut);
                 Poll::Pending
             }
         }
@@ -214,8 +215,7 @@ pub(crate) fn poll_client_hello_callback(
         return poll_async_task(conn, fut);
     }
 
-    // otherwise call the on_client_hello to make progress. storing the future if
-    // the application provided one.
+    // otherwise call the on_client_hello to make progress.
     let async_future = conn
         .config()
         .as_mut()

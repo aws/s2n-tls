@@ -9,8 +9,8 @@ pub enum ApplicationError {
     /// An error occurred while running custom callback code.
     ///
     /// Use [`ApplicationError::callback_execution()`] to construct an instance.
-    /// Can be emitted from [`callbacks::AsyncClientHelloFuture::poll_client_hello()`]
-    /// to indicate a failure from the async task.
+    /// Can be emitted from [`callbacks::ConnectionFuture::poll()`] to indicate
+    /// a failure from the async task.
     CallbackExection {},
 }
 

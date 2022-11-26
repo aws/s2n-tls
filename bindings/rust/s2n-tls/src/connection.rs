@@ -366,15 +366,16 @@ impl Connection {
     /// [`poll_negotiate`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
     /// it encounters an async callback. The async task is stored on the
-    /// [`Context`]; `client_hello_future` for the client_hello_callback. The
-    /// handshake does not continue execution (and therefore can't call any
-    /// other callbacks) until the blocking async task reports completion.
+    /// [`Context::connection_future`].
+    ///
+    /// The handshake does not continue execution (and therefore can't call
+    /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
         // check if an async task for the client_hello_callback exists and
         // poll it to completion
-        if let Some(fut) = self.take_client_hello_future() {
+        if let Some(fut) = self.take_connection_future() {
             if poll_client_hello_callback(self, Some(fut)).is_pending() {
                 return Poll::Pending;
             }
@@ -489,22 +490,22 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
-    /// Takes the Option client_hello_future stored on the connection
-    /// context if set.
+    /// Takes the [`Option::take`] the connection_future stored on the
+    /// connection context.
     ///
-    /// If the Future returns `Poll::Pending` and has not completed then it
-    /// should be re-set using [`Self::set_client_hello_future`]
-    pub fn take_client_hello_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
+    /// If the Future returns `Poll::Pending` and has not completed, then it
+    /// should be re-set using [`Self::set_connection_future()`]
+    pub(crate) fn take_connection_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
         let ctx = self.context_mut();
-        ctx.client_hello_future.take()
+        ctx.connection_future.take()
     }
 
-    /// Sets a client_hello_future on the connection context.
-    pub(crate) fn set_client_hello_future(&mut self, f: Pin<Box<dyn ConnectionFuture>>) {
+    /// Sets a `connection_future` on the connection context.
+    pub(crate) fn set_connection_future(&mut self, f: Pin<Box<dyn ConnectionFuture>>) {
         let ctx = self.context_mut();
-        debug_assert!(ctx.client_hello_future.is_none());
+        debug_assert!(ctx.connection_future.is_none());
 
-        ctx.client_hello_future = Some(f);
+        ctx.connection_future = Some(f);
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
@@ -531,9 +532,6 @@ impl Connection {
     pub fn server_name_extension_used(&mut self) {
         // TODO: requiring the application to call this method is a pretty sharp edge.
         // Figure out if its possible to automatically call this from the Rust bindings.
-        //
-        // This is currently done from [`callback::ConfigResolver`], which is an
-        // improvement from having the application call it manually.
         unsafe {
             s2n_connection_server_name_extension_used(self.connection.as_ptr())
                 .into_result()
@@ -602,7 +600,7 @@ impl Connection {
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
-    client_hello_future: Option<Pin<Box<dyn ConnectionFuture>>>,
+    connection_future: Option<Pin<Box<dyn ConnectionFuture>>>,
 }
 
 #[cfg(feature = "quic")]
