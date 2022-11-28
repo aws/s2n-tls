@@ -156,7 +156,7 @@ impl Builder {
         crate::init::init();
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
-        let context = Box::new(Context::default());
+        let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
 
         unsafe {
