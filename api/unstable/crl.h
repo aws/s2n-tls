@@ -45,7 +45,7 @@ struct s2n_crl_lookup;
  * @param context Context for the callback function.
  * @returns 0 on success, -1 on failure.
  */
-typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *context);
+typedef int (*s2n_crl_lookup_callback)(struct s2n_crl_lookup *lookup, void *context);
 
 /**
  * Set a callback to provide CRLs to use for CRL validation.
