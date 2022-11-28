@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
-#include "tls/s2n_tls_parameters.h"
-#include "tls/extensions/s2n_client_psk.h"
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
+#include "tls/extensions/s2n_client_psk.h"
+#include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
 
 static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn);
@@ -67,7 +68,7 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
     for (size_t i = 0; i < psk_ke_mode_list_len; i++) {
         uint8_t wire_psk_ke_mode;
         POSIX_GUARD(s2n_stuffer_read_uint8(extension, &wire_psk_ke_mode));
-        
+
         /* s2n currently only supports pre-shared keys with (EC)DHE key establishment */
         if (wire_psk_ke_mode == TLS_PSK_DHE_KE_MODE) {
             conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;

@@ -14,12 +14,12 @@
  */
 
 #include "tls/extensions/s2n_npn.h"
+
 #include "tls/extensions/s2n_client_alpn.h"
 #include "tls/extensions/s2n_server_alpn.h"
+#include "tls/s2n_protocol_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_protocol_preferences.h"
-
 #include "utils/s2n_safety.h"
 
 bool s2n_npn_should_send(struct s2n_connection *conn)
