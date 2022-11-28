@@ -107,14 +107,13 @@ pub(crate) fn trigger_async_client_hello_callback(conn: &mut Connection) -> Call
     }
 }
 
-/// The Future associated with the async [`ClientHelloCallback`] and stored
-/// on the connection.
+/// The Future associated with the async connection callback.
 ///
 /// The calling application can provide an instance of [`ConnectionFuture`]
-/// when implementing the [`ClientHelloCallback`] if it wants to run an
-/// asynchronous operation (disk read, network call). The application can return
-/// an error, [`Err(error::ApplicationError)`], to indicate failure and cancel the
-/// connection.
+/// when implementing an async callback, eg. [`ClientHelloCallback`], if it wants
+/// to run an asynchronous operation (disk read, network call). The application
+/// can return an error ([`Err(error::Error::application())`]), to indicate
+/// connection failure.
 ///
 /// [`ConfigResolver`] should be used if the application wants to set a new
 /// [`Config`] on the connection.
@@ -195,7 +194,7 @@ pub(crate) fn poll_client_hello_callback(
         conn: &mut Connection,
         mut fut: Pin<Box<dyn ConnectionFuture>>,
     ) -> Poll<Result<(), Error>> {
-        let waker = conn.waker().ok_or(Error::CALLBACK_EXECUTION)?.clone();
+        let waker = conn.waker().ok_or(Error::MISSING_WAKER)?.clone();
         let mut ctx = core::task::Context::from_waker(&waker);
         match fut.as_mut().poll(conn, &mut ctx) {
             Poll::Ready(result) => {

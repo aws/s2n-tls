@@ -7,10 +7,6 @@ use libc::c_char;
 use s2n_tls_sys::*;
 use std::{convert::TryFrom, ffi::CStr};
 
-mod public;
-
-pub use public::ApplicationError;
-
 #[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub enum ErrorType {
@@ -23,6 +19,7 @@ pub enum ErrorType {
     ProtocolError,
     InternalError,
     UsageError,
+    Application,
 }
 
 #[non_exhaustive]
@@ -30,6 +27,7 @@ pub enum ErrorType {
 pub enum ErrorSource {
     Library,
     Bindings,
+    Application,
 }
 
 impl From<libc::c_int> for ErrorType {
@@ -48,14 +46,13 @@ impl From<libc::c_int> for ErrorType {
     }
 }
 
-#[derive(Clone, PartialEq)]
-pub enum Context {
+enum Context {
     InvalidInput,
-    CallbackExection,
+    MissingWaker,
     Code(s2n_status_code::Type, Errno),
+    Application(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-#[derive(Clone, PartialEq)]
 pub struct Error(Context);
 
 pub trait Fallible {
@@ -153,10 +150,18 @@ impl<T: Fallible> Pollable for T {
 
 impl Error {
     pub(crate) const INVALID_INPUT: Error = Self(Context::InvalidInput);
-    pub(crate) const CALLBACK_EXECUTION: Error = Self(Context::CallbackExection);
+    pub(crate) const MISSING_WAKER: Error = Self(Context::MissingWaker);
 
     pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
         value.into_result()
+    }
+
+    /// An error occurred while running appliation code.
+    ///
+    /// Can be emitted from [`callbacks::ConnectionFuture::poll()`] to indicate
+    /// async task failure.
+    pub fn application(error: Box<dyn std::error::Error + Send + Sync + 'static>) -> Self {
+        Self(Context::Application(error))
     }
 
     fn capture() -> Self {
@@ -177,7 +182,8 @@ impl Error {
     pub fn name(&self) -> &'static str {
         match self.0 {
             Context::InvalidInput => "InvalidInput",
-            Context::CallbackExection => "CallbackExection",
+            Context::MissingWaker => "MissingWaker",
+            Context::Application(_) => "ApplicationError",
             Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror_name(code))
@@ -188,7 +194,10 @@ impl Error {
     pub fn message(&self) -> &'static str {
         match self.0 {
             Context::InvalidInput => "A parameter was incorrect",
-            Context::CallbackExection => "An error occurred while resolving a callback",
+            Context::MissingWaker => {
+                "Tried to perform an asynchronous operation without a configured waker"
+            }
+            Context::Application(_) => "An error occurred while executing application code",
             Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
                 cstr_to_str(s2n_strerror(code, core::ptr::null()))
@@ -198,7 +207,7 @@ impl Error {
 
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
-            Context::InvalidInput | Context::CallbackExection => None,
+            Context::InvalidInput | Context::MissingWaker | Context::Application(_) => None,
             Context::Code(code, _) => unsafe {
                 let debug_info = s2n_strerror_debug(code, core::ptr::null());
 
@@ -218,15 +227,27 @@ impl Error {
 
     pub fn kind(&self) -> ErrorType {
         match self.0 {
-            Context::InvalidInput | Context::CallbackExection => ErrorType::UsageError,
+            Context::InvalidInput | Context::MissingWaker => ErrorType::UsageError,
+            Context::Application(_) => ErrorType::Application,
             Context::Code(code, _) => unsafe { ErrorType::from(s2n_error_get_type(code)) },
         }
     }
 
     pub fn source(&self) -> ErrorSource {
         match self.0 {
-            Context::InvalidInput | Context::CallbackExection => ErrorSource::Bindings,
+            Context::InvalidInput | Context::MissingWaker => ErrorSource::Bindings,
+            Context::Application(_) => ErrorSource::Application,
             Context::Code(_, _) => ErrorSource::Library,
+        }
+    }
+
+    /// Returns an [`std::error::Error`] if the error source was [`ErrorSource::Application`],
+    /// otherwise returns None.
+    pub fn application_error(&self) -> Option<&Box<dyn std::error::Error + Send + Sync + 'static>> {
+        if let Self(Context::Application(err)) = self {
+            Some(err)
+        } else {
+            None
         }
     }
 
@@ -245,7 +266,7 @@ impl Error {
     /// This API is currently incomplete and should not be relied upon.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
-            Context::InvalidInput | Context::CallbackExection => None,
+            Context::InvalidInput | Context::MissingWaker | Context::Application(_) => None,
             Context::Code(code, _) => {
                 let mut alert = 0;
                 let r = unsafe { s2n_error_get_alert(code, &mut alert) };
@@ -324,7 +345,17 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        // implement `source` in the same way `std::io::Error` implements it:
+        // https://doc.rust-lang.org/std/io/struct.Error.html#method.source
+        if let Self(Context::Application(err)) = self {
+            err.source()
+        } else {
+            None
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -394,5 +425,43 @@ mod tests {
         assert_eq!(ErrorSource::Library, library_error.source());
 
         Ok(())
+    }
+
+    #[test]
+    fn application_error() {
+        use std::{fmt, io};
+
+        #[derive(Debug)]
+        struct CustomError;
+
+        impl fmt::Display for CustomError {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "custom error")
+            }
+        }
+
+        impl std::error::Error for CustomError {}
+
+        // test single level errors
+        {
+            let error = Error::application(Box::new(CustomError));
+
+            let app_error = error.application_error().unwrap();
+            let _custom_error = app_error.downcast_ref::<CustomError>().unwrap();
+        }
+
+        // make sure nested errors work
+        {
+            let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
+            let error = Error::application(Box::new(io_error));
+
+            let app_error = error.application_error().unwrap();
+            let io_error = app_error.downcast_ref::<io::Error>().unwrap();
+            let _custom_error = io_error
+                .get_ref()
+                .unwrap()
+                .downcast_ref::<CustomError>()
+                .unwrap();
+        }
     }
 }
