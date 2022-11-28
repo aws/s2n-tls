@@ -399,15 +399,12 @@ int main(int argc, char **argv)
      * with a small protocol version tls10, but has a supported_version
      * extension that includes tls13.*/
     {
-
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-                s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -423,7 +420,6 @@ int main(int argc, char **argv)
         struct s2n_test_io_pair io_pair = { 0 };
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
 
         /* ClientHello  */
         struct s2n_stuffer *hello_stuffer;
