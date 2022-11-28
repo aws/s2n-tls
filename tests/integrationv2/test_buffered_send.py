@@ -51,7 +51,7 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
     s2nc = managed_process(S2N, s2n_options)
 
     for results in s2nc.get_results():
-        assert error_string in str("Error setting send buffer size")
+        assert "Error setting send buffer size" in str(results.stdout)
         assert results.exit_code != 0
 
     for results in s2nd.get_results():
