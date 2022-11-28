@@ -311,9 +311,10 @@ mod tests {
         let conn = pooled_conn.deref();
         assert_eq!(pooled_conn.config(), conn.config());
 
-        let mut mut_pooled_conn: PooledConnection<ConfigPoolRef> = PooledConnection::new(&config_pool)?;
+        let mut mut_pooled_conn: PooledConnection<ConfigPoolRef> =
+            PooledConnection::new(&config_pool)?;
         let waker = futures_test::task::new_count_waker().0;
-        mut_pooled_conn.set_waker(Some(&waker.clone()))?;
+        mut_pooled_conn.set_waker(Some(&waker))?;
         assert!(mut_pooled_conn.waker().unwrap().will_wake(&waker));
 
         Ok(())
