@@ -152,8 +152,11 @@ impl Error {
     pub(crate) const INVALID_INPUT: Error = Self(Context::InvalidInput);
     pub(crate) const MISSING_WAKER: Error = Self(Context::MissingWaker);
 
-    pub fn new<T: Fallible>(value: T) -> Result<T::Output, Self> {
-        value.into_result()
+    /// Converts an io::Error into an s2n-tls Error
+    pub fn io_error(err: std::io::Error) -> Error {
+        let errno = err.raw_os_error().unwrap_or(1);
+        errno::set_errno(errno::Errno(errno));
+        s2n_status_code::FAILURE.into_result().unwrap_err()
     }
 
     /// An error occurred while running appliation code.
