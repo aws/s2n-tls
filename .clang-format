@@ -64,6 +64,8 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
+TypenameMacros: ['S2N_RESULT', 'S2N_CLEANUP_RESULT']
+AttributeMacros: ['S2N_RESULT_MUST_USE', 'S2N_PRIVATE_API']
 IncludeBlocks:   Regroup
 IncludeCategories:
   - Regex:           '^<ext/.*\.h>'
