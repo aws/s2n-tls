@@ -404,49 +404,49 @@ int main(int argc, char **argv)
      */
     if (s2n_is_tls13_fully_supported()) {
 
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
-                    s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                    S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
-                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+                S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
-            DEFER_CLEANUP(struct s2n_config *config_with_cert = s2n_config_new(),
-                    s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, chain_and_key));
+        DEFER_CLEANUP(struct s2n_config *config_with_cert = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, chain_and_key));
 
-            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
 
-            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(client_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cert));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cert));
 
-            struct s2n_test_io_pair io_pair = { 0 };
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-            struct s2n_stuffer *hello_stuffer = NULL;
-            hello_stuffer = &client_conn->handshake.io;
-            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+        struct s2n_stuffer *hello_stuffer = NULL;
+        hello_stuffer = &client_conn->handshake.io;
+        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
-            /* Overwrite the Client Hello protocol version to TLS10 */
-            uint8_t small_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-            small_protocol_version[0] = S2N_TLS10 / 10;
-            small_protocol_version[1] = S2N_TLS10 % 10;
+        /* Overwrite the Client Hello protocol version to TLS10 */
+        uint8_t small_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+        small_protocol_version[0] = S2N_TLS10 / 10;
+        small_protocol_version[1] = S2N_TLS10 % 10;
 
-            EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, small_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, small_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
 
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-            /* The server does not use the protocol version in the Client Hello to set the actual protocol version. */
-            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-            EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
-            EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
+        /* The server does not use the protocol version in the Client Hello to set the actual protocol version. */
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
 
     }
 
