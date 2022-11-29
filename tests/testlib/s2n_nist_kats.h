@@ -19,12 +19,12 @@
 
 #pragma once
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
 #define MAX_MARKER_LEN 50
-#define NUM_OF_KATS 100
+#define NUM_OF_KATS    100
 
 /*
  * ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
@@ -35,27 +35,27 @@ static inline int FindMarker(FILE *infile, const char *marker)
     int8_t line[MAX_MARKER_LEN];
     uint32_t i, len;
 
-    len = (int)strlen(marker);
-    if ( len > (MAX_MARKER_LEN - 1) ) {
-        len = MAX_MARKER_LEN-1;
+    len = (int) strlen(marker);
+    if (len > (MAX_MARKER_LEN - 1)) {
+        len = MAX_MARKER_LEN - 1;
     }
 
-    for ( i=0; i<len; i++ ) {
-        if ( (line[i] = fgetc(infile)) == EOF ) {
+    for (i = 0; i < len; i++) {
+        if ((line[i] = fgetc(infile)) == EOF) {
             return -1;
         }
     }
     line[len] = '\0';
 
-    while ( 1 ) {
-        if ( !strncmp((char*)line, marker, len) ) {
+    while (1) {
+        if (!strncmp((char *) line, marker, len)) {
             return 0;
         }
 
-        for ( i=0; i<len-1; i++ ) {
-            line[i] = line[i+1];
+        for (i = 0; i < len - 1; i++) {
+            line[i] = line[i + 1];
         }
-        if ( (line[len-1] = fgetc(infile)) == EOF ) {
+        if ((line[len - 1] = fgetc(infile)) == EOF) {
             return -1;
         }
         line[len] = '\0';
@@ -72,21 +72,18 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
     int started = 0;
     uint8_t ich;
 
-    if (0 == len) 
-    {
+    if (0 == len) {
         buf[0] = 0x00;
         return 0;
     }
 
     memset(buf, 0x00, len);
 
-    if (FindMarker(infile, str) == -1)
-    {
+    if (FindMarker(infile, str) == -1) {
         return -1;
     }
 
-    while ((ch = fgetc(infile)) != EOF) 
-    {
+    while ((ch = fgetc(infile)) != EOF) {
         if (!isxdigit(ch)) {
             if (!started) {
                 if (ch == '\n')
@@ -100,26 +97,20 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
 
         if ((ch >= '0') && (ch <= '9')) {
             ich = ch - '0';
-        }
-        else if ((ch >= 'A') && (ch <= 'F')) {
+        } else if ((ch >= 'A') && (ch <= 'F')) {
             ich = ch - 'A' + 10;
-        }
-        else if ((ch >= 'a') && (ch <= 'f')) {
+        } else if ((ch >= 'a') && (ch <= 'f')) {
             ich = ch - 'a' + 10;
-        }
-        else 
-        {
+        } else {
             /* shouldn't ever get here */
             ich = 0;
         }
 
-        for (uint32_t i = 0; i < len - 1; i++)
-        {
+        for (uint32_t i = 0; i < len - 1; i++) {
             buf[i] = (buf[i] << 4) | (buf[i + 1] >> 4);
         }
         buf[len - 1] = (buf[len - 1] << 4) | ich;
     }
- 
+
     return 0;
 }
-

@@ -14,10 +14,8 @@
  */
 
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
 #include "testlib/s2n_testlib.h"
+#include "utils/s2n_safety.h"
 
 int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2n_ecc_evp_params *params_2)
 {
