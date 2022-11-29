@@ -400,10 +400,9 @@ int main(int argc, char **argv)
      *= type=test
      *# A TLS server can also receive a ClientHello indicating a version number smaller than its highest supported
      *# version. If the "supported_versions" extension is present, the server MUST negotiate using that extension as
-     *#  described in Section 4.2.1.
+     *# described in Section 4.2.1.
      */
     if (s2n_is_tls13_fully_supported()) {
-
         DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -447,7 +446,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
-
     }
 
     EXPECT_SUCCESS(s2n_config_free(config));
