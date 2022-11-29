@@ -377,9 +377,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
     }
 
-    /* Since the supported_version extension replaces the version field
-     * in the client hello, for backwards compatibility the version field
-     * should be set to 1.2 even when a higher version is supported. */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -395,9 +392,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /*Server should set to tls13 when client creates a ClientHello
-     * with a small protocol version tls10, but has a supported_version
-     * extension that includes tls13.*/
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#appendix-D.2
+     *= type=test
+     *# A TLS server can also receive a ClientHello indicating a version number smaller than its highest supported
+     *# version. If the "supported_versions" extension is present, the server MUST negotiate using that extension as
+     *#  described in Section 4.2.1.
+     */
     if (s2n_is_tls13_fully_supported()) {
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
@@ -424,26 +425,23 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-            /* ClientHello  */
-            struct s2n_stuffer *hello_stuffer;
+            struct s2n_stuffer *hello_stuffer = NULL;
             hello_stuffer = &client_conn->handshake.io;
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
-            /* Setting client_protocol_version to tls10*/
-            uint8_t small_protocol_version[2];
+            /* Overwrite the Client Hello protocol version to TLS10 */
+            uint8_t small_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
             small_protocol_version[0] = S2N_TLS10 / 10;
             small_protocol_version[1] = S2N_TLS10 % 10;
 
             EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, small_protocol_version, 2));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, small_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
             EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
 
-            /* Server receives ClientHello */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-            printf("Highest Supported Value= %d ", s2n_get_highest_fully_supported_tls_version());
-            EXPECT_EQUAL(server_conn->actual_protocol_version, s2n_get_highest_fully_supported_tls_version());
-            EXPECT_EQUAL(server_conn->client_protocol_version, s2n_get_highest_fully_supported_tls_version());
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
             EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
         }
     }
