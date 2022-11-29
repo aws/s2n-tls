@@ -159,7 +159,7 @@ impl Error {
         s2n_status_code::FAILURE.into_result().unwrap_err()
     }
 
-    /// An error occurred while running appliation code.
+    /// An error occurred while running application code.
     ///
     /// Can be emitted from [`callbacks::ConnectionFuture::poll()`] to indicate
     /// async task failure.
@@ -344,7 +344,11 @@ impl fmt::Debug for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(self.message())
+        if let Self(Context::Application(err)) = self {
+            err.fmt(f)
+        } else {
+            f.write_str(self.message())
+        }
     }
 }
 
