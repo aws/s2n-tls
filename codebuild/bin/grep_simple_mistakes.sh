@@ -148,6 +148,18 @@ for file in $S2N_FILES_ASSERT_VARIABLE_NAME_INDEX; do
 done
 
 #############################################
+# Assert that we didn't accidentally add an extra semicolon when ending a line.
+#############################################
+S2N_FILES_ASSERT_DOUBLE_SEMICOLON=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/bindings/*")
+for file in $S2N_FILES_ASSERT_DOUBLE_SEMICOLON; do
+  RESULT_DOUBLE_SEMICOLON=`grep -Ern ';{2,}' $file`
+  if [ "${#RESULT_DOUBLE_SEMICOLON}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mFound a double semicolon in $file:\e[0m\n$RESULT_DOUBLE_SEMICOLON\n\n"
+  fi
+done
+
+#############################################
 ## Assert that there are no new uses of S2N_ERROR_IF
 # TODO add crypto, tls (see https://github.com/aws/s2n-tls/issues/2635)
 #############################################

@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_array_insert(array, 16, (void **)&insert_element));
         EXPECT_NOT_NULL(insert_element);
         insert_element->first = 20;
-        insert_element->second = 'a' + 20;;
+        insert_element->second = 'a' + 20;
 
         /* Validate array parameters */
         EXPECT_OK(s2n_array_capacity(array, &capacity));
