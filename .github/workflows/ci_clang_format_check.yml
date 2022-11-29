@@ -7,17 +7,25 @@ jobs:
     strategy:
       matrix:
         path:
-          - 'api'
-          - 'bin'
-          - 'stuffer'
-          - 'error'
-          - 'tests/testlib'
-          - 'tls/extensions'
-          - 'utils'
+          - check: 'api'
+            exclude: ''
+          - check: 'bin'
+            exclude: ''
+          - check: 'stuffer'
+            exclude: ''
+          - check: 'error'
+            exclude: ''
+          - check: 'tests/testlib'
+            exclude: ''
+          - check: 'tls'
+            exclude: '(tls\/s2n_[a-m].*\.h)|(tls\/s2n_[m-z].*\.h)|(tls\/s2n_[a-d].*\.c)|(tls\/s2n_[e-n].*\.c)|(tls\/s2n_[o-r].*\.c)|(tls\/s2n_[s-z].*\.c)'
+          - check: 'utils'
+            exclude: ''
     steps:
       - uses: actions/checkout@v3
       - name: Run clang-format style check for C.
         uses: jidicula/clang-format-action@v4.9.0
         with:
           clang-format-version: '15'
-          check-path: ${{ matrix.path }}
+          check-path: ${{ matrix.path['check'] }}
+          exclude-regex: ${{ matrix.path['exclude'] }}
