@@ -164,6 +164,19 @@ for dir in $S2N_ERROR_IF_FREE; do
 done
 
 #############################################
+
+#############################################
+## Assert all ".[c|h]" source files have the correct file mode.
+#############################################
+S2N_FILES_WITH_WRONG_MODE=$(find "$PWD" \( -name '*.c' -o -name '*.h' \) -a \! -perm 644)
+if [[ -n $S2N_FILES_WITH_WRONG_MODE ]]; then
+  for file in $S2N_FILES_WITH_WRONG_MODE; do
+    FAILED=1
+    printf "\\033[31;1mFile mode of %s is not 644.\\033[0m\\n" "$file"
+  done
+  printf "\\033[31;1mPlease run \`find s2n-tls/ -name '*.c' -o -name '*.h' -exec chmod 644 {} \\;\` to fix all file modes.\\033[0m\\n"
+fi
+
 if [ $FAILED == 1 ]; then
   printf "\\033[31;1mFAILED Grep For Simple Mistakes check\\033[0m\\n"
   exit -1

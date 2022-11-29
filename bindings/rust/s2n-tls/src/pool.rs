@@ -25,6 +25,7 @@ use crate::{
 };
 use std::{
     collections::VecDeque,
+    ops::{Deref, DerefMut},
     sync::{Arc, Mutex},
 };
 
@@ -55,6 +56,20 @@ impl<T: Pool> Drop for PooledConnection<T> {
         if let Some(conn) = self.conn.take() {
             self.pool.give(conn);
         }
+    }
+}
+
+impl<T: Pool> Deref for PooledConnection<T> {
+    type Target = Connection;
+
+    fn deref(&self) -> &Self::Target {
+        self.conn.as_ref().unwrap()
+    }
+}
+
+impl<T: Pool> DerefMut for PooledConnection<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.conn.as_mut().unwrap()
     }
 }
 
@@ -285,6 +300,23 @@ mod tests {
         let pool: Arc<dyn Pool> = config_pool;
         // Note no generic type parameters on PooledConnection here.
         let _: PooledConnection = PooledConnection::new(&pool)?;
+        Ok(())
+    }
+
+    #[test]
+    fn dereferencing_pooled_connection() -> Result<(), Box<dyn std::error::Error>> {
+        let config_pool = ConfigPoolBuilder::new(Mode::Server, Config::default()).build();
+
+        let pooled_conn: PooledConnection<ConfigPoolRef> = PooledConnection::new(&config_pool)?;
+        let conn = pooled_conn.deref();
+        assert_eq!(pooled_conn.config(), conn.config());
+
+        let mut mut_pooled_conn: PooledConnection<ConfigPoolRef> =
+            PooledConnection::new(&config_pool)?;
+        let waker = futures_test::task::new_count_waker().0;
+        mut_pooled_conn.set_waker(Some(&waker))?;
+        assert!(mut_pooled_conn.waker().unwrap().will_wake(&waker));
+
         Ok(())
     }
 }

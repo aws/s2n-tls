@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
-#include <stdio.h>
-
-#include "error/s2n_errno.h"
-
-#include "crypto/s2n_hash.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_result.h"
-#include "utils/s2n_blob.h"
-#include "utils/s2n_mem.h"
 #include "utils/s2n_map.h"
-#include "utils/s2n_map_internal.h"
+
+#include <stdio.h>
+#include <string.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_hash.h"
+#include "error/s2n_errno.h"
+#include "utils/s2n_blob.h"
+#include "utils/s2n_map_internal.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_result.h"
+#include "utils/s2n_safety.h"
 
 #define S2N_INITIAL_TABLE_SIZE 1024
 
@@ -39,7 +37,7 @@ static S2N_RESULT s2n_map_slot(const struct s2n_map *map, struct s2n_blob *key, 
         uint32_t u32[8];
     } digest;
 
-    DEFER_CLEANUP(struct s2n_hash_state sha256 = {0}, s2n_hash_free);
+    DEFER_CLEANUP(struct s2n_hash_state sha256 = { 0 }, s2n_hash_free);
     RESULT_GUARD_POSIX(s2n_hash_new(&sha256));
     RESULT_GUARD_POSIX(s2n_hash_init(&sha256, S2N_HASH_SHA256));
     RESULT_GUARD_POSIX(s2n_hash_update(&sha256, key->data, key->size));
@@ -52,8 +50,8 @@ static S2N_RESULT s2n_map_slot(const struct s2n_map *map, struct s2n_blob *key, 
 static S2N_RESULT s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
 {
     RESULT_ENSURE_REF(map);
-    struct s2n_blob mem = {0};
-    struct s2n_map tmp = {0};
+    struct s2n_blob mem = { 0 };
+    struct s2n_map tmp = { 0 };
 
     RESULT_ENSURE(!map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
@@ -72,7 +70,7 @@ static S2N_RESULT s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
             RESULT_GUARD_POSIX(s2n_free(&map->table[i].value));
         }
     }
-    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **)&map->table, map->capacity * sizeof(struct s2n_map_entry)));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &map->table, map->capacity * sizeof(struct s2n_map_entry)));
 
     /* Clone the temporary map */
     map->capacity = tmp.capacity;
@@ -91,7 +89,7 @@ struct s2n_map *s2n_map_new()
 struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
 {
     PTR_ENSURE(capacity != 0, S2N_ERR_MAP_INVALID_MAP_SIZE);
-    struct s2n_blob mem = {0};
+    struct s2n_blob mem = { 0 };
     struct s2n_map *map;
 
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_map)));
@@ -121,9 +119,8 @@ S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
     RESULT_GUARD(s2n_map_slot(map, key, &slot));
 
     /* Linear probing until we find an empty slot */
-    while(map->table[slot].key.size) {
-        if (key->size != map->table[slot].key.size ||
-            memcmp(key->data,  map->table[slot].key.data, key->size)) {
+    while (map->table[slot].key.size) {
+        if (key->size != map->table[slot].key.size || memcmp(key->data, map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
             continue;
@@ -154,9 +151,8 @@ S2N_RESULT s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
     RESULT_GUARD(s2n_map_slot(map, key, &slot));
 
     /* Linear probing until we find an empty slot */
-    while(map->table[slot].key.size) {
-        if (key->size != map->table[slot].key.size ||
-            memcmp(key->data,  map->table[slot].key.data, key->size)) {
+    while (map->table[slot].key.size) {
+        if (key->size != map->table[slot].key.size || memcmp(key->data, map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
             continue;
@@ -201,9 +197,8 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
     RESULT_GUARD(s2n_map_slot(map, key, &slot));
     const uint32_t initial_slot = slot;
 
-    while(map->table[slot].key.size) {
-        if (key->size != map->table[slot].key.size ||
-            memcmp(key->data,  map->table[slot].key.data, key->size)) {
+    while (map->table[slot].key.size) {
+        if (key->size != map->table[slot].key.size || memcmp(key->data, map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
             /* We went over all the slots but found no match */
@@ -244,10 +239,10 @@ S2N_RESULT s2n_map_free(struct s2n_map *map)
     }
 
     /* Free the table */
-    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **)&map->table, map->capacity * sizeof(struct s2n_map_entry)));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &map->table, map->capacity * sizeof(struct s2n_map_entry)));
 
     /* And finally the map */
-    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **)&map, sizeof(struct s2n_map)));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &map, sizeof(struct s2n_map)));
 
     return S2N_RESULT_OK;
 }
