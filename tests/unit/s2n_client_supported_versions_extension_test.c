@@ -438,11 +438,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, small_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
             EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
 
+            /* The server does not use the protocol version in the Client Hello to set the actual protocol version. */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
             EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
             EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
+
         }
     }
 
