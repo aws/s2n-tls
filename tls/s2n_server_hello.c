@@ -273,6 +273,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     conn->actual_protocol_version_established = 1;
 
+    /* At this point, we have selected a state machine for this handshake */
+    conn->is_tls13_state_machine = (conn->actual_protocol_version == S2N_TLS13);
+
     POSIX_GUARD(s2n_conn_set_handshake_type(conn));
 
     /* If this is a HelloRetryRequest, we don't process the ServerHello.
@@ -342,6 +345,9 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_server_extensions_send(conn, &conn->handshake.io));
 
     conn->actual_protocol_version_established = 1;
+
+    /* At this point, we have selected a state machine for this handshake */
+    conn->is_tls13_state_machine = (conn->actual_protocol_version == S2N_TLS13);
 
     return 0;
 }

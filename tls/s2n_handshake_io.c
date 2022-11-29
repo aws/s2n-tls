@@ -852,6 +852,20 @@ message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
     return ACTIVE_MESSAGE(conn);
 }
 
+static S2N_RESULT s2n_execute_handler(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* Ensure the state machine referenced is consistant throughout the handshake */
+    if (conn->actual_protocol_version_established) {
+        RESULT_ENSURE_EQ(IS_TLS13_HANDSHAKE(conn), conn->is_tls13_state_machine);
+    }
+
+    RESULT_GUARD_POSIX(ACTIVE_STATE(conn).handler[conn->mode](conn));
+
+    return S2N_RESULT_OK;
+}
+
 static int s2n_advance_message(struct s2n_connection *conn)
 {
     /* Get the mode: 'C'lient or 'S'erver */
@@ -1190,7 +1204,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         if (record_type == TLS_HANDSHAKE) {
             POSIX_GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
         }
-        POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
+        POSIX_GUARD_RESULT(s2n_execute_handler(conn));
         if (record_type == TLS_HANDSHAKE) {
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
@@ -1315,14 +1329,14 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
     /* Set the client hello version */
     conn->client_hello_version = S2N_SSLv2;
     /* Execute the state machine handler */
-    int r = ACTIVE_STATE(conn).handler[conn->mode](conn);
+    s2n_result r = s2n_execute_handler(conn);
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* We're done with the record, wipe it */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
 
-    WITH_ERROR_BLINDING(conn, POSIX_GUARD(r));
+    WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(r));
 
     conn->in_status = ENCRYPTED;
 
@@ -1531,7 +1545,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn)));
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(s2n_execute_handler(conn)));
 
         /* Advance the state machine */
         POSIX_GUARD_RESULT(s2n_finish_read(conn));
@@ -1549,9 +1563,9 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
      * handler right away. We aren't going to read more handshake data yet or proceed
      * to the next handler because the current message has not finished processing. */
     s2n_errno = S2N_ERR_OK;
-    const int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+    const s2n_result r = s2n_execute_handler(conn);
 
-    if (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(s2n_errno)) {
+    if (s2n_result_is_error(r) && S2N_ERROR_IS_BLOCKING(s2n_errno)) {
         /* If the handler is still waiting for data, return control to the caller. */
         S2N_ERROR_PRESERVE_ERRNO();
     }
@@ -1567,7 +1581,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     }
 
     if (CONNECTION_IS_WRITER(conn)) {
-        POSIX_GUARD(r);
+        POSIX_GUARD_RESULT(r);
 
         /* If we're the writer and handler just finished, update the record header if
          * needed and let the s2n_handshake_write_io write the data to the socket */
@@ -1575,10 +1589,10 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     } else {
-        if (r < S2N_SUCCESS && conn->session_id_len) {
+        if (s2n_result_is_error(r) && conn->session_id_len) {
             s2n_try_delete_session_cache(conn);
         }
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(r));
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(r));
 
         /* The read handler processed the record successfully, we are done with this
          * record. Advance the state machine. */
