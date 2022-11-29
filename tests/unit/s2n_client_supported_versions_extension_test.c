@@ -377,6 +377,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
     }
 
+    /* Since the supported_version extension replaces the version field
+     * in the client hello, for backwards compatibility the version field
+     * should be set to 1.2 even when a higher version is supported. */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
