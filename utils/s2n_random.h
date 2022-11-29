@@ -16,7 +16,6 @@
 #pragma once
 
 #include "crypto/s2n_drbg.h"
-
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 

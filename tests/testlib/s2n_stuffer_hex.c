@@ -16,12 +16,9 @@
 #include <string.h>
 
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
 #include "testlib/s2n_testlib.h"
+#include "utils/s2n_safety.h"
 
 static uint8_t hex[16] = {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
@@ -32,7 +29,7 @@ static uint8_t hex[16] = {
  */
 static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, uint64_t *u)
 {
-    uint8_t hex_data[16] = {0};
+    uint8_t hex_data[16] = { 0 };
     struct s2n_blob b = { .data = hex_data, .size = n / 4 };
 
     POSIX_GUARD(s2n_stuffer_read(stuffer, &b));
