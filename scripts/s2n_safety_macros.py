@@ -27,6 +27,8 @@ header = copyright + """
  * should be in there.
  */
 
+/* clang-format off */
+
 #include "error/s2n_errno.h"
 #include "utils/s2n_ensure.h"
 #include "utils/s2n_result.h"

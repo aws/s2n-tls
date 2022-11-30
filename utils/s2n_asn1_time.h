@@ -34,4 +34,3 @@ struct parser_args {
  * ticks is an output parameter. Returns 0 on success and -1 on failure.
  */
 S2N_RESULT s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len, uint64_t *ticks);
-

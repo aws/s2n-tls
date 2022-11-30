@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_renegotiation_info.h"
+
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
-#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_server_renegotiation_info.h"
+#include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_safety.h"
 
 /**
  * s2n-tls servers do NOT support renegotiation.

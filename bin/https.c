@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
@@ -26,15 +26,17 @@
 static char str_buffer[STRING_LEN];
 static s2n_blocked_status blocked;
 
-#define SEND(...) do { \
-    sprintf(str_buffer, __VA_ARGS__); \
-    POSIX_GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
-} while (0)
+#define SEND(...)                                                              \
+    do {                                                                       \
+        sprintf(str_buffer, __VA_ARGS__);                                      \
+        POSIX_GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
+    } while (0)
 
-#define BUFFER(...) do { \
-    sprintf(str_buffer, __VA_ARGS__); \
-    POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
-} while (0)
+#define BUFFER(...)                                                                                       \
+    do {                                                                                                  \
+        sprintf(str_buffer, __VA_ARGS__);                                                                 \
+        POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *) str_buffer, strlen(str_buffer))); \
+    } while (0)
 
 static int flush(uint32_t left, uint8_t *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked_status)
 {
@@ -52,14 +54,16 @@ static int flush(uint32_t left, uint8_t *buffer, struct s2n_connection *conn, s2
     return S2N_SUCCESS;
 }
 
-#define HEADERS(length) do { \
-    SEND("HTTP/1.1 200 OK\r\n"); \
-    SEND("Content-Length: %u\r\n", length); \
-    SEND("\r\n"); \
-} while (0)
+#define HEADERS(length)                         \
+    do {                                        \
+        SEND("HTTP/1.1 200 OK\r\n");            \
+        SEND("Content-Length: %u\r\n", length); \
+        SEND("\r\n");                           \
+    } while (0)
 
 /* In bench mode, we send some binary output */
-int bench_handler(struct s2n_connection *conn, uint32_t bench) {
+int bench_handler(struct s2n_connection *conn, uint32_t bench)
+{
     HEADERS(bench);
     fprintf(stdout, "Sending %u bytes...\n", bench);
 

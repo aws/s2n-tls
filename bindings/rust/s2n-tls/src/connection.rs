@@ -83,7 +83,7 @@ impl Connection {
     }
 
     fn init_context(&mut self) {
-        let context = Box::new(Context::default());
+        let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {

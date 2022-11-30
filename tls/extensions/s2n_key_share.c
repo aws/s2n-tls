@@ -14,6 +14,7 @@
  */
 
 #include "tls/extensions/s2n_key_share.h"
+
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
