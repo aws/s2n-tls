@@ -160,7 +160,7 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         POSIX_GUARD_RESULT(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
         POSIX_GUARD_RESULT(s2n_map_complete(domain_name_to_cert_map));
     } else {
-        struct certs_by_type *value = (void *) s2n_map_value.data;;
+        struct certs_by_type *value = (void *) s2n_map_value.data;
         if (value->certs[cert_type] == NULL) {
             value->certs[cert_type] = cert_key_pair;
         } else if (config->cert_tiebreak_cb) {
