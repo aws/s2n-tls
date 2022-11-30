@@ -13,14 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_alpn.h"
+
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
-#include "tls/extensions/s2n_server_alpn.h"
+#include "utils/s2n_safety.h"
 
 bool s2n_server_alpn_should_send(struct s2n_connection *conn);
 static int s2n_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out);

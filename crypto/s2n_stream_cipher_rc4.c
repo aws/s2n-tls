@@ -125,7 +125,7 @@ static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 
 #endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
-struct s2n_cipher s2n_rc4 = {
+const struct s2n_cipher s2n_rc4 = {
     .type = S2N_STREAM,
     .key_material_size = 16,
     .io.stream = {

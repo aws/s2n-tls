@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_client_pq_kem.h"
+
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "tls/extensions/s2n_client_pq_kem.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-#include "pq-crypto/s2n_pq.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn);

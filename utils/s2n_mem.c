@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#define  _DEFAULT_SOURCE 1
+#define _DEFAULT_SOURCE 1
 #if defined(S2N_FEATURES_AVAILABLE)
-#include <features.h>
+    #include <features.h>
 #endif
 
 #include <stdint.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "error/s2n_errno.h"
-
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
@@ -131,7 +130,7 @@ static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t
 }
 
 int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
-                          s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
+        s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
 {
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
 
@@ -152,14 +151,14 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE_REF(b);
-    const struct s2n_blob temp = {0};
+    const struct s2n_blob temp = { 0 };
     *b = temp;
     POSIX_GUARD(s2n_realloc(b, size));
     return S2N_SUCCESS;
 }
 
 /* A blob is growable if it is either explicitly marked as such, or if it contains no data */
-bool s2n_blob_is_growable(const struct s2n_blob* b)
+bool s2n_blob_is_growable(const struct s2n_blob *b)
 {
     return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
 }
@@ -179,10 +178,9 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
     /* blob already has space for the request */
     if (size <= b->allocated) {
-
         if (size < b->size) {
             /* Zero the existing blob memory before the we release it */
-            struct s2n_blob slice = {0};
+            struct s2n_blob slice = { 0 };
             POSIX_GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
             POSIX_GUARD(s2n_blob_zero(&slice));
         }
@@ -191,7 +189,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return S2N_SUCCESS;
     }
 
-    struct s2n_blob new_memory = {.data = NULL, .size = size, .allocated = 0, .growable = 1};
+    struct s2n_blob new_memory = { .data = NULL, .size = size, .allocated = 0, .growable = 1 };
     if (s2n_mem_malloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) != 0) {
         S2N_ERROR_PRESERVE_ERRNO();
     }
@@ -220,7 +218,7 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     }
 
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    struct s2n_blob b = {.data = *p_data, .allocated = size, .size = size, .growable = 1};
+    struct s2n_blob b = { .data = *p_data, .allocated = size, .size = size, .growable = 1 };
 
     /* s2n_free() will call free() even if it returns error (for a growable blob).
     ** This makes sure *p_data is not used after free() */
@@ -293,12 +291,13 @@ int s2n_free_without_wipe(struct s2n_blob *b)
         POSIX_ENSURE(s2n_mem_free_cb(b->data, b->allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
-    *b = (struct s2n_blob) {0};
+    *b = (struct s2n_blob){ 0 };
 
     return S2N_SUCCESS;
 }
 
-int s2n_free_or_wipe(struct s2n_blob *b) {
+int s2n_free_or_wipe(struct s2n_blob *b)
+{
     POSIX_ENSURE_REF(b);
     int zero_rc = s2n_blob_zero(b);
     if (b->allocated) {

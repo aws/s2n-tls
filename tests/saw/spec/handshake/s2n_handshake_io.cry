@@ -32,14 +32,18 @@ conn_set_pre_tls13_handshake_type conn = conn'
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
                 ,quic_enabled = conn.quic_enabled
+                ,npn_negotiated = conn.npn_negotiated
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
                                    }
-        handshake_type' = NEGOTIATED || full_handshake ||
+        handshake_type' = NEGOTIATED || full_handshake ||  with_npn ||
                             (if (full_handshake != 0) then
                               perfect_forward_secrecy || ocsp_status || client_auth
                               else zero)
+        with_npn = if conn.npn_negotiated
+                   then WITH_NPN
+                   else zero
         full_handshake  = if (conn.is_caching_enabled /\ ~conn.resume_from_cache)
                           then zero
                           else FULL_HANDSHAKE
@@ -71,6 +75,7 @@ conn_set_tls13_handshake_type conn = conn'
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
                 ,quic_enabled = conn.quic_enabled
+                ,npn_negotiated = conn.npn_negotiated
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
@@ -108,6 +113,7 @@ advance_message conn = conn2
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
                 ,quic_enabled = conn.quic_enabled
+                ,npn_negotiated = conn.npn_negotiated
                 }
         (handshake2 : handshake) = { handshake_type = conn.handshake.handshake_type,
                                      message_number = message_number2 }
@@ -137,6 +143,7 @@ conn_set_handshake_no_client_cert conn = conn2
                 ,early_data_state = conn.early_data_state
                 ,chosen_psk_null = conn.chosen_psk_null
                 ,quic_enabled = conn.quic_enabled
+                ,npn_negotiated = conn.npn_negotiated
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
@@ -215,6 +222,7 @@ type connection = {handshake : handshake
                   ,early_data_state : [32]
                   ,chosen_psk_null : Bit
                   ,quic_enabled : Bit
+                  ,npn_negotiated : Bit
                   }
 
 type handshake = {handshake_type : [32]

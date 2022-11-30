@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_connection.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_connection.h"
 #include "utils/s2n_bitmap.h"
 
 const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };

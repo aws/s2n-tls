@@ -29,7 +29,7 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-RELEASE=3.0.5
+RELEASE=3.0.7
 
 mkdir -p $BUILD_DIR
 cd "$BUILD_DIR"
