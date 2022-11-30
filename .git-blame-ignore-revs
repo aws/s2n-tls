@@ -1,5 +1,13 @@
 # .git-blame-ignore-revs
 # autopep8 python PR3268
 b9dbef317197b2f450b3e963fb4744cc4dc5e087
-# add clang-format of stuffer/
+# add clang-format of stuffer/ (PR #3618)
 918f0791002616f81bf0a5347de83bb0815101ac
+# clang-format `tls/extensions` and enforce in ci (PR #3633)
+ee3df080077242b6b765d02b21da59e4194ee485
+# clang-format `bin/` and enforce in ci (PR #3635)
+49e8ab14672a4c1b479abc442bf1e54f815a6a47
+# clang-format `error/` and enforce in ci (PR #3638)
+f47255051a6d440bd400ed35f3397085a049c000
+# clang-format `api/` and enforce in ci (PR #3637)
+15158a2c37aa04ce69c77fca67f8175ac0b3a799
