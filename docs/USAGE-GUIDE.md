@@ -370,6 +370,14 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 * `s2n_connection_get_server_protocol_version()`: The highest TLS protocol version the server supports.
 * `s2n_connection_get_client_protocol_version()`: The highest TLS protocol version the client advertised.
 
+## Config
+
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+
+### Overriding the Config
+
+Some `s2n_config` settings can be overridden on a specific connection if desired. For example, `s2n_config_append_protocol_preference()` appends a list of ALPN protocols to a `s2n_config`. Calling the `s2n_connection_append_protocol_preference()` API will override the list of ALPN protocols for an individual connection. Not all config APIs have a corresponding connection API so if there is one missing contact us with an explanation on why it is required for your use-case.
+
 ## Security Policies
 
 s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.
@@ -512,7 +520,15 @@ Applications may want to know which certificate was used by a server for authent
 
 Additionally s2n-tls has functions for parsing certificate extensions on a certificate. Use `s2n_cert_get_x509_extension_value_length()` and `s2n_cert_get_x509_extension_value()` to obtain a specific DER encoded certificate extension from a certificate. `s2n_cert_get_utf8_string_from_extension_data_length()` and `s2n_cert_get_utf8_string_from_extension_data()` can be used to obtain a specific UTF8 string representation of a certificate extension instead. These functions will work for both RFC-defined certificate extensions and custom certificate extensions.
 
-### OCSP Stapling
+### Certificate Revocation
+
+Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate's owner can no longer be trusted.
+
+s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer offering the certificate validates the revocation status of its own certificate. This peer can choose not to send a certificate status response, and applications will have to decide whether or not to fail certificate validation in this case. With CRLs, the application checks the revocation status of the certificate itself, without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.
+
+Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you're sure your peer supports OCSP stapling. CRLs should be used if this assumption can't be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you're able to obtain CRLs in advance for all certificates you expect to encounter.
+
+#### OCSP Stapling
 
 Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.
 
@@ -521,6 +537,22 @@ OCSP stapling can be applied to both client and server certificates when using T
 To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_cert_chain_and_key_set_ocsp_data()` to set the raw bytes of the OCSP stapling data.
 
 The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
+
+#### CRL Validation
+
+> Note: the CRL validation feature in s2n-tls is currently considered unstable, meaning the CRL APIs are subject to change in a future release. To access the CRL APIs, include `api/unstable/crl.h`.
+
+Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A validator wishing to verify a certificate obtains a CRL from the CA, validates the CRL, and checks to ensure the certificate is not contained in the list, and therefore has not been revoked by the CA.
+
+The s2n CRL lookup callback must be implemented and set via `s2n_config_set_crl_lookup_cb()` to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain. 
+
+The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. It is not possible in s2n-tls to obtain CRLs in real-time. Applications should load these CRLs into memory, by creating `s2n_crl`s via `s2n_crl_new()`, and adding the obtained CRL data via `s2n_crl_load_pem()`. The `s2n_crl` should be freed via `s2n_crl_free()` when no longer needed.
+
+The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate's issuer with the hash of the CRL's issuer. The certificate's issuer hash is retrieved via `s2n_crl_lookup_get_cert_issuer_hash()`, and the CRL's issuer hash is retrieved via `s2n_crl_get_issuer_hash()`. Once a CRL is found with a matching issuer hash, call `s2n_crl_lookup_set()` to provide s2n-tls with this CRL.
+
+Call `s2n_crl_lookup_ignore()` to ignore a received certificate if its CRL can't be found. This will cause the certificate validation logic to fail with a `S2N_ERR_CRL_LOOKUP_FAILED` error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.
+
+By default, the CRL validation logic will not fail on CRLs that are not yet active, or are expired. Timestamp validation can optionally be performed in the CRL lookup callback by calling `s2n_crl_validate_active()` and `s2n_crl_validate_not_expired()`.
 
 ### Certificate Transparency
 
@@ -681,16 +713,6 @@ And if the maximum fragment length negotiated with the peer is lower than what d
 would normally produce, the lower value will be used.
 
 ## Connection-oriented functions
-
-### s2n\_connection\_set\_config
-
-```c
-int s2n_connection_set_config(struct s2n_connection *conn,
-                              struct s2n_config *config);
-```
-
-**s2n_connection_set_config** Associates a configuration object with a
-connection.
 
 ### s2n\_connection\_set\_fd
 

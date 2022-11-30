@@ -190,7 +190,7 @@ Lastly, s2n-tls studiously avoids locks. s2n-tls is designed to be thread-safe, 
 
 ### Code formatting and commenting
 
-s2n-tls is written in C99. The code formatting and indentation should be relatively clear from reading some s2n-tls source files, but there is also an automated "make indent" target that will indent the s2n-tls sources.
+s2n-tls is written in C99. The code formatting and indentation should be relatively clear from reading some s2n-tls source files, but there is also an automated "make indent" target that will indent the s2n-tls sources. We have a .clang-format file which we are adopting.
 
 There should be no need for comments to explain *what* s2n-tls code is doing; variables and functions should be given clear and human-readable names that make their purpose and intent intuitive. Comments explaining *why* we are doing something are encouraged. Often some context setting is necessary; a reference to an RFC, or a reminder of some critical state that is hard to work directly into the immediate code in a natural way. All comments should be written using C syntax `/* */` and **avoid** C++ comments `//` even though C99 compilers allow `//`.
 
@@ -205,6 +205,7 @@ There is also a brief set of other coding conventions:
 * Duplication of logic is discouraged
 * 4 spaces, no tabs
 * Assuming a terminal that is 120 characters wide is ok
+* Control structures should always include curly braces (even if only one line)
 
 ## Tests
 

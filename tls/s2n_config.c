@@ -1050,3 +1050,11 @@ S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output)
     RESULT_ENSURE(config->wall_clock(config->sys_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     return S2N_RESULT_OK;
 }
+
+int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callback cb, void *ctx)
+{
+    POSIX_ENSURE_REF(config);
+    config->crl_lookup_cb = cb;
+    config->crl_lookup_ctx = ctx;
+    return S2N_SUCCESS;
+}
