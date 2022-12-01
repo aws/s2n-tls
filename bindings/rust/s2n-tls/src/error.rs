@@ -244,6 +244,7 @@ impl Error {
         }
     }
 
+    #[allow(clippy::borrowed_box)]
     /// Returns an [`std::error::Error`] if the error source was [`ErrorSource::Application`],
     /// otherwise returns None.
     pub fn application_error(&self) -> Option<&Box<dyn std::error::Error + Send + Sync + 'static>> {
