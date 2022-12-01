@@ -11,7 +11,6 @@ jobs:
   cppcheck:
     runs-on: ubuntu-latest
     env:
-      GCC_VERSION: 10.4.0
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
       - uses: actions/checkout@v2
@@ -25,7 +24,7 @@ jobs:
         continue-on-error: true
         with:
           path: ${{ env.CPPCHECK_INSTALL_DIR }}
-          key: cppcheck-2.3-${{ env.CPPCHECK_INSTALL_DIR }}
+          key: cppcheck-2.6.3-${{ env.CPPCHECK_INSTALL_DIR }}
 
       - name: Install
         if: steps.cache.outputs.cache-hit != 'true'
