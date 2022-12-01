@@ -18,7 +18,7 @@ jobs:
           - check: 'tests/testlib'
             exclude: ''
           - check: 'tests/unit'
-            exclude:  "\
+            exclude: "\
                       ((s2n_b.*\\.c)|(s2n_cl[^i].*\\.c)|(s2n_tls1[23]_[t-z].*\\.c))|\
                       (s2n_[3a][f-z].*\\.c)|\
                       (s2n_c[^l][a-o][a-n].*\\.c)|\
@@ -74,15 +74,15 @@ jobs:
                       (s2n_[u-z].*\\.c)\
                       "
           - check: 'tls'
-            exclude:  "\
-                      (tls\/s2n_[a-m].*\\.h)|\
-                      (tls\/s2n_[m-z].*\\.h)|\
-                      (tls\/s2n_[a-d].*\\.c)|\
-                      (tls\/s2n_[e-n].*\\.c)|\
-                      (tls\/s2n_[o-r].*\\.c)|\
-                      (tls\/s2n_[s-z].*\\.c)|\
-                      (tls\/extensions.*)\
-                     "
+            exclude: "\
+                      (tls\\/s2n_[a-m].*\\.h)|\
+                      (tls\\/s2n_[m-z].*\\.h)|\
+                      (tls\\/s2n_[a-d].*\\.c)|\
+                      (tls\\/s2n_[e-n].*\\.c)|\
+                      (tls\\/s2n_[o-r].*\\.c)|\
+                      (tls\\/s2n_[s-z].*\\.c)|\
+                      (tls\\/extensions.*)\
+                      "
           - check: 'tls/extensions'
             exclude: ''
           - check: 'utils'
