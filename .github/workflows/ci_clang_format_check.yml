@@ -19,7 +19,6 @@ jobs:
             exclude: ''
           - check: 'tests/unit'
             exclude:  "\
-                      (s2n_[3a][a-e].*\\.c)|\
                       ((s2n_b.*\\.c)|(s2n_cl[^i].*\\.c)|(s2n_tls1[23]_[t-z].*\\.c))|\
                       (s2n_[3a][f-z].*\\.c)|\
                       (s2n_c[^l][a-o][a-n].*\\.c)|\
