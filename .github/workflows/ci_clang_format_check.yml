@@ -18,7 +18,7 @@ jobs:
           - check: 'tests/testlib'
             exclude: ''
           - check: 'tests/unit'
-            exclude: "s2n_[^3a].*\.c"
+            exclude: "s2n_[^3a].*\\.c"
           - check: 'tls'
             exclude: "*"
           - check: 'tls/extensions'
