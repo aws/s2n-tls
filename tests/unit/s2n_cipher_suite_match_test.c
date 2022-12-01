@@ -941,8 +941,6 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
-                    /* Skipped because it is not a chacha20 ciphersuite */
-                    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       
                     /* Skipped because it is not a chacha20 ciphersuite. Is negotiated if chacha20 boosting is disabled.  */
                     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,         
                     /* First chacha20 ciphersuite and is negotiated */
