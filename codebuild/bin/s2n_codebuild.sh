@@ -65,6 +65,16 @@ if [[ -n "$S2N_NO_PQ" ]]; then
     CMAKE_PQ_OPTION="S2N_NO_PQ=True"
 fi
 
+test_linked_libcrypto() {
+    s2n_executable="$1"
+    so_path="${LIBCRYPTO_ROOT}/lib/libcrypto.so"
+    echo "Testing for linked libcrypto: ${so_path}"
+    echo "ldd:"
+    ldd "${s2n_executable}"
+    ldd "${s2n_executable}" | grep "${so_path}" || exit 1
+    echo "Test succeeded!"
+}
+
 setup_apache_server() {
     # Start the apache server if the list of tests isn't defined, meaning all tests
     # are to be run, or if the renegotiate test is included in the list of tests.
@@ -83,11 +93,22 @@ run_integration_v2_tests() {
     make integrationv2
 }
 
+run_unit_tests() {
+    cmake . -Bbuild \
+            -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+            -D${CMAKE_PQ_OPTION} \
+            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
+            -DBUILD_SHARED_LIBS=on
+    cmake --build ./build
+    test_linked_libcrypto ./build/bin/s2nc
+    make -C build test ARGS=-j$(nproc);
+}
+
 # Run Multiple tests on one flag.
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log failure-tests; fi
 
 # Run Individual tests
-if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -D${CMAKE_PQ_OPTION} -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True -DBUILD_SHARED_LIBS=on; cmake --build ./build; make -C build test ARGS=-j$(nproc); fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then run_unit_tests; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "interning" ]]; then ./codebuild/bin/test_libcrypto_interning.sh; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; S2N_NO_SSLYZE=1 make integration ; fi
