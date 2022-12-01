@@ -81,7 +81,7 @@ static S2N_RESULT s2n_test_send_records(struct s2n_connection *conn, struct s2n_
 
 /*
  * Verify that the receiver can receive a byte sent by the sender.
- * In the process, we also verify that the receiver can receiver all previous
+ * In the process, we also verify that the receiver can receive all previous
  * data sent by the sender, since TCP / TLS messages have a guaranteed order.
  */
 static S2N_RESULT s2n_test_basic_recv(struct s2n_connection *sender, struct s2n_connection *receiver)

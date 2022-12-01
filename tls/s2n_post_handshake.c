@@ -102,6 +102,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     /* Parse the header */
     RESULT_GUARD(s2n_handshake_parse_header(message, &message_type, &message_len));
     RESULT_ENSURE(message_len == 0 || s2n_stuffer_data_available(in), S2N_ERR_IO_BLOCKED);
+    RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     /* If the message body is not fragmented, just process it directly from conn->in.
      * This will be the most common case, and does not require us to allocate any new memory.

@@ -399,7 +399,7 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_resize(&conn->in, 0));
 
     POSIX_ENSURE(s2n_stuffer_is_consumed(&conn->post_handshake.in), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
-    POSIX_GUARD(s2n_stuffer_resize(&conn->post_handshake.in, 0));
+    POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
 
     POSIX_POSTCONDITION(s2n_stuffer_validate(&conn->out));
     POSIX_POSTCONDITION(s2n_stuffer_validate(&conn->in));
@@ -564,9 +564,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->secure = secure;
     conn->client = conn->initial;
     conn->server = conn->initial;
-
-    /* Setup resizeable buffers */
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->post_handshake.in, 0));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_init(&conn->psk_params));
     conn->server_keying_material_lifetime = ONE_WEEK_IN_SEC;

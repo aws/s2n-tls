@@ -722,15 +722,21 @@ int main(int argc, char **argv)
 
             /* Test uninitialized */
             for (size_t i = 0; i < 3; i++) {
+                EXPECT_FALSE(conn->post_handshake.in.growable);
+                EXPECT_FALSE(conn->post_handshake.in.alloced);
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
+
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
 
             /* Test with dynamic buffer */
             for (size_t i = 0; i < 3; i++) {
-                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, size));
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->post_handshake.in, size));
+                EXPECT_TRUE(conn->post_handshake.in.growable);
+                EXPECT_TRUE(conn->post_handshake.in.alloced);
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, size);
+
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
@@ -740,6 +746,11 @@ int main(int argc, char **argv)
                 struct s2n_blob static_blob = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&static_blob, conn->post_handshake.header_in,
                         sizeof(conn->post_handshake.header_in)));
+                EXPECT_SUCCESS(s2n_stuffer_init(&conn->post_handshake.in, &static_blob));
+                EXPECT_FALSE(conn->post_handshake.in.growable);
+                EXPECT_FALSE(conn->post_handshake.in.alloced);
+                EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
+
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
@@ -753,15 +764,21 @@ int main(int argc, char **argv)
 
             /* Test uninitialized */
             for (size_t i = 0; i < 3; i++) {
+                EXPECT_FALSE(conn->post_handshake.in.growable);
+                EXPECT_FALSE(conn->post_handshake.in.alloced);
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
+
                 EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
 
             /* Test with dynamic buffer */
             for (size_t i = 0; i < 3; i++) {
-                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, size));
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->post_handshake.in, size));
+                EXPECT_TRUE(conn->post_handshake.in.growable);
+                EXPECT_TRUE(conn->post_handshake.in.alloced);
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, size);
+
                 EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
@@ -771,13 +788,18 @@ int main(int argc, char **argv)
                 struct s2n_blob static_blob = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&static_blob, conn->post_handshake.header_in,
                         sizeof(conn->post_handshake.header_in)));
+                EXPECT_SUCCESS(s2n_stuffer_init(&conn->post_handshake.in, &static_blob));
+                EXPECT_FALSE(conn->post_handshake.in.growable);
+                EXPECT_FALSE(conn->post_handshake.in.alloced);
+                EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
+
                 EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
 
             /* Fails to release if in use */
             {
-                EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->post_handshake.in, 1));
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->post_handshake.in, size));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->post_handshake.in, 1));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_release_buffers(conn),
                         S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
