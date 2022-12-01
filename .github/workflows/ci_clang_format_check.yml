@@ -18,7 +18,7 @@ jobs:
           - check: 'tests/testlib'
             exclude: ''
           - check: 'tls'
-            exclude: '(tls\/s2n_[a-m].*\.h)|(tls\/s2n_[m-z].*\.h)|(tls\/s2n_[a-d].*\.c)|(tls\/s2n_[e-n].*\.c)|(tls\/s2n_[o-r].*\.c)|(tls\/s2n_[s-z].*\.c)|(tls\/extensions*)'
+            exclude: '(tls\/s2n_[a-m].*\.h)|(tls\/s2n_[m-z].*\.h)|(tls\/s2n_[a-d].*\.c)|(tls\/s2n_[e-n].*\.c)|(tls\/s2n_[o-r].*\.c)|(tls\/s2n_[s-z].*\.c)|(tls\/extensions.*)'
           - check: 'tls/extensions'
             exclude: ''
           - check: 'utils'
