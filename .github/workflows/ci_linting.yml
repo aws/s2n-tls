@@ -24,7 +24,7 @@ jobs:
         continue-on-error: true
         with:
           path: ${{ env.CPPCHECK_INSTALL_DIR }}
-          key: cppcheck-2.3-${{ env.CPPCHECK_INSTALL_DIR }}
+          key: cppcheck-2.4.1-${{ env.CPPCHECK_INSTALL_DIR }}
 
       - name: Install
         if: steps.cache.outputs.cache-hit != 'true'
