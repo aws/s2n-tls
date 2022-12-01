@@ -921,6 +921,8 @@ int s2n_security_policies_init()
         POSIX_ENSURE_REF(ecc_preference);
         POSIX_GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
 
+        bool cipher_preferences_has_chacha20_cipher_suite = false;
+
         const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
         if (certificate_signature_preference != NULL) {
             POSIX_GUARD_RESULT(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
@@ -935,12 +937,14 @@ int s2n_security_policies_init()
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
             POSIX_ENSURE_REF(cipher);
 
+            const uint8_t *iana = cipher->iana_value;
+
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 security_policy_selection[i].supports_tls13 = 1;
             }
 
             /* Sanity check that valid tls13 has minimum tls version set correctly */
-            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(cipher->iana_value) ^
+            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(iana) ^
                 (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_SECURITY_POLICY);
 
             if (s2n_cipher_suite_requires_ecc_extension(cipher)) {
@@ -950,6 +954,15 @@ int s2n_security_policies_init()
             if (s2n_cipher_suite_requires_pq_extension(cipher)) {
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
+
+            if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
+                cipher_preferences_has_chacha20_cipher_suite = true;
+            }
+        }
+
+        if (cipher_preference->allow_chacha20_boosting) {
+            /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
+            POSIX_ENSURE(cipher_preferences_has_chacha20_cipher_suite, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));
