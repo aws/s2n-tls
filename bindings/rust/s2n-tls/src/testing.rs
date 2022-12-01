@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    callbacks::{ClientHelloCallback, VerifyHostNameCallback},
+    callbacks::{ClientHelloCallback, ConnectionFuture, VerifyHostNameCallback},
     config::*,
     error, security,
     testing::s2n_tls::Harness,
@@ -10,7 +10,7 @@ use crate::{
 use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
 use core::{sync::atomic::Ordering, task::Poll};
-use std::sync::atomic::AtomicUsize;
+use std::{pin::Pin, sync::atomic::AtomicUsize};
 
 pub mod s2n_tls;
 
@@ -205,6 +205,39 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
     pair
 }
 
+// The Future returned by MockClientHelloHandler.
+//
+// An instance of this Future is stored on the connection and
+// polled to make progress in the async client_hello_callback
+pub struct MockClientHelloFuture {
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
+}
+
+impl ConnectionFuture for MockClientHelloFuture {
+    fn poll(
+        self: Pin<&mut Self>,
+        connection: &mut crate::connection::Connection,
+        _ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), error::Error>> {
+        if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
+            // confirm the callback can access the waker
+            connection.waker().unwrap().wake_by_ref();
+            return Poll::Pending;
+        }
+
+        // Test that the config can be changed
+        connection
+            .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
+            .unwrap();
+
+        // Test that server_name_extension_used can be invoked
+        connection.server_name_extension_used();
+
+        Poll::Ready(Ok(()))
+    }
+}
+
 #[derive(Clone)]
 pub struct MockClientHelloHandler {
     require_pending_count: usize,
@@ -221,24 +254,18 @@ impl MockClientHelloHandler {
 }
 
 impl ClientHelloCallback for MockClientHelloHandler {
-    fn poll_client_hello(
+    fn on_client_hello(
         &self,
-        connection: &mut crate::connection::Connection,
-    ) -> core::task::Poll<Result<(), error::Error>> {
-        if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
-            // confirm the callback can access the waker
-            connection.waker().unwrap().wake_by_ref();
-            return Poll::Pending;
-        }
+        _connection: &mut crate::connection::Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, crate::error::Error> {
+        let fut = MockClientHelloFuture {
+            require_pending_count: self.require_pending_count,
+            invoked: self.invoked.clone(),
+        };
 
-        // Test that the config can be changed
-        connection
-            .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
-            .unwrap();
-
-        // Test that server_name_extension_used can be invoked
-        connection.server_name_extension_used();
-
-        Poll::Ready(Ok(()))
+        // returning `Some` indicates that the client_hello callback is
+        // not yet finished and that the supplied MockClientHelloFuture
+        // needs to be `poll`ed to make progress.
+        Ok(Some(Box::pin(fut)))
     }
 }

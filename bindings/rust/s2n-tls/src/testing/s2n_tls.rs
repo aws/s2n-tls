@@ -330,6 +330,7 @@ mod tests {
             handle.invoked.load(Ordering::SeqCst),
             require_pending_count + 1
         );
+
         Ok(())
     }
 
@@ -346,10 +347,10 @@ mod tests {
             }
         }
         impl ClientHelloCallback for ClientHelloSyncCallback {
-            fn poll_client_hello(
+            fn on_client_hello(
                 &self,
                 connection: &mut crate::connection::Connection,
-            ) -> Poll<Result<(), error::Error>> {
+            ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, crate::error::Error> {
                 // Test that the config can be changed
                 connection
                     .set_config(build_config(&security::DEFAULT_TLS13).unwrap())
@@ -359,7 +360,10 @@ mod tests {
                 connection.server_name_extension_used();
 
                 self.0.fetch_add(1, Ordering::Relaxed);
-                Poll::Ready(Ok(()))
+
+                // returning `None` indicates that the client_hello callback is
+                // finished and the handshake can proceed.
+                Ok(None)
             }
         }
         let callback = ClientHelloSyncCallback::new();

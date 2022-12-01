@@ -91,7 +91,6 @@ static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob)
         struct s2n_blob slice = { 0 };
 
         RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
-        ;
         RESULT_GUARD(s2n_drbg_generate_for_pq_kat_tests(&drbg_for_pq_kats, &slice));
 
         remaining -= slice.size;
