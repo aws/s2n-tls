@@ -17,6 +17,8 @@ jobs:
             exclude: ''
           - check: 'tests/testlib'
             exclude: ''
+          - check: 'tests/unit'
+            exclude: '((s2n_b.*\.c)|(s2n_cl[^i].*\.c)|(s2n_tls1[23]_[t-z].*\.c))|(s2n_[3a][f-z].*\.c)|(s2n_c[^l][a-o][a-n].*\.c)|(s2n_c[^l][a-o][o-z].*\.c)|(s2n_c[^l][p-z].*\.c)|(s2n_client_[a-d].*\.c)|(s2n_client_[e-f].*\.c)|(s2n_client_[g-h].*\.c)|(s2n_client_[i-p].*\.c)|(s2n_client_[q-r].*\.c)|(s2n_client_[s-z][a-e].*\.c)|(s2n_client_[s-z][f-z].*\.c)|(s2n_d.*\.c)|(s2n_ea.*\.c)|(s2n_e[b-c].*\.c)|(s2n_e[d-r].*\.c)|(s2n_e([s-v]|xten[a-d]).*\.c)|(s2n_extension.*\.c)|(s2n_f.*\.c)|(s2n_handshake_[a-i].*\.c)|(s2n_handshake_[j-z].*\.c)|(s2n_ha[o-z].*\.c)|(s2n_h[^a].*\.c)|(s2n_[i-k].*\.c)|(s2n_[l-m].*\.c)|(s2n_[n-o].*\.c)|(s2n_p[a-q].*\.c)|(s2n_p[r-z].*\.c)|(s2n_q.*\.c)|(s2n_r[a-e][a-c4].*\.c)|(s2n_r[a-e][d-z].*\.c)|(s2n_r[f-z].*\.c)|(s2n_s(a.*|[b-e][a-k].*)\.c)|(s2n_self_talk_[a-c].*\.c)|(s2n_self_talk_[d-n].*\.c)|(s2n_self_talk_[o-q].*\.c)|(s2n_self_talk_[s-t].*\.c)|(s2n_se[n-q].*\.c)|(s2n_server_[a-e].*\.c)|(s2n_server_[f-l].*\.c)|(s2n_server_[m-r].*\.c)|(s2n_server_s.*\.c)|(s2n_se[s-z].*\.c)|(s2n_s[f-s].*\.c)|(s2n_s[t-z].*\.c)|(s2n_t[^l].*\.c)|(s2n_tls[^1].*\.c)|(s2n_tls1[23]_[a-c].*\.c)|(s2n_tls1[23]_[d-h].*\.c)|(s2n_tls1[23]_[i-o].*\.c)|(s2n_tls1[23]_[p-r].*\.c)|(s2n_tls1[23]_s.*\.c)|(s2n_[u-z].*\.c)'
           - check: 'tls'
             exclude: '(tls\/s2n_[a-m].*\.h)|(tls\/s2n_[m-z].*\.h)|(tls\/s2n_[a-d].*\.c)|(tls\/s2n_[e-n].*\.c)|(tls\/s2n_[o-r].*\.c)|(tls\/s2n_[s-z].*\.c)|(tls\/extensions.*)'
           - check: 'tls/extensions'
