@@ -45,7 +45,7 @@ struct s2n_crl_lookup;
  * @param context Context for the callback function.
  * @returns 0 on success, -1 on failure.
  */
-typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *context);
+typedef int (*s2n_crl_lookup_callback)(struct s2n_crl_lookup *lookup, void *context);
 
 /**
  * Set a callback to provide CRLs to use for CRL validation.
@@ -55,8 +55,7 @@ typedef int (*s2n_crl_lookup_callback) (struct s2n_crl_lookup *lookup, void *con
  * @param context Context to be passed to the callback function.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure
  */
-S2N_API
-int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callback callback, void *context);
+S2N_API int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callback callback, void *context);
 
 /**
  * Allocates a new `s2n_crl` struct.
@@ -67,8 +66,7 @@ int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callb
  *
  * @return A pointer to the allocated `s2n_crl` struct.
  */
-S2N_API
-struct s2n_crl *s2n_crl_new(void);
+S2N_API struct s2n_crl *s2n_crl_new(void);
 
 /**
  * Loads a CRL with pem data.
@@ -78,8 +76,7 @@ struct s2n_crl *s2n_crl_new(void);
  * @param len The length of the pem data.
  * @return S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-S2N_API
-int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
+S2N_API int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
 
 /**
  * Frees a CRL.
@@ -89,8 +86,7 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len);
  * @param crl The CRL to free.
  * @return S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-S2N_API
-int s2n_crl_free(struct s2n_crl **crl);
+S2N_API int s2n_crl_free(struct s2n_crl **crl);
 
 /**
  * Retrieves the issuer hash of a CRL.
@@ -103,8 +99,7 @@ int s2n_crl_free(struct s2n_crl **crl);
  * @param hash A pointer that will be set to the hash value.
  * @return S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API
-int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
+S2N_API int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
 
 /**
  * Determines if the CRL is currently active.
@@ -116,8 +111,7 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash);
  * @param crl The CRL to validate.
  * @return S2N_SUCCESS if `crl` is active, S2N_FAILURE if `crl` is not active, or the active status cannot be determined.
  */
-S2N_API
-int s2n_crl_validate_active(struct s2n_crl *crl);
+S2N_API int s2n_crl_validate_active(struct s2n_crl *crl);
 
 /**
  * Determines if the CRL has expired.
@@ -131,8 +125,7 @@ int s2n_crl_validate_active(struct s2n_crl *crl);
  * @param crl The CRL to validate.
  * @return S2N_SUCCESS if `crl` has not expired, S2N_FAILURE if `crl` has expired, or the expiration status cannot be determined.
  */
-S2N_API
-int s2n_crl_validate_not_expired(struct s2n_crl *crl);
+S2N_API int s2n_crl_validate_not_expired(struct s2n_crl *crl);
 
 /**
  * Retrieves the issuer hash of the certificate.
@@ -145,8 +138,7 @@ int s2n_crl_validate_not_expired(struct s2n_crl *crl);
  * @param hash A pointer that will be set to the hash value.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API
-int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash);
+S2N_API int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t *hash);
 
 /**
  * Provide s2n-tls with a CRL from the CRL lookup callback.
@@ -161,8 +153,7 @@ int s2n_crl_lookup_get_cert_issuer_hash(struct s2n_crl_lookup *lookup, uint64_t 
  * @param crl The CRL to include in the list of CRLs used to validate the certificate chain.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API
-int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl);
+S2N_API int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl);
 
 /**
  * Skip providing a CRL from the CRL lookup callback.
@@ -177,5 +168,4 @@ int s2n_crl_lookup_set(struct s2n_crl_lookup *lookup, struct s2n_crl *crl);
  * @param lookup The CRL lookup for the given certificate.
  * @return S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API
-int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup);
+S2N_API int s2n_crl_lookup_ignore(struct s2n_crl_lookup *lookup);
