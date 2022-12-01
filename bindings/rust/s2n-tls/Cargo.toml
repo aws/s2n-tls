@@ -18,6 +18,7 @@ bytes = { version = "1", optional = true }
 errno = { version = "0.2" }
 libc = "0.2"
 s2n-tls-sys = { version = "=0.0.20", path = "../s2n-tls-sys", features = ["internal"] }
+pin-project-lite = "0.2"
 
 [dev-dependencies]
 bytes = { version = "1" }

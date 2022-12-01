@@ -22,11 +22,11 @@
 //!   [Connection::waker()](`crate::connection::Connection::waker()`)
 //!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
 
-use crate::{connection::Connection, enums::CallbackResult, error::Error};
+use crate::{config::Config, connection::Connection, enums::CallbackResult, error::Error};
 use core::{mem::ManuallyDrop, ptr::NonNull, task::Poll, time::Duration};
+use pin_project_lite::pin_project;
 use s2n_tls_sys::s2n_connection;
-
-const READY_OK: Poll<Result<(), Error>> = Poll::Ready(Ok(()));
+use std::{future::Future, pin::Pin};
 
 /// Convert the connection pointer provided to a callback into a Connection
 /// useable with the Rust bindings.
@@ -57,68 +57,107 @@ where
 ///
 /// The C-style callback method passed to the underlying s2n-tls implementation
 /// should call this method instead of using the Rust callback implementation
-/// directly. The C-style callback will only execute once, so this method
-/// ensures that the Rust callback implementation is polled until it completes.
+/// directly. The C-style callback will only execute once, so the underlying
+/// poll implementation should ensures that the Rust callback is polled until
+/// it completes.
 ///
-/// Using [`config::set_client_hello_callback`] as an example, the
-/// execution roughly looks like:
+/// Using [`config::set_client_hello_callback`] as an example, the execution
+/// roughly looks like:
 ///
-/// Connection::negotiate                       (Rust)
-/// |   s2n_negotiate                           (C)
-/// |   |   s2n_client_hello_cb                 (C)
-/// |   |   |   trigger_async_callback          (Rust)
-/// |   |   |   |   AsyncCallback::poll         (Rust)
-/// |   |   |   |   +-> return Poll::Pending    (Rust)
-/// |   |   |   +-> return Callback::Success    (Rust)
-/// |   |   +-> return S2N_SUCCESS              (C)
-/// |   +-> return S2N_ERR_T_BLOCKED            (C)
-/// +-> return Poll::Pending                    (Rust)
+/// Connection::poll_negotiate                                    (Rust)
+/// |   s2n_negotiate                                             (C)
+/// |   |   s2n_client_hello_cb                                   (C)
+/// |   |   |   trigger_async_client_hello_callback               (Rust)
+/// |   |   |   |   poll_client_hello_callback                    (Rust)
+/// |   |   |   |   |   ClientHelloCallback::on_client_hello      (Rust)
+/// |   |   |   |   |   +-> return Ok(Some(ConnectionFuture))     (Rust)
+/// |   |   |   |   +-> return Poll::Pending                      (Rust)
+/// |   |   |   +-> return Callback::Success                      (Rust)
+/// |   |   +-> return S2N_SUCCESS                                (C)
+/// |   +-> return S2N_ERR_T_BLOCKED                              (C)
+/// +-> return Poll::Pending                                      (Rust)
 ///
-/// Connection::negotiate                       (Rust)
-/// |   AsyncCallback::poll                     (Rust)
-/// |   +-> return Poll::Pending                (Rust)
-/// +-> return Poll::Pending                    (Rust)
+/// Connection::poll_negotiate                                    (Rust)
+/// |   poll_client_hello_callback                                (Rust)
+/// |   |   ConnectionFuture::poll                                (Rust)
+/// |   |   +-> return Poll::Pending                              (Rust)
+/// |   +-> return Poll::Pending                                  (Rust)
+/// +-> return Poll::Pending                                      (Rust)
 ///
-/// Connection::negotiate                       (Rust)
-/// |   AsyncCallback::poll                     (Rust)
-/// |   +-> return Poll::Ready                  (Rust)
-/// |   s2n_negotiate                           (C)
-/// |                          
+/// Connection::poll_negotiate                                    (Rust)
+/// |   poll_client_hello_callback                                (Rust)
+/// |   |   ConnectionFuture::poll                                (Rust)
+/// |   |   +-> return Poll::Ready                                (Rust)
+/// |   +-> return Poll::Ready                                    (Rust)
+/// |   s2n_negotiate                                             (C)
+/// |
 /// v   ...handshake continues.
 ///
 /// Note that "s2n_client_hello_cb" is only called once.
 /// After the initial call, the retries are handled by the Rust bindings.
 /// s2n_negotiate is not called again until the callback completes.
 ///
-pub(crate) fn trigger_async_callback<T: 'static + AsyncCallback>(
-    mut callback: T,
-    conn: &mut Connection,
-) -> CallbackResult {
+pub(crate) fn trigger_async_client_hello_callback(conn: &mut Connection) -> CallbackResult {
     // Try once first.
-    match callback.poll(conn) {
+    match poll_client_hello_callback(conn, None) {
         // If callback completes, no need for retry.
         Poll::Ready(r) => r.into(),
         // If callback doesn't complete, prepare connection for retry.
-        Poll::Pending => {
-            conn.set_pending_callback(Some(Box::new(callback)));
-            CallbackResult::Success
-        }
+        Poll::Pending => CallbackResult::Success,
     }
 }
 
-/// An asynchronous adapter for an s2n-tls callback.
+/// The Future associated with the async connection callback.
 ///
-/// This trait must be implemented for any asynchronous callbacks
-/// supported by the bindings.
+/// The calling application can provide an instance of [`ConnectionFuture`]
+/// when implementing an async callback, eg. [`ClientHelloCallback`], if it wants
+/// to run an asynchronous operation (disk read, network call). The application
+/// can return an error ([`Err(error::Error::application())`]), to indicate
+/// connection failure.
 ///
-/// Implementations should capture any arguments passed to the callback
-/// so that they will be available for every call to [`AsyncCallback::poll`].
-/// [`AsyncCallback::poll`] should handle retrieving the callback from
-/// the connection or config, passing it the stored arguments,
-/// and calling any "mark done" style methods necessary to unblock the
-/// connection once the callback has succeeded.
-pub(crate) trait AsyncCallback {
-    fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>>;
+/// [`ConfigResolver`] should be used if the application wants to set a new
+/// [`Config`] on the connection.
+pub trait ConnectionFuture {
+    fn poll(
+        self: Pin<&mut Self>,
+        connection: &mut Connection,
+        ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), Error>>;
+}
+
+// For more information on projection:
+// https://doc.rust-lang.org/std/pin/index.html#projections-and-structural-pinning
+pin_project! {
+/// An implementation of [`ConnectionFuture`] which resolves the provided
+/// future and sets the config on the [`connection::Connection`].
+pub struct ConfigResolver<F: Future<Output = Result<Config, Error>>> {
+    #[pin]
+    fut: F,
+}
+}
+
+impl<F: Future<Output = Result<Config, Error>>> ConfigResolver<F> {
+    pub fn new(fut: F) -> Self {
+        ConfigResolver { fut }
+    }
+}
+
+impl<F: Future<Output = Result<Config, Error>>> ConnectionFuture for ConfigResolver<F> {
+    fn poll(
+        self: Pin<&mut Self>,
+        connection: &mut Connection,
+        ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), Error>> {
+        let this = self.project();
+        let config = match this.fut.poll(ctx) {
+            Poll::Ready(config) => config?,
+            Poll::Pending => return Poll::Pending,
+        };
+
+        connection.set_config(config)?;
+
+        Poll::Ready(Ok(()))
+    }
 }
 
 /// A trait for the callback executed after parsing the TLS Client Hello.
@@ -126,22 +165,74 @@ pub(crate) trait AsyncCallback {
 /// Use in conjunction with
 /// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
 pub trait ClientHelloCallback {
-    fn poll_client_hello(&self, connection: &mut Connection) -> Poll<Result<(), Error>>;
+    /// The application can return a `Ok(None)` to resolve the client_hello_callback
+    /// synchronously or return a `Ok(Some(ConnectionFuture))` if it wants to
+    /// run some asynchronous task before resolving the callback.
+    ///
+    /// [`ConfigResolver`], which implements [`ConnectionFuture`] can be
+    /// returned if the application wants to set a new [`Config`] on the connection.
+    ///
+    /// If the server_name is used to configure the connection then the application
+    /// must call [`connection::Connection::server_name_extension_used()`].
+    fn on_client_hello(
+        // this method takes an immutable reference to self to prevent the
+        // Config from being mutated by one connection and then used in another
+        // connection, leading to undefined behavior
+        &self,
+        connection: &mut Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, Error>;
 }
 
-pub(crate) struct AsyncClientHelloCallback {}
-impl AsyncCallback for AsyncClientHelloCallback {
-    fn poll(&mut self, conn: &mut Connection) -> Poll<Result<(), Error>> {
-        let result = conn
-            .config()
-            .as_ref()
-            .and_then(|config| config.context().client_hello_callback.as_ref())
-            .map(|callback| callback.poll_client_hello(conn))
-            .unwrap_or(READY_OK);
-        if result == READY_OK {
-            conn.mark_client_hello_cb_done()?;
+/// Polls the s2n-tls client_hello callback/future to completion.
+pub(crate) fn poll_client_hello_callback(
+    conn: &mut Connection,
+    fut: Option<Pin<Box<dyn ConnectionFuture>>>,
+) -> Poll<Result<(), Error>> {
+    // Poll the connection future.
+    //
+    // If it completes then mark the client_hello_callback done, otherwise
+    // re-set the future back on the Connection.
+    fn poll_async_task(
+        conn: &mut Connection,
+        mut fut: Pin<Box<dyn ConnectionFuture>>,
+    ) -> Poll<Result<(), Error>> {
+        let waker = conn.waker().ok_or(Error::MISSING_WAKER)?.clone();
+        let mut ctx = core::task::Context::from_waker(&waker);
+        match fut.as_mut().poll(conn, &mut ctx) {
+            Poll::Ready(result) => {
+                let result = result.and_then(|_| conn.mark_client_hello_cb_done());
+                Poll::Ready(result)
+            }
+            Poll::Pending => {
+                // replace the client_hello future if it hasn't completed yet
+                conn.set_connection_future(fut);
+                Poll::Pending
+            }
         }
-        result
+    }
+
+    // if there is already a future set on the connection then take it and poll it
+    if let Some(fut) = fut {
+        return poll_async_task(conn, fut);
+    }
+
+    // otherwise call the on_client_hello to make progress.
+    let async_future = conn
+        .config()
+        .as_mut()
+        .and_then(|config| config.context_mut().client_hello_callback.as_mut())
+        .and_then(|callback| callback.on_client_hello(conn).transpose());
+    match async_future {
+        Some(fut) => {
+            let fut = fut?;
+
+            // Store the future on connection. This is Asynchronous resolution.
+            poll_async_task(conn, fut)
+        }
+        None => {
+            // Done with the client_hello_callback. This is Synchronous resolution.
+            Poll::Ready(conn.mark_client_hello_cb_done())
+        }
     }
 }
 
