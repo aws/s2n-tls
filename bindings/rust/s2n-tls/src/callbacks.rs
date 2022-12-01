@@ -67,7 +67,7 @@ where
 /// Connection::poll_negotiate                                    (Rust)
 /// |   s2n_negotiate                                             (C)
 /// |   |   s2n_client_hello_cb                                   (C)
-/// |   |   |   trigger_async_callback                            (Rust)
+/// |   |   |   trigger_async_client_hello_callback               (Rust)
 /// |   |   |   |   poll_client_hello_callback                    (Rust)
 /// |   |   |   |   |   ClientHelloCallback::on_client_hello      (Rust)
 /// |   |   |   |   |   +-> return Ok(Some(ConnectionFuture))     (Rust)
@@ -125,6 +125,8 @@ pub trait ConnectionFuture {
     ) -> Poll<Result<(), Error>>;
 }
 
+// For more information on projection:
+// https://doc.rust-lang.org/std/pin/index.html#projections-and-structural-pinning
 pin_project! {
 /// An implementation of [`ConnectionFuture`] which resolves the provided
 /// future and sets the config on the [`connection::Connection`].
@@ -165,17 +167,17 @@ impl<F: Future<Output = Result<Config, Error>>> ConnectionFuture for ConfigResol
 pub trait ClientHelloCallback {
     /// The application can return a `Ok(None)` to resolve the client_hello_callback
     /// synchronously or return a `Ok(Some(ConnectionFuture))` if it wants to
-    /// run some asynchronous task beforing resolving the callback.
+    /// run some asynchronous task before resolving the callback.
     ///
     /// [`ConfigResolver`], which implements [`ConnectionFuture`] can be
     /// returned if the application wants to set a new [`Config`] on the connection.
     ///
     /// If the server_name is used to configure the connection then the application
-    /// should call [`connection::Connection::server_name_extension_used()`].
+    /// must call [`connection::Connection::server_name_extension_used()`].
     fn on_client_hello(
-        // this should NEVER be a `&mut` since its would be possible to
-        // mutate the Config on the Connection. Since one Config can be
-        // used for multiple Connections that would be undefined-behavior
+        // this method takes an immutable reference to self to prevent the
+        // Config from being mutated by one connection and then used in another
+        // connection, leading to undefined behavior
         &self,
         connection: &mut Connection,
     ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, Error>;
