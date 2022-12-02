@@ -383,8 +383,8 @@ mod tests {
 
     #[test]
     fn failing_client_hello_callback_async() -> Result<(), Error> {
-        let (waker, wake_count) = new_count_waker();
-        let handle = FailingAsyncCHHandler;
+        let (waker, _wake_count) = new_count_waker();
+        let handle = FailingAsyncCHHandler::default();
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
             config.set_client_hello_callback(handle)?;
@@ -410,7 +410,7 @@ mod tests {
         loop {
             match pair.poll() {
                 Poll::Ready(result) => {
-                    let err = result.err().unwrap();
+                    let err = result.expect_err("handshake should fail");
                     let err = err.downcast_ref::<crate::error::Error>().unwrap();
                     err.application_error().unwrap();
                     break;
@@ -418,7 +418,6 @@ mod tests {
                 Poll::Pending => continue,
             }
         }
-        assert_eq!(wake_count, 0);
 
         Ok(())
     }

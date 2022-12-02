@@ -86,25 +86,41 @@ impl ClientHelloCallback for FailingCHHandler {
     }
 }
 
+#[derive(Default)]
 pub struct FailingAsyncCHHandler;
-
 impl ClientHelloCallback for FailingAsyncCHHandler {
     fn on_client_hello(
         &self,
         _connection: &mut crate::connection::Connection,
     ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
-        let fut = FailingCHFuture;
+        let fut = FailingCHFuture::default();
+        println!("----------------- FailingAsyncCHHandler");
         Ok(Some(Box::pin(fut)))
     }
 }
 
-struct FailingCHFuture;
+#[derive(Default)]
+struct FailingCHFuture {
+    pub invoked: Arc<AtomicUsize>,
+}
+
 impl ConnectionFuture for FailingCHFuture {
     fn poll(
         self: Pin<&mut Self>,
-        _connection: &mut crate::connection::Connection,
+        connection: &mut crate::connection::Connection,
         _ctx: &mut core::task::Context,
     ) -> Poll<Result<(), error::Error>> {
+        println!("----------------- FailingCHFuture");
+        // return pending once to simular the async nature of the future and
+        // improve test coverage
+        if self.invoked.fetch_add(1, Ordering::SeqCst) < 1 {
+            // confirm the callback can access the waker
+            connection.waker().unwrap().wake_by_ref();
+            return Poll::Pending;
+        }
+
+        println!("----------------- resolving FailingCHFuture");
+
         let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
         let ret = Err(crate::error::Error::application(Box::new(io_error)));
         Poll::Ready(ret)

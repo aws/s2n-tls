@@ -381,6 +381,7 @@ impl Connection {
         // check if an async task for the client_hello_callback exists and
         // poll it to completion
         if let Some(fut) = self.take_connection_future() {
+            println!("-------poll_negotiate");
             if poll_client_hello_callback(self, Some(fut)).is_pending() {
                 return Poll::Pending;
             }
