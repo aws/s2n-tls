@@ -73,8 +73,8 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     uint32_t message_len = 0;
 
     /* We always start reading from the beginning of the message.
-     * Reset the read progress, but keep the write progress since we
-     * may already have read a partial message.
+     * Reset the read progress, but keep the write progress since
+     * there may already be a partial message stored in `message`.
      */
     RESULT_GUARD_POSIX(s2n_stuffer_reread(message));
 
