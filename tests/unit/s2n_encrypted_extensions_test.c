@@ -13,22 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_rsa_signing.h"
-
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
-
+#include "error/s2n_errno.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/extensions/s2n_server_alpn.h"
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 #include "tls/extensions/s2n_server_server_name.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
-
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)

@@ -13,25 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "tls/s2n_handshake.h"
 
-#include "testlib/s2n_testlib.h"
-
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-#include "tls/s2n_security_policies.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
@@ -58,7 +55,7 @@ static int handle_async(struct s2n_connection *server_conn)
 
     /* Test that not performed pkey can't be applied */
     EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, server_conn),
-                              S2N_ERR_ASYNC_NOT_PERFORMED);
+            S2N_ERR_ASYNC_NOT_PERFORMED);
 
     /* Extract pkey */
     struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(server_conn);
@@ -75,7 +72,7 @@ static int handle_async(struct s2n_connection *server_conn)
     struct s2n_connection *server_conn2 = s2n_connection_new(S2N_SERVER);
     EXPECT_NOT_NULL(server_conn2);
     EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, server_conn2),
-                              S2N_ERR_ASYNC_WRONG_CONNECTION);
+            S2N_ERR_ASYNC_WRONG_CONNECTION);
     EXPECT_SUCCESS(s2n_connection_free(server_conn2));
 
     /* Test that pkey op can be applied to original connection */
@@ -83,7 +80,7 @@ static int handle_async(struct s2n_connection *server_conn)
 
     /* Test that pkey op can't be applied to original connection more than once */
     EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, server_conn),
-                              S2N_ERR_ASYNC_ALREADY_APPLIED);
+            S2N_ERR_ASYNC_ALREADY_APPLIED);
 
     /* Free the pkey op */
     EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
@@ -347,11 +344,11 @@ int main(int argc, char **argv)
 
         /*  Test: RSA cert with RSA PSS signatures */
         if (s2n_is_rsa_pss_signing_supported()) {
-            const struct s2n_signature_scheme* const rsa_pss_rsae_sig_schemes[] = {
-                    /* RSA PSS */
-                    &s2n_rsa_pss_rsae_sha256,
-                    &s2n_rsa_pss_rsae_sha384,
-                    &s2n_rsa_pss_rsae_sha512,
+            const struct s2n_signature_scheme *const rsa_pss_rsae_sig_schemes[] = {
+                /* RSA PSS */
+                &s2n_rsa_pss_rsae_sha256,
+                &s2n_rsa_pss_rsae_sha384,
+                &s2n_rsa_pss_rsae_sha512,
             };
 
             struct s2n_signature_preferences sig_prefs = {
@@ -401,8 +398,7 @@ int main(int argc, char **argv)
         }
 
         /*  Test: RSA_PSS cert with RSA_PSS signatures */
-        if (s2n_is_rsa_pss_certs_supported())
-        {
+        if (s2n_is_rsa_pss_certs_supported()) {
             s2n_enable_tls13_in_test();
 
             struct s2n_config *server_config, *client_config;

@@ -22,24 +22,24 @@
     #define _GNU_SOURCE
 #endif
 
-#include "s2n_test.h"
-#include "utils/s2n_fork_detection.h"
-
 #include <pthread.h>
 #include <sched.h>
 #include <stdio.h>
 #include <sys/wait.h>
 
-#define NUMBER_OF_FGN_TEST_CASES 4
+#include "s2n_test.h"
+#include "utils/s2n_fork_detection.h"
+
+#define NUMBER_OF_FGN_TEST_CASES   4
 #define MAX_NUMBER_OF_TEST_THREADS 2
-#define FORK_LEVEL_FOR_TESTS 2
+#define FORK_LEVEL_FOR_TESTS       2
 /* Before calling s2n_get_fork_generation_number() set the argument to this
  * value to avoid any unlucky collisions
  */
 #define UNEXPECTED_RETURNED_FGN 0xFF
 
-#define CLONE_TEST_NO 0
-#define CLONE_TEST_YES 1
+#define CLONE_TEST_NO                   0
+#define CLONE_TEST_YES                  1
 #define CLONE_TEST_DETERMINE_AT_RUNTIME 2
 
 struct fgn_test_case {
@@ -67,7 +67,7 @@ static void s2n_verify_child_exit_status(pid_t proc_pid)
     EXPECT_EQUAL(WEXITSTATUS(status), EXIT_SUCCESS);
 }
 
-static void * s2n_unit_test_thread_get_fgn(void *expected_fork_generation_number)
+static void *s2n_unit_test_thread_get_fgn(void *expected_fork_generation_number)
 {
     uint64_t return_fork_generation_number = UNEXPECTED_RETURNED_FGN;
     EXPECT_OK(s2n_get_fork_generation_number(&return_fork_generation_number));
@@ -86,7 +86,7 @@ static int s2n_unit_test_thread(uint64_t expected_fork_generation_number)
 
     /* Wait for all threads to finish */
     for (size_t thread_index = 0; thread_index < MAX_NUMBER_OF_TEST_THREADS; thread_index++) {
-       pthread_join(threads[thread_index], NULL);
+        pthread_join(threads[thread_index], NULL);
     }
 
     return S2N_SUCCESS;
@@ -123,8 +123,7 @@ static int s2n_unit_test_fork(uint64_t parent_process_fgn, int fork_level)
          * exit code != EXIT_SUCCESS. We verify this in the parent process.
          */
         exit(EXIT_SUCCESS);
-    }
-    else {
+    } else {
         s2n_verify_child_exit_status(proc_pid);
 
         /* Verify stability */
@@ -161,8 +160,7 @@ static int s2n_unit_test_fork_check_threads_first(uint64_t parent_process_fgn)
          * exit code != EXIT_SUCCESS. We verify this in the parent process.
          */
         exit(EXIT_SUCCESS);
-    }
-    else {
+    } else {
         s2n_verify_child_exit_status(proc_pid);
 
         /* Verify stability */
@@ -248,10 +246,8 @@ static int s2n_unit_tests_common(struct fgn_test_case *test_case)
     if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
         EXPECT_EQUAL((s2n_is_madv_wipeonfork_supported() == true) || (s2n_is_map_inherit_zero_supported() == true), true);
         EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
-    }
-    else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
-        if ((s2n_is_madv_wipeonfork_supported() == true) ||
-            (s2n_is_map_inherit_zero_supported() == true)) {
+    } else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
+        if ((s2n_is_madv_wipeonfork_supported() == true) || (s2n_is_map_inherit_zero_supported() == true)) {
             EXPECT_EQUAL(s2n_unit_test_clone(return_fork_generation_number), S2N_SUCCESS);
         }
     }
@@ -318,10 +314,10 @@ static int s2n_test_case_map_inherit_zero_cb(struct fgn_test_case *test_case)
 }
 
 struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
-    {"Default fork detect mechanisms.", s2n_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME},
-    {"Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, CLONE_TEST_NO},
-    {"Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, CLONE_TEST_YES},
-    {"Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES}
+    { "Default fork detect mechanisms.", s2n_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME },
+    { "Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, CLONE_TEST_NO },
+    { "Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, CLONE_TEST_YES },
+    { "Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES }
 };
 
 int main(int argc, char **argv)
@@ -337,10 +333,9 @@ int main(int argc, char **argv)
      * s2n_get_fork_generation_number(). Hence, it is important that childs are
      * created before calling into the fork detection code.
      */
-    pid_t proc_pids[NUMBER_OF_FGN_TEST_CASES] = {0};
+    pid_t proc_pids[NUMBER_OF_FGN_TEST_CASES] = { 0 };
 
     for (size_t i = 0; i < NUMBER_OF_FGN_TEST_CASES; i++) {
-
         proc_pids[i] = fork();
         EXPECT_TRUE(proc_pids[i] >= 0);
 
@@ -354,8 +349,7 @@ int main(int argc, char **argv)
              * Also prevents child from creating more childs.
              */
             exit(EXIT_SUCCESS);
-        }
-        else {
+        } else {
             s2n_verify_child_exit_status(proc_pids[i]);
         }
     }

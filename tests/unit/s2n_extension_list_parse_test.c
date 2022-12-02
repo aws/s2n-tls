@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type.h"
 
@@ -40,32 +39,33 @@ static int s2n_extension_send_no_data(struct s2n_connection *conn, struct s2n_st
 }
 
 const s2n_extension_type test_extension = {
-        .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
-        .is_response = false,
-        .send = s2n_extension_send_test_data,
-        .recv = s2n_extension_recv_unimplemented,
-        .should_send = s2n_extension_always_send,
-        .if_missing = s2n_extension_noop_if_missing,
+    .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
+    .is_response = false,
+    .send = s2n_extension_send_test_data,
+    .recv = s2n_extension_recv_unimplemented,
+    .should_send = s2n_extension_always_send,
+    .if_missing = s2n_extension_noop_if_missing,
 };
 
-#define EXPECT_PARSED_EXTENSION_EQUAL(list, type, d, n) do {                    \
-    s2n_extension_type_id id;                                                   \
-    EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));        \
-    EXPECT_NOT_NULL(list.parsed_extensions[id].extension.data);                 \
-    EXPECT_EQUAL(list.parsed_extensions[id].extension.size, n);                 \
-    EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions[id].extension.data, d, n);    \
-} while(0)
+#define EXPECT_PARSED_EXTENSION_EQUAL(list, type, d, n)                          \
+    do {                                                                         \
+        s2n_extension_type_id id;                                                \
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));     \
+        EXPECT_NOT_NULL(list.parsed_extensions[id].extension.data);              \
+        EXPECT_EQUAL(list.parsed_extensions[id].extension.size, n);              \
+        EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions[id].extension.data, d, n); \
+    } while (0)
 
-#define EXPECT_RAW_EQUAL(list, stuffer)                                         \
-    EXPECT_EQUAL(list.raw.data, stuffer.blob.data + sizeof(uint16_t));          \
+#define EXPECT_RAW_EQUAL(list, stuffer)                                \
+    EXPECT_EQUAL(list.raw.data, stuffer.blob.data + sizeof(uint16_t)); \
     EXPECT_EQUAL(list.raw.size, stuffer.high_water_mark - sizeof(uint16_t))
 
-#define CLEAR_PARSED_EXTENSION(list, type) do {                                 \
-    s2n_extension_type_id id;                                                   \
-    EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));        \
-    list.parsed_extensions[id] = EMPTY_PARSED_EXTENSIONS[0];                    \
-} while(0)
-
+#define CLEAR_PARSED_EXTENSION(list, type)                                   \
+    do {                                                                     \
+        s2n_extension_type_id id;                                            \
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id)); \
+        list.parsed_extensions[id] = EMPTY_PARSED_EXTENSIONS[0];             \
+    } while (0)
 
 int main()
 {
@@ -190,7 +190,7 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
@@ -219,7 +219,7 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 0));
@@ -245,7 +245,7 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&empty_test_extension, conn, &stuffer));
@@ -274,7 +274,7 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extension - use grease value as type */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, S2N_UNKNOWN_EXTENSION_IANA));
@@ -300,7 +300,7 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
@@ -323,7 +323,7 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&empty_test_extension, conn, &stuffer));
@@ -352,7 +352,7 @@ int main()
         test_extension_3.send = s2n_extension_send_other_test_data;
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
@@ -392,7 +392,7 @@ int main()
         test_extension_3.iana_value = TLS_EXTENSION_ALPN;
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size = {0};
+        struct s2n_stuffer_reservation extension_list_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));

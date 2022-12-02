@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "tls/s2n_kem_preferences.h"
-#include "tls/s2n_tls_parameters.h"
+
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
+#include "tls/s2n_tls_parameters.h"
 
 int main(int argc, char **argv)
 {
@@ -27,17 +28,17 @@ int main(int argc, char **argv)
 
     {
         const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_kyber_512_r3,
+            &s2n_secp256r1_kyber_512_r3,
 #if EVP_APIS_SUPPORTED
-                &s2n_x25519_kyber_512_r3,
+            &s2n_x25519_kyber_512_r3,
 #endif
         };
 
         const struct s2n_kem_preferences test_prefs = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups),
-                .tls13_kem_groups = test_kem_groups,
+            .kem_count = 0,
+            .kems = NULL,
+            .tls13_kem_group_count = s2n_array_len(test_kem_groups),
+            .tls13_kem_groups = test_kem_groups,
         };
 
         EXPECT_TRUE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3));
@@ -47,7 +48,6 @@ int main(int argc, char **argv)
 #else
         EXPECT_FALSE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3));
 #endif
-
     }
 
     END_TEST();

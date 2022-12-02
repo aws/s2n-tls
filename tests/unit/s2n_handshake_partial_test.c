@@ -15,11 +15,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_handshake.h"
-
-#include "tls/s2n_tls.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_tls.h"
 
 static S2N_RESULT s2n_get_test_client_and_server(struct s2n_connection **client_conn, struct s2n_connection **server_conn,
         struct s2n_config *config)

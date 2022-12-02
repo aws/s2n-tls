@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_extension_type.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_extension_type.h"
 #include "tls/extensions/s2n_extension_type_lists.h"
-#include "utils/s2n_bitmap.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_bitmap.h"
 
 #define S2N_TEST_DATA_LEN 20
 
@@ -46,12 +46,12 @@ static int test_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 }
 
 const s2n_extension_type test_extension_type = {
-        .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
-        .is_response = false,
-        .send = test_send,
-        .recv = test_recv,
-        .should_send = s2n_extension_always_send,
-        .if_missing = s2n_extension_noop_if_missing,
+    .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
+    .is_response = false,
+    .send = test_send,
+    .recv = test_recv,
+    .should_send = s2n_extension_always_send,
+    .if_missing = s2n_extension_noop_if_missing,
 };
 
 int main()
@@ -220,6 +220,7 @@ int main()
 
     /* Test s2n_extension_send */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* null check tests */
         {
             struct s2n_connection conn = { 0 };
@@ -362,6 +363,7 @@ int main()
 
     /* Test s2n_extension_is_missing */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* null check tests */
         {
             struct s2n_connection conn = { 0 };
@@ -459,8 +461,7 @@ int main()
                 EXPECT_NOT_NULL(list);
                 for (size_t ext_i = 0; ext_i < list->count; ext_i++) {
                     type = list->extension_types[ext_i];
-                    EXPECT_TRUE(type->minimum_version == 0 ||
-                            type->minimum_version >= S2N_TLS13);
+                    EXPECT_TRUE(type->minimum_version == 0 || type->minimum_version >= S2N_TLS13);
                 }
             }
         }

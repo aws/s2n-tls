@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "tls/s2n_handshake_hashes.h"
 
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 
 /* Needed for s2n_handshake_get_hash_state_ptr */

@@ -14,10 +14,8 @@
  */
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "utils/s2n_result.h"
 
 /* Get access to s2n_handshake_read_io */
