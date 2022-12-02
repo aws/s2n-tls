@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "tls/s2n_crypto.h"
 
+#include "api/s2n.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
@@ -29,7 +29,7 @@ S2N_RESULT s2n_crypto_parameters_new(struct s2n_crypto_parameters **new_params)
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crypto_parameters)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
 
-    DEFER_CLEANUP(struct s2n_crypto_parameters *params = (struct s2n_crypto_parameters*)(void*) mem.data,
+    DEFER_CLEANUP(struct s2n_crypto_parameters *params = (struct s2n_crypto_parameters *) (void *) mem.data,
             s2n_crypto_parameters_free);
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
@@ -62,13 +62,12 @@ S2N_RESULT s2n_crypto_parameters_wipe(struct s2n_crypto_parameters *params)
     /* Wipe the keys for reuse */
     struct s2n_session_key client_key = params->client_key;
     struct s2n_session_key server_key = params->server_key;
-    if (params->cipher_suite && params->cipher_suite->record_alg &&
-            params->cipher_suite->record_alg->cipher && params->cipher_suite->record_alg->cipher->destroy_key) {
+    if (params->cipher_suite && params->cipher_suite->record_alg && params->cipher_suite->record_alg->cipher && params->cipher_suite->record_alg->cipher->destroy_key) {
         RESULT_GUARD_POSIX(params->cipher_suite->record_alg->cipher->destroy_key(&params->client_key));
         RESULT_GUARD_POSIX(params->cipher_suite->record_alg->cipher->destroy_key(&params->server_key));
     }
 
-    *params = (struct s2n_crypto_parameters) { 0 };
+    *params = (struct s2n_crypto_parameters){ 0 };
 
     params->client_record_mac = client_state;
     params->server_record_mac = server_state;

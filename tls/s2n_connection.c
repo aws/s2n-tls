@@ -13,40 +13,36 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_connection.h"
+
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/param.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/param.h>
 
 #include "api/s2n.h"
-#include <stdbool.h>
-
+#include "crypto/s2n_certificate.h"
+#include "crypto/s2n_cipher.h"
+#include "crypto/s2n_crypto.h"
 #include "crypto/s2n_fips.h"
-
+#include "crypto/s2n_openssl_x509.h"
 #include "error/s2n_errno.h"
-
 #include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_kem.h"
 #include "tls/s2n_internal.h"
+#include "tls/s2n_kem.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
-#include "crypto/s2n_certificate.h"
-#include "crypto/s2n_cipher.h"
-#include "crypto/s2n_crypto.h"
-#include "crypto/s2n_openssl_x509.h"
-
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
 #include "utils/s2n_mem.h"
@@ -56,7 +52,7 @@
 #include "utils/s2n_timer.h"
 
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
-#define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
+#define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
 
 /* Allocates and initializes memory for a new connection.
  *
@@ -64,14 +60,14 @@
  * initialized in `s2n_connection_wipe` where possible. */
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
-    struct s2n_blob blob = {0};
+    struct s2n_blob blob = { 0 };
     PTR_GUARD_POSIX(s2n_alloc(&blob, sizeof(struct s2n_connection)));
     PTR_GUARD_POSIX(s2n_blob_zero(&blob));
 
     /* Cast 'through' void to acknowledge that we are changing alignment,
      * which is ok, as blob.data is always aligned.
      */
-    struct s2n_connection* conn = (struct s2n_connection *)(void *)blob.data;
+    struct s2n_connection *conn = (struct s2n_connection *) (void *) blob.data;
 
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
@@ -79,19 +75,19 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->mode = mode;
 
     /* Allocate the fixed-size stuffers */
-    blob = (struct s2n_blob) {0};
+    blob = (struct s2n_blob){ 0 };
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->alert_in_data, S2N_ALERT_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->alert_in, &blob));
 
-    blob = (struct s2n_blob) {0};
+    blob = (struct s2n_blob){ 0 };
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->reader_alert_out_data, S2N_ALERT_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->reader_alert_out, &blob));
 
-    blob = (struct s2n_blob) {0};
+    blob = (struct s2n_blob){ 0 };
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->writer_alert_out_data, S2N_ALERT_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->writer_alert_out, &blob));
 
-    blob = (struct s2n_blob) {0};
+    blob = (struct s2n_blob){ 0 };
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
@@ -102,7 +98,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that
      */
-    blob = (struct s2n_blob) {0};
+    blob = (struct s2n_blob){ 0 };
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->header_in_data, S2N_TLS_RECORD_HEADER_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->header_in, &blob));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->out, 0));
@@ -169,7 +165,7 @@ static int s2n_connection_free_managed_recv_io(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
 
     if (conn->managed_recv_io) {
-        POSIX_GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
+        POSIX_GUARD(s2n_free_object((uint8_t **) &conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
         conn->managed_recv_io = false;
         conn->recv = NULL;
     }
@@ -181,7 +177,7 @@ static int s2n_connection_free_managed_send_io(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
 
     if (conn->managed_send_io) {
-        POSIX_GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
+        POSIX_GUARD(s2n_free_object((uint8_t **) &conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
         conn->managed_send_io = false;
         conn->send = NULL;
     }
@@ -197,10 +193,10 @@ static int s2n_connection_free_managed_io(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_io(struct s2n_connection *conn)
 {
-    if (s2n_connection_is_managed_corked(conn) && conn->recv){
+    if (s2n_connection_is_managed_corked(conn) && conn->recv) {
         POSIX_GUARD(s2n_socket_read_restore(conn));
     }
-    if (s2n_connection_is_managed_corked(conn) && conn->send){
+    if (s2n_connection_is_managed_corked(conn) && conn->send) {
         POSIX_GUARD(s2n_socket_write_restore(conn));
     }
 
@@ -222,8 +218,7 @@ static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *
     }
 
     /* complete match */
-    if (strlen(conn->server_name) == len &&
-            strncasecmp(conn->server_name, host_name, len) == 0) {
+    if (strlen(conn->server_name) == len && strncasecmp(conn->server_name, host_name, len) == 0) {
         return 1;
     }
 
@@ -235,8 +230,7 @@ static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *
             return 0;
         }
 
-        if (strlen(suffix) == len - 1 &&
-                strncasecmp(suffix, host_name + 1, len - 1) == 0) {
+        if (strlen(suffix) == len - 1 && strncasecmp(suffix, host_name + 1, len - 1) == 0) {
             return 1;
         }
     }
@@ -277,7 +271,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->cookie));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->initial));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->secure));
-    POSIX_GUARD(s2n_free_object((uint8_t **)&conn, sizeof(struct s2n_connection)));
+    POSIX_GUARD(s2n_free_object((uint8_t **) &conn, sizeof(struct s2n_connection)));
 
     return 0;
 }
@@ -308,8 +302,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     if (config->disable_x509_validation || dont_need_x509_validation) {
         POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
-    }
-    else {
+    } else {
         POSIX_GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
         if (!conn->verify_host_fn_overridden) {
             if (config->verify_host != NULL) {
@@ -445,14 +438,14 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
-    struct s2n_stuffer alert_in = {0};
-    struct s2n_stuffer reader_alert_out = {0};
-    struct s2n_stuffer writer_alert_out = {0};
-    struct s2n_stuffer client_ticket_to_decrypt = {0};
-    struct s2n_stuffer handshake_io = {0};
-    struct s2n_stuffer header_in = {0};
-    struct s2n_stuffer in = {0};
-    struct s2n_stuffer out = {0};
+    struct s2n_stuffer alert_in = { 0 };
+    struct s2n_stuffer reader_alert_out = { 0 };
+    struct s2n_stuffer writer_alert_out = { 0 };
+    struct s2n_stuffer client_ticket_to_decrypt = { 0 };
+    struct s2n_stuffer handshake_io = { 0 };
+    struct s2n_stuffer header_in = { 0 };
+    struct s2n_stuffer in = { 0 };
+    struct s2n_stuffer out = { 0 };
 
     /* Some required structures might have been freed to conserve memory between handshakes.
      * Restore them.
@@ -523,9 +516,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress"
+#if S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Waddress"
 #endif
     POSIX_CHECKED_MEMCPY(&alert_in, &conn->alert_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&reader_alert_out, &conn->reader_alert_out, sizeof(struct s2n_stuffer));
@@ -535,8 +528,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&in, &conn->in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&out, &conn->out, sizeof(struct s2n_stuffer));
-#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
-#pragma GCC diagnostic pop
+#if S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    #pragma GCC diagnostic pop
 #endif
 
     POSIX_GUARD(s2n_connection_zero(conn, mode, config));
@@ -569,8 +562,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
         conn->server_protocol_version = s2n_highest_protocol_version;
         conn->client_protocol_version = s2n_unknown_protocol_version;
         conn->actual_protocol_version = s2n_unknown_protocol_version;
-    }
-    else {
+    } else {
         /* For clients, also set actual_protocol_version.  Record generation uses that value for the initial */
         /* ClientHello record version. Not all servers ignore the record version in ClientHello. */
         conn->server_protocol_version = s2n_unknown_protocol_version;
@@ -700,7 +692,6 @@ int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const 
 
     POSIX_ENSURE_REF(*signature_preferences);
     return 0;
-
 }
 
 int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct s2n_ecc_preferences **ecc_preferences)
@@ -719,7 +710,6 @@ int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct
 
     POSIX_ENSURE_REF(*ecc_preferences);
     return 0;
-
 }
 
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
@@ -763,14 +753,14 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
-    struct s2n_blob ctx_mem = {0};
+    struct s2n_blob ctx_mem = { 0 };
     struct s2n_socket_read_io_context *peer_socket_ctx;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
     POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
-    peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx = (struct s2n_socket_read_io_context *) (void *) ctx_mem.data;
     peer_socket_ctx->fd = rfd;
 
     POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_socket_read));
@@ -798,13 +788,13 @@ int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
 
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
-    struct s2n_blob ctx_mem = {0};
+    struct s2n_blob ctx_mem = { 0 };
     struct s2n_socket_write_io_context *peer_socket_ctx;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
-    peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx = (struct s2n_socket_write_io_context *) (void *) ctx_mem.data;
     peer_socket_ctx->fd = wfd;
 
     POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_socket_write));
@@ -883,13 +873,12 @@ int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *f
 
     /* ensure we've negotiated a cipher suite */
     POSIX_ENSURE(
-        memcmp(
-            conn->secure->cipher_suite->iana_value,
-            s2n_null_cipher_suite.iana_value,
-            sizeof(s2n_null_cipher_suite.iana_value)
-        ) != 0,
-        S2N_ERR_INVALID_STATE
-    );
+            memcmp(
+                    conn->secure->cipher_suite->iana_value,
+                    s2n_null_cipher_suite.iana_value,
+                    sizeof(s2n_null_cipher_suite.iana_value))
+                    != 0,
+            S2N_ERR_INVALID_STATE);
 
     const uint8_t *iana_value = conn->secure->cipher_suite->iana_value;
     *first = iana_value[0];
@@ -1065,8 +1054,8 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
     return 0;
 }
 
-#define ONE_S  INT64_C(1000000000)
-#define TEN_S  INT64_C(10000000000)
+#define ONE_S INT64_C(1000000000)
+#define TEN_S INT64_C(10000000000)
 
 uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 {
@@ -1095,7 +1084,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
     int error_code = s2n_errno;
     int error_type = s2n_error_get_type(error_code);
 
-    switch(error_type) {
+    switch (error_type) {
         case S2N_ERR_T_OK:
             /* Ignore no error */
             return S2N_RESULT_OK;
@@ -1106,7 +1095,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
             break;
     }
 
-    switch(error_code) {
+    switch (error_code) {
         /* Don't invoke blinding on some of the common errors.
          *
          * Be careful adding new errors here. Disabling blinding for an
@@ -1148,19 +1137,18 @@ int s2n_connection_kill(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_timer_start(conn->config, &conn->write_timer));
 
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-        struct timespec sleep_time = {.tv_sec = conn->delay / ONE_S,.tv_nsec = conn->delay % ONE_S };
+        struct timespec sleep_time = { .tv_sec = conn->delay / ONE_S, .tv_nsec = conn->delay % ONE_S };
         int r;
 
         do {
             r = nanosleep(&sleep_time, &sleep_time);
-        }
-        while (r != 0);
+        } while (r != 0);
     }
 
     return 0;
 }
 
-const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t * length)
+const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)
 {
     PTR_ENSURE_REF(conn);
     PTR_ENSURE_REF(length);
@@ -1226,7 +1214,8 @@ int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uin
     return 0;
 }
 
-int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn verify_host_fn, void *data) {
+int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn verify_host_fn, void *data)
+{
     POSIX_ENSURE_REF(conn);
 
     conn->verify_host_fn = verify_host_fn;
@@ -1346,7 +1335,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
      * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
      */
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx),
-                  s2n_openssl_x509_stack_pop_free);
+            s2n_openssl_x509_stack_pop_free);
     POSIX_ENSURE_REF(cert_chain_validated);
 
     for (size_t cert_idx = 0; cert_idx < sk_X509_num(cert_chain_validated); cert_idx++) {
@@ -1359,7 +1348,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
         struct s2n_blob mem = { 0 };
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
 
-        struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
+        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
         POSIX_ENSURE_REF(new_node);
 
         new_node->next = NULL;
@@ -1478,7 +1467,8 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
 /*
  * Gets the config set on the connection.
  */
-int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config) {
+int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config)
+{
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(config);
 

@@ -14,14 +14,15 @@
  */
 
 #include "tls/s2n_cipher_preferences.h"
-#include "api/s2n.h"
+
 #include <stdint.h>
 #include <strings.h>
+
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
-
-#include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
 /* clang-format off */

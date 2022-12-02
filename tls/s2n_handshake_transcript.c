@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13_handshake.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_blob.h"
 
 /* Length of the synthetic message header */
-#define MESSAGE_HASH_HEADER_LENGTH  4
+#define MESSAGE_HASH_HEADER_LENGTH 4
 
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
@@ -45,8 +43,7 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
         POSIX_GUARD(s2n_hash_update(&hashes->sha1, data->data, data->size));
     }
 
-    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
-                                       s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
+    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) && s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
 
     if (md5_sha1_required) {
         /* The MD5_SHA1 hash can still be used for TLS 1.0 and 1.1 in FIPS mode for 
@@ -91,7 +88,7 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     uint8_t hash_digest_length = keys.size;
 
     /* Create the MessageHash (our synthetic message) */
-    uint8_t msghdr[MESSAGE_HASH_HEADER_LENGTH] = {0};
+    uint8_t msghdr[MESSAGE_HASH_HEADER_LENGTH] = { 0 };
     msghdr[0] = TLS_MESSAGE_HASH;
     msghdr[MESSAGE_HASH_HEADER_LENGTH - 1] = hash_digest_length;
 
@@ -105,7 +102,7 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_handshake_reset_hash_state(conn, keys.hash_algorithm));
 
     /* Step 2: Update the transcript with the synthetic message */
-    struct s2n_blob msg_blob = {0};
+    struct s2n_blob msg_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&msg_blob, msghdr, MESSAGE_HASH_HEADER_LENGTH));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
