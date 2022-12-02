@@ -378,25 +378,55 @@ impl Connection {
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
-        // check if an async task for the client_hello_callback exists and
-        // poll it to completion
-        if let Some(fut) = self.take_connection_future() {
-            println!("-------poll_negotiate");
-            // if poll_client_hello_callback(self, Some(fut)).is_pending() {
-            //     return Poll::Pending;
-            // }
+        loop {
+            // check if an async task exists and poll it to completion
+            if let Some(fut) = self.take_connection_future() {
+                match Self::poll_async_task(self, fut) {
+                    Poll::Ready(res) => {
+                        // Handle the result from the connection future
+                        // - happy case: continue to calling s2n_negotiate and make
+                        //               progress on the handshake
+                        // - error case: if the callback returned an error then abort
+                        //               the handshake
+                        if let Err(err) = res {
+                            return Poll::Ready(Err(err));
+                        }
+                    }
+                    Poll::Pending => return Poll::Pending,
+                }
+            }
 
-            match poll_client_hello_callback(self, Some(fut)) {
-                Poll::Ready(Ok(_)) => (),
-                Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
-                Poll::Pending => return Poll::Pending,
+            let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
+
+            match res {
+                Poll::Ready(res) => return Poll::Ready(res.map(|_| self)),
+                Poll::Pending => {
+                    // if there is no connection_future then return, otherwise continue
+                    // looping and awaiting the future
+                    if self.context_mut().connection_future.is_none() {
+                        return Poll::Pending;
+                    }
+                }
             }
         }
+    }
 
-        unsafe {
-            s2n_negotiate(self.connection.as_ptr(), &mut blocked)
-                .into_poll()
-                .map_ok(|_| self)
+    // Poll the connection future.
+    //
+    // If the future returns Pending, then re-set it back on the Connection.
+    fn poll_async_task(
+        conn: &mut Connection,
+        mut fut: InternalConnectionFuture,
+    ) -> Poll<Result<(), Error>> {
+        let waker = conn.waker().ok_or(Error::MISSING_WAKER)?.clone();
+        let mut ctx = core::task::Context::from_waker(&waker);
+        match fut.poll(conn, &mut ctx) {
+            Poll::Ready(result) => Poll::Ready(result),
+            Poll::Pending => {
+                // replace the future if it hasn't completed yet
+                conn.set_connection_future(fut);
+                Poll::Pending
+            }
         }
     }
 
@@ -534,13 +564,13 @@ impl Connection {
     ///
     /// If the Future returns `Poll::Pending` and has not completed, then it
     /// should be re-set using [`Self::set_connection_future()`]
-    pub(crate) fn take_connection_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
+    pub(crate) fn take_connection_future(&mut self) -> Option<InternalConnectionFuture> {
         let ctx = self.context_mut();
         ctx.connection_future.take()
     }
 
     /// Sets a `connection_future` on the connection context.
-    pub(crate) fn set_connection_future(&mut self, f: Pin<Box<dyn ConnectionFuture>>) {
+    pub(crate) fn set_connection_future(&mut self, f: InternalConnectionFuture) {
         let ctx = self.context_mut();
         debug_assert!(ctx.connection_future.is_none());
 
@@ -636,10 +666,38 @@ impl Connection {
     }
 }
 
+// Captures the type of ConnectionFuture and executes future specific
+// tasks.
+//
+// As an example, we need to call `mark_client_hello_cb_done` when the
+// client_hello callback returns [`Poll::Ready`] to make progress on
+// the handshake.
+pub(crate) enum InternalConnectionFuture {
+    ClientHello(Pin<Box<dyn ConnectionFuture>>),
+}
+
+impl InternalConnectionFuture {
+    fn poll(
+        &mut self,
+        conn: &mut Connection,
+        ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), Error>> {
+        let InternalConnectionFuture::ClientHello(fut) = self;
+        match fut.as_mut().poll(conn, ctx) {
+            Poll::Ready(res) => {
+                // mark the client_hello callback finished
+                conn.mark_client_hello_cb_done()?;
+                Poll::Ready(res)
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
-    connection_future: Option<Pin<Box<dyn ConnectionFuture>>>,
+    connection_future: Option<InternalConnectionFuture>,
 }
 
 #[cfg(feature = "quic")]

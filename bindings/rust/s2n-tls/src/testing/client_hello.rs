@@ -127,6 +127,14 @@ impl ConnectionFuture for FailingCHFuture {
     }
 }
 
+impl Drop for FailingCHFuture {
+    // return pending once to simular the async nature of the future and
+    // improve test coverage
+    fn drop(&mut self) {
+        assert!(self.invoked.load(Ordering::SeqCst) >= 1);
+    }
+}
+
 #[derive(Debug)]
 pub struct CustomError;
 

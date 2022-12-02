@@ -326,9 +326,17 @@ mod tests {
         loop {
             match pair.poll() {
                 Poll::Ready(result) => {
-                    let err = result.err().unwrap();
-                    let err = err.downcast_ref::<crate::error::Error>().unwrap();
-                    err.application_error().unwrap();
+                    let err = result.expect_err("handshake should fail");
+
+                    // the underlying error should be the custom error the application provided
+                    let s2n_err = err.downcast_ref::<crate::error::Error>().unwrap();
+                    let app_err = s2n_err.application_error().unwrap();
+                    let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
+                    let _custom_err = io_err
+                        .get_ref()
+                        .unwrap()
+                        .downcast_ref::<CustomError>()
+                        .unwrap();
                     break;
                 }
                 Poll::Pending => continue,
