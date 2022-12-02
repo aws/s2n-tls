@@ -23,6 +23,7 @@
 struct s2n_cipher_preferences {
     uint8_t count;
     struct s2n_cipher_suite **suites;
+    bool allow_chacha20_boosting;
 };
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
@@ -125,4 +126,3 @@ extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26;
 
 extern const struct s2n_cipher_preferences cipher_preferences_null;
-
