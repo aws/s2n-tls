@@ -90,15 +90,15 @@ static S2N_RESULT s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, str
     const struct s2n_kem *chosen_kem = NULL;
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
-        if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-                    kem_preferences->kem_count, &chosen_kem)
+        if (s2n_choose_kem_without_peer_pref_list(
+                    cipher_suite->iana_value, kem_preferences->kems, kem_preferences->kem_count, &chosen_kem)
                 != S2N_SUCCESS) {
             return S2N_RESULT_OK;
         }
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
-        if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems,
-                    kem_preferences->kem_count, &chosen_kem)
+        if (s2n_choose_kem_with_peer_pref_list(
+                    cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems, kem_preferences->kem_count, &chosen_kem)
                 != S2N_SUCCESS) {
             return S2N_RESULT_OK;
         }

@@ -709,7 +709,9 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
 
         if (memcmp(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
             /* Check to see if the key has expired */
-            if (now >= ticket_key->intro_timestamp + config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {
+            if (now >= ticket_key->intro_timestamp
+                            + config->encrypt_decrypt_key_lifetime_in_nanos
+                            + config->decrypt_key_lifetime_in_nanos) {
                 s2n_config_wipe_expired_ticket_crypto_keys(config, i);
 
                 return NULL;
@@ -929,7 +931,9 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
 
     for (uint32_t i = 0; i < ticket_keys_len; i++) {
         POSIX_GUARD_RESULT(s2n_set_get(config->ticket_keys, i, (void **) &ticket_key));
-        if (now >= ticket_key->intro_timestamp + config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {
+        if (now >= ticket_key->intro_timestamp
+                        + config->encrypt_decrypt_key_lifetime_in_nanos
+                        + config->decrypt_key_lifetime_in_nanos) {
             expired_keys_index[num_of_expired_keys] = i;
             num_of_expired_keys++;
         }

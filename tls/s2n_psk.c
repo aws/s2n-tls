@@ -135,7 +135,7 @@ static S2N_RESULT s2n_psk_offered_psk_size(struct s2n_psk *psk, uint32_t *size)
 {
     *size = sizeof(uint16_t)   /* identity size */
             + sizeof(uint32_t) /* obfuscated ticket age */
-            + sizeof(uint8_t) /* binder size */;
+            + sizeof(uint8_t); /* binder size */
 
     RESULT_GUARD_POSIX(s2n_add_overflow(*size, psk->identity.size, size));
 
