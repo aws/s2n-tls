@@ -285,7 +285,11 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
                     POSIX_CHECKED_MEMSET(&peer_cn, 0, peer_cn_size);
 
                     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
-                    if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING || ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING || ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING || ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING || ASN1_STRING_type(common_name) == V_ASN1_BMPSTRING) {
+                    if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING
+                            || ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING
+                            || ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING
+                            || ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING
+                            || ASN1_STRING_type(common_name) == V_ASN1_BMPSTRING) {
                         size_t len = (size_t) ASN1_STRING_length(common_name);
 
                         POSIX_ENSURE_LTE(len, sizeof(peer_cn) - 1);
