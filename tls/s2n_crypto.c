@@ -62,7 +62,10 @@ S2N_RESULT s2n_crypto_parameters_wipe(struct s2n_crypto_parameters *params)
     /* Wipe the keys for reuse */
     struct s2n_session_key client_key = params->client_key;
     struct s2n_session_key server_key = params->server_key;
-    if (params->cipher_suite && params->cipher_suite->record_alg && params->cipher_suite->record_alg->cipher && params->cipher_suite->record_alg->cipher->destroy_key) {
+    if (params->cipher_suite
+            && params->cipher_suite->record_alg
+            && params->cipher_suite->record_alg->cipher
+            && params->cipher_suite->record_alg->cipher->destroy_key) {
         RESULT_GUARD_POSIX(params->cipher_suite->record_alg->cipher->destroy_key(&params->client_key));
         RESULT_GUARD_POSIX(params->cipher_suite->record_alg->cipher->destroy_key(&params->server_key));
     }

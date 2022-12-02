@@ -43,7 +43,9 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
         POSIX_GUARD(s2n_hash_update(&hashes->sha1, data->data, data->size));
     }
 
-    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) && s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
+    const uint8_t md5_sha1_required =
+            (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)
+                    && s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
 
     if (md5_sha1_required) {
         /* The MD5_SHA1 hash can still be used for TLS 1.0 and 1.1 in FIPS mode for 

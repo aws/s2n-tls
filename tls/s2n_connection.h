@@ -236,8 +236,10 @@ struct s2n_connection {
     struct s2n_stuffer header_in;
     struct s2n_stuffer in;
     struct s2n_stuffer out;
-    enum { ENCRYPTED,
-        PLAINTEXT } in_status;
+    enum {
+        ENCRYPTED,
+        PLAINTEXT
+    } in_status;
 
     /* How much of the current user buffer have we already
      * encrypted and sent or have pending for the wire but have

@@ -832,7 +832,10 @@ static const char *tls13_handshake_type_names[] = {
 #define ACTIVE_MESSAGE(conn) ACTIVE_HANDSHAKES(conn)[(conn)->handshake.handshake_type][(conn)->handshake.message_number]
 
 #define ACTIVE_STATE(conn) ACTIVE_STATE_MACHINE(conn)[ACTIVE_MESSAGE((conn))]
-#define CCS_STATE(conn)    (((conn)->mode == S2N_CLIENT) ? ACTIVE_STATE_MACHINE(conn)[SERVER_CHANGE_CIPHER_SPEC] : ACTIVE_STATE_MACHINE(conn)[CLIENT_CHANGE_CIPHER_SPEC])
+
+#define CCS_STATE(conn) (((conn)->mode == S2N_CLIENT) ?                 \
+                ACTIVE_STATE_MACHINE(conn)[SERVER_CHANGE_CIPHER_SPEC] : \
+                ACTIVE_STATE_MACHINE(conn)[CLIENT_CHANGE_CIPHER_SPEC])
 
 #define EXPECTED_RECORD_TYPE(conn)  ACTIVE_STATE(conn).record_type
 #define EXPECTED_MESSAGE_TYPE(conn) ACTIVE_STATE(conn).message_type
