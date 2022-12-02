@@ -15,9 +15,8 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
+#include "tls/s2n_tls.h"
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
 
@@ -195,9 +194,9 @@ int main(int argc, char **argv)
 
         /* Manually append the "renegotiation_info" extension to the original list. */
         uint8_t extension[] = {
-                0xff, 0x01, /* extension type: renegotiation_info */
-                0x00, 0x01, /* extension length: 1 */
-                0x00, /* renegotiated_connection length: 0 */
+            0xff, 0x01, /* extension type: renegotiation_info */
+            0x00, 0x01, /* extension length: 1 */
+            0x00,       /* renegotiated_connection length: 0 */
         };
         size_t client_hello_size = server_conn->client_hello.raw_message.size;
         size_t old_extensions_size = server_conn->client_hello.extensions.raw.size;
@@ -249,6 +248,7 @@ int main(int argc, char **argv)
      *#    ClientHello, containing the saved client_verify_data.
      */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Send client_verify_data */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
 
         /* Verify if_missing throws error */
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.if_missing(server_conn),
-                    S2N_ERR_MISSING_EXTENSION);
+                S2N_ERR_MISSING_EXTENSION);
 
         /* Verify server marks extension as missing when processing client hello */
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_MISSING_EXTENSION);
@@ -439,12 +439,12 @@ int main(int argc, char **argv)
 
         /* Construct a security policy that will write the SCSV like a regular cipher suite */
         struct s2n_cipher_suite forced_scsv = {
-                .available = true,
-                .iana_value = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV },
+            .available = true,
+            .iana_value = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV },
         };
         struct s2n_cipher_suite *cipher_suites[] = {
-                &forced_scsv,
-                &s2n_ecdhe_rsa_with_aes_128_gcm_sha256
+            &forced_scsv,
+            &s2n_ecdhe_rsa_with_aes_128_gcm_sha256
         };
         struct s2n_cipher_preferences cipher_preferences = { .suites = cipher_suites, .count = s2n_array_len(cipher_suites) };
         struct s2n_security_policy security_policy = *config->security_policy;

@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_max_frag_len.h"
 #include "tls/s2n_tls.h"
 

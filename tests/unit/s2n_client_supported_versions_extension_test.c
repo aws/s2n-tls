@@ -26,16 +26,18 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
-#define PROTOCOL_VERSION_ALERT 70
+#define PROTOCOL_VERSION_ALERT                     70
 #define GREASED_SUPPORTED_VERSION_EXTENSION_VALUES 0x0A0A, 0x1A1A, 0x2A2A, 0x3A3A, 0x4A4A, 0x5A5A, 0x6A6A, 0x7A7A, 0x8A8A, 0x9A9A, 0xAAAA, 0xBABA, 0xCACA, 0xDADA, 0xEAEA, 0xFAFA
 
-int get_alert(struct s2n_connection *conn) {
+int get_alert(struct s2n_connection *conn)
+{
     uint8_t error[2];
     POSIX_GUARD(s2n_stuffer_read_bytes(&conn->reader_alert_out, error, 2));
     return error[1];
 }
 
-int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length) {
+int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length)
+{
     POSIX_GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
     for (int i = 0; i < length; i++) {
@@ -403,7 +405,7 @@ int main(int argc, char **argv)
      *# described in Section 4.2.1.
      */
     if (s2n_is_tls13_fully_supported()) {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,

@@ -13,20 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "api/s2n.h"
-
+#include "error/s2n_errno.h"
 #include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 s2n_cert_public_key public_key;
@@ -110,6 +108,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_send_cert_chain sends extensions */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Test: extensions only sent for >= TLS1.3 */
         {
             struct s2n_connection *conn;
@@ -182,7 +181,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
                 EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
                 EXPECT_PARSED_EXTENSION_LIST_EMPTY(extensions);
-            } while(s2n_stuffer_data_available(&stuffer));
+            } while (s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -190,6 +189,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_x509_validator_validate_cert_chain handles the output of s2n_send_cert_chain */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Test: with no extensions */
         {
             struct s2n_connection *conn;
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            struct s2n_stuffer_reservation size = {0};
+            struct s2n_stuffer_reservation size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
             EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
             EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, setup_conn, &stuffer));
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 
         /* Test: extensions only processed on first certificate */
         {
-            struct s2n_stuffer_reservation size = {0};
+            struct s2n_stuffer_reservation size = { 0 };
 
             /* Extensions on second cert ignored */
             {

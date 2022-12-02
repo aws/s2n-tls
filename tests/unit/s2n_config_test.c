@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
+#include "tls/s2n_config.h"
+
 #include <stdlib.h>
+
+#include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "crypto/s2n_fips.h"
-
-#include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_record.h"
-
 #include "unstable/npn.h"
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
@@ -162,7 +161,8 @@ int main(int argc, char **argv)
 
         /* Safety check */
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(
-                NULL, s2n_test_select_psk_identity_callback, &context), S2N_ERR_NULL);
+                                          NULL, s2n_test_select_psk_identity_callback, &context),
+                S2N_ERR_NULL);
         EXPECT_NULL(config->psk_selection_cb);
         EXPECT_NULL(config->psk_selection_ctx);
 
@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 
     /*Test s2n_connection_set_config */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Test that tickets_to_send is set correctly */
         {
             struct s2n_connection *conn = NULL;
@@ -286,8 +287,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_get_ctx(config, &returned_context));
         EXPECT_NOT_NULL(returned_context);
 
-        EXPECT_EQUAL(*((uint8_t *)returned_context), context);
-        EXPECT_NOT_EQUAL(*((uint8_t *)returned_context), other);
+        EXPECT_EQUAL(*((uint8_t *) returned_context), context);
+        EXPECT_NOT_EQUAL(*((uint8_t *) returned_context), other);
 
         EXPECT_SUCCESS(s2n_config_free(config));
     }
@@ -319,7 +320,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(s2n_config_get_single_default_cert(config));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_extension_data(config, S2N_EXTENSION_OCSP_STAPLING,
-                    extension_data, sizeof(extension_data)), S2N_ERR_CERT_OWNERSHIP);
+                                              extension_data, sizeof(extension_data)),
+                    S2N_ERR_CERT_OWNERSHIP);
             EXPECT_EQUAL(s2n_config_get_single_default_cert(config)->ocsp_status.size, 0);
             EXPECT_EQUAL(chain->ocsp_status.size, 0);
         }
@@ -327,6 +329,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_free_cert_chain_and_key */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Chain owned by application */
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -418,6 +421,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_set_cert_chain_and_key_defaults */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Succeeds if chains owned by app */
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_1 = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -452,7 +456,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cert_chain_and_key_defaults(
-                    config, &chain, 1), S2N_ERR_CERT_OWNERSHIP);
+                                              config, &chain, 1),
+                    S2N_ERR_CERT_OWNERSHIP);
         }
     }
 
@@ -549,7 +554,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->renegotiate_request_ctx, NULL);
     }
 
-     /* Test s2n_config_set_npn */
+    /* Test s2n_config_set_npn */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);

@@ -15,11 +15,10 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/extensions/s2n_client_psk.h"
-#include "tls/s2n_tls13.h"
+#include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 static S2N_RESULT s2n_set_early_data_app_protocol(struct s2n_connection *conn, struct s2n_blob *app_protocol)
 {
@@ -27,7 +26,7 @@ static S2N_RESULT s2n_set_early_data_app_protocol(struct s2n_connection *conn, s
     RESULT_ENSURE_REF(app_protocol);
 
     struct s2n_psk *psk = NULL;
-    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
     RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(psk, app_protocol->data, app_protocol->size));
     return S2N_RESULT_OK;
 }
@@ -226,6 +225,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_early_data_indiction_send */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Set MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS handshake type flags */
         {
             struct s2n_config *config = s2n_config_new();
@@ -289,6 +289,7 @@ int main(int argc, char **argv)
 
     /* Test state transitions */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* When early data not enabled on client */
         {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);

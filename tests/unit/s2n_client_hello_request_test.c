@@ -15,13 +15,12 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_tls.h"
 
 static const uint8_t hello_request_msg[] = {
     /* message header */
-    TLS_HELLO_REQUEST,    /* msg_type = hello_request */
-    0, 0, 0,              /* length = 0 */
+    TLS_HELLO_REQUEST, /* msg_type = hello_request */
+    0, 0, 0,           /* length = 0 */
     /* empty message body */
 };
 

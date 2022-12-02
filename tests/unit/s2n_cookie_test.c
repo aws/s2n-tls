@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_cookie.h"
+
 #include <sys/param.h>
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_handshake_type.h"
-#include "tls/extensions/s2n_cookie.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
@@ -142,7 +142,7 @@ int main()
         EXPECT_SUCCESS(s2n_client_cookie_extension.recv(server_conn, &client_extension));
     }
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
             s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));

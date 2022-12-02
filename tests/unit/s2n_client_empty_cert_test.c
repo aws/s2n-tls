@@ -14,12 +14,11 @@
  */
 
 #include <stdint.h>
+
 #include "api/s2n.h"
-
 #include "s2n_test.h"
-
-#include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
