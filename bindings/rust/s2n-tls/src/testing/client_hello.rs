@@ -74,6 +74,9 @@ impl ClientHelloCallback for MockClientHelloHandler {
     }
 }
 
+// A ClientHelloCallback which returns a Asynchronous task, which
+// eventually returns an error.
+#[derive(Default)]
 pub struct FailingCHHandler;
 
 impl ClientHelloCallback for FailingCHHandler {
@@ -94,11 +97,11 @@ impl ClientHelloCallback for FailingAsyncCHHandler {
         _connection: &mut crate::connection::Connection,
     ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
         let fut = FailingCHFuture::default();
-        println!("----------------- FailingAsyncCHHandler");
         Ok(Some(Box::pin(fut)))
     }
 }
 
+// A ClientHelloCallback which returns a synchronous error.
 #[derive(Default)]
 struct FailingCHFuture {
     pub invoked: Arc<AtomicUsize>,
@@ -110,16 +113,11 @@ impl ConnectionFuture for FailingCHFuture {
         connection: &mut crate::connection::Connection,
         _ctx: &mut core::task::Context,
     ) -> Poll<Result<(), error::Error>> {
-        println!("----------------- FailingCHFuture");
-        // return pending once to simular the async nature of the future and
-        // improve test coverage
         if self.invoked.fetch_add(1, Ordering::SeqCst) < 1 {
             // confirm the callback can access the waker
             connection.waker().unwrap().wake_by_ref();
             return Poll::Pending;
         }
-
-        println!("----------------- resolving FailingCHFuture");
 
         let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
         let ret = Err(crate::error::Error::application(Box::new(io_error)));
@@ -128,7 +126,7 @@ impl ConnectionFuture for FailingCHFuture {
 }
 
 impl Drop for FailingCHFuture {
-    // return pending once to simular the async nature of the future and
+    // return pending once to simulate the async nature of the future and
     // improve test coverage
     fn drop(&mut self) {
         assert!(self.invoked.load(Ordering::SeqCst) >= 1);

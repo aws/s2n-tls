@@ -216,7 +216,7 @@ fn on_client_hello_callback(conn: &mut Connection) -> Poll<Result<(), Error>> {
             // the application.
             let fut = fut.unwrap_or_else(|err| Box::pin(ErrorFuture { error: Some(err) }));
 
-            // The callback returned a future so store it on the on
+            // The callback returned a future so store it on the
             // connection. This is Asynchronous resolution.
             conn.set_connection_future(InternalConnectionFuture::ClientHello(fut));
             Poll::Pending

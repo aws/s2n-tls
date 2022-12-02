@@ -564,7 +564,7 @@ impl Connection {
     ///
     /// If the Future returns `Poll::Pending` and has not completed, then it
     /// should be re-set using [`Self::set_connection_future()`]
-    pub(crate) fn take_connection_future(&mut self) -> Option<InternalConnectionFuture> {
+    fn take_connection_future(&mut self) -> Option<InternalConnectionFuture> {
         let ctx = self.context_mut();
         ctx.connection_future.take()
     }

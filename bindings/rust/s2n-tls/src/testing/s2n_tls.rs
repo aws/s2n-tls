@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn failing_client_hello_callback_sync() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
-        let handle = FailingCHHandler;
+        let handle = FailingCHHandler::default();
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
             config.set_client_hello_callback(handle)?;
