@@ -13,18 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
+#include "tls/s2n_async_pkey.h"
 
 #include "api/s2n.h"
-
 #include "error/s2n_errno.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
-#include "tls/s2n_async_pkey.h"
 
 struct s2n_async_pkey_op *pkey_op = NULL;
 
@@ -39,7 +37,7 @@ const uint32_t test_decrypted_size = sizeof(test_decrypted_data);
 
 uint8_t offload_callback_count = 0;
 
-typedef int (async_handler)(struct s2n_connection *conn);
+typedef int(async_handler)(struct s2n_connection *conn);
 
 /* Declaring a flag to check if sign operation is called at least once for all cipher_suites
  * while performing handshake through handler (async_handler_sign_with_different_pkey_and_apply) */
@@ -243,7 +241,7 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_SUCCESS(s2n_hash_digest(&digest, expected_digest.data, expected_digest.size));
     EXPECT_SUCCESS(s2n_hash_free(&digest));
 
-    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */ 
+    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input1.data, input1.size));
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input2.data, input2.size));
 
@@ -279,7 +277,7 @@ int async_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pk
     struct s2n_blob input_buffer2 = { 0 };
     EXPECT_SUCCESS(s2n_alloc(&input_buffer2, input_size));
 
-    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */ 
+    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer1.data, input_buffer1.size));
     EXPECT_BYTEARRAY_EQUAL(input_buffer1.data, test_encrypted_data, test_encrypted_size);
 
@@ -338,7 +336,7 @@ int async_pkey_invalid_input_callback(struct s2n_connection *conn, struct s2n_as
     uint8_t placeholder_buffer[] = { 0x0, 0x0, 0x0, 0x0 };
 
     /* Buffer too small to contain data. */
-    EXPECT_FAILURE(s2n_async_pkey_op_get_input(op, placeholder_buffer, input_size-1));
+    EXPECT_FAILURE(s2n_async_pkey_op_get_input(op, placeholder_buffer, input_size - 1));
 
     EXPECT_FAILURE(s2n_async_pkey_op_set_output(op, NULL, test_signature_size));
     offload_callback_count++;
@@ -349,7 +347,7 @@ int async_pkey_invalid_input_callback(struct s2n_connection *conn, struct s2n_as
 int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *signature)
 {
     FAIL_MSG("Invalid async pkey callback was invoked. The callback should never be invoked if there was an earlier"
-            " failure in the async_pkey_op.");
+             " failure in the async_pkey_op.");
     return S2N_FAILURE;
 }
 

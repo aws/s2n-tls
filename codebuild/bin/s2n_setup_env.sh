@@ -22,7 +22,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${BUILD_S2N:=false}"
 : "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
-: "${TESTS:=integration}"
+: "${TESTS:=unit}"
 : "${S2N_COVERAGE:=false}"
 : "${LD_LIBRARY_PATH:=NONE}"
 
