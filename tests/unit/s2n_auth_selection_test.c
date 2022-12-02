@@ -13,37 +13,35 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_auth_selection.h"
+
 #include "api/s2n.h"
-
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-
-#include "tls/s2n_auth_selection.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_signature_scheme.h"
 
-#define RSA_AUTH_CIPHER_SUITE &s2n_dhe_rsa_with_3des_ede_cbc_sha
+#define RSA_AUTH_CIPHER_SUITE   &s2n_dhe_rsa_with_3des_ede_cbc_sha
 #define ECDSA_AUTH_CIPHER_SUITE &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
-#define NO_AUTH_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
+#define NO_AUTH_CIPHER_SUITE    &s2n_tls13_aes_128_gcm_sha256
 
-#define RSA_PKCS1_SIG_SCHEME &s2n_rsa_pkcs1_md5_sha1
-#define RSA_PSS_PSS_SIG_SCHEME &s2n_rsa_pss_pss_sha256
-#define RSA_PSS_RSAE_SIG_SCHEME &s2n_rsa_pss_rsae_sha256
-#define ECDSA_SIG_SCHEME &s2n_ecdsa_secp384r1_sha384
+#define RSA_PKCS1_SIG_SCHEME         &s2n_rsa_pkcs1_md5_sha1
+#define RSA_PSS_PSS_SIG_SCHEME       &s2n_rsa_pss_pss_sha256
+#define RSA_PSS_RSAE_SIG_SCHEME      &s2n_rsa_pss_rsae_sha256
+#define ECDSA_SIG_SCHEME             &s2n_ecdsa_secp384r1_sha384
 #define ECDSA_SIG_SCHEME_OTHER_CURVE &s2n_ecdsa_secp256r1_sha256
 
 #define EXPECT_SUCCESS_IF_RSA_PSS_CERTS_SUPPORTED(x) \
-    if ( s2n_is_rsa_pss_certs_supported() ) { \
-        EXPECT_SUCCESS(x); \
-    } else { \
-        EXPECT_FAILURE(x); \
-    } \
+    if (s2n_is_rsa_pss_certs_supported()) {          \
+        EXPECT_SUCCESS(x);                           \
+    } else {                                         \
+        EXPECT_FAILURE(x);                           \
+    }
 
 static int s2n_test_auth_combo(struct s2n_connection *conn,
         struct s2n_cipher_suite *cipher_suite, const struct s2n_signature_scheme *sig_scheme,
