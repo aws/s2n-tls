@@ -9,7 +9,10 @@ on:
 
 jobs:
   cppcheck:
-    runs-on: ubuntu-latest
+    # ubuntu-latest introduced a newer gcc version that cannot compile cppcheck 2.3
+    # TODO: upgrade to latest cppcheck and revert to ubuntu-latest
+    #       see https://github.com/aws/s2n-tls/issues/3656
+    runs-on: ubuntu-20.04
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
@@ -24,7 +27,7 @@ jobs:
         continue-on-error: true
         with:
           path: ${{ env.CPPCHECK_INSTALL_DIR }}
-          key: cppcheck-2.6.3-${{ env.CPPCHECK_INSTALL_DIR }}
+          key: cppcheck-2.3-${{ env.CPPCHECK_INSTALL_DIR }}
 
       - name: Install
         if: steps.cache.outputs.cache-hit != 'true'
