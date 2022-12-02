@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include <string.h>
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
@@ -38,9 +38,9 @@ int main(int argc, char **argv)
     /* Check whitespace reading */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -71,9 +71,9 @@ int main(int argc, char **argv)
     /* Check read_until, rewinding, and expecting */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 

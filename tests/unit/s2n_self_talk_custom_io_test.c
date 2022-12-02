@@ -13,23 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include <sys/wait.h>
-#include <unistd.h>
-#include <signal.h>
-#include <stdint.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
+#include <stdint.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
-
-#include "utils/s2n_random.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "utils/s2n_random.h"
 
 #define MAX_BUF_SIZE 10000
 
@@ -152,7 +148,7 @@ int main(int argc, char **argv)
         } while (blocked);
 
         /* Shutdown after negotiating */
-        uint8_t server_shutdown=0;
+        uint8_t server_shutdown = 0;
         do {
             int ret;
 
@@ -196,7 +192,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_certs));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
-                                                    S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+                S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_certs, chain_and_key));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_certs));

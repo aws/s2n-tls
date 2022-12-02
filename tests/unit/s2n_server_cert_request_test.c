@@ -14,11 +14,10 @@
  */
 
 #include "api/s2n.h"
-
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_tls.h"
-#include "stuffer/s2n_stuffer.h"
-#include "s2n_test.h"
 
 /*
  * Definitions in s2n_server_cert_request.c

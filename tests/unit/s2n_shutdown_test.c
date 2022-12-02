@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_alerts.h"
 #include "tls/s2n_shutdown.c"
+
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_alerts.h"
 
 #define ALERT_LEN (sizeof(uint16_t))
 
@@ -26,12 +25,11 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const uint8_t close_notify_alert[] = {  2 /* AlertLevel = fatal */,
-                                            0 /* AlertDescription = close_notify */ };
+    const uint8_t close_notify_alert[] = { 2 /* AlertLevel = fatal */,
+        0 /* AlertDescription = close_notify */ };
 
     /* Test s2n_shutdown */
     {
-
         /* Await close_notify if close_notify_received is not set */
         {
             struct s2n_connection *conn;
@@ -90,7 +88,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
         }
-
     }
 
     END_TEST();

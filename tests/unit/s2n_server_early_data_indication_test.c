@@ -15,11 +15,10 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "utils/s2n_array.h"
-
 #include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_array.h"
 
 static S2N_RESULT s2n_exchange_hellos(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
@@ -68,6 +67,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_early_data_indication_is_missing */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* No-op if early data not requested */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
     /* Test state transitions */
     {
-        const char* security_policy = "20190801";
+        const char *security_policy = "20190801";
         struct s2n_cipher_suite *expected_cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         /* When early data not requested */
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
-       /*
+        /*
         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
         *= type=test
         *# A server which receives an "early_data" extension MUST behave in one

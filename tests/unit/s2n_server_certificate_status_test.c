@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_certificate_status.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_server_certificate_status.h"
 
 const uint8_t ocsp_data[] = "OCSP DATA";
 struct s2n_cert_chain_and_key *chain_and_key;

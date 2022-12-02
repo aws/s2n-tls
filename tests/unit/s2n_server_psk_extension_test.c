@@ -13,16 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_hmac.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "crypto/s2n_hmac.h"
 #include "tls/extensions/s2n_server_psk.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_bitmap.h"
 
 #define TEST_PSK_WIRE_INDEX 1
-#define TEST_PSK_HMAC S2N_HMAC_SHA384
+#define TEST_PSK_HMAC       S2N_HMAC_SHA384
 
 uint8_t test_identity[] = "test identity";
 uint8_t test_secret[] = "test secret";
@@ -34,7 +33,7 @@ static s2n_result setup_client_psks(struct s2n_connection *client_conn)
     /* Setup other client PSK */
     uint8_t other_client_data[] = "other client data";
     struct s2n_psk *other_client_psk = NULL;
-    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &other_client_psk));
+    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void **) &other_client_psk));
     RESULT_GUARD(s2n_psk_init(other_client_psk, S2N_PSK_TYPE_EXTERNAL));
     RESULT_GUARD_POSIX(s2n_psk_set_identity(other_client_psk, other_client_data, sizeof(other_client_data)));
     RESULT_GUARD_POSIX(s2n_psk_set_secret(other_client_psk, other_client_data, sizeof(other_client_data)));
@@ -42,7 +41,7 @@ static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 
     /* Setup shared PSK for client */
     struct s2n_psk *shared_psk = NULL;
-    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &shared_psk));
+    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void **) &shared_psk));
     RESULT_GUARD(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
     RESULT_GUARD_POSIX(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
     RESULT_GUARD_POSIX(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
@@ -59,7 +58,7 @@ static s2n_result setup_server_psks(struct s2n_connection *server_conn)
 
     /* Setup shared PSK for server */
     struct s2n_psk *shared_psk = NULL;
-    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &shared_psk));
+    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void **) &shared_psk));
     RESULT_GUARD(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
     RESULT_GUARD_POSIX(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
     RESULT_GUARD_POSIX(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
@@ -68,7 +67,7 @@ static s2n_result setup_server_psks(struct s2n_connection *server_conn)
     /* Setup other server PSK */
     uint8_t other_server_data[] = "other server data";
     struct s2n_psk *other_server_psk = NULL;
-    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &other_server_psk));
+    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void **) &other_server_psk));
     RESULT_GUARD(s2n_psk_init(other_server_psk, S2N_PSK_TYPE_EXTERNAL));
     RESULT_GUARD_POSIX(s2n_psk_set_identity(other_server_psk, other_server_data, sizeof(other_server_data)));
     RESULT_GUARD_POSIX(s2n_psk_set_secret(other_server_psk, other_server_data, sizeof(other_server_data)));
@@ -90,12 +89,12 @@ int main(int argc, char **argv)
 
         EXPECT_FALSE(s2n_server_psk_extension.should_send(NULL));
 
-        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &psk));
         EXPECT_FALSE(s2n_server_psk_extension.should_send(conn));
 
         conn->psk_params.chosen_psk_wire_index = 0;
         EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, conn->psk_params.chosen_psk_wire_index,
-                                (void **)&conn->psk_params.chosen_psk));
+                (void **) &conn->psk_params.chosen_psk));
         EXPECT_TRUE(s2n_server_psk_extension.should_send(conn));
 
         /* If send is called with a NULL stuffer, it will fail.
@@ -112,6 +111,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_server_psk_send */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Send the index of the chosen PSK that is stored on the connection. */
         {
             struct s2n_stuffer out = { 0 };
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&out)); 
+            EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
 
         /* Receive invalid chosen psk wire index */
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, TEST_PSK_HMAC);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&out)); 
+            EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
     }
 

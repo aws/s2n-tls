@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_server_renegotiation_info.h"
 
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/extensions/s2n_server_renegotiation_info.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_server_renegotiation_info_extension_write(struct s2n_stuffer *out,
@@ -411,7 +410,6 @@ int main(int argc, char **argv)
      *#    includes the "renegotiation_info" extension:
      */
     {
-
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);

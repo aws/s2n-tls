@@ -13,16 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_mem.h"
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "utils/s2n_mem.h"
 
 int main(int argc, char **argv)
 {
-    uint8_t entropy[2048] = {0};
+    uint8_t entropy[2048] = { 0 };
     struct s2n_stuffer stuffer;
     uint8_t u8;
     uint16_t u16;
@@ -36,7 +35,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 100));
 
     /* Try to write 101 bytes */
-    struct s2n_blob in = {.data = entropy,.size = 101 };
+    struct s2n_blob in = { .data = entropy, .size = 101 };
     EXPECT_FAILURE(s2n_stuffer_write(&stuffer, &in));
 
     /* Try to write 101 1-byte ints bytes */
@@ -46,7 +45,7 @@ int main(int argc, char **argv)
     }
     EXPECT_FAILURE(s2n_stuffer_write_uint8(&stuffer, 1));
 
-    struct s2n_blob copy_of_bytes = {0};
+    struct s2n_blob copy_of_bytes = { 0 };
     EXPECT_SUCCESS(s2n_stuffer_extract_blob(&stuffer, &copy_of_bytes));
 
     /* Read those back, and expect the same results */
@@ -141,19 +140,19 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
     /* Invalid blob should fail init */
     struct s2n_stuffer s1;
-    struct s2n_blob b1 = {.data = 0,.size = 101 };
+    struct s2n_blob b1 = { .data = 0, .size = 101 };
     EXPECT_FAILURE(s2n_stuffer_init(&s1, &b1));
 #endif
 
     /* Valid empty blob should succeed init */
     struct s2n_stuffer s2;
-    struct s2n_blob b2 = {.data = 0,.size = 0 };
+    struct s2n_blob b2 = { .data = 0, .size = 0 };
     EXPECT_SUCCESS(s2n_stuffer_init(&s2, &b2));
 
     /* Valid blob should succeed init */
     struct s2n_stuffer s3;
     uint8_t a3[12];
-    struct s2n_blob b3 = {.data = a3,.size = sizeof(a3)};
+    struct s2n_blob b3 = { .data = a3, .size = sizeof(a3) };
     EXPECT_SUCCESS(s2n_stuffer_init(&s3, &b3));
 
     /* Null blob should fail init */
@@ -161,34 +160,34 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_stuffer_init(&s4, NULL));
 
     /* Null stuffer should fail init */
-    struct s2n_blob b5 = {.data = 0,.size = 0 };
+    struct s2n_blob b5 = { .data = 0, .size = 0 };
     EXPECT_FAILURE(s2n_stuffer_init(NULL, &b5));
 
     /* Check s2n_stuffer_validate() function */
     EXPECT_ERROR(s2n_stuffer_validate(NULL));
     uint8_t valid_blob_array[12];
-    struct s2n_blob blob_valid = {.data = valid_blob_array,.size = sizeof(valid_blob_array)};
+    struct s2n_blob blob_valid = { .data = valid_blob_array, .size = sizeof(valid_blob_array) };
 
-    struct s2n_stuffer stuffer_valid = {0};
+    struct s2n_stuffer stuffer_valid = { 0 };
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer_valid, &blob_valid));
     EXPECT_OK(s2n_stuffer_validate(&stuffer));
 
 #ifndef NDEBUG
-    struct s2n_blob blob_invalid = {.data = 0,.size = sizeof(valid_blob_array)};
-    struct s2n_stuffer stuffer_invalid1 = {.blob = blob_invalid};
+    struct s2n_blob blob_invalid = { .data = 0, .size = sizeof(valid_blob_array) };
+    struct s2n_stuffer stuffer_invalid1 = { .blob = blob_invalid };
     EXPECT_ERROR(s2n_stuffer_validate(&stuffer_invalid1));
 
-    struct s2n_stuffer stuffer_invalid2 = {.blob = blob_valid, .write_cursor = 13};
+    struct s2n_stuffer stuffer_invalid2 = { .blob = blob_valid, .write_cursor = 13 };
     EXPECT_ERROR(s2n_stuffer_validate(&stuffer_invalid2));
 
-    struct s2n_stuffer stuffer_invalid3 = {.blob = blob_valid, .read_cursor = 13};
+    struct s2n_stuffer stuffer_invalid3 = { .blob = blob_valid, .read_cursor = 13 };
     EXPECT_ERROR(s2n_stuffer_validate(&stuffer_invalid3));
 
-    struct s2n_stuffer stuffer_invalid4 = {.blob = blob_valid, .read_cursor = 12, .write_cursor = 1};
+    struct s2n_stuffer stuffer_invalid4 = { .blob = blob_valid, .read_cursor = 12, .write_cursor = 1 };
     EXPECT_ERROR(s2n_stuffer_validate(&stuffer_invalid4));
 #endif
 
-    struct s2n_stuffer reserve_test_stuffer = {0};
+    struct s2n_stuffer reserve_test_stuffer = { 0 };
     EXPECT_SUCCESS(s2n_stuffer_alloc(&reserve_test_stuffer, 1024));
     EXPECT_EQUAL(s2n_stuffer_space_remaining(&reserve_test_stuffer), 1024);
     EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
