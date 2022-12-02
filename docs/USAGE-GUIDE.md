@@ -384,32 +384,35 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 `s2n_config_set_cipher_preferences()` sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.
 
-The following chart maps the security policy version to protocol version and ciphersuites supported:
+### Chart: Security Policy Version To Protocol Version And Ciphersuites 
 
-|    version     | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|----------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
-|   "default"    |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20190214"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-|   "20170718"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
-|   "20170405"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20170328"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |
-|   "20170210"   |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20160824"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
-|   "20160804"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20160411"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20150306"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20150214"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |
-|   "20150202"   |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |
-|   "20141001"   |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
-|   "20140601"   |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
-|   "20190120"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20190121"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20190122"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
-|   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
-|   "rfc9151"    |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |
+The following chart maps the security policy version to protocol version and ciphersuites supported for policies *without* [ChaCha20-Poly1305 boosting support](#chacha20-poly1305-boosting):
+
+|           version           | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|-----------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
+|          "default"          |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
+|          "20190214"         |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
+|          "20170718"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
+|          "20170405"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|          "20170328"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |
+|          "20170210"         |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
+|          "20160824"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
+|          "20160804"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|          "20160411"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|          "20150306"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|          "20150214"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |
+|          "20150202"         |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |
+|          "20141001"         |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
+|          "20140601"         |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
+|          "20190120"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|          "20190121"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|          "20190122"         |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
+|        "default_tls13"      |       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
+|          "20190801"         |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+|          "20190802"         |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+|          "20200207"         |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
+|          "rfc9151"          |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |
+|  "CloudFront-TLS-1-2-2021"  |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |
 
 The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 
@@ -419,17 +422,25 @@ The "default" and "default_tls13" version is special in that it will be updated 
 
 The "rfc9151" security policy is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151).
 
-s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:
+s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. Unless [ChaCha20-Poly1305 boosting](#chacha20-poly1305-boosting) is enabled then s2n-tls follows the following order:
 
-*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The
-underlying encrypt/decrypt functions are not available in older versions.
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The underlying encrypt/decrypt functions are not available in older versions.
 
 1. Always prefer the highest protocol version supported
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
-The following chart maps the security policy version to the signature scheme supported:
+### Chart: Security Policy Version To Protocol Version And Ciphersuites (With ChaCha20-Poly1305 Boosting Support)
+
+The following chart maps the security policy version to protocol version and ciphersuites supported for policies *with* [ChaCha20-Poly1305 boosting support](#chacha20-poly1305-boosting):
+
+|   version                                  | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|--------------------------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
+| "CloudFront-TLS-1-2-2021-ChaCha20-Boosted" |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |
+
+
+### Chart: Security Policy Version To Supported Signature Schemes
 
 |    version     |   RSA PKCS1  |   ECDSA  |  SHA-1 Legacy |  RSA PSS |
 |----------------|--------------|----------|---------------|----------|
@@ -459,7 +470,7 @@ The following chart maps the security policy version to the signature scheme sup
 Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support
 legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotiated.
 
-The following chart maps the security policy version to the supported curves/groups:
+### Chart: Security policy version to supported curves/groups
 
 |    version     |   secp256r1  |  secp384r1 | x25519 |
 |----------------|--------------|------------|--------|
@@ -485,6 +496,52 @@ The following chart maps the security policy version to the supported curves/gro
 |   "20190802"   |      X       |      X     |        |
 |   "20200207"   |      X       |      X     |   X    |
 |   "rfc9151"    |              |      X     |        |
+
+### ChaCha20-Poly1305 Boosting
+
+For hardware with AES-NI, then AES-based ciphers perform much faster than their ChaCha20-Poly1305 counterparts. However, for hardware without AES-acceleration, ChaCha20-Poly1305 is faster. In these cases, clients would prefer to negotiate on a ChaCha20-Poly1305 ciphersuite for performance. In order to support this, s2n-tls supports ChaCha20-Poly1305 prioritization or ChaCha20-Poly1305 boosting; using the feature would mean s2n-tls server's will attempt to negotiate its most preferred ChaCha20-Poly1305 ciphersuites first before falling back to server-side cipher preferences.
+
+The exact behavior of ChaCha20-Poly1305 boosting is described below:
+
+1. For every ChaCha20-Poly1305 ciphersuite in the server's preferences, see if the ciphersuite is valid for the connection and if the client has also offered the ciphersuite. If so, then negotiate the said ChaCha20-Poly1305 ciphersuite and finish.
+2. Else if, the server has exhausted all of its ChaCha20-Poly1305 ciphersuites. Then the server will try to negotiate one of the remaining non-ChaCha20 ciphersuites in server-preference order.
+3. Else there is no negotiable ciphersuite and exit with an `S2N_ERR_CIPHER_NOT_SUPPORTED` error.
+
+To take advantage of this feature:
+1. The s2n-tls server selected a security policy with ChaCha20-Poly1305 boosting enabled. Please consult the [security policy chart with ChaCha20-Poly1305 boosting support](#chart-security-policy-version-to-protocol-version-and-ciphersuites-with-chacha20-poly1305-boosting-support) to determine which securiy policies have ChaCha20-Poly1305 support. One can also determine if a security policy has ChaCha20-Poly1305 boosting enabled by inspecting the policies' [s2n_cipher_preference](https://github.com/aws/s2n-tls/blob/main/tls/s2n_cipher_preferences.h#L26)'s `allow_chacha20_boosting` flag.
+
+2. The client has an ChaCha20-Poly1305 ciphersuite first in its cipher preferences (client has signalled for ChaCha20-Poly1305 boosting).
+
+When both of these requirements are met, then s2n-tls will negotiate a ciphersuite with ChaCha20-Poly1305 boosting. Notice that even if the server is using a security policy with `allow_chacha20_boosting` enabled, it will only prioritize ChaCha20-Poly1305 if and only if the client has also indicated that its most preferred ciphersuite is also a ChaCha20-Poly1305 ciphersuite. 
+
+Consider the example below demonstrating ChaCha20-Poly1305 boosting:
+
+```c
+/* Example server's ciphersuite preferences list */
+struct s2n_cipher_suite *server_preferences_list[] = {
+    &s2n_tls13_aes_128_gcm_sha256,       
+    &s2n_tls13_aes_256_gcm_sha384,       
+    &s2n_tls13_chacha20_poly1305_sha256,
+};
+
+/* Example server ciphersuite preferences with allow_chacha20_boosting enabled */
+const struct s2n_cipher_preferences server_preferences = {
+    .count = s2n_array_len(server_preferences_list),
+    .suites = server_preferences_list,
+    .allow_chacha20_boosting = true,
+};
+
+uint8_t client_preferences_example[] = {
+    /* Client signalled chacha20 boosting. The server will negotiate this ciphersuite if ChaCha20 boosting is enabled. */
+    TLS_CHACHA20_POLY1305_SHA256,
+    /* Not negotiated even if ChaCha20 boosting is disabled since the server prefers AES_128. */
+    TLS_AES_256_GCM_SHA384,
+    /* Only negotiated if chacha20 boosting is off. This is the server's most preferred ciphersuite. */
+    TLS_AES_128_GCM_SHA256,
+};
+```
+
+*NOTE*: An `s2n_cipher_preferences` cannot set `allow_chacha20_boosting = true` if there is no ChaCha20-Poly1305 ciphersuite in its suites list. Doing so will surface an `S2N_ERR_INVALID_SECURITY_POLICY` error.
 
 ## Certificates and Authentication
 

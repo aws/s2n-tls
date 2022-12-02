@@ -518,6 +518,7 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
             "CloudFront-TLS-1-2-2021",
+            "CloudFront-TLS-1-2-2021-ChaCha20-Boosted",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
