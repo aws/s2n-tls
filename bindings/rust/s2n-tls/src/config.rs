@@ -425,8 +425,7 @@ impl Builder {
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
             with_connection(connection_ptr, |conn| {
-                let callback = AsyncClientHelloCallback {};
-                trigger_async_callback(callback, conn).into()
+                trigger_async_client_hello_callback(conn).into()
             })
         }
 
