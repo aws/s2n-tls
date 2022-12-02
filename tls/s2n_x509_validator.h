@@ -15,18 +15,17 @@
 
 #pragma once
 
-#include "api/s2n.h"
-
-#include "tls/s2n_signature_scheme.h"
-
 #include <openssl/x509v3.h>
+
+#include "api/s2n.h"
+#include "tls/s2n_signature_scheme.h"
 
 /* one day, BoringSSL may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
  * that would have to be there when they add support */
 #if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
-#define S2N_OCSP_STAPLING_SUPPORTED 0
+    #define S2N_OCSP_STAPLING_SUPPORTED 0
 #else
-#define S2N_OCSP_STAPLING_SUPPORTED 1
+    #define S2N_OCSP_STAPLING_SUPPORTED 1
 #endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 typedef enum {
@@ -39,7 +38,7 @@ typedef enum {
 } validator_state;
 
 /** Return TRUE for trusted, FALSE for untrusted **/
-typedef uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
+typedef uint8_t (*verify_host)(const char *host_name, size_t host_name_len, void *data);
 struct s2n_connection;
 
 /**
@@ -114,15 +113,15 @@ int s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
  * s2n_x509_validator_validate_cert_stapled_ocsp_response().
  */
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
-                                                  uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type,
-                                                  struct s2n_pkey *public_key_out);
+        uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type,
+        struct s2n_pkey *public_key_out);
 
 /**
  * Validates an ocsp response against the most recent certificate chain. Also verifies the timestamps on the response. This function can only be
  * called once per instance of an s2n_x509_validator and only after a successful call to s2n_x509_validator_validate_cert_chain().
  */
-S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
-                                                                  const uint8_t *ocsp_response, uint32_t size);
+S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+        const uint8_t *ocsp_response, uint32_t size);
 
 /**
  * Checks whether the peer's certificate chain has been received and validated.

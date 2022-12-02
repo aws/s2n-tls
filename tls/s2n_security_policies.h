@@ -16,10 +16,11 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_signature_scheme.h"
-#include "tls/s2n_ecc_preferences.h"
 
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
@@ -36,9 +37,9 @@ struct s2n_security_policy {
 struct s2n_security_policy_selection {
     const char *version;
     const struct s2n_security_policy *security_policy;
-    unsigned ecc_extension_required:1;
-    unsigned pq_kem_extension_required:1;
-    unsigned supports_tls13:1;
+    unsigned ecc_extension_required : 1;
+    unsigned pq_kem_extension_required : 1;
+    unsigned supports_tls13 : 1;
 };
 
 extern struct s2n_security_policy_selection security_policy_selection[];
