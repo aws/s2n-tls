@@ -298,49 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn client_hello_callback_async() -> Result<(), Error> {
-        let (waker, wake_count) = new_count_waker();
-        let require_pending_count = 10;
-        let handle = MockClientHelloHandler::new(require_pending_count);
-        let config = {
-            let mut config = config_builder(&security::DEFAULT_TLS13)?;
-            config.set_client_hello_callback(handle.clone())?;
-            // multiple calls to set_client_hello_callback should succeed
-            config.set_client_hello_callback(handle.clone())?;
-            config.build()?
-        };
-
-        let server = {
-            // create and configure a server connection
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
-            Harness::new(server)
-        };
-
-        let client = {
-            // create a client connection
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client, SAMPLES);
-
-        poll_tls_pair(pair);
-        // confirm that the callback returned Pending `require_pending_count` times
-        assert_eq!(wake_count, require_pending_count);
-        // confirm that the final invoked count is +1 more than `require_pending_count`
-        assert_eq!(
-            handle.invoked.load(Ordering::SeqCst),
-            require_pending_count + 1
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn failing_client_hello_callback() -> Result<(), Error> {
+    fn failing_client_hello_callback_sync() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
         let handle = FailingCHHandler;
         let config = {
@@ -432,6 +390,47 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn client_hello_callback_async() -> Result<(), Error> {
+        let (waker, wake_count) = new_count_waker();
+        let require_pending_count = 10;
+        let handle = MockClientHelloHandler::new(require_pending_count);
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_hello_callback(handle.clone())?;
+            // multiple calls to set_client_hello_callback should succeed
+            config.set_client_hello_callback(handle.clone())?;
+            config.build()?
+        };
+
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            server.set_waker(Some(&waker))?;
+            Harness::new(server)
+        };
+
+        let client = {
+            // create a client connection
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+
+        poll_tls_pair(pair);
+        // confirm that the callback returned Pending `require_pending_count` times
+        assert_eq!(wake_count, require_pending_count);
+        // confirm that the final invoked count is +1 more than `require_pending_count`
+        assert_eq!(
+            handle.invoked.load(Ordering::SeqCst),
+            require_pending_count + 1
+        );
+
+        Ok(())
+    }
     #[test]
     fn client_hello_callback_sync() -> Result<(), Error> {
         #[derive(Clone)]
