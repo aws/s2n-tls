@@ -14,20 +14,19 @@
  */
 
 #include "error/s2n_errno.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-int s2n_post_handshake_recv(struct s2n_connection *conn) 
+int s2n_post_handshake_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
     uint8_t post_handshake_id;
     uint32_t message_length;
 
-    while(s2n_stuffer_data_available(&conn->in)) {
+    while (s2n_stuffer_data_available(&conn->in)) {
         POSIX_GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
         POSIX_GUARD(s2n_stuffer_read_uint24(&conn->in, &message_length));
 
@@ -40,8 +39,7 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
         POSIX_GUARD(s2n_stuffer_init(&post_handshake_stuffer, &post_handshake_blob));
         POSIX_GUARD(s2n_stuffer_skip_write(&post_handshake_stuffer, message_length));
 
-        switch (post_handshake_id)
-        {
+        switch (post_handshake_id) {
             case TLS_KEY_UPDATE:
                 POSIX_GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
                 break;

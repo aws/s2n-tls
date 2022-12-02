@@ -16,10 +16,9 @@
 #pragma once
 
 #include "api/s2n.h"
-
 #include "utils/s2n_result.h"
 
 S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol);
 S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains);
 S2N_RESULT s2n_select_server_preference_protocol(struct s2n_connection *conn, struct s2n_stuffer *server_list,
-    struct s2n_blob *client_list);
+        struct s2n_blob *client_list);

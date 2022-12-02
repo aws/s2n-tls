@@ -13,38 +13,39 @@
  * permissions and limitations under the License.
  */
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_kem.h"
+
+#include "pq-crypto/s2n_pq.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/s2n_pq.h"
 
 /* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 
 const struct s2n_kem s2n_kyber_512_r3 = {
-        .name = "kyber512r3",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
-        .public_key_length = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES,
-        .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
-        .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
-        .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-        .generate_keypair = &s2n_kyber_512_r3_crypto_kem_keypair,
-        .encapsulate = &s2n_kyber_512_r3_crypto_kem_enc,
-        .decapsulate = &s2n_kyber_512_r3_crypto_kem_dec,
+    .name = "kyber512r3",
+    .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
+    .public_key_length = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES,
+    .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
+    .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
+    .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
+    .generate_keypair = &s2n_kyber_512_r3_crypto_kem_keypair,
+    .encapsulate = &s2n_kyber_512_r3_crypto_kem_enc,
+    .decapsulate = &s2n_kyber_512_r3_crypto_kem_dec,
 };
 
 const struct s2n_kem *kyber_kems[] = {
-        &s2n_kyber_512_r3,
+    &s2n_kyber_512_r3,
 };
 
 const struct s2n_iana_to_kem kem_mapping[3] = {
-        {
+    {
             .iana_value = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 },
             .kems = kyber_kems,
             .kem_count = s2n_array_len(kyber_kems),
-        }
+    }
 };
 
 /* Specific assignments of KEM group IDs and names have not yet been
@@ -60,42 +61,38 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
  * || size of PQ key share (2 bytes)
  * || PQ key share (variable bytes) */
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
-        .name = "secp256r1_kyber-512-r3",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
-        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
-        .curve = &s2n_ecc_curve_secp256r1,
-        .kem = &s2n_kyber_512_r3,
+    .name = "secp256r1_kyber-512-r3",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
+    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
+    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
+    .curve = &s2n_ecc_curve_secp256r1,
+    .kem = &s2n_kyber_512_r3,
 };
 
 #if EVP_APIS_SUPPORTED
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
-        .name = "x25519_kyber-512-r3",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
-        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
-        .curve = &s2n_ecc_curve_x25519,
-        .kem = &s2n_kyber_512_r3,
+    .name = "x25519_kyber-512-r3",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
+    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
+    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
+    .curve = &s2n_ecc_curve_x25519,
+    .kem = &s2n_kyber_512_r3,
 };
 #else
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = { 0 };
 #endif
 
-const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
-        &s2n_secp256r1_kyber_512_r3,
+const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
+    &s2n_secp256r1_kyber_512_r3,
 /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
-        &s2n_x25519_kyber_512_r3,
+    &s2n_x25519_kyber_512_r3,
 #endif
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
  * functions may return any non-zero value to indicate failure. */
-#define GUARD_PQ_AS_RESULT(x)        RESULT_ENSURE((x) == 0, S2N_ERR_PQ_CRYPTO)
+#define GUARD_PQ_AS_RESULT(x) RESULT_ENSURE((x) == 0, S2N_ERR_PQ_CRYPTO)
 
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 {
@@ -157,7 +154,8 @@ S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s
 }
 
 static int s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *candidate_kem,
-        uint8_t *kem_is_compatible) {
+        uint8_t *kem_is_compatible)
+{
     const struct s2n_iana_to_kem *compatible_kems = NULL;
     POSIX_GUARD(s2n_cipher_suite_to_kem(iana_value, &compatible_kems));
 
@@ -173,8 +171,9 @@ static int s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPH
 }
 
 int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
-        const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
-    struct s2n_stuffer client_kem_ids_stuffer = {0};
+        const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem)
+{
+    struct s2n_stuffer client_kem_ids_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&client_kem_ids_stuffer, client_kem_ids));
     POSIX_GUARD(s2n_stuffer_write(&client_kem_ids_stuffer, client_kem_ids));
 
@@ -208,7 +207,8 @@ int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_S
 }
 
 int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *server_kem_pref_list[],
-        const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
+        const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem)
+{
     for (uint8_t i = 0; i < num_server_supported_kems; i++) {
         uint8_t kem_is_compatible = 0;
         POSIX_GUARD(s2n_kem_check_kem_compatibility(iana_value, server_kem_pref_list[i], &kem_is_compatible));
@@ -232,7 +232,8 @@ int s2n_kem_free(struct s2n_kem_params *kem_params)
     return S2N_SUCCESS;
 }
 
-int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params) {
+int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params)
+{
     if (kem_group_params != NULL) {
         POSIX_GUARD(s2n_kem_free(&kem_group_params->kem_params));
         POSIX_GUARD(s2n_ecc_evp_params_free(&kem_group_params->ecc_params));
@@ -240,7 +241,8 @@ int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params) {
     return S2N_SUCCESS;
 }
 
-int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params) {
+int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params)
+{
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
         if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
@@ -251,7 +253,8 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
     POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem) {
+int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem)
+{
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];
 
@@ -267,7 +270,8 @@ int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_ke
     POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params) {
+int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params)
+{
     POSIX_ENSURE_REF(out);
     POSIX_ENSURE_REF(kem_params);
     POSIX_ENSURE_REF(kem_params->kem);
@@ -295,7 +299,8 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     return S2N_SUCCESS;
 }
 
-int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params) {
+int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params)
+{
     POSIX_ENSURE_REF(in);
     POSIX_ENSURE_REF(kem_params);
     POSIX_ENSURE_REF(kem_params->kem);
@@ -314,7 +319,8 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params) {
+int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params)
+{
     POSIX_ENSURE_REF(out);
     POSIX_ENSURE_REF(kem_params);
     POSIX_ENSURE_REF(kem_params->kem);
@@ -325,7 +331,7 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
 
     /* Ciphertext will get written to *out */
-    struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length};
+    struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length };
     POSIX_ENSURE_REF(ciphertext.data);
 
     /* Saves the shared secret in kem_params */
@@ -334,7 +340,8 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     return S2N_SUCCESS;
 }
 
-int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params) {
+int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params)
+{
     POSIX_ENSURE_REF(in);
     POSIX_ENSURE_REF(kem_params);
     POSIX_ENSURE_REF(kem_params->kem);
@@ -346,7 +353,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
     S2N_ERROR_IF(ciphertext_length != kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
 
-    const struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_read(in, ciphertext_length), .size = ciphertext_length};
+    const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, ciphertext_length), .size = ciphertext_length };
     POSIX_ENSURE_REF(ciphertext.data);
 
     /* Saves the shared secret in kem_params */
@@ -359,7 +366,16 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 /* If S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
  * from compilation. We define stubs of these functions here to error if they are called. */
 /* kyber512r3 */
-int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
 #endif

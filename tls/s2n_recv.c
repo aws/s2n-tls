@@ -17,26 +17,22 @@
 
 /* Use usleep */
 #define _XOPEN_SOURCE 500
+#include <errno.h>
 #include <unistd.h>
 
-#include <errno.h>
 #include "api/s2n.h"
-
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
-#include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_post_handshake.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_socket.h"
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 
 S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length)
 {
@@ -60,7 +56,7 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
     return S2N_RESULT_OK;
 }
 
-int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2)
+int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2)
 {
     *isSSLv2 = 0;
 
@@ -82,11 +78,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         conn->header_in.blob.data[0] &= 0x7f;
         *isSSLv2 = 1;
 
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(
-                s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length)));
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length)));
     } else {
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(
-                s2n_record_header_parse(conn, record_type, &fragment_length)));
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_record_header_parse(conn, record_type, &fragment_length)));
     }
 
     /* Read enough to have the whole record */
@@ -114,10 +108,10 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     return 0;
 }
 
-ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
+ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
     ssize_t bytes_read = 0;
-    struct s2n_blob out = {.data = (uint8_t *) buf };
+    struct s2n_blob out = { .data = (uint8_t *) buf };
 
     if (conn->closed) {
         return 0;
@@ -158,8 +152,7 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
         S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
         if (record_type != TLS_APPLICATION_DATA) {
-            switch (record_type)
-            {
+            switch (record_type) {
                 case TLS_ALERT:
                     POSIX_GUARD(s2n_process_alert_fragment(conn));
                     POSIX_GUARD(s2n_flush(conn, blocked));
@@ -202,7 +195,7 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
     return bytes_read;
 }
 
-ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
+ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
     conn->recv_in_use = true;
@@ -217,7 +210,8 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     return result;
 }
 
-uint32_t s2n_peek(struct s2n_connection *conn) {
+uint32_t s2n_peek(struct s2n_connection *conn)
+{
     if (conn == NULL) {
         return 0;
     }
@@ -232,7 +226,7 @@ uint32_t s2n_peek(struct s2n_connection *conn) {
     return s2n_stuffer_data_available(&conn->in);
 }
 
-int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked)
+int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     uint8_t record_type;
     int isSSLv2;
@@ -250,4 +244,3 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
     *blocked = S2N_NOT_BLOCKED;
     return 0;
 }
-
