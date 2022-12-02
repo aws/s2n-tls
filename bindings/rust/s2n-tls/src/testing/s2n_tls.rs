@@ -197,9 +197,14 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::testing::*;
+    use crate::{
+        callbacks::{ClientHelloCallback, ConnectionFuture, VerifyHostNameCallback},
+        testing::{client_hello::*, *},
+    };
+    use alloc::sync::Arc;
+    use core::sync::atomic::Ordering;
     use futures_test::task::new_count_waker;
-    use std::{fs, path::Path};
+    use std::{fs, path::Path, pin::Pin, sync::atomic::AtomicUsize};
 
     #[test]
     fn handshake_default() {
@@ -330,6 +335,50 @@ mod tests {
             handle.invoked.load(Ordering::SeqCst),
             require_pending_count + 1
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn failing_client_hello_callback() -> Result<(), Error> {
+        let (waker, wake_count) = new_count_waker();
+        let handle = FailingCHHandler;
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_hello_callback(handle)?;
+            config.build()?
+        };
+
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            server.set_waker(Some(&waker))?;
+            Harness::new(server)
+        };
+
+        let client = {
+            // create a client connection
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let mut pair = Pair::new(server, client, SAMPLES);
+        loop {
+            match pair.poll() {
+                Poll::Ready(result) => {
+                    let err = result.err().unwrap();
+                    let err = err.downcast_ref::<crate::error::Error>().unwrap();
+                    err.application_error().unwrap();
+                    // assert!(err)
+
+                    break;
+                }
+                Poll::Pending => continue,
+            }
+        }
+        assert_eq!(wake_count, 0);
 
         Ok(())
     }

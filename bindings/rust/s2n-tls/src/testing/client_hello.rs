@@ -1,0 +1,122 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+use crate::{
+    callbacks::{ClientHelloCallback, ConnectionFuture},
+    error, security,
+};
+use alloc::sync::Arc;
+use core::{sync::atomic::Ordering, task::Poll};
+use std::{fmt, io, pin::Pin, sync::atomic::AtomicUsize};
+
+// The Future returned by MockClientHelloHandler.
+//
+// An instance of this Future is stored on the connection and
+// polled to make progress in the async client_hello_callback
+pub struct MockClientHelloFuture {
+    require_pending_count: usize,
+    invoked: Arc<AtomicUsize>,
+}
+
+impl ConnectionFuture for MockClientHelloFuture {
+    fn poll(
+        self: Pin<&mut Self>,
+        connection: &mut crate::connection::Connection,
+        _ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), error::Error>> {
+        if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
+            // confirm the callback can access the waker
+            connection.waker().unwrap().wake_by_ref();
+            return Poll::Pending;
+        }
+
+        // Test that the config can be changed
+        connection
+            .set_config(super::build_config(&security::DEFAULT_TLS13).unwrap())
+            .unwrap();
+
+        // Test that server_name_extension_used can be invoked
+        connection.server_name_extension_used();
+
+        Poll::Ready(Ok(()))
+    }
+}
+
+#[derive(Clone)]
+pub struct MockClientHelloHandler {
+    require_pending_count: usize,
+    pub invoked: Arc<AtomicUsize>,
+}
+
+impl MockClientHelloHandler {
+    pub fn new(require_pending_count: usize) -> Self {
+        Self {
+            require_pending_count,
+            invoked: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
+impl ClientHelloCallback for MockClientHelloHandler {
+    fn on_client_hello(
+        &self,
+        _connection: &mut crate::connection::Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, crate::error::Error> {
+        let fut = MockClientHelloFuture {
+            require_pending_count: self.require_pending_count,
+            invoked: self.invoked.clone(),
+        };
+
+        // returning `Some` indicates that the client_hello callback is
+        // not yet finished and that the supplied MockClientHelloFuture
+        // needs to be `poll`ed to make progress.
+        Ok(Some(Box::pin(fut)))
+    }
+}
+
+pub struct FailingCHHandler;
+
+impl ClientHelloCallback for FailingCHHandler {
+    fn on_client_hello(
+        &self,
+        _connection: &mut crate::connection::Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
+        let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
+        Err(crate::error::Error::application(Box::new(io_error)))
+    }
+}
+
+pub struct FailingAsyncCHHandler;
+
+impl ClientHelloCallback for FailingAsyncCHHandler {
+    fn on_client_hello(
+        &self,
+        _connection: &mut crate::connection::Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
+        let fut = FailingCHFuture;
+        Ok(Some(Box::pin(fut)))
+    }
+}
+
+struct FailingCHFuture;
+impl ConnectionFuture for FailingCHFuture {
+    fn poll(
+        self: Pin<&mut Self>,
+        _connection: &mut crate::connection::Connection,
+        _ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), error::Error>> {
+        let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
+        let ret = Err(crate::error::Error::application(Box::new(io_error)));
+        Poll::Ready(ret)
+    }
+}
+
+#[derive(Debug)]
+struct CustomError;
+
+impl std::error::Error for CustomError {}
+impl fmt::Display for CustomError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "custom error")
+    }
+}

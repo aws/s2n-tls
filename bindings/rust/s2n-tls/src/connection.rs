@@ -384,6 +384,12 @@ impl Connection {
             if poll_client_hello_callback(self, Some(fut)).is_pending() {
                 return Poll::Pending;
             }
+
+            // match poll_client_hello_callback(self, Some(fut)) {
+            //     Poll::Ready(Ok(_)) => (),
+            //     Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+            //     Poll::Pending => return Poll::Pending,
+            // }
         }
 
         unsafe {
