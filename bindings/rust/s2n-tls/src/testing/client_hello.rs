@@ -128,7 +128,7 @@ impl ConnectionFuture for FailingCHFuture {
 }
 
 #[derive(Debug)]
-struct CustomError;
+pub struct CustomError;
 
 impl std::error::Error for CustomError {}
 impl fmt::Display for CustomError {

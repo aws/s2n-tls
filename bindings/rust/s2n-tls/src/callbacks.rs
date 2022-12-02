@@ -201,9 +201,7 @@ pub(crate) fn poll_client_hello_callback(
         println!("-------here");
         match fut.as_mut().poll(conn, &mut ctx) {
             Poll::Ready(result) => {
-                let result = result.and_then(|_| conn.mark_client_hello_cb_done());
-
-                // conn.mark_client_hello_cb_done()?;
+                conn.mark_client_hello_cb_done()?;
                 Poll::Ready(result)
             }
             Poll::Pending => {

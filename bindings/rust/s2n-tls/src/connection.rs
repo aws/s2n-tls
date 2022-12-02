@@ -382,15 +382,15 @@ impl Connection {
         // poll it to completion
         if let Some(fut) = self.take_connection_future() {
             println!("-------poll_negotiate");
-            if poll_client_hello_callback(self, Some(fut)).is_pending() {
-                return Poll::Pending;
-            }
-
-            // match poll_client_hello_callback(self, Some(fut)) {
-            //     Poll::Ready(Ok(_)) => (),
-            //     Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
-            //     Poll::Pending => return Poll::Pending,
+            // if poll_client_hello_callback(self, Some(fut)).is_pending() {
+            //     return Poll::Pending;
             // }
+
+            match poll_client_hello_callback(self, Some(fut)) {
+                Poll::Ready(Ok(_)) => (),
+                Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                Poll::Pending => return Poll::Pending,
+            }
         }
 
         unsafe {
