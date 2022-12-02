@@ -282,8 +282,7 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
     POSIX_GUARD(s2n_ecc_evp_generate_own_key(client_params.negotiated_curve, &client_params.evp_pkey));
     S2N_ERROR_IF(client_params.evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
-    if (s2n_ecc_evp_compute_shared_secret(client_params.evp_pkey, ecc_evp_params->evp_pkey,
-                ecc_evp_params->negotiated_curve->iana_id, shared_key)
+    if (s2n_ecc_evp_compute_shared_secret(client_params.evp_pkey, ecc_evp_params->evp_pkey, ecc_evp_params->negotiated_curve->iana_id, shared_key)
             != S2N_SUCCESS) {
         POSIX_BAIL(S2N_ERR_ECDHE_SHARED_SECRET);
     }
@@ -491,8 +490,7 @@ int s2n_ecc_evp_parse_params(struct s2n_connection *conn,
         struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
         struct s2n_ecc_evp_params *ecc_evp_params)
 {
-    POSIX_ENSURE(
-            s2n_ecc_evp_find_supported_curve(conn, &raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) == 0,
+    POSIX_ENSURE(s2n_ecc_evp_find_supported_curve(conn, &raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) == 0,
             S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     return s2n_ecc_evp_parse_params_point(&raw_server_ecc_params->point_blob, ecc_evp_params);
 }
