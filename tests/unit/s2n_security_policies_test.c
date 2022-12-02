@@ -540,6 +540,54 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
     }
 
+    /* Test that security policy with invalid chacha20 boosting configuration triggers error on init */
+    {
+        /* Back up the first security policy selection because we will replace it with an invalid selection */
+        struct s2n_security_policy_selection previous = security_policy_selection[0];
+
+        struct s2n_cipher_suite *aes_128_only_cipher_suite_list[] = {
+            &s2n_tls13_aes_128_gcm_sha256,
+        };
+
+        struct s2n_cipher_preferences cipher_preferences = {
+            .count = s2n_array_len(aes_128_only_cipher_suite_list),
+            .suites = aes_128_only_cipher_suite_list,
+            .allow_chacha20_boosting = true
+        };
+
+        struct s2n_security_policy test_policy  = {
+            .minimum_protocol_version = S2N_SSLv3,
+            .cipher_preferences = &cipher_preferences,
+            .kem_preferences = &kem_preferences_null,
+            .signature_preferences = &s2n_signature_preferences_20201021,
+            .ecc_preferences = &s2n_ecc_preferences_test_all,
+        };
+
+        security_policy_selection[0] = (struct s2n_security_policy_selection){
+            .version="test_security_policy_chacha20",
+            .security_policy=&test_policy,
+            .ecc_extension_required=0,
+            .pq_kem_extension_required=0
+        };
+
+        /* Cipher preferences has allow_chacha20_boosting incorrectly set as true even though the ciphersuite list only has aes128 */
+        {
+            EXPECT_TRUE(cipher_preferences.allow_chacha20_boosting);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_security_policies_init(), S2N_ERR_INVALID_SECURITY_POLICY);
+        }
+
+        /* Cipher preferences has allow_chacha20_boosting correctly set as false */
+        {
+            cipher_preferences.allow_chacha20_boosting = false;
+            EXPECT_FALSE(cipher_preferences.allow_chacha20_boosting);
+
+            EXPECT_SUCCESS(s2n_security_policies_init());
+        }
+
+        /* IMPORTANT: restore the old policy selection to return to the old state */
+        security_policy_selection[0] = previous;
+    }
+
     /* Test a security policy not on the official list */
     {
         struct s2n_cipher_suite *fake_suites[] = {

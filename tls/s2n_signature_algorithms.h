@@ -22,6 +22,8 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "tls/s2n_signature_scheme.h"
+
 struct s2n_connection;
 
 struct s2n_sig_scheme_list {
