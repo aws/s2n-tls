@@ -14,6 +14,7 @@
  */
 
 #include "tls/s2n_tls13_handshake.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_key_log.h"
 #include "tls/s2n_security_policies.h"
@@ -48,7 +49,8 @@ int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection 
     return S2N_SUCCESS;
 }
 
-int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret) {
+int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+{
     POSIX_ENSURE_REF(conn);
 
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
@@ -59,7 +61,7 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     POSIX_ENSURE_REF(server_key);
     POSIX_ENSURE_REF(server_key->negotiated_curve);
 
-    struct s2n_ecc_evp_params *client_key  = &conn->kex_params.client_ecc_evp_params;
+    struct s2n_ecc_evp_params *client_key = &conn->kex_params.client_ecc_evp_params;
     POSIX_ENSURE_REF(client_key);
     POSIX_ENSURE_REF(client_key->negotiated_curve);
 
@@ -76,7 +78,8 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
 
 /* Computes the ECDHE+PQKEM hybrid shared secret as defined in
  * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design */
-int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret) {
+int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+{
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(shared_secret);
 
@@ -124,7 +127,8 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn) {
+static int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn)
+{
     return conn->kex_params.server_kem_group_params.kem_group != NULL;
 }
 
@@ -154,7 +158,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-    
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
@@ -169,7 +173,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     } else {
         old_key = &conn->secure->server_key;
         POSIX_GUARD(s2n_blob_init(&old_app_secret, conn->secrets.tls13.server_app_secret, keys.size));
-        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
+        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     }
 
     /* Produce new application secret */
@@ -194,9 +198,9 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
      * MUST use sequence number 0.
      */
     POSIX_GUARD(s2n_zero_sequence_number(conn, mode));
-    
+
     /* Save updated secret */
-    struct s2n_stuffer old_secret_stuffer = {0};
+    struct s2n_stuffer old_secret_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&old_secret_stuffer, &old_app_secret));
     POSIX_GUARD(s2n_stuffer_write_bytes(&old_secret_stuffer, app_secret_update.data, keys.size));
 

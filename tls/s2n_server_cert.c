@@ -14,13 +14,10 @@
  */
 
 #include "api/s2n.h"
-
 #include "error/s2n_errno.h"
-
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
-
 #include "utils/s2n_safety.h"
 
 int s2n_server_cert_recv(struct s2n_connection *conn)
@@ -40,7 +37,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_pkey_zero_init(&public_key));
 
     s2n_pkey_type actual_cert_pkey_type;
-    struct s2n_blob cert_chain = {0};
+    struct s2n_blob cert_chain = { 0 };
     cert_chain.size = size_of_all_certificates;
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     POSIX_ENSURE_REF(cert_chain.data);

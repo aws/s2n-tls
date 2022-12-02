@@ -15,12 +15,11 @@
 
 #include "tls/s2n_server_extensions.h"
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-
 
 /* An empty list will just contain the uint16_t list size */
 #define S2N_EMPTY_EXTENSION_LIST_SIZE sizeof(uint16_t)
@@ -46,7 +45,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
      * This behavior does not affect TLS1.3, which always requires at least the supported_version extension
      * so will never produce an empty list.
      */
-    if(s2n_stuffer_data_available(out) - data_available_before_extensions == S2N_EMPTY_EXTENSION_LIST_SIZE) {
+    if (s2n_stuffer_data_available(out) - data_available_before_extensions == S2N_EMPTY_EXTENSION_LIST_SIZE) {
         POSIX_GUARD(s2n_stuffer_wipe_n(out, S2N_EMPTY_EXTENSION_LIST_SIZE));
     }
 

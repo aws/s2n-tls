@@ -13,25 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <errno.h>
+#include <sys/param.h>
+
 #include "api/s2n.h"
-
+#include "crypto/s2n_cipher.h"
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "crypto/s2n_cipher.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 {
@@ -79,7 +75,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     *blocked = S2N_BLOCKED_ON_WRITE;
 
     /* Write any data that's already pending */
-  WRITE:
+WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
         errno = 0;
         w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
@@ -99,7 +95,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     /* If there's an alert pending out, send that */
     if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
-        struct s2n_blob alert = {0};
+        struct s2n_blob alert = { 0 };
         alert.data = conn->reader_alert_out.blob.data;
         alert.size = 2;
         POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
@@ -112,7 +108,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     /* Do the same for writer driven alerts */
     if (s2n_stuffer_data_available(&conn->writer_alert_out) == 2) {
-        struct s2n_blob alert = {0};
+        struct s2n_blob alert = { 0 };
         alert.data = conn->writer_alert_out.blob.data;
         alert.size = 2;
         POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
@@ -159,7 +155,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     /* Defensive check against an invalid retry */
     if (offs) {
-        const struct iovec* _bufs = bufs;
+        const struct iovec *_bufs = bufs;
         ssize_t _count = count;
         while (offs >= _bufs->iov_len && _count > 0) {
             offs -= _bufs->iov_len;
@@ -213,7 +209,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
         /* Write and encrypt the record */
         int written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
-                    conn->current_user_data_consumed + offs, to_write);
+                conn->current_user_data_consumed + offs, to_write);
         POSIX_GUARD(written_to_record);
         conn->current_user_data_consumed += written_to_record;
         conn->active_application_bytes_consumed += written_to_record;
@@ -266,7 +262,7 @@ ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t
 ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
     struct iovec iov;
-    iov.iov_base = (void*)(uintptr_t)buf;
+    iov.iov_base = (void *) (uintptr_t) buf;
     iov.iov_len = size;
     return s2n_sendv_with_offset(conn, &iov, 1, 0, blocked);
 }
