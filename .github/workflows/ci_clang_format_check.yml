@@ -18,7 +18,7 @@ jobs:
           - check: 'tests/testlib'
             exclude: ''
           - check: 'tests/unit'
-            exclude: "s2n_[^3ad-k].*\\.c|s2n_early_data_io_api_test\.c|s2n_early_data_io_test\.c|s2n_early_data_test\.c|s2n_extension_type_test\.c|s2n_key_update_test\.c"
+            exclude: "(s2n_[^3ad-k].*\\.c)|(s2n_early_data_io_api_test\\.c)|(s2n_early_data_io_test\\.c)|(s2n_early_data_test\\.c)|(s2n_extension_type_test\\.c)|(s2n_key_update_test\\.c)"
           - check: 'tls'
             exclude: ".*"
           - check: 'tls/extensions'
