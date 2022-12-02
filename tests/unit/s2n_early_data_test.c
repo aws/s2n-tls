@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_early_data.h"
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+
+#include "tls/s2n_early_data.h"
 
 #define TEST_SIZE 10
 
@@ -125,14 +125,11 @@ int main(int argc, char **argv)
         EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(NULL, 0), S2N_ERR_NULL);
 
         const s2n_early_data_state early_data_not_requested_seq[] = {
-            S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_NOT_REQUESTED
-        };
+                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_NOT_REQUESTED };
         const s2n_early_data_state early_data_rejected_seq[] = {
-            S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_REJECTED
-        };
+                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_REJECTED };
         const s2n_early_data_state early_data_success_seq[] = {
-            S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA
-        };
+                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
 
         /* Test known valid / invalid transitions */
         {
@@ -170,9 +167,9 @@ int main(int argc, char **argv)
             /* Test with the correct expected sequences */
             {
                 const s2n_early_state_sequence valid_early_state_sequences[] = {
-                    { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
-                    { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
-                    { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                        { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
+                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
                 };
 
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -185,13 +182,12 @@ int main(int argc, char **argv)
             /* Sanity check: adding an invalid expected sequence causes test to fail */
             {
                 const s2n_early_data_state invalid_seq[] = {
-                    S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA
-                };
+                        S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
                 const s2n_early_state_sequence test_early_state_sequences[] = {
-                    { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
-                    { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
-                    { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
-                    { .states = invalid_seq, .len = s2n_array_len(invalid_seq) },
+                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                        { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
+                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                        { .states = invalid_seq, .len = s2n_array_len(invalid_seq) },
                 };
 
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -204,8 +200,8 @@ int main(int argc, char **argv)
             /* Sanity check: removing one of the expected sequences causes test to fail */
             {
                 const s2n_early_state_sequence test_early_state_sequences[] = {
-                    { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
-                    { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
                 };
 
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -276,8 +272,7 @@ int main(int argc, char **argv)
 
             psk->hmac_alg = cipher_suite->prf_alg + 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(psk, nonzero_max_early_data,
-                                              cipher_suite->iana_value[0], cipher_suite->iana_value[1]),
-                    S2N_ERR_INVALID_ARGUMENT);
+                    cipher_suite->iana_value[0], cipher_suite->iana_value[1]), S2N_ERR_INVALID_ARGUMENT);
 
             psk->hmac_alg = cipher_suite->prf_alg;
             EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, nonzero_max_early_data,
@@ -533,7 +528,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
 
                 EXPECT_SUCCESS(s2n_psk_set_application_protocol(conn->psk_params.chosen_psk,
-                        required_protocol, sizeof(required_protocol)));
+                       required_protocol, sizeof(required_protocol)));
 
                 /* Early data alpn set, but no alpn negotiated */
                 EXPECT_MEMCPY_SUCCESS(conn->application_protocol, empty_protocol, sizeof(empty_protocol));
@@ -864,7 +859,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_get_max_early_data_size */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety */
         {
             struct s2n_connection conn = { 0 };
@@ -1230,7 +1224,7 @@ int main(int argc, char **argv)
         conn = *valid_connection;
         conn.early_data_bytes = limit;
         conn.handshake.handshake_type = NEGOTIATED;
-        while (s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
+        while(s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
             conn.handshake.message_number++;
         }
         EXPECT_OK(s2n_early_data_validate_send(&conn, 1));
@@ -1252,7 +1246,7 @@ int main(int argc, char **argv)
         valid_connection->early_data_bytes = 0;
         valid_connection->actual_protocol_version = S2N_TLS13;
         valid_connection->handshake.handshake_type = NEGOTIATED | WITH_EARLY_DATA;
-        while (s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
+        while(s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
             valid_connection->handshake.message_number++;
         }
 
@@ -1289,7 +1283,7 @@ int main(int argc, char **argv)
         conn = *valid_connection;
         conn.early_data_bytes = limit;
         conn.handshake.handshake_type = NEGOTIATED;
-        while (s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
+        while(s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
             conn.handshake.message_number++;
         }
         EXPECT_OK(s2n_early_data_validate_recv(&conn));

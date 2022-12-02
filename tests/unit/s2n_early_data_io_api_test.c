@@ -15,17 +15,18 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+
 #include "tls/s2n_early_data.h"
 
 #define BUFFER_SIZE 100
 
 #define EXPECT_NOT_BLOCKED(conn, blocked, expected_msg) \
-    EXPECT_EQUAL((blocked), S2N_NOT_BLOCKED);           \
+    EXPECT_EQUAL((blocked), S2N_NOT_BLOCKED); \
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
 #define EXPECT_BLOCKED_ON_EARLY_DATA(result) EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_EARLY_DATA_BLOCKED)
-#define EXPECT_BLOCKED_ON_IO(result)         EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_IO_BLOCKED)
+#define EXPECT_BLOCKED_ON_IO(result) EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_IO_BLOCKED)
 #define EXPECT_BLOCKED_ON(conn, blocked, expected_blocked, expected_msg) \
-    EXPECT_EQUAL((blocked), (expected_blocked));                         \
+    EXPECT_EQUAL((blocked), (expected_blocked)); \
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
 
 static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn)
@@ -108,8 +109,8 @@ int main(int argc, char **argv)
 
     /* Malformed record: empty handshake record */
     uint8_t malformed_record[] = {
-        TLS_HANDSHAKE, 0x03, 0x03, 0x00, 0x04,
-        TLS_FINISHED, 0x00, 0x00, 0x00
+           TLS_HANDSHAKE, 0x03, 0x03, 0x00, 0x04,
+           TLS_FINISHED, 0x00, 0x00, 0x00
     };
 
     DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_external_psk_new(), s2n_psk_free);
@@ -129,7 +130,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_send_early_data */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
             ssize_t data_size = 0;
             uint8_t data = 0;
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(NULL, &data, 1, &data_size, &blocked), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(&conn, &data, 1, NULL, &blocked), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(&conn, &data, 1, NULL,  &blocked), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(&conn, &data, 1, &data_size, NULL), S2N_ERR_NULL);
 
             conn.mode = S2N_SERVER;
@@ -164,8 +164,7 @@ int main(int argc, char **argv)
             ssize_t data_size = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
-                                              &data_size, &blocked),
-                    S2N_ERR_BAD_MESSAGE);
+                    &data_size, &blocked), S2N_ERR_BAD_MESSAGE);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
             EXPECT_EQUAL(data_size, 0);
 
@@ -193,8 +192,7 @@ int main(int argc, char **argv)
             ssize_t data_size = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
-                                              &data_size, &blocked),
-                    S2N_ERR_REENTRANCY);
+                    &data_size, &blocked), S2N_ERR_REENTRANCY);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
             EXPECT_EQUAL(data_size, 0);
 
@@ -205,7 +203,6 @@ int main(int argc, char **argv)
 
     /* s2n_recv_early_data */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -240,8 +237,7 @@ int main(int argc, char **argv)
             ssize_t data_size = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_recv_early_data(server_conn, payload, sizeof(payload),
-                                              &data_size, &blocked),
-                    S2N_ERR_BAD_MESSAGE);
+                    &data_size, &blocked), S2N_ERR_BAD_MESSAGE);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
             EXPECT_EQUAL(data_size, 0);
 
@@ -267,8 +263,7 @@ int main(int argc, char **argv)
             EXPECT_BLOCKED_ON(client_conn, blocked, S2N_BLOCKED_ON_READ, SERVER_HELLO);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_recv_early_data(server_conn, payload, sizeof(payload),
-                                              &data_size, &blocked),
-                    S2N_ERR_REENTRANCY);
+                    &data_size, &blocked), S2N_ERR_REENTRANCY);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), END_OF_EARLY_DATA);
             EXPECT_EQUAL(data_size, 0);
 
@@ -279,7 +274,6 @@ int main(int argc, char **argv)
 
     /* Test sending and receiving early data */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Send zero-length early data */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
@@ -376,7 +370,7 @@ int main(int argc, char **argv)
              * via s2n_recv_early_data. For safety, we are not allowed to arbitrarily discard any early data.
              */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_BAD_MESSAGE);
+                                S2N_ERR_BAD_MESSAGE);
 
             /* Pretend we didn't test the above error condition.
              * The S2N_ERR_BAD_MESSAGE error triggered S2N to close the connection. */
@@ -627,8 +621,7 @@ int main(int argc, char **argv)
         while (s2n_conn_get_current_message_type(server_conn) != SERVER_FINISHED) {
             s2n_allowed_writes = 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
-                                              &data_size, &blocked),
-                    S2N_ERR_IO_BLOCKED);
+                    &data_size, &blocked), S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
             EXPECT_EQUAL(data_size, 0);
         };
@@ -706,11 +699,10 @@ int main(int argc, char **argv)
          */
         size_t max_attempts = 100;
         size_t attempts = 0;
-        while (true) {
+        while(true) {
             s2n_allowed_writes = 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, large_data, sizeof(large_data),
-                                              &data_size, &blocked),
-                    S2N_ERR_IO_BLOCKED);
+                    &data_size, &blocked), S2N_ERR_IO_BLOCKED);
 
             if (data_size != 0) {
                 /* We blocked on both reading the next handshake message (S2N_BLOCKED_ON_READ)
@@ -762,7 +754,7 @@ int main(int argc, char **argv)
          *#    expanded (32 octets):  4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c
          *#       a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3
          */
-        S2N_BLOB_FROM_HEX(psk_secret, "4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
+        S2N_BLOB_FROM_HEX(psk_secret,"4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
                   a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3");
 
         EXPECT_SUCCESS(s2n_psk_set_secret(known_psk, psk_secret.data, psk_secret.size));
@@ -790,7 +782,7 @@ int main(int argc, char **argv)
          *        c5 02 00 00 00 b2
          */
         S2N_BLOB_FROM_HEX(psk_identity,
-                "2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00 \
+                                   "2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00 \
                   00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70 ad 3c \
                   49 88 83 c9 36 7c 09 a2 be 78 5a bc 55 cd 22 60 97 a3 a9 82 11 \
                   72 83 f8 2a 03 a1 43 ef d3 ff 5d d3 6d 64 e8 61 be 7f d6 1d 28 \
@@ -839,7 +831,7 @@ int main(int argc, char **argv)
          *#       3c f7 67 8e f5 e8 8d ae 99 01 41 c5 92 4d 57 bb 6f a3 1b 9e 5f
          *#       9d
          */
-        S2N_BLOB_FROM_HEX(ch_record, "16 03 01 02 00 01 00 01 fc 03 03 1b \
+        S2N_BLOB_FROM_HEX(ch_record,         "16 03 01 02 00 01 00 01 fc 03 03 1b \
                   c3 ce b6 bb e3 9c ff 93 83 55 b5 a5 0a db 6d b2 1b 7a 6a f6 49 \
                   d7 b4 bc 41 9d 78 76 48 7d 95 00 00 06 13 01 13 03 13 02 01 00 \
                   01 cd 00 00 00 0b 00 09 00 00 06 73 65 72 76 65 72 ff 01 00 01 \
@@ -878,7 +870,7 @@ int main(int argc, char **argv)
          *#       7a 7c c5 d2 84 4f 76 d5 ae e4 b4 ed bf 04 9b e0
          */
         S2N_BLOB_FROM_HEX(payload, "41 42 43 44 45 46");
-        S2N_BLOB_FROM_HEX(early_record, "17 03 03 00 17 ab 1d f4 20 e7 5c 45 \
+        S2N_BLOB_FROM_HEX(early_record,     "17 03 03 00 17 ab 1d f4 20 e7 5c 45 \
                   7a 7c c5 d2 84 4f 76 d5 ae e4 b4 ed bf 04 9b e0")
 
         /* EndOfEarlyData record
@@ -889,7 +881,7 @@ int main(int argc, char **argv)
          *#    complete record (26 octets):  17 03 03 00 15 ac a6 fc 94 48 41 29
          *#       8d f9 95 93 72 5f 9b f9 75 44 29 b1 2f 09
          */
-        S2N_BLOB_FROM_HEX(end_record, "17 03 03 00 15 ac a6 fc 94 48 41 29 \
+        S2N_BLOB_FROM_HEX(end_record,       "17 03 03 00 15 ac a6 fc 94 48 41 29 \
                   8d f9 95 93 72 5f 9b f9 75 44 29 b1 2f 09");
 
         /* Test s2n_recv_early_data without any blocking */

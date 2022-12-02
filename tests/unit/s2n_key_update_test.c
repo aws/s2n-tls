@@ -13,26 +13,27 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_key_update.h"
+#include "s2n_test.h"
+
+#include "testlib/s2n_testlib.h"
 
 #include "crypto/s2n_sequence.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
+#include "tls/s2n_key_update.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_quic_support.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls13_handshake.h"
-#include "utils/s2n_blob.h"
+#include "tls/s2n_cipher_suites.h"
+
 #include "utils/s2n_safety.h"
+#include "utils/s2n_blob.h"
 
 #define LOWEST_BYTE (S2N_TLS_SEQUENCE_NUM_LEN - 1)
 
-int s2n_key_update_write(struct s2n_blob *out);
+int s2n_key_update_write(struct s2n_blob *out); 
 int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 
-static S2N_RESULT s2n_write_uint64(uint64_t input, uint8_t *output)
-{
+static S2N_RESULT s2n_write_uint64(uint64_t input, uint8_t *output) {
     struct s2n_blob blob = { 0 };
     struct s2n_stuffer stuffer = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&blob, output, S2N_TLS_SEQUENCE_NUM_LEN));
@@ -64,16 +65,15 @@ int main(int argc, char **argv)
     EXPECT_TRUE(cipher_suite_with_limit->available);
     EXPECT_TRUE(cipher_suite_without_limit->available);
 
-    uint8_t zeroed_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+    uint8_t zeroed_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
     /* s2n_key_update_write */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Tests s2n_key_update_write writes as expected */
         {
             uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
-            struct s2n_blob key_update_blob = { 0 };
-            struct s2n_stuffer key_update_stuffer = { 0 };
+            struct s2n_blob key_update_blob = {0};
+            struct s2n_stuffer key_update_stuffer = {0};
             EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
             EXPECT_SUCCESS(s2n_stuffer_init(&key_update_stuffer, &key_update_blob));
 
@@ -99,7 +99,6 @@ int main(int argc, char **argv)
 
     /* s2n_key_update_recv */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Key update message not allowed when running with QUIC
          *
          *= https://tools.ietf.org/rfc/rfc9001.txt#6
@@ -176,7 +175,7 @@ int main(int argc, char **argv)
             server_conn->secure->cipher_suite = cipher_suite_with_limit;
             POSIX_CHECKED_MEMCPY(server_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
 
-            server_conn->secure->client_sequence_number[0] = 1;
+            server_conn->secure->client_sequence_number[0] = 1; 
             /* Write the key update request to the correct stuffer */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
 
@@ -198,7 +197,7 @@ int main(int argc, char **argv)
             client_conn->secure->cipher_suite = cipher_suite_with_limit;
             POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.server_app_secret, application_secret.data, application_secret.size);
 
-            client_conn->secure->server_sequence_number[0] = 1;
+            client_conn->secure->server_sequence_number[0] = 1; 
             /* Write the key update request to the correct stuffer */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
 
@@ -208,11 +207,11 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
+        
     }
 
     /* s2n_key_update_send */
-    {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
+    {   
         /* Key update has been requested */
         {
             struct s2n_connection *client_conn;
@@ -254,7 +253,7 @@ int main(int argc, char **argv)
 
             client_conn->key_update_pending = false;
             EXPECT_OK(s2n_write_uint64(record_limit, client_conn->secure->client_sequence_number));
-
+            
             s2n_blocked_status blocked = 0;
             EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
 
@@ -264,7 +263,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        } 
 
         /* Key update is not triggered */
         {
@@ -273,7 +272,7 @@ int main(int argc, char **argv)
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure->cipher_suite = cipher_suite_with_limit;
             POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
-            uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+            uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
             /* Setup io */
             struct s2n_stuffer stuffer;
@@ -293,7 +292,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        } 
 
         /* Key update eventually occurs when record limit reached */
         {
