@@ -11,6 +11,8 @@ jobs:
             exclude: ''
           - check: 'bin'
             exclude: ''
+          - check: 'crypto'
+            exclude: ''
           - check: 'stuffer'
             exclude: ''
           - check: 'error'

@@ -15,11 +15,11 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <openssl/x509.h>
+#include <stdint.h>
 
 #include "utils/s2n_safety.h"
 
-DEFINE_POINTER_CLEANUP_FUNC(X509*, X509_free);
+DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);
 
 int s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain);

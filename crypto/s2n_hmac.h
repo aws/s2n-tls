@@ -73,5 +73,5 @@ extern int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
 extern int s2n_hmac_free(struct s2n_hmac_state *state);
 extern int s2n_hmac_reset(struct s2n_hmac_state *state);
 extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);
-extern int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
-extern int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
+extern int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup *backup, struct s2n_hmac_state *hmac);
+extern int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup *backup, struct s2n_hmac_state *hmac);
