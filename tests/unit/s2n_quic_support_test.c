@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "tls/s2n_quic_support.h"
 
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 
 static const uint8_t TEST_DATA[] = "test";
 
-static int s2n_test_noop_secret_handler(void* context, struct s2n_connection *conn,
+static int s2n_test_noop_secret_handler(void *context, struct s2n_connection *conn,
         s2n_secret_type_t secret_type, uint8_t *secret, uint8_t secret_size)
 {
     return S2N_SUCCESS;
@@ -150,6 +150,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_set_quic_transport_parameters */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -180,6 +181,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_get_quic_transport_parameters */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };

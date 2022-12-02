@@ -13,16 +13,13 @@
  * permissions and limitations under the License.
  */
 
-
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
+#include "tls/s2n_post_handshake.h"
 
 #include "error/s2n_errno.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
-#include "tls/s2n_post_handshake.h"
 #include "utils/s2n_safety.h"
 
 /* Include to get access to the handshake state machine
@@ -31,8 +28,8 @@
 #include "tls/s2n_handshake_io.c"
 
 #define KEY_UPDATE_MESSAGE_SIZE sizeof(uint8_t) + /* message id */  \
-                                SIZEOF_UINT24   + /* message len */ \
-                                sizeof(uint8_t)   /* message */
+        SIZEOF_UINT24 +                           /* message len */ \
+        sizeof(uint8_t)                           /* message */
 
 int s2n_key_update_write(struct s2n_blob *out);
 
@@ -41,7 +38,8 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* s2n_post_handshake_recv */
-    {   
+    {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* post_handshake_recv processes a key update requested message */
         {
             struct s2n_connection *conn;
@@ -58,7 +56,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
             EXPECT_TRUE(conn->key_update_pending);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* post_handshake_recv processes an unknown post handshake message */
@@ -77,7 +75,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
             EXPECT_FALSE(conn->key_update_pending);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* post_handshake_recv processes a malformed post handshake message */
@@ -95,7 +93,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE(s2n_post_handshake_recv(conn));
             EXPECT_FALSE(conn->key_update_pending);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* Functional test: Multiple post handshake messages can be received in the same record */
@@ -176,23 +174,23 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
         }
-
     }
 
     /* post_handshake_send */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Post handshake message can be sent */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;    
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             s2n_blocked_status blocked;
 
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
             EXPECT_TRUE(s2n_stuffer_data_available(&conn->out) == 0);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
 

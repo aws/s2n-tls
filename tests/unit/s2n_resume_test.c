@@ -13,34 +13,35 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_resume.h"
+
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_resume.h"
 /* To test static function */
 #include "tls/s2n_resume.c"
 #include "utils/s2n_safety.h"
 
-#define TICKET_ISSUE_TIME_BYTES 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
-#define TICKET_AGE_ADD_BYTES 0x01, 0x01, 0x01, 0x01
-#define TICKET_AGE_ADD 16843009
-#define SECRET_LEN 0x02
-#define SECRET 0x03, 0x04
+#define TICKET_ISSUE_TIME_BYTES          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+#define TICKET_AGE_ADD_BYTES             0x01, 0x01, 0x01, 0x01
+#define TICKET_AGE_ADD                   16843009
+#define SECRET_LEN                       0x02
+#define SECRET                           0x03, 0x04
 #define KEYING_MATERIAL_EXPIRATION_BYTES 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08
-#define EMPTY_EARLY_DATA_SIZE 0x00, 0x00, 0x00, 0x00
-#define CLIENT_TICKET 0x10, 0x10
+#define EMPTY_EARLY_DATA_SIZE            0x00, 0x00, 0x00, 0x00
+#define CLIENT_TICKET                    0x10, 0x10
 
 #define NONEMPTY_EARLY_DATA_SIZE 0x12
-#define APP_PROTOCOL_LEN 0x02
-#define APP_PROTOCOL 0x05, 0x06
-#define EARLY_DATA_CONTEXT_LEN 0x03
-#define EARLY_DATA_CONTEXT 0x07, 0x08, 0x09
+#define APP_PROTOCOL_LEN         0x02
+#define APP_PROTOCOL             0x05, 0x06
+#define EARLY_DATA_CONTEXT_LEN   0x03
+#define EARLY_DATA_CONTEXT       0x07, 0x08, 0x09
 
 #define SIZE_OF_MAX_EARLY_DATA_SIZE sizeof(uint32_t)
 
 #define S2N_TLS12_STATE_SIZE_IN_BYTES_WITHOUT_EMS S2N_TLS12_STATE_SIZE_IN_BYTES - 1
 
-#define SECONDS_TO_NANOS(seconds) ((seconds) * (uint64_t)ONE_SEC_IN_NANOS)
+#define SECONDS_TO_NANOS(seconds) ((seconds) * (uint64_t) ONE_SEC_IN_NANOS)
 
 const uint64_t ticket_issue_time = 283686952306183;
 const uint64_t keying_material_expiration = 283686952306184;
@@ -62,15 +63,16 @@ int main(int argc, char **argv)
 
     /* Two random secrets of different sizes */
     S2N_BLOB_FROM_HEX(test_master_secret,
-    "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
-    "531be2441d7c63e2b9729d145c11d84af35957727565a4");
+            "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
+            "531be2441d7c63e2b9729d145c11d84af35957727565a4");
 
     S2N_BLOB_FROM_HEX(test_session_secret,
-    "18df06843d13a08bf2a449844c5f8a"
-    "478001bc4d4c627984d5a41da8d0402919");
+            "18df06843d13a08bf2a449844c5f8a"
+            "478001bc4d4c627984d5a41da8d0402919");
 
     /* s2n_connection_get_session_state_size */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -352,7 +354,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
-    
+
     /* s2n_tls13_serialize_resumption_state */
     {
         /* Safety checks */
@@ -385,7 +387,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
@@ -444,7 +446,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             /* New expiration time */
@@ -523,7 +525,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
@@ -536,7 +538,7 @@ int main(int argc, char **argv)
             uint8_t app_protocol_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &app_protocol_size));
             EXPECT_NOT_EQUAL(app_protocol_size, 0);
-            EXPECT_EQUAL(app_protocol_size, strlen((const char*) test_app_protocol));
+            EXPECT_EQUAL(app_protocol_size, strlen((const char *) test_app_protocol));
 
             uint8_t app_protocol[sizeof(test_app_protocol)] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, app_protocol, app_protocol_size));
@@ -564,7 +566,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, UINT8_MAX + 1));
@@ -621,10 +623,14 @@ int main(int argc, char **argv)
             TICKET_AGE_ADD_BYTES,
             SECRET_LEN,
             SECRET,
-            0x00, 0x00, 0x00, NONEMPTY_EARLY_DATA_SIZE,
+            0x00,
+            0x00,
+            0x00,
+            NONEMPTY_EARLY_DATA_SIZE,
             APP_PROTOCOL_LEN,
             APP_PROTOCOL,
-            0x00, EARLY_DATA_CONTEXT_LEN,
+            0x00,
+            EARLY_DATA_CONTEXT_LEN,
             EARLY_DATA_CONTEXT,
         };
 
@@ -644,7 +650,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer),
-                     S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+                    S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -688,7 +694,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
             EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
-            
+
             EXPECT_TRUE(conn->ems_negotiated);
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
@@ -768,8 +774,8 @@ int main(int argc, char **argv)
              **/
             conn->ems_negotiated = false;
             EXPECT_SUCCESS(s2n_stuffer_reread(&output));
-            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &output), 
-                        S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &output),
+                    S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
             EXPECT_TRUE(conn->ems_negotiated);
 
             /**
@@ -785,8 +791,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&output, 0));
             conn->ems_negotiated = true;
             EXPECT_SUCCESS(s2n_stuffer_reread(&output));
-            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &output), 
-                        S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &output),
+                    S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
             EXPECT_FALSE(conn->ems_negotiated);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -816,7 +822,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
@@ -859,7 +865,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
@@ -925,7 +931,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->early_data_config.protocol_version, S2N_TLS13);
@@ -1007,7 +1013,7 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
@@ -1067,7 +1073,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-                conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = TICKET_AGE_ADD };
+                conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = TICKET_AGE_ADD };
                 EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
                 /* Initialize client ticket */
@@ -1080,7 +1086,7 @@ int main(int argc, char **argv)
 
                 /* Check PSK values are correct */
                 struct s2n_psk *psk = NULL;
-                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
                 EXPECT_NOT_NULL(psk);
 
                 EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
@@ -1105,7 +1111,7 @@ int main(int argc, char **argv)
             const uint32_t test_max_early_data_size = 100;
             const uint8_t test_early_data_context[] = "test context";
             const uint8_t test_app_protocol[] = "test protocol";
-            const uint8_t test_app_protocol_len = strlen((const char *)test_app_protocol);
+            const uint8_t test_app_protocol_len = strlen((const char *) test_app_protocol);
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -1124,7 +1130,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Initialize client ticket */
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = TICKET_AGE_ADD };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = TICKET_AGE_ADD };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
             uint8_t client_ticket[] = { CLIENT_TICKET };
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
@@ -1135,7 +1141,7 @@ int main(int argc, char **argv)
 
             /* Check PSK values are correct */
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->early_data_config.protocol_version, S2N_TLS13);
@@ -1183,6 +1189,7 @@ int main(int argc, char **argv)
 
     /* s2n_validate_ticket_age */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Ticket issue time is in the future */
         {
             uint64_t current_time = SECONDS_TO_NANOS(0);
@@ -1215,8 +1222,8 @@ int main(int argc, char **argv)
     {
         /* Session ticket keys. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
         uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-        S2N_BLOB_FROM_HEX(ticket_key, 
-        "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
+        S2N_BLOB_FROM_HEX(ticket_key,
+                "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
 
         /* Check encrypted data can be decrypted correctly for TLS12 */
         {
@@ -1228,8 +1235,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
@@ -1268,8 +1275,8 @@ int main(int argc, char **argv)
             /* Setting up session resumption encryption key */
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -1278,7 +1285,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             /* This secret is smaller than the maximum secret length */
@@ -1291,7 +1298,7 @@ int main(int argc, char **argv)
 
             /* Check decryption was successful */
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
             EXPECT_EQUAL(psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
 
@@ -1310,8 +1317,8 @@ int main(int argc, char **argv)
             /* Setting up session resumption encryption key */
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -1320,7 +1327,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->tls13_ticket_fields.session_secret));
 
             /* This secret is equal to the maximum secret length */
@@ -1333,7 +1340,7 @@ int main(int argc, char **argv)
 
             /* Check decryption was successful */
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
             EXPECT_EQUAL(psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
 
@@ -1352,8 +1359,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
@@ -1366,7 +1373,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &output));
@@ -1376,7 +1383,7 @@ int main(int argc, char **argv)
 
             /* Check decryption was successful */
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
             EXPECT_NOT_NULL(psk);
             EXPECT_EQUAL(psk->early_data_config.cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
@@ -1411,6 +1418,7 @@ int main(int argc, char **argv)
 
     /* s2n_connection_add_new_tickets_to_send */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* New number of session tickets can be set */
         {
             struct s2n_connection *conn;
@@ -1434,7 +1442,7 @@ int main(int argc, char **argv)
             conn->tickets_to_send = UINT16_MAX;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, new_num_tickets), S2N_ERR_INTEGER_OVERFLOW);
-            
+
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
@@ -1475,6 +1483,7 @@ int main(int argc, char **argv)
 
     /* s2n_session_ticket_get_data_len */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
@@ -1506,6 +1515,7 @@ int main(int argc, char **argv)
 
     /* s2n_session_ticket_get_data */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
@@ -1544,6 +1554,7 @@ int main(int argc, char **argv)
 
     /* s2n_session_ticket_get_lifetime */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };

@@ -15,10 +15,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_quic_support.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_mem.h"
 
@@ -61,10 +60,10 @@ static S2N_RESULT s2n_setup_conn_for_server_hello(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    if(conn->kex_params.server_ecc_evp_params.evp_pkey == NULL) {
+    if (conn->kex_params.server_ecc_evp_params.evp_pkey == NULL) {
         RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
     }
-    if(conn->kex_params.client_ecc_evp_params.evp_pkey == NULL) {
+    if (conn->kex_params.client_ecc_evp_params.evp_pkey == NULL) {
         RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
     }
 
@@ -90,13 +89,13 @@ static S2N_RESULT s2n_write_test_message(struct s2n_blob *out, message_type_t me
     return S2N_RESULT_OK;
 }
 
-static int s2n_test_write_handler(struct s2n_connection* conn)
+static int s2n_test_write_handler(struct s2n_connection *conn)
 {
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->handshake.io, TEST_DATA, TEST_DATA_SIZE));
     return S2N_SUCCESS;
 }
 
-static int s2n_test_read_handler(struct s2n_connection* conn)
+static int s2n_test_read_handler(struct s2n_connection *conn)
 {
     EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), TEST_DATA_SIZE);
     EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->handshake.io, TEST_DATA_SIZE),
@@ -114,6 +113,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_quic_write_handshake_message */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -143,6 +143,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_quic_read_handshake_message */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -280,7 +281,7 @@ int main(int argc, char **argv)
         }
 
         /* Functional: successfully reads fragmented handshake message */
-        for(size_t i = 1; i < server_hello.size - 1; i++) {
+        for (size_t i = 1; i < server_hello.size - 1; i++) {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));

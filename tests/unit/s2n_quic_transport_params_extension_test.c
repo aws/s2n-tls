@@ -15,9 +15,7 @@
 
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_quic_transport_params.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls13.h"
@@ -29,7 +27,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     if (!s2n_is_tls13_fully_supported()) {
-       END_TEST();
+        END_TEST();
     }
 
     /* Test should_send */
@@ -89,6 +87,7 @@ int main(int argc, char **argv)
 
     /* Test send */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_stuffer out = { 0 };

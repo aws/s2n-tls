@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_renegotiate.h"
 
-#include "tls/s2n_tls.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
@@ -30,36 +29,36 @@ struct s2n_reneg_test_case {
 };
 
 const struct s2n_reneg_test_case dhe_test_cases[] = {
-        {
+    {
             .protocol_version = S2N_SSLv3,
             .cipher_suite = &s2n_dhe_rsa_with_3des_ede_cbc_sha,
             .max_frag_code = 0,
-        },
-        {
+    },
+    {
             .protocol_version = S2N_TLS10,
             .cipher_suite = &s2n_dhe_rsa_with_aes_128_cbc_sha,
             .max_frag_code = S2N_TLS_MAX_FRAG_LEN_512,
-        },
-        {
+    },
+    {
             .protocol_version = S2N_TLS11,
             .cipher_suite = &s2n_dhe_rsa_with_aes_256_cbc_sha,
             .max_frag_code = S2N_TLS_MAX_FRAG_LEN_1024,
-        },
-        {
+    },
+    {
             .protocol_version = S2N_TLS12,
             .cipher_suite = &s2n_dhe_rsa_with_aes_128_cbc_sha256,
             .max_frag_code = 0,
-        },
-        {
+    },
+    {
             .protocol_version = S2N_TLS12,
             .cipher_suite = &s2n_dhe_rsa_with_aes_256_gcm_sha384,
             .max_frag_code = S2N_TLS_MAX_FRAG_LEN_2048,
-        },
-        {
+    },
+    {
             .protocol_version = S2N_TLS12,
             .cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256,
             .max_frag_code = S2N_TLS_MAX_FRAG_LEN_4096,
-        },
+    },
 };
 
 int main(int argc, char *argv[])
@@ -89,6 +88,7 @@ int main(int argc, char *argv[])
 
     /* Test s2n_renegotiate_wipe */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Default IO unaffected by wipe */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -526,7 +526,7 @@ int main(int argc, char *argv[])
                 }
 
                 for (size_t max_frag_i = 0; max_frag_i < s2n_array_len(mfl_code_to_length); max_frag_i++) {
-                    test_cases[test_cases_count] = (struct s2n_reneg_test_case) {
+                    test_cases[test_cases_count] = (struct s2n_reneg_test_case){
                         .protocol_version = version,
                         .cipher_suite = ciphers->suites[cipher_i],
                         .max_frag_code = max_frag_i,

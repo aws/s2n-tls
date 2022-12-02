@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "tls/extensions/s2n_client_alpn.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_protocol_preferences.h"
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "tls/extensions/s2n_client_alpn.h"
+#include "tls/s2n_connection.h"
 
 #define LEN_PREFIX 1
 
@@ -28,9 +28,9 @@ int main(int argc, char **argv)
 
     /* input values */
     const uint8_t protocol1[] = "protocol1";
-    const size_t protocol1_len = strlen((const char *)protocol1);
+    const size_t protocol1_len = strlen((const char *) protocol1);
     const uint8_t protocol2[] = "protocol abc 2";
-    const size_t protocol2_len = strlen((const char *)protocol2);
+    const size_t protocol2_len = strlen((const char *) protocol2);
 
     const uint8_t large_value[255] = { 0 };
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    const char *protocols[] = { (const char *)protocol1, (const char *)protocol2 };
+    const char *protocols[] = { (const char *) protocol1, (const char *) protocol2 };
     const uint8_t protocols_count = s2n_array_len(protocols);
 
     char oversized_value[257] = { 0 };
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
         /* should clear the preference list */
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, NULL, protocols_count));
         EXPECT_EQUAL(config->application_protocols.size, 0);
-        
+
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_EQUAL(config->application_protocols.size, LEN_PREFIX + protocol1_len + LEN_PREFIX + protocol2_len);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, 0));
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         /* should clear the preference list */
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, NULL, protocols_count));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, 0);
-        
+
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, protocols, protocols_count));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, LEN_PREFIX + protocol1_len + LEN_PREFIX + protocol2_len);
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, protocols, 0));
@@ -164,6 +164,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_protocol_preferences_read */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_stuffer stuffer = { 0 };

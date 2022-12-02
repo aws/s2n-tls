@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 
 int main(int argc, char **argv)
@@ -45,7 +44,8 @@ int main(int argc, char **argv)
     }
 
     /* Test: s2n_psk_key_exchange_modes_recv */
-    {   
+    {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Receive an extension when running TLS1.2 */
         {
             struct s2n_stuffer out = { 0 };
