@@ -15,18 +15,16 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_tls13_handshake.h"
-
 #include "utils/s2n_array.h"
 #include "utils/s2n_mem.h"
 
 /* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
-#include "tls/s2n_tls13_handshake.c"
 #include "tls/s2n_handshake_transcript.c"
+#include "tls/s2n_tls13_handshake.c"
 
 #define S2N_SECRET_TYPE_COUNT 5
 
@@ -55,7 +53,7 @@ int main()
          *#    expanded (32 octets):  4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c
          *#       a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3
          */
-        S2N_BLOB_FROM_HEX(psk_secret,"4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
+        S2N_BLOB_FROM_HEX(psk_secret, "4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
                   a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3");
 
         /**
@@ -81,7 +79,7 @@ int main()
          *        c5 02 00 00 00 b2
          */
         S2N_BLOB_FROM_HEX(psk_identity,
-                                   "2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00 \
+                "2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00 \
                   00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70 ad 3c \
                   49 88 83 c9 36 7c 09 a2 be 78 5a bc 55 cd 22 60 97 a3 a9 82 11 \
                   72 83 f8 2a 03 a1 43 ef d3 ff 5d d3 6d 64 e8 61 be 7f d6 1d 28 \
@@ -128,7 +126,7 @@ int main()
          *#       ae 99 01 41 c5 92 4d 57 bb 6f a3 1b 9e 5f 9d
          */
         S2N_BLOB_FROM_HEX(client_hello_msg,
-                                     "01 00 01 fc 03 03 1b c3 ce b6 bb e3 9c ff \
+                "01 00 01 fc 03 03 1b c3 ce b6 bb e3 9c ff \
                   93 83 55 b5 a5 0a db 6d b2 1b 7a 6a f6 49 d7 b4 bc 41 9d 78 76 \
                   48 7d 95 00 00 06 13 01 13 03 13 02 01 00 01 cd 00 00 00 0b 00 \
                   09 00 00 06 73 65 72 76 65 72 ff 01 00 01 00 00 0a 00 14 00 12 \
@@ -184,7 +182,7 @@ int main()
          *#       3c f7 67 8e f5 e8 8d ae 99 01 41 c5 92 4d 57 bb 6f a3 1b 9e 5f
          *#       9d
          */
-        S2N_BLOB_FROM_HEX(ch_record,         "16 03 01 02 00 01 00 01 fc 03 03 1b \
+        S2N_BLOB_FROM_HEX(ch_record, "16 03 01 02 00 01 00 01 fc 03 03 1b \
                   c3 ce b6 bb e3 9c ff 93 83 55 b5 a5 0a db 6d b2 1b 7a 6a f6 49 \
                   d7 b4 bc 41 9d 78 76 48 7d 95 00 00 06 13 01 13 03 13 02 01 00 \
                   01 cd 00 00 00 0b 00 09 00 00 06 73 65 72 76 65 72 ff 01 00 01 \
@@ -225,7 +223,7 @@ int main()
          *#       bb 41 91 50 00 f6 78 aa 83 9c bb 79 7c b7 d8 33 2c
          */
         S2N_BLOB_FROM_HEX(early_secret,
-                                   "9b 21 88 e9 b2 fc 6d 64 d7 1d c3 29 90 0e 20 \
+                "9b 21 88 e9 b2 fc 6d 64 d7 1d c3 29 90 0e 20 \
                   bb 41 91 50 00 f6 78 aa 83 9c bb 79 7c b7 d8 33 2c");
 
         /**
@@ -245,7 +243,7 @@ int main()
          *#
          *# iv expanded (12 octets):  6d 47 5f 09 93 c8 e5 64 61 0d b2 b9
          */
-        S2N_BLOB_FROM_HEX(iv,        "6d 47 5f 09 93 c8 e5 64 61 0d b2 b9");
+        S2N_BLOB_FROM_HEX(iv, "6d 47 5f 09 93 c8 e5 64 61 0d b2 b9");
 
         /**
          *= https://tools.ietf.org/rfc/rfc8448#section-4
@@ -262,7 +260,7 @@ int main()
          *#    complete record (28 octets):  17 03 03 00 17 ab 1d f4 20 e7 5c 45
          *#       7a 7c c5 d2 84 4f 76 d5 ae e4 b4 ed bf 04 9b e0
          */
-        S2N_BLOB_FROM_HEX(complete_record,  "17 03 03 00 17 ab 1d f4 20 e7 5c 45 \
+        S2N_BLOB_FROM_HEX(complete_record, "17 03 03 00 17 ab 1d f4 20 e7 5c 45 \
                   7a 7c c5 d2 84 4f 76 d5 ae e4 b4 ed bf 04 9b e0");
 
         /* Test client early data encryption against known client outputs */
@@ -274,7 +272,7 @@ int main()
             client_conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
             struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &psk));
+            EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void **) &psk));
             psk->hmac_alg = S2N_HMAC_SHA256;
             EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, max_early_data, 0x13, 0x01));
             client_conn->secure->cipher_suite = psk->early_data_config.cipher_suite;

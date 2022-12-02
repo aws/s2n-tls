@@ -18,11 +18,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls13_key_schedule.h"
 #include "tls/s2n_tls13_secrets.h"
-
-#include "tls/s2n_cipher_suites.h"
 
 struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 const struct s2n_ecc_named_curve *curve = &s2n_ecc_curve_x25519;
@@ -154,12 +152,12 @@ int main(int argc, char **argv)
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
                 conn->kex_params.server_ecc_evp_params.evp_pkey = EVP_PKEY_new_raw_private_key(
-                        openssl_type, NULL, (unsigned char*) server_priv.data, server_priv.size);
+                        openssl_type, NULL, (unsigned char *) server_priv.data, server_priv.size);
                 EXPECT_NOT_NULL(conn->kex_params.server_ecc_evp_params.evp_pkey);
 
                 conn->kex_params.client_ecc_evp_params.negotiated_curve = curve;
                 conn->kex_params.client_ecc_evp_params.evp_pkey = EVP_PKEY_new_raw_public_key(
-                        openssl_type, NULL, (unsigned char*) client_pub.data, client_pub.size);
+                        openssl_type, NULL, (unsigned char *) client_pub.data, client_pub.size);
                 EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_HANDSHAKE_SECRET));
@@ -176,12 +174,12 @@ int main(int argc, char **argv)
 
                 conn->kex_params.server_ecc_evp_params.negotiated_curve = curve;
                 conn->kex_params.server_ecc_evp_params.evp_pkey = EVP_PKEY_new_raw_public_key(
-                        openssl_type, NULL, (unsigned char*) server_pub.data, server_pub.size);
+                        openssl_type, NULL, (unsigned char *) server_pub.data, server_pub.size);
                 EXPECT_NOT_NULL(conn->kex_params.server_ecc_evp_params.evp_pkey);
 
                 conn->kex_params.client_ecc_evp_params.negotiated_curve = curve;
                 conn->kex_params.client_ecc_evp_params.evp_pkey = EVP_PKEY_new_raw_private_key(
-                        openssl_type, NULL, (unsigned char*) client_priv.data, client_priv.size);
+                        openssl_type, NULL, (unsigned char *) client_priv.data, client_priv.size);
                 EXPECT_NOT_NULL(conn->kex_params.client_ecc_evp_params.evp_pkey);
 
                 EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_HANDSHAKE_SECRET));

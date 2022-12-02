@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_tls13_secrets.h"
 
+#include <sys/param.h>
+
 #include "crypto/s2n_ecc_evp.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 S2N_RESULT s2n_tls13_extract_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type);
 S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
@@ -72,7 +71,7 @@ int main(int argc, char **argv)
                                 /* Secret schedule MUST be evaluated in order */
                                 continue;
                             }
-                            test_cases[test_cases_count] = (struct s2n_tls13_secrets_test_case) {
+                            test_cases[test_cases_count] = (struct s2n_tls13_secrets_test_case){
                                 .curr_secret_type = curr_type,
                                 .next_secret_type = next_type,
                                 .secret_mode = modes[m1_i],
@@ -151,7 +150,7 @@ int main(int argc, char **argv)
         }
 
         /* All valid parameter combinations should succeed */
-        for (size_t i = 0; i < test_cases_count; i ++) {
+        for (size_t i = 0; i < test_cases_count; i++) {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                     s2n_connection_ptr_free);
             conn->secure->cipher_suite = test_cases[i].cipher_suite;
@@ -244,7 +243,7 @@ int main(int argc, char **argv)
         }
 
         /* All valid parameter combinations should succeed */
-        for (size_t i = 0; i < test_cases_count; i ++) {
+        for (size_t i = 0; i < test_cases_count; i++) {
             uint8_t output_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
             struct s2n_blob output = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
@@ -304,6 +303,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_tls13_secrets_get */
     {
+        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety */
         {
             struct s2n_blob result = { 0 };
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 
             conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_SAFETY);
-            
+
             struct s2n_crypto_parameters *secure = conn->secure;
             conn->secure = NULL;
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.server_handshake_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while(s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
+            while (s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
                 conn->handshake.message_number++;
             }
             EXPECT_OK(s2n_tls13_secrets_update(conn));
@@ -430,7 +430,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->handshake.server_finished,
                     empty_secret, sizeof(empty_secret));
 
-            while(s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
+            while (s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
                 conn->handshake.message_number++;
             }
             EXPECT_OK(s2n_tls13_secrets_update(conn));
@@ -456,7 +456,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.server_app_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while(s2n_conn_get_current_message_type(conn) != SERVER_FINISHED) {
+            while (s2n_conn_get_current_message_type(conn) != SERVER_FINISHED) {
                 conn->handshake.message_number++;
             }
             EXPECT_OK(s2n_tls13_secrets_update(conn));
@@ -477,7 +477,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while(s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
+            while (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
                 conn->handshake.message_number++;
             }
             EXPECT_OK(s2n_tls13_secrets_update(conn));

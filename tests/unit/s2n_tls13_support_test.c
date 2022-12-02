@@ -15,17 +15,15 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_cookie.h"
 #include "tls/extensions/s2n_extension_type_lists.h"
-#include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
-
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
+#include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 int main(int argc, char **argv)
 {
@@ -115,19 +113,26 @@ int main(int argc, char **argv)
     {
         uint8_t value[2] = { 0x13, 0x01 };
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x02;
+        value[0] = 0x13;
+        value[1] = 0x02;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x03;
+        value[0] = 0x13;
+        value[1] = 0x03;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x04;
+        value[0] = 0x13;
+        value[1] = 0x04;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x05;
+        value[0] = 0x13;
+        value[1] = 0x05;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x06;
+        value[0] = 0x13;
+        value[1] = 0x06;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x00;
+        value[0] = 0x13;
+        value[1] = 0x00;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x12; value[1] = 0x01;
+        value[0] = 0x12;
+        value[1] = 0x01;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
 
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(s2n_dhe_rsa_with_3des_ede_cbc_sha.iana_value));
@@ -152,7 +157,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        for (int i=0; i < tls13_server_hello_extensions->count; i++) {
+        for (int i = 0; i < tls13_server_hello_extensions->count; i++) {
             const s2n_extension_type *tls13_extension_type = tls13_server_hello_extensions->extension_types[i];
             s2n_extension_type_id extension_id;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extension_type->iana_value, &extension_id));
