@@ -346,9 +346,8 @@ int async_pkey_invalid_input_callback(struct s2n_connection *conn, struct s2n_as
 
 int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *signature)
 {
-    FAIL_MSG(
-            "Invalid async pkey callback was invoked. The callback should never be invoked if there was an earlier"
-            " failure in the async_pkey_op.");
+    FAIL_MSG("Invalid async pkey callback was invoked. The callback should never be invoked if there was an earlier"
+             " failure in the async_pkey_op.");
     return S2N_FAILURE;
 }
 
