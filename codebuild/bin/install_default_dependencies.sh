@@ -30,7 +30,7 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]]; then
 fi
 
 # Download and Install Openssl 1.1.1
-if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
+if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ( "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
       mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR"||true
       codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
@@ -72,7 +72,7 @@ if [[ "$S2N_LIBCRYPTO" == "awslc-fips" && ! -d "$AWSLC_FIPS_INSTALL_DIR" ]]; the
     codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_INSTALL_DIR" "1" > /dev/null ;
 fi
 
-if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
+if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
     # Install tox
     if [[ "$DISTRO" == "ubuntu" ]]; then
         if [[ ! -x `python3.9 -m tox --version` ]]; then
