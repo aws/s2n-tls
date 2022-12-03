@@ -14,18 +14,17 @@
  */
 
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_connection.h"
 
 #define S2N_TEST_PSK_VALUE "psk_test"
 
-struct s2n_psk* s2n_test_psk_new(struct s2n_connection *conn)
+struct s2n_psk *s2n_test_psk_new(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
     /* We're assuming the index will only take one digit */
     uint8_t buffer[sizeof(S2N_TEST_PSK_VALUE) + 1] = { 0 };
-    int r = snprintf((char*) buffer, sizeof(buffer), "%s%u", S2N_TEST_PSK_VALUE, conn->psk_params.psk_list.len);
+    int r = snprintf((char *) buffer, sizeof(buffer), "%s%u", S2N_TEST_PSK_VALUE, conn->psk_params.psk_list.len);
     PTR_ENSURE_GT(r, 0);
     PTR_ENSURE_LT(r, sizeof(buffer));
 
@@ -64,7 +63,7 @@ S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *con
     RESULT_ENSURE_GT(conn->psk_params.psk_list.len, 0);
 
     struct s2n_psk *last_psk = NULL;
-    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, conn->psk_params.psk_list.len - 1, (void**) &last_psk));
+    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, conn->psk_params.psk_list.len - 1, (void **) &last_psk));
     conn->psk_params.chosen_psk = last_psk;
 
     return S2N_RESULT_OK;

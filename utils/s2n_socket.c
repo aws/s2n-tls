@@ -13,28 +13,28 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_connection.h"
-
 #include "utils/s2n_socket.h"
-#include "utils/s2n_safety.h"
 
-#include <netinet/tcp.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "tls/s2n_connection.h"
+#include "utils/s2n_safety.h"
+
 #if TCP_CORK
-    #define S2N_CORK        TCP_CORK
-    #define S2N_CORK_ON     1
-    #define S2N_CORK_OFF    0
+    #define S2N_CORK     TCP_CORK
+    #define S2N_CORK_ON  1
+    #define S2N_CORK_OFF 0
 #elif TCP_NOPUSH
-    #define S2N_CORK        TCP_NOPUSH
-    #define S2N_CORK_ON     1
-    #define S2N_CORK_OFF    0
+    #define S2N_CORK     TCP_NOPUSH
+    #define S2N_CORK_ON  1
+    #define S2N_CORK_OFF 0
 #elif TCP_NODELAY
-    #define S2N_CORK        TCP_NODELAY
-    #define S2N_CORK_ON     0
-    #define S2N_CORK_OFF    1
+    #define S2N_CORK     TCP_NODELAY
+    #define S2N_CORK_ON  0
+    #define S2N_CORK_OFF 1
 #endif
 
 int s2n_socket_quickack(struct s2n_connection *conn)
@@ -190,14 +190,14 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(buf);
-    int rfd = ((struct s2n_socket_read_io_context*) io_context)->fd;
+    int rfd = ((struct s2n_socket_read_io_context *) io_context)->fd;
     if (rfd < 0) {
         errno = EBADF;
         POSIX_BAIL(S2N_ERR_BAD_FD);
     }
 
     /* Clear the quickack flag so we know to reset it */
-    ((struct s2n_socket_read_io_context*) io_context)->tcp_quickack_set = 0;
+    ((struct s2n_socket_read_io_context *) io_context)->tcp_quickack_set = 0;
 
     /* On success, the number of bytes read is returned. On failure, -1 is
      * returned and errno is set appropriately. */
@@ -210,7 +210,7 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(buf);
-    int wfd = ((struct s2n_socket_write_io_context*) io_context)->fd;
+    int wfd = ((struct s2n_socket_write_io_context *) io_context)->fd;
     if (wfd < 0) {
         errno = EBADF;
         POSIX_BAIL(S2N_ERR_BAD_FD);
@@ -223,19 +223,19 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
     return result;
 }
 
-int s2n_socket_is_ipv6(int fd, uint8_t *ipv6) 
+int s2n_socket_is_ipv6(int fd, uint8_t *ipv6)
 {
     POSIX_ENSURE_REF(ipv6);
 
     socklen_t len;
     struct sockaddr_storage addr;
-    len = sizeof (addr);
-    POSIX_GUARD(getpeername(fd, (struct sockaddr*)&addr, &len));
-    
+    len = sizeof(addr);
+    POSIX_GUARD(getpeername(fd, (struct sockaddr *) &addr, &len));
+
     *ipv6 = 0;
     if (AF_INET6 == addr.ss_family) {
-       *ipv6 = 1;
+        *ipv6 = 1;
     }
-            
+
     return 0;
 }

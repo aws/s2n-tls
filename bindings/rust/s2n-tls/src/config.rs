@@ -156,7 +156,7 @@ impl Builder {
         crate::init::init();
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
-        let context = Box::new(Context::default());
+        let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
 
         unsafe {
@@ -425,8 +425,7 @@ impl Builder {
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
             with_connection(connection_ptr, |conn| {
-                let callback = AsyncClientHelloCallback {};
-                trigger_async_callback(callback, conn).into()
+                trigger_async_client_hello_callback(conn).into()
             })
         }
 

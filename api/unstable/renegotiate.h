@@ -81,8 +81,7 @@ typedef int (*s2n_renegotiate_request_cb)(struct s2n_connection *conn, void *con
  * @param context Context to be passed to the callback function.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-S2N_API
-int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb callback, void *context);
+S2N_API int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb callback, void *context);
 
 /**
  * Reset the connection so that it can be renegotiated.
@@ -115,8 +114,7 @@ int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegot
  * @param conn A pointer to the connection object.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-S2N_API
-int s2n_renegotiate_wipe(struct s2n_connection *conn);
+S2N_API int s2n_renegotiate_wipe(struct s2n_connection *conn);
 
 /**
  * Perform a new handshake on an already established connection.
@@ -140,6 +138,5 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn);
  * @param blocked A pointer which will be set to the blocked status.
  * @returns S2N_SUCCESS if the handshake completed. S2N_FAILURE if the handshake encountered an error or is blocked.
  */
-S2N_API
-int s2n_renegotiate(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t app_data_buf_size,
+S2N_API int s2n_renegotiate(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t app_data_buf_size,
         ssize_t *app_data_size, s2n_blocked_status *blocked);

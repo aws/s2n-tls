@@ -47,5 +47,4 @@
  * @param enable Set to true to enable. Set to false to disable.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-S2N_API
-int s2n_config_set_npn(struct s2n_config *config, bool enable);
+S2N_API int s2n_config_set_npn(struct s2n_config *config, bool enable);

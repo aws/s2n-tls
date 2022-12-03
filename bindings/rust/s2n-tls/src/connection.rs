@@ -19,7 +19,7 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem, time::Duration};
+use std::{ffi::CStr, mem, pin::Pin, time::Duration};
 
 mod builder;
 pub use builder::*;
@@ -83,7 +83,7 @@ impl Connection {
     }
 
     fn init_context(&mut self) {
-        let context = Box::new(Context::default());
+        let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {
@@ -360,33 +360,24 @@ impl Connection {
         Ok(self)
     }
 
-    /// Sets the currently executing async callback.
+    /// Performs the TLS handshake to completion
     ///
     /// Multiple callbacks can be configured for a connection and config, but
     /// [`poll_negotiate`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback. It does not continue execution (and
-    /// therefore can't call any other callbacks) until the blocking async callback
-    /// reports completion and is no longer the "pending" callback.
-    pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
-        debug_assert!(self.context_mut().pending_callback.is_none());
-        if let Some(callback) = callback {
-            let _ = self.context_mut().pending_callback.insert(callback);
-        }
-    }
-
-    /// Performs the TLS handshake to completion
+    /// it encounters an async callback. The async task is stored on the
+    /// [`Context::connection_future`].
+    ///
+    /// The handshake does not continue execution (and therefore can't call
+    /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
-        // If we blocked on a callback, poll the callback again.
-        if let Some(mut callback) = self.context_mut().pending_callback.take() {
-            match callback.poll(self) {
-                Poll::Ready(r) => r?,
-                Poll::Pending => {
-                    self.set_pending_callback(Some(callback));
-                    return Poll::Pending;
-                }
+        // check if an async task for the client_hello_callback exists and
+        // poll it to completion
+        if let Some(fut) = self.take_connection_future() {
+            if poll_client_hello_callback(self, Some(fut)).is_pending() {
+                return Poll::Pending;
             }
         }
 
@@ -499,6 +490,24 @@ impl Connection {
         ctx.waker.as_ref()
     }
 
+    /// Takes the [`Option::take`] the connection_future stored on the
+    /// connection context.
+    ///
+    /// If the Future returns `Poll::Pending` and has not completed, then it
+    /// should be re-set using [`Self::set_connection_future()`]
+    pub(crate) fn take_connection_future(&mut self) -> Option<Pin<Box<dyn ConnectionFuture>>> {
+        let ctx = self.context_mut();
+        ctx.connection_future.take()
+    }
+
+    /// Sets a `connection_future` on the connection context.
+    pub(crate) fn set_connection_future(&mut self, f: Pin<Box<dyn ConnectionFuture>>) {
+        let ctx = self.context_mut();
+        debug_assert!(ctx.connection_future.is_none());
+
+        ctx.connection_future = Some(f);
+    }
+
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
     fn context_mut(&mut self) -> &mut Context {
         unsafe {
@@ -591,7 +600,7 @@ impl Connection {
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
-    pending_callback: Option<Box<dyn AsyncCallback>>,
+    connection_future: Option<Pin<Box<dyn ConnectionFuture>>>,
 }
 
 #[cfg(feature = "quic")]
