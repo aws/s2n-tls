@@ -15,7 +15,12 @@
 
 #pragma once
 
-struct s2n_connection;
+#include <stdint.h>
+
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_tls_parameters.h"
 
 struct s2n_post_handshake {
     struct s2n_stuffer in;
