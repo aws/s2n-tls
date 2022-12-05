@@ -66,7 +66,8 @@ test_linked_libcrypto() {
     echo "Testing for linked libcrypto: ${so_path}"
     echo "ldd:"
     ldd "${s2n_executable}"
-    ldd "${s2n_executable}" | grep "${so_path}" || exit 1
+    ldd "${s2n_executable}" | grep "${so_path}" || \
+        { echo "Linked libcrypto is incorrect."; exit 1; }
     echo "Test succeeded!"
 }
 
