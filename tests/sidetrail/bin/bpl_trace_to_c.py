@@ -2,7 +2,6 @@
 
 import sys
 import re
-from pprint import pprint
 
 args = sys.argv[1:]
 assert len(args) == 2, "usage is <bpl-file-name> <trace-to-convert>"

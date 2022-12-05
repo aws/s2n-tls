@@ -157,6 +157,24 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
 
         S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
+        if (record_type != TLS_HANDSHAKE) {
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+             *#    -  Handshake messages MUST NOT be interleaved with other record
+             *#       types.  That is, if a handshake message is split over two or more
+             *#       records, there MUST NOT be any other records between them.
+             */
+            POSIX_ENSURE(s2n_stuffer_is_wiped(&conn->post_handshake.in), S2N_ERR_BAD_MESSAGE);
+
+            /* If not handling a handshake message, free the post-handshake memory.
+             * Post-handshake messages are infrequent enough that we don't want to
+             * keep a potentially large buffer around unnecessarily.
+             */
+            if (!s2n_stuffer_is_freed(&conn->post_handshake.in)) {
+                POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
+            }
+        }
+
         if (record_type != TLS_APPLICATION_DATA) {
             switch (record_type)
             {
@@ -164,9 +182,16 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
                     POSIX_GUARD(s2n_process_alert_fragment(conn));
                     POSIX_GUARD(s2n_flush(conn, blocked));
                     break;
-                case TLS_HANDSHAKE:
-                    WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_post_handshake_recv(conn)));
+                case TLS_HANDSHAKE: {
+                    s2n_result result = s2n_post_handshake_recv(conn);
+                    /* Ignore any errors due to insufficient input data from io.
+                     * The next iteration of this loop will attempt to read more input data.
+                     */
+                    if (s2n_result_is_error(result) && s2n_errno != S2N_ERR_IO_BLOCKED) {
+                        WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(result));
+                    }
                     break;
+                }
             }
             POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
             POSIX_GUARD(s2n_stuffer_wipe(&conn->in));

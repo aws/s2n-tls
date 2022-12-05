@@ -20,7 +20,7 @@ AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: true
+AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: true
 BinPackParameters: true
@@ -64,6 +64,10 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
+TypenameMacros: ['S2N_RESULT', 'S2N_CLEANUP_RESULT', 'STACK_OF']
+AttributeMacros: ['S2N_RESULT_MUST_USE', 'S2N_API', 'S2N_PRIVATE_API']
+StatementAttributeLikeMacros:
+  - FAIL_MSG
 IncludeBlocks:   Regroup
 IncludeCategories:
   - Regex:           '^<ext/.*\.h>'

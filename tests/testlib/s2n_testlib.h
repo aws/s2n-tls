@@ -64,7 +64,7 @@ int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_c
 
 int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_pair *io_pair);
 int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
-                                struct s2n_test_io_pair *io_pair);
+        struct s2n_test_io_pair *io_pair);
 
 int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
@@ -80,7 +80,7 @@ S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn);
 
 S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_time_in_ns);
 
-struct s2n_psk* s2n_test_psk_new(struct s2n_connection *conn);
+struct s2n_psk *s2n_test_psk_new(struct s2n_connection *conn);
 S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite);
 S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
@@ -97,8 +97,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 /* These paths assume that the unit tests are run from inside the unit/ directory.
  * Absolute paths will be needed if test directories go to deeper levels.
  */
-#define S2N_RSA_2048_PKCS8_CERT_CHAIN   "../pems/rsa_2048_pkcs8_cert.pem"
-#define S2N_RSA_2048_PKCS1_CERT_CHAIN   "../pems/rsa_2048_pkcs1_cert.pem"
+#define S2N_RSA_2048_PKCS8_CERT_CHAIN "../pems/rsa_2048_pkcs8_cert.pem"
+#define S2N_RSA_2048_PKCS1_CERT_CHAIN "../pems/rsa_2048_pkcs1_cert.pem"
 
 #define S2N_RSA_2048_PKCS1_LEAF_CERT    "../pems/rsa_2048_pkcs1_leaf.pem"
 #define S2N_ECDSA_P256_PKCS1_CERT_CHAIN "../pems/ecdsa_p256_pkcs1_cert.pem"
@@ -110,10 +110,10 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_RSA_2048_PKCS1_KEY          "../pems/rsa_2048_pkcs1_key.pem"
 #define S2N_RSA_2048_PKCS8_KEY          "../pems/rsa_2048_pkcs8_key.pem"
 
-#define S2N_RSA_PSS_2048_SHA256_CA_KEY         "../pems/rsa_pss_2048_sha256_CA_key.pem"
-#define S2N_RSA_PSS_2048_SHA256_CA_CERT        "../pems/rsa_pss_2048_sha256_CA_cert.pem"
-#define S2N_RSA_PSS_2048_SHA256_LEAF_KEY       "../pems/rsa_pss_2048_sha256_leaf_key.pem"
-#define S2N_RSA_PSS_2048_SHA256_LEAF_CERT      "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
+#define S2N_RSA_PSS_2048_SHA256_CA_KEY    "../pems/rsa_pss_2048_sha256_CA_key.pem"
+#define S2N_RSA_PSS_2048_SHA256_CA_CERT   "../pems/rsa_pss_2048_sha256_CA_cert.pem"
+#define S2N_RSA_PSS_2048_SHA256_LEAF_KEY  "../pems/rsa_pss_2048_sha256_leaf_key.pem"
+#define S2N_RSA_PSS_2048_SHA256_LEAF_CERT "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
 
 #define S2N_RSA_2048_SHA256_CLIENT_CERT "../pems/rsa_2048_sha256_client_cert.pem"
 
@@ -130,42 +130,42 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_LEADING_COMMENT_TEXT_CERT_CHAIN    "../pems/rsa_2048_leading_comment_text_cert.pem"
 #define S2N_LONG_BASE64_LINES_CERT_CHAIN       "../pems/rsa_2048_varying_base64_len_cert.pem"
 /* Missing line endings between PEM encapsulation boundaries */
-#define S2N_MISSING_LINE_ENDINGS_CERT_CHAIN    "../pems/rsa_2048_missing_line_endings_cert.pem"
+#define S2N_MISSING_LINE_ENDINGS_CERT_CHAIN "../pems/rsa_2048_missing_line_endings_cert.pem"
 
 /* Illegally formatted PEMs */
-#define S2N_INVALID_HEADER_CERT_CHAIN   "../pems/rsa_2048_invalid_header_cert.pem"
-#define S2N_INVALID_TRAILER_CERT_CHAIN  "../pems/rsa_2048_invalid_trailer_cert.pem"
-#define S2N_UNKNOWN_KEYWORD_CERT_CHAIN  "../pems/rsa_2048_unknown_keyword_cert.pem"
-#define S2N_INVALID_HEADER_KEY          "../pems/rsa_2048_invalid_header_key.pem"
-#define S2N_INVALID_TRAILER_KEY         "../pems/rsa_2048_invalid_trailer_key.pem"
-#define S2N_UNKNOWN_KEYWORD_KEY         "../pems/rsa_2048_unknown_keyword_key.pem"
-#define S2N_WEIRD_DASHES_CERT_CHAIN     "../pems/rsa_2048_weird_dashes_cert.pem"
-#define S2N_NO_DASHES_CERT_CHAIN        "../pems/rsa_2048_no_dashes_cert.pem"
+#define S2N_INVALID_HEADER_CERT_CHAIN  "../pems/rsa_2048_invalid_header_cert.pem"
+#define S2N_INVALID_TRAILER_CERT_CHAIN "../pems/rsa_2048_invalid_trailer_cert.pem"
+#define S2N_UNKNOWN_KEYWORD_CERT_CHAIN "../pems/rsa_2048_unknown_keyword_cert.pem"
+#define S2N_INVALID_HEADER_KEY         "../pems/rsa_2048_invalid_header_key.pem"
+#define S2N_INVALID_TRAILER_KEY        "../pems/rsa_2048_invalid_trailer_key.pem"
+#define S2N_UNKNOWN_KEYWORD_KEY        "../pems/rsa_2048_unknown_keyword_key.pem"
+#define S2N_WEIRD_DASHES_CERT_CHAIN    "../pems/rsa_2048_weird_dashes_cert.pem"
+#define S2N_NO_DASHES_CERT_CHAIN       "../pems/rsa_2048_no_dashes_cert.pem"
 
 /* OCSP Stapled Response Testing files */
-#define S2N_OCSP_SERVER_CERT                   "../pems/ocsp/server_cert.pem"
-#define S2N_OCSP_SERVER_ECDSA_CERT             "../pems/ocsp/server_ecdsa_cert.pem"
+#define S2N_OCSP_SERVER_CERT       "../pems/ocsp/server_cert.pem"
+#define S2N_OCSP_SERVER_ECDSA_CERT "../pems/ocsp/server_ecdsa_cert.pem"
 
-#define S2N_OCSP_SERVER_KEY                    "../pems/ocsp/server_key.pem"
-#define S2N_OCSP_CA_CERT                       "../pems/ocsp/ca_cert.pem"
-#define S2N_OCSP_CA_KEY                        "../pems/ocsp/ca_key.pem"
-#define S2N_OCSP_RESPONSE_DER                  "../pems/ocsp/ocsp_response.der"
-#define S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER   "../pems/ocsp/ocsp_response_no_next_update.der"
-#define S2N_OCSP_RESPONSE_REVOKED_DER          "../pems/ocsp/ocsp_response_revoked.der"
-#define S2N_OCSP_RESPONSE_WRONG_SIGNER_DER     "../pems/ocsp/ocsp_response_wrong_signer.der"
-#define S2N_OCSP_RESPONSE_CERT                 "../pems/ocsp/ocsp_cert.pem"
+#define S2N_OCSP_SERVER_KEY                  "../pems/ocsp/server_key.pem"
+#define S2N_OCSP_CA_CERT                     "../pems/ocsp/ca_cert.pem"
+#define S2N_OCSP_CA_KEY                      "../pems/ocsp/ca_key.pem"
+#define S2N_OCSP_RESPONSE_DER                "../pems/ocsp/ocsp_response.der"
+#define S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER "../pems/ocsp/ocsp_response_no_next_update.der"
+#define S2N_OCSP_RESPONSE_REVOKED_DER        "../pems/ocsp/ocsp_response_revoked.der"
+#define S2N_OCSP_RESPONSE_WRONG_SIGNER_DER   "../pems/ocsp/ocsp_response_wrong_signer.der"
+#define S2N_OCSP_RESPONSE_CERT               "../pems/ocsp/ocsp_cert.pem"
 
-#define S2N_ALLIGATOR_SAN_CERT                 "../pems/sni/alligator_cert.pem"
-#define S2N_ALLIGATOR_SAN_KEY                  "../pems/sni/alligator_key.pem"
+#define S2N_ALLIGATOR_SAN_CERT "../pems/sni/alligator_cert.pem"
+#define S2N_ALLIGATOR_SAN_KEY  "../pems/sni/alligator_key.pem"
 
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
-#define S2N_ONE_TRAILING_BYTE_CERT_BIN         "../pems/one_trailing_byte_cert.bin"
-#define S2N_FOUR_TRAILING_BYTE_CERT_BIN        "../pems/four_trailing_byte_cert.bin"
+#define S2N_ONE_TRAILING_BYTE_CERT_BIN  "../pems/one_trailing_byte_cert.bin"
+#define S2N_FOUR_TRAILING_BYTE_CERT_BIN "../pems/four_trailing_byte_cert.bin"
 
 /* This is a certificate with a legacy SHA-1 signature on the root certificate. This is used to prove
  * that our certificate validation code does not fail a root certificate signed with SHA-1. */
-#define S2N_SHA1_ROOT_SIGNATURE_CA_CERT        "../pems/rsa_1024_sha1_CA_cert.pem"
+#define S2N_SHA1_ROOT_SIGNATURE_CA_CERT "../pems/rsa_1024_sha1_CA_cert.pem"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
@@ -202,34 +202,37 @@ struct s2n_kem_kat_test_vector {
 };
 S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vectors, size_t count);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
+        const char *cipher_pref_version, const char *kat_file_name, uint32_t server_key_message_length,
         uint32_t client_key_message_length);
 S2N_RESULT s2n_pq_noop_asm();
 bool s2n_pq_no_asm_available();
 
 /* Expects 2 s2n_blobs to be equal (same size and contents) */
-#define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \
-    EXPECT_EQUAL(blob1.size, blob2.size);                       \
-    EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
-} while (0)
+#define S2N_BLOB_EXPECT_EQUAL(blob1, blob2)                         \
+    do {                                                            \
+        EXPECT_EQUAL(blob1.size, blob2.size);                       \
+        EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
+    } while (0)
 
 /* Expects data of type in stuffer, where type is uint32, uint64 etc.. */
-#define S2N_STUFFER_READ_EXPECT_EQUAL( stuffer, expected, type ) do { \
-    type##_t value;                                                   \
-    EXPECT_SUCCESS(s2n_stuffer_read_##type(stuffer, &value));         \
-    EXPECT_EQUAL(value, expected);                                    \
-} while (0)
+#define S2N_STUFFER_READ_EXPECT_EQUAL(stuffer, expected, type)    \
+    do {                                                          \
+        type##_t value;                                           \
+        EXPECT_SUCCESS(s2n_stuffer_read_##type(stuffer, &value)); \
+        EXPECT_EQUAL(value, expected);                            \
+    } while (0)
 
 /* Expects written length in stuffer */
-#define S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL( stuffer, bytes ) do { \
-    EXPECT_SUCCESS(s2n_stuffer_skip_read(stuffer, bytes));      \
-    EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);       \
-} while (0)
+#define S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(stuffer, bytes) \
+    do {                                                        \
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(stuffer, bytes));  \
+        EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);   \
+    } while (0)
 
 int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2n_ecc_evp_params *params_2);
 
 extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_COUNT];
-#define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list) EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
+#define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list)     EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
 #define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
 
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
