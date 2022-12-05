@@ -19,7 +19,12 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem, pin::Pin, time::Duration};
+use std::{
+    ffi::CStr,
+    mem::{self, MaybeUninit},
+    pin::Pin,
+    time::Duration,
+};
 
 mod builder;
 pub use builder::*;
@@ -408,6 +413,33 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    /// Reads and decrypts data from a connection where
+    /// [negotiate](`Self::poll_negotiate`) has succeeded
+    /// to a uninitialized buffer.
+    ///
+    /// Returns the number of bytes read, and may indicate a partial read.
+    /// 0 bytes returned indicates EOF due to connection closure.
+    ///
+    /// Safety: this function is always safe to call, and additionally:
+    /// 1. It will never deinitialize any bytes in `buf`.
+    /// 2. If it returns `Ok(n)`, then the first `n` bytes of `buf`
+    /// will have been initialized by this function.
+    pub fn poll_recv_uninitialized(
+        &mut self,
+        buf: &mut [MaybeUninit<u8>],
+    ) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+
+        // Safety:
+        // 1. s2n_recv never writes uninitialized garbage to `buf`.
+        // 2. if s2n_recv returns `+n`, it guarantees that the first
+        // `n` bytes of `buf` have been initialized, which allows this
+        // function to return `Ok(n)`
         unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
