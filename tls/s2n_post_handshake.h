@@ -15,7 +15,12 @@
 
 #pragma once
 
-#include "tls/s2n_connection.h"
+struct s2n_connection;
 
-int s2n_post_handshake_recv(struct s2n_connection *conn);
+struct s2n_post_handshake {
+    struct s2n_stuffer in;
+    uint8_t header_in[TLS_HANDSHAKE_HEADER_LENGTH];
+};
+
+S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn);
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
