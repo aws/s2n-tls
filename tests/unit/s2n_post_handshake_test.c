@@ -53,13 +53,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, S2N_KEY_UPDATE_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
             EXPECT_TRUE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* post_handshake_recv processes an unknown post handshake message */
+        /* post_handshake_recv rejects an unknown post handshake message */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, S2N_KEY_UPDATE_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
 
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_KEY_UPDATE));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_LENGTH));
 
-            EXPECT_FAILURE(s2n_post_handshake_recv(conn));
+            EXPECT_ERROR(s2n_post_handshake_recv(conn));
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, key_update_message.data, key_update_message.size));
             }
 
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
 
             /* All three key update messages have been read */
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), 0);
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_HELLO_REQUEST));
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+            EXPECT_OK(s2n_post_handshake_recv(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+                EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, tls13_state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+                EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }

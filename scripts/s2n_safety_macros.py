@@ -739,9 +739,8 @@ def cleanup(contents):
 
 def write(f, contents):
     contents = cleanup(contents)
-    header_file = open(f, "w")
-    header_file.write(contents)
-    header_file.close()
+    with open(f, "w") as header_file:
+        header_file.write(contents)
 
 write("utils/s2n_safety_macros.h", header)
 
