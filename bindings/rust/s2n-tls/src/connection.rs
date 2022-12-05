@@ -22,6 +22,7 @@ use s2n_tls_sys::*;
 use std::{
     ffi::CStr,
     mem::{self, MaybeUninit},
+    pin::Pin,
     time::Duration,
 };
 
