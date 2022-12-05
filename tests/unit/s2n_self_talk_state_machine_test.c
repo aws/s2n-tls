@@ -20,47 +20,49 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Set up generic TLS13 config */
-    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-    EXPECT_NOT_NULL(config);
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-    struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    if (s2n_is_tls13_fully_supported()) {
 
-    DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-    EXPECT_NOT_NULL(server_conn);
-    EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        /* Set up generic TLS13 config */
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-    EXPECT_NOT_NULL(client_conn);
-    EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
-    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
-    /* Create nonblocking pipes */
-    struct s2n_test_io_pair io_pair;
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-    EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
-    EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
-   
-    /* A server cannot switch from the state machine negotiated midway through the handshake */
-    {
-        /* Do handshake until the cert message is reached */
-        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_CERT));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
-        EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(client_conn), S2N_TLS13);
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* Alter which state machine the server is using */
-        server_conn->actual_protocol_version = S2N_TLS12;
+        /* A server cannot switch from the state machine negotiated midway through the handshake */
+        {
+            /* Do handshake until the cert message is reached */
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_CERT));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_SAFETY);
+            EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+            EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(client_conn), S2N_TLS13);
+
+            /* Alter which state machine the server is using */
+            server_conn->actual_protocol_version = S2N_TLS12;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_SAFETY);
+        }
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     }
-
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-
     END_TEST();
 }
