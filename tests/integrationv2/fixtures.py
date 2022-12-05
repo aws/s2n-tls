@@ -1,12 +1,10 @@
 import os
 import pytest
 import subprocess
-import threading
-import time
 
 from processes import ManagedProcess
 from providers import Provider
-from common import ProviderOptions, Protocols
+from common import ProviderOptions 
 
 
 @pytest.fixture

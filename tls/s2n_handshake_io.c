@@ -1251,8 +1251,8 @@ static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t 
         POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, (TLS_HANDSHAKE_HEADER_LENGTH - current_handshake_data)));
     }
 
-    uint32_t handshake_message_length;
-    POSIX_GUARD(s2n_handshake_parse_header(conn, message_type, &handshake_message_length));
+    uint32_t handshake_message_length = 0;
+    POSIX_GUARD_RESULT(s2n_handshake_parse_header(&conn->handshake.io, message_type, &handshake_message_length));
 
     S2N_ERROR_IF(handshake_message_length > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
@@ -1279,7 +1279,7 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     uint32_t handshake_message_length;
 
     POSIX_GUARD(s2n_stuffer_reread(&conn->handshake.io));
-    POSIX_GUARD(s2n_handshake_parse_header(conn, &message_type, &handshake_message_length));
+    POSIX_GUARD_RESULT(s2n_handshake_parse_header(&conn->handshake.io, &message_type, &handshake_message_length));
 
     struct s2n_blob handshake_record = { 0 };
     handshake_record.data = conn->handshake.io.blob.data;
