@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "tls/s2n_tls13_handshake.h"
 
 #include <stdint.h>
@@ -50,7 +53,6 @@ int main(int argc, char **argv)
 
     /* Test wiping PSKs after use */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* PSKs are wiped when chosen PSK is NULL */
         {
             struct s2n_connection *conn;

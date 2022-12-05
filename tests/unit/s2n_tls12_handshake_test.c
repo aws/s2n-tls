@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -307,7 +310,6 @@ int main(int argc, char **argv)
 
     /* Test: TLS1.2 s2n_handshake_read_io should accept only the expected message */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* TLS1.2 should accept the expected message */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);

@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "tls/s2n_tls13_secrets.h"
 
 #include <sys/param.h>
@@ -303,7 +306,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_tls13_secrets_get */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety */
         {
             struct s2n_blob result = { 0 };
