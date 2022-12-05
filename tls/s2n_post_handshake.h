@@ -19,8 +19,11 @@
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_tls_parameters.h"
+
+/* it is invalid to include this header file without also including tls/s2n_connection.h
+ * this is a forward declaration from tls/s2n_connection.h */
+struct s2n_connection;
 
 struct s2n_post_handshake {
     struct s2n_stuffer in;
