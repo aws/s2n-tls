@@ -12,19 +12,16 @@ use crate::{
 };
 use core::{
     convert::TryInto,
+    ffi::CStr,
     fmt,
-    mem::ManuallyDrop,
+    mem::{self, ManuallyDrop, MaybeUninit},
+    pin::Pin,
     ptr::NonNull,
-    task::{Poll, Waker},
+    task::{ready, Poll, Waker},
+    time::Duration,
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{
-    ffi::CStr,
-    mem::{self, MaybeUninit},
-    pin::Pin,
-    time::Duration,
-};
 
 mod builder;
 pub use builder::*;
@@ -380,20 +377,17 @@ impl Connection {
 
         loop {
             // check if an async task exists and poll it to completion
-            if let Some(fut) = self.take_connection_future() {
-                match Self::poll_async_task(self, fut) {
-                    Poll::Ready(res) => {
-                        // Handle the result from the connection future
-                        // - happy case: continue to calling s2n_negotiate and make
-                        //               progress on the handshake
-                        // - error case: if the callback returned an error then abort
-                        //               the handshake
-                        if let Err(err) = res {
-                            return Poll::Ready(Err(err));
-                        }
-                    }
-                    Poll::Pending => return Poll::Pending,
+            if let Some(fut) = self.poll_async_task() {
+                let ready_fut = ready!(fut);
+
+                // error case:
+                // if the callback returned an error then abort the handshake
+                if let Err(err) = ready_fut {
+                    return Poll::Ready(Err(err));
                 }
+
+                // happy case:
+                // call s2n_negotiate to make progress on the handshake
             }
 
             let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
@@ -402,7 +396,7 @@ impl Connection {
                 Poll::Ready(res) => return Poll::Ready(res.map(|_| self)),
                 Poll::Pending => {
                     // if there is no connection_future then return, otherwise continue
-                    // looping and awaiting the future
+                    // looping and polling the future
                     if self.context_mut().connection_future.is_none() {
                         return Poll::Pending;
                     }
@@ -411,23 +405,22 @@ impl Connection {
         }
     }
 
-    // Poll the connection future.
+    // Poll the connection future if it exists.
     //
     // If the future returns Pending, then re-set it back on the Connection.
-    fn poll_async_task(
-        conn: &mut Connection,
-        mut fut: InternalConnectionFuture,
-    ) -> Poll<Result<(), Error>> {
-        let waker = conn.waker().ok_or(Error::MISSING_WAKER)?.clone();
-        let mut ctx = core::task::Context::from_waker(&waker);
-        match fut.poll(conn, &mut ctx) {
-            Poll::Ready(result) => Poll::Ready(result),
-            Poll::Pending => {
-                // replace the future if it hasn't completed yet
-                conn.set_connection_future(fut);
-                Poll::Pending
+    fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
+        self.take_connection_future().map(|mut fut| {
+            let waker = self.waker().ok_or(Error::MISSING_WAKER)?.clone();
+            let mut ctx = core::task::Context::from_waker(&waker);
+            match fut.poll(self, &mut ctx) {
+                Poll::Ready(result) => Poll::Ready(result),
+                Poll::Pending => {
+                    // replace the future if it hasn't completed yet
+                    self.set_connection_future(fut);
+                    Poll::Pending
+                }
             }
-        }
+        })
     }
 
     /// Encrypts and sends data on a connection where
