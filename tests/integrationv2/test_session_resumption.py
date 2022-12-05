@@ -1,11 +1,10 @@
 import copy
 import os
 import pytest
-import time
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS, TLS13_CIPHERS
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process
+from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 

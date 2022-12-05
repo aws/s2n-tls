@@ -3,8 +3,8 @@ import pytest
 import random
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS, PROTOCOLS
-from common import ProviderOptions, Protocols, Curves
-from fixtures import managed_process
+from common import ProviderOptions, Protocols
+from fixtures import managed_process # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 

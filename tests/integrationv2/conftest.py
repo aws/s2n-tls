@@ -1,4 +1,3 @@
-import pytest
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_PQ
 
 
