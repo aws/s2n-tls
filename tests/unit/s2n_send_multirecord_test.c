@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include <math.h>
 #include <pthread.h>
 #include <sys/param.h>
@@ -121,7 +124,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_should_flush */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Flush if multirecord send not enabled */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),

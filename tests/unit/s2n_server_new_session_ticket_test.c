@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
@@ -110,7 +113,6 @@ int main(int argc, char **argv)
 
     /* s2n_tls13_server_nst_write */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Check session ticket message is correctly written. */
         {
             struct s2n_config *config;

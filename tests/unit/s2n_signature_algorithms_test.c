@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "tls/s2n_signature_algorithms.h"
 
 #include "api/s2n.h"
@@ -367,7 +370,6 @@ int main(int argc, char **argv)
 
                 /* For the server signature, the auth method must match the cipher suite. */
                 {
-                    /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
                     /* Choose RSA for an RSA cipher suite. */
                     {
                         conn->secure->cipher_suite = RSA_CIPHER_SUITE;
@@ -432,7 +434,6 @@ int main(int argc, char **argv)
 
                 /* For the server signature, the auth method must match the cipher suite. */
                 {
-                    /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
                     /* Choose RSA for an RSA cipher suite. */
                     {
                         conn->secure->cipher_suite = RSA_CIPHER_SUITE;

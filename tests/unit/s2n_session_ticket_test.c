@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include <errno.h>
 #include <fcntl.h>
 
@@ -1080,7 +1083,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_is_session_resumed */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* TLS1.2 */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);

@@ -13,12 +13,16 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_array.h"
+
 
 static S2N_RESULT s2n_exchange_hellos(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
@@ -67,7 +71,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_early_data_indication_is_missing */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* No-op if early data not requested */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);

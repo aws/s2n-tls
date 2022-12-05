@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
+/* clang-format off */
+
 #include "crypto/s2n_hmac.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -111,7 +114,6 @@ int main(int argc, char **argv)
 
     /* Test: s2n_server_psk_send */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Send the index of the chosen PSK that is stored on the connection. */
         {
             struct s2n_stuffer out = { 0 };
