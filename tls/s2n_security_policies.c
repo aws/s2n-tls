@@ -910,10 +910,9 @@ static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_s
         return cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
     } 
 
-    /* Else chacha20 is not available. In this case, the cipher_suite's record_alg is never set. This can unintentionally
-     * fail ChaCha20 boosting validation in s2n_security_policies_init; we still need to check whether a cipher_suite
-     * uses s2n_chacha20_poly1305 and not whether it is available in the libcrypto or not. Instead, we check all possible
-     * record algorithms.
+    /* Else chacha20-poly1305 is not available and so the cipher_suite's record_alg is never set. In order to determine
+     * whether cipher_suite uses a chacha20_poly1305 alg, we can not rely on the record_alg field but instead
+     * iterate over all_record_args, which is always available.
      */
     for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
         const struct s2n_record_algorithm* rec_alg = cipher_suite->all_record_algs[i];
