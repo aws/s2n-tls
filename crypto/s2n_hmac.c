@@ -12,48 +12,38 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
-#include "crypto/s2n_hmac.h"
+/* this file is patched by Siderail, clang-format invalidates patches */
+/* clang-format off */
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>
-#include <stdint.h>
 
-#include "crypto/s2n_fips.h"
-#include "crypto/s2n_hash.h"
 #include "error/s2n_errno.h"
+
+#include "crypto/s2n_hmac.h"
+#include "crypto/s2n_hash.h"
+#include "crypto/s2n_fips.h"
+
+#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
-#include "utils/s2n_safety.h"
+
+#include <stdint.h>
 
 int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
-    switch (hash_alg) {
-        case S2N_HASH_NONE:
-            *out = S2N_HMAC_NONE;
-            break;
-        case S2N_HASH_MD5:
-            *out = S2N_HMAC_MD5;
-            break;
-        case S2N_HASH_SHA1:
-            *out = S2N_HMAC_SHA1;
-            break;
-        case S2N_HASH_SHA224:
-            *out = S2N_HMAC_SHA224;
-            break;
-        case S2N_HASH_SHA256:
-            *out = S2N_HMAC_SHA256;
-            break;
-        case S2N_HASH_SHA384:
-            *out = S2N_HMAC_SHA384;
-            break;
-        case S2N_HASH_SHA512:
-            *out = S2N_HMAC_SHA512;
-            break;
-        case S2N_HASH_MD5_SHA1: /* Fall through ... */
-        default:
-            POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
+    switch(hash_alg) {
+    case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
+    case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
+    case S2N_HASH_SHA1:       *out = S2N_HMAC_SHA1;   break;
+    case S2N_HASH_SHA224:     *out = S2N_HMAC_SHA224; break;
+    case S2N_HASH_SHA256:     *out = S2N_HMAC_SHA256; break;
+    case S2N_HASH_SHA384:     *out = S2N_HMAC_SHA384; break;
+    case S2N_HASH_SHA512:     *out = S2N_HMAC_SHA512; break;
+    case S2N_HASH_MD5_SHA1:   /* Fall through ... */
+    default:
+        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
     return S2N_SUCCESS;
 }
@@ -61,36 +51,18 @@ int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
-    switch (hmac_alg) {
-        case S2N_HMAC_NONE:
-            *out = S2N_HASH_NONE;
-            break;
-        case S2N_HMAC_MD5:
-            *out = S2N_HASH_MD5;
-            break;
-        case S2N_HMAC_SHA1:
-            *out = S2N_HASH_SHA1;
-            break;
-        case S2N_HMAC_SHA224:
-            *out = S2N_HASH_SHA224;
-            break;
-        case S2N_HMAC_SHA256:
-            *out = S2N_HASH_SHA256;
-            break;
-        case S2N_HMAC_SHA384:
-            *out = S2N_HASH_SHA384;
-            break;
-        case S2N_HMAC_SHA512:
-            *out = S2N_HASH_SHA512;
-            break;
-        case S2N_HMAC_SSLv3_MD5:
-            *out = S2N_HASH_MD5;
-            break;
-        case S2N_HMAC_SSLv3_SHA1:
-            *out = S2N_HASH_SHA1;
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    switch(hmac_alg) {
+    case S2N_HMAC_NONE:       *out = S2N_HASH_NONE;   break;
+    case S2N_HMAC_MD5:        *out = S2N_HASH_MD5;    break;
+    case S2N_HMAC_SHA1:       *out = S2N_HASH_SHA1;   break;
+    case S2N_HMAC_SHA224:     *out = S2N_HASH_SHA224; break;
+    case S2N_HMAC_SHA256:     *out = S2N_HASH_SHA256; break;
+    case S2N_HMAC_SHA384:     *out = S2N_HASH_SHA384; break;
+    case S2N_HMAC_SHA512:     *out = S2N_HASH_SHA512; break;
+    case S2N_HMAC_SSLv3_MD5:  *out = S2N_HASH_MD5;    break;
+    case S2N_HMAC_SSLv3_SHA1: *out = S2N_HASH_SHA1;   break;
+    default:
+        POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
     return S2N_SUCCESS;
 }
@@ -106,19 +78,19 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
 /* Return 1 if hmac algorithm is available, 0 otherwise. */
 bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
 {
-    switch (hmac_alg) {
-        case S2N_HMAC_MD5:
-        case S2N_HMAC_SSLv3_MD5:
-        case S2N_HMAC_SSLv3_SHA1:
-            /* Set is_available to 0 if in FIPS mode, as MD5/SSLv3 algs are not available in FIPS mode. */
-            return !s2n_is_in_fips_mode();
-        case S2N_HMAC_NONE:
-        case S2N_HMAC_SHA1:
-        case S2N_HMAC_SHA224:
-        case S2N_HMAC_SHA256:
-        case S2N_HMAC_SHA384:
-        case S2N_HMAC_SHA512:
-            return true;
+    switch(hmac_alg) {
+    case S2N_HMAC_MD5:
+    case S2N_HMAC_SSLv3_MD5:
+    case S2N_HMAC_SSLv3_SHA1:
+        /* Set is_available to 0 if in FIPS mode, as MD5/SSLv3 algs are not available in FIPS mode. */
+        return !s2n_is_in_fips_mode();
+    case S2N_HMAC_NONE:
+    case S2N_HMAC_SHA1:
+    case S2N_HMAC_SHA224:
+    case S2N_HMAC_SHA256:
+    case S2N_HMAC_SHA384:
+    case S2N_HMAC_SHA512:
+        return true;
     }
     return false;
 }
@@ -172,36 +144,18 @@ static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm al
 int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(xor_pad_size, sizeof(*xor_pad_size)), S2N_ERR_PRECONDITION_VIOLATION);
-    switch (hmac_alg) {
-        case S2N_HMAC_NONE:
-            *xor_pad_size = 64;
-            break;
-        case S2N_HMAC_MD5:
-            *xor_pad_size = 64;
-            break;
-        case S2N_HMAC_SHA1:
-            *xor_pad_size = 64;
-            break;
-        case S2N_HMAC_SHA224:
-            *xor_pad_size = 64;
-            break;
-        case S2N_HMAC_SHA256:
-            *xor_pad_size = 64;
-            break;
-        case S2N_HMAC_SHA384:
-            *xor_pad_size = 128;
-            break;
-        case S2N_HMAC_SHA512:
-            *xor_pad_size = 128;
-            break;
-        case S2N_HMAC_SSLv3_MD5:
-            *xor_pad_size = 48;
-            break;
-        case S2N_HMAC_SSLv3_SHA1:
-            *xor_pad_size = 40;
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    switch(hmac_alg) {
+    case S2N_HMAC_NONE:       *xor_pad_size = 64;   break;
+    case S2N_HMAC_MD5:        *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA1:       *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA224:     *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA256:     *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA384:     *xor_pad_size = 128;  break;
+    case S2N_HMAC_SHA512:     *xor_pad_size = 128;  break;
+    case S2N_HMAC_SSLv3_MD5:  *xor_pad_size = 48;   break;
+    case S2N_HMAC_SSLv3_SHA1: *xor_pad_size = 40;   break;
+    default:
+        POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
     return S2N_SUCCESS;
 }
@@ -209,36 +163,18 @@ int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
-    switch (hmac_alg) {
-        case S2N_HMAC_NONE:
-            *block_size = 64;
-            break;
-        case S2N_HMAC_MD5:
-            *block_size = 64;
-            break;
-        case S2N_HMAC_SHA1:
-            *block_size = 64;
-            break;
-        case S2N_HMAC_SHA224:
-            *block_size = 64;
-            break;
-        case S2N_HMAC_SHA256:
-            *block_size = 64;
-            break;
-        case S2N_HMAC_SHA384:
-            *block_size = 128;
-            break;
-        case S2N_HMAC_SHA512:
-            *block_size = 128;
-            break;
-        case S2N_HMAC_SSLv3_MD5:
-            *block_size = 64;
-            break;
-        case S2N_HMAC_SSLv3_SHA1:
-            *block_size = 64;
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    switch(hmac_alg) {
+    case S2N_HMAC_NONE:       *block_size = 64;   break;
+    case S2N_HMAC_MD5:        *block_size = 64;   break;
+    case S2N_HMAC_SHA1:       *block_size = 64;   break;
+    case S2N_HMAC_SHA224:     *block_size = 64;   break;
+    case S2N_HMAC_SHA256:     *block_size = 64;   break;
+    case S2N_HMAC_SHA384:     *block_size = 128;  break;
+    case S2N_HMAC_SHA512:     *block_size = 128;  break;
+    case S2N_HMAC_SSLv3_MD5:  *block_size = 64;   break;
+    case S2N_HMAC_SSLv3_SHA1: *block_size = 64;   break;
+    default:
+        POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
     return S2N_SUCCESS;
 }
@@ -365,7 +301,7 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
      * 17 bytes if the block size is 128.
      */
     const uint8_t space_left = (state->hash_block_size == 128) ? 17 : 9;
-    if ((int64_t) state->currently_in_hash_block > (state->hash_block_size - space_left)) {
+    if ((int64_t)state->currently_in_hash_block > (state->hash_block_size - space_left)) {
         return S2N_SUCCESS;
     }
 
@@ -426,6 +362,7 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
     POSIX_GUARD(s2n_hash_copy(&to->outer, &from->outer));
     POSIX_GUARD(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
 
+
     POSIX_CHECKED_MEMCPY(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
     POSIX_CHECKED_MEMCPY(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
     POSIX_POSTCONDITION(s2n_hmac_state_validate(to));
@@ -433,10 +370,11 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
     return S2N_SUCCESS;
 }
 
+
 /* Preserve the handlers for hmac state pointers to avoid re-allocation
  * Only valid if the HMAC is in EVP mode
  */
-int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup *backup, struct s2n_hmac_state *hmac)
+int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
 {
     POSIX_ENSURE_REF(backup);
     POSIX_PRECONDITION(s2n_hmac_state_validate(hmac));
@@ -447,7 +385,7 @@ int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup *backup, struct s2n_
     return S2N_SUCCESS;
 }
 
-int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup *backup, struct s2n_hmac_state *hmac)
+int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
 {
     POSIX_ENSURE_REF(backup);
     POSIX_PRECONDITION(s2n_hmac_state_validate(hmac));
