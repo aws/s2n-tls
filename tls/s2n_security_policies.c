@@ -900,6 +900,31 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return 0;
 }
 
+static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
+    if (!cipher_suite) {
+        return false;
+    }
+
+    /* If chacha20-poly1305 is available, then we can directly check the record_alg */
+    if (s2n_chacha20_poly1305.is_available()) {
+        return cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
+    } 
+
+    /* Else chacha20 is not available. In this case, the cipher_suite's record_alg is never set. This can unintentionally
+     * fail ChaCha20 boosting validation in s2n_security_policies_init; we still need to check whether a cipher_suite
+     * uses s2n_chacha20_poly1305 and not whether it is available in the libcrypto or not. Instead, we check all possible
+     * record algorithms.
+     */
+    for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
+        const struct s2n_record_algorithm* rec_alg = cipher_suite->all_record_algs[i];
+        if (rec_alg && rec_alg->cipher == &s2n_chacha20_poly1305) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
     const struct s2n_security_policy *security_policy = NULL;

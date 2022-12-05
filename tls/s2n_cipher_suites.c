@@ -1169,25 +1169,8 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
     return 0;
 }
 
-bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
-    if (!cipher_suite) {
-        return false;
-    }
-
-    /* If chacha20-poly1305 is available, then we can directly check the record_alg */
-    if (s2n_chacha20_poly1305.is_available()) {
-        return cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
-    } 
-
-    /* Else chacha20 poly1305 is not available, then the record_alg is never set in s2n_cipher_suites_init(). */
-    for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
-        const struct s2n_record_algorithm* rec_alg = cipher_suite->all_record_algs[i];
-        if (rec_alg && rec_alg->cipher == &s2n_chacha20_poly1305) {
-            return true;
-        }
-    }
-
-    return false;
+static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
+    return cipher_suite && cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
 }
 
 /* Iff the server has enabled allow_chacha20_boosting and the client has a chacha20 cipher suite as its most 
