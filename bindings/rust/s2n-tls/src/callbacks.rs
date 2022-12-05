@@ -155,7 +155,10 @@ impl ConnectionFuture for ErrorFuture {
         _connection: &mut Connection,
         _ctx: &mut core::task::Context,
     ) -> Poll<Result<(), Error>> {
-        let err = self.error.take().unwrap();
+        let err = self.error.take().expect(
+            "ErrorFuture should be initialized with Some(error) and a Future should never
+            be polled after it returns Poll::Ready",
+        );
         Poll::Ready(Err(err))
     }
 }
