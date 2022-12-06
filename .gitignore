@@ -17,7 +17,6 @@ docs/doxygen/output/
 libcrypto-build/*
 libcrypto-root
 libcrypto-root/*
-tests/integration/__pycache__
 tests/unit/*_test
 tests/fuzz/*_test
 tests/fuzz/*.txt
