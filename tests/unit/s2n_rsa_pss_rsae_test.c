@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
-    }
+    };
 
 #if RSA_PSS_CERTS_SUPPORTED
 
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result));
             EXPECT_SUCCESS(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result));
-        }
+        };
 
         /* Test: RSA cert can't verify with PSS what it signed with PKCS1v1.5 */
         {
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result));
             EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA, &verify_hash, &result),
                     S2N_ERR_VERIFY_SIGNATURE);
-        }
+        };
 
         /* Test: RSA cert can't verify with PKCS1v1.5 what it signed with PSS */
         {
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA, &sign_hash, &result));
             EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result),
                     S2N_ERR_VERIFY_SIGNATURE);
-        }
+        };
 
         /* Test: If they share the same RSA key,
          * an RSA cert and an RSA_PSS cert are equivalent for PSS signatures. */
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result));
                 EXPECT_SUCCESS(rsa_pss_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &result));
-            }
+            };
 
             /* RSA_PSS signed with PSS, RSA verified with PSS */
             {
@@ -267,13 +267,13 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(rsa_pss_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &result));
                 EXPECT_SUCCESS(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_pkey_free(&rsa_pss_public_key));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
-    }
+    };
 
     /* Test: NIST test vectors */
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {

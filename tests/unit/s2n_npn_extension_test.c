@@ -75,7 +75,7 @@ int main(int argc, char **argv)
         client_conn->handshake.renegotiation = true;
         EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
         EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
-    }
+    };
 
     /* s2n_client_npn_recv */
     {
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
         server_conn->npn_negotiated = false;
         EXPECT_SUCCESS(s2n_client_npn_extension.recv(server_conn, &extension));
         EXPECT_FALSE(server_conn->npn_negotiated);
-    }
+    };
 
     /* Should-send tests on the server side */
     {
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
         /* NPN negotiated */
         server_conn->npn_negotiated = true;
         EXPECT_TRUE(s2n_server_npn_extension.should_send(server_conn));
-    }
+    };
 
     /* s2n_server_npn_send */
     {
@@ -147,11 +147,10 @@ int main(int argc, char **argv)
         }
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&out), 0);
-    }
+    };
 
     /* s2n_server_npn_recv */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Client has no application protocols configured. Not sure how this
          * could happen, but added to be thorough. */
         {
@@ -162,7 +161,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NULL(s2n_get_application_protocol(client_conn));
-        }
+        };
 
         /* NPN recv extension can read NPN send extension */
         {
@@ -182,7 +181,7 @@ int main(int argc, char **argv)
             /* Server sent the same list that the client configured so the first protocol in the list is chosen */
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
-        }
+        };
 
         /* No match exists */
         {
@@ -210,7 +209,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
-        }
+        };
 
         /* Server sends empty list */
         {
@@ -234,7 +233,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
-        }
+        };
 
         /* Multiple matches exist and server's preferred choice is selected */
         {
@@ -267,8 +266,8 @@ int main(int argc, char **argv)
 
             /* Client's second protocol is selected because the server prefers it over client's first protocol */
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[1], strlen(protocols[1]));
-        }
-    }
+        };
+    };
 
     /* Check application protocol array can hold the largest uint8_t value.
      *
@@ -284,7 +283,7 @@ int main(int argc, char **argv)
         /* Not <= because the application protocol is a string, which needs to
          * be terminated by a null character */
         EXPECT_TRUE(UINT8_MAX < sizeof(server_conn->application_protocol));
-    }
+    };
 
     END_TEST();
 }

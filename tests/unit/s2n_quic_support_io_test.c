@@ -113,7 +113,6 @@ int main(int argc, char **argv)
 
     /* Test: s2n_quic_write_handshake_message */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR(s2n_quic_write_handshake_message(NULL, &blob));
             EXPECT_ERROR(s2n_quic_write_handshake_message(&conn, NULL));
-        }
+        };
 
         /* Writes handshake message */
         {
@@ -138,12 +137,11 @@ int main(int argc, char **argv)
                     message_data, sizeof(message_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_quic_read_handshake_message */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_connection conn = { 0 };
@@ -151,7 +149,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR(s2n_quic_read_handshake_message(NULL, &message_type));
             EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, NULL));
-        }
+        };
 
         /* Reads basic handshake message */
         {
@@ -178,7 +176,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Blocks on insufficient data for handshake message header */
         {
@@ -197,7 +195,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Blocks on insufficient data for handshake message data */
         {
@@ -218,7 +216,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Fails for an impossibly large handshake message */
         {
@@ -238,8 +236,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Functional Tests */
     {
@@ -278,7 +276,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&input_stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Functional: successfully reads fragmented handshake message */
         for (size_t i = 1; i < server_hello.size - 1; i++) {
@@ -323,7 +321,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&input_stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Function: fails to read record instead of handshake message */
         {
@@ -343,7 +341,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Function: fails to read Change Cipher Spec record */
         {
@@ -363,7 +361,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         uint32_t client_hello_length = 0;
 
@@ -392,7 +390,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Functional: successfully retries after blocked write */
         {
@@ -417,12 +415,12 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&output_stuffer), client_hello_length);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&input_stuffer));
         EXPECT_SUCCESS(s2n_stuffer_free(&output_stuffer));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }

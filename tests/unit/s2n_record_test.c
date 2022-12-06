@@ -383,7 +383,7 @@ int main(int argc, char **argv)
         conn->header_in.blob.data[1] = 3;
         conn->header_in.blob.data[2] = 4;
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_header_parse(conn, &content_type, &fragment_length), S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     /* Test: ApplicationData MUST be encrypted */
     {
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
         uint8_t header_bytes[] = { TLS_APPLICATION_DATA, 0x03, 0x04, 0x00, 0x00 };
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->header_in, header_bytes, sizeof(header_bytes)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_DECRYPT);
-    }
+    };
 
     /* Test s2n_sslv2_record_header_parse fails when fragment_length < 3 */
     {
@@ -415,7 +415,7 @@ int main(int argc, char **argv)
 
         /* Check the rest of the stuffer has not been read yet */
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
-    }
+    };
 
     EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 

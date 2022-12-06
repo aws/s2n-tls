@@ -88,7 +88,6 @@ int main(int argc, char *argv[])
 
     /* Test s2n_renegotiate_wipe */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Default IO unaffected by wipe */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -116,7 +115,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_send(server_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, sizeof(recv_buffer), &blocked), sizeof(app_data));
             EXPECT_BYTEARRAY_EQUAL(recv_buffer, app_data, sizeof(app_data));
-        }
+        };
 
         /* Custom IO callbacks unaffected by wipe */
         {
@@ -147,7 +146,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_send(server_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             EXPECT_EQUAL(s2n_recv(client_conn, recv_buffer, sizeof(recv_buffer), &blocked), sizeof(app_data));
             EXPECT_BYTEARRAY_EQUAL(recv_buffer, app_data, sizeof(app_data));
-        }
+        };
 
         /* Fragment size unaffected by wipe */
         {
@@ -178,7 +177,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_send(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             size_t wiped_out_size = s2n_stuffer_data_available(&out);
             EXPECT_EQUAL(original_out_size, wiped_out_size);
-        }
+        };
 
         /* Forced very small fragment size unaffected by wipe */
         {
@@ -212,7 +211,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_send(client_conn, app_data, sizeof(app_data), &blocked), sizeof(app_data));
             size_t wiped_out_size = s2n_stuffer_data_available(&out);
             EXPECT_EQUAL(original_out_size, wiped_out_size);
-        }
+        };
 
         /* Handshake succeeds after wipe */
         {
@@ -235,7 +234,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        }
+        };
 
         /* Handshake with added client auth succeeds after wipe */
         {
@@ -268,7 +267,7 @@ int main(int argc, char *argv[])
             EXPECT_FALSE(IS_CLIENT_AUTH_NO_CERT(client_conn));
             EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
             EXPECT_FALSE(IS_CLIENT_AUTH_NO_CERT(server_conn));
-        }
+        };
 
         /* Handshake with different fragment length succeeds after wipe */
         {
@@ -318,7 +317,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, larger_frag_config));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        }
+        };
 
         /* renegotiation_info is non-empty after wipe */
         {
@@ -351,7 +350,7 @@ int main(int argc, char *argv[])
             renegotiation_info_len = s2n_client_hello_get_extension_length(&server_conn->client_hello,
                     S2N_EXTENSION_RENEGOTIATION_INFO);
             EXPECT_TRUE(renegotiation_info_len > sizeof(uint8_t));
-        }
+        };
 
         /* Wipe of insecure connection not allowed */
         {
@@ -364,7 +363,7 @@ int main(int argc, char *argv[])
             EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate_wipe(client_conn), S2N_ERR_NO_RENEGOTIATION);
             client_conn->secure_renegotiation = true;
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
-        }
+        };
 
         /* Wipe of TLS1.3 connection not allowed */
         {
@@ -377,7 +376,7 @@ int main(int argc, char *argv[])
             EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate_wipe(client_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
             client_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
-        }
+        };
 
         /* Wipe mid-write not allowed */
         {
@@ -414,7 +413,7 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_send(client_conn, large_app_data, sizeof(large_app_data), &blocked), sizeof(large_app_data));
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
-        }
+        };
 
         /* Wipe mid-read not allowed */
         {
@@ -452,8 +451,8 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(s2n_peek(client_conn), 0);
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
-        }
-    }
+        };
+    };
 
     /* Test the basic renegotiation mechanism with a variety of connection parameters.
      * A client should always be able to receive and negotiate after wiping a connection for renegotiation.
@@ -580,7 +579,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
-    }
+    };
 
     END_TEST();
 }

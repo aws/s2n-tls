@@ -116,7 +116,7 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
-    }
+    };
 
     /* Test s2n_record_max_write_payload_size() have proper checks in place */
     {
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(size, ONE_BLOCK); /* Verify size matches exactly specified max fragment length */
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test s2n_record_max_write_payload_size with custom send buffer size */
     {
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
             uint16_t size = 0;
             EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
             EXPECT_EQUAL(size, S2N_MAX_FRAGMENT_LENGTH_MIN);
-        }
+        };
 
         /* Small buffer size */
         {
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
             uint16_t size = 0;
             EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
             EXPECT_EQUAL(size, frag_len);
-        }
+        };
 
         /* Buffer exactly fits one record */
         {
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
             uint16_t size = 0;
             EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
             EXPECT_EQUAL(size, frag_len);
-        }
+        };
 
         /* Buffer larger than one record */
         {
@@ -224,8 +224,8 @@ int main(int argc, char **argv)
             uint16_t size = 0;
             EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
             EXPECT_EQUAL(size, conn->max_outgoing_fragment_length);
-        }
-    }
+        };
+    };
 
     /* Test s2n_record_min_write_payload_size() */
     {
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
-        }
+        };
 
         /* AEAD */
         {
@@ -294,7 +294,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
-        }
+        };
 
         /* TLS1.3 AEAD */
         {
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
-        }
+        };
 
         /* chacha20 */
         if (s2n_chacha20_poly1305.is_available()) {
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
 
         r.size = sizeof(random_data);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test large fragment/record sending for TLS 1.3 */
     {
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* s2n_record_max_write_size */
     {
@@ -526,7 +526,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - diff, &result));
         EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH - diff);
-    }
+    };
 
     END_TEST();
 }

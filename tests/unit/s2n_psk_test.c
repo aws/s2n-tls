@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(psk.ticket_age_add, 0);
         EXPECT_EQUAL(psk.ticket_issue_time, 0);
         EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
-    }
+    };
 
     /* Test s2n_external_psk_new */
     {
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(new_psk);
 
         EXPECT_BYTEARRAY_EQUAL(new_psk, &inited_psk, sizeof(struct s2n_psk));
-    }
+    };
 
     /* Test s2n_psk_set_identity */
     {
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_identity(&psk, test_value_2, sizeof(test_value_2)));
         EXPECT_EQUAL(psk.identity.size, sizeof(TEST_VALUE_2));
         EXPECT_BYTEARRAY_EQUAL(psk.identity.data, TEST_VALUE_2, sizeof(TEST_VALUE_2));
-    }
+    };
 
     /* Test s2n_psk_set_secret */
     {
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_secret(&psk, test_value_2, sizeof(test_value_2)));
         EXPECT_EQUAL(psk.secret.size, sizeof(TEST_VALUE_2));
         EXPECT_BYTEARRAY_EQUAL(psk.secret.data, TEST_VALUE_2, sizeof(TEST_VALUE_2));
-    }
+    };
 
     /* Test s2n_psk_clone */
     {
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
         /* other values are copied */
         EXPECT_EQUAL(clone->hmac_alg, test_hmac);
-    }
+    };
 
     /* Test s2n_psk_wipe */
     {
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 
         /* No-op if already freed */
         EXPECT_OK(s2n_psk_wipe(&psk));
-    }
+    };
 
     /* Test s2n_psk_free */
     {
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(new_psk);
         EXPECT_SUCCESS(s2n_psk_free(&new_psk));
         EXPECT_NULL(new_psk);
-    }
+    };
 
     /* Test s2n_psk_parameters_init */
     {
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
         struct s2n_psk_parameters expected_params = { 0 };
         expected_params.psk_list.element_size = sizeof(struct s2n_psk);
         EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
-    }
+    };
 
     /* Test s2n_psk_parameters_wipe */
     {
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
         struct s2n_psk_parameters expected_params = { 0 };
         EXPECT_OK(s2n_psk_parameters_init(&expected_params));
         EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
-    }
+    };
 
     /* Test s2n_psk_parameters_wipe_secrets */
     {
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_OK(s2n_psk_parameters_wipe(&params));
-    }
+    };
 
     /* Test s2n_connection psk_parameters lifecycle.
      * This test mostly exists to check for memory leaks. */
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
         conn->psk_params.chosen_psk = third_psk;
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_psk_write_binder_list */
     {
@@ -372,7 +372,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* On a retry, do not write binders for PSKs that do not match the cipher suite.
          *
@@ -423,7 +423,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
-    }
+    };
 
     /* Test binder calculations with known values */
     {
@@ -490,7 +490,7 @@ int main(int argc, char **argv)
             S2N_BLOB_EXPECT_EQUAL(hash_value, binder_hash);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test s2n_psk_calculate_binder with known values */
         {
@@ -505,7 +505,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_calculate_binder(&test_psk, &binder_hash, &binder_value));
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);
             S2N_BLOB_EXPECT_EQUAL(binder_value, finished_binder);
-        }
+        };
 
         /* Test s2n_psk_verify_binder with known values */
         {
@@ -524,7 +524,7 @@ int main(int argc, char **argv)
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test s2n_psk_verify_binder with incorrect binder */
         {
@@ -545,7 +545,7 @@ int main(int argc, char **argv)
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test s2n_psk_write_binder with known values */
         {
@@ -572,7 +572,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Test s2n_psk_write_binder_list with known values */
         {
@@ -605,7 +605,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Test s2n_psk_write_binder_list with multiple PSKs */
         {
@@ -645,7 +645,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Test s2n_psk_write_binder_list with multiple hash algs */
         {
@@ -691,7 +691,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Test s2n_finish_psk_extension with known values */
         {
@@ -713,8 +713,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->handshake.io.blob.data, full_client_hello.data, full_client_hello.size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_connection_append_psk */
     {
@@ -739,7 +739,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, NULL), S2N_ERR_NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Append valid PSK to empty list */
         {
@@ -762,7 +762,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_psk->ticket_issue_time, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Original PSK can be safely freed after being added to a connection */
         {
@@ -790,7 +790,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(expected_psk->identity.data, input_psk->identity.data, input_psk->identity.size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Invalid PSK not added to connection */
         {
@@ -810,7 +810,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Huge PSK not added to client connection */
         {
@@ -840,7 +840,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, invalid_psk));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Huge PSK added to server connection */
         {
@@ -857,7 +857,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* New PSK would make existing list too long for client */
         {
@@ -893,7 +893,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_list.len, original_psk_count + 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* PSK matches existing external PSK */
         {
@@ -905,7 +905,7 @@ int main(int argc, char **argv)
                     S2N_ERR_DUPLICATE_PSK_IDENTITIES);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Can't mix resumption and external PSKs */
         {
@@ -922,7 +922,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_external_psk));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, test_resumption_psk),
                         S2N_ERR_PSK_MODE);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
@@ -931,11 +931,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_resumption_psk));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, test_external_psk),
                         S2N_ERR_PSK_MODE);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_psk_set_hmac */
     {
@@ -953,7 +953,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA256));
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
-    }
+    };
 
     /* Test: s2n_config_set_psk_mode */
     {
@@ -971,7 +971,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_RESUMPTION);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test: s2n_connection_set_psk_mode */
     {
@@ -997,7 +997,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: s2n_connection_get_negotiated_psk_identity_length */
     {
@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(identity_length, sizeof(psk_identity));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: s2n_connection_get_negotiated_psk_identity */
     {
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, identity, 0), S2N_ERR_INSUFFICIENT_MEM_SIZE);
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_psk_validate_keying_material */
     {
@@ -1101,7 +1101,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }

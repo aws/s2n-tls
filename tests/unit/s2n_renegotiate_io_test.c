@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 
         /* Second handshake */
         EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
-    }
+    };
 
     /* Test that s2n_renegotiate can handle ApplicationData */
     {
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 
         /* Finish renegotiation */
         EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
-    }
+    };
 
     /* Test that s2n_renegotiate can handle an ApplicationData fragment larger than the receive buffer */
     {
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
         /* Finish renegotiation */
         EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
-    }
+    };
 
     /* Test that s2n_renegotiate can handle multiple ApplicationData records */
     {
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
 
         /* Finish renegotiation */
         EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
-    }
+    };
 
     /* Test that s2n_renegotiate rejects ApplicationData after receiving the ServerHello */
     {
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
                 S2N_ERR_BAD_MESSAGE);
         EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
         EXPECT_TRUE(IS_NEGOTIATED(server_conn));
-    }
+    };
 
     /* Test that s2n_renegotiate rejects incorrect handshake messages */
     {
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
         EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate(client_conn, recv_buffer, sizeof(recv_buffer), &app_data_read, &blocked),
                 S2N_ERR_BAD_MESSAGE);
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
-    }
+    };
 
     /* Test that s2n_renegotiate handles handshake IO blocked on send */
     {
@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
                 S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         EXPECT_EQUAL(app_data_read, 0);
-    }
+    };
 
     /* Test timing of application data during the renegotiation handshake.
      *
@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
 
                 EXPECT_SUCCESS(s2n_renegotiate_wipe(server_conn));
                 EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
-            }
+            };
 
             /* Client: ClientHello sent */
             {
@@ -434,7 +434,7 @@ int main(int argc, char *argv[])
                     EXPECT_EQUAL(app_data_read, 0);
                     reneg_ch_had_no_app_data = true;
                 }
-            }
+            };
 
             /* Server: ClientHello recv, ServerHello sent */
             {
@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
                 if (app_data_case & S2N_TEST_APP_DATA_AFTER_SERVER_HELLO) {
                     EXPECT_EQUAL(s2n_send(server_conn, messages[send_i], S2N_TEST_APP_DATA_LEN, &blocked), S2N_TEST_APP_DATA_LEN);
                 }
-            }
+            };
 
             /* Client: ApplicationData recv */
             while (send_i > 0 && recv_i < send_i) {
@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
                 EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
                 EXPECT_TRUE(IS_NEGOTIATED(client_conn));
                 reneg_sh_had_no_app_data = true;
-            }
+            };
 
             /* Handshake completes */
             EXPECT_OK(s2n_renegotiate_test_server_and_client(server_conn, client_conn));
@@ -495,7 +495,7 @@ int main(int argc, char *argv[])
         EXPECT_TRUE(reneg_extra_app_data);
         EXPECT_TRUE(reneg_sh_had_app_data);
         EXPECT_TRUE(reneg_sh_had_no_app_data);
-    }
+    };
 
     END_TEST();
 }

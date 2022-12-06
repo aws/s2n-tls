@@ -72,7 +72,6 @@ int main(int argc, char **argv)
 
     /* s2n_connection_get_session_state_size */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -80,7 +79,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_connection_get_session_state_size(NULL, &size), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_connection_get_session_state_size(conn, NULL), S2N_ERR_NULL);
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.2: session state is fixed */
         {
@@ -105,7 +104,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, s2n_stuffer_data_available(&actual_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Minimal TLS1.3 state: all variable fields empty, zero-length session secret, no early data */
         {
@@ -129,7 +128,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, expected_size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.3 with non-zero session secret */
         {
@@ -154,7 +153,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, s2n_stuffer_data_available(&actual_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Minimal TLS1.3 with early data: all variable fields empty */
         {
@@ -179,7 +178,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, expected_size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.3 with early data: all variable fields set */
         {
@@ -209,8 +208,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, s2n_stuffer_data_available(&actual_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* s2n_connection_get_session_length */
     {
@@ -244,7 +243,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Session ID */
         {
@@ -265,7 +264,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
                 EXPECT_SUCCESS(s2n_connection_get_session(conn, &data, 1));
                 EXPECT_EQUAL(data, 0);
-            }
+            };
 
             /* TLS1.2 */
             {
@@ -278,12 +277,12 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_blob session_id_data = { 0 }, s2n_free);
                 EXPECT_SUCCESS(s2n_alloc(&session_id_data, session_length));
                 EXPECT_SUCCESS(s2n_connection_get_session(conn, session_id_data.data, session_id_data.size));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_connection_get_session_id_length */
     {
@@ -300,7 +299,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_tls12_serialize_resumption_state */
     {
@@ -353,7 +352,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_tls13_serialize_resumption_state */
     {
@@ -367,7 +366,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, NULL), S2N_ERR_NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         uint32_t tls13_client_state_size = 0;
         uint32_t tls13_server_state_size = 0;
@@ -428,7 +427,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test TLS1.3 server serialization: keying material expiration time */
         {
@@ -463,7 +462,7 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
-            }
+            };
 
             DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
             EXPECT_NOT_NULL(chosen_psk);
@@ -485,7 +484,7 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
-            }
+            };
 
             /* Existing expiration time not supported by server settings */
             {
@@ -502,11 +501,11 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test TLS1.3 serialization with early data */
         {
@@ -555,7 +554,7 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Erroneous secret size */
         {
@@ -573,8 +572,8 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* s2n_deserialize_resumption_state */
     {
@@ -653,7 +652,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Deserialized ticket without EMS data errors */
         {
@@ -673,7 +672,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Client processes hardcoded TLS1.2 ticket with EMS data correctly */
         {
@@ -702,7 +701,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Client processes TLS1.2 ticket with EMS data correctly */
         {
@@ -736,7 +735,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Server processes TLS1.2 ticket with EMS data correctly */
         {
@@ -796,7 +795,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(conn->ems_negotiated);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Deserialized ticket sets correct PSK values for session resumption in TLS1.3 */
         {
@@ -839,7 +838,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Deserialized TLS1.3 server ticket sets correct keying material value */
         {
@@ -873,7 +872,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Deserializing TLS1.3 server ticket fails for expired keying material */
         {
@@ -902,7 +901,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Deserialized ticket sets correct PSK values for early data */
         {
@@ -944,7 +943,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Deserializing state ignores extra data.
          * This will make it possible to easily add new fields in the future, without needing
@@ -978,7 +977,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Any existing psks are removed when creating a new resumption psk */
         {
@@ -1021,7 +1020,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Fails if external PSKs already set */
         {
@@ -1055,7 +1054,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Functional test: Both TLS1.3 client and server can deserialize what they serialize */
         {
@@ -1104,7 +1103,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Functional test: The TLS1.3 client can deserialize what it serializes with early data */
         {
@@ -1154,7 +1153,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Functional test: Both TLS1.2 client and server can deserialize what they serialize */
         {
@@ -1184,18 +1183,17 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_validate_ticket_age */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Ticket issue time is in the future */
         {
             uint64_t current_time = SECONDS_TO_NANOS(0);
             uint64_t issue_time = 10;
             EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_SESSION_TICKET);
-        }
+        };
 
         /** Ticket age is longer than a week
          *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
@@ -1208,15 +1206,15 @@ int main(int argc, char **argv)
             uint64_t current_time = SECONDS_TO_NANOS(ONE_WEEK_IN_SEC + 1);
             uint64_t issue_time = 0;
             EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_SESSION_TICKET);
-        }
+        };
 
         /* Ticket age is a exactly a week */
         {
             uint64_t current_time = SECONDS_TO_NANOS(ONE_WEEK_IN_SEC);
             uint64_t issue_time = 0;
             EXPECT_OK(s2n_validate_ticket_age(current_time, issue_time));
-        }
-    }
+        };
+    };
 
     /* s2n_encrypt_session_ticket */
     {
@@ -1262,7 +1260,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Check session ticket can be decrypted with a small secret in TLS13 session resumption. */
         {
@@ -1304,7 +1302,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Check session ticket can be decrypted with the maximum size secret in TLS13 session resumption. */
         {
@@ -1346,7 +1344,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Check session ticket is correct when using early data with TLS1.3. */
         {
@@ -1389,8 +1387,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_config_set_initial_ticket_count */
     {
@@ -1414,11 +1412,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_connection_add_new_tickets_to_send */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* New number of session tickets can be set */
         {
             struct s2n_connection *conn;
@@ -1432,7 +1429,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->tickets_to_send, original_num_tickets + new_num_tickets);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Overflow error is caught */
         {
@@ -1444,7 +1441,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, new_num_tickets), S2N_ERR_INTEGER_OVERFLOW);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Fails if keying material expired */
         {
@@ -1461,8 +1458,8 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, 1), S2N_ERR_KEYING_MATERIAL_EXPIRED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* s2n_config_set_session_ticket_cb */
     {
@@ -1473,24 +1470,23 @@ int main(int argc, char **argv)
         /* Safety check */
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_cb(NULL, s2n_test_session_ticket_callback, ctx), S2N_ERR_NULL);
-        }
+        };
 
         EXPECT_NULL(config->session_ticket_cb);
         EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_callback, ctx));
         EXPECT_EQUAL(config->session_ticket_cb, s2n_test_session_ticket_callback);
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* s2n_session_ticket_get_data_len */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
             size_t data_len = 0;
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data_len(NULL, &data_len), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data_len(&session_ticket, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Empty ticket */
         {
@@ -1498,7 +1494,7 @@ int main(int argc, char **argv)
             size_t data_len = 0;
             EXPECT_SUCCESS(s2n_session_ticket_get_data_len(&session_ticket, &data_len));
             EXPECT_EQUAL(data_len, 0);
-        }
+        };
 
         /* Valid ticket */
         {
@@ -1510,12 +1506,11 @@ int main(int argc, char **argv)
             size_t data_len = 0;
             EXPECT_SUCCESS(s2n_session_ticket_get_data_len(&session_ticket, &data_len));
             EXPECT_EQUAL(data_len, sizeof(ticket_data));
-        }
-    }
+        };
+    };
 
     /* s2n_session_ticket_get_data */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
@@ -1523,7 +1518,7 @@ int main(int argc, char **argv)
             uint8_t *data = NULL;
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(NULL, max_data_len, data), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, max_data_len, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Valid ticket */
         {
@@ -1536,7 +1531,7 @@ int main(int argc, char **argv)
             size_t max_data_len = sizeof(data);
             EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, max_data_len, data));
             EXPECT_BYTEARRAY_EQUAL(data, ticket_data, sizeof(ticket_data));
-        }
+        };
 
         /* Ticket data is larger than customer buffer */
         {
@@ -1549,19 +1544,18 @@ int main(int argc, char **argv)
             size_t max_data_len = sizeof(data);
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, max_data_len, data),
                     S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
-        }
-    }
+        };
+    };
 
     /* s2n_session_ticket_get_lifetime */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
             uint32_t lifetime = 0;
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_lifetime(NULL, &lifetime), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_lifetime(&session_ticket, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Valid lifetime */
         {
@@ -1571,8 +1565,8 @@ int main(int argc, char **argv)
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(&session_ticket, &ticket_lifetime));
             EXPECT_EQUAL(lifetime, ticket_lifetime);
-        }
-    }
+        };
+    };
 
     /* s2n_connection_set_server_keying_material_lifetime */
     {
@@ -1588,7 +1582,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(&conn, UINT32_MAX));
         EXPECT_EQUAL(conn.server_keying_material_lifetime, UINT32_MAX);
-    }
+    };
 
     /* s2n_allowed_to_cache_connection */
     {
@@ -1613,7 +1607,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }

@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         /* Verify repeated key frees.
          * (Later calls should be a no-op) */
         EXPECT_SUCCESS(s2n_pkey_free(&public_key));
-    }
+    };
 
     /* Negative Test: Loading mismatching RSA PSS Public/Private Keys will fail.
      * Pseudocode: assert(FAILURE == load_pem_pair(Key1_public, Key2_private))
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&public_key));
         free(leaf_cert_chain_pem);
         free(root_private_key_pem);
-    }
+    };
 
     /* Negative Test: Ensure flipping a bit in the signature is rejected
      * Pseudocode: assert(FAILURE == verify(Key1_public, message, bitflip(sign(Key1_private, message)))
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
             /* Flip a random bit in the signature */
             EXPECT_SUCCESS(s2n_flip_random_bit(&signature_data));
             EXPECT_FAILURE(s2n_pkey_verify(&public_key, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &signature_data));
-        }
+        };
 
         /* Release Resources */
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&public_key));
         free(cert_chain_pem);
         free(private_key_pem);
-    }
+    };
 
     /* Negative Test: Ensure Verification with wrong key fails
      * Pseudocode: assert(FAILURE == verify(Key2_public, message, sign(Key1_private, message)))
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
             /* Sign with Root's Key, but verify with Leaf's Key. This should fail. */
             EXPECT_SUCCESS(s2n_pkey_sign(root_private_key, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &signature_data));
             EXPECT_FAILURE(s2n_pkey_verify(&leaf_public_key, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &signature_data));
-        }
+        };
 
         /* Release Resources */
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(root_chain_and_key));
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&leaf_public_key));
         free(leaf_cert_chain_pem);
         free(leaf_private_key_pem);
-    }
+    };
 
     /* Negative Test: Ensure flipping a bit in message given to verification fails
      * Pseudocode: assert(FAILURE == verify(Key1_public, bitflip(message), sign(Key1_private, message)))
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
             s2n_stack_blob(signature_data, RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE, RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE);
             EXPECT_SUCCESS(s2n_pkey_sign(private_key, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &signature_data));
             EXPECT_FAILURE(s2n_pkey_verify(&public_key, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &signature_data));
-        }
+        };
 
         /* Release Resources */
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&public_key));
         free(cert_chain_pem);
         free(private_key_pem);
-    }
+    };
 
     END_TEST();
 }

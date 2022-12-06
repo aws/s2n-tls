@@ -89,7 +89,7 @@ int main(int argc, char **argv)
                     S2N_ERR_KEY_MISMATCH);
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         }
-    }
+    };
 
     /* Test the same as above but with non null terminated chain and key and
      * api that accepts length  */
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
                     S2N_ERR_KEY_MISMATCH);
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         }
-    }
+    };
 
     END_TEST();
 }

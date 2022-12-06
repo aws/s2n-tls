@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
             /* After the complete read, no data reported as available */
             EXPECT_EQUAL(s2n_peek(server_conn), 0);
-        }
+        };
 
         /* s2n_peek doesn't report bytes belonging to partially read, still encrypted records */
         {
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
             /* conn->in contains data, but s2n_peek reports no data available */
             EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->in));
             EXPECT_EQUAL(s2n_peek(server_conn), 0);
-        }
+        };
 
         /* s2n_peek doesn't report bytes belonging to post-handshake messages */
         {
@@ -170,8 +170,8 @@ int main(int argc, char **argv)
             /* conn->in contains data, but s2n_peek reports no data available */
             EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->in));
             EXPECT_EQUAL(s2n_peek(server_conn), 0);
-        }
-    }
+        };
+    };
 
     /* s2n_recv cannot be called concurrently */
     {
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

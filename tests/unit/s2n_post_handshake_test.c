@@ -39,7 +39,6 @@ int main(int argc, char **argv)
 
     /* s2n_post_handshake_recv */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* post_handshake_recv processes a key update requested message */
         {
             struct s2n_connection *conn;
@@ -57,7 +56,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* post_handshake_recv rejects an unknown post handshake message */
         {
@@ -76,7 +75,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* post_handshake_recv processes a malformed post handshake message */
         {
@@ -94,7 +93,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(conn->key_update_pending);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Functional test: Multiple post handshake messages can be received in the same record */
         {
@@ -120,7 +119,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* HELLO_REQUEST messages can be received post-handshake. */
         {
@@ -133,7 +132,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_post_handshake_recv(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* No non-post handshake messages can be received.
          * This means that no handshake message that appears in the handshake state machine
@@ -173,12 +172,11 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
-        }
-    }
+        };
+    };
 
     /* post_handshake_send */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Post handshake message can be sent */
         {
             struct s2n_connection *conn;
@@ -191,8 +189,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_stuffer_data_available(&conn->out) == 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Errors while processing post-handshake messages close the connection */
     {
@@ -226,7 +224,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
 }

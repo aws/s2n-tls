@@ -387,7 +387,7 @@ int main(int argc, char **argv)
 
         /* No post-handshake message should trigger the server to allocate memory */
         EXPECT_EQUAL(mallocs_count, 0);
-    }
+    };
 
     /* Test: client receives empty post-handshake messages (HelloRequests)
      *

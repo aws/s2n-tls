@@ -46,8 +46,8 @@ int main(int argc, char **argv)
             /* Succeeds for TLS1.2 */
             client_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_next_protocol_send(client_conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_next_protocol_recv */
     {
@@ -82,8 +82,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), 0);
 
             EXPECT_BYTEARRAY_EQUAL(client_conn->application_protocol, server_conn->application_protocol, protocol_len);
-        }
-    }
+        };
+    };
 
     /* s2n_write_npn_protocol */
     {
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(byte, 0);
         }
         EXPECT_EQUAL(s2n_stuffer_data_available(&out), 0);
-    }
+    };
 
     /* s2n_read_npn_protocol can parse s2n_write_npn_protocol */
     {
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(s2n_get_application_protocol(server_conn));
         EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(server_conn), protocols[0], strlen(protocols[0]));
-    }
+    };
 
     /* s2n_read_npn_protocol can read empty message */
     {
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_read_npn_protocol(server_conn, &out));
         EXPECT_NULL(s2n_get_application_protocol(server_conn));
-    }
+    };
 
     /* s2n_read_npn_protocol errors on malformed message */
     {
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
         EXPECT_ERROR_WITH_ERRNO(s2n_read_npn_protocol(server_conn, &out), S2N_ERR_NULL);
-    }
+    };
 
     /* s2n_read_npn_protocol errors on malformed padding */
     {
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out, wire_bytes, sizeof(wire_bytes)));
         EXPECT_ERROR_WITH_ERRNO(s2n_read_npn_protocol(server_conn, &out), S2N_ERR_SAFETY);
-    }
+    };
 
     /*
      *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
@@ -216,6 +216,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_calculate_padding(test_cases[i].protocol_len, &output));
             EXPECT_EQUAL(output, test_cases[i].expected_padding);
         }
-    }
+    };
     END_TEST();
 }
