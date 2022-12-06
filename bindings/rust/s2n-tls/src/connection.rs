@@ -12,16 +12,16 @@ use crate::{
 };
 use core::{
     convert::TryInto,
-    ffi::CStr,
     fmt,
     mem::{self, ManuallyDrop, MaybeUninit},
     pin::Pin,
     ptr::NonNull,
-    task::{ready, Poll, Waker},
+    task::{Poll, Waker},
     time::Duration,
 };
 use libc::c_void;
 use s2n_tls_sys::*;
+use std::ffi::CStr;
 
 mod builder;
 pub use builder::*;
@@ -378,16 +378,18 @@ impl Connection {
         loop {
             // check if an async task exists and poll it to completion
             if let Some(fut) = self.poll_async_task() {
-                let ready_fut = ready!(fut);
-
-                // error case:
-                // if the callback returned an error then abort the handshake
-                if let Err(err) = ready_fut {
-                    return Poll::Ready(Err(err));
+                match fut {
+                    Poll::Ready(Ok(())) => {
+                        // happy case:
+                        // continue and call s2n_negotiate to make progress on the handshake
+                    }
+                    Poll::Ready(Err(err)) => {
+                        // error case:
+                        // if the callback returned an error then abort the handshake
+                        return Poll::Ready(Err(err));
+                    }
+                    Poll::Pending => return Poll::Pending,
                 }
-
-                // happy case:
-                // call s2n_negotiate to make progress on the handshake
             }
 
             let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
