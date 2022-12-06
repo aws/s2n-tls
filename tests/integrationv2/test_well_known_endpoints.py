@@ -103,9 +103,9 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
         cipher=cipher)
 
     if get_flag(S2N_FIPS_MODE) is True:
-        client_options.trust_store = "../integration/trust-store/ca-bundle.trust.crt"
+        client_options.trust_store = "../pems/trust-store/ca-bundle-integration.trust.crt"
     else:
-        client_options.trust_store = "../integration/trust-store/ca-bundle.crt"
+        client_options.trust_store = "../pems/trust-store/ca-bundle-integration.crt"
 
     # expect_stderr=True because S2N sometimes receives OCSP responses:
     # https://github.com/aws/s2n-tls/blob/14ed186a13c1ffae7fbb036ed5d2849ce7c17403/bin/echo.c#L180-L184
