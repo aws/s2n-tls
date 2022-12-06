@@ -1,6 +1,6 @@
 import pytest
 
-from constants import TRUST_STORE_BUNDLE
+from constants import TRUST_STORE_BUNDLE, TRUST_STORE_TRUSTED_BUNDLE
 from configuration import PROTOCOLS
 from common import ProviderOptions, Ciphers, pq_enabled
 from fixtures import managed_process # lgtm [py/unused-import]
@@ -103,9 +103,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
         cipher=cipher)
 
     if get_flag(S2N_FIPS_MODE) is True:
-        client_options.trust_store = "../pems/trust-store/ca-bundle-integration.trust.crt"
-    else:
-        client_options.trust_store = "../pems/trust-store/ca-bundle-integration.crt"
+        client_options.trust_store = TRUST_STORE_TRUSTED_BUNDLE
 
     # expect_stderr=True because S2N sometimes receives OCSP responses:
     # https://github.com/aws/s2n-tls/blob/14ed186a13c1ffae7fbb036ed5d2849ce7c17403/bin/echo.c#L180-L184
