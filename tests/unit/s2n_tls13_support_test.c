@@ -47,7 +47,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Server does not support or configure TLS 1.3 */
         {
@@ -61,8 +61,8 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_TRUE(s2n_use_default_tls13_config());
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Server supports and configures TLS 1.3 */
         {
@@ -99,8 +99,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_FALSE(s2n_use_default_tls13_config());
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension_data));
-    }
+    };
 
     END_TEST();
     return 0;

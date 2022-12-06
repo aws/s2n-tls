@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_session_key_free(&session_key));
-    }
+    };
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite ENCRYPTION with TLS 1.3 test vectors */
     {
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(out, protected_record);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test encrypt-decrypt roundtrip */
     {
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(decrypted, expect_plaintext);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that CCS in TLS 1.3 modes should be sent without encryption */
     {
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     END_TEST();
 }

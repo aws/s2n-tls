@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificate signature algorithm is not in test certificate signature preferences list */
         {
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list but signature is SHA-1
          * and TLS 1.3 has been negotiated.
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list and signature is SHA-1
          * and TLS 1.2 has been negotiated.
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificates signed with an RSA PSS signature can be validated */
         {
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Connection using the default_tls13 security policy does not validate SHA-1 signatures in certificates */
         {
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Connection using the default_tls13 security policy ignores a SHA-1 signature on a root certificate */
         {
@@ -233,8 +233,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
-    }
+        };
+    };
     END_TEST();
     return S2N_SUCCESS;
 }

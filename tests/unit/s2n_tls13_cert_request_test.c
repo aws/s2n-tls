@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test request context length other than 0 fails */
     {
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_BAD_MESSAGE);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     END_TEST();

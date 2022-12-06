@@ -98,7 +98,7 @@ int main(int argc, char **argv)
         s2n_x509_trust_store_init_empty(&trust_store);
 
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
-    }
+    };
 
     /* test trust store from PEM file */
     {
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, err_code);
         EXPECT_TRUE(s2n_x509_trust_store_has_certs(&trust_store));
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test trust store from PEM */
     {
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
         free(cert_chain);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test trust store from non-existent PEM file */
     {
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(-1, err_code);
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test trust store from invalid PEM file */
     {
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(-1, err_code);
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in unsafe mode */
     {
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
-    }
+    };
 
     /* test validator in unsafe mode, make sure max depth is honored on the read, but not an error condition */
     {
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
-    }
+    };
 
     /* test validator in safe mode, but no configured trust store */
     {
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, but no configured trust store */
     {
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store. */
     {
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store and test that SAN URI callback is invoked. */
     {
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store, using s2n PEM Parser. */
     {
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store, but max chain depth is exceeded*/
     {
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test expired certificate fails as untrusted*/
     {
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store, but the server's end-entity cert is invalid. */
     {
@@ -494,7 +494,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store, but host isn't trusted*/
     {
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store, but host isn't trusted, using s2n PEM Parser */
     {
@@ -582,7 +582,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store. host name validation succeeds */
     {
@@ -624,7 +624,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store. host name validation succeeds, using s2n PEM Parser */
     {
@@ -672,7 +672,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store. host name via alternative name validation succeeds
      * note: in this case, we don't have valid certs but it's enough to make sure we are properly pulling alternative names
@@ -715,7 +715,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store. host name via alternative name validation fails, and
      * no Common Name validation happens as DNS alternative name is present. note: in this case, we don't have valid certs but
@@ -759,7 +759,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with properly configured trust store. host name via common name validation succeeds,
      * non-dns alternative names are ignored. note: in this case, we don't have valid certs but it's enough to make sure
@@ -804,7 +804,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 #if S2N_OCSP_STAPLING_SUPPORTED
     /* Test valid OCSP date range */
     {
@@ -845,7 +845,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test valid OCSP date range without nextUpdate field */
     {
@@ -891,7 +891,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test valid OCSP date range, but with s2n PEM Parser */
     {
@@ -939,7 +939,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test invalid OCSP date range (after is off) */
     {
@@ -1079,7 +1079,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test valid OCSP date range and data, but the stapled response was signed with an issuer not in the chain of trust */
     {
@@ -1125,7 +1125,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test OCSP response signed by the correct responder certificate, but not for the requested certificate.
      * (So this would be a completely valid response to a different OCSP request for the other certificate.)  */
@@ -1260,7 +1260,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
     /* test validator in safe mode, with default host name validator. Connection server name matches alternative name on a certificate. */
     {
@@ -1293,7 +1293,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with default host name validator. Connection server name matches wildcard alternative name on a certificate. */
     {
@@ -1326,7 +1326,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with default host name validator. Connection server does not match alternative names on a certificate. */
     {
@@ -1362,7 +1362,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* test validator in safe mode, with default host name validator. No connection server name supplied. */
     {
@@ -1396,7 +1396,7 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test trust store in a configuration can handle invalid PEM without crashing */
     {
@@ -1404,7 +1404,7 @@ int main(int argc, char **argv)
         s2n_config_add_pem_to_trust_store(cfg, "");
         s2n_config_free(cfg);
         /* Expect no crash. */
-    }
+    };
 
     /* Test one trailing byte in cert validator */
     {
@@ -1428,7 +1428,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
-    }
+    };
 
     /* Test more trailing bytes in cert validator for negative case */
     {
@@ -1456,7 +1456,7 @@ int main(int argc, char **argv)
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
-    }
+    };
 
     /* Test validator trusts a SHA-1 signature in a certificate chain if certificate validation is off */
     {
@@ -1500,7 +1500,7 @@ int main(int argc, char **argv)
         s2n_config_free(config);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test validator does not trust a SHA-1 signature in a certificate chain */
     {
@@ -1542,7 +1542,7 @@ int main(int argc, char **argv)
         s2n_config_free(config);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    }
+    };
 
     /* Test trust store can be wiped */
     {
@@ -1552,7 +1552,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             s2n_config_free(cfg);
-        }
+        };
 
         /* Wipe repeatedly without crash */
         {
@@ -1561,7 +1561,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             s2n_config_free(cfg);
-        }
+        };
 
         /* Wipe after setting verification location */
         {
@@ -1572,7 +1572,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             s2n_config_free(cfg);
-        }
+        };
 
         /* Set verification location after wipe */
         {
@@ -1583,7 +1583,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(cfg, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
             EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             s2n_config_free(cfg);
-        }
+        };
 
         /* Wipe after adding PEM */
         {
@@ -1598,7 +1598,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             free(cert_chain);
             s2n_config_free(cfg);
-        }
+        };
 
         /* Add PEM after wipe */
         {
@@ -1613,8 +1613,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             free(cert_chain);
             s2n_config_free(cfg);
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

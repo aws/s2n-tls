@@ -12,10 +12,6 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include "tls/s2n_tls13_secrets.h"
 
 #include <sys/param.h>
@@ -104,7 +100,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, -1), S2N_ERR_SAFETY);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, 255), S2N_ERR_SAFETY);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_extract_secret(conn, (S2N_MASTER_SECRET + 1)), S2N_ERR_SAFETY);
-        }
+        };
 
         /* No-op if secret already exists */
         {
@@ -116,7 +112,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_EARLY_SECRET));
             EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_EARLY_SECRET);
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret, empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Generate all secrets sequentially  */
         {
@@ -137,7 +133,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_extract_secret(conn, S2N_MASTER_SECRET));
             EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_MASTER_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.extract_secret, empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Generate all secrets at once (backfill) */
         {
@@ -161,7 +157,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_set_test_key_shares(conn, test_cases[i].curve));
             EXPECT_OK(s2n_tls13_extract_secret(conn, test_cases[i].next_secret_type));
         }
-    }
+    };
 
     /* Test: s2n_tls13_derive_secret */
     {
@@ -184,7 +180,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_derive_secret(conn, -1, S2N_CLIENT, &blob), S2N_ERR_SAFETY);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_derive_secret(conn, 255, S2N_CLIENT, &blob), S2N_ERR_SAFETY);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET, S2N_CLIENT, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Generates a secret */
         {
@@ -199,7 +195,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_EARLY_SECRET, S2N_SERVER, &output));
             EXPECT_BYTEARRAY_NOT_EQUAL(output.data, empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Fails if correct transcript digest not available */
         {
@@ -222,7 +218,7 @@ int main(int argc, char **argv)
             /* Succeeds with correct transcript */
             conn->handshake.message_number = message_nums[S2N_MASTER_SECRET];
             EXPECT_OK(s2n_tls13_derive_secret(conn, S2N_MASTER_SECRET, S2N_SERVER, &output));
-        }
+        };
 
         /* Calculates previous extract secrets if necessary */
         {
@@ -243,7 +239,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_HANDSHAKE_SECRET);
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.extract_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(output.data, empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* All valid parameter combinations should succeed */
         for (size_t i = 0; i < test_cases_count; i++) {
@@ -262,7 +258,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_derive_secret(conn, test_cases[i].next_secret_type, test_cases[i].secret_mode, &output));
             EXPECT_BYTEARRAY_NOT_EQUAL(output.data, empty_secret, sizeof(empty_secret));
         }
-    }
+    };
 
     /* s2n_tls13_secrets_clean */
     {
@@ -301,8 +297,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_app_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_app_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.resumption_master_secret, empty_secret, sizeof(empty_secret));
-        }
-    }
+        };
+    };
 
     /* Test s2n_tls13_secrets_get */
     {
@@ -329,7 +325,7 @@ int main(int argc, char **argv)
             conn->secure->cipher_suite = NULL;
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result), S2N_ERR_NULL);
             conn->secure->cipher_suite = cipher_suite;
-        }
+        };
 
         /* Retrieves a secret */
         {
@@ -350,8 +346,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(result.size > 0);
             EXPECT_TRUE(result.size <= S2N_TLS13_SECRET_MAX_LEN);
             EXPECT_BYTEARRAY_EQUAL(result.data, test_secret.data, result.size);
-        }
-    }
+        };
+    };
 
     /* s2n_tls13_secrets_update */
     {
@@ -394,7 +390,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_secrets_update(conn));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.client_early_secret,
                     empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Derives handshake secrets on SERVER_HELLO */
         {
@@ -417,7 +413,7 @@ int main(int argc, char **argv)
                     empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_handshake_secret,
                     empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Computes finished keys on SERVER_HELLO */
         {
@@ -444,7 +440,7 @@ int main(int argc, char **argv)
                     empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->handshake.server_finished,
                     empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Derives application secrets on SERVER_FINISHED */
         {
@@ -467,7 +463,7 @@ int main(int argc, char **argv)
                     empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.server_app_secret,
                     empty_secret, sizeof(empty_secret));
-        }
+        };
 
         /* Derives resumption secret on CLIENT_FINISHED */
         {
@@ -486,8 +482,8 @@ int main(int argc, char **argv)
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.tls13.resumption_master_secret,
                     empty_secret, sizeof(empty_secret));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

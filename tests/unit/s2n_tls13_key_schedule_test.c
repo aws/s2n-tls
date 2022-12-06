@@ -164,7 +164,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_key_schedule_update(&empty_server_conn), S2N_ERR_NULL);
             empty_server_conn.actual_protocol_version = S2N_TLS12;
             EXPECT_OK(s2n_tls13_key_schedule_update(&empty_server_conn));
-        }
+        };
 
         /* Test key schedule ordering */
         {
@@ -281,8 +281,8 @@ int main(int argc, char **argv)
             /* Restore derive and extract methods */
             EXPECT_MEMCPY_SUCCESS(derive_methods, saved_derive_methods, sizeof(saved_derive_methods));
             EXPECT_MEMCPY_SUCCESS(extract_methods, saved_extract_methods, sizeof(saved_extract_methods));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

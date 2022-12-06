@@ -79,7 +79,7 @@ int main(int argc, char **argv)
                         early_secret.data, early_secret.size);
                 EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_EARLY_SECRET);
             }
-        }
+        };
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         handshake_secret.data, handshake_secret.size);
                 EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_HANDSHAKE_SECRET);
-            }
+            };
 
             /* Client */
             {
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.extract_secret,
                         handshake_secret.data, handshake_secret.size);
                 EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_HANDSHAKE_SECRET);
-            }
+            };
         }
 #endif
 
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->handshake.client_finished,
                         finished_key.data, finished_key.size);
             }
-        }
+        };
 
         /* Derive S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET */
         {
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->handshake.server_finished,
                         finished_key.data, finished_key.size);
             }
-        }
+        };
 
         /**
          *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
                         master_secret.data, master_secret.size);
                 EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_MASTER_SECRET);
             }
-        }
+        };
 
         /* Derive CLIENT_APPLICATION_TRAFFIC_SECRET_0 */
         {
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(derived_secret.size, secret.size);
                 EXPECT_BYTEARRAY_EQUAL(derived_secret.data, secret.data, secret.size);
             }
-        }
+        };
 
         /* Derive SERVER_APPLICATION_TRAFFIC_SECRET_0 */
         {
@@ -453,7 +453,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(derived_secret.size, secret.size);
                 EXPECT_BYTEARRAY_EQUAL(derived_secret.data, secret.data, secret.size);
             }
-        }
+        };
 
         /* Derive RESUMPTION_MASTER_SECRET */
         {
@@ -497,8 +497,8 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->secrets.tls13.resumption_master_secret,
                         secret.data, secret.size);
             }
-        }
-    }
+        };
+    };
 
     /* Resumed 0-RTT Handshake */
     {
@@ -546,7 +546,7 @@ int main(int argc, char **argv)
                         early_secret.data, early_secret.size);
                 EXPECT_EQUAL(conn->secrets.tls13.extract_secret_type, S2N_EARLY_SECRET);
             }
-        }
+        };
 
         /* Derive BINDER_KEY */
         {
@@ -573,7 +573,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(derived_secret.size, binder_key.size);
                 EXPECT_BYTEARRAY_EQUAL(derived_secret.data, binder_key.data, binder_key.size);
             }
-        }
+        };
 
         /* Derive CLIENT_EARLY_TRAFFIC_SECRET */
         {
@@ -615,8 +615,8 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(derived_secret.size, secret.size);
                 EXPECT_BYTEARRAY_EQUAL(derived_secret.data, secret.data, secret.size);
             }
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

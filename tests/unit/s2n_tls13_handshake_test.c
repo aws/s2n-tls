@@ -12,10 +12,6 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include "tls/s2n_tls13_handshake.h"
 
 #include <stdint.h>
@@ -99,7 +95,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* PSKs are wiped when chosen PSK is NOT NULL */
         {
@@ -160,8 +156,8 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: Handshake self-talks using s2n_handshake_write_io and s2n_handshake_read_io */
     {
@@ -329,7 +325,7 @@ int main(int argc, char **argv)
 
         free(private_key);
         free(cert_chain);
-    }
+    };
 
     END_TEST();
     return 0;

@@ -130,7 +130,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(sending_conn));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
-    }
+    };
 
     /* Verifying connection errors with incorrect signed content */
     {
@@ -200,7 +200,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
-    }
+    };
 
     /* Verifying connection errors with even 1 bit incorrect */
     {
@@ -269,7 +269,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
-    }
+    };
 
     /* Verifying connection errors with wrong hash/signature algorithms */
     {
@@ -358,7 +358,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config));
 

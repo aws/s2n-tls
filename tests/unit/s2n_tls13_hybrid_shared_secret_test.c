@@ -260,7 +260,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
-    }
+    };
     {
         /* Various failure cases for s2n_tls13_compute_shared_secret() */
         const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_kyber512r3_vector;
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     END_TEST();
 }

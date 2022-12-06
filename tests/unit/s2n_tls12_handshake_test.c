@@ -13,9 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -113,7 +110,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ACTIVE_STATE_MACHINE(conn), state_machine);
         EXPECT_EQUAL(ACTIVE_HANDSHAKES(conn), handshakes);
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: TLS1.2 server waits for expected CCS messages */
     {
@@ -140,7 +137,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: Client CCS messages always come before Client Finished messages */
     {
@@ -165,7 +162,7 @@ int main(int argc, char **argv)
             /* Every valid handshake includes a CCS message */
             EXPECT_TRUE(ccs_encountered);
         }
-    }
+    };
 
     /* Test: TLS1.2 client waits for expected CCS messages */
     {
@@ -192,7 +189,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: TLS1.2 client handles expected server CCS messages
      *       but errors on unexpected CCS messages */
@@ -232,7 +229,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&input));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: TLS1.2 server handles expected client CCS messages
      *       but errors on unexpected CCS messages */
@@ -272,7 +269,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&input));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: TLS1.2 client can receive a hello request message at any time. */
     {
@@ -306,7 +303,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(unexpected_handler_called);
         EXPECT_SUCCESS(s2n_stuffer_free(&input));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: TLS1.2 s2n_handshake_read_io should accept only the expected message */
     {
@@ -333,7 +330,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.2 should error for an unexpected message */
         {
@@ -358,7 +355,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.2 should error for an expected message from the wrong writer */
         {
@@ -383,7 +380,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.2 should error for an expected message from the wrong record type */
         {
@@ -420,8 +417,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             state_machine[SERVER_CHANGE_CIPHER_SPEC].message_type = old_message_type;
-        }
-    }
+        };
+    };
 
     /* Test: TLS1.2 handshake type name maximum size is set correctly.
      * The maximum size is the size of a name with all flags set. */
@@ -434,7 +431,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "\nMAX_HANDSHAKE_TYPE_LEN should be at least %lu\n", (unsigned long) correct_size);
             FAIL_MSG("MAX_HANDSHAKE_TYPE_LEN wrong for TLS1.2 handshakes");
         }
-    }
+    };
 
     /* Test: TLS 1.2 handshake types are all properly printed */
     {
@@ -470,7 +467,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: TLS 1.2 message types are all properly printed */
     {
@@ -491,7 +488,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: A WITH_NPN form of every valid, negotiated handshake exists */
     {
@@ -524,7 +521,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(messages_original[j], messages_npn[j_npn]);
             }
         }
-    }
+    };
 
     END_TEST();
     return 0;

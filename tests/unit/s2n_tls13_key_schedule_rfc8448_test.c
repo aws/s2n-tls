@@ -148,7 +148,7 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
-        }
+        };
 
         /* Derive client handshake traffic keys */
         {
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
-        }
+        };
 
         /* Derive server application traffic keys */
         {
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
-        }
+        };
 
         /* Derive client application traffic keys */
         {
@@ -292,8 +292,8 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
-        }
-    }
+        };
+    };
 
     /* Resumed 0-RTT Handshake */
     {
@@ -354,8 +354,8 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

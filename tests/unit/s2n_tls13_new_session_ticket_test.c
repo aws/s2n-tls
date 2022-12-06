@@ -138,6 +138,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    }
+    };
     END_TEST();
 }

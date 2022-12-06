@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_MISSING_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     END_TEST();

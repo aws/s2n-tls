@@ -65,7 +65,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* This test ensures that if a server sent a keyshare extension without a public key, a null pointer
      * error is correctly thrown.
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* This test ensures that if a server sent a keyshare extension with a public key and curve, a client can
      * generate a shared secret from it.
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* This test ensures that the shared secrets computed by a client and server after negotiation match */
     {
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
     EXPECT_SUCCESS(s2n_config_free(config));

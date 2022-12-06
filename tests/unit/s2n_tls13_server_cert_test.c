@@ -198,7 +198,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     END_TEST();
 }

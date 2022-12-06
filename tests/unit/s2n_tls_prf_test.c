@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(memcmp(conn->secrets.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_tls_prf_extended_master_secret */
     {
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_prf_calculate_master_secret */
     {
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(memcmp(conn->secrets.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_prf_get_digest_for_ems calculates the correct digest to generate an extended master secret.
      * Here we test that the retrieved digest is the same as the digest after the Client Key Exchange
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR_WITH_ERRNO(s2n_prf_wipe(&conn_with_null_prf_space), S2N_ERR_NULL);
             EXPECT_OK(s2n_prf_free(&conn_with_null_prf_space));
-        }
+        };
 
         /* Basic lifecyle */
         {
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_prf_free(&connection));
             EXPECT_NULL(connection.prf_space);
-        }
+        };
 
         /* PRF freed by s2n_connection_free_handshake */
         {
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->prf_space);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Freed PRF restored by s2n_connection_wipe */
         {
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn->prf_space);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* PRF usable throughout connection lifecycle */
         {
@@ -307,8 +307,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(memcmp(conn->secrets.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

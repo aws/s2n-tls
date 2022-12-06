@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&empty_stuffer, 0));
         EXPECT_FAILURE(s2n_tls13_parse_record_type(&empty_stuffer, &record_type));
-    }
+    };
 
     /* Test for case where there is a record type in the stuffer but no content */
     {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_stuffer_free(&plaintext_stuffer));
-    }
+    };
 
     /* Test for record padding handling */
     {
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_tls13_parse_record_type(&stuffer, &record_type));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Defining these here as variables as they aren't used in prior tests. */
     const uint8_t padding_value = 0x00;

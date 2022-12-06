@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(app_secret_update, updated_application_secret);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
 }

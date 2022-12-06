@@ -299,7 +299,7 @@ int main()
             EXPECT_BYTEARRAY_EQUAL(client_conn->out.blob.data, complete_record.data, complete_record.size);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
 
 /* The known ClientHello uses the x25519 curve,
  * which the S2N server won't accept if the EVP APIs are not supported */
@@ -348,9 +348,9 @@ int main()
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 #endif
-    }
+    };
 
     END_TEST();
 }
