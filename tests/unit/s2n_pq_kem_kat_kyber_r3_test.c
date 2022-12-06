@@ -37,9 +37,14 @@ static const struct s2n_kem_kat_test_vector test_vectors[] = {
 int main()
 {
     BEGIN_TEST();
-    if (!s2n_pq_is_enabled()) {
+    if (!s2n_pq_is_enabled() || s2n_libcrypto_supports_kyber_512() ) {
         /* The KAT tests rely on the low-level PQ crypto functions;
-         * there is nothing to test if PQ is disabled. */
+         * there is nothing to test if PQ is disabled.
+         *
+         * In the case where we are using AWS-LC backed PQ, we rely on the
+         * KAT tests implemented in the AWS-LC repository. Implementing these
+         * tests within S2N is impossible due to the lack of AWS-LC interfaces
+         * for initializing the RNG. */
         END_TEST();
     }
     EXPECT_OK(s2n_pq_kem_kat_test(test_vectors, s2n_array_len(test_vectors)));

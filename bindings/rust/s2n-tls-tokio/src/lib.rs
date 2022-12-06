@@ -268,8 +268,16 @@ where
             context
                 .conn
                 .as_mut()
-                .poll_recv(buf.initialize_unfilled())
+                // Safe since poll_recv_uninitialized does not
+                // deinitialize any bytes.
+                .poll_recv_uninitialized(unsafe { buf.unfilled_mut() })
                 .map_ok(|size| {
+                    unsafe {
+                        // Safe since poll_recv_uninitialized guaranteed
+                        // us that the first `size` bytes have been
+                        // initialized.
+                        buf.assume_init(size);
+                    }
                     buf.advance(size);
                 })
         })
