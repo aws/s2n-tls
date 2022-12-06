@@ -108,7 +108,6 @@ int main(int argc, char **argv)
 
     /* Test: s2n_send_cert_chain sends extensions */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Test: extensions only sent for >= TLS1.3 */
         {
             struct s2n_connection *conn;
@@ -132,7 +131,7 @@ int main(int argc, char **argv)
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &extensions),
                         S2N_ERR_BAD_MESSAGE);
-            }
+            };
 
             /* TLS1.3 DOES send extensions */
             {
@@ -148,10 +147,10 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
                 EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(extensions);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test: extensions only sent on first certificate */
         {
@@ -184,12 +183,11 @@ int main(int argc, char **argv)
             } while (s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_x509_validator_validate_cert_chain handles the output of s2n_send_cert_chain */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Test: with no extensions */
         {
             struct s2n_connection *conn;
@@ -204,7 +202,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test: with extensions */
         {
@@ -232,8 +230,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->ct_response.data, data, s2n_array_len(data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_x509_validator_validate_cert_chain receives extensions */
     {
@@ -265,7 +263,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->status_response.data, NULL);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* TLS1.3 DOES process extensions */
             {
@@ -281,10 +279,10 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->status_response.data, data, s2n_array_len(data));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(setup_conn));
-        }
+        };
 
         /* Test: extensions only processed on first certificate */
         {
@@ -311,7 +309,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->status_response.data, NULL);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Extensions on first cert processed */
             {
@@ -334,9 +332,9 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->status_response.data, data, s2n_array_len(data));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-    }
+            };
+        };
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));

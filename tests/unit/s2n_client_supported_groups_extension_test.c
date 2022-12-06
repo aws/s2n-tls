@@ -42,7 +42,7 @@ int main()
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20140601"));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test send (with default KEM prefs = kem_preferences_null) */
     {
@@ -76,7 +76,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     {
         /* Define various PQ security policies to test different configurations */
@@ -144,7 +144,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+        };
         /* Test that send does not send KEM group IDs for versions != TLS 1.3 */
         {
             struct s2n_connection *conn;
@@ -177,7 +177,7 @@ int main()
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
         /* Test recv - in each case, the security policy overrides allow for a successful PQ handshake */
         {
 #define NUM_PQ_TEST_POLICY_OVERRIDES 1
@@ -243,7 +243,7 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
-        }
+        };
         /* Test recv - in each case, the security policy overrides do not allow for a successful PQ handshake,
          * so ECC should be chosen */
         {
@@ -327,7 +327,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+        };
 
         /* Test recv - server doesn't recognize PQ group IDs when TLS 1.3 is disabled */
         {
@@ -373,7 +373,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test recv - server doesn't recognize PQ group IDs when PQ is disabled */
         {
@@ -421,8 +421,8 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
-        }
-    }
+        };
+    };
 
     /* Test recv */
     {
@@ -447,7 +447,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv - no common curve */
     {
@@ -473,7 +473,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv - malformed extension */
     {
@@ -499,7 +499,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     {
         /* Test that unknown TLS_EXTENSION_SUPPORTED_GROUPS values are ignored */
@@ -529,7 +529,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_stuffer_free(&supported_groups_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;

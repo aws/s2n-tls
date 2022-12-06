@@ -175,7 +175,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Server negotiates SSLv3 */
     {
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     free(cert_chain);
     free(private_key);

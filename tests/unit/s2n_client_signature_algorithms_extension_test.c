@@ -50,7 +50,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_client_signature_algorithms_extension.should_send(conn));
 
         s2n_connection_free(conn);
-    }
+    };
 
     /* Test that recv can parse send */
     {
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
         s2n_stuffer_free(&io);
         s2n_connection_free(client_conn);
         s2n_connection_free(server_conn);
-    }
+    };
 
     /* Test that unknown TLS_EXTENSION_SIGNATURE_ALGORITHMS values are ignored and negotiation fails */
     {
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that a valid algorithm is chosen when it is offered among unknown algorithms */
     {
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

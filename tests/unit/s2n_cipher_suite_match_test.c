@@ -74,7 +74,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, valid_wire_ciphers));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Test that the client rejects a cipher that was not originally offered in ClientHello */
         {
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_client(conn, invalid_wire_ciphers), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /** Clients MUST verify
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_null_cipher_suite);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
+            };
 
             /* If chosen PSK is set, test success case for matching hash algorithm */
             {
@@ -138,13 +138,13 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
-        }
+            };
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test server cipher selection and scsv detection */
     {
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
                     EXPECT_NULL(pq_suites[i]->record_alg);
                 }
             }
-        }
+        };
 
         /* Test that clients that support PQ ciphers can negotiate them. */
         {
@@ -388,7 +388,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->secure->cipher_suite, expected_classic_wire_choice);
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
-        }
+        };
 
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client sends RSA and ECDSA ciphers, server prioritizes RSA, ECDSA + RSA cert is configured */
         {
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client sends both RSA and ECDSA ciphers, server only configures RSA ciphers,
          * ECDSA + RSA cert is configured.
@@ -470,7 +470,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client sends both RSA and ECDSA ciphers, server only configures ECDSA ciphers, ECDSA + RSA cert is
          * configured.
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client only sends RSA ciphers, server prioritizes ECDSA ciphers, ECDSA + RSA cert is
          * configured.
@@ -503,7 +503,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client only sends ECDSA ciphers, server prioritizes ECDSA ciphers, ECDSA + RSA cert is
          * configured.
@@ -518,7 +518,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client sends ECDHE-ECDSA, RSA, ECDHE-RSA ciphers. Server prioritizes ECDSA but also supports RSA.
          * No mutually supported elliptic curves between client and server. ECDSA + RSA cert is configured.
@@ -538,7 +538,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -559,7 +559,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Override auto-chosen defaults with only ECDSA cert default. RSA still loaded, but not default. */
         EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(server_config, &ecdsa_cert, 1));
@@ -576,7 +576,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Test override back to both RSA and ECDSA defaults. */
         struct s2n_cert_chain_and_key *certs_list[] = { rsa_cert, ecdsa_cert };
@@ -593,7 +593,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Test that defaults are not overriden after failures to set new default certificates */
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, NULL, 0), S2N_ERR_NULL);
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         struct s2n_cipher_suite *tls12_cipher_suite = cipher_preferences_20170210.suites[cipher_preferences_20170210.count - 1];
         uint8_t wire_ciphers_with_tls13[] = {
@@ -637,7 +637,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
             EXPECT_EQUAL(conn->secure->cipher_suite, tls12_cipher_suite);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Client sends TLS1.3 cipher suites, server selects correct TLS1.3 ciphersuite */
         if (s2n_is_tls13_fully_supported()) {
@@ -685,7 +685,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
             }
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* Test cipher suite with a required version higher than what connection supports should not be selected */
         {
@@ -702,13 +702,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, count));
             EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
+        };
 
         /* We should skip cipher suites with a minimum protocol version unsupported by the connection.
          * If no valid cipher suite is found, we should fall back to a cipher suite with a higher protocol version,
          * but we should NEVER use a TLS1.3 suite on a pre-TLS1.3 connection or vice versa. */
         {
-            /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
             /* Skip but fall back to cipher suite with protocol version higher than connection */
             {
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
@@ -731,7 +730,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
+            };
 
             /* Skip and do NOT fall back to a TLS1.3 cipher suite if using TLS1.2 */
             {
@@ -780,7 +779,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
-        }
+        };
 
         /* If a PSK is being used, then the cipher suite must match the PSK's HMAC algorithm.
          *
@@ -790,7 +789,6 @@ int main(int argc, char **argv)
          *# (if any) and cipher suite.
          **/
         {
-            /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
             /* If chosen PSK is set, a cipher suite with matching HMAC algorithm must be selected */
             {
                 s2n_connection_set_cipher_preferences(conn, "test_all");
@@ -808,7 +806,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->secure->cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
+            };
 
             /* If chosen PSK is set but there is no matching cipher, the server MUST fail to set a cipher */
             {
@@ -824,8 +822,8 @@ int main(int argc, char **argv)
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            }
-        }
+            };
+        };
 
         /* Client sends cipher which is not in the configured suite */
         {
@@ -841,7 +839,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert));
@@ -851,7 +849,7 @@ int main(int argc, char **argv)
         free(rsa_cert_chain_pem);
         free(rsa_private_key_pem);
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test chacha20 boosting behaviour */
     {
@@ -930,7 +928,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = false;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_gcm_sha384);
-            }
+            };
 
             /* Server is able to negotiate its most preferred chacha20 ciphersuite */
             {
@@ -974,7 +972,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = false;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_cbc_sha384);
-            }
+            };
 
             /* Server's most preferred chacha20 is not offered by the client */
             {
@@ -1018,7 +1016,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = false;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256);
-            }
+            };
 
             /* Server does not negotiate the client's most preferred chacha20 ciphersuite */
             {
@@ -1064,7 +1062,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = false;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_cbc_sha384);
-            }
+            };
 
             /* Chacha20 boosting is disabled when client did not indicate chacha20 preference */
             {
@@ -1102,7 +1100,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = true;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256);
-            }
+            };
 
             /* Server negotiates its most preferred chacha20 ciphersuite for tls 1.3 */
             {
@@ -1166,7 +1164,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = true;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, test_wire_2, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
-            }
+            };
 
             /* Server can negotiate chacha20 ciphersuite, even when boosting is disabled */
             {
@@ -1197,7 +1195,7 @@ int main(int argc, char **argv)
                 /* Verify server can still negotiate chacha20 if it's the only option even when chacha20 boosting is off */
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
-            }
+            };
 
             /*
              * sslv2 server correctly negotiates ciphersuite when chacha20 boosting is enabled.
@@ -1252,7 +1250,7 @@ int main(int argc, char **argv)
                  */
                 EXPECT_SUCCESS(s2n_set_cipher_as_sslv2_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
-            }
+            };
 
             /* Server is able to negotiate a ciphersuite even without chacha20 in its cipher pref */
             {
@@ -1292,7 +1290,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-            }
+            };
 
             /* Test chacha20 boosting when the most preferred ciphersuite fails version validation */
             {
@@ -1340,7 +1338,7 @@ int main(int argc, char **argv)
                 cipher_preferences.allow_chacha20_boosting = false;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256);
-            }
+            };
         }
 
         if (!s2n_chacha20_poly1305.is_available()) {
@@ -1385,7 +1383,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
-    }
+    };
 
     END_TEST();
 }

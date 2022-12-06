@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
         /* Multiple calls to free succeed */
         EXPECT_SUCCESS(s2n_crl_free(&crl));
         EXPECT_NULL(crl);
-    }
+    };
 
     /* s2n_crl_new allocates and frees a s2n_crl with an internal X509_CRL set */
     {
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
         /* Multiple calls to free succeed */
         EXPECT_SUCCESS(s2n_crl_free(&crl));
         EXPECT_NULL(crl);
-    }
+    };
 
     /* Ensure s2n_crl_load_pem produces a valid X509_CRL internally */
     {
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
         /* Make sure an OpenSSL operation succeeds on the internal X509_CRL */
         X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
         POSIX_ENSURE_REF(crl_name);
-    }
+    };
 
     /* s2n_crl_load_pem fails if provided a bad pem */
     {
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(invalid_crl);
         EXPECT_FAILURE_WITH_ERRNO(s2n_crl_load_pem(invalid_crl, crl_pem, crl_pem_len),
                 S2N_ERR_INVALID_PEM);
-    }
+    };
 
     /* CRL issuer hash is retrieved successfully */
     {
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
         uint64_t hash = 0;
         EXPECT_SUCCESS(s2n_crl_get_issuer_hash(crl, &hash));
         EXPECT_TRUE(hash != 0);
-    }
+    };
 
     DEFER_CLEANUP(struct s2n_crl *root_crl = load_test_crl(S2N_CRL_ROOT_CRL), s2n_crl_free);
     EXPECT_NOT_NULL(root_crl);
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < CRL_TEST_CHAIN_LEN; i++) {
             EXPECT_NOT_NULL(received_lookup_data.certs[i]);
         }
-    }
+    };
 
     /* CRL validation errors when a leaf certificate is revoked */
     {
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
                                         chain_len, &pkey_type, &public_key_out),
                 S2N_ERR_CERT_REVOKED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* CRL validation errors when an intermediate certificate is revoked */
     for (int i = 0; i < 2; i++) {
@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
                                         chain_len, &pkey_type, &public_key_out),
                 S2N_ERR_CRL_LOOKUP_FAILED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* CRL validation succeeds for unrevoked certificate chain when extraneous certificate is rejected */
     {
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                 &public_key_out));
         EXPECT_TRUE(data.callback_invoked_count == 3);
-    }
+    };
 
     /* s2n_x509_validator_validate_cert_chain blocks until all CRL callbacks respond */
     {
@@ -456,7 +456,7 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_crl_lookup_set(lookup, intermediate_crl));
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                 &public_key_out));
-    }
+    };
 
     /* CRL validation fails when a callback returns unsuccessfully */
     {
@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data,
                                         chain_len, &pkey_type, &public_key_out),
                 S2N_ERR_CANCELLED);
-    }
+    };
 
     /* CRL validation succeeds for a CRL with an invalid thisUpdate date */
     {
@@ -530,7 +530,7 @@ int main(int argc, char *argv[])
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                 &public_key_out));
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* CRL validation fails for a revoked leaf certificate, with a CRL that has an invalid thisUpdate date */
     {
@@ -570,7 +570,7 @@ int main(int argc, char *argv[])
                                         &pkey_type, &public_key_out),
                 S2N_ERR_CERT_REVOKED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* CRL validation succeeds for a CRL with an invalid nextUpdate date */
     {
@@ -609,7 +609,7 @@ int main(int argc, char *argv[])
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                 &public_key_out));
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* CRL validation fails for a revoked leaf certificate, with a CRL that has an invalid nextUpdate date */
     {
@@ -649,7 +649,7 @@ int main(int argc, char *argv[])
                                         &pkey_type, &public_key_out),
                 S2N_ERR_CERT_REVOKED);
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* Self-talk: server certificate is not revoked */
     {
@@ -685,7 +685,7 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* Self-talk: server certificate is revoked */
     {
@@ -724,7 +724,7 @@ int main(int argc, char *argv[])
                 S2N_ERR_CERT_REVOKED);
 
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* Self-talk: client certificate is not revoked */
     {
@@ -775,7 +775,7 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* Self-talk: client certificate is revoked */
     {
@@ -827,7 +827,7 @@ int main(int argc, char *argv[])
                 S2N_ERR_CERT_REVOKED);
 
         EXPECT_TRUE(data.callback_invoked_count == CRL_TEST_CHAIN_LEN);
-    }
+    };
 
     /* Calling s2n_crl_lookup return functions correctly set context fields */
     {
@@ -842,7 +842,7 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_crl_lookup_ignore(&lookup));
         EXPECT_TRUE(lookup.status == FINISHED);
         EXPECT_NULL(lookup.crl);
-    }
+    };
 
     /* Certificate issuer hash is retrieved successfully */
     {
@@ -853,7 +853,7 @@ int main(int argc, char *argv[])
         uint64_t hash = 0;
         EXPECT_SUCCESS(s2n_crl_lookup_get_cert_issuer_hash(&lookup, &hash));
         EXPECT_TRUE(hash != 0);
-    }
+    };
 
     /* Retrieved hash values for certificates match CRL hashes */
     {
@@ -891,7 +891,7 @@ int main(int argc, char *argv[])
 
         /* If the certificate and CRL were issued by different CAs, their hashes should not match */
         EXPECT_TRUE(leaf_cert_hash != root_crl_hash);
-    }
+    };
 
     /* s2n_crl_validate_active tests */
     {
@@ -904,7 +904,7 @@ int main(int argc, char *argv[])
         /* Fails for CRL that is not yet valid */
         EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_active(intermediate_invalid_this_update_crl),
                 S2N_ERR_CRL_NOT_YET_VALID);
-    }
+    };
 
     /* s2n_crl_validate_not_expired tests */
     {
@@ -917,7 +917,7 @@ int main(int argc, char *argv[])
         /* Fails for expired CRL */
         EXPECT_FAILURE_WITH_ERRNO(s2n_crl_validate_not_expired(intermediate_invalid_next_update_crl),
                 S2N_ERR_CRL_EXPIRED);
-    }
+    };
 
     END_TEST();
 }

@@ -211,7 +211,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client uses the server name extension. */
     {
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends multiple server names. */
     {
@@ -396,7 +396,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Client sends duplicate server name extension */
     {
@@ -531,7 +531,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Client sends a valid initial renegotiation_info */
     {
@@ -634,7 +634,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Client sends a non-empty initial renegotiation_info */
     {
@@ -730,7 +730,7 @@ int main(int argc, char **argv)
 
         /* Clear pipe since negotiation failed mid-handshake */
         EXPECT_SUCCESS(read(io_pair.client, buf, sizeof(buf)));
-    }
+    };
 
     /* Client doesn't use the OCSP extension. */
     {
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Cannot enable OCSP stapling if there's no support for it */
     if (!s2n_x509_ocsp_stapling_supported()) {
@@ -1070,7 +1070,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Client requests SCT and server does have it. */
     {
@@ -1122,7 +1122,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client requests SCT and server does *not* have it. */
     {
@@ -1177,7 +1177,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client requests 512, 1024, 2048, and 4096 maximum fragment lengths */
     for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code <= S2N_TLS_MAX_FRAG_LEN_4096; mfl_code++) {
@@ -1280,7 +1280,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Server ignores client's request of S2N_TLS_MAX_FRAG_LEN_2048 maximum fragment length when accept_mfl is not set*/
     {
@@ -1329,7 +1329,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
     {
@@ -1384,7 +1384,7 @@ int main(int argc, char **argv)
         size_t client_hello_len = sizeof(client_hello_message);
         EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                 client_hello_len, "PQ-TLS-1-0-2021-05-24", expected_kem_id, &io_pair));
-    }
+    };
 
     {
         /* Client sends PQ KEM extension with BIKE extensions, but requests SIKE ciphersuite;
@@ -1437,7 +1437,7 @@ int main(int argc, char **argv)
         size_t client_hello_len = sizeof(client_hello_message);
         EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                 client_hello_len, "KMS-PQ-TLS-1-0-2019-06", expected_kem_id, &io_pair));
-    }
+    };
 
     {
         /* Client sends PQ KEM extensions for round 2 only; the server is using the round 1
@@ -1489,7 +1489,7 @@ int main(int argc, char **argv)
         size_t client_hello_len = sizeof(client_hello_message);
         EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                 client_hello_len, "KMS-PQ-TLS-1-0-2019-06", expected_kem_id, &io_pair));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     free(cert_chain);

@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-    }
+    };
 
     /* Test that a tls12 client legacy version and tls12 server version
     will successfully set a tls12 connection, even when tls13 is enabled. */
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Test that a tls11 client legacy version and tls12 server version
     will successfully set a tls11 connection. */
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
     /* Test that an erroneous client legacy version and tls13 server version
     will still successfully set a tls13 connection, when real client version is tls13. */
     {
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Test that a tls12 client legacy version and tls13 server version
     will still successfully set a tls13 connection, if possible. */
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
     /* Test that an erroneous(tls13) client legacy version and tls13 server version
     will still successfully set a tls12 connection, if tls12 is the true client version. */
     {
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* s2n receiving a client hello will error when parsing an empty cipher suite */
     {
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
-    }
+    };
 
     /* s2n receiving a sslv2 client hello will error when parsing an empty cipher suite */
     {
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
 
         s2n_connection_free(server_conn);
-    }
+    };
 
     /* Test that S2N will accept a ClientHello with legacy_session_id set when running with QUIC.
      * Since this requirement is a SHOULD, we're accepting it for non-compliant endpoints.
@@ -410,7 +410,7 @@ int main(int argc, char **argv)
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);
-        }
+        };
 
         /* Also, succeeds with a session id */
         {
@@ -430,7 +430,7 @@ int main(int argc, char **argv)
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);
-        }
+        };
 
         s2n_config_free(quic_config);
     }
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test that curve selection will be NIST P-256 when tls12 client does not sending curve extension. */
     {
@@ -501,7 +501,7 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     s2n_config_free(tls12_config);
     s2n_config_free(tls13_config);

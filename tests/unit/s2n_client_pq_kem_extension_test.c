@@ -52,7 +52,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test send */
         {
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test receive - malformed length */
         {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test receive */
         {
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
     }
 
     END_TEST();

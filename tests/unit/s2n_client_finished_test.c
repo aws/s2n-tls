@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_finished_recv(server_conn));
 
         EXPECT_EQUAL(client_conn->client, client_conn->secure);
-    }
+    };
 
     /* Server rejects incorrect ClientFinished */
     {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     /* Error if local verify_data has wrong length */
     {
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_SAFETY);
-    }
+    };
 
     END_TEST();
 }

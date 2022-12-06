@@ -119,7 +119,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&output_blob, test_mem, 1));
             EXPECT_FAILURE_WITH_ERRNO(s2n_hex_string_to_bytes(long_input_str, &output_blob),
                     S2N_ERR_INVALID_HEX);
-        }
+        };
 
         /* Test with invalid characters */
         {
@@ -131,13 +131,14 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_HEX);
             EXPECT_FAILURE_WITH_ERRNO(s2n_hex_string_to_bytes((const uint8_t *) "1#", &output_blob),
                     S2N_ERR_INVALID_HEX);
-        }
+        };
 
         struct {
             const char *input;
             size_t expected_output_size;
             uint8_t expected_output[sizeof(test_mem)];
-        } test_cases[] = {
+        };
+        test_cases[] = {
             { .input = "abcd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
             { .input = "ab cd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
             { .input = " abcd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_hex_string_to_bytes((const uint8_t *) test_cases[i].input, &actual_output));
             EXPECT_BYTEARRAY_EQUAL(actual_output.data, test_cases[i].expected_output, test_cases[i].expected_output_size);
         }
-    }
+    };
 
     END_TEST();
 }

@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Client doesn't offer <TLS1.3 in the version list if QUIC enabled */
     if (s2n_is_tls13_fully_supported()) {
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server selects highest supported version shared by client */
     {
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server does not process the extension if using TLS1.2. */
     {
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server terminates connection if there are no supported version in the list */
     {
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Check grease values for the supported versions */
     {
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server selects highest supported protocol among list of invalid protocols (that purposefully test our conversion methods) */
     {
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server alerts if no shared supported version found */
     {
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server alerts if supported version list is empty */
     {
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server alerts if version list size exceeds the extension size */
     {
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server alerts if version list size is less than extension size */
     {
@@ -357,7 +357,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Server alerts if version list size is odd */
     {
@@ -377,7 +377,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Since the supported_version extension replaces the version field
      * in the client hello, for backwards compatibility the version field
@@ -395,7 +395,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(version[1], 0x03);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#appendix-D.2

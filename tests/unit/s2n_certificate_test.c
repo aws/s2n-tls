@@ -128,7 +128,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(chain->private_key->pkey);
         EXPECT_NULL(chain->private_key->sign);
         EXPECT_NULL(chain->context);
-    }
+    };
 
     /* Test s2n_cert_chain_and_key_load_public_pem_bytes */
     {
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_only_chain));
-    }
+    };
 
     /* Test s2n_cert_chain_get_length */
     {
@@ -167,12 +167,12 @@ int main(int argc, char **argv)
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_get_length(NULL, &length), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_get_length(chain_and_key, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Test success case */
         EXPECT_SUCCESS(s2n_cert_chain_get_length(chain_and_key, &length));
         EXPECT_EQUAL(length, S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH);
-    }
+    };
 
     /* Test s2n_cert_chain_get_cert */
     {
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_get_cert(NULL, &out_cert, cert_idx), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_get_cert(chain_and_key, NULL, cert_idx), S2N_ERR_NULL);
-        }
+        };
 
         struct s2n_cert *cur_cert = chain_and_key->cert_chain->head;
 
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(out_cert, cur_cert);
             cur_cert = cur_cert->next;
         }
-    }
+    };
 
     /* Test s2n_cert_get_der */
     {
@@ -211,12 +211,12 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_der(NULL, &out_cert_der, &cert_len), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_der(cert, NULL, &cert_len), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_der(cert, &out_cert_der, NULL), S2N_ERR_NULL);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_cert_get_der(cert, &out_cert_der, &cert_len));
         EXPECT_EQUAL(cert_len, cert->raw.size);
         EXPECT_BYTEARRAY_EQUAL(out_cert_der, cert->raw.data, cert_len);
-    }
+    };
 
     /* Test s2n_connection_get_peer_cert_chain */
     {
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_peer_chain));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        }
+        };
 
         /* Test s2n_connection_get_peer_cert_chain success on the server side */
         {
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_peer_chain));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        }
+        };
 
         /* Test s2n_connection_get_peer_cert_chain success on the client side */
         {
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_peer_chain));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        }
+        };
 
         /* Test s2n_connection_get_peer_cert_chain with OCSP */
         if (s2n_x509_ocsp_stapling_supported()) {
@@ -391,7 +391,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(s2n_chain_and_key));
-    }
+    };
 
     /* Test X509 Extension helper functions */
     {
@@ -471,7 +471,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(NULL, oid, &ext_value_len), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, NULL, &ext_value_len), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, oid, NULL), S2N_ERR_NULL);
-            }
+            };
 
             /* Test success cases */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
@@ -485,8 +485,8 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, (const uint8_t *) test_cases[invalid_test_case].oid,
                                                   &test_cases[i].ext_value_len),
                         S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
-            }
-        }
+            };
+        };
 
         /* Test s2n_cert_get_x509_extension_value */
         {
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
                         S2N_ERR_NULL);
 
                 EXPECT_SUCCESS(s2n_free(&ext_value));
-            }
+            };
 
             /* Test success cases for s2n_cert_get_x509_extension_value */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
@@ -532,7 +532,7 @@ int main(int argc, char **argv)
                                                   ext_value.data, &ext_value.size, &critical),
                         S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 EXPECT_SUCCESS(s2n_free(&ext_value));
-            }
+            };
 
             /* Test failure case for invalid X509 extension OID */
             {
@@ -542,8 +542,8 @@ int main(int argc, char **argv)
                                                   test_cases[invalid_test_case].returned_der.data,
                                                   &test_cases[invalid_test_case].returned_der.size, &critical),
                         S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
-            }
-        }
+            };
+        };
 
         /* Test s2n_cert_get_utf8_string_from_extension_data_length */
         {
@@ -556,7 +556,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(NULL, der_ext_value_len, &utf8_len), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(der_ext_value, 0, &utf8_len), S2N_ERR_SAFETY);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(der_ext_value, der_ext_value_len, 0), S2N_ERR_NULL);
-            }
+            };
 
             /* Test success and failure cases */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
@@ -584,8 +584,8 @@ int main(int argc, char **argv)
                                                   utf8_str.data, &utf8_str.size),
                         S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
-            }
-        }
+            };
+        };
 
         /* Test s2n_cert_get_utf8_string_from_extension_data */
         {
@@ -609,7 +609,7 @@ int main(int argc, char **argv)
                         S2N_ERR_NULL);
 
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
-            }
+            };
 
             /* Test success and failure cases for s2n_cert_get_utf8_string_from_extension_data */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
@@ -634,15 +634,15 @@ int main(int argc, char **argv)
                                                   utf8_str.data, &utf8_str.size),
                         S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
-            }
-        }
+            };
+        };
 
         /* Cleanup */
         for (i = 0; i < s2n_array_len(test_cases); i++) {
             EXPECT_SUCCESS(s2n_free(&test_cases[i].returned_der));
         }
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
-    }
+    };
 
     /* Test s2n_connection_get_client_cert_chain */
     {
@@ -670,7 +670,7 @@ int main(int argc, char **argv)
                     S2N_ERR_NULL);
             EXPECT_NULL(output);
             EXPECT_EQUAL(output_len, 0);
-        }
+        };
 
         /* Perform TLS1.2 handshake and verify cert chain is available */
         {
@@ -687,7 +687,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tls12_server_conn->actual_protocol_version, S2N_TLS12);
             EXPECT_NOT_NULL(tls12_server_conn->handshake_params.client_cert_chain.data);
             EXPECT_NOT_EQUAL(tls12_server_conn->handshake_params.client_cert_chain.size, 0);
-        }
+        };
 
         /* Perform TLS1.3 handshake and verify cert chain is NOT available.
          *
@@ -720,7 +720,7 @@ int main(int argc, char **argv)
                     S2N_ERR_NULL);
             EXPECT_NULL(output);
             EXPECT_EQUAL(output_len, 0);
-        }
+        };
 
         /* Should produce same result for TLS1.2 and TLS1.3
          * (Both connections used the same certificate chain for the handshake)
@@ -737,7 +737,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tls12_output_len, tls13_output_len);
             EXPECT_BYTEARRAY_EQUAL(tls12_output, tls13_output, tls13_output_len);
         }
-    }
+    };
 
     /* Test s2n_cert_chain_and_key_set_ocsp_data */
     {
@@ -769,7 +769,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain, ocsp_data, sizeof(ocsp_data)));
         EXPECT_EQUAL(chain->ocsp_status.size, sizeof(ocsp_data));
         EXPECT_BYTEARRAY_EQUAL(chain->ocsp_status.data, ocsp_data, sizeof(ocsp_data));
-    }
+    };
 
     /* Test s2n_cert_chain_and_key_set_sct_list */
     {
@@ -802,7 +802,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain, sct_list, sizeof(sct_list)));
         EXPECT_EQUAL(chain->sct_list.size, sizeof(sct_list));
         EXPECT_BYTEARRAY_EQUAL(chain->sct_list.data, sct_list, sizeof(sct_list));
-    }
+    };
 
     END_TEST();
 }

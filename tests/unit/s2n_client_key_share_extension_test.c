@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_client_key_share_extension.send */
     {
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.send writes a well-formed list of key shares */
         {
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test s2n_client_key_share_extension.send for a supported curve present in s2n_all_supported_curves_list,
          * but not present in the ecc_preferences list selected */
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
-    }
+    };
 
     /* Test s2n_client_key_share_extension.send with HelloRetryRequest */
     {
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* For HelloRetryRequests, test that s2n_client_key_share_extension.send fails,
          * if the server negotiated_curve is not set and is NULL. */
@@ -316,7 +316,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* For HelloRetryRequests, verify that we cannot resend an existing share. */
         {
@@ -350,8 +350,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&first_extension));
             EXPECT_SUCCESS(s2n_stuffer_free(&second_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_client_key_share_extension.recv */
     {
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv can read and parse
          * the result of s2n_client_key_share_extension.send */
@@ -415,7 +415,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv can handle an empty keyshare list */
         {
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv can handle a keyshare for
          * a supported curve that isn't its first choice curve. */
@@ -479,7 +479,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_ecc_evp_params));
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv can handle multiple keyshares */
         {
@@ -524,7 +524,7 @@ int main(int argc, char **argv)
             }
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv selects the highest priority share,
          * even if it appears last in the client's list of shares. */
@@ -571,7 +571,7 @@ int main(int argc, char **argv)
             }
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores shares for curves not offered
          * by the client / "mutually supported", and triggers a retry instead.
@@ -614,7 +614,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_ecc_evp_params));
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores shares for curves not offered
          * by the client / "mutually supported", and chooses a lower priority curve instead.
@@ -664,7 +664,7 @@ int main(int argc, char **argv)
             }
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv errors on client shares size larger
          * than available data */
@@ -687,7 +687,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv errors on key share size longer than data */
         {
@@ -712,7 +712,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv accepts a subset of supported curves */
         {
@@ -745,7 +745,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv handles empty client share list */
         {
@@ -771,7 +771,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores unsupported curves */
         {
@@ -810,7 +810,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores curves with incorrect key size */
         {
@@ -843,7 +843,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv uses first instance of duplicate curves */
         {
@@ -887,7 +887,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&first_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&second_params));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed */
         {
@@ -931,7 +931,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed,
          * and continues to parse valid key shares afterwards. */
@@ -988,7 +988,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores ECDHE points that can't be parsed,
          * and doesn't ignore / forget / overwrite valid key shares already parsed. */
@@ -1037,7 +1037,7 @@ int main(int argc, char **argv)
             }
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test that s2n_client_key_share_extension.recv ignores a supported curve present in
          * s2n_all_supported_curves_list but not in s2n_ecc_preferences list selected
@@ -1085,8 +1085,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
             }
-        }
-    }
+        };
+    };
 
     END_TEST();
     return 0;

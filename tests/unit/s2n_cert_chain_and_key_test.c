@@ -118,7 +118,7 @@ int main(int argc, char **argv)
         }
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Create config with deprecated s2n_config_add_cert_chain_and_key API */
     {
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Do not allow configs to call both
      * s2n_config_add_cert_chain_and_key and s2n_config_add_cert_chain_and_key_to_store */
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, chain),
                     S2N_ERR_CERT_OWNERSHIP);
             EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
-        }
+        };
 
         /* Config first uses s2n_config_add_cert_chain_and_key_to_store: application owns chain */
         {
@@ -185,8 +185,8 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert_chain, private_key),
                     S2N_ERR_CERT_OWNERSHIP);
             EXPECT_EQUAL(config->cert_ownership, S2N_APP_OWNED);
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_config_free(client_config));

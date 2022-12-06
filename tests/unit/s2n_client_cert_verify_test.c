@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    }
+    };
 
     /*  Test: async private key operations. */
     {
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    }
+    };
 
     /* Test: Apply with invalid signature */
     {
@@ -316,7 +316,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    }
+    };
 
     END_TEST();
 }

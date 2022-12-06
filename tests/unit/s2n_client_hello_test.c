@@ -60,7 +60,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_hello_get_extension_by_id */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Test with invalid parsed extensions */
         {
             struct s2n_connection *conn;
@@ -89,8 +88,8 @@ int main(int argc, char **argv)
                     0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_client_hello_has_extension */
     {
@@ -127,7 +126,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(exists);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_client_hello_get_raw_extension */
     {
@@ -163,7 +162,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_client_hello_get_raw_extension(0xFFFF, &raw_extension, &extension));
         EXPECT_EQUAL(extension.size, 0);
         EXPECT_NULL(extension.data);
-    }
+    };
 
     /* Test setting cert chain on recv */
     {
@@ -184,7 +183,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_INVALID_SIGNATURE_SCHEME);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
 
@@ -203,11 +202,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn->handshake_params.our_chain_and_key);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
         s2n_disable_tls13_in_test();
-    }
+    };
 
     /* Test generating session id */
     {
@@ -259,7 +258,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(session_id_length, S2N_TLS_SESSION_ID_MAX_LEN);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Do NOT generate a session id if middlebox compatibility mode is disabled.
              * For now, middlebox compatibility mode is only disabled by QUIC.
@@ -283,7 +282,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
@@ -304,7 +303,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(session_id_length, 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Generate a session id if using tickets */
             {
@@ -326,9 +325,9 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
-            }
-        }
-    }
+            };
+        };
+    };
 
     /* Test cipher suites list */
     {
@@ -357,7 +356,7 @@ int main(int argc, char **argv)
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* TLS 1.3 cipher suites NOT written by client even if included in security policy */
             {
@@ -383,8 +382,8 @@ int main(int argc, char **argv)
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
+            };
+        };
 
         /* When TLS 1.3 supported */
         if (s2n_is_tls13_fully_supported()) {
@@ -423,7 +422,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_EQUAL(tls13_ciphers_found, 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -444,7 +443,8 @@ int main(int argc, char **argv)
             struct {
                 const char *security_policy;
                 bool expect_renegotiation_info;
-            } test_cases[] = {
+            };
+            test_cases[] = {
                 { .security_policy = "test_all_tls13", .expect_renegotiation_info = false },
                 { .security_policy = "default_tls13", .expect_renegotiation_info = true },
                 { .security_policy = "default", .expect_renegotiation_info = true },
@@ -515,8 +515,8 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* Test that negotiating TLS1.2 with QUIC-enabled server fails */
     if (s2n_is_tls13_fully_supported()) {
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -595,7 +595,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         {
             /* TLS 1.2 client cipher preference uses TLS12 version */
@@ -614,7 +614,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->client_hello_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         {
             /* TLS 1.3 client cipher preference uses TLS13 version */
@@ -657,11 +657,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_config_free(server_config));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* SSlv2 client hello */
     {
@@ -779,7 +779,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Minimal TLS 1.2 client hello. */
     {
@@ -1138,7 +1138,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         free(expected_client_hello);
         free(sent_client_hello);
-    }
+    };
 
     /* Client hello api with NULL inputs */
     {
@@ -1160,7 +1160,7 @@ int main(int argc, char **argv)
         bool exists = false;
         EXPECT_FAILURE(s2n_client_hello_has_extension(NULL, S2N_EXTENSION_SERVER_NAME, &exists));
         EXPECT_FALSE(exists);
-    }
+    };
 
     /* test_weird_client_hello_version() */
     {
@@ -1270,7 +1270,7 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_config_free(server_config);
         free(sent_client_hello);
-    }
+    };
 
     {
         struct s2n_cipher_suite *client_cipher_suites[] = {
@@ -1360,7 +1360,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* s2n_client_hello_recv should fail when reading an SSLv2 client hello during a hello retry handshake */
     {
@@ -1379,7 +1379,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
-    }
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));

@@ -32,7 +32,6 @@ int main()
 
     /* Tests with default KEM preferences (kem_preferences_null) */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* If the lists of mutually supported groups are empty, chosen group should be set to null */
         {
             struct s2n_connection *server_conn = NULL;
@@ -67,7 +66,7 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* If the lists of mutually supported groups have one ECC match,
          * the chosen group should be set to the ECC match. */
@@ -105,7 +104,7 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* If the lists of mutually supported groups have several matches, the chosen group should be set to
          * the highest supported ECC. */
@@ -137,8 +136,8 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     /* Test for PQ */
     {
@@ -200,7 +199,7 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* If server has multiple mutually supported KEM groups and ECC curves, the highest preferred KEM group
          * should be chosen. */
@@ -238,7 +237,7 @@ int main()
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, kem_pref->tls13_kem_groups[0]->kem);
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 /* Need at least two KEM's to test fallback */
 #if (S2N_SUPPORTED_KEM_GROUPS_COUNT > 1)
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM
@@ -315,8 +314,8 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
     return 0;

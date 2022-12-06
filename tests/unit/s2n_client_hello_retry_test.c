@@ -60,7 +60,6 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_hello_retry_recv */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* s2n_server_hello_retry_recv must fail when a keyshare for a matching curve was already present */
         {
             struct s2n_config *config;
@@ -86,7 +85,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* s2n_server_hello_retry_recv must fail for a connection with actual protocol version less than TLS13 */
         {
@@ -103,7 +102,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test ECC success case for s2n_server_hello_retry_recv */
         {
@@ -166,7 +165,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-        }
+        };
 
         {
             const struct s2n_kem_group *test_kem_groups[] = {
@@ -242,7 +241,7 @@ int main(int argc, char **argv)
 
                     EXPECT_SUCCESS(s2n_free(&client_params->kem_params.public_key));
                     EXPECT_SUCCESS(s2n_connection_free(conn));
-                }
+                };
                 /* Test failure if exactly one of {named_curve, kem_group} isn't non-null */
                 {
                     struct s2n_connection *conn;
@@ -261,7 +260,7 @@ int main(int argc, char **argv)
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
                     EXPECT_SUCCESS(s2n_connection_free(conn));
-                }
+                };
                 /* Test PQ KEM success case for s2n_server_hello_retry_recv. */
                 /* Need at least two KEM's to test fallback */
                 if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
@@ -310,8 +309,8 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
                 }
             }
-        }
-    }
+        };
+    };
 
     /* Verify that the hash transcript recreation function is called correctly,
      * within the s2n_server_hello_retry_send and s2n_server_hello_retry_recv functions.
@@ -406,7 +405,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-    }
+    };
 
     /**
      * Self-Talk test: the client initiates a handshake with an unknown keyshare.
@@ -469,7 +468,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /**
      * Self-Talk test: the client initiates a handshake with an X25519 share.
@@ -622,7 +621,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-    }
+    };
 
     /**
      * Ensure that s2n_random_value_is_hello_retry returns true for hello
@@ -647,7 +646,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_random_value_is_hello_retry(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
@@ -684,7 +683,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /*
      * Self-Talk
@@ -733,7 +732,7 @@ int main(int argc, char **argv)
 
             /* Finish handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        }
+        };
 
         /* Test: The server rejects a second ClientHello with changed message fields */
         {
@@ -766,7 +765,7 @@ int main(int argc, char **argv)
             /* Expect failure because second client hello doesn't match */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Test: The server rejects a second ClientHello with changed client random */
         {
@@ -799,7 +798,7 @@ int main(int argc, char **argv)
             /* Expect failure because second client hello doesn't match */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Test: The server rejects a second ClientHello with a changed extension */
         {
@@ -833,7 +832,7 @@ int main(int argc, char **argv)
             /* Expect failure because second client hello doesn't match */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Test: The server rejects a second ClientHello with a removed extension */
         {
@@ -868,7 +867,7 @@ int main(int argc, char **argv)
             /* Expect failure because second client hello doesn't match */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Test: The server rejects a second ClientHello with an added extension */
         {
@@ -902,7 +901,7 @@ int main(int argc, char **argv)
             /* Expect failure because second client hello doesn't match */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /*
          * Test: If the initial ClientHello includes all extensions, so does the second ClientHello.
@@ -1070,7 +1069,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(strcmp(s2n_get_server_name(server_conn), server_name), 0);
             EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
             EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
-        }
+        };
     }
 
     /**
@@ -1098,7 +1097,7 @@ int main(int argc, char **argv)
 
             EXPECT_TRUE(extension_type->is_response);
         }
-    }
+    };
 
     /**
      * Ensure each of the following are checked: legacy_version,
@@ -1167,7 +1166,7 @@ int main(int argc, char **argv)
             /* Client receives HelloRetryRequest */
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
                     S2N_ERR_INVALID_HELLO_RETRY);
-        }
+        };
 
         /* The client MUST check the legacy_session_id_echo */
         {
@@ -1211,7 +1210,7 @@ int main(int argc, char **argv)
             /* Client receives HelloRetryRequest */
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /**
          * The client MUST check the cipher_suite
@@ -1257,7 +1256,7 @@ int main(int argc, char **argv)
             /* Finish handshake */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
-        }
+        };
 
         /* The client MUST check the legacy_compression_method */
         {
@@ -1307,8 +1306,8 @@ int main(int argc, char **argv)
             /* Client receives HelloRetryRequest */
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
                     S2N_ERR_BAD_MESSAGE);
-        }
-    }
+        };
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
@@ -1372,7 +1371,7 @@ int main(int argc, char **argv)
         /* Client receives HelloRetryRequest */
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
                 S2N_ERR_MISSING_EXTENSION);
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
@@ -1440,7 +1439,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                 S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     /**
       * Ensure that the client aborts the handshake if selected_version
@@ -1497,7 +1496,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                 S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.2.8
@@ -1578,7 +1577,7 @@ int main(int argc, char **argv)
         /* Client receives HelloRetryRequest */
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn),
                 S2N_ERR_INVALID_HELLO_RETRY);
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.2.8
@@ -1637,7 +1636,7 @@ int main(int argc, char **argv)
         /* Client receives ServerHello 2 */
         EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(client_conn, &blocked, ENCRYPTED_EXTENSIONS),
                 S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 

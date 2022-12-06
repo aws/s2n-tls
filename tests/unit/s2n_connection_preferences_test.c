@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Test default fips */
 
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ecc_preferences, &s2n_ecc_preferences_null);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test Error Case */
     {
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_ecc_preferences(conn, &ecc_preferences), S2N_ERR_INVALID_ECC_PREFERENCES);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_connection_get_curve */
     {
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, strlen(no_curve));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

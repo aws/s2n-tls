@@ -347,7 +347,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         free(cert_chain_pem);
         free(private_key_pem);
-    }
+    };
 
     /* Test each message is sent and in the correct order */
     {
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 
         /* Test message by message with a cert */
         s2n_test_client_auth_message_by_message(0);
-    }
+    };
 
     END_TEST();
 }

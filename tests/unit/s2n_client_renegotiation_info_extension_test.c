@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test receive - value not 0
      *
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test receive */
     {
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test receive when using SSLv3
      *
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_SSLv3;
         EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.recv(server_conn, &extension));
         EXPECT_TRUE(server_conn->secure_renegotiation);
-    }
+    };
 
     /*
      *= https://tools.ietf.org/rfc/rfc5746#3.4
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         s2n_parsed_extension *extension = &server_conn->client_hello.extensions.parsed_extensions[extension_id];
         EXPECT_EQUAL(extension->extension.size, 0);
         EXPECT_EQUAL(extension->extension_type, 0);
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc5746#3.6
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 
         /* Expect secure renegotiation to be true: extension received */
         EXPECT_TRUE(server_conn->secure_renegotiation);
-    }
+    };
 
     /* Test: should_send during renegotiation handshake
      *
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
         /* Included if renegotiation enabled */
         conn->handshake.renegotiation = true;
         EXPECT_TRUE(s2n_client_renegotiation_info_extension.should_send(conn));
-    }
+    };
 
     /* Test: send during renegotiation handshake
      *
@@ -248,7 +248,6 @@ int main(int argc, char **argv)
      *#    ClientHello, containing the saved client_verify_data.
      */
     {
-        /* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 work around */;
         /* Send client_verify_data */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -269,7 +268,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.send(conn, &out),
                         S2N_ERR_NO_RENEGOTIATION);
-            }
+            };
 
             /* Success if secure renegotiation supported */
             {
@@ -285,8 +284,8 @@ int main(int argc, char **argv)
 
                 uint8_t *actual_data = s2n_stuffer_raw_read(&out, actual_len);
                 EXPECT_BYTEARRAY_EQUAL(actual_data, client_verify_data, actual_len);
-            }
-        }
+            };
+        };
 
         /*
          *= https://tools.ietf.org/rfc/rfc5746#3.5
@@ -317,8 +316,8 @@ int main(int argc, char **argv)
                 }
             }
             EXPECT_FALSE(found_renegotiation_info_scsv);
-        }
-    }
+        };
+    };
 
     /* Test: recv during renegotiation handshake
      *
@@ -357,7 +356,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.send(client_conn, &stuffer));
             EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.recv(server_conn, &stuffer));
-        }
+        };
 
         /* Test: client_verify does not match */
         {
@@ -370,7 +369,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.send(client_conn, &stuffer));
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.recv(server_conn, &stuffer),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Test: no secure_renegotiation */
         {
@@ -383,8 +382,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_renegotiation_info_extension.send(client_conn, &stuffer));
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.recv(server_conn, &stuffer),
                     S2N_ERR_NO_RENEGOTIATION);
-        }
-    }
+        };
+    };
 
     /* Test: if_missing during renegotiation handshake
      *
@@ -415,7 +414,7 @@ int main(int argc, char **argv)
 
         /* Verify server marks extension as missing when processing client hello */
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_MISSING_EXTENSION);
-    }
+    };
 
     /* Test: receiving SCSV during renegotiation is an error
      *
@@ -472,7 +471,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     END_TEST();
 }

@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Success: server doesn't send an renegotiation_info extension */
     {
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Failure: server sends a non-empty initial renegotiation_info */
     {
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     free(cert_chain);
     free(private_key);

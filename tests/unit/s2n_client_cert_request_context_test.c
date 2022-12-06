@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Test failure case of non-zero certificate_request_context */
     {
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
