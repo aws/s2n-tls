@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_384_R1));
         EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_521_R1));
         EXPECT_FALSE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_ECDH_X25519));
-    }
+    };
 
     END_TEST();
 }

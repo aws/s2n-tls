@@ -75,7 +75,7 @@ int main(int argc, char **argv)
             /* Resumed session did not receive the EMS extension */
             EXPECT_FAILURE_WITH_ERRNO(s2n_conn_set_handshake_type(conn), S2N_ERR_MISSING_EXTENSION);
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /**
          *= https://tools.ietf.org/rfc/rfc7627#section-5.3
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_handshake_type_check_tls12_flag(conn, FULL_HANDSHAKE));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Session ticket is processed correctly if the previous session and current session both negotiated EMS */
         {
@@ -159,10 +159,10 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, FULL_HANDSHAKE));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Connection where the client supports EMS but the server does not support EMS */
     {
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Connection where the server supports EMS but the client does not support EMS */
     {
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Connection where both client and server support EMS */
     {
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }

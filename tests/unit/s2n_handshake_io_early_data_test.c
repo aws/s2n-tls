@@ -98,24 +98,24 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
                 server_conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(server_conn), S2N_ERR_DECRYPT);
-            }
+            };
 
             /* Fail for bad record if early data was accepted */
             {
                 EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
                 server_conn->early_data_state = S2N_EARLY_DATA_ACCEPTED;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(server_conn), S2N_ERR_DECRYPT);
-            }
+            };
 
             /* Succeed for bad record if early data was rejected */
             {
                 EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
                 server_conn->early_data_state = S2N_EARLY_DATA_REJECTED;
                 EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Client */
         {
@@ -141,9 +141,9 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(client_conn), S2N_ERR_DECRYPT);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            }
-        }
-    }
+            };
+        };
+    };
 
     END_TEST();
 }

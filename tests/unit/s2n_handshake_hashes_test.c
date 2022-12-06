@@ -58,8 +58,8 @@ int main(int argc, char **argv)
             }
 
             s2n_handshake_hashes_free(&conn.handshake.hashes);
-        }
-    }
+        };
+    };
 
     /* Test s2n_handshake_hashes_wipe */
     {
@@ -96,8 +96,8 @@ int main(int argc, char **argv)
             }
 
             s2n_handshake_hashes_free(&conn.handshake.hashes);
-        }
-    }
+        };
+    };
 
     /* Test s2n_handshake_hashes_free */
     {
@@ -112,8 +112,8 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_handshake_hashes_free(&hashes));
             EXPECT_NULL(hashes);
-        }
-    }
+        };
+    };
 
     /* Test s2n_handshake_hashes connection lifecycle */
     {
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
         /* Freeing the connection should free the hashes */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

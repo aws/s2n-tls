@@ -91,7 +91,7 @@ int main()
             EXPECT_FAILURE(s2n_extension_process(NULL, &conn, &parsed_extension_list));
             EXPECT_FAILURE(s2n_extension_process(&extension_type, NULL, &parsed_extension_list));
             EXPECT_FAILURE(s2n_extension_process(&extension_type, &conn, NULL));
-        }
+        };
 
         /* Successfully process a basic parsed_extension */
         {
@@ -113,7 +113,7 @@ int main()
             EXPECT_TRUE(received_flag);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Processing an extension again should be a no-op */
         {
@@ -142,7 +142,7 @@ int main()
             EXPECT_FALSE(received_flag);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Successfully process an empty parsed_extension */
         {
@@ -166,7 +166,7 @@ int main()
             EXPECT_TRUE(received_flag);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Fail if parsed_extension indexed incorrectly */
         {
@@ -189,7 +189,7 @@ int main()
             EXPECT_FALSE(received_flag);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* If no parsed_extension found for extension type */
         {
@@ -211,7 +211,7 @@ int main()
                 EXPECT_FALSE(received_flag);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Succeed (but don't call recv) if extension type is optional */
             {
@@ -230,9 +230,9 @@ int main()
                 EXPECT_FALSE(received_flag);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-    }
+            };
+        };
+    };
 
     /* Test s2n_extension_list_process */
     {
@@ -256,7 +256,7 @@ int main()
             EXPECT_NOT_EQUAL(test_parsed_extension.extension.size, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         s2n_extension_type_id test_internal_id = 0, test_empty_internal_id = 0;
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(test_parsed_extension.extension_type, &test_internal_id));
@@ -271,7 +271,7 @@ int main()
             EXPECT_FAILURE(s2n_extension_list_process(0, NULL, &parsed_extension_list));
             EXPECT_FAILURE(s2n_extension_list_process(0, &conn, NULL));
             EXPECT_FAILURE(s2n_extension_list_process(-1, &conn, &parsed_extension_list));
-        }
+        };
 
         /* Process a single parsed_extension */
         {
@@ -291,7 +291,7 @@ int main()
             EXPECT_TRUE(conn->server_name_used);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Process several parsed_extensions */
         {
@@ -313,7 +313,7 @@ int main()
             EXPECT_TRUE(conn->server_name_used);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Skips an unexpected parsed_extension */
         {
@@ -332,8 +332,8 @@ int main()
             EXPECT_FALSE(conn->server_name_used);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

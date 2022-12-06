@@ -70,7 +70,7 @@ int main()
             s2n_blocked_status blocked = 0;
             EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(NULL, &blocked, CLIENT_HELLO), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(&conn, NULL, CLIENT_HELLO), S2N_ERR_NULL);
-        }
+        };
 
         /* If message is never encountered, complete the handshake */
         {
@@ -84,7 +84,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Can stop on a given message */
         {
@@ -98,7 +98,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Can be called repeatedly */
         {
@@ -137,7 +137,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Can continue as normal after stopping */
         {
@@ -155,7 +155,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Can stop on END_OF_EARLY_DATA when using early data, then continue.
          * (This is the non-test use case for this feature) */
@@ -183,8 +183,8 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));

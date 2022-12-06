@@ -85,7 +85,7 @@ int main()
 
         EXPECT_FAILURE(s2n_extension_list_parse(NULL, &parsed_extension_list));
         EXPECT_FAILURE(s2n_extension_list_parse(&stuffer, NULL));
-    }
+    };
 
     /* Test that parse clears existing parsed_extensions */
     {
@@ -106,7 +106,7 @@ int main()
         EXPECT_EQUAL(parsed_extension_list.raw.size, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse empty extension list - no extension list size */
     {
@@ -124,7 +124,7 @@ int main()
         EXPECT_EQUAL(parsed_extension_list.count, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse empty extension list - with extension list size */
     {
@@ -144,7 +144,7 @@ int main()
         EXPECT_EQUAL(parsed_extension_list.count, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse with insufficient data to match extension list size */
     {
@@ -161,7 +161,7 @@ int main()
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse with insufficient data for even one extension */
     {
@@ -181,7 +181,7 @@ int main()
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse single extension in list */
     {
@@ -210,7 +210,7 @@ int main()
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse single extension in list - malformed extension size */
     {
@@ -236,7 +236,7 @@ int main()
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse single extension in list - extension is empty */
     {
@@ -265,7 +265,7 @@ int main()
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse single extension in list - ignore unknown extensions */
     {
@@ -291,7 +291,7 @@ int main()
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test error on duplicate extensions */
     {
@@ -314,7 +314,7 @@ int main()
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test error on duplicate extensions - extensions are empty */
     {
@@ -337,7 +337,7 @@ int main()
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parse multiple extensions */
     {
@@ -378,7 +378,7 @@ int main()
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test parsed extensions assigned correct indexes */
     {
@@ -415,7 +415,7 @@ int main()
         EXPECT_EQUAL(parsed_extension_list.count, 3);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
 

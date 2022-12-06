@@ -269,7 +269,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
-        }
+        };
 
         /*  Test: RSA (TLS 1.2) key exchanges with TLS 1.3 client */
         {
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_config_free(client_config));
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             }
-        }
+        };
 
         /*  Test: ECDSA cert */
         {
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
-        }
+        };
 
         /*  Test: RSA cert with RSA PSS signatures */
         if (s2n_is_rsa_pss_signing_supported()) {

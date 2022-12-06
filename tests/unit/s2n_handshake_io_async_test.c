@@ -77,7 +77,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_buffer), S2N_TLS_RECORD_HEADER_LENGTH + TLS_HANDSHAKE_HEADER_LENGTH);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Use the output of writing to test reading */
         EXPECT_SUCCESS(s2n_stuffer_reread(&io_buffer));
@@ -109,8 +109,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(blocking_handler_count, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

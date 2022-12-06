@@ -53,7 +53,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_encrypted_extensions_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should send no extensions by default */
         {
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should send a requested extension */
         {
@@ -96,8 +96,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(extension_type, s2n_server_server_name_extension.iana_value);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_encrypted_extensions_recv */
     {
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_encrypted_extensions_recv(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should parse an empty list */
         {
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should parse a requested extension */
         {
@@ -167,8 +167,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->server_name_used, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Functional: Unencrypted EncryptedExtensions rejected */
     if (s2n_is_tls13_fully_supported()) {

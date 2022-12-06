@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     /* Test s2n_ecdhe_parameters_send failure with bad ecc params */
     {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     END_TEST();
 }

@@ -60,7 +60,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->handshake.handshake_type, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_handshake_type_set_flag */
     {
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_check_flag */
     {
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_flag(conn, flag));
-            }
+            };
 
             /* No flags set */
             {
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_flag(conn, flag));
-            }
+            };
 
             /* One flag set */
             {
@@ -127,11 +127,11 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_flag(conn, flag));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_set_tls12_flag */
     {
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_check_tls12_flag */
     {
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, flag));
-            }
+            };
 
             /* No flags set */
             {
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, flag));
-            }
+            };
 
             /* One flag set */
             {
@@ -197,11 +197,11 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, flag));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_set_tls13_flag */
     {
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_check_tls13_flag */
     {
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_tls13_flag(conn, flag));
-            }
+            };
 
             /* No flags set */
             {
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls13_flag(conn, flag));
-            }
+            };
 
             /* One flag set */
             {
@@ -265,11 +265,11 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_tls13_flag(conn, flag));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     END_TEST();
 }

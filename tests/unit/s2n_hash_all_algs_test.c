@@ -58,7 +58,7 @@ S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algor
         /* Add the rest */
         RESULT_GUARD_POSIX(s2n_hash_update(hash_state, input_data + offset, (INPUT_DATA_SIZE - offset)));
         RESULT_ENSURE_EQ(hash_state->currently_in_hash, INPUT_DATA_SIZE);
-    }
+    };
 
     /* Test s2n_hash_copy */
     struct s2n_hash_state hash_copy = { 0 };
@@ -71,7 +71,7 @@ S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algor
         RESULT_GUARD_POSIX(s2n_hash_copy(&hash_copy, hash_state));
         RESULT_ENSURE_EQ(hash_copy.currently_in_hash, hash_state->currently_in_hash);
         RESULT_ENSURE_EQ(hash_copy.is_ready_for_input, hash_state->is_ready_for_input);
-    }
+    };
 
     /* Test s2n_hash_digest */
     {
@@ -88,7 +88,7 @@ S2N_RESULT s2n_hash_test_state(struct s2n_hash_state *hash_state, s2n_hash_algor
         RESULT_ENSURE_EQ(hash_state->currently_in_hash, 0);
         RESULT_ENSURE_EQ(hash_state->is_ready_for_input, false);
         RESULT_ENSURE_EQ(memcmp(digest->data, copy_result, digest_size), 0);
-    }
+    };
 
     RESULT_GUARD_POSIX(s2n_hash_free(&hash_copy));
     return S2N_RESULT_OK;
@@ -114,7 +114,7 @@ S2N_RESULT s2n_hash_test(s2n_hash_algorithm hash_alg, struct s2n_blob *digest)
         RESULT_ENSURE_EQ(hash_state.is_ready_for_input, true);
 
         RESULT_GUARD(s2n_hash_test_state(&hash_state, hash_alg, digest));
-    }
+    };
 
     /* Test s2n_hash_reset */
     {
@@ -129,7 +129,7 @@ S2N_RESULT s2n_hash_test(s2n_hash_algorithm hash_alg, struct s2n_blob *digest)
         RESULT_GUARD(s2n_hash_test_state(&hash_state, hash_alg, &result));
         RESULT_ENSURE_EQ(digest->size, result.size);
         RESULT_ENSURE_EQ(memcmp(digest->data, result.data, result.size), 0);
-    }
+    };
 
     RESULT_GUARD_POSIX(s2n_hash_free(&hash_state));
     return S2N_RESULT_OK;

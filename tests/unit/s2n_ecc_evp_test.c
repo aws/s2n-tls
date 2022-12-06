@@ -41,7 +41,7 @@ int main(int argc, char** argv)
             EXPECT_NOT_NULL(evp_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
         }
-    }
+    };
     {
         /* Test failure case for generate ephemeral key  when the negotiated curve is not set */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
             EXPECT_NULL(evp_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
         }
-    }
+    };
     {
         /* Test generate ephemeral key and compute shared key for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
@@ -90,7 +90,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
-    }
+    };
     {
         /* Test failure case for computing shared key for all supported curves when the server
         and client curves do not match */
@@ -128,7 +128,7 @@ int main(int argc, char** argv)
                 EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
             }
         }
-    }
+    };
     {
         /* Test s2n_ecc_evp_write_params_point for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&test_params));
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
         }
-    }
+    };
     {
         /* TEST s2n_ecc_evp_read_params_point for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
@@ -186,7 +186,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
         }
-    }
+    };
     {
         /* TEST s2n_ecc_evp_parse_params_point for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
@@ -217,7 +217,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
         }
-    }
+    };
     {
         DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -255,7 +255,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
         }
-    }
+    };
     {
         DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
@@ -314,7 +314,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
-    }
+    };
     {
         DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
@@ -356,7 +356,7 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
-    }
+    };
 
     /* Test that the client does not negotiate a group that was not
      * offered in EC preferences */
@@ -404,6 +404,6 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
-    }
+    };
     END_TEST();
 }

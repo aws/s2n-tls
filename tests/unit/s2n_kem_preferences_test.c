@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 #else
         EXPECT_FALSE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3));
 #endif
-    }
+    };
 
     END_TEST();
 }

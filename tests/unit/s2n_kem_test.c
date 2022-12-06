@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(sizeof(kem_private_key_size), 2);
         EXPECT_EQUAL(sizeof(kem_shared_secret_size), 2);
         EXPECT_EQUAL(sizeof(kem_ciphertext_key_size), 2);
-    }
+    };
     {
         struct s2n_kem_params server_kem_params = { 0 };
         server_kem_params.kem = &s2n_test_kem;
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_kem_free(&server_kem_params));
         EXPECT_SUCCESS(s2n_kem_free(&client_kem_params));
-    }
+    };
 
     {
         const struct s2n_iana_to_kem *compatible_params = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(compatible_params);
         EXPECT_EQUAL(compatible_params->kem_count, 1);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r3.kem_extension_id);
-    }
+    };
 
     {
         /* Tests for s2n_kem_free() */
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(alloc_test_kem_params(&kem_params));
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
         EXPECT_SUCCESS(assert_kem_params_free(&kem_params));
-    }
+    };
     {
         /* Tests for s2n_kem_group_free() */
         EXPECT_SUCCESS(s2n_kem_group_free(NULL));
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_kem_group_free(&kem_group_params));
         EXPECT_SUCCESS(assert_kem_params_free(&kem_group_params.kem_params));
         EXPECT_NULL(kem_group_params.ecc_params.evp_pkey);
-    }
+    };
     {
         /* Happy case for s2n_kem_send_public_key() */
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
         EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
-    }
+    };
     {
         /* Failure cases for s2n_kem_send_public_key() */
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_public_key(NULL, NULL), S2N_ERR_NULL);
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 
         struct s2n_kem_params kem_params = { 0 };
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_public_key(&io_stuffer, &kem_params), S2N_ERR_NULL);
-    }
+    };
     {
         /* Happy case for s2n_kem_send_ciphertext() */
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
         EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
-    }
+    };
     {
         /* Failure cases for s2n_kem_send_ciphertext() */
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_ciphertext(NULL, NULL), S2N_ERR_NULL);
@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 
         kem_params.kem = &s2n_test_kem;
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_ciphertext(&io_stuffer, &kem_params), S2N_ERR_NULL);
-    }
+    };
     {
         /* Happy case for s2n_kem_recv_ciphertext() */
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
         EXPECT_NOT_EQUAL(0, kem_params.shared_secret.allocated);
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
-    }
+    };
     {
         /* Failure cases for s2n_kem_recv_ciphertext() */
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(NULL, NULL), S2N_ERR_NULL);
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, kem_params.public_key.allocated);
         EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
-    }
+    };
     {
         /* Happy case for s2n_kem_recv_public_key() */
         struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
         EXPECT_EQUAL(0, kem_params.private_key.allocated);
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
-    }
+    };
     {
         /* Failure cases for s2n_kem_recv_public_key() */
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(NULL, NULL), S2N_ERR_NULL);
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_3, bad_pk_input_3, 5));
         EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_3));
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer_3, &kem_params), S2N_ERR_BAD_MESSAGE);
-    }
+    };
     {
         /* Happy case(s) for s2n_get_kem_from_extension_id() */
 
@@ -446,13 +446,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(returned_kem);
             EXPECT_EQUAL(kems[i], returned_kem);
         }
-    }
+    };
     {
         /* Failure cases for s2n_get_kem_from_extension_id() */
         const struct s2n_kem *returned_kem = NULL;
         kem_extension_size non_existent_kem_id = 65535;
         EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    }
+    };
 
     END_TEST();
 }

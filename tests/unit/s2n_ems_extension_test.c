@@ -36,7 +36,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_ems_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that the ems_negotiated flag is set when the EMS extension is received */
     {
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* s2n_server_ems_is_missing */
     {
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_ems_extension.if_missing(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_client_ems_should_send */
     {
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_client_ems_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

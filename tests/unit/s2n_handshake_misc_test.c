@@ -46,7 +46,7 @@ int main(int argc, char **argv)
          * Both client and server should have the same length, or something has gone wrong in our implementation.
          */
         EXPECT_ERROR_WITH_ERRNO(s2n_handshake_set_finished_len(conn, max_len - 1), S2N_ERR_SAFETY);
-    }
+    };
 
     END_TEST();
 }

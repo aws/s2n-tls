@@ -47,7 +47,7 @@ int main()
         EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* If client has sent no valid keyshares, but server and client have a mutually supported EC curve,
      * send Hello Retry Request. */
@@ -74,7 +74,7 @@ int main()
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* When client has only sent a valid keyshare for
      * curve 1, Hello Retry Request is not sent and server chooses curve 1. */
@@ -106,7 +106,7 @@ int main()
         EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     {
         const struct s2n_kem_group *test_kem_groups[] = {
@@ -156,7 +156,7 @@ int main()
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* If client has sent no valid keyshares but server and client mutually support KEM group 1,
          * select KEM group 1 and send Hello Retry Request. */
@@ -200,7 +200,7 @@ int main()
             EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When client has only sent a valid keyshare for
          * KEM group 1, Hello Retry Request is not sent and server chooses group 1. */
@@ -246,7 +246,7 @@ int main()
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When client has sent a valid keyshares for group 0,
          * Hello Retry Request is not sent and server chooses group 0. */
@@ -291,7 +291,7 @@ int main()
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When client sent no valid keyshares,
          * server should choose kem_group[0] and send HRR. */
@@ -336,7 +336,7 @@ int main()
             EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When client sent valid keyshares
          * for everything, server should choose kem_group[0] and not send HRR. */
@@ -390,7 +390,7 @@ int main()
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When client sent valid keyshares
          * only for ECC, server should choose curves[0] and not send HRR. */
@@ -440,8 +440,8 @@ int main()
             EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 #endif
     END_TEST();
     return 0;

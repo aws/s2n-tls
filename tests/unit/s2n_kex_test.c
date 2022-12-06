@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         EXPECT_ERROR(s2n_kex_client_key_recv(NULL, &conn, &blob));
         EXPECT_ERROR(s2n_kex_client_key_send(NULL, &conn, &blob));
         EXPECT_ERROR(s2n_kex_tls_prf(NULL, &conn, &blob));
-    }
+    };
 
     /* Test s2n_kex_includes */
     {
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
         /* False if one kex null */
         EXPECT_FALSE(s2n_kex_includes(&s2n_rsa, NULL));
         EXPECT_FALSE(s2n_kex_includes(NULL, &s2n_rsa));
-    }
+    };
 
     END_TEST();
 }

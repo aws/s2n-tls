@@ -131,7 +131,7 @@ int main(int argc, char **argv)
                         S2N_ERR_HASH_INVALID_ALGORITHM);
             }
         }
-    }
+    };
 
     /* EVP signing must match RSA signing */
     {
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_hash_init(&hash_state, hash_alg));
             EXPECT_SUCCESS(s2n_rsa_pkcs1v15_verify(public_key, &hash_state, &evp_signature));
         }
-    }
+    };
 
     /* EVP signing must match ECDSA signing */
     {
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
-    }
+    };
 
     /* EVP signing must match RSA-PSS-RSAE signing */
     if (s2n_is_rsa_pss_signing_supported()) {

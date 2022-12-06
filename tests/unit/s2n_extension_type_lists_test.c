@@ -35,7 +35,7 @@ int main(int argc, char **argv)
             /* Should fail for a bad list type */
             EXPECT_FAILURE(s2n_extension_type_list_get(-1, &list));
             EXPECT_FAILURE(s2n_extension_type_list_get(S2N_EXTENSION_LIST_IDS_COUNT, &list));
-        }
+        };
 
         /* Can retrieve a list for every id */
         {
@@ -44,8 +44,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_extension_type_list_get(i, &list));
                 EXPECT_NOT_NULL(list);
             }
-        }
-    }
+        };
+    };
 
     END_TEST();
 }
