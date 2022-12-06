@@ -51,7 +51,7 @@ int main(int argc, char **argv)
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* Verify successful shutdown. Client initiated. */
     {
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     END_TEST();
 }

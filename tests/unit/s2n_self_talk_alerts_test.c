@@ -214,7 +214,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
         EXPECT_EQUAL(status, 0);
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test that we don't ignore Fatal Alerts in S2N_ALERT_IGNORE_WARNINGS mode in TLS1.2 */
     {
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
         EXPECT_EQUAL(status, 0);
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test that we don't ignore Warning Alerts in S2N_ALERT_FAIL_ON_WARNINGS mode in TLS1.2 */
     {
@@ -310,7 +310,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
         EXPECT_EQUAL(status, 0);
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Shutdown */
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

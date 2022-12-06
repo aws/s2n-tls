@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test send */
     {
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv */
     {
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;

@@ -112,7 +112,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* TLS 1.3 */
     if (s2n_is_tls13_fully_supported()) {
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(out);
 
         EXPECT_EQUAL(memcmp(bytes, out, sizeof(bytes)), 0);
-    }
+    };
 
     END_TEST();
 }

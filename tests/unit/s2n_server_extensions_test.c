@@ -83,7 +83,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_recv(conn, hello_stuffer));
             EXPECT_EQUAL(s2n_stuffer_data_available(hello_stuffer), 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - Server Name */
         {
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - Application Protocol */
         {
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - Maximum Fragment Length (MFL) */
         {
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - Signed Certificate Timestamp extension */
         {
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - OCSP Status Request */
         {
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - Secure Negotiation */
         {
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Server Extensions Send - New Session Ticket */
         {
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, NEW_SESSION_TICKET_SIZE + EXTENSION_LEN);
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test TLS13 Extensions */
         {
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test Secure Negotiation server_hello extension not sent with TLS13 or higher */
         {
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, tls12_server_extension_size);
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test New Session Ticket server_hello extension not sent with TLS13 or higher */
         {
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, tls12_server_extension_size);
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test TLS13 Extensions with null key exchange alg cipher suites */
         {
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that some TLS1.3 extensions (like PSK) not sent on a HRR request */
         {
@@ -507,10 +507,10 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test ec_point_format extension */
     {
@@ -534,7 +534,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test supported_versions extension can change extensions processed.
      * In TLS1.2, we receive status_request on the ServerHello. TLS1.3 expects it on the Certificate. */
@@ -580,7 +580,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
 
         /* supported_versions included - should use TLS1.3 extensions,
          * so should reject the status_request bc it does not belong here. */
@@ -611,7 +611,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_TLS13);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
 
         /* TLS1.3 HRR handshake - should use HRR TLS1.3 extensions,
          * so should reject the PSK extension  */
@@ -665,11 +665,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
             }
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 

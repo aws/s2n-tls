@@ -13,9 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include <errno.h>
 #include <fcntl.h>
 
@@ -176,7 +173,7 @@ int main(int argc, char **argv)
         /* Ensure a ticket with a zero-padded name is not added */
         uint8_t padded_name[16] = { 0xAA, 0 };
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, padded_name, s2n_array_len(padded_name), ticket_key1, s2n_array_len(ticket_key1), 0), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
-    }
+    };
 
     /* Client sends empty ST extension. Server issues NST. */
     {
@@ -228,7 +225,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends empty ST extension. Server does a full handshake, but is unable
      * to issue NST due to absence of an encrypt-decrypt key. */
@@ -265,7 +262,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does an abbreviated handshake without issuing NST. */
     {
@@ -318,7 +315,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does an abbreviated handshake and issues a NST
      * because the key is in decrypt-only state.
@@ -383,7 +380,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does an abbreviated handshake,
      * but does not issue a NST even though the key is in decrypt-only state due to
@@ -440,7 +437,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does a
      * full handshake and issues a NST because the key is not found.
@@ -493,7 +490,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does a full handshake and issues a NST
      * because the key has expired.
@@ -560,7 +557,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does a full handshake and issues a NST because the ticket has non-standard size. */
     {
@@ -622,7 +619,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension, but server cannot or does not want to honor the ticket. */
     {
@@ -669,7 +666,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sets corrupted ST extension. */
     {
@@ -681,7 +678,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* User tries adding a duplicate key to the server */
     {
@@ -702,7 +699,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_errno, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Testing expired keys are removed from the server config while adding new keys. */
     {
@@ -735,7 +732,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ticket_keys_len, 3);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST. */
     {
@@ -792,7 +789,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST */
     {
@@ -853,7 +850,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and
      * s2n_config_set_ticket_decrypt_key_lifetime calls */
@@ -921,7 +918,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Add keys out of order and pre-emptively add a key */
     {
@@ -986,7 +983,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Handshake with client auth and session ticket enabled */
     {
@@ -1027,7 +1024,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* s2n_decrypt_session_ticket fails to decrypt when presented with a valid ticket_key, valid iv and invalid encrypted blob */
     {
@@ -1053,7 +1050,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* s2n_decrypt_session_ticket fails with a key not found error when presented with an invalid ticket_key, valid iv and invalid encrypted blob */
     {
@@ -1079,7 +1076,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Test s2n_connection_is_session_resumed */
     {
@@ -1100,7 +1097,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.3 */
         {
@@ -1121,8 +1118,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Session resumption APIs and session_ticket_cb return the same values
      * when receiving a new ticket in TLS1.2
@@ -1173,7 +1170,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 

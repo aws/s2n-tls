@@ -13,9 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
@@ -183,7 +180,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* tickets_sent overflow */
         {
@@ -208,7 +205,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /** ticket_age_add values do not repeat after sending multiple new session tickets
          *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
@@ -295,7 +292,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Can't write ticket larger than allowed size of a PSK identity */
         {
@@ -324,8 +321,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_generate_ticket_lifetime */
     {
@@ -369,7 +366,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(min_lifetime, ONE_WEEK_IN_SEC);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_generate_ticket_nonce */
     {
@@ -396,7 +393,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(test_cases[i].expected_output[0], data[0]);
             EXPECT_EQUAL(test_cases[i].expected_output[1], data[1]);
         }
-    }
+    };
 
     /* s2n_generate_ticket_age_add */
     {
@@ -422,7 +419,7 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(output, test_cases[i].expected_output);
         }
-    }
+    };
 
     /* s2n_generate_session_secret */
     {
@@ -451,7 +448,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(output->data, expected_session_secret.data, expected_session_secret.size);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_tls13_server_nst_recv */
     {
@@ -490,7 +487,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Not allowed in TLS1.2 */
         {
@@ -512,7 +509,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_stuffer_data_available(&input) > 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Tests session_ticket_cb correctly serializes session data from an arbitrary new session ticket message */
         {
@@ -559,7 +556,7 @@ int main(int argc, char **argv)
                 uint8_t *ticket = s2n_stuffer_raw_read(&session_stuffer, ticket_size);
                 EXPECT_NOT_NULL(ticket);
                 EXPECT_BYTEARRAY_EQUAL(ticket, test_ticket, ticket_size);
-            }
+            };
 
             /* Check the serialized ticket_age_add is what was in the arbitrary nst message*/
             {
@@ -574,18 +571,18 @@ int main(int argc, char **argv)
                 uint8_t ticket_age_add[sizeof(uint32_t)] = { 0 };
                 EXPECT_SUCCESS(s2n_stuffer_read_bytes(&session_stuffer, ticket_age_add, sizeof(uint32_t)));
                 EXPECT_BYTEARRAY_EQUAL(ticket_age_add, test_ticket_age_add, sizeof(uint32_t));
-            }
+            };
 
             /* Check ticket lifetime is what was in the arbitrary nst message */
             {
                 uint8_t test_lifetime[] = { TEST_LIFETIME };
                 uint32_t expected_lifetime = test_lifetime[3] | (test_lifetime[2] << 8) | (test_lifetime[1] << 16) | (test_lifetime[0] << 24);
                 EXPECT_EQUAL(expected_lifetime, cb_session_lifetime);
-            }
+            };
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Known values test */
         {
@@ -641,7 +638,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Self-talk test */
         {
@@ -676,7 +673,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test that the client processes extensions.
          * Specifically, check for the early_data_indication extension. */
@@ -715,7 +712,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test that the client can handle different max_early_data_size values. */
         {
@@ -755,7 +752,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test that the client rejects tickets with invalid ticket_lifetime */
         {
@@ -792,7 +789,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /**
              *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
@@ -818,11 +815,11 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_tls13_server_nst_send */
     {
@@ -846,7 +843,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Protocol is less than TLS13 */
         {
@@ -868,7 +865,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* 0 tickets are requested */
         {
@@ -901,7 +898,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Sends one new session ticket */
         {
@@ -940,7 +937,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Send no more tickets if keying material is expired
          *
@@ -1006,7 +1003,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* s2n_config_set_session_tickets_onoff used to enable tickets */
         {
@@ -1056,7 +1053,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* s2n_config_set_initial_ticket_count used to enable tickets */
         {
@@ -1089,7 +1086,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Sends multiple new session tickets */
         {
@@ -1133,7 +1130,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Test S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE */
         {
@@ -1174,7 +1171,7 @@ int main(int argc, char **argv)
                             (int) S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_fixed_size);
                 }
                 EXPECT_EQUAL(S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_fixed_size);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
             conn->tickets_to_send++;
@@ -1196,7 +1193,7 @@ int main(int argc, char **argv)
                 uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
                 uint32_t expected_max_fixed_size = expected_max_size - session_state_size;
                 EXPECT_EQUAL(S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_fixed_size);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
             conn->tickets_to_send++;
@@ -1221,13 +1218,13 @@ int main(int argc, char **argv)
                 uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
                 uint32_t expected_max_fixed_size = expected_max_size - session_state_size;
                 EXPECT_EQUAL(S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_fixed_size);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* Functional test: s2n_negotiate sends new session tickets after the handshake is complete */
     if (s2n_is_tls13_fully_supported()) {

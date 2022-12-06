@@ -124,7 +124,7 @@ int main(int argc, char **argv)
             s2n_errno = S2N_ERR_OK;
             EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
             EXPECT_NO_BLINDING(conn);
-        }
+        };
 
         /* No-op for retriable errors */
         {
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
             s2n_errno = S2N_ERR_IO_BLOCKED;
             EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
             EXPECT_NO_BLINDING(conn);
-        }
+        };
 
         /* Closes connection but does not blind for non-blinding errors */
         {
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
             EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
             EXPECT_TRUE(conn->closed);
-        }
+        };
 
         /* Blinds for an average error */
         {
@@ -149,10 +149,10 @@ int main(int argc, char **argv)
             s2n_errno = S2N_ERR_UNIMPLEMENTED;
             EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
             EXPECT_BLINDING(conn);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: WITH_ERROR_BLINDING macro
      * The WITH_ERROR_BLINDING macro relies on the current method exiting early.
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
         EXPECT_BLINDING(conn);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test send */
     {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test receive - does not match requested value
      *
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test receive */
     {
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test receive - existing mfl value */
     {
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_1024);
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
-        }
+        };
 
         /* Existing mfl value higher */
         {
@@ -174,12 +174,12 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_1024);
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_1024]);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
     return 0;

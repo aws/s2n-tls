@@ -13,16 +13,12 @@
  * permissions and limitations under the License.
  */
 
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_array.h"
-
 
 static S2N_RESULT s2n_exchange_hellos(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
@@ -67,7 +63,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_early_data_indication_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_server_early_data_indication_is_missing */
     {
@@ -85,8 +81,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_server_early_data_indication_recv */
     {
@@ -112,7 +108,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Fails if early data not requested */
         {
@@ -134,8 +130,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test state transitions */
     {
@@ -169,7 +165,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /** When early data accepted.
          *
@@ -209,7 +205,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /** When early data rejected.
          *
@@ -245,7 +241,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /*
         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
@@ -303,8 +299,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
     return 0;

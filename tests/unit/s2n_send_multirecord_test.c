@@ -13,9 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include <math.h>
 #include <pthread.h>
 #include <sys/param.h>
@@ -137,7 +134,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_TRUE(conn->multirecord_send);
             EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
-        }
+        };
 
         /* Flush if all data sent */
         {
@@ -157,7 +154,7 @@ int main(int argc, char **argv)
             /* All data sent */
             conn->current_user_data_consumed = send_size;
             EXPECT_TRUE(s2n_should_flush(conn, send_size));
-        }
+        };
 
         /* Flush if buffer can't hold max size record */
         {
@@ -180,8 +177,8 @@ int main(int argc, char **argv)
             /* Insufficient space in buffer */
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
             EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
-        }
-    }
+        };
+    };
 
     /* Total data fits in a single record.
      * Equivalent to not using multirecord.
@@ -206,7 +203,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    };
 
     /* Send buffer was configured too small for even a single record.
      * Send smaller records.
@@ -246,7 +243,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, min_buffer_size);
-    }
+    };
 
     /* Total data fits in multiple records.
      * Without multirecord, this would result in multiple calls to send.
@@ -273,7 +270,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    };
 
     /* Total data with multiple records too large for the send buffer.
      * Call send multiple times.
@@ -301,7 +298,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, smaller_buffer_size);
-    }
+    };
 
     /* Block while buffering multiple records.
      * Send blocks until all buffered data is sent.
@@ -346,7 +343,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    };
 
     /* Block while buffering multiple records across multiple send calls.
      * Each send blocks until all buffered data is flushed.
@@ -391,7 +388,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, smaller_buffer_size);
-    }
+    };
 
     /* Send a post-handshake message when records are buffered.
      *
@@ -423,7 +420,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
             EXPECT_FALSE(conn->key_update_pending);
             key_update_size = context.bytes_sent;
-        }
+        };
         EXPECT_TRUE(key_update_size > 0);
 
         const struct s2n_send_result results[] = {
@@ -467,7 +464,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    };
 
     END_TEST();
 }

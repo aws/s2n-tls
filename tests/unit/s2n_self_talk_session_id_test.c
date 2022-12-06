@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Session resumption */
     {
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Session resumption with bad session state on client side */
     {
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Close the pipes */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
@@ -523,7 +523,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc7627#section-5.3
@@ -575,7 +575,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /**
      *= https://tools.ietf.org/rfc/rfc7627#section-5.3
@@ -650,7 +650,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Clean up */
     EXPECT_SUCCESS(s2n_config_free(config));

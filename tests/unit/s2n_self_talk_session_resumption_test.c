@@ -335,7 +335,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&cb_session_data));
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_STATE_LIFETIME_IN_NANOS));
-    }
+    };
 
     /* Test: A TLS1.2 client with a valid TLS1.3 ticket falls back to a TLS1.2 connection */
     for (size_t early_data_i = 0; early_data_i < s2n_array_len(early_data_test_cases); early_data_i++) {
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* HRR when issuing a session resumption ticket and when resuming a session */
     for (size_t early_data_i = 0; early_data_i < s2n_array_len(early_data_test_cases); early_data_i++) {
@@ -581,7 +581,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Test output of s2n_connection_get_session_length/get_session during different stages of the handshake */
     {
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* If the server has no ticket key, no session tickets are issued or accepted.
      * We should always fall back to a full handshake.
@@ -749,7 +749,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_stuffer_data_available(&ticket) > 0);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Initial handshake with no ticket keys */
             {
@@ -761,7 +761,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Initial handshake with no ticket keys and session id caching */
             {
@@ -773,7 +773,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Resumption handshake */
             {
@@ -787,7 +787,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Resumption handshake with no ticket keys */
             {
@@ -801,7 +801,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Resumption handshake with no ticket keys and session id caching */
             {
@@ -815,12 +815,12 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
 
         /* TLS1.3 */
         {
@@ -851,7 +851,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_stuffer_data_available(&ticket) > 0);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Initial handshake with no ticket keys */
             {
@@ -863,7 +863,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server_conn->tickets_sent, 0);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Initial handshake with no ticket keys and session id caching */
             {
@@ -875,7 +875,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server_conn->tickets_sent, 0);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Resumption handshake */
             {
@@ -889,7 +889,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server_conn->tickets_sent, 1);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Resumption handshake with no ticket keys */
             {
@@ -903,7 +903,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server_conn->tickets_sent, 0);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             /* Resumption handshake with no ticket keys and session id caching */
             {
@@ -917,16 +917,16 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server_conn->tickets_sent, 0);
 
                 EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(no_key_config));
         EXPECT_SUCCESS(s2n_config_free(no_key_config_with_cache));
-    }
+    };
 
     /* Clean-up */
     EXPECT_SUCCESS(s2n_config_free(server_config));

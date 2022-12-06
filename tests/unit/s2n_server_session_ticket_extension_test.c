@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test server_session_ticket send and recv */
     {
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->session_ticket_status, S2N_NEW_TICKET);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;

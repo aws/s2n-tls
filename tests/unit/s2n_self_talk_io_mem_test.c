@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Allocate output buffer to max fragment size set manually */
     {
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Allocate output buffer to value negotiated with max_fragment_length extension */
     {
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(config_for_mfl));
-    }
+    };
 
     /* Output and input buffers both freed on connection wipe */
     {
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test that dynamic buffers work correctly */
     {
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 
         /* at this point the application has received the full message and the `in` buffer should be freed */
         EXPECT_EQUAL(client_conn->in.blob.size, 0);
-    }
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

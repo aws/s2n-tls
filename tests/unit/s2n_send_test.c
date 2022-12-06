@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         /* Set the expected record size for future tests */
         test_data_bytes_sent = context.bytes_sent;
         EXPECT_TRUE(test_data_bytes_sent > sizeof(test_data));
-    }
+    };
 
     /* Calculating the max record size for a given max fragment length can be tricky.
      * Instead, let's set the values based on the results of tests.
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
                 S2N_ERR_IO);
         EXPECT_TRUE(s2n_custom_send_fn_called);
         EXPECT_EQUAL(0, conn->wire_bytes_out);
-    }
+    };
 
     /* s2n_send tracks conn->wire_bytes_out on send */
     {
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(context.bytes_sent, test_data_bytes_sent);
         EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
         EXPECT_EQUAL(context.bytes_sent, s2n_connection_get_wire_bytes_out(conn));
-    }
+    };
 
     /* s2n_send tracks conn->wire_bytes_out on partial send */
     {
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(context.bytes_sent, partial_send);
         EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
         EXPECT_EQUAL(context.bytes_sent, s2n_connection_get_wire_bytes_out(conn));
-    }
+    };
 
     /* s2n_send sends all data, despite partial writes */
     {
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send would block and must be retried */
     {
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* Calculating the record size for given data can be tricky.
      * Instead, let's set the values based on the results of tests.
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send sends all records and data, despite partial writes */
     {
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send would block while sending multiple records */
     {
@@ -448,7 +448,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send would block after sending multiple records.
      * ALL flushed records must be reported to the caller.
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* Sending multiple records supports different maximum fragment lengths */
     for (size_t mfl = 0; mfl < S2N_MFL_COUNT; mfl++) {
@@ -608,7 +608,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     END_TEST();
 }

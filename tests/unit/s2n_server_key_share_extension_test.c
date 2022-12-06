@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_key_share_send_check_ecdhe(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_extensions_server_key_share_send_size */
     {
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(6, s2n_extensions_server_key_share_send_size(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_server_key_share_extension.send sends key share success (ECDHE) */
     {
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_server_key_share_extension.send sends IANA ID for HRR (ECDHE) */
     {
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_server_key_share_extension.send for failures */
     {
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_server_key_share_extension.recv with supported curves */
     {
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 
             i += 1;
         } while (i < ecc_pref->count);
-    }
+    };
 
     /* Test s2n_server_key_share_extension.recv with various sample payloads */
     {
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            }
+            };
         }
 
         /* Test error handling parsing broken/trancated p256 key share */
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
 
         /* Test failure for receiving p256 key share for client configured p384 key share */
         {
@@ -349,8 +349,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
-    }
+        };
+    };
 
     /* Test Shared Key Generation */
     {
@@ -418,7 +418,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test s2n_server_key_share_extension.send with supported curve not in s2n_ecc_preferences list selected */
     if (s2n_is_evp_apis_supported()) {
@@ -503,9 +503,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        };
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     {
         /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
@@ -643,7 +643,7 @@ int main(int argc, char **argv)
 
                         EXPECT_SUCCESS(s2n_connection_free(client_conn));
                     }
-                }
+                };
 
                 /* Test s2n_server_key_share_extension.recv with HRR for PQ */
                 {
@@ -684,7 +684,7 @@ int main(int argc, char **argv)
                     EXPECT_NULL(client_conn->kex_params.server_kem_group_params.kem_params.shared_secret.data);
 
                     EXPECT_SUCCESS(s2n_connection_free(client_conn));
-                }
+                };
 
                 /* Various failure cases */
                 {
@@ -776,10 +776,10 @@ int main(int argc, char **argv)
 
                         EXPECT_SUCCESS(s2n_connection_free(client_conn));
                     }
-                }
+                };
             }
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+        };
 
         /* Test s2n_server_key_share_send_check_pq_hybrid */
         {
@@ -827,7 +827,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test s2n_server_key_share_extension.send sends key share success (PQ) */
         if (s2n_pq_is_enabled()) {
@@ -930,7 +930,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test s2n_server_key_share_extension.send fails when both server_kem_group and server_curve are non-NULL */
         {
@@ -955,8 +955,8 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &stuffer), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
     return 0;

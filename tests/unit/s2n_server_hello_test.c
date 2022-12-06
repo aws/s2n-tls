@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that legacy_version_field is set correct for TLS 1.3 Server Hello Send */
     {
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
 
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Test basic Server Hello Recv */
     {
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test Server Hello Recv with invalid cipher */
     {
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Non-matching session IDs turn off EMS for the connection */
     {
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test TLS 1.3 session id matching */
     {
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Test TLS 1.3 => 1.1 protocol downgrade detection with a TLS1.3 client */
     {
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Test TLS 1.3 => 1.2 protocol downgrade detection with a TLS1.3 client */
     {
@@ -380,7 +380,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-    }
+    };
 
     /* Verify a TLS1.2 client can negotiate with a TLS1.3 server */
     {
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Verify a TLS1.3 client can negotiate with a TLS1.2 server */
     {
@@ -464,7 +464,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Verify a TLS1.2 client can negotiate with a TLS1.3 server */
     {
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* TLS13 hello retry message received results into S2N_ERR_UNIMPLEMENTED error*/
     {
@@ -538,7 +538,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(S2N_TLS_RANDOM_DATA_LEN, random_blob.size);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* Test that negotiating TLS1.2 with QUIC-enabled client fails */
     if (s2n_is_tls13_fully_supported()) {
@@ -597,7 +597,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(quic_config));
         EXPECT_SUCCESS(s2n_config_free(non_quic_config));
@@ -643,7 +643,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* TLS 1.3 Client Early Data is rejected when server only supports TLS1.2 */
         {
@@ -672,7 +672,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());

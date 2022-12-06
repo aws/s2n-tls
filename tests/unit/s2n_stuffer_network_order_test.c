@@ -53,7 +53,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         /* uint16_t */
         {
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         /* uint24 */
         {
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         /* uint32_t */
         {
@@ -105,10 +105,10 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_reserve_uint16 */
     {
@@ -152,10 +152,10 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, sizeof(uint16_t));
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_reserve_uint24 */
     {
@@ -199,10 +199,10 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, SIZEOF_UINT24);
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_write_reservation */
     {
@@ -265,10 +265,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_value, expected_value);
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_write_vector_size */
     {
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     END_TEST();
 }

@@ -29,7 +29,7 @@ int main(int argc, char **argv)
         struct s2n_blob in = { .data = array, .size = 9 };
         struct s2n_blob out = { .data = array, .size = 9 };
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
-    }
+    };
 
     /* Test that in size > out size fails */
     {
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
         struct s2n_blob in = { .data = array, .size = 9 };
         struct s2n_blob out = { .data = array, .size = 8 };
         EXPECT_FAILURE(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
-    }
+    };
 
     /* Test that in is copied to out when they are different */
     {
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_NOT_EQUAL(in_array, out_array, out.size);
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
         EXPECT_BYTEARRAY_EQUAL(in_array, out_array, out.size);
-    }
+    };
 
     END_TEST();
 }

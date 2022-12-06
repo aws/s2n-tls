@@ -175,7 +175,7 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
         free(dhparams_pem);
-    }
+    };
 
     /* Clients and servers can utilize both custom IO and default IO for their sending and receiving */
     {
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config_with_certs));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    }
+    };
 
     END_TEST();
 }

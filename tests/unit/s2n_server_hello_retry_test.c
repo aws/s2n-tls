@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Verify the requires_retry flag causes a retry to be sent */
     {
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Retry requests with incorrect random data are not accepted */
     {
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Verify the client key share extension properly handles HelloRetryRequests */
     {
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* Verify that the hash transcript recreation function correctly takes the existing ClientHello1
      * hash, and generates a synthetic message. */
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Send and receive Hello Retry Request messages */
     {
@@ -473,7 +473,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-    }
+    };
 
     /* Send and receive Hello Retry Request messages, test for non blocking client hello callback */
     {
@@ -534,7 +534,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Hello Retry Request + (poll and no-poll) client hello callback */
     {
@@ -542,7 +542,7 @@ int main(int argc, char **argv)
         EXPECT_OK(hello_retry_client_hello_cb_test(true));
         /* disable polling */
         EXPECT_OK(hello_retry_client_hello_cb_test(false));
-    }
+    };
 
     /* Test s2n_set_hello_retry_required correctly sets the handshake type to HELLO_RETRY_REQUEST,
      * when conn->actual_protocol_version is set to TLS1.3 version */
@@ -555,7 +555,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_set_hello_retry_required raises a S2N_ERR_INVALID_HELLO_RETRY error
      * when conn->actual_protocol_version is less than TLS1.3 */
@@ -568,7 +568,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /*
      *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
@@ -612,7 +612,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_HELLO_RETRY);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Retry for multiple reasons is valid */
         {
@@ -637,8 +637,8 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_HELLO_RETRY);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 

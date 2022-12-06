@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* PSK with callback function */
     {
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* PSK with certificates set */
     {
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* PSK with certificates set and client auth set as required */
     {
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* Basic PSK with Client Hello async callback set */
     {
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, NULL, NULL));
-    }
+    };
 
     /* HRR with PSK and Client Hello async callback set */
     {
@@ -359,7 +359,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config_with_certs, NULL, NULL));
-    }
+    };
 
     /* Fallback to full handshake if no PSK is chosen and certificates are set */
     {
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* Fallback to full handshake uses client auth if requested */
     {
@@ -412,7 +412,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* Error Case: Fallback to full handshake if no PSK is chosen and certificates are not set */
     {
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* Clean-up */
     EXPECT_SUCCESS(s2n_connection_free(server_conn));

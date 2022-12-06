@@ -13,9 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* clang-format bug 48305 https://bugs.llvm.org/show_bug.cgi?id=48305 */
-/* clang-format off */
-
 #include "crypto/s2n_hmac.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -110,7 +107,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_extension_send(&s2n_server_psk_extension, conn, NULL));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: s2n_server_psk_send */
     {
@@ -133,8 +130,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_server_psk_recv */
     {
@@ -168,7 +165,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Test s2n_server_psk_recv when server key_share extension is not present */
         {
@@ -191,7 +188,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Receive invalid chosen psk wire index */
         {
@@ -220,7 +217,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Receive valid server preshared extension recv */
         {
@@ -256,8 +253,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
-    }
+        };
+    };
 
     /* Functional test */
     if (s2n_is_tls13_fully_supported()) {

@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_renegotiation_info_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test server_renegotiation_info send and recv during initial handshake
      *
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.recv(client_conn, &extension));
         EXPECT_EQUAL(client_conn->secure_renegotiation, 1);
         EXPECT_EQUAL(s2n_stuffer_data_available(&extension), 0);
-    }
+    };
 
     /* Test server_renegotiation_info recv during initial handshake - extension too long */
     {
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test server_renegotiation_info recv during initial handshake - extension length wrong
      *
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* Test: if_missing during initial handshake is a no-op
      *
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.if_missing(conn));
         EXPECT_FALSE(conn->secure_renegotiation);
-    }
+    };
 
     /* Test: if_missing during renegotiation handshake is an error
      *
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
         conn->handshake.renegotiation = true;
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.if_missing(conn),
                 S2N_ERR_NO_RENEGOTIATION);
-    }
+    };
 
     /* Test: recv during renegotiation handshake
      *
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
             conn->secure_renegotiation = false;
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_NO_RENEGOTIATION);
-        }
+        };
 
         /* Turn on secure renegotiation for the rest of the tests */
         conn->secure_renegotiation = true;
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
                     client_verify_data, server_verify_data, verify_data_len));
 
             EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.recv(conn, &extension));
-        }
+        };
 
         /* Receive incorrect length: too small */
         {
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Receive incorrect length: too large */
         {
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Receive incorrect client_verify_data */
         {
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Receive incorrect server_verify_data */
         {
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_BAD_MESSAGE);
-        }
+        };
 
         /* Receive initial handshake extension */
         {
@@ -351,8 +351,8 @@ int main(int argc, char **argv)
             conn->handshake.renegotiation = true;
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_renegotiation_info_extension.recv(conn, &extension),
                     S2N_ERR_BAD_MESSAGE);
-        }
-    }
+        };
+    };
 
     /* Test send during renegotiation handshake
      *
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
 
         /* Verify we can recv what we send */
         EXPECT_SUCCESS(s2n_server_renegotiation_info_extension.recv(server_conn, &sent_extension));
-    }
+    };
 
     /* Functional Test
      *
@@ -437,7 +437,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
             EXPECT_FALSE(client_conn->secure_renegotiation);
-        }
+        };
 
         /* Test "renegotiation_info" extension included during initial handshake */
         {
@@ -450,8 +450,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
             EXPECT_TRUE(client_conn->secure_renegotiation);
-        }
-    }
+        };
+    };
 
     /* Functional Test: SSLv3
      *

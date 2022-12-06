@@ -55,13 +55,13 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_server_name_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* send */
     {
         /* Send writes nothing and always succeeds. */
         EXPECT_SUCCESS(s2n_server_server_name_extension.send(NULL, NULL));
-    }
+    };
 
     /* recv */
     {
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->server_name_used);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;

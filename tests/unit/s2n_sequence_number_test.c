@@ -36,7 +36,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, 0);
-        }
+        };
 
         /* Converts one */
         {
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, 1);
-        }
+        };
 
         /* Converts max possible sequence number */
         {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, 18446744073709551615U);
-        }
+        };
 
         /* Converts max record number value */
         {
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER);
-        }
+        };
 
         /* Matches network order stuffer methods */
         {
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&stuffer_blob, &output));
 
             EXPECT_EQUAL(input, output);
-        }
-    }
+        };
+    };
     END_TEST();
 }

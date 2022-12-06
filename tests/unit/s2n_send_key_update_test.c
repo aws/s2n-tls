@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* TLS 1.2 Server that receives TLS 1.3 KeyUpdate from Client should close connection */
     {
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         free(cert_chain);
         free(private_key);
-    }
+    };
 
     END_TEST();
 }

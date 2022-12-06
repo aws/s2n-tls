@@ -195,7 +195,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, ecdsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy));
-        }
+        };
 
         /* Handshake with mutual auth. Both the client and server sign. */
         {
@@ -210,10 +210,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, ecdsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy | CLIENT_AUTH));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* RSA */
     {
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, rsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy));
-        }
+        };
 
         /* Handshake with mutual auth. Both the client and server sign. */
         {
@@ -259,10 +259,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, rsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy | CLIENT_AUTH));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_complete_chain));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_only_chain));

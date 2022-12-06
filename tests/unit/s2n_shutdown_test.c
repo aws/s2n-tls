@@ -54,7 +54,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
-        }
+        };
 
         /* Do not await close_notify if close_notify_received is set */
         {
@@ -87,8 +87,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

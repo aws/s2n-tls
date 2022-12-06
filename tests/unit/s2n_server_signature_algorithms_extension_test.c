@@ -49,7 +49,7 @@ int main(int argc, char **argv)
         s2n_stuffer_free(&io);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     s2n_disable_tls13_in_test();
 
