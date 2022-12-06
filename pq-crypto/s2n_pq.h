@@ -26,4 +26,5 @@ S2N_RESULT s2n_try_enable_kyber512r3_opt_avx2_bmi2(void);
 S2N_RESULT s2n_disable_kyber512r3_opt_avx2_bmi2(void);
  
 bool s2n_pq_is_enabled(void);
+bool s2n_libcrypto_supports_kyber_512(void);
 S2N_RESULT s2n_pq_init(void);
