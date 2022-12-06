@@ -137,8 +137,7 @@ int main(int argc, char **argv)
             const char *input;
             size_t expected_output_size;
             uint8_t expected_output[sizeof(test_mem)];
-        };
-        test_cases[] = {
+        } test_cases[] = {
             { .input = "abcd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
             { .input = "ab cd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
             { .input = " abcd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
