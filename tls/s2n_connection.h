@@ -136,6 +136,9 @@ struct s2n_connection {
      * instead of the ALPN extension */
     unsigned npn_negotiated:1;
 
+    /* Records which state machine is being used by this handshake */
+    unsigned is_tls13_state_machine:1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
@@ -196,9 +199,6 @@ struct s2n_connection {
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
-
-    /* Records which state machine is being used by this handshake */
-    unsigned is_tls13_state_machine:1;
 
     /* Flag indicating whether a protocol version has been
      * negotiated yet. */

@@ -56,6 +56,7 @@ S2N_RESULT s2n_handshake_type_set_tls13_flag(struct s2n_connection *conn, s2n_tl
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE(s2n_connection_get_protocol_version(conn) >= S2N_TLS13, S2N_ERR_HANDSHAKE_STATE);
     conn->handshake.handshake_type |= flag;
+    conn->is_tls13_state_machine = true;
     return S2N_RESULT_OK;
 }
 
