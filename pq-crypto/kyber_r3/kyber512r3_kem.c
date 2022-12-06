@@ -24,7 +24,7 @@ S2N_ENSURE_PORTABLE_OPTIMIZATIONS
 *
 * Returns 0 (success)
 **************************************************/
-int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
+int s2n_kyber_512_r3_crypto_kem_keypair(uint8_t *pk, uint8_t *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 #if defined(S2N_KYBER512R3_AVX2_BMI2)
@@ -60,7 +60,7 @@ int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 *
 * Returns 0 (success)
 **************************************************/
-int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
+int s2n_kyber_512_r3_crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     uint8_t buf[2*S2N_KYBER_512_R3_SYMBYTES];
@@ -109,7 +109,7 @@ int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
 *
 * On failure, ss will contain a pseudo-random value.
 **************************************************/
-int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
+int s2n_kyber_512_r3_crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     uint8_t buf[2*S2N_KYBER_512_R3_SYMBYTES];
