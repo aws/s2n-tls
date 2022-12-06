@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
+#include "utils/s2n_rfc5952.h"
+
 #include <stdio.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "error/s2n_errno.h"
-
-#include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
 
 static uint8_t dec[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -77,8 +77,7 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
             if (octets[i]) {
                 current_run_length = 0;
-            }
-            else {
+            } else {
                 current_run_length++;
             }
 
@@ -88,10 +87,8 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
             }
         }
 
-
         for (int i = 0; i < 8; i++) {
             if (i == longest_run_start && longest_run_length > 1) {
-
                 if (i == 0) {
                     *cursor++ = ':';
                 }
@@ -102,12 +99,11 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
                 i += longest_run_length - 1;
 
-            }
-            else {
+            } else {
                 uint8_t nibbles[4] = { (octets[i] & 0xF000) >> 12,
-                                       (octets[i] & 0x0F00) >> 8,
-                                       (octets[i] & 0x00F0) >> 4,
-                                       (octets[i] & 0x000F) };
+                    (octets[i] & 0x0F00) >> 8,
+                    (octets[i] & 0x00F0) >> 4,
+                    (octets[i] & 0x000F) };
 
                 /* Skip up to three leading zeroes */
                 int j;
@@ -118,9 +114,8 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
                 }
 
                 for (; j < 4; j++) {
-                    *cursor++ = hex[ nibbles[j] ];
+                    *cursor++ = hex[nibbles[j]];
                 }
-
             }
 
             *cursor++ = ':';

@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_sct_list.h"
+
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_server_sct_list.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 static bool s2n_server_sct_list_should_send(struct s2n_connection *conn);
 static int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out);

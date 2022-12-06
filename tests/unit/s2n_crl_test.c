@@ -193,9 +193,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &received_lookup_data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &received_lookup_data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -239,9 +237,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -280,9 +276,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -321,12 +315,11 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
         EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
 
+        struct crl_lookup_data data = { 0 };
+
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        struct crl_lookup_data data = { 0 };
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -368,9 +361,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -417,8 +408,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_noop;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_noop, NULL));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -474,8 +464,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_callback_fail;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_callback_fail, NULL));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -513,9 +502,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -554,9 +541,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -595,9 +580,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -636,9 +619,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
@@ -674,9 +655,7 @@ int main(int argc, char *argv[])
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -712,9 +691,7 @@ int main(int argc, char *argv[])
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
-
-        config->crl_lookup_cb = crl_lookup_test_callback;
-        config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -765,9 +742,7 @@ int main(int argc, char *argv[])
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
-
-        server_config->crl_lookup_cb = crl_lookup_test_callback;
-        server_config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(server_config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -818,9 +793,7 @@ int main(int argc, char *argv[])
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
         data.crls[1] = root_crl;
-
-        server_config->crl_lookup_cb = crl_lookup_test_callback;
-        server_config->crl_lookup_ctx = (void*) &data;
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(server_config, crl_lookup_test_callback, &data));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);

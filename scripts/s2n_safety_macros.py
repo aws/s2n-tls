@@ -27,6 +27,8 @@ header = copyright + """
  * should be in there.
  */
 
+/* clang-format off */
+
 #include "error/s2n_errno.h"
 #include "utils/s2n_ensure.h"
 #include "utils/s2n_result.h"
@@ -737,9 +739,8 @@ def cleanup(contents):
 
 def write(f, contents):
     contents = cleanup(contents)
-    header_file = open(f, "w")
-    header_file.write(contents)
-    header_file.close()
+    with open(f, "w") as header_file:
+        header_file.write(contents)
 
 write("utils/s2n_safety_macros.h", header)
 

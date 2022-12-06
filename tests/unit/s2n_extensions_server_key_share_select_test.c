@@ -357,7 +357,7 @@ int main() {
             /* Server would have initially chosen kem_group[0] when processing the supported_groups extension */
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             struct s2n_kem_group_params *server_params = &server_conn->kex_params.server_kem_group_params;
-            const struct s2n_kem_group *kem_group0 = kem_pref->tls13_kem_groups[0];;
+            const struct s2n_kem_group *kem_group0 = kem_pref->tls13_kem_groups[0];
             server_params->kem_group = kem_group0;
             server_params->kem_params.kem = kem_group0->kem;
             server_params->ecc_params.negotiated_curve = kem_group0->curve;
@@ -411,7 +411,7 @@ int main() {
             /* Server would have initially chosen kem_group[0] when processing the supported_groups extension */
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             struct s2n_kem_group_params *server_params = &server_conn->kex_params.server_kem_group_params;
-            const struct s2n_kem_group *kem_group0 = kem_pref->tls13_kem_groups[0];;
+            const struct s2n_kem_group *kem_group0 = kem_pref->tls13_kem_groups[0];
             server_params->kem_group = kem_group0;
             server_params->kem_params.kem = kem_group0->kem;
             server_params->ecc_params.negotiated_curve = kem_group0->curve;

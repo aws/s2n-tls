@@ -16,9 +16,8 @@
 #include <string.h>
 
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 int s2n_stuffer_peek_char(struct s2n_stuffer *s2n_stuffer, char *c)
 {
@@ -54,7 +53,9 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipp
             break;
         }
     }
-    if(skipped != NULL) *skipped = s2n_stuffer->read_cursor - initial_read_cursor;
+    if (skipped != NULL) {
+        *skipped = s2n_stuffer->read_cursor - initial_read_cursor;
+    }
     POSIX_POSTCONDITION(s2n_stuffer_validate(s2n_stuffer));
     return S2N_SUCCESS;
 }
@@ -91,7 +92,7 @@ int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
         uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
         POSIX_ENSURE_REF(actual);
 
-        if (strncmp((char*)actual, target, len) == 0){
+        if (strncmp((char *) actual, target, len) == 0) {
             return S2N_SUCCESS;
         } else {
             /* If string doesn't match, rewind stuffer to 1 byte after last read */
@@ -118,14 +119,15 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 }
 
 /* Skips an expected character in the stuffer between min and max times */
-int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped)
+int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
+        const uint32_t max, uint32_t *skipped)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE(min <= max, S2N_ERR_SAFETY);
 
     uint32_t skip = 0;
     while (stuffer->read_cursor < stuffer->write_cursor && skip < max) {
-        if (stuffer->blob.data[stuffer->read_cursor] == expected){
+        if (stuffer->blob.data[stuffer->read_cursor] == expected) {
             stuffer->read_cursor += 1;
             skip += 1;
         } else {
@@ -133,7 +135,9 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
         }
     }
     POSIX_ENSURE(skip >= min, S2N_ERR_STUFFER_NOT_FOUND);
-    if(skipped != NULL) *skipped = skip;
+    if (skipped != NULL) {
+        *skipped = skip;
+    }
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
@@ -186,7 +190,7 @@ int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *st
     POSIX_ENSURE_REF(str);
     uint32_t length = strlen(str);
     POSIX_GUARD(s2n_stuffer_alloc(stuffer, length + 1));
-    return s2n_stuffer_write_bytes(stuffer, (const uint8_t *)str, length);
+    return s2n_stuffer_write_bytes(stuffer, (const uint8_t *) str, length);
 }
 
 int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length)

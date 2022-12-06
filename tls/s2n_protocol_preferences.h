@@ -17,7 +17,9 @@
 
 #include "api/s2n.h"
 
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_result.h"
+#include "utils/s2n_blob.h"
 
 S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol);
 S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains);
