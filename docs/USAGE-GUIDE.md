@@ -386,33 +386,34 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 ### Chart: Security Policy Version To Protocol Version And Ciphersuites 
 
-The following chart maps the security policy version to protocol version and ciphersuites supported for policies *without* [ChaCha20-Poly1305 boosting support](#chart-security-policy-version-to-protocol-version-and-ciphersuites-with-chacha20-poly1305-boosting-support):
+The following chart maps the security policy version to protocol version and ciphersuites supported.
 
-|           version           | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|-----------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
-|          "default"          |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
-|          "20190214"         |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-|          "20170718"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
-|          "20170405"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|          "20170328"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |
-|          "20170210"         |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
-|          "20160824"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
-|          "20160804"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|          "20160411"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|          "20150306"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|          "20150214"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |
-|          "20150202"         |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |
-|          "20141001"         |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
-|          "20140601"         |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
-|          "20190120"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|          "20190121"         |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|          "20190122"         |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-|        "default_tls13"      |       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
-|          "20190801"         |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
-|          "20190802"         |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
-|          "20200207"         |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
-|          "rfc9151"          |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |
-|  "CloudFront-TLS-1-2-2021"  |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |
+|           version                            | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE | ChaCha20-Boosted |
+|----------------------------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|------------------|
+|          "default"                           |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20190214"                          |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |                  |
+|          "20170718"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |                  |
+|          "20170405"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20170328"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |                  |
+|          "20170210"                          |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20160824"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |                  |
+|          "20160804"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20160411"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20150306"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20150214"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |                  |
+|          "20150202"                          |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |                  |
+|          "20141001"                          |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |                  |
+|          "20140601"                          |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |                  |
+|          "20190120"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20190121"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20190122"                          |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |                  |
+|        "default_tls13"                       |       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |                  |
+|          "20190801"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20190802"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20200207"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |                  |
+|          "rfc9151"                           |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |                  |
+|  "CloudFront-TLS-1-2-2021"                   |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |                  |
+|  "CloudFront-TLS-1-2-2021-ChaCha20-Boosted"  |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |        X         |
 
 The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 
@@ -422,7 +423,7 @@ The "default" and "default_tls13" version is special in that it will be updated 
 
 The "rfc9151" security policy is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151).
 
-s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. Unless [ChaCha20-Poly1305 boosting](#chart-security-policy-version-to-protocol-version-and-ciphersuites-with-chacha20-poly1305-boosting-support) is enabled then s2n-tls follows the following order:
+s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. Unless [ChaCha20-Poly1305 boosting](#chacha20-poly1305-boosting) is enabled then s2n-tls follows the following order:
 
 *NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The underlying encrypt/decrypt functions are not available in older versions.
 
@@ -431,16 +432,11 @@ s2n-tls does not expose an API to control the order of preference for each ciphe
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
-### Chart: Security Policy Version To Protocol Version And Ciphersuites (With ChaCha20-Poly1305 Boosting Support)
+#### ChaCha20-Poly1305 Boosting
 
-The following chart maps the security policy version to protocol version and ciphersuites supported for policies *with* ChaCha20-Poly1305 boosting support. The prioritization or 'boosting' of ChaCha20 ciphersuite preference is known as ChaCha20 boosting. If (and only if) an s2n-tls server selects a security policy with ChaCha20 boosting support AND the client has a ChaCha20 ciphersuite as its most preferred ciphersuite then does the server prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites.  
+The prioritization or 'boosting' of ChaCha20 ciphersuite preference is known as ChaCha20 boosting. If (and only if) an s2n-tls server selects a security policy with ChaCha20 boosting support AND the client has a ChaCha20 ciphersuite as its most preferred ciphersuite then does the server prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites.  
 
 *NOTE*: An s2n-tls security policy cannot have ChaCha20 boosting support if there are no ChaCha20 ciphersuites in its suites list. 
-
-|   version                                  | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|--------------------------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
-| "CloudFront-TLS-1-2-2021-ChaCha20-Boosted" |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |
-
 
 ### Chart: Security Policy Version To Supported Signature Schemes
 

@@ -905,14 +905,14 @@ static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_s
         return false;
     }
 
-    /* If chacha20-poly1305 is available, then we can directly check the record_alg */
+    /* If s2n_chacha20_poly1305 is available, then we can directly check the record_alg */
     if (s2n_chacha20_poly1305.is_available()) {
         return cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
     } 
 
-    /* Else chacha20-poly1305 is not available and so the cipher_suite's record_alg is never set. In order to determine
-     * whether cipher_suite uses a chacha20_poly1305 alg, we can not rely on the record_alg field but instead
-     * iterate over all_record_args, which is always available.
+    /* If s2n_chacha20_poly1305 is not available then cipher_suite->record_alg is null. so that field can't be
+     * used to check if the ciphersuite is ChaCha20. However we can iterate over the cipher_suite->all_record_algs,
+     * as a ChaCha20 ciphersuite will always have a ChaCha20 record algorithm in that list.
      */
     for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
         const struct s2n_record_algorithm* rec_alg = cipher_suite->all_record_algs[i];
