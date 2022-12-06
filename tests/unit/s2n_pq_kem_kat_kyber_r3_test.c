@@ -37,7 +37,7 @@ static const struct s2n_kem_kat_test_vector test_vectors[] = {
 int main()
 {
     BEGIN_TEST();
-    if (!s2n_pq_is_enabled() || s2n_libcrypto_supports_kyber_512() ) {
+    if (!s2n_pq_is_enabled() || s2n_libcrypto_supports_kyber_512()) {
         /* The KAT tests rely on the low-level PQ crypto functions;
          * there is nothing to test if PQ is disabled.
          *
