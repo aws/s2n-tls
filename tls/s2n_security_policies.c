@@ -910,8 +910,8 @@ static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_s
         return cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
     } 
 
-    /* If s2n_chacha20_poly1305 is not available then cipher_suite->record_alg is null. so that field can't be
-     * used to check if the ciphersuite is ChaCha20. However we can iterate over the cipher_suite->all_record_algs,
+    /* If s2n_chacha20_poly1305 is not available then cipher_suite->record_alg is null, so that field can't be
+     * used to check if the ciphersuite is ChaCha20. However we can iterate over cipher_suite->all_record_algs,
      * as a ChaCha20 ciphersuite will always have a ChaCha20 record algorithm in that list.
      */
     for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
