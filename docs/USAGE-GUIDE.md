@@ -434,7 +434,7 @@ s2n-tls does not expose an API to control the order of preference for each ciphe
 
 #### ChaCha20-Poly1305 Boosting
 
-The prioritization or 'boosting' of ChaCha20 ciphersuite preference is known as ChaCha20 boosting. If (and only if) an s2n-tls server selects a security policy with ChaCha20 boosting support AND the client has a ChaCha20 ciphersuite as its most preferred ciphersuite then does the server prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites.  
+The prioritization of ChaCha20 ciphersuites is known as ChaCha20 boosting. An s2n-tls server will prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites if the server configures a security policy with ChaCha20 boosting enabled AND the client sends a ChaCha20 ciphersuite as its most preferred ciphersuite. 
 
 *NOTE*: An s2n-tls security policy cannot have ChaCha20 boosting support if there are no ChaCha20 ciphersuites in its suites list. 
 
