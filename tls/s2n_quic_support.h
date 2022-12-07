@@ -65,9 +65,8 @@ typedef enum {
  * the application if necessary. The application should also be very careful managing the memory and
  * lifespan of the secret: if the secret is compromised, TLS is compromised.
  */
-typedef int (*s2n_secret_cb) (void* context, struct s2n_connection *conn,
-                              s2n_secret_type_t secret_type,
-                              uint8_t *secret, uint8_t secret_size);
+typedef int (*s2n_secret_cb)(void *context, struct s2n_connection *conn,
+        s2n_secret_type_t secret_type, uint8_t *secret, uint8_t secret_size);
 
 /*
  * Set the function to be called when S2N begins using a new key.
