@@ -33,6 +33,28 @@ async fn send_and_recv_basic() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
+async fn send_and_recv_into_vec() -> Result<(), Box<dyn std::error::Error>> {
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let connector = TlsConnector::new(common::client_config()?.build()?);
+    let acceptor = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (mut client, mut server) =
+        common::run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
+
+    client.write_all(TEST_DATA).await?;
+
+    let mut received = vec![];
+    while received.len() < TEST_DATA.len() {
+        let bytes_read = server.read_buf(&mut received).await?;
+        assert!(bytes_read > 0);
+    }
+    assert_eq!(TEST_DATA, received);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn send_and_recv_multiple_records() -> Result<(), Box<dyn std::error::Error>> {
     let (server_stream, client_stream) = common::get_streams().await?;
 

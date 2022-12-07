@@ -59,10 +59,6 @@ libs:
 bin: libs
 	$(MAKE) -C bin
 
-.PHONY : integration
-integration: bin
-	$(MAKE) -C tests integration
-
 .PHONY : integrationv2
 integrationv2: bin
 	$(MAKE) -C tests integrationv2
