@@ -330,6 +330,11 @@ int main(int argc, char **argv)
 
     EXPECT_TRUE(s2n_array_len(fgn_test_cases) == NUMBER_OF_FGN_TEST_CASES);
 
+    /* Sanity check that MAP_INHERIT_ZERO is supported where we know it should be supported */
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+    EXPECT_TRUE(s2n_is_map_inherit_zero_supported());
+#endif
+
     /* Create NUMBER_OF_FGN_TEST_CASES number of child processes that run each
      * test case.
      *
