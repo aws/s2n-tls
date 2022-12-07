@@ -205,7 +205,8 @@ int main(int argc, char **argv)
                 EXPECT_NOT_EQUAL(messages_original[j], CLIENT_CHANGE_CIPHER_SPEC);
 
                 /* Skip CCS messages in the MIDDLEBOX_COMPAT handshake */
-                while (messages_mc[j_mc] == SERVER_CHANGE_CIPHER_SPEC || messages_mc[j_mc] == CLIENT_CHANGE_CIPHER_SPEC) {
+                while (messages_mc[j_mc] == SERVER_CHANGE_CIPHER_SPEC
+                        || messages_mc[j_mc] == CLIENT_CHANGE_CIPHER_SPEC) {
                     j_mc++;
                 }
 

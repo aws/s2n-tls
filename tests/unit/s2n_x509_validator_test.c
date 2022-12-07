@@ -443,8 +443,7 @@ int main(int argc, char **argv)
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                                        &pkey_type, &public_key_out),
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out),
                 S2N_ERR_CERT_EXPIRED);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
