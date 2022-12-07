@@ -16,7 +16,6 @@
 #include <sys/param.h>
 
 #include "error/s2n_errno.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_tls.h"
@@ -161,7 +160,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
 S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    while(s2n_stuffer_data_available(&conn->in)) {
+    while (s2n_stuffer_data_available(&conn->in)) {
         RESULT_GUARD(s2n_post_handshake_message_recv(conn));
         RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->post_handshake.in));
     }
