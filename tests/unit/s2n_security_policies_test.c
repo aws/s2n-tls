@@ -541,81 +541,37 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
     }
 
-    /* Test security policy init with chacha20 boosting */
+    /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
     {
-        /* Back up the first security policy selection because the tests will replace it with a test selection */
-        struct s2n_security_policy_selection previous = security_policy_selection[0];
+        if (s2n_chacha20_poly1305.is_available()) {
+            for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+                const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+                POSIX_ENSURE_REF(sec_policy);
+                const struct s2n_cipher_preferences *cipher_preference = sec_policy->cipher_preferences;
+                POSIX_ENSURE_REF(cipher_preference);
 
-        /* Setup cipher preferences + security policy */
-        struct s2n_cipher_preferences cipher_preferences = { 0 };
-        struct s2n_security_policy test_policy  = {
-            .minimum_protocol_version = S2N_SSLv3,
-            .cipher_preferences = &cipher_preferences,
-            .kem_preferences = &kem_preferences_null,
-            .signature_preferences = &s2n_signature_preferences_20201021,
-            .ecc_preferences = &s2n_ecc_preferences_test_all,
-        };
-        security_policy_selection[0] = (struct s2n_security_policy_selection){
-            .version="test_security_policy_chacha20",
-            .security_policy=&test_policy,
-            .ecc_extension_required=0,
-            .pq_kem_extension_required=0
-        };
+                /* No need to check cipher preferences with chacha20 boosting disabled */
+                if (!cipher_preference->allow_chacha20_boosting) {
+                    continue;
+                }
 
-        /* Test security policy with invalid chacha20 boosting configuration triggers error on init */
-        {
-            struct s2n_cipher_suite *aes_128_only_cipher_suite_list[] = {
-                &s2n_tls13_aes_128_gcm_sha256,
-            };
+                bool cipher_preferences_has_chacha20_cipher_suite = false;
 
-            cipher_preferences = (struct s2n_cipher_preferences) {
-                .count = s2n_array_len(aes_128_only_cipher_suite_list),
-                .suites = aes_128_only_cipher_suite_list,
-                .allow_chacha20_boosting = true
-            };
+                /* Iterate over cipher preferences and try to find a chacha20 ciphersuite */
+                for (size_t j = 0; j < cipher_preference->count; j++) {
+                    struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
+                    POSIX_ENSURE_REF(cipher);
 
-            /* Cipher preferences has allow_chacha20_boosting incorrectly set as true even though the ciphersuite list only has aes128 */
-            {
-                cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_security_policies_init(), S2N_ERR_INVALID_SECURITY_POLICY);
-            }
+                    if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
+                        cipher_preferences_has_chacha20_cipher_suite = true;
+                        break;
+                    }
+                }
 
-            /* Sanity check: cipher preferences has allow_chacha20_boosting correctly set as false */
-            {
-                /* cppcheck-suppress redundantAssignment */
-                cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_security_policies_init());
+                /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
+                EXPECT_TRUE(cipher_preferences_has_chacha20_cipher_suite);
             }
         }
-
-        /* Test security policy with valid chacha20 boosting completes init successfully */
-        {
-            struct s2n_cipher_suite *test_cipher_suite[] = {
-                &s2n_tls13_chacha20_poly1305_sha256,
-            };
-
-            cipher_preferences = (struct s2n_cipher_preferences) {
-                .count = s2n_array_len(test_cipher_suite),
-                .suites = test_cipher_suite,
-                .allow_chacha20_boosting = true
-            };
-
-            /* Cipher preferences can have allow_chacha20_boosting set to true */
-            {
-                cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_security_policies_init());
-            }
-
-            /* Cipher preferences can have allow_chacha20_boosting set to false */
-            {
-                /* cppcheck-suppress redundantAssignment */
-                cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_security_policies_init());
-            }
-        }
-
-        /* IMPORTANT: restore the old policy selection to return to the old state */
-        security_policy_selection[0] = previous;
     }
 
     /* Test a security policy not on the official list */

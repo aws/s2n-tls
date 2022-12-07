@@ -900,30 +900,6 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return 0;
 }
 
-static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
-    if (!cipher_suite) {
-        return false;
-    }
-
-    /* If s2n_chacha20_poly1305 is available, then we can directly check the record_alg */
-    if (s2n_chacha20_poly1305.is_available()) {
-        return cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
-    } 
-
-    /* If s2n_chacha20_poly1305 is not available then cipher_suite->record_alg is null, so that field can't be
-     * used to check if the ciphersuite is ChaCha20. However we can iterate over cipher_suite->all_record_algs,
-     * as a ChaCha20 ciphersuite will always have a ChaCha20 record algorithm in that list.
-     */
-    for (size_t i = 0; i < cipher_suite->num_record_algs; i++) {
-        const struct s2n_record_algorithm* rec_alg = cipher_suite->all_record_algs[i];
-        if (rec_alg && rec_alg->cipher == &s2n_chacha20_poly1305) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
     const struct s2n_security_policy *security_policy = NULL;
@@ -953,8 +929,6 @@ int s2n_security_policies_init()
         const struct s2n_ecc_preferences *ecc_preference = security_policy->ecc_preferences;
         POSIX_ENSURE_REF(ecc_preference);
         POSIX_GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
-
-        bool cipher_preferences_has_chacha20_cipher_suite = false;
 
         const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
         if (certificate_signature_preference != NULL) {
@@ -987,15 +961,6 @@ int s2n_security_policies_init()
             if (s2n_cipher_suite_requires_pq_extension(cipher)) {
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
-
-            if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
-                cipher_preferences_has_chacha20_cipher_suite = true;
-            }
-        }
-
-        if (cipher_preference->allow_chacha20_boosting) {
-            /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
-            POSIX_ENSURE(cipher_preferences_has_chacha20_cipher_suite, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));

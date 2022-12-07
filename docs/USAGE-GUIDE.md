@@ -423,7 +423,7 @@ The "default" and "default_tls13" version is special in that it will be updated 
 
 The "rfc9151" security policy is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151).
 
-s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. Unless [ChaCha20-Poly1305 boosting](#chacha20-poly1305-boosting) is enabled then s2n-tls follows the following order:
+s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:
 
 *NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The underlying encrypt/decrypt functions are not available in older versions.
 
@@ -434,9 +434,9 @@ s2n-tls does not expose an API to control the order of preference for each ciphe
 
 #### ChaCha20-Poly1305 Boosting
 
-The prioritization of ChaCha20 ciphersuites is known as ChaCha20 boosting. An s2n-tls server will prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites if the server configures a security policy with ChaCha20 boosting enabled AND the client sends a ChaCha20 ciphersuite as its most preferred ciphersuite. 
+For hardware with AES-NI, then AES-based ciphers perform faster than their ChaCha20-Poly1305 counterparts. However, for hardware without AES-acceleration, ChaCha20 faster. In these cases, clients would prefer to negotiate an ChaCha20 ciphersuite for performance reasons by listing it as their first choice. 
 
-*NOTE*: An s2n-tls security policy cannot have ChaCha20 boosting support if there are no ChaCha20 ciphersuites in its suites list. 
+In order to support this, s2n-tls supports ChaCha20-Poly1305 prioritization or ChaCha20-Poly1305 boosting. An s2n-tls server will prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites if the server configures a security policy with ChaCha20 boosting enabled AND the client sends a ChaCha20 ciphersuite as its most preferred ciphersuite. 
 
 ### Chart: Security Policy Version To Supported Signature Schemes
 

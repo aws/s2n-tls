@@ -1169,7 +1169,7 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
     return 0;
 }
 
-static bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
+bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite) {
     return cipher_suite && cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
 }
 
