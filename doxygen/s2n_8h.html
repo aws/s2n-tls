@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.29-0e0d6079</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.29-2d5ddb3a</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -392,6 +392,8 @@ Functions</h2></td></tr>
 <tr class="separator:aa0729c67323dbe0604e6b55f82afb6f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6de9d794c410474e9851880bd4914025"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a6de9d794c410474e9851880bd4914025">s2n_config_set_send_buffer_size</a> (struct s2n_config *config, uint32_t size)</td></tr>
 <tr class="separator:a6de9d794c410474e9851880bd4914025"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a873c1969c18fdf8663a9b593e62b9460"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a873c1969c18fdf8663a9b593e62b9460">s2n_config_set_recv_multi_record</a> (struct s2n_config *config, bool enabled)</td></tr>
+<tr class="separator:a873c1969c18fdf8663a9b593e62b9460"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a079022d5c18f4ffd64c1c6dedb3bbc66"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66">s2n_config_set_verify_host_callback</a> (struct s2n_config *config, <a class="el" href="s2n_8h.html#a8aa56850695a02753f726ea9860ec383">s2n_verify_host_fn</a>, void *data)</td></tr>
 <tr class="separator:a079022d5c18f4ffd64c1c6dedb3bbc66"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:affff244d7ed6f3b8d1f885df1b307f4e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#affff244d7ed6f3b8d1f885df1b307f4e">s2n_config_set_check_stapled_ocsp_response</a> (struct s2n_config *config, uint8_t check_ocsp)</td></tr>
@@ -4716,6 +4718,44 @@ Safety</h1>
 
 </div>
 </div>
+<a id="a873c1969c18fdf8663a9b593e62b9460" name="a873c1969c18fdf8663a9b593e62b9460"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a873c1969c18fdf8663a9b593e62b9460">&#9670;&#160;</a></span>s2n_config_set_recv_multi_record()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_set_recv_multi_record </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>enabled</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Enable or disable recieving of multiple TLS records in a single s2n_recv call</p>
+<p >Legacy behavior is to return after reading a single TLS record which may not be the most efficient way to invoke this function, especially if larger receive buffers are used.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
+    <tr><td class="paramname">enabled</td><td>Set to <code>true</code> if multiple record recieve is to be enabled; <code>false</code> to disable. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
 <a id="a6de9d794c410474e9851880bd4914025" name="a6de9d794c410474e9851880bd4914025"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6de9d794c410474e9851880bd4914025">&#9670;&#160;</a></span>s2n_config_set_send_buffer_size()</h2>
 
@@ -9032,7 +9072,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1747</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1759</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
