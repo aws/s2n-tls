@@ -320,10 +320,9 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(obfuscated_ticket_age, 0);
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&out),
-                    SHA384_DIGEST_LENGTH      /* binder size */
-                            + sizeof(uint8_t) /* size of binder size */
-                            + sizeof(uint16_t))
-            /* size of binder list size */;
+                    SHA384_DIGEST_LENGTH         /* binder size */
+                            + sizeof(uint8_t)    /* size of binder size */
+                            + sizeof(uint16_t)); /* size of binder list size */
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
@@ -378,9 +377,8 @@ int main(int argc, char **argv)
             }
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&out),
-                    binder_list_size /* binder list size */
-                            + sizeof(uint16_t))
-            /* size of binder list size */;
+                    binder_list_size             /* binder list size */
+                            + sizeof(uint16_t)); /* size of binder list size */
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
