@@ -15,6 +15,7 @@
 
 #include "tls/s2n_kem.h"
 
+#include "pq-crypto/s2n_kyber_512_evp.h"
 #include "pq-crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
@@ -31,9 +32,15 @@ const struct s2n_kem s2n_kyber_512_r3 = {
     .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER512)
+    .generate_keypair = &s2n_kyber_512_evp_generate_keypair,
+    .encapsulate = &s2n_kyber_512_evp_encapsulate,
+    .decapsulate = &s2n_kyber_512_evp_decapsulate,
+#else
     .generate_keypair = &s2n_kyber_512_r3_crypto_kem_keypair,
     .encapsulate = &s2n_kyber_512_r3_crypto_kem_enc,
     .decapsulate = &s2n_kyber_512_r3_crypto_kem_dec,
+#endif
 };
 
 const struct s2n_kem *kyber_kems[] = {
@@ -63,10 +70,8 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
-    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE)
-            + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE)
-            + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
+    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
+    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
 };
@@ -368,15 +373,15 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 /* If S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
  * from compilation. We define stubs of these functions here to error if they are called. */
 /* kyber512r3 */
-int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
+int s2n_kyber_512_r3_crypto_kem_keypair(OUT uint8_t *pk, OUT uint8_t *sk)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
-int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk)
+int s2n_kyber_512_r3_crypto_kem_enc(OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
-int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk)
+int s2n_kyber_512_r3_crypto_kem_dec(OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
