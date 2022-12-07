@@ -261,8 +261,7 @@ int main(int argc, char **argv)
             uint64_t ticket_issue_time;
             uint32_t ticket_age_add;
             uint32_t expected_output;
-        };
-        test_cases[] = {
+        } test_cases[] = {
             { .current_time = MILLIS_TO_NANOS(50), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 100 },
             { .current_time = MILLIS_TO_NANOS(500), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 550 },
             { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 1, .expected_output = 0 },
@@ -595,8 +594,7 @@ int main(int argc, char **argv)
             size_t local_identities_len;
             size_t wire_match_index;
             size_t local_match_index;
-        };
-        test_cases[] = {
+        } test_cases[] = {
 #define WIRE_IDENTITIES(list)  .wire_identities = list, .wire_identities_len = s2n_array_len(list)
 #define LOCAL_IDENTITIES(list) .local_identities = list, .local_identities_len = s2n_array_len(list)
             /* No wire or local identities */

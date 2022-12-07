@@ -443,8 +443,7 @@ int main(int argc, char **argv)
             struct {
                 const char *security_policy;
                 bool expect_renegotiation_info;
-            };
-            test_cases[] = {
+            } test_cases[] = {
                 { .security_policy = "test_all_tls13", .expect_renegotiation_info = false },
                 { .security_policy = "default_tls13", .expect_renegotiation_info = true },
                 { .security_policy = "default", .expect_renegotiation_info = true },
