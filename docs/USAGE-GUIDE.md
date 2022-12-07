@@ -432,11 +432,9 @@ s2n-tls does not expose an API to control the order of preference for each ciphe
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
-#### ChaCha20-Poly1305 Boosting
+#### ChaCha20 Boosting
 
-For hardware with AES-NI, then AES-based ciphers perform faster than their ChaCha20-Poly1305 counterparts. However, for hardware without AES-acceleration, ChaCha20 faster. In these cases, clients would prefer to negotiate an ChaCha20 ciphersuite for performance reasons by listing it as their first choice. 
-
-In order to support this, s2n-tls supports ChaCha20-Poly1305 prioritization or ChaCha20-Poly1305 boosting. An s2n-tls server will prioritize its ChaCha20 ciphersuites over its non-ChaCha20 ciphersuites if the server configures a security policy with ChaCha20 boosting enabled AND the client sends a ChaCha20 ciphersuite as its most preferred ciphersuite. 
+s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers "ChaCha20 boosted" security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20.
 
 ### Chart: Security Policy Version To Supported Signature Schemes
 

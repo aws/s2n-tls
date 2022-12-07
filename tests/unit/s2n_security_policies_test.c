@@ -542,35 +542,33 @@ int main(int argc, char **argv)
     }
 
     /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
-    {
-        if (s2n_chacha20_poly1305.is_available()) {
-            for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
-                const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
-                POSIX_ENSURE_REF(sec_policy);
-                const struct s2n_cipher_preferences *cipher_preference = sec_policy->cipher_preferences;
-                POSIX_ENSURE_REF(cipher_preference);
+    if (s2n_chacha20_poly1305.is_available()) {
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            const struct s2n_cipher_preferences *cipher_preference = sec_policy->cipher_preferences;
+            EXPECT_NOT_NULL(cipher_preference);
 
-                /* No need to check cipher preferences with chacha20 boosting disabled */
-                if (!cipher_preference->allow_chacha20_boosting) {
-                    continue;
-                }
-
-                bool cipher_preferences_has_chacha20_cipher_suite = false;
-
-                /* Iterate over cipher preferences and try to find a chacha20 ciphersuite */
-                for (size_t j = 0; j < cipher_preference->count; j++) {
-                    struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
-                    POSIX_ENSURE_REF(cipher);
-
-                    if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
-                        cipher_preferences_has_chacha20_cipher_suite = true;
-                        break;
-                    }
-                }
-
-                /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
-                EXPECT_TRUE(cipher_preferences_has_chacha20_cipher_suite);
+            /* No need to check cipher preferences with chacha20 boosting disabled */
+            if (!cipher_preference->allow_chacha20_boosting) {
+                continue;
             }
+
+            bool cipher_preferences_has_chacha20_cipher_suite = false;
+
+            /* Iterate over cipher preferences and try to find a chacha20 ciphersuite */
+            for (size_t j = 0; j < cipher_preference->count; j++) {
+                struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
+                EXPECT_NOT_NULL(cipher);
+
+                if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
+                    cipher_preferences_has_chacha20_cipher_suite = true;
+                    break;
+                }
+            }
+
+            /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
+            EXPECT_TRUE(cipher_preferences_has_chacha20_cipher_suite);
         }
     }
 
