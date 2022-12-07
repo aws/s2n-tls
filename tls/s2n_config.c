@@ -1058,3 +1058,12 @@ int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callb
     config->crl_lookup_ctx = ctx;
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->recv_multi_record = enabled;
+
+    return S2N_SUCCESS;
+}
