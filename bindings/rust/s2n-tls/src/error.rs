@@ -368,7 +368,7 @@ impl std::error::Error for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::enums::Version;
+    use crate::{enums::Version, testing::client_hello::CustomError};
     use errno::set_errno;
 
     const FAILURE: isize = -1;
@@ -437,19 +437,6 @@ mod tests {
 
     #[test]
     fn application_error() {
-        use std::{fmt, io};
-
-        #[derive(Debug)]
-        struct CustomError;
-
-        impl fmt::Display for CustomError {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "custom error")
-            }
-        }
-
-        impl std::error::Error for CustomError {}
-
         // test single level errors
         {
             let error = Error::application(Box::new(CustomError));
@@ -460,11 +447,11 @@ mod tests {
 
         // make sure nested errors work
         {
-            let io_error = io::Error::new(io::ErrorKind::Other, CustomError);
+            let io_error = std::io::Error::new(std::io::ErrorKind::Other, CustomError);
             let error = Error::application(Box::new(io_error));
 
             let app_error = error.application_error().unwrap();
-            let io_error = app_error.downcast_ref::<io::Error>().unwrap();
+            let io_error = app_error.downcast_ref::<std::io::Error>().unwrap();
             let _custom_error = io_error
                 .get_ref()
                 .unwrap()
