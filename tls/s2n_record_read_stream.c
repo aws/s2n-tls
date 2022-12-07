@@ -13,37 +13,33 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
-
+#include "crypto/s2n_sequence.h"
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_record_read.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 int s2n_record_parse_stream(
-    const struct s2n_cipher_suite *cipher_suite,
-    struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
-    uint8_t * implicit_iv,
-    struct s2n_hmac_state *mac,
-    uint8_t * sequence_number,
-    struct s2n_session_key *session_key)
+        const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn,
+        uint8_t content_type,
+        uint16_t encrypted_length,
+        uint8_t *implicit_iv,
+        struct s2n_hmac_state *mac,
+        uint8_t *sequence_number,
+        struct s2n_session_key *session_key)
 {
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     POSIX_ENSURE_REF(header);
 
-    struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
     POSIX_ENSURE_REF(en.data);
 
     uint16_t payload_length = encrypted_length;
@@ -69,7 +65,7 @@ int s2n_record_parse_stream(
         POSIX_GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
     }
 
-    struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* MAC check for streaming ciphers - no padding */
