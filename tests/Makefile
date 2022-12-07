@@ -38,10 +38,6 @@ libs:
 	${MAKE} -C testlib
 	${MAKE} -C LD_PRELOAD
 
-.PHONY : integration
-integration:
-	${MAKE} -C integration
-
 .PHONY : integrationv2
 integrationv2:
 	${MAKE} -C integrationv2
