@@ -13,22 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_rsa_signing.h"
-
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
-
+#include "error/s2n_errno.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/extensions/s2n_server_alpn.h"
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 #include "tls/extensions/s2n_server_server_name.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
-
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -57,7 +53,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_encrypted_extensions_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should send no extensions by default */
         {
@@ -76,7 +72,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should send a requested extension */
         {
@@ -100,8 +96,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(extension_type, s2n_server_server_name_extension.iana_value);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_encrypted_extensions_recv */
     {
@@ -123,7 +119,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_encrypted_extensions_recv(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should parse an empty list */
         {
@@ -149,7 +145,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Should parse a requested extension */
         {
@@ -171,8 +167,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->server_name_used, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Functional: Unencrypted EncryptedExtensions rejected */
     if (s2n_is_tls13_fully_supported()) {

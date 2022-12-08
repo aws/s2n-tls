@@ -15,10 +15,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
+#include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type_lists.h"
-#include "tls/extensions/s2n_client_supported_versions.h"
 
 int main(int argc, char **argv)
 {
@@ -33,7 +32,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_extension_list_send(0, NULL, &stuffer));
         EXPECT_FAILURE(s2n_extension_list_send(0, &conn, NULL));
         EXPECT_FAILURE(s2n_extension_list_send(-1, &conn, &stuffer));
-    }
+    };
 
     /* Writes just size if extension type list empty */
     {
@@ -51,7 +50,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Send performs basic, non-zero write */
     {
@@ -69,7 +68,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Write empty list */
     {
@@ -90,7 +89,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Send writes valid supported_versions extension */
     {
@@ -124,7 +123,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_stuffer_free(&extensions_stuffer));
-    }
+    };
 
     END_TEST();
 }
