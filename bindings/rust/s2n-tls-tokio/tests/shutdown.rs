@@ -1,13 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::connection::Connection;
 use s2n_tls::error;
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::convert::TryFrom;
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     join, time,
@@ -198,26 +194,6 @@ async fn shutdown_with_poll_blinding() -> Result<(), Box<dyn std::error::Error>>
     let (mut client, mut server) =
         common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
-    struct PollBlinding<'a, S, C>
-    where
-        C: AsRef<Connection> + AsMut<Connection> + Unpin,
-        S: AsyncRead + AsyncWrite + Unpin,
-    {
-        stream: &'a mut TlsStream<S, C>,
-    }
-
-    impl<'a, S, C> Future for PollBlinding<'a, S, C>
-    where
-        C: AsRef<Connection> + AsMut<Connection> + Unpin,
-        S: AsyncRead + AsyncWrite + Unpin,
-    {
-        type Output = Result<(), error::Error>;
-
-        fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-            Pin::new(&mut *self.as_mut().stream).poll_blinding(ctx)
-        }
-    }
-
     // Trigger a blinded error for the server.
     overrides.next_read(Some(Box::new(|_, _, buf| {
         // Parsing the header is one of the blinded operations
@@ -232,12 +208,7 @@ async fn shutdown_with_poll_blinding() -> Result<(), Box<dyn std::error::Error>>
 
     // poll_blinding MUST NOT complete faster than minimal blinding time.
     let (timeout, _) = join!(
-        time::timeout(
-            common::MIN_BLINDING_SECS,
-            PollBlinding {
-                stream: &mut server
-            }
-        ),
+        time::timeout(common::MIN_BLINDING_SECS, server.apply_blinding()),
         time::timeout(common::MIN_BLINDING_SECS, read_until_shutdown(&mut client)),
     );
     assert!(timeout.is_err());
@@ -247,12 +218,7 @@ async fn shutdown_with_poll_blinding() -> Result<(), Box<dyn std::error::Error>>
     // We check for completion, but not for success. At the moment, the
     // call to s2n_shutdown will fail due to issues in the underlying C library.
     let (timeout, _) = join!(
-        time::timeout(
-            common::MAX_BLINDING_SECS,
-            PollBlinding {
-                stream: &mut server
-            }
-        ),
+        time::timeout(common::MAX_BLINDING_SECS, server.apply_blinding()),
         time::timeout(common::MAX_BLINDING_SECS, read_until_shutdown(&mut client)),
     );
     assert!(timeout.is_ok());

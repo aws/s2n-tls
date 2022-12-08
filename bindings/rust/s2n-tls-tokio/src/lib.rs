@@ -231,13 +231,7 @@ where
             stream.poll_write(async_context, src)
         })
     }
-}
 
-impl<S, C> TlsStream<S, C>
-where
-    C: AsRef<Connection> + AsMut<Connection> + Unpin,
-    S: AsyncRead + AsyncWrite + Unpin,
-{
     /// Polls the blinding timer, if there is any.
     ///
     /// s2n has a "blinding" functionality - when a bad behavior from the peer
@@ -269,6 +263,10 @@ where
         }
 
         Poll::Ready(Ok(()))
+    }
+
+    pub fn apply_blinding(&'_ mut self) -> impl Future<Output = Result<(), Error>> + '_ {
+        ApplyBlinding { stream: self }
     }
 }
 
@@ -377,5 +375,25 @@ where
         f.debug_struct("TlsStream")
             .field("connection", self.as_ref())
             .finish()
+    }
+}
+
+struct ApplyBlinding<'a, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    stream: &'a mut TlsStream<S, C>,
+}
+
+impl<'a, S, C> Future for ApplyBlinding<'a, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    type Output = Result<(), Error>;
+
+    fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut *self.as_mut().stream).poll_blinding(ctx)
     }
 }
