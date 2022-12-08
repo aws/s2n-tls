@@ -17,8 +17,8 @@
  * Here we also capture varius required feature test macros.
  */
 #if defined(__APPLE__)
-    typedef struct _opaque_pthread_once_t  __darwin_pthread_once_t;
-    typedef __darwin_pthread_once_t pthread_once_t;
+typedef struct _opaque_pthread_once_t __darwin_pthread_once_t;
+typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
 #elif defined(__FreeBSD__)
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
@@ -36,22 +36,21 @@
     #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-#include "error/s2n_errno.h"
-#include "utils/s2n_fork_detection.h"
-#include "utils/s2n_safety.h"
-
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "error/s2n_errno.h"
+#include "utils/s2n_fork_detection.h"
+#include "utils/s2n_safety.h"
 
 #if defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK)
-#if (MADV_WIPEONFORK != 18)
-#error "MADV_WIPEONFORK is not 18"
-#endif
+    #if (MADV_WIPEONFORK != 18)
+        #error "MADV_WIPEONFORK is not 18"
+    #endif
 #else /* defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK) */
-#define MADV_WIPEONFORK 18
+    #define MADV_WIPEONFORK 18
 #endif
 
 /* These variables are used to disable all fork detection mechanisms or at the
@@ -61,7 +60,7 @@ static bool ignore_wipeonfork_or_inherit_zero_method_for_testing = false;
 static bool ignore_pthread_atfork_method_for_testing = false;
 static bool ignore_fork_detection_for_testing = false;
 
-#define S2N_FORK_EVENT 0
+#define S2N_FORK_EVENT    0
 #define S2N_NO_FORK_EVENT 1
 
 struct FGN_STATE {
@@ -91,7 +90,6 @@ static struct FGN_STATE fgn_state = {
     .fork_detection_once = PTHREAD_ONCE_INIT,
     .fork_detection_rw_lock = PTHREAD_RWLOCK_INITIALIZER,
 };
-
 
 /* Can currently never fail. See initialise_fork_detection_methods() for
  * motivation.
@@ -196,13 +194,13 @@ static S2N_RESULT s2n_initialise_fork_detection_methods_try(void *addr, long pag
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_setup_mapping(void **addr, long *page_size) {
-
+static S2N_RESULT s2n_setup_mapping(void **addr, long *page_size)
+{
     *page_size = sysconf(_SC_PAGESIZE);
     RESULT_ENSURE_GT(*page_size, 0);
 
     *addr = mmap(NULL, (size_t) *page_size, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     RESULT_ENSURE_NE(*addr, MAP_FAILED);
 
     return S2N_RESULT_OK;
@@ -214,9 +212,7 @@ static void s2n_initialise_fork_detection_methods(void)
     long page_size = 0;
 
     /* Only used to disable fork detection mechanisms during testing. */
-    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == true &&
-        ignore_pthread_atfork_method_for_testing == true) {
-
+    if (ignore_wipeonfork_or_inherit_zero_method_for_testing == true && ignore_pthread_atfork_method_for_testing == true) {
         ignore_fork_detection_for_testing = true;
         return;
     }
@@ -306,8 +302,8 @@ static void s2n_cleanup_cb_munmap(void **probe_addr)
 /* Run-time probe checking whether the system supports the MADV_WIPEONFORK fork
  * detection mechanism.
  */
-static S2N_RESULT s2n_probe_madv_wipeonfork_support(void) {
-
+static S2N_RESULT s2n_probe_madv_wipeonfork_support(void)
+{
     bool result = false;
 
     /* It is not an error to call munmap on a range that does not contain any
@@ -349,7 +345,8 @@ bool s2n_is_map_inherit_zero_supported(void)
 }
 
 /* Use for testing only */
-S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void) {
+S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void)
+{
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     ignore_wipeonfork_or_inherit_zero_method_for_testing = true;
@@ -357,11 +354,11 @@ S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void) {
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ignore_pthread_atfork_for_testing(void) {
+S2N_RESULT s2n_ignore_pthread_atfork_for_testing(void)
+{
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     ignore_pthread_atfork_method_for_testing = true;
 
     return S2N_RESULT_OK;
 }
-

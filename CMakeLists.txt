@@ -19,11 +19,11 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
-
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+option(S2N_AWSLC_KYBER_UNSTABLE "Prefer the AWS-LC provided PQ implementation." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -39,6 +39,7 @@ option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 include(CTest)
 
 file(GLOB API_HEADERS "api/*.h")
+file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
 
 file(GLOB CRYPTO_HEADERS "crypto/*.h")
 file(GLOB CRYPTO_SRC "crypto/*.c")
@@ -85,7 +86,7 @@ endif()
 
 ##be nice to visual studio users
 if(MSVC)
-    source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
+    source_group("Header Files\\s2n\\api" FILES ${API_HEADERS} ${API_UNSTABLE_HEADERS})
     source_group("Header Files\\s2n\\crypto" FILES ${CRYPTO_HEADERS})
     source_group("Header Files\\s2n\\error" FILES ${ERROR_HEADERS})
     source_group("Header Files\\s2n\\pq-crypto" FILES ${PQ_HEADERS})
@@ -231,6 +232,7 @@ endif()
 
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
+    ${API_UNSTABLE_HEADERS}
     ${CRYPTO_HEADERS}
     ${ERROR_HEADERS}
     ${PQ_HEADERS}
@@ -286,6 +288,15 @@ endif()
 
 if(S2N_NO_PQ)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ)
+endif()
+
+# Whether to fail the build when compiling s2n's portable C code with non-portable assembly optimizations. Doing this
+# can lead to runtime crashes if build artifacts are built on modern hardware, but deployed to older hardware without
+# newer CPU instructions. s2n, by default, should be backwards compatible with older CPU types so this flag should be
+# enabled in s2n's CI builds and tests, but other consumers of s2n may have stronger control of what CPU types they
+# deploy to, and can enable more CPU optimizations.
+if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=1)
 endif()
 
 if(KYBER512R3_AVX2_BMI2_OPT_SUPPORTED)
@@ -416,6 +427,26 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
+# Determine if Kyber512 implementation from AWS-LC is available
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_KYBER_512
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kyber_512.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+if(S2N_AWSLC_KYBER_UNSTABLE AND LIBCRYPTO_SUPPORTS_EVP_KYBER_512)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_KYBER512)
+endif()
+
+if (NOT DEFINED CMAKE_AR)
+	message(STATUS "CMAKE_AR undefined, setting to `ar` by default")
+	SET(CMAKE_AR ar)
+else()
+	message(STATUS "CMAKE_AR found: ${CMAKE_AR}")
+endif()
+
 if (S2N_INTERN_LIBCRYPTO)
 
     # Check if the AWS::crypto target has beeen added and handle it
@@ -459,7 +490,7 @@ if (S2N_INTERN_LIBCRYPTO)
           mkdir s2n_libcrypto &&
           cd s2n_libcrypto &&
           # extract libcrypto objects from the archive
-          ar x ../s2n_libcrypto.a &&
+	  ${CMAKE_AR} x ../s2n_libcrypto.a &&
           # rename all of the object files so we don't have any object name collisions
           bash -c "find . -name '*.o' -type f -print0 | xargs -0 -n1 -- basename | xargs -I{} mv {} s2n_crypto__{}"
         VERBATIM
@@ -610,6 +641,7 @@ endif()
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
+install(FILES ${API_UNSTABLE_HEADERS} DESTINATION "include/s2n/unstable" COMPONENT Development)
 
 if (UNIX AND NOT APPLE)
     include(GNUInstallDirs)

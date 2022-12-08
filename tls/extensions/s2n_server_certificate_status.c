@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_certificate_status.h"
+
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_x509_validator.h"
-#include "tls/extensions/s2n_server_certificate_status.h"
 #include "utils/s2n_safety.h"
 
 #define U24_SIZE 3

@@ -13,19 +13,20 @@
  * permissions and limitations under the License.
  */
 
+#include "error/s2n_errno.h"
+
 #include <errno.h>
-#include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "error/s2n_errno.h"
+#include <strings.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 
 #ifdef S2N_STACKTRACE
-#   include <execinfo.h>
+    #include <execinfo.h>
 #endif
 
 __thread int s2n_errno;
@@ -99,6 +100,14 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported") \
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
+    ERR_ENTRY(S2N_ERR_CRL_LOOKUP_FAILED, "No CRL could be found for the corresponding certificate") \
+    ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \
+    ERR_ENTRY(S2N_ERR_CRL_ISSUER, "Unable to get the CRL issuer certificate") \
+    ERR_ENTRY(S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION, "Unhandled critical CRL extension") \
+    ERR_ENTRY(S2N_ERR_CRL_INVALID_THIS_UPDATE, "The CRL contains an invalid thisUpdate field") \
+    ERR_ENTRY(S2N_ERR_CRL_INVALID_NEXT_UPDATE, "The CRL contains an invalid nextUpdate field") \
+    ERR_ENTRY(S2N_ERR_CRL_NOT_YET_VALID, "The CRL is not yet valid") \
+    ERR_ENTRY(S2N_ERR_CRL_EXPIRED, "The CRL has expired") \
     ERR_ENTRY(S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered") \
     ERR_ENTRY(S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client") \
     ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by configuration") \
@@ -278,10 +287,15 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_OWNERSHIP, "The ownership of the certificate chain is incompatible with the operation") \
     ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API") \
     ERR_ENTRY(S2N_ERR_NO_RENEGOTIATION, "Only secure, server-initiated renegotiation is supported") \
-/* clang-format on */
+    ERR_ENTRY(S2N_ERR_APP_DATA_BLOCKED, "Blocked on application data during handshake") \
+    /* clang-format on */
 
-#define ERR_STR_CASE(ERR, str) case ERR: return str;
-#define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;
+#define ERR_STR_CASE(ERR, str) \
+    case ERR:                  \
+        return str;
+#define ERR_NAME_CASE(ERR, str) \
+    case ERR:                   \
+        return #ERR;
 
 const char *s2n_strerror(int error, const char *lang)
 {
@@ -308,7 +322,7 @@ const char *s2n_strerror(int error, const char *lang)
         case S2N_ERR_T_USAGE_END:
             break;
 
-        /* No default to make compiler fail on missing values */
+            /* No default to make compiler fail on missing values */
     }
 
     return no_such_error;
@@ -331,7 +345,7 @@ const char *s2n_strerror_name(int error)
         case S2N_ERR_T_USAGE_END:
             break;
 
-        /* No default to make compiler fail on missing values */
+            /* No default to make compiler fail on missing values */
     }
 
     return no_such_error;
@@ -360,7 +374,6 @@ int s2n_error_get_type(int error)
     return (error >> S2N_ERR_NUM_VALUE_BITS);
 }
 
-
 /* https://www.gnu.org/software/libc/manual/html_node/Backtraces.html */
 static bool s_s2n_stack_traces_enabled = false;
 
@@ -377,15 +390,15 @@ int s2n_stack_traces_enabled_set(bool newval)
 
 #ifdef S2N_STACKTRACE
 
-#define MAX_BACKTRACE_DEPTH 20
-__thread struct s2n_stacktrace tl_stacktrace = {0};
+    #define MAX_BACKTRACE_DEPTH 20
+__thread struct s2n_stacktrace tl_stacktrace = { 0 };
 
 int s2n_free_stacktrace(void)
 {
     if (tl_stacktrace.trace != NULL) {
         free(tl_stacktrace.trace);
-	struct s2n_stacktrace zero_stacktrace = {0};
-	tl_stacktrace = zero_stacktrace;
+        struct s2n_stacktrace zero_stacktrace = { 0 };
+        tl_stacktrace = zero_stacktrace;
     }
     return S2N_SUCCESS;
 }
@@ -405,7 +418,8 @@ int s2n_calculate_stacktrace(void)
     return S2N_SUCCESS;
 }
 
-int s2n_get_stacktrace(struct s2n_stacktrace *trace) {
+int s2n_get_stacktrace(struct s2n_stacktrace *trace)
+{
     *trace = tl_stacktrace;
     return S2N_SUCCESS;
 }
@@ -413,20 +427,20 @@ int s2n_get_stacktrace(struct s2n_stacktrace *trace) {
 int s2n_print_stacktrace(FILE *fptr)
 {
     if (!s_s2n_stack_traces_enabled) {
-      fprintf(fptr, "%s\n%s\n",
-	      "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.",
-	      "See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md");
+        fprintf(fptr, "%s\n%s\n",
+                "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.",
+                "See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md");
         return S2N_SUCCESS;
     }
 
     fprintf(fptr, "\nStacktrace is:\n");
-    for (int i = 0; i < tl_stacktrace.trace_size; ++i){
-        fprintf(fptr, "%s\n",  tl_stacktrace.trace[i]);
+    for (int i = 0; i < tl_stacktrace.trace_size; ++i) {
+        fprintf(fptr, "%s\n", tl_stacktrace.trace[i]);
     }
     return S2N_SUCCESS;
 }
 
-#else /* !S2N_STACKTRACE */
+#else  /* !S2N_STACKTRACE */
 int s2n_free_stacktrace(void)
 {
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
@@ -434,8 +448,7 @@ int s2n_free_stacktrace(void)
 
 int s2n_calculate_stacktrace(void)
 {
-    if (!s_s2n_stack_traces_enabled)
-    {
+    if (!s_s2n_stack_traces_enabled) {
         return S2N_SUCCESS;
     }
 

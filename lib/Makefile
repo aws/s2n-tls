@@ -40,7 +40,10 @@ $(libdir):
 install: libs2n.a libs2n.so $(libdir)
 	@cp libs2n.*  $(libdir)
 	@cp ../api/s2n.h  $(includedir)
+	@mkdir -p $(includedir)/s2n
+	@cp -r ../api/unstable  $(includedir)/s2n
 
 uninstall:
-	@rm $(libdir)/libs2n.*
-	@rm $(includedir)/s2n.h
+	@rm -f $(libdir)/libs2n.*
+	@rm -f $(includedir)/s2n.h
+	@rm -rf $(includedir)/s2n/

@@ -15,9 +15,10 @@
 
 #pragma once
 
-#include "api/s2n.h"
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+#include "api/s2n.h"
 #include "utils/s2n_ensure.h"
 
 /*
@@ -28,16 +29,15 @@
 #define S2N_ERR_NUM_VALUE_BITS 26
 
 /* Start value for each error type. */
-#define S2N_ERR_T_OK_START (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_IO_START (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_CLOSED_START (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_BLOCKED_START (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_ALERT_START (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_PROTO_START (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_OK_START       (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_IO_START       (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_CLOSED_START   (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_BLOCKED_START  (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_ALERT_START    (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_PROTO_START    (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
 #define S2N_ERR_T_INTERNAL_START (S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_USAGE_START (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_USAGE_START    (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
 
-/* clang-format off */
 /* Order of values in this enum is important. New error values should be placed at the end of their respective category.
  * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
  * immediately before S2N_ERR_T_INTERNAL_START(the first value of he next category).
@@ -59,6 +59,7 @@ typedef enum {
     S2N_ERR_IO_BLOCKED = S2N_ERR_T_BLOCKED_START,
     S2N_ERR_ASYNC_BLOCKED,
     S2N_ERR_EARLY_DATA_BLOCKED,
+    S2N_ERR_APP_DATA_BLOCKED,
     S2N_ERR_T_BLOCKED_END,
 
     /* S2N_ERR_T_ALERT */
@@ -112,6 +113,14 @@ typedef enum {
     S2N_ERR_CERT_TYPE_UNSUPPORTED,
     S2N_ERR_CERT_INVALID,
     S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED,
+    S2N_ERR_CRL_LOOKUP_FAILED,
+    S2N_ERR_CRL_SIGNATURE,
+    S2N_ERR_CRL_ISSUER,
+    S2N_ERR_CRL_UNHANDLED_CRITICAL_EXTENSION,
+    S2N_ERR_CRL_INVALID_THIS_UPDATE,
+    S2N_ERR_CRL_INVALID_NEXT_UPDATE,
+    S2N_ERR_CRL_NOT_YET_VALID,
+    S2N_ERR_CRL_EXPIRED,
     S2N_ERR_INVALID_MAX_FRAG_LEN,
     S2N_ERR_MAX_FRAG_LEN_MISMATCH,
     S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED,
@@ -301,28 +310,49 @@ typedef enum {
 #define S2N_DEBUG_STR_LEN 128
 extern __thread const char *s2n_debug_str;
 
-#define TO_STRING(s) #s
-#define STRING_(s) TO_STRING(s)
+#define TO_STRING(s)   #s
+#define STRING_(s)     TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
-#define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ ":" STRING__LINE__
-#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
-#define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
-#define S2N_ERROR_IS_BLOCKING( x )    ( s2n_error_get_type(x) == S2N_ERR_T_BLOCKED )
+#define _S2N_DEBUG_LINE "Error encountered in " __FILE__ ":" STRING__LINE__
+#define _S2N_ERROR(x)                    \
+    do {                                 \
+        s2n_debug_str = _S2N_DEBUG_LINE; \
+        s2n_errno = (x);                 \
+        s2n_calculate_stacktrace();      \
+    } while (0)
+#define S2N_ERROR_PRESERVE_ERRNO() \
+    do {                           \
+        return -1;                 \
+    } while (0)
+#define S2N_ERROR_IS_BLOCKING(x) (s2n_error_get_type(x) == S2N_ERR_T_BLOCKED)
 
 /* DEPRECATED: use POSIX_BAIL instead */
-#define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
+#define S2N_ERROR(x)     \
+    do {                 \
+        _S2N_ERROR((x)); \
+        return -1;       \
+    } while (0)
 
 /* DEPRECATED: use PTR_BAIL instead */
-#define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
+#define S2N_ERROR_PTR(x) \
+    do {                 \
+        _S2N_ERROR((x)); \
+        return NULL;     \
+    } while (0)
 
 /* DEPRECATED: use POSIX_ENSURE instead */
-#define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
+#define S2N_ERROR_IF(cond, x) \
+    do {                      \
+        if (cond) {           \
+            S2N_ERROR(x);     \
+        }                     \
+    } while (0)
 
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {
-  char **trace;
-  int trace_size;
+    char **trace;
+    int trace_size;
 };
 
 extern bool s2n_stack_traces_enabled();
@@ -332,5 +362,3 @@ extern int s2n_calculate_stacktrace(void);
 extern int s2n_print_stacktrace(FILE *fptr);
 extern int s2n_free_stacktrace(void);
 extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
-
-/* clang-format on */

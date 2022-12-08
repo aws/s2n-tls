@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "api/s2n.h"
 
 #define GUARD_EXIT_NULL(x)                                 \
@@ -26,25 +27,25 @@
         }                                                  \
     } while (0)
 
-#define GUARD_EXIT(x, msg)  \
-  do {                      \
-    if ((x) < 0) {          \
-      print_s2n_error(msg); \
-      exit(1);              \
-    }                       \
-  } while (0)
+#define GUARD_EXIT(x, msg)        \
+    do {                          \
+        if ((x) < 0) {            \
+            print_s2n_error(msg); \
+            exit(1);              \
+        }                         \
+    } while (0)
 
-#define GUARD_RETURN(x, msg) \
-  do {                       \
-    if ((x) < 0) {           \
-      print_s2n_error(msg);  \
-      return -1;             \
-    }                        \
-  } while (0)
+#define GUARD_RETURN(x, msg)      \
+    do {                          \
+        if ((x) < 0) {            \
+            print_s2n_error(msg); \
+            return -1;            \
+        }                         \
+    } while (0)
 
 #define S2N_MAX_PSK_LIST_LENGTH 10
-#define MAX_KEY_LEN 32
-#define MAX_VAL_LEN 255
+#define MAX_KEY_LEN             32
+#define MAX_VAL_LEN             255
 
 struct session_cache_entry {
     uint8_t key[MAX_KEY_LEN];
@@ -58,17 +59,17 @@ struct verify_data {
 };
 
 struct conn_settings {
-    unsigned mutual_auth:1;
-    unsigned self_service_blinding:1;
-    unsigned only_negotiate:1;
-    unsigned prefer_throughput:1;
-    unsigned prefer_low_latency:1;
-    unsigned enable_mfl:1;
-    unsigned session_ticket:1;
-    unsigned session_cache:1;
-    unsigned insecure:1;
-    unsigned use_corked_io:1;
-    unsigned https_server:1;
+    unsigned mutual_auth : 1;
+    unsigned self_service_blinding : 1;
+    unsigned only_negotiate : 1;
+    unsigned prefer_throughput : 1;
+    unsigned prefer_low_latency : 1;
+    unsigned enable_mfl : 1;
+    unsigned session_ticket : 1;
+    unsigned session_cache : 1;
+    unsigned insecure : 1;
+    unsigned use_corked_io : 1;
+    unsigned https_server : 1;
     uint32_t https_bench;
     int max_conns;
     const char *ca_dir;
@@ -78,9 +79,11 @@ struct conn_settings {
 };
 
 void print_s2n_error(const char *app_error);
+void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64_t len, s2n_blocked_status *blocked);
 int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo);
 int wait_for_event(int fd, s2n_blocked_status blocked);
 int negotiate(struct s2n_connection *conn, int sockfd);
+int renegotiate(struct s2n_connection *conn, int sockfd, bool wait);
 int early_data_recv(struct s2n_connection *conn);
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len);
 int print_connection_info(struct s2n_connection *conn);
@@ -88,7 +91,7 @@ int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
 
 int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
-int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size);
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
 int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size);
 
 /**
@@ -106,7 +109,7 @@ int write_array_to_file(const char *path, uint8_t *data, size_t length);
  * @param path Path to the file
  * @param length A pointer which will be set to the size of the file
  */
-int get_file_size(const char* path, size_t *length);
+int get_file_size(const char *path, size_t *length);
 
 /**
  * Reads in data from file into a C array

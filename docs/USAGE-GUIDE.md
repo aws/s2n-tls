@@ -343,6 +343,41 @@ An application can override s2n-tls’s internal memory management by calling `s
 
 If you are trying to use FIPS mode, you must enable FIPS in your libcrypto library (probably by calling `FIPS_mode_set(1)`) before calling `s2n_init()`.
 
+## Connection
+
+Users will need to create a `s2n_connection` struct to store all of the state necessary for a TLS connection. Call `s2n_connection_new()` to create a new server or client connection. Call `s2n_connection_free()` to free the memory allocated for this struct when no longer needed.
+
+### Connection Memory
+
+The connection struct is roughly 4KB with some variation depending on how it is configured. Maintainers of the s2n-tls library carefully consider increases to the size of the connection struct as they are aware some users are memory-constrained.
+
+A connection struct has memory allocated specifically for the TLS handshake. Memory-constrained users can free that memory by calling `s2n_connection_free_handshake()` after the handshake is successfully negotiated. Note that the handshake memory can be reused for another connection if `s2n_connection_wipe()` is called, so freeing it may result in more memory allocations later. Additionally some functions that print information about the handshake may not produce meaningful results after the handshake memory is freed.
+
+The input and output buffers consume the most memory on the connection after the handshake. It may not be necessary to keep these buffers allocated when a connection is in a keep-alive or idle state. Call `s2n_connection_release_buffers()` to wipe and free the `in` and `out` buffers associated with a connection to reduce memory overhead of long-lived connections.
+
+### Connection Reuse
+
+Connection objects can be re-used across many connections to reduce memory allocation. Calling `s2n_connection_wipe()` will wipe an individual connection's state and allow the connection object to be re-used for a new TLS connection.
+
+### Connection Info
+
+s2n-tls provides many methods to retrieve details about the handshake and connection, such as the parameters negotiated with the peer. For a full list, see our [doxygen guide](https://aws.github.io/s2n-tls/doxygen/).
+
+#### Protocol Version
+
+s2n-tls provides multiple different methods to get the TLS protocol version of the connection. They should be called after the handshake has completed.
+* `s2n_connection_get_actual_protocol_version()`: The actual TLS protocol version negotiated during the handshake. This is the primary value referred to as "protocol_version", and the most commonly used.
+* `s2n_connection_get_server_protocol_version()`: The highest TLS protocol version the server supports.
+* `s2n_connection_get_client_protocol_version()`: The highest TLS protocol version the client advertised.
+
+## Config
+
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+
+### Overriding the Config
+
+Some `s2n_config` settings can be overridden on a specific connection if desired. For example, `s2n_config_append_protocol_preference()` appends a list of ALPN protocols to a `s2n_config`. Calling the `s2n_connection_append_protocol_preference()` API will override the list of ALPN protocols for an individual connection. Not all config APIs have a corresponding connection API so if there is one missing contact us with an explanation on why it is required for your use-case.
+
 ## Security Policies
 
 s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.
@@ -485,7 +520,15 @@ Applications may want to know which certificate was used by a server for authent
 
 Additionally s2n-tls has functions for parsing certificate extensions on a certificate. Use `s2n_cert_get_x509_extension_value_length()` and `s2n_cert_get_x509_extension_value()` to obtain a specific DER encoded certificate extension from a certificate. `s2n_cert_get_utf8_string_from_extension_data_length()` and `s2n_cert_get_utf8_string_from_extension_data()` can be used to obtain a specific UTF8 string representation of a certificate extension instead. These functions will work for both RFC-defined certificate extensions and custom certificate extensions.
 
-### OCSP Stapling
+### Certificate Revocation
+
+Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate's owner can no longer be trusted.
+
+s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer offering the certificate validates the revocation status of its own certificate. This peer can choose not to send a certificate status response, and applications will have to decide whether or not to fail certificate validation in this case. With CRLs, the application checks the revocation status of the certificate itself, without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.
+
+Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you're sure your peer supports OCSP stapling. CRLs should be used if this assumption can't be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you're able to obtain CRLs in advance for all certificates you expect to encounter.
+
+#### OCSP Stapling
 
 Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.
 
@@ -494,6 +537,22 @@ OCSP stapling can be applied to both client and server certificates when using T
 To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_cert_chain_and_key_set_ocsp_data()` to set the raw bytes of the OCSP stapling data.
 
 The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
+
+#### CRL Validation
+
+> Note: the CRL validation feature in s2n-tls is currently considered unstable, meaning the CRL APIs are subject to change in a future release. To access the CRL APIs, include `api/unstable/crl.h`.
+
+Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A validator wishing to verify a certificate obtains a CRL from the CA, validates the CRL, and checks to ensure the certificate is not contained in the list, and therefore has not been revoked by the CA.
+
+The s2n CRL lookup callback must be implemented and set via `s2n_config_set_crl_lookup_cb()` to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain. 
+
+The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. It is not possible in s2n-tls to obtain CRLs in real-time. Applications should load these CRLs into memory, by creating `s2n_crl`s via `s2n_crl_new()`, and adding the obtained CRL data via `s2n_crl_load_pem()`. The `s2n_crl` should be freed via `s2n_crl_free()` when no longer needed.
+
+The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate's issuer with the hash of the CRL's issuer. The certificate's issuer hash is retrieved via `s2n_crl_lookup_get_cert_issuer_hash()`, and the CRL's issuer hash is retrieved via `s2n_crl_get_issuer_hash()`. Once a CRL is found with a matching issuer hash, call `s2n_crl_lookup_set()` to provide s2n-tls with this CRL.
+
+Call `s2n_crl_lookup_ignore()` to ignore a received certificate if its CRL can't be found. This will cause the certificate validation logic to fail with a `S2N_ERR_CRL_LOOKUP_FAILED` error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.
+
+By default, the CRL validation logic will not fail on CRLs that are not yet active, or are expired. Timestamp validation can optionally be performed in the CRL lookup callback by calling `s2n_crl_validate_active()` and `s2n_crl_validate_not_expired()`.
 
 ### Certificate Transparency
 
@@ -655,34 +714,6 @@ would normally produce, the lower value will be used.
 
 ## Connection-oriented functions
 
-### s2n\_connection\_new
-
-```c
-struct s2n_connection * s2n_connection_new(s2n_mode mode);
-```
-
-**s2n_connection_new** creates a new connection object. Each s2n-tls SSL/TLS
-connection uses one of these objects. These connection objects can be operated
-on by up to two threads at a time, one sender and one receiver, but neither
-sending nor receiving are atomic, so if these objects are being called by
-multiple sender or receiver threads, you must perform your own locking to
-ensure that only one sender or receiver is active at a time. The **mode**
-parameters specifies if the caller is a server, or is a client.
-
-Connections objects are re-usable across many connections, and should be
-re-used (to avoid deallocating and allocating memory). You should wipe
-connections immediately after use.
-
-### s2n\_connection\_set\_config
-
-```c
-int s2n_connection_set_config(struct s2n_connection *conn,
-                              struct s2n_config *config);
-```
-
-**s2n_connection_set_config** Associates a configuration object with a
-connection.
-
 ### s2n\_connection\_set\_fd
 
 ```c
@@ -703,25 +734,6 @@ types of I/O).
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_connection\_get\_protocol\_version
-
-```c
-int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
-int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
-int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
-int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
-```
-
-**s2n_connection_get_client_protocol_version** returns the protocol version
-number supported by the client, **s2n_connection_get_server_protocol_version**
-returns the protocol version number supported by the server and
-**s2n_connection_get_actual_protocol_version** returns the protocol version
-number actually used by s2n-tls for the connection. **s2n_connection_get_client_hello_version**
-returns the protocol version used to send the initial client hello message.
-
-Each version number value corresponds to the macros defined as **S2N_SSLv2**,
-**S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11**, **S2N_TLS12**, and **S2N_TLS13**.
 
 ### s2n\_connection\_get\_client\_hello
 
@@ -807,49 +819,6 @@ These functions retrieve the session id as sent by the client in the ClientHello
 **s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
 
 **s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
-
-### s2n\_connection\_free\_handshake
-
-```c
-int s2n_connection_free_handshake(struct s2n_connection *conn);
-```
-
-**s2n_connection_free_handshake** wipes and releases buffers and memory
-allocated during the TLS handshake.  This function should be called after the
-handshake is successfully negotiated and logging or recording of handshake data
-is complete.
-
-### s2n\_connection\_release\_buffers
-
-```c
-int s2n_connection_release_buffers(struct s2n_connection *conn);
-```
-
-**s2n_connection_release_buffers** wipes and free the `in` and `out` buffers
-associated with a connection.  This function may be called when a connection is
-in keep-alive or idle state to reduce memory overhead of long lived connections.
-
-### s2n\_connection\_wipe
-
-```c
-int s2n_connection_wipe(struct s2n_connection *conn);
-```
-
-**s2n_connection_wipe** wipes an existing connection and allows it to be reused. It erases all data associated with a connection including
-pending reads. This function should be called after all I/O is completed and [s2n_shutdown](#s2n\_shutdown) has been called.
-Reusing the same connection handle(s) is more performant than repeatedly calling [s2n_connection_new](#s2n\_connection\_new) and
-[s2n_connection_free](#s2n\_connection\_free)
-
-### s2n\_connection\_free
-
-```c
-int s2n_connection_free(struct s2n_connection *conn);
-```
-
-**s2n_connection_free** frees the memory associated with an s2n_connection
-handle. The handle is considered invalid after **s2n_connection_free** is used.
-[s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
-of sensitive data.
 
 ## Private Key Operation Related Calls
 
@@ -1141,6 +1110,10 @@ ssize_t s2n_recv(struct s2n_connection *conn,
 **s2n_recv** decrypts and reads **size* to **buf** data from the associated
 connection. **s2n_recv** will return the number of bytes read and also return
 "0" on connection shutdown by the peer.
+
+**NOTE:** By default, **s2n_recv** will return after reading a single TLS record. To change this
+behavior such that it will read up to **size**, the config for the connection can be updated
+by calling **s2n_config_set_recv_multi_record**.
 
 **NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
 

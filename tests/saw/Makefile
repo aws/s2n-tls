@@ -106,20 +106,23 @@ failure-tests : bitcode
 failure_tests/sha_%.log : bitcode/sha_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	@set -o pipefail; \
-	! (saw verify_s2n_hmac_sha256.saw 2>&1 | tee $@)
+	set -o pipefail; \
+	! (saw verify_HMAC.saw 2>&1 | tee $@)
+	grep "error: in _SAW_verify_prestate" $@
 
 failure_tests/tls_%.log : bitcode/tls_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	@set -o pipefail; \
+	set -o pipefail; \
 	! (saw verify_state_machine.saw 2>&1 | tee $@)
+	grep "error: in _SAW_verify_prestate" $@
 
 failure_tests/cork_%.log : bitcode/cork_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	@set -o pipefail; \
+	set -o pipefail; \
 	! (saw verify_cork_uncork.saw 2>&1 | tee $@)
+	grep "error: in llvm_ghost_value" $@
 
 
 # we patch the s2n dir, build it with the top level s2n makefile, and
@@ -162,7 +165,8 @@ TLS_DIRS = $(sort $(dir $(TLS_COPY)))
 STUFFER_C = $(wildcard ../../stuffer/*.c) $(wildcard ../../stuffer/*.h) ../../stuffer/Makefile
 STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(STUFFER_C)))
 
-API_COPY =$(addprefix s2n/api/, $(notdir $(wildcard ../../api/*.h)))
+API_COPY = $(subst ../../api, s2n/api, $(wildcard ../../api/*.h ../../api/*/*.h))
+API_DIRS = $(sort $(dir $(API_COPY)))
 
 ERROR_C = $(wildcard ../../error/*.c) $(wildcard ../../error/*.h) ../../error/Makefile
 ERROR_COPY = $(addprefix s2n/error/, $(notdir $(ERROR_C)))
@@ -173,7 +177,7 @@ s2n/error :
 	mkdir -p $@
 
 s2n/api :
-	mkdir -p $@
+	mkdir -p $(API_DIRS)
 
 s2n/crypto :
 	mkdir -p $@

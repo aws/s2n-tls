@@ -22,7 +22,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${BUILD_S2N:=false}"
 : "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
-: "${TESTS:=integration}"
+: "${TESTS:=unit}"
 : "${S2N_COVERAGE:=false}"
 : "${LD_LIBRARY_PATH:=NONE}"
 
@@ -48,11 +48,12 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${BORINGSSL_INSTALL_DIR:=$TEST_DEPS_DIR/boringssl}"
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
 : "${AWSLC_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips}"
-: "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl-3.4.3}"
+: "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl}"
 : "${CPPCHECK_INSTALL_DIR:=$TEST_DEPS_DIR/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$TEST_DEPS_DIR/ctverif}"
 : "${SIDETRAIL_INSTALL_DIR:=$TEST_DEPS_DIR/sidetrail}"
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
+: "${APACHE2_INSTALL_DIR:=$TEST_DEPS_DIR/apache2}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
 
 # Set some environment vars for OS, Distro and architecture.

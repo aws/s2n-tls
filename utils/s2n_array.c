@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "utils/s2n_array.h"
+
 #include <sys/param.h>
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_array.h"
 
 S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 {
@@ -45,56 +46,73 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     uint32_t array_elements_size;
     RESULT_GUARD_POSIX(s2n_mul_overflow(array->element_size, array->len, &array_elements_size));
     RESULT_CHECKED_MEMSET(array->mem.data + array_elements_size, 0, array->mem.size - array_elements_size);
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 struct s2n_array *s2n_array_new(uint32_t element_size)
 {
-    struct s2n_blob mem = {0};
+    struct s2n_array *array = s2n_array_new_with_capacity(element_size, S2N_INITIAL_ARRAY_SIZE);
+    PTR_ENSURE_REF(array);
+
+    return array;
+}
+
+struct s2n_array *s2n_array_new_with_capacity(uint32_t element_size, uint32_t capacity)
+{
+    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
-    struct s2n_array *array = (void *) mem.data;
+    DEFER_CLEANUP(struct s2n_array *array = (void *) mem.data, s2n_array_free_p);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
-    *array = (struct s2n_array) {.mem = {0}, .len = 0, .element_size = element_size};
+    PTR_GUARD_RESULT(s2n_array_init_with_capacity(array, element_size, capacity));
 
-    if (s2n_result_is_error(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE))) {
-        /* Avoid memory leak if allocation fails */
-        PTR_GUARD_POSIX(s2n_free(&mem));
-        return NULL;
-    }
-    return array;
+    struct s2n_array *array_ret = array;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(array);
+
+    return array_ret;
 }
 
 S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
 {
     RESULT_ENSURE_REF(array);
 
-    *array = (struct s2n_array){.element_size = element_size};
+    RESULT_GUARD(s2n_array_init_with_capacity(array, element_size, 0));
 
-    RESULT_GUARD(s2n_array_validate(array));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t element_size, uint32_t capacity)
+{
+    RESULT_ENSURE_REF(array);
+
+    *array = (struct s2n_array){ .element_size = element_size };
+
+    RESULT_GUARD(s2n_array_enlarge(array, capacity));
+
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t idx, void **element)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     RESULT_ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
     *element = array->mem.data + (array->element_size * idx);
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void* element)
+S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void *element)
 {
-    void* insert_location = NULL;
+    void *insert_location = NULL;
     RESULT_GUARD(s2n_array_insert(array, idx, &insert_location));
     RESULT_CHECKED_MEMCPY(insert_location, element, array->element_size);
     return S2N_RESULT_OK;
@@ -102,7 +120,7 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **element)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     RESULT_ENSURE(idx <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
@@ -131,13 +149,13 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
     *element = array->mem.data + array->element_size * idx;
     array->len++;
 
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.
@@ -153,15 +171,16 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
 
     /* After shifting, zero the last element */
     RESULT_CHECKED_MEMSET(array->mem.data + array->element_size * array->len,
-                   0,
-                   array->element_size);
+            0,
+            array->element_size);
 
+    RESULT_POSTCONDITION(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE_MUT(len);
 
     *len = array->len;
@@ -171,7 +190,7 @@ S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 
 S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
-    RESULT_GUARD(s2n_array_validate(array));
+    RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE_MUT(capacity);
 
     *capacity = array->mem.size / array->element_size;
@@ -182,14 +201,17 @@ S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 S2N_CLEANUP_RESULT s2n_array_free_p(struct s2n_array **parray)
 {
     RESULT_ENSURE_REF(parray);
-    struct s2n_array *array = *parray;
 
-    RESULT_ENSURE_REF(array);
+    struct s2n_array *array = *parray;
+    if (array == NULL) {
+        return S2N_RESULT_OK;
+    }
+
     /* Free the elements */
     RESULT_GUARD_POSIX(s2n_free(&array->mem));
 
     /* And finally the array */
-    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **)parray, sizeof(struct s2n_array)));
+    RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) parray, sizeof(struct s2n_array)));
 
     return S2N_RESULT_OK;
 }

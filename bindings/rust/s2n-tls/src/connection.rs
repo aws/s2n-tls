@@ -13,13 +13,15 @@ use crate::{
 use core::{
     convert::TryInto,
     fmt,
-    mem::ManuallyDrop,
+    mem::{self, ManuallyDrop, MaybeUninit},
+    pin::Pin,
     ptr::NonNull,
     task::{Poll, Waker},
+    time::Duration,
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::{ffi::CStr, mem, time::Duration};
+use std::ffi::CStr;
 
 mod builder;
 pub use builder::*;
@@ -83,7 +85,7 @@ impl Connection {
     }
 
     fn init_context(&mut self) {
-        let context = Box::new(Context::default());
+        let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {
@@ -360,41 +362,67 @@ impl Connection {
         Ok(self)
     }
 
-    /// Sets the currently executing async callback.
+    /// Performs the TLS handshake to completion
     ///
     /// Multiple callbacks can be configured for a connection and config, but
     /// [`poll_negotiate`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback. It does not continue execution (and
-    /// therefore can't call any other callbacks) until the blocking async callback
-    /// reports completion and is no longer the "pending" callback.
-    pub(crate) fn set_pending_callback(&mut self, callback: Option<Box<dyn AsyncCallback>>) {
-        debug_assert!(self.context_mut().pending_callback.is_none());
-        if let Some(callback) = callback {
-            let _ = self.context_mut().pending_callback.insert(callback);
-        }
-    }
-
-    /// Performs the TLS handshake to completion
+    /// it encounters an async callback. The async task is stored on the
+    /// [`Context::connection_future`].
+    ///
+    /// The handshake does not continue execution (and therefore can't call
+    /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
-        // If we blocked on a callback, poll the callback again.
-        if let Some(mut callback) = self.context_mut().pending_callback.take() {
-            match callback.poll(self) {
-                Poll::Ready(r) => r?,
+        loop {
+            // check if an async task exists and poll it to completion
+            if let Some(fut) = self.poll_async_task() {
+                match fut {
+                    Poll::Ready(Ok(())) => {
+                        // happy case:
+                        // continue and call s2n_negotiate to make progress on the handshake
+                    }
+                    Poll::Ready(Err(err)) => {
+                        // error case:
+                        // if the callback returned an error then abort the handshake
+                        return Poll::Ready(Err(err));
+                    }
+                    Poll::Pending => return Poll::Pending,
+                }
+            }
+
+            let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
+
+            match res {
+                Poll::Ready(res) => return Poll::Ready(res.map(|_| self)),
                 Poll::Pending => {
-                    self.set_pending_callback(Some(callback));
-                    return Poll::Pending;
+                    // if there is no connection_future then return, otherwise continue
+                    // looping and polling the future
+                    if self.context_mut().connection_future.is_none() {
+                        return Poll::Pending;
+                    }
                 }
             }
         }
+    }
 
-        unsafe {
-            s2n_negotiate(self.connection.as_ptr(), &mut blocked)
-                .into_poll()
-                .map_ok(|_| self)
-        }
+    // Poll the connection future if it exists.
+    //
+    // If the future returns Pending, then re-set it back on the Connection.
+    fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
+        self.take_connection_future().map(|mut fut| {
+            let waker = self.waker().ok_or(Error::MISSING_WAKER)?.clone();
+            let mut ctx = core::task::Context::from_waker(&waker);
+            match fut.poll(self, &mut ctx) {
+                Poll::Ready(result) => Poll::Ready(result),
+                Poll::Pending => {
+                    // replace the future if it hasn't completed yet
+                    self.set_connection_future(fut);
+                    Poll::Pending
+                }
+            }
+        })
     }
 
     /// Encrypts and sends data on a connection where
@@ -417,6 +445,33 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    /// Reads and decrypts data from a connection where
+    /// [negotiate](`Self::poll_negotiate`) has succeeded
+    /// to a uninitialized buffer.
+    ///
+    /// Returns the number of bytes read, and may indicate a partial read.
+    /// 0 bytes returned indicates EOF due to connection closure.
+    ///
+    /// Safety: this function is always safe to call, and additionally:
+    /// 1. It will never deinitialize any bytes in `buf`.
+    /// 2. If it returns `Ok(n)`, then the first `n` bytes of `buf`
+    /// will have been initialized by this function.
+    pub fn poll_recv_uninitialized(
+        &mut self,
+        buf: &mut [MaybeUninit<u8>],
+    ) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+
+        // Safety:
+        // 1. s2n_recv never writes uninitialized garbage to `buf`.
+        // 2. if s2n_recv returns `+n`, it guarantees that the first
+        // `n` bytes of `buf` have been initialized, which allows this
+        // function to return `Ok(n)`
         unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
@@ -497,6 +552,24 @@ impl Connection {
     pub fn waker(&self) -> Option<&Waker> {
         let ctx = self.context();
         ctx.waker.as_ref()
+    }
+
+    /// Takes the [`Option::take`] the connection_future stored on the
+    /// connection context.
+    ///
+    /// If the Future returns `Poll::Pending` and has not completed, then it
+    /// should be re-set using [`Self::set_connection_future()`]
+    fn take_connection_future(&mut self) -> Option<InternalConnectionFuture> {
+        let ctx = self.context_mut();
+        ctx.connection_future.take()
+    }
+
+    /// Sets a `connection_future` on the connection context.
+    pub(crate) fn set_connection_future(&mut self, f: InternalConnectionFuture) {
+        let ctx = self.context_mut();
+        debug_assert!(ctx.connection_future.is_none());
+
+        ctx.connection_future = Some(f);
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
@@ -588,10 +661,38 @@ impl Connection {
     }
 }
 
+// Captures the type of ConnectionFuture and executes future specific
+// tasks.
+//
+// As an example, we need to call `mark_client_hello_cb_done` when the
+// client_hello callback returns [`Poll::Ready`] to make progress on
+// the handshake.
+pub(crate) enum InternalConnectionFuture {
+    ClientHello(Pin<Box<dyn ConnectionFuture>>),
+}
+
+impl InternalConnectionFuture {
+    fn poll(
+        &mut self,
+        conn: &mut Connection,
+        ctx: &mut core::task::Context,
+    ) -> Poll<Result<(), Error>> {
+        let InternalConnectionFuture::ClientHello(fut) = self;
+        match fut.as_mut().poll(conn, ctx) {
+            Poll::Ready(res) => {
+                // mark the client_hello callback finished
+                conn.mark_client_hello_cb_done()?;
+                Poll::Ready(res)
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
-    pending_callback: Option<Box<dyn AsyncCallback>>,
+    connection_future: Option<InternalConnectionFuture>,
 }
 
 #[cfg(feature = "quic")]

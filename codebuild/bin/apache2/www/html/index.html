@@ -1,0 +1,18 @@
+<html>
+<head>
+    <title>Renegotiation Testing Server</title>
+</head>
+<body>
+<p>Welcome to the s2n renegotiation testing server! See the following endpoints:</p>
+
+<ul>
+    <li>
+        <a href="/change_cipher_suite">/change_cipher_suite</a> forces a renegotiation by changing the negotiated
+        cipher suite to AES-128-SHA.
+    </li>
+    <li>
+        <a href="/mutual_auth">/mutual_auth</a> forces a renegotiation by enforcing mutual authentication.
+    </li>
+</ul>
+</body>
+</html>

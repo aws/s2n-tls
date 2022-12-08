@@ -30,6 +30,7 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_key_update.h"
+#include "tls/s2n_post_handshake.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_quic_support.h"
 #include "tls/s2n_record.h"
@@ -130,6 +131,10 @@ struct s2n_connection {
     /* If enabled, this connection will free each of its IO buffers after all data
      * has been flushed */
     unsigned dynamic_buffers:1;
+
+    /* Indicates protocol negotiation will be done through the NPN extension
+     * instead of the ALPN extension */
+    unsigned npn_negotiated:1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -378,6 +383,8 @@ struct s2n_connection {
     uint32_t server_max_early_data_size;
     struct s2n_blob server_early_data_context;
     uint32_t server_keying_material_lifetime;
+
+    struct s2n_post_handshake post_handshake;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

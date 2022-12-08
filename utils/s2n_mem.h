@@ -15,9 +15,9 @@
 
 #pragma once
 
-#include "utils/s2n_blob.h"
-
 #include <stdint.h>
+
+#include "utils/s2n_blob.h"
 
 int s2n_mem_init(void);
 bool s2n_mem_is_init(void);
@@ -27,6 +27,15 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size);
 int s2n_realloc(struct s2n_blob *b, uint32_t size);
 int s2n_free(struct s2n_blob *b);
 int s2n_free_without_wipe(struct s2n_blob *b);
-int s2n_blob_zeroize_free(struct s2n_blob *b);
 int s2n_free_object(uint8_t **p_data, uint32_t size);
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+
+/* Unlike free, s2n_free_or_wipe accepts static blobs.
+ * It frees allocated blobs and wipes static blobs.
+ *
+ * This is mostly useful for some of the s2n-tls shared secret generation logic,
+ * which allocates memory for some algorithms and uses static memory for others.
+ *
+ * Prefer s2n_free. Only use this method if completely necessary.
+ */
+int s2n_free_or_wipe(struct s2n_blob *b);

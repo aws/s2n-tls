@@ -271,6 +271,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->in));
     POSIX_GUARD(s2n_stuffer_free(&conn->out));
     POSIX_GUARD(s2n_stuffer_free(&conn->handshake.io));
+    POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
     s2n_x509_validator_wipe(&conn->x509_validator);
     POSIX_GUARD(s2n_client_hello_free(&conn->client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
@@ -397,6 +398,9 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
     POSIX_ENSURE(s2n_stuffer_is_consumed(&conn->in), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
     POSIX_GUARD(s2n_stuffer_resize(&conn->in, 0));
 
+    POSIX_ENSURE(s2n_stuffer_is_consumed(&conn->post_handshake.in), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
+    POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
+
     POSIX_POSTCONDITION(s2n_stuffer_validate(&conn->out));
     POSIX_POSTCONDITION(s2n_stuffer_validate(&conn->in));
     return S2N_SUCCESS;
@@ -487,10 +491,14 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->client_ticket_to_decrypt));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->post_handshake.in));
     POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
+
+    /* Free stuffers we plan to just recreate */
+    POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
 

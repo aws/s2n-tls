@@ -1,11 +1,13 @@
-from common import Protocols, Curves, Ciphers
-from providers import S2N, OpenSSL
-from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
+from common import Protocols
+from providers import S2N
+from global_flags import get_flag, S2N_FIPS_MODE
 
 
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
 
+def to_string(val: bytes):
+    return val.decode(encoding="ascii", errors="backslashreplace")
 
 def get_expected_s2n_version(protocol, provider):
     """
@@ -63,6 +65,8 @@ def invalid_test_parameters(*args, **kwargs):
     signature = kwargs.get('signature')
 
     providers = [provider_ for provider_ in [provider, other_provider] if provider_]
+    # Always consider S2N
+    providers.append(S2N)
 
     # Only TLS1.3 supports RSA-PSS-PSS certificates
     # (Earlier versions support RSA-PSS signatures, just via RSA-PSS-RSAE)

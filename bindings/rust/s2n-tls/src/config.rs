@@ -156,13 +156,23 @@ impl Builder {
         crate::init::init();
         let config = unsafe { s2n_config_new().into_result() }.unwrap();
 
-        let context = Box::new(Context::default());
+        let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
 
         unsafe {
             s2n_config_set_ctx(config.as_ptr(), context)
                 .into_result()
                 .unwrap();
+
+            // The client hello callback originally did not support async operations,
+            // so defaults to blocking mode for backwards compatibility with old integrations.
+            // But these bindings use a polling model, so assume non-blocking mode.
+            s2n_config_set_client_hello_cb_mode(
+                config.as_ptr(),
+                s2n_client_hello_cb_mode::NONBLOCKING,
+            )
+            .into_result()
+            .unwrap();
         }
 
         Self(Config(config))
@@ -400,6 +410,11 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn set_send_buffer_size(&mut self, size: u32) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_send_buffer_size(self.as_mut_ptr(), size).into_result() }?;
+        Ok(self)
+    }
+
     /// Set a custom callback function which is run after parsing the client hello.
     pub fn set_client_hello_callback<T: 'static + ClientHelloCallback>(
         &mut self,
@@ -410,8 +425,7 @@ impl Builder {
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
             with_connection(connection_ptr, |conn| {
-                let callback = AsyncClientHelloCallback {};
-                trigger_async_callback(callback, conn).into()
+                trigger_async_client_hello_callback(conn).into()
             })
         }
 
@@ -420,11 +434,6 @@ impl Builder {
         context.client_hello_callback = Some(handler);
 
         unsafe {
-            s2n_config_set_client_hello_cb_mode(
-                self.as_mut_ptr(),
-                s2n_client_hello_cb_mode::NONBLOCKING,
-            )
-            .into_result()?;
             s2n_config_set_client_hello_cb(
                 self.as_mut_ptr(),
                 Some(client_hello_cb),

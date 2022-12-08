@@ -236,12 +236,12 @@ verify_cert root/intermediate_revoked/chain.pem root/intermediate_revoked/leaf_r
 ca_dir="root/intermediate" \
 openssl ca -config "${openssl_conf_path}" -gencrl \
     -crl_lastupdate 21220101000000Z \
-    -out "${install_dir}/intermediate_invalid_last_update_crl.pem" \
+    -out "${install_dir}/intermediate_invalid_this_update_crl.pem" \
     || exit
 
 ca_dir="root/intermediate" \
 openssl ca -config "${openssl_conf_path}" -gencrl \
-    -crl_nextupdate 19220101000000Z \
+    -crl_nextupdate 500101000000Z \
     -out "${install_dir}/intermediate_invalid_next_update_crl.pem" \
     || exit
 

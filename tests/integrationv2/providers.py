@@ -1,7 +1,7 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
+from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
@@ -47,9 +47,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            self.cmd_line = self.setup_server()
+            self.cmd_line = self.setup_server() # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            self.cmd_line = self.setup_client()
+            self.cmd_line = self.setup_client() # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -141,7 +141,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.send_with_newline = True
+        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -315,7 +315,7 @@ class OpenSSL(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
-        self.expect_stderr = True
+        self.expect_stderr = True # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -395,7 +395,10 @@ class OpenSSL(Provider):
             ['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
+        if self.options.verbose:
+            cmd_line.append('-debug')
+
+        cmd_line.extend(['-tlsextdebug', '-state'])
 
         if self.options.key is not None:
             cmd_line.extend(['-key', self.options.key])
@@ -465,7 +468,10 @@ class OpenSSL(Provider):
             cmd_line.extend(['-naccept', '1'])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
+        if self.options.verbose:
+            cmd_line.append('-debug')
+
+        cmd_line.extend(['-tlsextdebug', '-state'])
 
         if self.options.cert is not None:
             cmd_line.extend(['-cert', self.options.cert])
@@ -509,7 +515,7 @@ class OpenSSL(Provider):
 
 class JavaSSL(Provider):
     """
-    NOTE: Only a Java SSL client has been set up. The server has not been 
+    NOTE: Only a Java SSL client has been set up. The server has not been
     implemented yet.
     """
 
@@ -617,8 +623,8 @@ class GnuTLS(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.expect_stderr = True
-        self.send_with_newline = True
+        self.expect_stderr = True # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):
@@ -688,27 +694,27 @@ class GnuTLS(Provider):
     def create_priority_str(self):
         priority_str = "NONE"
 
-        if self.options.protocol:
-            priority_str += ":+" + \
-                self.protocol_to_priority_str(self.options.protocol)
+        protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
+        if protocol_to_priority_str:
+            priority_str += ":+" + protocol_to_priority_str
         else:
             priority_str += ":+VERS-ALL"
 
-        if self.options.cipher:
-            priority_str += ":+" + \
-                self.cipher_to_priority_str(self.options.cipher)
+        cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
+        if cipher_to_priority_str:
+            priority_str += ":+" + cipher_to_priority_str
         else:
             priority_str += ":+KX-ALL:+CIPHER-ALL:+MAC-ALL"
 
-        if self.options.curve:
-            priority_str += ":+" + \
-                self.curve_to_priority_str(self.options.curve)
+        curve_to_priority_str = self.curve_to_priority_str(self.options.curve)
+        if curve_to_priority_str:
+            priority_str += ":+" + curve_to_priority_str
         else:
             priority_str += ":+GROUP-ALL"
 
-        if self.options.signature_algorithm:
-            priority_str += ":+" + \
-                self.sigalg_to_priority_str(self.options.signature_algorithm)
+        sigalg_to_priority_str = self.sigalg_to_priority_str(self.options.signature_algorithm)
+        if sigalg_to_priority_str:
+            priority_str += ":+" + sigalg_to_priority_str
         else:
             priority_str += ":+SIGN-ALL"
 
@@ -730,9 +736,11 @@ class GnuTLS(Provider):
             "gnutls-cli",
             "--port", str(self.options.port),
             self.options.host,
-            "--debug", "9999",
-            "--verbose"
+            "--debug", "9999"
         ]
+
+        if self.options.verbose:
+            cmd_line.append("--verbose")
 
         if self.options.cert and self.options.key:
             cmd_line.extend(["--x509certfile", self.options.cert])

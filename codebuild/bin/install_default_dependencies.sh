@@ -30,7 +30,7 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]]; then
 fi
 
 # Download and Install Openssl 1.1.1
-if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
+if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ( "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
       mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR"||true
       codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
@@ -72,7 +72,7 @@ if [[ "$S2N_LIBCRYPTO" == "awslc-fips" && ! -d "$AWSLC_FIPS_INSTALL_DIR" ]]; the
     codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_INSTALL_DIR" "1" > /dev/null ;
 fi
 
-if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
+if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
     # Install tox
     if [[ "$DISTRO" == "ubuntu" ]]; then
         if [[ ! -x `python3.9 -m tox --version` ]]; then
@@ -119,10 +119,16 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
       codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" | head -50
     fi
 
-    # Install SSLyze for all Integration Tests on Ubuntu.
-    # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
-    if [[ "$DISTRO" == "ubuntu" && "$S2N_NO_SSLYZE" != "true" ]]; then
-        codebuild/bin/install_sslyze.sh
+    if [[ "$DISTRO" == "ubuntu" ]]; then
+        # Install SSLyze for all Integration Tests on Ubuntu.
+        # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
+        if [[ "$S2N_NO_SSLYZE" != "true" ]]; then
+            codebuild/bin/install_sslyze.sh
+        fi
+
+        if [[ ! -x "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+            codebuild/bin/install_apache2.sh codebuild/bin/apache2 "$APACHE2_INSTALL_DIR"
+        fi
     fi
 fi
 

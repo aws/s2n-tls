@@ -160,7 +160,7 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         POSIX_GUARD_RESULT(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
         POSIX_GUARD_RESULT(s2n_map_complete(domain_name_to_cert_map));
     } else {
-        struct certs_by_type *value = (void *) s2n_map_value.data;;
+        struct certs_by_type *value = (void *) s2n_map_value.data;
         if (value->certs[cert_type] == NULL) {
             value->certs[cert_type] = cert_key_pair;
         } else if (config->cert_tiebreak_cb) {
@@ -886,7 +886,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     if (intro_time_in_seconds_from_epoch == 0) {
         uint64_t now = 0;
-        POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+        POSIX_GUARD_RESULT(s2n_config_wall_clock(config, &now));
         session_ticket_key->intro_timestamp = now;
     } else {
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
@@ -998,7 +998,7 @@ int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config) {
 
 int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size) {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE(size > S2N_TLS_MAX_RECORD_LEN_FOR(0), S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(size >= S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN), S2N_ERR_INVALID_ARGUMENT);
     config->send_buffer_size_override = size;
     return S2N_SUCCESS;
 }
@@ -1029,5 +1029,41 @@ int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegot
     POSIX_ENSURE_REF(config);
     config->renegotiate_request_cb = cb;
     config->renegotiate_request_ctx = ctx;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_npn(struct s2n_config *config, bool enable)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->npn_supported = enable;
+
+    return S2N_SUCCESS;
+}
+
+/*
+ * Wrapper for wall_clock callback. This wrapper will ensure right return of s2n_errno everytime wall_clock
+ * callback is called.
+ */
+S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output)
+{
+    RESULT_ENSURE(config->wall_clock(config->sys_clock_ctx, output) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+    return S2N_RESULT_OK;
+}
+
+int s2n_config_set_crl_lookup_cb(struct s2n_config *config, s2n_crl_lookup_callback cb, void *ctx)
+{
+    POSIX_ENSURE_REF(config);
+    config->crl_lookup_cb = cb;
+    config->crl_lookup_ctx = ctx;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->recv_multi_record = enabled;
+
     return S2N_SUCCESS;
 }

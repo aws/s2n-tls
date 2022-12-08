@@ -220,6 +220,10 @@ let setup_connection_common chosen_psk_null = do {
 
    let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
 
+   npn_negotiated <- llvm_fresh_var "npn_negotiated" (llvm_int 1);
+   llvm_points_to_bitfield pconn "npn_negotiated" (llvm_term npn_negotiated);
+   let npn_negotiated_bit = {{ bv1_to_bit npn_negotiated }};
+
    // This returns a connection containing a handshake. If the connection or the handshake
    // definitions are changed, they must also be changed here.
    return (pconn, {{ {corked_io = corked_io
@@ -240,6 +244,7 @@ let setup_connection_common chosen_psk_null = do {
                      ,early_data_state = early_data_state
                      ,chosen_psk_null = chosen_psk_null_bit
                      ,quic_enabled = quic_enabled_bit
+                     ,npn_negotiated = npn_negotiated_bit
                      }
                   }}); 
 };
@@ -384,8 +389,8 @@ let s2n_advance_message_spec = do {
     
     let messages = [ {{CLIENT_HELLO : [5]}}
                    , {{SERVER_HELLO : [5]}}
-                   , {{SERVER_CERT : [5]}}
                    , {{SERVER_NEW_SESSION_TICKET : [5]}}
+                   , {{SERVER_CERT : [5]}}
                    , {{SERVER_CERT_STATUS : [5]}}
                    , {{SERVER_KEY : [5]}}
                    , {{SERVER_CERT_REQ : [5]}}
@@ -394,6 +399,7 @@ let s2n_advance_message_spec = do {
                    , {{CLIENT_KEY : [5]}}
                    , {{CLIENT_CERT_VERIFY : [5]}}
                    , {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}
+                   , {{CLIENT_NPN : [5]}}
                    , {{CLIENT_FINISHED : [5]}}
                    , {{SERVER_CHANGE_CIPHER_SPEC : [5]}}
                    , {{SERVER_FINISHED : [5]}}

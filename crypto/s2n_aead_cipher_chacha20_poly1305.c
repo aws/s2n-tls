@@ -32,7 +32,7 @@
  * AWS-LC define OPENSSL_VERSION_NUMBER. */
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
 #define S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC
-#elif (S2N_OPENSSL_VERSION_AT_LEAST(1,1,0))
+#elif (S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER))
 #define S2N_CHACHA20_POLY1305_AVAILABLE_OSSL
 #endif
 
@@ -262,7 +262,7 @@ static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 
 #endif
 
-struct s2n_cipher s2n_chacha20_poly1305 = {
+const struct s2n_cipher s2n_chacha20_poly1305 = {
     .key_material_size = S2N_TLS_CHACHA20_POLY1305_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {

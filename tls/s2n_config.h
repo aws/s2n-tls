@@ -24,6 +24,7 @@
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
+#include "tls/s2n_crl.h"
 
 #define S2N_MAX_TICKET_KEYS 48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
@@ -76,6 +77,13 @@ struct s2n_config {
     /* Indicates support for the npn extension */
     unsigned npn_supported:1;
 
+    /* Indicates s2n_recv should read as much as it can into the output buffer
+     *
+     * Note: This defaults to false to ensure backwards compatability with
+     * applications which relied on s2n_recv returning a single record.
+     */
+    unsigned recv_multi_record:1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
@@ -124,6 +132,9 @@ struct s2n_config {
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
     uint8_t (*verify_host)(const char *host_name, size_t host_name_len, void *data);
     void *data_for_verify_host;
+
+    s2n_crl_lookup_callback crl_lookup_cb;
+    void *crl_lookup_ctx;
 
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
@@ -178,3 +189,4 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 void s2n_wipe_static_configs(void);
 extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(struct s2n_config *config);
+S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);

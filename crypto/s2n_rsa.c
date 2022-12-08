@@ -52,7 +52,7 @@ RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key) {
 static S2N_RESULT s2n_rsa_modulus_check(const RSA *rsa)
 {
 /* RSA was made opaque starting in Openssl 1.1.0 */
-#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     const BIGNUM *n = NULL;
     /* RSA still owns the memory for n */
     RSA_get0_key(rsa, &n, NULL, NULL);

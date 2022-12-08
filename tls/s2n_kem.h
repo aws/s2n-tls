@@ -16,10 +16,11 @@
 #pragma once
 
 #include <stdint.h>
+
+#include "crypto/s2n_ecc_evp.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_crypto_constants.h"
 #include "utils/s2n_blob.h"
-#include "stuffer/s2n_stuffer.h"
-#include "crypto/s2n_ecc_evp.h"
 
 typedef uint16_t kem_extension_size;
 typedef uint16_t kem_public_key_size;
@@ -27,7 +28,7 @@ typedef uint16_t kem_private_key_size;
 typedef uint16_t kem_shared_secret_size;
 typedef uint16_t kem_ciphertext_key_size;
 
-#define IN /* Indicates a necessary function input */
+#define IN  /* Indicates a necessary function input */
 #define OUT /* Indicates a function output */
 
 struct s2n_kem {
@@ -38,9 +39,9 @@ struct s2n_kem {
     const kem_shared_secret_size shared_secret_key_length;
     const kem_ciphertext_key_size ciphertext_length;
     /* NIST Post Quantum KEM submissions require the following API for compatibility */
-    int (*generate_keypair)(OUT unsigned char *public_key, OUT unsigned char *private_key);
-    int (*encapsulate)(OUT unsigned char *ciphertext, OUT unsigned char *shared_secret, IN const unsigned char *public_key);
-    int (*decapsulate)(OUT unsigned char *shared_secret, IN const unsigned char *ciphertext, IN const unsigned char *private_key);
+    int (*generate_keypair)(OUT uint8_t *public_key, OUT uint8_t *private_key);
+    int (*encapsulate)(OUT uint8_t *ciphertext, OUT uint8_t *shared_secret, IN const uint8_t *public_key);
+    int (*decapsulate)(OUT uint8_t *shared_secret, IN const uint8_t *ciphertext, IN const uint8_t *private_key);
 };
 
 struct s2n_kem_params {
@@ -75,12 +76,12 @@ extern const struct s2n_kem s2n_kyber_512_r3;
 
 /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
+    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
 #else
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 1
+    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 1
 #endif
 
-extern const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT];
+extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT];
 
 /* secp256r1 KEM Groups */
 extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
@@ -131,10 +132,10 @@ extern int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params
 /* sikep503r1 */
 
 /* kyber512r3 */
-#define S2N_KYBER_512_R3_PUBLIC_KEY_BYTES 800
-#define S2N_KYBER_512_R3_SECRET_KEY_BYTES 1632
-#define S2N_KYBER_512_R3_CIPHERTEXT_BYTES 768
+#define S2N_KYBER_512_R3_PUBLIC_KEY_BYTES    800
+#define S2N_KYBER_512_R3_SECRET_KEY_BYTES    1632
+#define S2N_KYBER_512_R3_CIPHERTEXT_BYTES    768
 #define S2N_KYBER_512_R3_SHARED_SECRET_BYTES 32
-int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
-int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
-int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
+int s2n_kyber_512_r3_crypto_kem_keypair(OUT uint8_t *pk, OUT uint8_t *sk);
+int s2n_kyber_512_r3_crypto_kem_enc(OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk);
+int s2n_kyber_512_r3_crypto_kem_dec(OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk);

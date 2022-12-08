@@ -149,7 +149,8 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->config);
     if (conn->config->early_data_cb) {
         conn->handshake.early_data_async_state.conn = conn;
-        RESULT_GUARD_POSIX(conn->config->early_data_cb(conn, &conn->handshake.early_data_async_state));
+        RESULT_ENSURE(conn->config->early_data_cb(conn, &conn->handshake.early_data_async_state) >= S2N_SUCCESS,
+                      S2N_ERR_CANCELLED);
         if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
             RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
         }
@@ -216,7 +217,7 @@ int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_si
 
     const uint8_t cipher_suite_iana[] = { cipher_suite_first_byte, cipher_suite_second_byte };
     struct s2n_cipher_suite *cipher_suite = NULL;
-    POSIX_GUARD_RESULT(s2n_cipher_suite_from_iana(cipher_suite_iana, &cipher_suite));
+    POSIX_GUARD_RESULT(s2n_cipher_suite_from_iana(cipher_suite_iana, sizeof(cipher_suite_iana), &cipher_suite));
     POSIX_ENSURE_REF(cipher_suite);
     POSIX_ENSURE(cipher_suite->prf_alg == psk->hmac_alg, S2N_ERR_INVALID_ARGUMENT);
 

@@ -14,12 +14,11 @@
  */
 
 #include "s2n_extension_list.h"
-#include "s2n_extension_type.h"
-#include "s2n_extension_type_lists.h"
 
 #include "api/s2n.h"
-
 #include "error/s2n_errno.h"
+#include "s2n_extension_type.h"
+#include "s2n_extension_type_lists.h"
 #include "utils/s2n_safety.h"
 
 #define s2n_parsed_extension_is_empty(parsed_extension) ((parsed_extension)->extension.data == NULL)
@@ -29,7 +28,7 @@ int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connecti
     s2n_extension_type_list *extension_type_list;
     POSIX_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
 
-    struct s2n_stuffer_reservation total_extensions_size = {0};
+    struct s2n_stuffer_reservation total_extensions_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_extensions_size));
 
     for (int i = 0; i < extension_type_list->count; i++) {
@@ -161,7 +160,7 @@ int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list 
     POSIX_ENSURE_REF(in);
     POSIX_ENSURE_REF(parsed_extension_list);
 
-    POSIX_CHECKED_MEMSET((s2n_parsed_extension*) parsed_extension_list->parsed_extensions,
+    POSIX_CHECKED_MEMSET((s2n_parsed_extension *) parsed_extension_list->parsed_extensions,
             0, sizeof(parsed_extension_list->parsed_extensions));
 
     uint16_t total_extensions_size;

@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_kex_data.h"
 #include "utils/s2n_result.h"
