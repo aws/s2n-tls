@@ -15,17 +15,21 @@
 
 #include <stdint.h>
 
-#include "pq-crypto/s2n_pq.h"
 #include "s2n_test.h"
-#include "stuffer/s2n_stuffer.h"
-#include "testlib/s2n_testlib.h"
-#include "tls/extensions/s2n_client_key_share.h"
-#include "tls/extensions/s2n_key_share.h"
+
+/* clang-format off */
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
+#include "tls/extensions/s2n_client_key_share.h"
+#include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_security_policies.h"
+
+#include "testlib/s2n_testlib.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
+#include "pq-crypto/s2n_pq.h"
+/* clang-format on */
 
 #define HELLO_RETRY_MSG_NO 1
 #define MEM_FOR_EXTENSION  4096
@@ -201,7 +205,7 @@ int main()
                         EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
 
                         EXPECT_SUCCESS(s2n_connection_free(conn));
-                    };
+                    }
 
                     /* Test sending key share in response to HRR */
                     /* Need at least two KEM's to test ClientHelloRetry fallback */
@@ -367,10 +371,10 @@ int main()
                         EXPECT_SUCCESS(s2n_stuffer_free(&first_extension));
                         EXPECT_SUCCESS(s2n_stuffer_free(&second_extension));
                         EXPECT_SUCCESS(s2n_connection_free(conn));
-                    };
+                    }
                 }
             }
-        };
+        }
 
         /* Tests for s2n_client_key_share_extension.recv */
         {
@@ -528,7 +532,7 @@ int main()
                         EXPECT_SUCCESS(s2n_connection_free(client_conn));
                         EXPECT_SUCCESS(s2n_connection_free(server_conn));
                     }
-                };
+                }
 
                 /* Test that s2n_client_key_share_extension.recv selects the highest priority share,
                  * even if it appears last in the client's list of shares. */
@@ -780,8 +784,8 @@ int main()
                     EXPECT_SUCCESS(s2n_connection_free(server_conn));
                 }
             }
-        };
-    };
+        }
+    }
 
     END_TEST();
 

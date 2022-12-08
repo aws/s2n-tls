@@ -57,7 +57,10 @@ int main()
 
                     const struct s2n_cipher_suite *match = NULL;
                     for (size_t all_index = 0; all_index < cipher_preferences_test_all.count; all_index++) {
-                        if (0 == memcmp(cipher_preferences->suites[cipher_index]->iana_value, cipher_preferences_test_all.suites[all_index]->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
+                        if (memcmp(cipher_preferences->suites[cipher_index]->iana_value,
+                                    cipher_preferences_test_all.suites[all_index]->iana_value,
+                                    S2N_TLS_CIPHER_SUITE_LEN)
+                                == 0) {
                             EXPECT_NULL(match);
                             match = cipher_preferences_test_all.suites[all_index];
                         }

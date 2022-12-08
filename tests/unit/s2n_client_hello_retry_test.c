@@ -988,7 +988,10 @@ int main(int argc, char **argv)
                 /* TLS1.2 session tickets and TLS1.3 session tickets are mutually exclusive */
                 if (tls13_tickets && iana == TLS_EXTENSION_SESSION_TICKET) {
                     continue;
-                } else if (!tls13_tickets && (iana == TLS_EXTENSION_PRE_SHARED_KEY || iana == TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES || iana == TLS_EXTENSION_EARLY_DATA)) {
+                } else if (!tls13_tickets
+                        && (iana == TLS_EXTENSION_PRE_SHARED_KEY
+                                || iana == TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES
+                                || iana == TLS_EXTENSION_EARLY_DATA)) {
                     continue;
                 }
 
@@ -1315,7 +1318,7 @@ int main(int argc, char **argv)
      *# The server's extensions MUST contain "supported_versions".
      **/
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
