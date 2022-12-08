@@ -1167,7 +1167,7 @@ int main(int argc, char **argv)
                 uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
                 uint32_t expected_max_fixed_size = expected_max_size - session_state_size;
                 if (S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE != expected_max_fixed_size) {
-                    fprintf(stdout, "\nS2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE (%i) should be %i\n",
+                    fprintf(stdout, "\nS2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE (%i) should be %u\n",
                             (int) S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_fixed_size);
                 }
                 EXPECT_EQUAL(S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_fixed_size);
