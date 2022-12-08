@@ -67,20 +67,20 @@ const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg)
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
+    /* clang-format off */
     switch (alg) {
-        /* clang-format off */
-            case S2N_HASH_NONE:     *out = 0;                    break;
-            case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
-            case S2N_HASH_SHA1:     *out = SHA_DIGEST_LENGTH;    break;
-            case S2N_HASH_SHA224:   *out = SHA224_DIGEST_LENGTH; break;
-            case S2N_HASH_SHA256:   *out = SHA256_DIGEST_LENGTH; break;
-            case S2N_HASH_SHA384:   *out = SHA384_DIGEST_LENGTH; break;
-            case S2N_HASH_SHA512:   *out = SHA512_DIGEST_LENGTH; break;
-            case S2N_HASH_MD5_SHA1: *out = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH; break;
-            default:
-                POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-            /* clang-format on */
+        case S2N_HASH_NONE:     *out = 0;                    break;
+        case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
+        case S2N_HASH_SHA1:     *out = SHA_DIGEST_LENGTH;    break;
+        case S2N_HASH_SHA224:   *out = SHA224_DIGEST_LENGTH; break;
+        case S2N_HASH_SHA256:   *out = SHA256_DIGEST_LENGTH; break;
+        case S2N_HASH_SHA384:   *out = SHA384_DIGEST_LENGTH; break;
+        case S2N_HASH_SHA512:   *out = SHA512_DIGEST_LENGTH; break;
+        case S2N_HASH_MD5_SHA1: *out = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH; break;
+        default:
+            POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
+    /* clang-format on */
     return S2N_SUCCESS;
 }
 
@@ -90,8 +90,8 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
+    /* clang-format off */
     switch (alg) {
-        /* clang-format off */
             case S2N_HASH_NONE:       *block_size = 64;   break;
             case S2N_HASH_MD5:        *block_size = 64;   break;
             case S2N_HASH_SHA1:       *block_size = 64;   break;
@@ -102,8 +102,8 @@ int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
             case S2N_HASH_MD5_SHA1:   *block_size = 64;   break;
             default:
                 POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-            /* clang-format on */
     }
+    /* clang-format on */
     return S2N_SUCCESS;
 }
 
