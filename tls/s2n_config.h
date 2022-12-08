@@ -82,7 +82,7 @@ struct s2n_config {
      * Note: This defaults to false to ensure backwards compatability with
      * applications which relied on s2n_recv returning a single record.
      */
-    unsigned recv_multi_record:1;
+    unsigned recv_multi_record : 1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
