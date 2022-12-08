@@ -205,8 +205,8 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == received_total_share_size, S2N_ERR_BAD_KEY_SHARE);
 
     /* Parse ECC key share */
-    uint16_t ecc_share_size;
-    struct s2n_blob point_blob;
+    uint16_t ecc_share_size = 0;
+    struct s2n_blob point_blob = { 0 };
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &ecc_share_size));
     POSIX_ENSURE(s2n_ecc_evp_read_params_point(extension, ecc_share_size, &point_blob) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(s2n_ecc_evp_parse_params_point(&point_blob, &server_kem_group_params->ecc_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
@@ -279,13 +279,13 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     POSIX_ENSURE(client_ecc_evp_params->negotiated_curve == server_ecc_evp_params->negotiated_curve, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(client_ecc_evp_params->evp_pkey, S2N_ERR_BAD_KEY_SHARE);
 
-    uint16_t share_size;
+    uint16_t share_size = 0;
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) < sizeof(share_size), S2N_ERR_BAD_KEY_SHARE);
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &share_size));
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) < share_size, S2N_ERR_BAD_KEY_SHARE);
 
     /* Proceed to parse share */
-    struct s2n_blob point_blob;
+    struct s2n_blob point_blob = { 0 };
     S2N_ERROR_IF(s2n_ecc_evp_read_params_point(extension, share_size, &point_blob) < 0, S2N_ERR_BAD_KEY_SHARE);
     S2N_ERROR_IF(s2n_ecc_evp_parse_params_point(&point_blob, server_ecc_evp_params) < 0, S2N_ERR_BAD_KEY_SHARE);
     S2N_ERROR_IF(server_ecc_evp_params->evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);

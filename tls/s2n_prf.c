@@ -680,9 +680,9 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
-    struct s2n_blob master_secret, md5, sha;
-    uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
+    struct s2n_blob master_secret = { 0 }, md5 = { 0 }, sha = { 0 };
+    uint8_t md5_digest[MD5_DIGEST_LENGTH] = { 0 };
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH] = { 0 };
     uint8_t client_finished_label[] = "client finished";
     struct s2n_blob client_finished = { 0 };
     struct s2n_blob label = { 0 };
@@ -738,9 +738,9 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
-    struct s2n_blob master_secret, md5, sha;
-    uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
+    struct s2n_blob master_secret = { 0 }, md5 = { 0 }, sha = { 0 };
+    uint8_t md5_digest[MD5_DIGEST_LENGTH] = { 0 };
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH] = { 0 };
     uint8_t server_finished_label[] = "server finished";
     struct s2n_blob server_finished = { 0 };
     struct s2n_blob label = { 0 };
@@ -836,9 +836,9 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     struct s2n_blob client_random = { .data = conn->handshake_params.client_random, .size = sizeof(conn->handshake_params.client_random) };
     struct s2n_blob server_random = { .data = conn->handshake_params.server_random, .size = sizeof(conn->handshake_params.server_random) };
     struct s2n_blob master_secret = { .data = conn->secrets.tls12.master_secret, .size = sizeof(conn->secrets.tls12.master_secret) };
-    struct s2n_blob label, out;
+    struct s2n_blob label = { 0 }, out = { 0 };
     uint8_t key_expansion_label[] = "key expansion";
-    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
+    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN] = { 0 };
 
     label.data = key_expansion_label;
     label.size = sizeof(key_expansion_label) - 1;
@@ -879,7 +879,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     /* Make the server key */
     POSIX_GUARD(s2n_prf_make_server_key(conn, &key_material));
 
-    /* Composite CBC does MAC inside the cipher, pass it the MAC key. 
+    /* Composite CBC does MAC inside the cipher, pass it the MAC key.
      * Must happen after setting encryption/decryption keys.
      */
     if (conn->secure->cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {

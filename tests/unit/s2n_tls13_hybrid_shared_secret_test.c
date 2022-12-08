@@ -394,8 +394,8 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
     POSIX_ENSURE_REF(server_conn->kex_params.server_kem_group_params.ecc_params.evp_pkey);
 
     /* Each peer sends its public ECC key to the other */
-    struct s2n_stuffer wire;
-    struct s2n_blob server_point_blob, client_point_blob;
+    struct s2n_stuffer wire = { 0 };
+    struct s2n_blob server_point_blob = { 0 }, client_point_blob = { 0 };
     uint16_t share_size = kem_group->curve->share_size;
 
     POSIX_GUARD(s2n_stuffer_growable_alloc(&wire, 1024));

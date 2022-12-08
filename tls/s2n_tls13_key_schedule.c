@@ -35,7 +35,7 @@ static S2N_RESULT s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
-    struct s2n_blob sequence_number;
+    struct s2n_blob sequence_number = { 0 };
     if (mode == S2N_CLIENT) {
         RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number,
                 conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));

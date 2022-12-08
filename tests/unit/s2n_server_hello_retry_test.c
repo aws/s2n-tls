@@ -376,7 +376,7 @@ int main(int argc, char **argv)
 
         s2n_tls13_connection_keys(keys, conn);
         uint8_t hash_digest_length = keys.size;
-        struct s2n_blob compare_blob;
+        struct s2n_blob compare_blob = { 0 };
 
         DEFER_CLEANUP(struct s2n_hash_state client_hello1_hash = { 0 }, s2n_hash_free);
         EXPECT_SUCCESS(s2n_hash_new(&client_hello1_hash));

@@ -129,7 +129,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             uint8_t message_data[] = "The client says hello";
-            struct s2n_blob in;
+            struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, message_data, sizeof(message_data)));
 
             EXPECT_OK(s2n_quic_write_handshake_message(conn, &in));
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
         }
 
         /* Write test message */
-        DEFER_CLEANUP(struct s2n_blob server_hello, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob server_hello = { 0 }, s2n_free);
         EXPECT_OK(s2n_write_test_message(&server_hello, TLS_SERVER_HELLO));
 
         /* Setup IO buffers */
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            DEFER_CLEANUP(struct s2n_blob encrypted_extensions, s2n_free);
+            DEFER_CLEANUP(struct s2n_blob encrypted_extensions = { 0 }, s2n_free);
             EXPECT_OK(s2n_write_test_message(&encrypted_extensions, TLS_ENCRYPTED_EXTENSIONS));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &server_hello));

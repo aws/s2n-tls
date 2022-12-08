@@ -164,8 +164,8 @@ int main(int argc, char** argv)
         /* TEST s2n_ecc_evp_read_params_point for all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params write_params = { 0 };
-            struct s2n_blob point_blob;
-            struct s2n_stuffer wire;
+            struct s2n_blob point_blob = { 0 };
+            struct s2n_stuffer wire = { 0 };
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 0));
 
@@ -192,8 +192,8 @@ int main(int argc, char** argv)
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params write_params = { 0 };
             struct s2n_ecc_evp_params read_params = { 0 };
-            struct s2n_blob point_blob;
-            struct s2n_stuffer wire;
+            struct s2n_blob point_blob = { 0 };
+            struct s2n_stuffer wire = { 0 };
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 0));
 
@@ -227,8 +227,8 @@ int main(int argc, char** argv)
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params write_params = { 0 };
             struct s2n_ecc_evp_params read_params = { 0 };
-            struct s2n_stuffer wire;
-            struct s2n_blob ecdh_params_sent, ecdh_params_received;
+            struct s2n_stuffer wire = { 0 };
+            struct s2n_blob ecdh_params_sent = { 0 }, ecdh_params_received = { 0 };
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 
@@ -265,9 +265,9 @@ int main(int argc, char** argv)
             struct s2n_ecc_evp_params server_params = { 0 };
             struct s2n_ecc_evp_params read_params = { 0 };
             struct s2n_ecc_evp_params client_params = { 0 };
-            struct s2n_stuffer wire;
-            struct s2n_blob ecdh_params_sent, ecdh_params_received;
-            struct s2n_blob server_shared_secret, client_shared_secret;
+            struct s2n_stuffer wire = { 0 };
+            struct s2n_blob ecdh_params_sent = { 0 }, ecdh_params_received = { 0 };
+            struct s2n_blob server_shared_secret = { 0 }, client_shared_secret = {0 };
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 
@@ -322,8 +322,8 @@ int main(int argc, char** argv)
         /* Test generate->write->read->compute_shared with all supported curves */
         for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params server_params = { 0 }, client_params = { 0 };
-            struct s2n_stuffer wire;
-            struct s2n_blob server_shared, client_shared, ecdh_params_sent, ecdh_params_received;
+            struct s2n_stuffer wire = { 0 };
+            struct s2n_blob server_shared = { 0 }, client_shared = { 0 }, ecdh_params_sent = { 0 }, ecdh_params_received = { 0 };
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 

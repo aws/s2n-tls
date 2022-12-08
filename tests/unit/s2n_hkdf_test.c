@@ -45,7 +45,7 @@ struct hkdf_test_vector {
 
 /* Test vectors #0-6 obtained from RFC 5869:
  * Includes SHA-256 and SHA-1 vectors
- * 
+ *
  * Test vectors #7-11 obtained from Kullo Blog:
  * Includes SHA-512 vectors
  * https://www.kullo.net/blog/hkdf-sha-512-test-vectors/
@@ -407,7 +407,7 @@ int main(int argc, char **argv)
     uint8_t output_pad[MAX_OUTPUT_SIZE];
     struct s2n_blob out_result = { .data = output_pad, .size = sizeof(output_pad) };
 
-    struct s2n_blob in_key_blob, salt_blob, info_blob, actual_prk_blob, actual_output_blob;
+    struct s2n_blob in_key_blob = { 0 }, salt_blob = { 0 }, info_blob = { 0 }, actual_prk_blob = { 0 }, actual_output_blob = { 0 };
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());

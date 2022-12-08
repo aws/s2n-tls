@@ -60,12 +60,12 @@ int main(int argc, char **argv)
     char expected_secret[ sizeof(expected_secret_hex_in) / 2 ] = { 0 };
     char expected_expanded[ sizeof(expected_expanded_hex_in) / 2 ] = { 0 };
 
-    uint8_t digest_buf[SHA256_DIGEST_LENGTH];
-    uint8_t secret_buf[SHA256_DIGEST_LENGTH];
-    struct s2n_blob digest;
-    struct s2n_blob secret;
+    uint8_t digest_buf[SHA256_DIGEST_LENGTH] = { 0 };
+    uint8_t secret_buf[SHA256_DIGEST_LENGTH] = { 0 };
+    struct s2n_blob digest = { 0 };
+    struct s2n_blob secret = { 0 };
 
-    struct s2n_hash_state transcript_hash, transcript_hash_snapshot;
+    struct s2n_hash_state transcript_hash = { 0 }, transcript_hash_snapshot = { 0 };
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());

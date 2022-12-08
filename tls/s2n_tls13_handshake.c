@@ -22,7 +22,7 @@ static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-    struct s2n_blob sequence_number;
+    struct s2n_blob sequence_number = { 0 };
     if (mode == S2N_CLIENT) {
         POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));
     } else {
@@ -154,13 +154,13 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-    
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
     struct s2n_session_key *old_key;
-    struct s2n_blob old_app_secret;
-    struct s2n_blob app_iv;
+    struct s2n_blob old_app_secret = { 0 };
+    struct s2n_blob app_iv = { 0 };
 
     if (mode == S2N_CLIENT) {
         old_key = &conn->secure->client_key;
@@ -169,7 +169,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     } else {
         old_key = &conn->secure->server_key;
         POSIX_GUARD(s2n_blob_init(&old_app_secret, conn->secrets.tls13.server_app_secret, keys.size));
-        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
+        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     }
 
     /* Produce new application secret */
@@ -194,7 +194,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
      * MUST use sequence number 0.
      */
     POSIX_GUARD(s2n_zero_sequence_number(conn, mode));
-    
+
     /* Save updated secret */
     struct s2n_stuffer old_secret_stuffer = {0};
     POSIX_GUARD(s2n_stuffer_init(&old_secret_stuffer, &old_app_secret));

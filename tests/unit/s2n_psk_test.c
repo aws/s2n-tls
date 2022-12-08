@@ -482,8 +482,8 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_blob hash_value;
-            uint8_t hash_value_data[SHA256_DIGEST_LENGTH];
+            struct s2n_blob hash_value = { 0 };
+            uint8_t hash_value_data[SHA256_DIGEST_LENGTH] = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&hash_value, hash_value_data, sizeof(hash_value_data)));
 
             EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, S2N_HMAC_SHA256, &client_hello_prefix, &hash_value));
@@ -498,8 +498,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_set_secret(&test_psk, resumption_secret.data, resumption_secret.size));
 
-            struct s2n_blob binder_value;
-            uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
+            struct s2n_blob binder_value = { 0 };
+            uint8_t binder_value_data[SHA256_DIGEST_LENGTH] = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
             EXPECT_SUCCESS(s2n_psk_calculate_binder(&test_psk, &binder_hash, &binder_value));
@@ -516,8 +516,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_set_secret(&test_psk, resumption_secret.data, resumption_secret.size));
 
-            struct s2n_blob binder_value;
-            uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
+            struct s2n_blob binder_value = { 0 };
+            uint8_t binder_value_data[SHA256_DIGEST_LENGTH] = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
             EXPECT_SUCCESS(s2n_psk_verify_binder(conn, &test_psk, &client_hello_prefix, &finished_binder));
@@ -537,8 +537,8 @@ int main(int argc, char **argv)
 
             struct s2n_blob *incorrect_binder_value = &resumption_secret;
 
-            struct s2n_blob binder_value;
-            uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
+            struct s2n_blob binder_value = { 0 };
+            uint8_t binder_value_data[SHA256_DIGEST_LENGTH] = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
             EXPECT_FAILURE(s2n_psk_verify_binder(conn, &test_psk, &client_hello_prefix, incorrect_binder_value));
@@ -1009,7 +1009,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity_length(NULL, &identity_length), S2N_ERR_NULL);
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity_length(conn, NULL), S2N_ERR_NULL);
-    
+
         EXPECT_NULL(conn->psk_params.chosen_psk);
         EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length));
         EXPECT_EQUAL(identity_length, 0);
@@ -1035,18 +1035,18 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(NULL, identity, max_identity_length), S2N_ERR_NULL);
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, NULL, max_identity_length), S2N_ERR_NULL);
-    
+
         EXPECT_NULL(conn->psk_params.chosen_psk);
         EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, max_identity_length));
         EXPECT_EQUAL(max_identity_length, 0);
-        EXPECT_BYTEARRAY_EQUAL(identity, empty_identity, sizeof(empty_identity));  
+        EXPECT_BYTEARRAY_EQUAL(identity, empty_identity, sizeof(empty_identity));
 
         DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
         EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_identity, sizeof(psk_identity)));
         conn->psk_params.chosen_psk = psk;
         EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &max_identity_length));
         EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, max_identity_length));
-        EXPECT_BYTEARRAY_EQUAL(identity, psk_identity, sizeof(psk_identity));          
+        EXPECT_BYTEARRAY_EQUAL(identity, psk_identity, sizeof(psk_identity));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, identity, 0), S2N_ERR_INSUFFICIENT_MEM_SIZE);
         EXPECT_SUCCESS(s2n_connection_free(conn));

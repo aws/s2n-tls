@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_free(NULL));
 
     /* Static blob is not growable or freeable */
-    struct s2n_blob g1;
+    struct s2n_blob g1 = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&g1, array, 12));
     EXPECT_FALSE(s2n_blob_is_growable(&g1));
     EXPECT_FAILURE(s2n_realloc(&g1, 24));
