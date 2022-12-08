@@ -255,6 +255,14 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy = {
     .minimum_protocol_version = S2N_SSLv3,
@@ -786,6 +794,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "CloudFront-TLS-1-2-2018", .security_policy = &security_policy_cloudfront_tls_1_2_2018, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2019", .security_policy = &security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-2-2021", .security_policy = &security_policy_cloudfront_tls_1_2_2021, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2021-Chacha20-Boosted", .security_policy = &security_policy_cloudfront_tls_1_2_2021_chacha20_boosted, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* CloudFront Legacy (TLS 1.2) policies */
     { .version = "CloudFront-SSL-v-3-Legacy", .security_policy = &security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-TLS-1-0-2014-Legacy", .security_policy = &security_policy_cloudfront_tls_1_0_2014_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -921,8 +930,6 @@ int s2n_security_policies_init()
         POSIX_ENSURE_REF(ecc_preference);
         POSIX_GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
 
-        bool cipher_preferences_has_chacha20_cipher_suite = false;
-
         const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
         if (certificate_signature_preference != NULL) {
             POSIX_GUARD_RESULT(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
@@ -953,15 +960,6 @@ int s2n_security_policies_init()
             if (s2n_cipher_suite_requires_pq_extension(cipher)) {
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
-
-            if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
-                cipher_preferences_has_chacha20_cipher_suite = true;
-            }
-        }
-
-        if (cipher_preference->allow_chacha20_boosting) {
-            /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
-            POSIX_ENSURE(cipher_preferences_has_chacha20_cipher_suite, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));

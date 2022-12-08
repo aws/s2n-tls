@@ -1281,6 +1281,13 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021 =
     .allow_chacha20_boosting = false,
 };
 
+/* Duplicate of cipher_preferences_cloudfront_tls_1_2_2021 but with allow_chacha20_boosting enabled */
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2021),
+    .suites = cipher_suites_cloudfront_tls_1_2_2021,
+    .allow_chacha20_boosting = true,
+};
+
 /* Based on cipher_preferences_cloudfront_tls_1_0_2016, but with ordering changed and AES256-SHA256, DES-CBC3-SHA, and
  * RC4-MD5 added for compatibility. */
 struct s2n_cipher_suite *cipher_suites_aws_crt_sdk_ssl_v3[] = {
