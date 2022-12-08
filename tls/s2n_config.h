@@ -77,6 +77,13 @@ struct s2n_config {
     /* Indicates support for the npn extension */
     unsigned npn_supported:1;
 
+    /* Indicates s2n_recv should read as much as it can into the output buffer
+     *
+     * Note: This defaults to false to ensure backwards compatability with
+     * applications which relied on s2n_recv returning a single record.
+     */
+    unsigned recv_multi_record:1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
