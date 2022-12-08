@@ -138,6 +138,52 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test(start_paused = true)]
+async fn shutdown_with_blinding_bad_close_record() -> Result<(), Box<dyn std::error::Error>> {
+    let clock = common::TokioTime::default();
+    let mut server_config = common::server_config()?;
+    server_config.set_monotonic_clock(clock)?;
+
+    let client = TlsConnector::new(common::client_config()?.build()?);
+    let server = TlsAcceptor::new(server_config.build()?);
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+    let server_stream = common::TestStream::new(server_stream);
+    let overrides = server_stream.overrides();
+    let (mut client, mut server) =
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
+
+    // Turn the closure alert to a bad message
+    overrides.next_read(Some(Box::new(|_, _, buf| {
+        // Parsing the header is one of the blinded operations
+        // in s2n_recv, so provide a malformed header.
+        let zeroed_header = [23, 0, 0, 0, 0];
+        buf.put_slice(&zeroed_header);
+        Ok(()).into()
+    })));
+
+    // Shutdown MUST NOT complete faster than minimal blinding time.
+    let (timeout, _) = join!(
+        time::timeout(common::MIN_BLINDING_SECS, server.shutdown()),
+        time::timeout(common::MIN_BLINDING_SECS, read_until_shutdown(&mut client)),
+    );
+    assert!(timeout.is_err());
+
+    // Shutdown MUST eventually complete after blinding.
+    //
+    // We check for completion, but not for success. At the moment, the
+    // call to s2n_shutdown will fail due to issues in the underlying C library.
+    let (timeout, _) = join!(
+        time::timeout(common::MAX_BLINDING_SECS, server.shutdown()),
+        time::timeout(common::MAX_BLINDING_SECS, read_until_shutdown(&mut client)),
+    );
+    // timeout should be OK, but shutdown should return an error because of
+    // the bad record.
+    assert!(matches!(timeout, Ok(Err(_))));
+
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
 async fn shutdown_with_poll_blinding() -> Result<(), Box<dyn std::error::Error>> {
     let clock = common::TokioTime::default();
     let mut server_config = common::server_config()?;

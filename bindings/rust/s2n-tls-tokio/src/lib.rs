@@ -355,9 +355,16 @@ where
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         ready!(self.as_mut().poll_blinding(ctx))?;
 
-        ready!(self.as_mut().with_io(ctx, |mut context| {
+        let status = ready!(self.as_mut().with_io(ctx, |mut context| {
             context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
-        }))?;
+        }));
+
+        if let Err(e) = status {
+            // In case of an error shutting down, make sure you wait for
+            // the blinding timeout.
+            ready!(self.as_mut().poll_blinding(ctx))?;
+            return Poll::Ready(Err(e.into()));
+        }
 
         Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx)
     }
