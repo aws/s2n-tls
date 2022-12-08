@@ -53,6 +53,11 @@ typedef __darwin_pthread_once_t pthread_once_t;
     #define MADV_WIPEONFORK 18
 #endif
 
+/* Sometimes (for example, on FreeBSD) MAP_INHERIT_ZERO is called INHERIT_ZERO */
+#if !defined(MAP_INHERIT_ZERO) && defined(INHERIT_ZERO)
+    #define MAP_INHERIT_ZERO INHERIT_ZERO
+#endif
+
 /* These variables are used to disable all fork detection mechanisms or at the
  * individual level during testing.
  */
@@ -107,7 +112,7 @@ static inline S2N_RESULT s2n_initialise_wipeonfork_best_effort(void *addr, long 
 static inline S2N_RESULT s2n_initialise_inherit_zero(void *addr, long page_size)
 {
 #if defined(S2N_MINHERIT_SUPPORTED) && defined(MAP_INHERIT_ZERO)
-    RESULT_ENSURE(minherit(addr, pagesize, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(minherit(addr, page_size, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
 #endif
 
     return S2N_RESULT_OK;
@@ -338,7 +343,7 @@ bool s2n_is_madv_wipeonfork_supported(void)
 bool s2n_is_map_inherit_zero_supported(void)
 {
 #if defined(S2N_MINHERIT_SUPPORTED) && defined(MAP_INHERIT_ZERO)
-    return true
+    return true;
 #else
     return false;
 #endif
