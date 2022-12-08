@@ -207,8 +207,8 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
             conn->in_status = ENCRYPTED;
         }
 
-        /* If we've read some data, return it */
-        if (bytes_read) {
+        /* If we've read some data, return it in legacy mode */
+        if (bytes_read && !conn->config->recv_multi_record) {
             break;
         }
     }
