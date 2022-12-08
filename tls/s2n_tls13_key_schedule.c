@@ -255,13 +255,15 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
      */
     if (message_type == SERVER_FINISHED) {
         K_send(conn, S2N_APPLICATION_SECRET);
-        /**
-         *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
-         *# here                  +--------+--------+
-         *#              No 0-RTT |                 | 0-RTT
-         *#                       |                 |
-         *#   K_recv = handshake  |                 | K_recv = early data
-         */
+        /* clang-format off */
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *# here                  +--------+--------+
+     *#              No 0-RTT |                 | 0-RTT
+     *#                       |                 |
+     *#   K_recv = handshake  |                 | K_recv = early data
+     */
+        /* clang-format on */
         if (WITH_EARLY_DATA(conn)) {
             K_recv(conn, S2N_EARLY_SECRET);
         } else {

@@ -86,7 +86,8 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
+int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify,
+        struct s2n_kex_raw_server_data *raw_server_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
@@ -101,7 +102,8 @@ int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n
     return 0;
 }
 
-int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
+int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify,
+        struct s2n_kex_raw_server_data *raw_server_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_dhe_raw_server_points *dhe_data = &raw_server_data->dhe_data;
@@ -144,7 +146,8 @@ int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
     return 0;
 }
 
-int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
+int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify,
+        struct s2n_kex_raw_server_data *raw_server_data)
 {
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
     struct s2n_stuffer *in = &conn->handshake.io;
@@ -191,18 +194,20 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
 
     const struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
     const struct s2n_kem *match = NULL;
-    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, kem_preferences->kems,
-                         kem_preferences->kem_count, &match)
+    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name,
+                         kem_preferences->kems, kem_preferences->kem_count, &match)
                     != 0,
             S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     conn->kex_params.kem_params.kem = match;
 
-    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->kex_params.kem_params.kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->kex_params.kem_params.kem->public_key_length,
+            S2N_ERR_BAD_MESSAGE);
 
     return 0;
 }
 
-int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *total_data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
+int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *total_data_to_verify,
+        struct s2n_kex_raw_server_data *raw_server_data)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
@@ -272,7 +277,8 @@ int s2n_server_key_send(struct s2n_connection *conn)
     /* Add KEX specific data to the hash */
     POSIX_GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
-    S2N_ASYNC_PKEY_SIGN(conn, conn->handshake_params.conn_sig_scheme.sig_alg, signature_hash, s2n_server_key_send_write_signature);
+    S2N_ASYNC_PKEY_SIGN(conn, conn->handshake_params.conn_sig_scheme.sig_alg, signature_hash,
+            s2n_server_key_send_write_signature);
 }
 
 int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)

@@ -124,7 +124,8 @@ WRITE:
     return 0;
 }
 
-ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
+ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iovec *bufs,
+        ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
     ssize_t user_data_sent, total_size = 0;
 
@@ -198,7 +199,8 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         /* Don't split messages in server mode for interoperability with naive clients.
          * Some clients may have expectations based on the amount of content in the first record.
          */
-        if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->record_alg->cipher->type == S2N_CBC && conn->mode != S2N_SERVER) {
+        if (conn->actual_protocol_version < S2N_TLS11
+                && writer->cipher_suite->record_alg->cipher->type == S2N_CBC && conn->mode != S2N_SERVER) {
             if (to_write > 1 && cbcHackUsed == 0) {
                 to_write = 1;
                 cbcHackUsed = 1;
@@ -240,7 +242,8 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
     return total_size;
 }
 
-ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count,
+        ssize_t offs, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE(!conn->send_in_use, S2N_ERR_REENTRANCY);
     conn->send_in_use = true;

@@ -333,7 +333,8 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
 
     X509 *server_cert = NULL;
 
-    while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && sk_X509_num(validator->cert_chain_from_wire) < validator->max_chain_depth) {
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)
+            && sk_X509_num(validator->cert_chain_from_wire) < validator->max_chain_depth) {
         struct s2n_blob asn1_cert = { 0 };
         RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
@@ -664,7 +665,8 @@ S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences)
+S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert,
+        const struct s2n_signature_preferences *cert_sig_preferences)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(x509_cert);
@@ -682,7 +684,9 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
     for (size_t i = 0; i < cert_sig_preferences->count; i++) {
         if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid == nid) {
             /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
-            RESULT_ENSURE(!(conn->actual_protocol_version >= S2N_TLS13 && cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1), S2N_ERR_CERT_UNTRUSTED);
+            RESULT_ENSURE(!(conn->actual_protocol_version >= S2N_TLS13
+                                  && cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1),
+                    S2N_ERR_CERT_UNTRUSTED);
 
             return S2N_RESULT_OK;
         }

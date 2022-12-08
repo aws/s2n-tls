@@ -231,7 +231,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         if (session_ids_match) {
             /* check if the resumed session state is valid */
             S2N_ERROR_IF(conn->actual_protocol_version != actual_protocol_version, S2N_ERR_BAD_MESSAGE);
-            S2N_ERROR_IF(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0,
+                    S2N_ERR_BAD_MESSAGE);
 
             /* Session is resumed */
             conn->client_session_resumed = 1;

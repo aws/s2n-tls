@@ -31,7 +31,8 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     uint32_t size_of_all_certificates;
     POSIX_GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
-    S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3,
+            S2N_ERR_BAD_MESSAGE);
 
     s2n_cert_public_key public_key;
     POSIX_GUARD(s2n_pkey_zero_init(&public_key));

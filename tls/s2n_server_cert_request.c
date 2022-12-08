@@ -51,7 +51,8 @@ static uint8_t s2n_cert_type_preference_list[] = {
 
 /*
  * Include DSS sign certificate type in server certificate request.
- * Only will be used if cert_req_dss_legacy_compat_enabled is set by calling s2n_config_enable_cert_req_dss_legacy_compat.
+ * Only will be used if cert_req_dss_legacy_compat_enabled is set by calling
+ * s2n_config_enable_cert_req_dss_legacy_compat.
  */
 static uint8_t s2n_cert_type_preference_list_legacy_dss[] = {
     S2N_CERT_TYPE_RSA_SIGN,
