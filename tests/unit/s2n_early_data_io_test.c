@@ -15,16 +15,15 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_early_data.h"
 
 #define TEST_MAX_EARLY_DATA_SIZE 1000
 
 #define EXPECT_SUCCESS_S2N_SEND(conn, data, data_len, blocked) \
-        EXPECT_EQUAL(s2n_send(conn, data, data_len, blocked), data_len)
+    EXPECT_EQUAL(s2n_send(conn, data, data_len, blocked), data_len)
 #define EXPECT_SUCCESS_S2N_RECV(conn, data_buffer, data_buffer_size, blocked, data, data_len) \
-        EXPECT_EQUAL(s2n_recv(conn, data_buffer, data_buffer_size, blocked), data_len); \
-        EXPECT_BYTEARRAY_EQUAL(data_buffer, data, data_len)
+    EXPECT_EQUAL(s2n_recv(conn, data_buffer, data_buffer_size, blocked), data_len);           \
+    EXPECT_BYTEARRAY_EQUAL(data_buffer, data, data_len)
 
 static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn)
 {
@@ -111,7 +110,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data not supported by client */
         {
@@ -138,7 +137,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Server does not support TLS1.3 */
         {
@@ -157,12 +156,12 @@ int main(int argc, char **argv)
              *
              * What we really care about is how the client reacts to the TLS1.2 SERVER_HELLO.
              */
-            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
-                    CLIENT_KEY), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, CLIENT_KEY),
+                    S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data accepted */
         {
@@ -202,7 +201,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data accepted asynchronously */
         {
@@ -251,7 +250,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Early data rejected */
         {
@@ -279,7 +278,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data rejected asynchronously */
         {
@@ -323,7 +322,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Early data rejected and ignored */
         {
@@ -362,7 +361,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data rejected, but too much early data received */
         {
@@ -401,7 +400,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data rejected due to HRR */
         {
@@ -430,7 +429,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Early data rejected due to HRR, but received anyway and ignored.  */
         {
@@ -455,7 +454,7 @@ int main(int argc, char **argv)
              *  That would increase the number of records not ignored, making a false negative even less likely)
              */
             const size_t repetitions = 450;
-            for(size_t i = 0; i < repetitions; i++) {
+            for (size_t i = 0; i < repetitions; i++) {
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
                 EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
@@ -494,7 +493,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-        }
+        };
 
         /* PSK rejected altogether */
         {
@@ -523,8 +522,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_send with early data */
     {
@@ -579,8 +578,8 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_send(client_conn, NULL, 0, &blocked), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
 
             /* Continue the handshake */
-            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
-                    CLIENT_FINISHED), S2N_ERR_EARLY_DATA_BLOCKED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, CLIENT_FINISHED),
+                    S2N_ERR_EARLY_DATA_BLOCKED);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_FINISHED);
 
             /* Can't send early data after END_OF_EARLY_DATA sent */
@@ -589,7 +588,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* End early data before the server accepts the early data request. */
         {
@@ -615,8 +614,8 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_send(client_conn, NULL, 0, &blocked), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
 
             /* Continue the handshake */
-            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
-                    CLIENT_FINISHED), S2N_ERR_EARLY_DATA_BLOCKED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, CLIENT_FINISHED),
+                    S2N_ERR_EARLY_DATA_BLOCKED);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_FINISHED);
 
             /* Still can't send early data after END_OF_EARLY_DATA sent */
@@ -625,7 +624,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* s2n_send reports early data bytes on partial writes */
         {
@@ -672,8 +671,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
             EXPECT_EQUAL(actual_send_size, fragment_len);
             EXPECT_EQUAL(client_conn->early_data_bytes, fragment_len);
-        }
-    }
+        };
+    };
 
     /* Test s2n_recv with early data */
     {
@@ -742,7 +741,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* s2n_recv fails if it encounters a handshake message instead of early data. */
         {
@@ -774,7 +773,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* s2n_recv fails on too much early data */
         {
@@ -810,8 +809,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config_with_cert));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
