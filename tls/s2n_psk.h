@@ -16,7 +16,6 @@
 #pragma once
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_early_data.h"
