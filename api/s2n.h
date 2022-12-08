@@ -869,6 +869,18 @@ S2N_API extern int s2n_config_set_verify_after_sign(struct s2n_config *config, s
 S2N_API extern int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size);
 
 /**
+ * Enable or disable recieving of multiple TLS records in a single s2n_recv call
+ *
+ * Legacy behavior is to return after reading a single TLS record which may not be the most
+ * efficient way to invoke this function, especially if larger receive buffers are used.
+ *
+ * @param config The configuration object being updated
+ * @param enabled Set to `true` if multiple record recieve is to be enabled; `false` to disable.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled);
+
+/**
  * A callback function invoked (usually multiple times) during X.509 validation for each
  * name encountered in the leaf certificate.
  *
