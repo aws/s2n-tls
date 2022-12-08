@@ -68,7 +68,7 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     switch (alg) {
-            /* clang-format off */
+        /* clang-format off */
             case S2N_HASH_NONE:     *out = 0;                    break;
             case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
             case S2N_HASH_SHA1:     *out = SHA_DIGEST_LENGTH;    break;
@@ -91,7 +91,7 @@ int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
 {
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
     switch (alg) {
-            /* clang-format off */
+        /* clang-format off */
             case S2N_HASH_NONE:       *block_size = 64;   break;
             case S2N_HASH_MD5:        *block_size = 64;   break;
             case S2N_HASH_SHA1:       *block_size = 64;   break;
