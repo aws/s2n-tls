@@ -123,7 +123,7 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_config_free(config));
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
                 }
-            };
+            }
 
             /* Same as above test, but with ECDSA Certificates */
             {
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_config_free(config));
                     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
                 }
-            };
+            }
 
             bool has_tls_13_sig_alg = false;
             bool has_rsa_pss = false;
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-    };
+    }
 
     {
         char tls12_only_security_policy_strings[][255] = {
@@ -518,6 +518,7 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
             "CloudFront-TLS-1-2-2021",
+            "CloudFront-TLS-1-2-2021-ChaCha20-Boosted",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
@@ -530,7 +531,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls13_security_policy_strings[i], &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         }
-    };
+    }
 
     /* Test that null fails */
     {
@@ -538,55 +539,38 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
-    };
+    }
 
-    /* Test that security policy with invalid chacha20 boosting configuration triggers error on init */
-    {
-        /* Back up the first security policy selection because we will replace it with an invalid selection */
-        struct s2n_security_policy_selection previous = security_policy_selection[0];
+    /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
+    if (s2n_chacha20_poly1305.is_available()) {
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            const struct s2n_cipher_preferences *cipher_preference = sec_policy->cipher_preferences;
+            EXPECT_NOT_NULL(cipher_preference);
 
-        struct s2n_cipher_suite *aes_128_only_cipher_suite_list[] = {
-            &s2n_tls13_aes_128_gcm_sha256,
-        };
+            /* No need to check cipher preferences with chacha20 boosting disabled */
+            if (!cipher_preference->allow_chacha20_boosting) {
+                continue;
+            }
 
-        struct s2n_cipher_preferences cipher_preferences = {
-            .count = s2n_array_len(aes_128_only_cipher_suite_list),
-            .suites = aes_128_only_cipher_suite_list,
-            .allow_chacha20_boosting = true
-        };
+            bool cipher_preferences_has_chacha20_cipher_suite = false;
 
-        struct s2n_security_policy test_policy = {
-            .minimum_protocol_version = S2N_SSLv3,
-            .cipher_preferences = &cipher_preferences,
-            .kem_preferences = &kem_preferences_null,
-            .signature_preferences = &s2n_signature_preferences_20201021,
-            .ecc_preferences = &s2n_ecc_preferences_test_all,
-        };
+            /* Iterate over cipher preferences and try to find a chacha20 ciphersuite */
+            for (size_t j = 0; j < cipher_preference->count; j++) {
+                struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
+                EXPECT_NOT_NULL(cipher);
 
-        security_policy_selection[0] = (struct s2n_security_policy_selection){
-            .version = "test_security_policy_chacha20",
-            .security_policy = &test_policy,
-            .ecc_extension_required = 0,
-            .pq_kem_extension_required = 0
-        };
+                if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
+                    cipher_preferences_has_chacha20_cipher_suite = true;
+                    break;
+                }
+            }
 
-        /* Cipher preferences has allow_chacha20_boosting incorrectly set as true even though the ciphersuite list only has aes128 */
-        {
-            EXPECT_TRUE(cipher_preferences.allow_chacha20_boosting);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_security_policies_init(), S2N_ERR_INVALID_SECURITY_POLICY);
-        };
-
-        /* Cipher preferences has allow_chacha20_boosting correctly set as false */
-        {
-            cipher_preferences.allow_chacha20_boosting = false;
-            EXPECT_FALSE(cipher_preferences.allow_chacha20_boosting);
-
-            EXPECT_SUCCESS(s2n_security_policies_init());
-        };
-
-        /* IMPORTANT: restore the old policy selection to return to the old state */
-        security_policy_selection[0] = previous;
-    };
+            /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
+            EXPECT_TRUE(cipher_preferences_has_chacha20_cipher_suite);
+        }
+    }
 
     /* Test a security policy not on the official list */
     {
@@ -615,7 +599,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
-    };
+    }
     {
         struct s2n_config *config = s2n_config_new();
 
@@ -735,7 +719,7 @@ int main(int argc, char **argv)
                 S2N_ERR_INVALID_SECURITY_POLICY);
 
         s2n_config_free(config);
-    };
+    }
     {
         struct s2n_config *config = s2n_config_new();
 
@@ -820,7 +804,7 @@ int main(int argc, char **argv)
 
         s2n_config_free(config);
         s2n_connection_free(conn);
-    };
+    }
 
     /* All signature preferences are valid */
     {
@@ -855,7 +839,7 @@ int main(int argc, char **argv)
                 }
             }
         }
-    };
+    }
 
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
     {
@@ -876,7 +860,7 @@ int main(int argc, char **argv)
         };
 
         EXPECT_FAILURE(s2n_check_ecc_preferences_curves_list(&s2n_ecc_preferences_new_list));
-    };
+    }
 
     /* Positive and negative cases for s2n_validate_kem_preferences() */
     {
@@ -921,7 +905,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_pq_tls_1_0_2021_05, 0), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_pq_tls_1_0_2021_05, 1));
-    };
+    }
 
     /* Checks that NUM_RSA_PSS_SCHEMES accurately represents the number of rsa_pss signature schemes usable in a
      * certificate_signature_preferences list */
@@ -940,7 +924,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(num_rsa_pss <= NUM_RSA_PSS_SCHEMES);
             }
         }
-    };
+    }
 
     /* s2n_validate_certificate_signature_preferences will succeed if there are no rsa_pss schemes in the preference list */
     {
@@ -954,7 +938,7 @@ int main(int argc, char **argv)
         };
 
         EXPECT_OK(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
-    };
+    }
 
     /* s2n_validate_certificate_signature_preferences will succeed if all rsa_pss schemes are included in the preference list */
     {
@@ -973,7 +957,7 @@ int main(int argc, char **argv)
         };
 
         EXPECT_OK(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
-    };
+    }
 
     /* s2n_validate_certificate_signature_preferences will fail if not all rsa_pss schemes are included in the preference list */
     {
@@ -988,7 +972,7 @@ int main(int argc, char **argv)
         };
 
         EXPECT_ERROR_WITH_ERRNO(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences), S2N_ERR_INVALID_SECURITY_POLICY);
-    };
+    }
 
     END_TEST();
 }

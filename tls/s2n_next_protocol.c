@@ -14,9 +14,9 @@
  */
 
 #include "error/s2n_errno.h"
-#include "utils/s2n_safety.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_tls.h"
+#include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
 {
@@ -26,18 +26,18 @@ S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len)
      *= https://datatracker.ietf.org/doc/id/draft-agl-tls-nextprotoneg-03#section-3
      *# The length of "padding" SHOULD be 32 - ((len(selected_protocol) + 2) % 32).
      */
-    *padding_len = 32 - (((uint16_t)protocol_len + 2) % 32);
+    *padding_len = 32 - (((uint16_t) protocol_len + 2) % 32);
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *out)
-{  
+{
     RESULT_ENSURE_REF(conn);
- 
+
     uint8_t protocol_len = strlen(conn->application_protocol);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, protocol_len));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, (uint8_t*) conn->application_protocol, protocol_len));
-    
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, protocol_len));
+
     uint8_t padding_len = 0;
     RESULT_GUARD(s2n_calculate_padding(protocol_len, &padding_len));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, padding_len));
@@ -49,7 +49,7 @@ S2N_RESULT s2n_write_npn_protocol(struct s2n_connection *conn, struct s2n_stuffe
 }
 
 S2N_RESULT s2n_read_npn_protocol(struct s2n_connection *conn, struct s2n_stuffer *in)
-{   
+{
     RESULT_ENSURE_REF(conn);
 
     uint8_t protocol_len = 0;

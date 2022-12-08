@@ -20,7 +20,7 @@ jobs:
           - check: 'tests/unit'
             exclude: "s2n_[^3as].*\\.c"
           - check: 'tls'
-            exclude: ".*"
+            exclude: "(tls\\/extensions)|(s2n_[a-hs-z].*\\.[ch])"
           - check: 'tls/extensions'
             exclude: ''
           - check: 'utils'
