@@ -827,19 +827,19 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
             if (ext_value != NULL) {
                 POSIX_ENSURE(*ext_value_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 /* ASN1_STRING_data() returns an internal pointer to the data. 
-                * Since this is an internal pointer it should not be freed or modified in any way.
-                * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
-                */
+                 * Since this is an internal pointer it should not be freed or modified in any way.
+                 * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
+                 */
                 unsigned char *internal_data = ASN1_STRING_data(asn1_str);
                 POSIX_ENSURE_REF(internal_data);
                 POSIX_CHECKED_MEMCPY(ext_value, internal_data, len);
             }
             if (critical != NULL) {
                 /* Retrieve the x509 extension's critical value.
-                * X509_EXTENSION_get_critical() returns the criticality of extension `x509_ext`,
-                * it returns 1 for critical and 0 for non-critical.
-                * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_critical.html.
-                */
+                 * X509_EXTENSION_get_critical() returns the criticality of extension `x509_ext`,
+                 * it returns 1 for critical and 0 for non-critical.
+                 * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_critical.html.
+                 */
                 *critical = X509_EXTENSION_get_critical(x509_ext);
             }
             *ext_value_len = len;
