@@ -195,5 +195,46 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
+    /* s2n_config_set_recv_multi_record */
+    {
+        #define TEST_DATA_SIZE 100
+        const uint8_t test_data[TEST_DATA_SIZE] = "hello world";
+        const size_t test_data_size = sizeof(test_data);
+        uint8_t output[TEST_DATA_SIZE * 2];
+        const size_t recv_size = sizeof(output);
+
+        {
+            s2n_blocked_status blocked = 0;
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Write some data, in three records */
+            EXPECT_EQUAL(s2n_send(client_conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+            EXPECT_EQUAL(s2n_send(client_conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+            EXPECT_EQUAL(s2n_send(client_conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+
+            /* Disable multi-recod recv, set legavy behvaior */
+            EXPECT_SUCCESS(s2n_config_set_recv_multi_record(config, false));
+
+            EXPECT_EQUAL(s2n_recv(server_conn, output, recv_size, &blocked), test_data_size);
+
+            /* Now enable multi record recv */
+            EXPECT_SUCCESS(s2n_config_set_recv_multi_record(config, true));
+
+            /* So we should be able to read the remaining two records in a single call */
+            EXPECT_EQUAL(s2n_recv(server_conn, output, recv_size, &blocked), recv_size);
+        }
+    }
+
     END_TEST();
 }
