@@ -254,9 +254,7 @@ where
         let tls = self.get_mut();
 
         if tls.blinding.is_none() {
-            let delay = tls
-                .as_ref()
-                .remaining_blinding_delay()?;
+            let delay = tls.as_ref().remaining_blinding_delay()?;
             if !delay.is_zero() {
                 // Sleep operates at the milisecond resolution, so add an extra
                 // millisecond to account for any stray nanoseconds.
