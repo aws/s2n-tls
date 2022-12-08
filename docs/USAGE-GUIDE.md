@@ -1111,6 +1111,10 @@ ssize_t s2n_recv(struct s2n_connection *conn,
 connection. **s2n_recv** will return the number of bytes read and also return
 "0" on connection shutdown by the peer.
 
+**NOTE:** By default, **s2n_recv** will return after reading a single TLS record. To change this
+behavior such that it will read up to **size**, the config for the connection can be updated
+by calling **s2n_config_set_recv_multi_record**.
+
 **NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
 
 ```c

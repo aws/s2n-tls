@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdbool.h>
+
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
 
