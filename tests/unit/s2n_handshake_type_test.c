@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <sys/param.h>
 
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 
 #define S2N_FIRST_COMMON_HANDSHAKE_FLAG NEGOTIATED
-#define S2N_LAST_COMMON_HANDSHAKE_FLAG NO_CLIENT_CERT
-#define S2N_FIRST_TLS12_HANDSHAKE_FLAG TLS12_PERFECT_FORWARD_SECRECY
-#define S2N_LAST_TLS12_HANDSHAKE_FLAG WITH_SESSION_TICKET
-#define S2N_FIRST_TLS13_HANDSHAKE_FLAG HELLO_RETRY_REQUEST
-#define S2N_LAST_TLS13_HANDSHAKE_FLAG EARLY_CLIENT_CCS
+#define S2N_LAST_COMMON_HANDSHAKE_FLAG  NO_CLIENT_CERT
+#define S2N_FIRST_TLS12_HANDSHAKE_FLAG  TLS12_PERFECT_FORWARD_SECRECY
+#define S2N_LAST_TLS12_HANDSHAKE_FLAG   WITH_SESSION_TICKET
+#define S2N_FIRST_TLS13_HANDSHAKE_FLAG  HELLO_RETRY_REQUEST
+#define S2N_LAST_TLS13_HANDSHAKE_FLAG   EARLY_CLIENT_CCS
 
 int main(int argc, char **argv)
 {
@@ -61,7 +60,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->handshake.handshake_type, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_handshake_type_set_flag */
     {
@@ -85,7 +84,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_check_flag */
     {
@@ -106,7 +105,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_flag(conn, flag));
-            }
+            };
 
             /* No flags set */
             {
@@ -117,7 +116,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_flag(conn, flag));
-            }
+            };
 
             /* One flag set */
             {
@@ -128,11 +127,11 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_flag(conn, flag));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_set_tls12_flag */
     {
@@ -155,7 +154,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_check_tls12_flag */
     {
@@ -176,7 +175,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, flag));
-            }
+            };
 
             /* No flags set */
             {
@@ -187,7 +186,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, flag));
-            }
+            };
 
             /* One flag set */
             {
@@ -198,11 +197,11 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, flag));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_set_tls13_flag */
     {
@@ -223,7 +222,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     /* Test s2n_handshake_type_check_tls13_flag */
     {
@@ -244,7 +243,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_tls13_flag(conn, flag));
-            }
+            };
 
             /* No flags set */
             {
@@ -255,7 +254,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_FALSE(s2n_handshake_type_check_tls13_flag(conn, flag));
-            }
+            };
 
             /* One flag set */
             {
@@ -266,11 +265,11 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_TRUE(s2n_handshake_type_check_tls13_flag(conn, flag));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     END_TEST();
 }
