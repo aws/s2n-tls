@@ -25,6 +25,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <stdio.h>
+#include <sys/param.h>
 #include <sys/wait.h>
 
 #include "s2n_test.h"
@@ -317,7 +318,7 @@ struct fgn_test_case fgn_test_cases[NUMBER_OF_FGN_TEST_CASES] = {
     { "Default fork detect mechanisms.", s2n_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME },
     { "Only pthread_atfork fork detection mechanism.", s2n_test_case_pthread_atfork_cb, CLONE_TEST_NO },
     { "Only madv_wipeonfork fork detection mechanism.", s2n_test_case_madv_wipeonfork_cb, CLONE_TEST_YES },
-    { "Only map_inheret_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES }
+    { "Only map_inherit_zero fork detection mechanism.", s2n_test_case_map_inherit_zero_cb, CLONE_TEST_YES }
 };
 
 int main(int argc, char **argv)
@@ -325,6 +326,17 @@ int main(int argc, char **argv)
     BEGIN_TEST_NO_INIT();
 
     EXPECT_TRUE(s2n_array_len(fgn_test_cases) == NUMBER_OF_FGN_TEST_CASES);
+
+/* Test: FreeBSD >= 12.0 should use map_inherit_zero */
+#ifdef __FreeBSD__
+    #ifndef __FreeBSD_version
+        #error "Unknown FreeBSD version"
+    #endif
+
+    #if __FreeBSD_version >= 1200000
+    EXPECT_TRUE(s2n_is_map_inherit_zero_supported());
+    #endif
+#endif
 
     /* Create NUMBER_OF_FGN_TEST_CASES number of child processes that run each
      * test case.
