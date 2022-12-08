@@ -233,6 +233,47 @@ where
     }
 }
 
+impl<S, C> TlsStream<S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    /// Polls the blinding timer, if there is any.
+    ///
+    /// s2n has a "blinding" functionality - when a bad behavior from the peer
+    /// is detected, sleeps for 10-30 seconds before answering the client
+    /// and closing the connection. This mitigates some timing side channels
+    /// that could leak information about encrypted data. See the
+    /// `s2n_connection_set_blinding` docs for more details.
+    ///
+    /// For security reasons, to allow for blinding to correctly function,
+    /// before dropping an s2n connection, you should wait until either
+    /// `poll_blinding` or `poll_shutdown` (which calls `poll_blinding`
+    /// internally) returns ready.
+    pub fn poll_blinding(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+        let tls = self.get_mut();
+
+        if tls.blinding.is_none() {
+            let delay = tls
+                .as_ref()
+                .remaining_blinding_delay()?;
+            if !delay.is_zero() {
+                // Sleep operates at the milisecond resolution, so add an extra
+                // millisecond to account for any stray nanoseconds.
+                let safety = Duration::from_millis(1);
+                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
+            }
+        };
+
+        if let Some(timer) = tls.blinding.as_mut() {
+            ready!(timer.as_mut().poll(ctx));
+            tls.blinding = None;
+        }
+
+        Poll::Ready(Ok(()))
+    }
+}
+
 impl<S, C> AsRef<Connection> for TlsStream<S, C>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
@@ -311,33 +352,14 @@ where
         Pin::new(&mut tls.stream).poll_flush(ctx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        let tls = self.get_mut();
+    fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        ready!(self.as_mut().poll_blinding(ctx))?;
 
-        if tls.blinding.is_none() {
-            let delay = tls
-                .as_ref()
-                .remaining_blinding_delay()
-                .map_err(io::Error::from)?;
-            if !delay.is_zero() {
-                // Sleep operates at the milisecond resolution, so add an extra
-                // millisecond to account for any stray nanoseconds.
-                let safety = Duration::from_millis(1);
-                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
-            }
-        };
-
-        if let Some(timer) = tls.blinding.as_mut() {
-            ready!(timer.as_mut().poll(ctx));
-            tls.blinding = None;
-        }
-
-        ready!(tls.with_io(ctx, |mut context| {
+        ready!(self.as_mut().with_io(ctx, |mut context| {
             context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
-        }))
-        .map_err(io::Error::from)?;
+        }))?;
 
-        Pin::new(&mut tls.stream).poll_shutdown(ctx)
+        Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx)
     }
 }
 
