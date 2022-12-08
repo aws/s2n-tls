@@ -28,9 +28,9 @@
 
 test_stack_blob_success(success_equal, s2n_stack_blob, 10, 10)
 
-        test_stack_blob_success(success_equal_smaller, s2n_stack_blob, 10, 100)
+test_stack_blob_success(success_equal_smaller, s2n_stack_blob, 10, 100)
 
-                int requested_bigger_than_max()
+int requested_bigger_than_max()
 {
     s2n_stack_blob(foo, 11, 10);
     /* This should never be reached due to the above failure */
