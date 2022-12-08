@@ -1318,7 +1318,7 @@ int main(int argc, char **argv)
      *# The server's extensions MUST contain "supported_versions".
      **/
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
