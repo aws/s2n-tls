@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 
     /* s2n_config_set_recv_multi_record */
     {
-        #define TEST_DATA_SIZE 100
+#define TEST_DATA_SIZE 100
         const uint8_t test_data[TEST_DATA_SIZE] = "hello world";
         const size_t test_data_size = sizeof(test_data);
         uint8_t output[TEST_DATA_SIZE * 2];
