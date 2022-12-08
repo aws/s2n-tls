@@ -856,8 +856,8 @@ static S2N_RESULT s2n_execute_handler(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
-    /* Ensure the state machine referenced is consistant throughout the handshake */
-    if (conn->actual_protocol_version_established) {
+    /* Ensure the state machine referenced is consistent throughout the handshake */
+    if (conn->actual_protocol_version_established || IS_HELLO_RETRY_HANDSHAKE(conn) || WITH_EARLY_DATA(conn)) {
         RESULT_ENSURE_EQ(IS_TLS13_HANDSHAKE(conn), conn->is_tls13_state_machine);
     }
 
