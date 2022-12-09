@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(result, 0x01);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that s2n_basic_ccs_recv can parse the output of s2n_change_cipher_spec_send */
     {
@@ -51,7 +50,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_basic_ccs_recv(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that s2n_basic_ccs_recv errors on wrong change cipher spec types */
     {
@@ -62,7 +61,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_basic_ccs_recv(conn), S2N_ERR_BAD_MESSAGE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that s2n_client_ccs_recv errors on wrong change cipher spec types */
     {
@@ -73,7 +72,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_ccs_recv(conn), S2N_ERR_BAD_MESSAGE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that s2n_server_ccs_recv errors on wrong change cipher spec types */
     {
@@ -84,7 +83,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_ccs_recv(conn), S2N_ERR_BAD_MESSAGE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_client_ccs_recv */
     {
@@ -110,7 +109,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test SSLv3 s2n_client_ccs_recv */
     {
@@ -133,7 +132,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure->client_sequence_number[0], 0);
         EXPECT_EQUAL(conn->client, conn->secure);
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
-    }
+    };
 
     /* Test s2n_server_ccs_recv */
     {
@@ -161,7 +160,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test SSLv3 s2n_server_ccs_recv */
     {
@@ -186,7 +185,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->handshake.finished_len, S2N_SSL_FINISHED_LEN);
         EXPECT_EQUAL(conn->server, conn->secure);
         EXPECT_FALSE(s2n_stuffer_data_available(&conn->alert_in));
-    }
+    };
 
     END_TEST();
     return 0;

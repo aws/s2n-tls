@@ -14,12 +14,11 @@
  */
 
 #include <stdint.h>
+
 #include "api/s2n.h"
-
 #include "s2n_test.h"
-
-#include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(cert_len, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     /* Client sends the empty cert when no client default chain and key */
     {
@@ -66,7 +65,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client fails to send empty cert when S2N_CERT_AUTH_REQUIRED */
     {
@@ -83,7 +82,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Server receives empty cert */
     {
@@ -117,7 +116,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }
