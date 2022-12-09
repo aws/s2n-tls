@@ -13,31 +13,26 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-#include "tls/s2n_tls13.h"
-
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_fips.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_handshake.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 /* To get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
 #include "tls/s2n_tls13_handshake.c"
-
 
 int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2n_config *client_config, struct s2n_cert_chain_and_key *ecdsa_cert, bool no_cert)
 {
@@ -342,7 +337,7 @@ int main(int argc, char **argv)
 
         /* client_auth with no cert */
         EXPECT_SUCCESS(s2n_test_client_auth_negotiation(server_config, client_config, ecdsa_cert, 1));
-        
+
         /* client_auth with cert */
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_test_client_auth_negotiation(server_config, client_config, ecdsa_cert, 0));
@@ -352,7 +347,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         free(cert_chain_pem);
         free(private_key_pem);
-    }
+    };
 
     /* Test each message is sent and in the correct order */
     {
@@ -361,7 +356,7 @@ int main(int argc, char **argv)
 
         /* Test message by message with a cert */
         s2n_test_client_auth_message_by_message(0);
-    }
+    };
 
     END_TEST();
 }
