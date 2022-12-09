@@ -1,6 +1,6 @@
 from common import Protocols
 from providers import S2N
-from global_flags import get_flag, S2N_FIPS_MODE
+from global_flags import get_flag, S2N_FIPS_MODE, S2N_USE_CRITERION
 
 
 def to_bytes(val):
@@ -63,6 +63,8 @@ def invalid_test_parameters(*args, **kwargs):
     cipher = kwargs.get('cipher')
     curve = kwargs.get('curve')
     signature = kwargs.get('signature')
+    endpoint = kwargs.get('endpoint')
+    criterion_skip_endpoints = ['www.netflix.com']
 
     providers = [provider_ for provider_ in [provider, other_provider] if provider_]
     # Always consider S2N
@@ -79,6 +81,12 @@ def invalid_test_parameters(*args, **kwargs):
     for provider_ in providers:
         if not provider_.supports_protocol(protocol):
             return True
+
+    # Skip some endpoints for criterion.
+    if endpoint is not None:
+        if provider is S2N and get_flag(S2N_USE_CRITERION) != "off" and endpoint in criterion_skip_endpoints:
+            return True
+
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
