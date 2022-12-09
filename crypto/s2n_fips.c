@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/crypto.h>
-
 #include "crypto/s2n_fips.h"
 
+#include <openssl/crypto.h>
+
 #if defined(S2N_INTERN_LIBCRYPTO) && defined(OPENSSL_FIPS)
-#error "Interning with OpenSSL fips-validated libcrypto is not currently supported. See https://github.com/aws/s2n-tls/issues/2741"
+    #error "Interning with OpenSSL fips-validated libcrypto is not currently supported. See https://github.com/aws/s2n-tls/issues/2741"
 #endif
 
 static int s2n_fips_mode = 0;
@@ -34,7 +34,8 @@ static int s2n_fips_mode = 0;
  * Note: FIPS_mode() does not change the FIPS state of libcrypto. This only returns the current state. Applications
  * using s2n must call FIPS_mode_set(1) prior to s2n_init.
  * */
-bool s2n_libcrypto_is_fips(void) {
+bool s2n_libcrypto_is_fips(void)
+{
 #if defined(OPENSSL_FIPS) || defined(OPENSSL_IS_AWSLC)
     if (FIPS_mode() == 1) {
         return true;

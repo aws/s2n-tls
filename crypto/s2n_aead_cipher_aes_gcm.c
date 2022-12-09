@@ -17,14 +17,12 @@
 #include <openssl/evp.h>
 
 #include "crypto/s2n_cipher.h"
-
 #include "tls/s2n_crypto.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-#define S2N_AEAD_AES_GCM_AVAILABLE
+    #define S2N_AEAD_AES_GCM_AVAILABLE
 #endif
 
 static uint8_t s2n_aead_cipher_aes128_gcm_available()
@@ -382,11 +380,11 @@ const struct s2n_cipher s2n_aes128_gcm = {
     .key_material_size = S2N_TLS_AES_128_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
-                .record_iv_size = S2N_TLS_GCM_EXPLICIT_IV_LEN,
-                .fixed_iv_size = S2N_TLS_GCM_FIXED_IV_LEN,
-                .tag_size = S2N_TLS_GCM_TAG_LEN,
-                .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
-                .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+            .record_iv_size = S2N_TLS_GCM_EXPLICIT_IV_LEN,
+            .fixed_iv_size = S2N_TLS_GCM_FIXED_IV_LEN,
+            .tag_size = S2N_TLS_GCM_TAG_LEN,
+            .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
+            .encrypt = s2n_aead_cipher_aes_gcm_encrypt },
     .is_available = s2n_aead_cipher_aes128_gcm_available,
     .init = s2n_aead_cipher_aes_gcm_init,
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
@@ -398,11 +396,11 @@ const struct s2n_cipher s2n_aes256_gcm = {
     .key_material_size = S2N_TLS_AES_256_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
-                .record_iv_size = S2N_TLS_GCM_EXPLICIT_IV_LEN,
-                .fixed_iv_size = S2N_TLS_GCM_FIXED_IV_LEN,
-                .tag_size = S2N_TLS_GCM_TAG_LEN,
-                .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
-                .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+            .record_iv_size = S2N_TLS_GCM_EXPLICIT_IV_LEN,
+            .fixed_iv_size = S2N_TLS_GCM_FIXED_IV_LEN,
+            .tag_size = S2N_TLS_GCM_TAG_LEN,
+            .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
+            .encrypt = s2n_aead_cipher_aes_gcm_encrypt },
     .is_available = s2n_aead_cipher_aes256_gcm_available,
     .init = s2n_aead_cipher_aes_gcm_init,
     .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key,
@@ -415,11 +413,11 @@ const struct s2n_cipher s2n_tls13_aes128_gcm = {
     .key_material_size = S2N_TLS_AES_128_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
-                .record_iv_size = S2N_TLS13_RECORD_IV_LEN,
-                .fixed_iv_size = S2N_TLS13_FIXED_IV_LEN,
-                .tag_size = S2N_TLS_GCM_TAG_LEN,
-                .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
-                .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+            .record_iv_size = S2N_TLS13_RECORD_IV_LEN,
+            .fixed_iv_size = S2N_TLS13_FIXED_IV_LEN,
+            .tag_size = S2N_TLS_GCM_TAG_LEN,
+            .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
+            .encrypt = s2n_aead_cipher_aes_gcm_encrypt },
     .is_available = s2n_aead_cipher_aes128_gcm_available,
     .init = s2n_aead_cipher_aes_gcm_init,
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13,
@@ -431,11 +429,11 @@ const struct s2n_cipher s2n_tls13_aes256_gcm = {
     .key_material_size = S2N_TLS_AES_256_GCM_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
-                .record_iv_size = S2N_TLS13_RECORD_IV_LEN,
-                .fixed_iv_size = S2N_TLS13_FIXED_IV_LEN,
-                .tag_size = S2N_TLS_GCM_TAG_LEN,
-                .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
-                .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+            .record_iv_size = S2N_TLS13_RECORD_IV_LEN,
+            .fixed_iv_size = S2N_TLS13_FIXED_IV_LEN,
+            .tag_size = S2N_TLS_GCM_TAG_LEN,
+            .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
+            .encrypt = s2n_aead_cipher_aes_gcm_encrypt },
     .is_available = s2n_aead_cipher_aes256_gcm_available,
     .init = s2n_aead_cipher_aes_gcm_init,
     .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13,
