@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_status_request.h"
 #include "tls/s2n_resume.h"
 
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_client_status_request_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Enable status requests */
     config->status_request_type = S2N_STATUS_REQUEST_OCSP;
@@ -68,7 +67,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv */
     {
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv - malformed length, ignore */
     {
@@ -107,7 +106,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv - not ocsp request, ignore */
     {
@@ -131,7 +130,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(bad_config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config));
 

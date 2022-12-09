@@ -13,29 +13,26 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_record_read.h"
+
 #include <sys/param.h>
 
-#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
-
+#include "crypto/s2n_sequence.h"
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
-#include "tls/s2n_record_read.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 int s2n_sslv2_record_header_parse(
-    struct s2n_connection *conn,
-    uint8_t * record_type,
-    uint8_t * client_protocol_version,
-    uint16_t * fragment_length)
+        struct s2n_connection *conn,
+        uint8_t *record_type,
+        uint8_t *client_protocol_version,
+        uint16_t *fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -58,9 +55,9 @@ int s2n_sslv2_record_header_parse(
 }
 
 int s2n_record_header_parse(
-    struct s2n_connection *conn,
-    uint8_t *content_type,
-    uint16_t *fragment_length)
+        struct s2n_connection *conn,
+        uint8_t *content_type,
+        uint16_t *fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -80,9 +77,9 @@ int s2n_record_header_parse(
      * match the negotiated version.
      */
 
-    S2N_ERROR_IF(conn->actual_protocol_version_established &&
-        MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
-        != version, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(conn->actual_protocol_version_established && MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
+                            != version,
+            S2N_ERR_BAD_MESSAGE);
     POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Some servers send fragments that are above the maximum length.  (e.g.
@@ -152,21 +149,21 @@ int s2n_record_parse(struct s2n_connection *conn)
     }
 
     switch (cipher_suite->record_alg->cipher->type) {
-    case S2N_AEAD:
-        POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    case S2N_CBC:
-        POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    case S2N_COMPOSITE:
-        POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    case S2N_STREAM:
-        POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    default:
-        POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
-        break;
+        case S2N_AEAD:
+            POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        case S2N_CBC:
+            POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        case S2N_COMPOSITE:
+            POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        case S2N_STREAM:
+            POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
+            break;
     }
 
     return 0;

@@ -13,25 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
+#include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #include "api/s2n.h"
-
-#include "tls/s2n_tls.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 
-#define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
-                            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+#define ZERO_TO_THIRTY_ONE 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
+                           0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
 int main(int argc, char **argv)
 {
@@ -71,16 +68,20 @@ int main(int argc, char **argv)
             /* Handshake message type SERVER HELLO */
             0x02,
             /* Body len */
-            (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+            (body_len >> 16) & 0xff,
+            (body_len >> 8) & 0xff,
+            (body_len & 0xff),
         };
         int message_len = sizeof(message_header) + body_len;
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
             /* Protocol version TLS 1.2 */
-            0x03, 0x03,
+            0x03,
+            0x03,
             /* Message len */
-            (message_len >> 8) & 0xff, (message_len & 0xff),
+            (message_len >> 8) & 0xff,
+            (message_len & 0xff),
         };
 
         /* Create nonblocking pipes */
@@ -174,7 +175,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Server negotiates SSLv3 */
     {
@@ -203,16 +204,20 @@ int main(int argc, char **argv)
             /* Handshake message type SERVER HELLO */
             0x02,
             /* Body len */
-            (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+            (body_len >> 16) & 0xff,
+            (body_len >> 8) & 0xff,
+            (body_len & 0xff),
         };
         int message_len = sizeof(message_header) + body_len;
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
             /* Protocol version SSLv3 */
-            0x03, 0x00,
+            0x03,
+            0x00,
             /* Message len */
-            (message_len >> 8) & 0xff, (message_len & 0xff),
+            (message_len >> 8) & 0xff,
+            (message_len & 0xff),
         };
 
         /* Create nonblocking pipes */
@@ -306,7 +311,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     free(cert_chain);
     free(private_key);

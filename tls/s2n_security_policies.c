@@ -255,6 +255,14 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy = {
     .minimum_protocol_version = S2N_SSLv3,
@@ -786,6 +794,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="CloudFront-TLS-1-2-2018", .security_policy=&security_policy_cloudfront_tls_1_2_2018, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-2-2019", .security_policy=&security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-2-2021", .security_policy=&security_policy_cloudfront_tls_1_2_2021, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="CloudFront-TLS-1-2-2021-Chacha20-Boosted", .security_policy=&security_policy_cloudfront_tls_1_2_2021_chacha20_boosted, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     /* CloudFront Legacy (TLS 1.2) policies */
     { .version="CloudFront-SSL-v-3-Legacy", .security_policy=&security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-0-2014-Legacy", .security_policy=&security_policy_cloudfront_tls_1_0_2014_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
@@ -935,12 +944,14 @@ int s2n_security_policies_init()
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
             POSIX_ENSURE_REF(cipher);
 
+            const uint8_t *iana = cipher->iana_value;
+
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 security_policy_selection[i].supports_tls13 = 1;
             }
 
             /* Sanity check that valid tls13 has minimum tls version set correctly */
-            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(cipher->iana_value) ^
+            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(iana) ^
                 (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_SECURITY_POLICY);
 
             if (s2n_cipher_suite_requires_ecc_extension(cipher)) {

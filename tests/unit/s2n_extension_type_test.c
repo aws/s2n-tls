@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_extension_type.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_extension_type.h"
 #include "tls/extensions/s2n_extension_type_lists.h"
-#include "utils/s2n_bitmap.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_bitmap.h"
 
 #define S2N_TEST_DATA_LEN 20
 
@@ -46,12 +46,12 @@ static int test_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 }
 
 const s2n_extension_type test_extension_type = {
-        .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
-        .is_response = false,
-        .send = test_send,
-        .recv = test_recv,
-        .should_send = s2n_extension_always_send,
-        .if_missing = s2n_extension_noop_if_missing,
+    .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
+    .is_response = false,
+    .send = test_send,
+    .recv = test_recv,
+    .should_send = s2n_extension_always_send,
+    .if_missing = s2n_extension_noop_if_missing,
 };
 
 int main()
@@ -79,12 +79,12 @@ int main()
             EXPECT_FALSE(s2n_extension_send_if_tls13_connection(&conn));
             conn.actual_protocol_version = S2N_TLS13;
             EXPECT_TRUE(s2n_extension_send_if_tls13_connection(&conn));
-        }
+        };
 
         /* Test common implementations for if_missing */
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_error_if_missing(NULL), S2N_ERR_MISSING_EXTENSION);
         EXPECT_SUCCESS(s2n_extension_noop_if_missing(NULL));
-    }
+    };
 
     /* Test s2n_extension_iana_value_to_id */
     {
@@ -106,7 +106,7 @@ int main()
         for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
             EXPECT_EQUAL(s2n_extension_iana_value_to_id(s2n_supported_extensions[i]), i);
         }
-    }
+    };
 
     /* Test s2n_extension_supported_iana_value_to_id */
     {
@@ -121,7 +121,7 @@ int main()
          * 15 == heartbeat, which s2n will probably never support :) */
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_supported_iana_value_to_id(15, &id),
                 S2N_ERR_UNRECOGNIZED_EXTENSION);
-    }
+    };
 
     /* Test bitfield behavior */
     {
@@ -136,7 +136,7 @@ int main()
             S2N_CBIT_CLR(test_bitfield, id);
             EXPECT_FALSE(S2N_CBIT_TEST(test_bitfield, id));
         }
-    }
+    };
 
     s2n_extension_type_id test_extension_id = s2n_extension_iana_value_to_id(test_extension_type.iana_value);
     EXPECT_NOT_EQUAL(test_extension_id, s2n_unsupported_extension);
@@ -155,7 +155,7 @@ int main()
             s2n_extension_type extension_type_with_null_recv = test_extension_type;
             extension_type_with_null_recv.recv = NULL;
             EXPECT_FAILURE(s2n_extension_recv(&extension_type_with_null_recv, &conn, &stuffer));
-        }
+        };
 
         /* request extension */
         {
@@ -166,7 +166,7 @@ int main()
             /* Succeeds and sets request flag */
             EXPECT_SUCCESS(s2n_extension_recv(&request_extension_type, &conn, &stuffer));
             EXPECT_TRUE(S2N_CBIT_TEST(conn.extension_requests_received, test_extension_id));
-        }
+        };
 
         /**
          * Ensure response extensions are only received if sent
@@ -204,7 +204,7 @@ int main()
             EXPECT_SUCCESS(s2n_extension_recv(&response_extension_type, &conn, &stuffer));
             /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_received);
-        }
+        };
 
         /* "recv" errors */
         {
@@ -215,8 +215,8 @@ int main()
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_recv(&extension_type_with_failure, &conn, &stuffer), S2N_ERR_UNIMPLEMENTED);
             /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_received);
-        }
-    }
+        };
+    };
 
     /* Test s2n_extension_send */
     {
@@ -235,7 +235,7 @@ int main()
             s2n_extension_type extension_type_with_null_should_send = test_extension_type;
             extension_type_with_null_should_send.should_send = NULL;
             EXPECT_FAILURE(s2n_extension_send(&extension_type_with_null_should_send, &conn, &stuffer));
-        }
+        };
 
         /* request extension */
         {
@@ -262,7 +262,7 @@ int main()
             EXPECT_EQUAL(length, S2N_TEST_DATA_LEN);
 
             s2n_stuffer_free(&stuffer);
-        }
+        };
 
         /**
          * Ensure correct response extension send behavior
@@ -312,7 +312,7 @@ int main()
             EXPECT_EQUAL(length, S2N_TEST_DATA_LEN);
 
             s2n_stuffer_free(&stuffer);
-        }
+        };
 
         /* "should_send" returns false */
         {
@@ -326,7 +326,7 @@ int main()
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
             /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
-        }
+        };
 
         /* "send" errors */
         {
@@ -342,7 +342,7 @@ int main()
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
 
             s2n_stuffer_free(&stuffer);
-        }
+        };
 
         /* "send" writes more data than will fit in the extension size */
         {
@@ -357,8 +357,8 @@ int main()
                     S2N_ERR_SIZE_MISMATCH);
 
             s2n_stuffer_free(&stuffer);
-        }
-    }
+        };
+    };
 
     /* Test s2n_extension_is_missing */
     {
@@ -372,7 +372,7 @@ int main()
             s2n_extension_type extension_type_with_null_if_missing = test_extension_type;
             extension_type_with_null_if_missing.if_missing = NULL;
             EXPECT_FAILURE(s2n_extension_is_missing(&extension_type_with_null_if_missing, &conn));
-        }
+        };
 
         /* Test no-op if_missing */
         {
@@ -389,7 +389,7 @@ int main()
 
             S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
             EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
-        }
+        };
 
         /* Test error if_missing */
         {
@@ -412,8 +412,8 @@ int main()
             S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
                     S2N_ERR_MISSING_EXTENSION);
-        }
-    }
+        };
+    };
 
     /* Test minimum_version field */
     {
@@ -436,7 +436,7 @@ int main()
             EXPECT_SUCCESS(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
             EXPECT_SUCCESS(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
             EXPECT_SUCCESS(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
-        }
+        };
 
         /* Meets minimum.
          * All methods execute, so all errors. */
@@ -445,7 +445,7 @@ int main()
             EXPECT_FAILURE(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
             EXPECT_FAILURE(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
             EXPECT_FAILURE(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
-        }
+        };
 
         /* Ensure that no extension type sets nonzero minimum_version < S2N_TLS13.
          * Currently, nonzero minimum_version < S2N_TLS13 will not necessarily work because earlier versions
@@ -459,8 +459,7 @@ int main()
                 EXPECT_NOT_NULL(list);
                 for (size_t ext_i = 0; ext_i < list->count; ext_i++) {
                     type = list->extension_types[ext_i];
-                    EXPECT_TRUE(type->minimum_version == 0 ||
-                            type->minimum_version >= S2N_TLS13);
+                    EXPECT_TRUE(type->minimum_version == 0 || type->minimum_version >= S2N_TLS13);
                 }
             }
         }
@@ -532,7 +531,7 @@ int main()
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            }
+            };
 
             /* Client TLS 1.3 with Server TLS1.2 */
             if (s2n_is_tls13_fully_supported()) {
@@ -565,8 +564,8 @@ int main()
 
             EXPECT_SUCCESS(s2n_config_free(test_all_config));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }
