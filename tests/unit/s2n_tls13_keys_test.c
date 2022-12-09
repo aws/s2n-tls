@@ -13,20 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
+#include "crypto/s2n_tls13_keys.h"
 
 #include <string.h>
 
-#include "testlib/s2n_testlib.h"
-#include "stuffer/s2n_stuffer.h"
-
-#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hkdf.h"
-#include "crypto/s2n_tls13_keys.h"
-
+#include "crypto/s2n_hmac.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls13_handshake.h"
-
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
@@ -45,11 +41,11 @@ int main(int argc, char **argv)
          * that produced this secret was s2n_tls13_aes_256_gcm_sha384.
          */
         S2N_BLOB_FROM_HEX(application_secret,
-            "4bc28934ddd802b00f479e14a72d7725dab45d32b3b145f29"
-            "e4c5b56677560eb5236b168c71c5c75aa52f3e20ee89bfb");
+                "4bc28934ddd802b00f479e14a72d7725dab45d32b3b145f29"
+                "e4c5b56677560eb5236b168c71c5c75aa52f3e20ee89bfb");
         S2N_BLOB_FROM_HEX(updated_application_secret,
-            "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
-            "531be2441d7c63e2b9729d145c11d84af35957727565a4");
+                "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
+                "531be2441d7c63e2b9729d145c11d84af35957727565a4");
 
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -68,7 +64,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(app_secret_update, updated_application_secret);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
 }

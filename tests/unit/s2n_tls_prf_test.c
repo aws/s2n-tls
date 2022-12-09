@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "api/s2n.h"
-
-#include "testlib/s2n_testlib.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 /* To gain access to handshake_read and handshake_write */
 #include "tls/s2n_handshake_io.c"
 
@@ -60,13 +58,13 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random_in.data, client_random_in.size);
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
 
-        struct s2n_blob pms = {0};
+        struct s2n_blob pms = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.tls12.rsa_premaster_secret, sizeof(conn->secrets.tls12.rsa_premaster_secret)));
         EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
         EXPECT_EQUAL(memcmp(conn->secrets.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_tls_prf_extended_master_secret */
     {
@@ -75,15 +73,15 @@ int main(int argc, char **argv)
          * using the s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384 ciphersuite.
          */
         S2N_BLOB_FROM_HEX(premaster_secret,
-            "05e12675c9264d82b53fa15d589c829af9be1ae3d881ab0b023b7b8cad8bc058");
+                "05e12675c9264d82b53fa15d589c829af9be1ae3d881ab0b023b7b8cad8bc058");
 
         S2N_BLOB_FROM_HEX(hash_digest,
-            "e6cbbaa03909ea387714fe70c07546086dedfcee086fd2985dfdd50924393619"
-            "009115758e490e2e3b0c13bebdad5fbb");
+                "e6cbbaa03909ea387714fe70c07546086dedfcee086fd2985dfdd50924393619"
+                "009115758e490e2e3b0c13bebdad5fbb");
 
         S2N_BLOB_FROM_HEX(extended_master_secret,
-            "aef116e65e2cd77d4e96b1ceeadb7912ddd9aaf3a907aa3344ec3a2de6cc3b69"
-            "9ca768fe389eab3b53c98d8ccd830b06");
+                "aef116e65e2cd77d4e96b1ceeadb7912ddd9aaf3a907aa3344ec3a2de6cc3b69"
+                "9ca768fe389eab3b53c98d8ccd830b06");
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS12;
@@ -103,7 +101,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(extended_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_prf_calculate_master_secret */
     {
@@ -115,7 +113,7 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random_in.data, client_random_in.size);
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random_in.data, server_random_in.size);
 
-        struct s2n_blob pms = {0};
+        struct s2n_blob pms = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&pms, conn->secrets.tls12.rsa_premaster_secret, sizeof(conn->secrets.tls12.rsa_premaster_secret)));
 
         /* Errors when handshake is not at the Client Key Exchange message */
@@ -123,7 +121,7 @@ int main(int argc, char **argv)
 
         /* Advance handshake to Client Key Exchange message */
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-        while(ACTIVE_MESSAGE(conn) != CLIENT_KEY) {
+        while (ACTIVE_MESSAGE(conn) != CLIENT_KEY) {
             conn->handshake.message_number++;
         }
 
@@ -142,7 +140,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(memcmp(conn->secrets.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_prf_get_digest_for_ems calculates the correct digest to generate an extended master secret.
      * Here we test that the retrieved digest is the same as the digest after the Client Key Exchange
@@ -243,7 +241,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR_WITH_ERRNO(s2n_prf_wipe(&conn_with_null_prf_space), S2N_ERR_NULL);
             EXPECT_OK(s2n_prf_free(&conn_with_null_prf_space));
-        }
+        };
 
         /* Basic lifecyle */
         {
@@ -258,7 +256,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_prf_free(&connection));
             EXPECT_NULL(connection.prf_space);
-        }
+        };
 
         /* PRF freed by s2n_connection_free_handshake */
         {
@@ -269,7 +267,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->prf_space);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Freed PRF restored by s2n_connection_wipe */
         {
@@ -281,11 +279,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn->prf_space);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* PRF usable throughout connection lifecycle */
         {
-            struct s2n_blob pms = {0};
+            struct s2n_blob pms = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&pms, premaster_secret_in.data, premaster_secret_in.size));
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -309,8 +307,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(memcmp(conn->secrets.tls12.master_secret, master_secret_in.data, master_secret_in.size), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }
