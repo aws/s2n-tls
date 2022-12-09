@@ -24,13 +24,9 @@ extern "C" {
 #endif
 
 #if S2N_GCC_VERSION_AT_LEAST(4, 5, 0)
-S2N_API
-        __attribute__((deprecated("The use of TLS1.3 is configured through security policies"))) extern int
-        s2n_enable_tls13();
+S2N_API __attribute__((deprecated("The use of TLS1.3 is configured through security policies"))) extern int s2n_enable_tls13();
 #else
-S2N_API
-        __attribute__((deprecated)) extern int
-        s2n_enable_tls13();
+S2N_API __attribute__((deprecated)) extern int s2n_enable_tls13();
 #endif
 
 #ifdef __cplusplus

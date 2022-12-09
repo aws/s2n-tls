@@ -951,7 +951,8 @@ int s2n_security_policies_init()
             }
 
             /* Sanity check that valid tls13 has minimum tls version set correctly */
-            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(iana) ^ (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_SECURITY_POLICY);
+            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(iana) ^ (cipher->minimum_required_tls_version >= S2N_TLS13),
+                    S2N_ERR_INVALID_SECURITY_POLICY);
 
             if (s2n_cipher_suite_requires_ecc_extension(cipher)) {
                 security_policy_selection[i].ecc_extension_required = 1;
