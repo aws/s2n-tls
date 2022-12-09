@@ -15,14 +15,14 @@
 #include <stdbool.h>
 
 #include "error/s2n_errno.h"
-#include "utils/s2n_blob.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_server_extensions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
+#include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/s2n_pq.h"
 
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
@@ -50,7 +50,7 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* Reset handshake values */
     conn->handshake.client_hello_received = 0;
     conn->client_hello.parsed = 0;
-    POSIX_CHECKED_MEMSET((uint8_t*) conn->extension_requests_received, 0, sizeof(s2n_extension_bitfield));
+    POSIX_CHECKED_MEMSET((uint8_t *) conn->extension_requests_received, 0, sizeof(s2n_extension_bitfield));
 
     return 0;
 }
@@ -72,7 +72,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
 
     /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
-    POSIX_ENSURE( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
+    POSIX_ENSURE((named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#4.2.8
@@ -124,7 +124,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
 
     /* Reset handshake values */
-    POSIX_CHECKED_MEMSET((uint8_t*) conn->extension_requests_sent, 0, sizeof(s2n_extension_bitfield));
+    POSIX_CHECKED_MEMSET((uint8_t *) conn->extension_requests_sent, 0, sizeof(s2n_extension_bitfield));
 
     return S2N_SUCCESS;
 }
