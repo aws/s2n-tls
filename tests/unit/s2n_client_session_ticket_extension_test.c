@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_client_session_ticket.h"
 #include "tls/s2n_resume.h"
 
@@ -60,7 +59,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_client_session_ticket_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
 
@@ -78,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(stuffer.blob.data, test_ticket, s2n_array_len(test_ticket));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* recv - decrypt ticket */
     {
@@ -100,7 +99,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* recv - ignore extension if TLS1.3 */
     {
@@ -125,7 +124,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* recv - ignore extension if not correct size */
     {
@@ -146,7 +145,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* recv - ignore extension if tickets not allowed */
     {
@@ -181,7 +180,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_connection_free(client_conn));
     EXPECT_SUCCESS(s2n_config_free(config));
