@@ -19,4 +19,3 @@
 
 S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn);
 S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn);
-
