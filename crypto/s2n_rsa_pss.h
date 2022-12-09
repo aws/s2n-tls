@@ -15,19 +15,19 @@
 
 #pragma once
 
-#include <stdint.h>
-#include "api/s2n.h"
 #include <openssl/bn.h>
+#include <stdint.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_signing.h"
 
-#define RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE    32
-#define RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE      256
+#define RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE 32
+#define RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE   256
 
 #ifndef EVP_PKEY_RSA_PSS
-#define EVP_PKEY_RSA_PSS EVP_PKEY_NONE
+    #define EVP_PKEY_RSA_PSS EVP_PKEY_NONE
 #endif
 
 /* OpenSSL 1.1.1d  10 Sep 2019 is broken, so disable on that version. For further info see: crypto/evp/p_lib.c:469
@@ -35,9 +35,9 @@
  * This feature requires this Openssl commit for Openssl 1.1.x versions: openssl/openssl@4088b92
  */
 #if RSA_PSS_SIGNING_SUPPORTED && OPENSSL_VERSION_NUMBER > 0x1010104fL
-#define RSA_PSS_CERTS_SUPPORTED 1
+    #define RSA_PSS_CERTS_SUPPORTED 1
 #else
-#define RSA_PSS_CERTS_SUPPORTED 0
+    #define RSA_PSS_CERTS_SUPPORTED 0
 #endif
 
 int s2n_is_rsa_pss_certs_supported();

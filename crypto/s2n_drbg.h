@@ -21,8 +21,8 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
-#define S2N_DRBG_BLOCK_SIZE 16
-#define S2N_DRBG_MAX_KEY_SIZE 32
+#define S2N_DRBG_BLOCK_SIZE    16
+#define S2N_DRBG_MAX_KEY_SIZE  32
 #define S2N_DRBG_MAX_SEED_SIZE (S2N_DRBG_BLOCK_SIZE + S2N_DRBG_MAX_KEY_SIZE)
 
 /* The maximum size of any one request: from NIST SP800-90A 10.2.1 Table 3 */
@@ -48,7 +48,10 @@ struct s2n_drbg {
  * S2N_AES_256_CTR_NO_DF_PR is a deterministic random bit generator using AES 256 in counter mode (AES_128_CTR). It does not
  * use a derivation function on the seed but does have prediction resistance.
  */
-typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR} s2n_drbg_mode;
+typedef enum {
+    S2N_AES_128_CTR_NO_DF_PR,
+    S2N_AES_256_CTR_NO_DF_PR
+} s2n_drbg_mode;
 
 /* Per NIST SP 800-90C 6.3
  *
