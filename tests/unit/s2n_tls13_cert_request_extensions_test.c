@@ -13,16 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
 #include <stdio.h>
-#include "api/s2n.h"
+#include <string.h>
 
-#include "tls/extensions/s2n_server_supported_versions.h"
-#include "tls/extensions/s2n_server_signature_algorithms.h"
+#include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_server_signature_algorithms.h"
+#include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
@@ -59,7 +58,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_MISSING_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     END_TEST();
