@@ -246,7 +246,7 @@ where
     }
 
     // Sets the blinding timer to the remaining blinding delay and possibly
-    // rembemers an error.
+    // remembers an error.
     //
     // Returns the error if there was no blinding needed and the error
     // did not need to be remembered.
