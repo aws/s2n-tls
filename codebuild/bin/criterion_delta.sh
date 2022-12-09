@@ -14,9 +14,42 @@
 
 set -eu
 source ./codebuild/bin/utils.sh
+# Disable PQ
+export S2N_NO_PQ=1
+export AWS_S3_BUCKET="s3://s2n-tls-logs/"
+# Limit the number of child processes in the test run
+export XDIST_WORKERS=4
+export RUST_BACKTRACE=1
 
-make install
-source $HOME/.cargo/env
-make -C bindings/rust
-S2N_USE_CRITERION=1 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
-S2N_USE_CRITERION=3 TOX_TEST_NAME="$INTEGV2_TEST".py make integrationv2
+export GIT_COMMIT=$(git log -n 1 --format="%h")
+export AWS_S3_REPORT_PATH="reports/${INTEGV2_TEST}/$(date +%Y%m%d_${GIT_COMMIT})"
+
+# CodeBuild artifacts are too limited;
+# scipting the baseline download steps here.
+download_artifacts(){
+  mkdir -p ./tests/integrationv2/target/criterion || true
+  echo "Downloadingp ${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}"
+  pushd  ./tests/integrationv2/target/criterion/
+  aws s3 cp "${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}" .
+  unzip -o "${AWS_S3_BASE_PATH}"
+  echo "S3 download complete"
+  popd
+}
+
+upload_report(){
+  cd tests/integrationv2/target/criterion
+  echo "Uploading report to ${AWS_S3_BUCKET}/${AWS_S3_REPORT_PATH}"
+  aws s3 sync . "${AWS_S3_BUCKET}${AWS_S3_REPORT_PATH}"
+  echo "S3 upload complete"
+}
+
+# Fetch creds and the latest release number.
+gh_login s2n_codebuild_PRs
+get_latest_release
+AWS_S3_BASE_PATH="release/integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+criterion_install_deps
+download_artifacts
+
+echo "Current dir: $(pwd)"
+S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
+upload_report
