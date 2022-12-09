@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+
+#include "api/s2n.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
+#include "tls/s2n_tls.h"
 
 bool s2n_use_default_tls13_config_flag = false;
 
@@ -89,7 +90,8 @@ int s2n_reset_tls13_in_test()
 }
 
 /* Returns whether a uint16 iana value is a valid TLS 1.3 cipher suite */
-bool s2n_is_valid_tls13_cipher(const uint8_t version[2]) {
+bool s2n_is_valid_tls13_cipher(const uint8_t version[2])
+{
     /* Valid TLS 1.3 Ciphers are
      * 0x1301, 0x1302, 0x1303, 0x1304, 0x1305.
      * (https://tools.ietf.org/html/rfc8446#appendix-B.4)
@@ -143,6 +145,7 @@ S2N_RESULT s2n_connection_validate_tls13_support(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-bool s2n_connection_supports_tls13(struct s2n_connection *conn) {
+bool s2n_connection_supports_tls13(struct s2n_connection *conn)
+{
     return s2n_result_is_ok(s2n_connection_validate_tls13_support(conn));
 }
