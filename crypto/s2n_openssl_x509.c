@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "crypto/s2n_openssl_x509.h"
+
+#include "api/s2n.h"
 
 int s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {

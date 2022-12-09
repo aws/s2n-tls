@@ -13,17 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_crypto.h"
-#include "crypto/s2n_fips.h"
-#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_libcrypto.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_safety_macros.h"
 
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
+
+#include "crypto/s2n_crypto.h"
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_openssl.h"
+#include "utils/s2n_safety.h"
+#include "utils/s2n_safety_macros.h"
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-#include <openssl/provider.h>
+    #include <openssl/provider.h>
 #endif
 
 #include <string.h>
@@ -43,8 +44,8 @@
  * doesn't distribute fips-specific header files.
  */
 #define EXPECTED_AWSLC_VERSION_NAME_FIPS_OR_OLD "BoringSSL"
-#define EXPECTED_AWSLC_VERSION_NAME_NON_FIPS "AWS-LC"
-#define EXPECTED_BORINGSSL_VERSION_NAME "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_NAME_NON_FIPS    "AWS-LC"
+#define EXPECTED_BORINGSSL_VERSION_NAME         "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
@@ -58,7 +59,7 @@
  * symbol OpenSSL_version binded to at link-time. This can be used as
  * verification at run-time that s2n linked against the expected libcrypto.
  */
-static const char * s2n_libcrypto_get_version_name(void)
+static const char *s2n_libcrypto_get_version_name(void)
 {
     return SSLeay_version(SSLEAY_VERSION);
 }
@@ -68,7 +69,7 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expec
     RESULT_ENSURE_REF(expected_version_name);
     RESULT_ENSURE_REF(s2n_libcrypto_get_version_name());
     RESULT_ENSURE_EQ(strlen(expected_version_name), strlen(s2n_libcrypto_get_version_name()));
-    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_version_name, (const uint8_t *)  s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_version_name)), S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
+    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_version_name, (const uint8_t *) s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_version_name)), S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
 
     return S2N_RESULT_OK;
 }
@@ -109,7 +110,7 @@ static S2N_RESULT s2n_libcrypto_validate_expected_version_number(void)
  */
 
 #if defined(OPENSSL_IS_AWSLC) && defined(OPENSSL_IS_BORINGSSL)
-#error "Both OPENSSL_IS_AWSLC and OPENSSL_IS_BORINGSSL are defined at the same time!"
+    #error "Both OPENSSL_IS_AWSLC and OPENSSL_IS_BORINGSSL are defined at the same time!"
 #endif
 
 bool s2n_libcrypto_is_awslc()
@@ -121,7 +122,8 @@ bool s2n_libcrypto_is_awslc()
 #endif
 }
 
-static uint64_t s2n_libcrypto_awslc_api_version(void) {
+static uint64_t s2n_libcrypto_awslc_api_version(void)
+{
 #if defined(OPENSSL_IS_AWSLC)
     return AWSLC_API_VERSION;
 #else
@@ -154,17 +156,20 @@ S2N_RESULT s2n_libcrypto_init(void)
 }
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-int s2n_libcrypto_cleanup_cb(OSSL_PROVIDER *provider, void *cbdata) {
+int s2n_libcrypto_cleanup_cb(OSSL_PROVIDER *provider, void *cbdata)
+{
     return OSSL_PROVIDER_unload(provider);
 }
 
-S2N_RESULT s2n_libcrypto_cleanup(void) {
+S2N_RESULT s2n_libcrypto_cleanup(void)
+{
     RESULT_GUARD_OSSL(OSSL_PROVIDER_do_all(NULL, *s2n_libcrypto_cleanup_cb, NULL), S2N_ERR_ATEXIT);
 
     return S2N_RESULT_OK;
 }
 #else
-S2N_RESULT s2n_libcrypto_cleanup(void) {
+S2N_RESULT s2n_libcrypto_cleanup(void)
+{
     return S2N_RESULT_OK;
 }
 #endif
@@ -193,8 +198,7 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
             expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_NON_FIPS;
         }
         RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(expected_awslc_version_name));
-    }
-    else if (s2n_libcrypto_is_boringssl()) {
+    } else if (s2n_libcrypto_is_boringssl()) {
         RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(EXPECTED_BORINGSSL_VERSION_NAME));
     }
 

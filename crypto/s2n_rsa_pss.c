@@ -13,25 +13,23 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_rsa_pss.h"
+
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 #include <stdint.h>
 
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
-
 #include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
-#include "crypto/s2n_rsa.h"
-#include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "crypto/s2n_pkey.h"
-
+#include "crypto/s2n_rsa.h"
+#include "crypto/s2n_rsa_signing.h"
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_blob.h"
 
 /* Checks whether PSS Certs is supported */
 int s2n_is_rsa_pss_certs_supported()
@@ -98,8 +96,8 @@ static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, co
     POSIX_GUARD_RESULT(s2n_get_private_random_data(&random_data));
 
     /* Sign/Verify API's only accept Hashes, so hash our Random Data */
-    DEFER_CLEANUP(struct s2n_hash_state sign_hash = {0}, s2n_hash_free);
-    DEFER_CLEANUP(struct s2n_hash_state verify_hash = {0}, s2n_hash_free);
+    DEFER_CLEANUP(struct s2n_hash_state sign_hash = { 0 }, s2n_hash_free);
+    DEFER_CLEANUP(struct s2n_hash_state verify_hash = { 0 }, s2n_hash_free);
     POSIX_GUARD(s2n_hash_new(&sign_hash));
     POSIX_GUARD(s2n_hash_new(&verify_hash));
     POSIX_GUARD(s2n_hash_init(&sign_hash, S2N_HASH_SHA256));
@@ -159,7 +157,6 @@ static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struc
     return 0;
 }
 
-
 static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
     POSIX_ENSURE_REF(pub);
@@ -190,7 +187,8 @@ static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
     return S2N_SUCCESS;
 }
 
-int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey) {
+int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
+{
     const RSA *pub_rsa_key = EVP_PKEY_get1_RSA(pkey);
     POSIX_ENSURE_REF(pub_rsa_key);
 
