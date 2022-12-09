@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_random.h"
