@@ -18,7 +18,6 @@
 #include <openssl/dh.h>
 
 #include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_blob.h"
 
 struct s2n_dh_params {

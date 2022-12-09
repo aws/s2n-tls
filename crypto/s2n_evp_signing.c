@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "error/s2n_errno.h"
+#include "crypto/s2n_evp_signing.h"
 
 #include "crypto/s2n_evp.h"
-#include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_pss.h"
-
+#include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
@@ -77,7 +76,7 @@ S2N_RESULT s2n_evp_signing_set_pkey_overrides(struct s2n_pkey *pkey)
 
 static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_alg, s2n_hash_algorithm hash_alg)
 {
-    switch(hash_alg) {
+    switch (hash_alg) {
         case S2N_HASH_NONE:
         case S2N_HASH_MD5:
             /* MD5 alone is never supported */

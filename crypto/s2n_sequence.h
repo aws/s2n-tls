@@ -16,7 +16,6 @@
 #pragma once
 
 #include "crypto/s2n_sequence.h"
-
 #include "utils/s2n_blob.h"
 
 extern int s2n_increment_sequence_number(struct s2n_blob *sequence_number);

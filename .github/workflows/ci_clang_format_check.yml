@@ -11,6 +11,8 @@ jobs:
             exclude: ''
           - check: 'bin'
             exclude: ''
+          - check: 'crypto'
+            exclude: ''
           - check: 'stuffer'
             exclude: ''
           - check: 'error'
@@ -20,7 +22,7 @@ jobs:
           - check: 'tests/unit'
             exclude: "s2n_[^3a-cd-kt-z].*\\.c"
           - check: 'tls'
-            exclude: "(tls\\/extensions)|(s2n_[s-z].*\\.[ch])"
+            exclude: ''
           - check: 'tls/extensions'
             exclude: ''
           - check: 'utils'
