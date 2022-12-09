@@ -308,8 +308,8 @@ where
         Poll::Ready(Ok(()))
     }
 
-    pub fn apply_blinding(&'_ mut self) -> impl Future<Output = Result<(), Error>> + '_ {
-        ApplyBlinding { stream: self }
+    pub async fn apply_blinding(&mut self) -> Result<(), Error> {
+        ApplyBlinding { stream: self }.await
     }
 }
 
