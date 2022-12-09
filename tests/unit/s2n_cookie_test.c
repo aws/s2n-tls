@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_cookie.h"
+
 #include <sys/param.h>
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_handshake_type.h"
-#include "tls/extensions/s2n_cookie.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
@@ -59,7 +59,7 @@ int main()
         /* Sent with a cookie */
         EXPECT_SUCCESS(s2n_dup(&test_cookies[0], &client_conn->cookie));
         EXPECT_TRUE(s2n_client_cookie_extension.should_send(client_conn));
-    }
+    };
 
     /* Test: server only sends extension if cookie present
      * (cookie will never be present in production)
@@ -75,7 +75,7 @@ int main()
         /* Sent with a cookie */
         EXPECT_SUCCESS(s2n_dup(&test_cookies[0], &server_conn->cookie));
         EXPECT_TRUE(s2n_server_cookie_extension.should_send(server_conn));
-    }
+    };
 
     /* Test: client can parse server cookie extension */
     for (size_t i = 0; i < TEST_COOKIE_COUNT; i++) {
@@ -142,7 +142,7 @@ int main()
         EXPECT_SUCCESS(s2n_client_cookie_extension.recv(server_conn, &client_extension));
     }
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
@@ -214,7 +214,7 @@ int main()
                 S2N_ERR_MISSING_EXTENSION);
 
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Self-Talk: Server does NOT use cookies */
     {
@@ -248,7 +248,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
+    };
 
     /* Self-Talk: Server does use cookies
      *
@@ -369,7 +369,7 @@ int main()
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         }
-    }
+    };
 
     for (size_t i = 0; i < TEST_COOKIE_COUNT; i++) {
         EXPECT_SUCCESS(s2n_free(&test_cookies[i]));
