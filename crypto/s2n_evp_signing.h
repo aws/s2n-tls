@@ -16,7 +16,6 @@
 #pragma once
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
 #include "utils/s2n_blob.h"

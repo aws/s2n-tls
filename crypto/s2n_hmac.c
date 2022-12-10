@@ -12,6 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+/* this file is patched by Sidetrail, clang-format invalidates patches */
+/* clang-format off */
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>

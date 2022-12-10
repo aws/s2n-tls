@@ -16,7 +16,12 @@
 
 #include "tls/s2n_tls_parameters.h"
 
-#define sig_alg_check(a, b)  do { if ( (a) != (b) ) { POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM); } } while(0)
+#define sig_alg_check(a, b)                                  \
+    do {                                                     \
+        if ((a) != (b)) {                                    \
+            POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM); \
+        }                                                    \
+    } while (0)
 
 typedef enum {
     S2N_SIGNATURE_ANONYMOUS = S2N_TLS_SIGNATURE_ANONYMOUS,

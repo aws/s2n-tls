@@ -13,36 +13,33 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
-#include <stdio.h>
-#include "api/s2n.h"
-
-#include <openssl/x509.h>
 #include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <stdio.h>
+#include <string.h>
 
+#include "api/s2n.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_openssl_x509.h"
+#include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_x509_validator.h"
-
-#include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_openssl.h"
-#include "crypto/s2n_openssl_x509.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = {0};
+    uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     X509 *cert = NULL;
-    BIO* certBio = NULL;
+    BIO *certBio = NULL;
     size_t certLen = 0;
-    
-    const struct s2n_signature_scheme* const test_sig_scheme_list[] = {
+
+    const struct s2n_signature_scheme *const test_sig_scheme_list[] = {
         &s2n_ecdsa_sha256,
         &s2n_rsa_pkcs1_sha1,
     };
@@ -52,7 +49,7 @@ int main(int argc, char **argv)
         .signature_schemes = test_sig_scheme_list,
     };
 
-    const struct s2n_signature_scheme* const pss_sig_scheme_list[] = {
+    const struct s2n_signature_scheme *const pss_sig_scheme_list[] = {
         &s2n_rsa_pss_pss_sha256,
         &s2n_rsa_pss_pss_sha384,
         &s2n_rsa_pss_pss_sha512,
@@ -73,8 +70,8 @@ int main(int argc, char **argv)
 
         /* Certificate signature algorithm is in test certificate signature preferences list */
         {
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P256_PKCS1_CERT_CHAIN, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P256_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -85,12 +82,12 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificate signature algorithm is not in test certificate signature preferences list */
         {
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -101,15 +98,15 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list but signature is SHA-1
          * and TLS 1.3 has been negotiated.
          */
         {
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -120,15 +117,15 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list and signature is SHA-1
          * and TLS 1.2 has been negotiated.
          */
         {
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -139,12 +136,12 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Certificates signed with an RSA PSS signature can be validated */
         {
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -155,7 +152,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -172,8 +169,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -186,7 +183,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Connection using the default_tls13 security policy does not validate SHA-1 signatures in certificates */
         {
@@ -197,8 +194,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -211,7 +208,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
+        };
 
         /* Connection using the default_tls13 security policy ignores a SHA-1 signature on a root certificate */
         {
@@ -222,8 +219,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_SHA1_ROOT_SIGNATURE_CA_CERT, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
-            certLen = strlen((const char*)cert_file);
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_SHA1_ROOT_SIGNATURE_CA_CERT, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
             EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
@@ -236,8 +233,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
-        }
-    }
+        };
+    };
     END_TEST();
     return S2N_SUCCESS;
 }

@@ -13,24 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/wait.h>
 
+#include "api/s2n.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_record.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_record.h"
-#include "tls/s2n_handshake_io.c"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include "api/s2n.h"
-#include <fcntl.h>
-#include <sys/wait.h>
 
 /* In TLS 1.3, encrypted handshake records would appear to be of record type TLS_APPLICATION_DATA.
 *  The actual record content type is found after
@@ -38,7 +36,6 @@
 const char tls13_zero_length_application_record_hex[] = "170303000117";
 const char tls13_zero_length_handshake_record_hex[] = "1603030000";
 const char tls13_zero_length_alert_record_hex[] = "1503030000";
-
 
 int main(int argc, char **argv)
 {
@@ -61,8 +58,8 @@ int main(int argc, char **argv)
         struct s2n_blob zero_length_data = { 0 };
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-        DEFER_CLEANUP(struct s2n_stuffer client_to_server = {0}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer server_to_client = {0}, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer client_to_server = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_to_client = { 0 }, s2n_stuffer_free);
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
@@ -89,7 +86,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* Test 0 length payload in handshake record terminates connection in client and server mode */
     {
@@ -101,8 +98,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 
-        DEFER_CLEANUP(struct s2n_stuffer client_to_server = {0}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer server_to_client = {0}, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer client_to_server = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_to_client = { 0 }, s2n_stuffer_free);
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
@@ -121,7 +118,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* Test 0 length payload in alert record terminates connection in client and server modes */
     {
@@ -133,8 +130,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 
-        DEFER_CLEANUP(struct s2n_stuffer client_to_server = {0}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer server_to_client = {0}, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer client_to_server = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer server_to_client = { 0 }, s2n_stuffer_free);
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
@@ -153,7 +150,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     END_TEST();
 
