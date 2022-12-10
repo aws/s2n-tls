@@ -15,18 +15,17 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "crypto/s2n_evp.h"
 
 #define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
 typedef enum {
-    S2N_HASH_NONE=0,
+    S2N_HASH_NONE = 0,
     S2N_HASH_MD5,
     S2N_HASH_SHA1,
     S2N_HASH_SHA224,
@@ -77,18 +76,18 @@ struct s2n_hash_state {
  * either OpenSSL's low-level algorithm-specific API's or OpenSSL's EVP API's.
  */
 struct s2n_hash {
-    int (*alloc) (struct s2n_hash_state *state);
-    int (*allow_md5_for_fips) (struct s2n_hash_state *state);
-    int (*init) (struct s2n_hash_state *state, s2n_hash_algorithm alg);
-    int (*update) (struct s2n_hash_state *state, const void *data, uint32_t size);
-    int (*digest) (struct s2n_hash_state *state, void *out, uint32_t size);
-    int (*copy) (struct s2n_hash_state *to, struct s2n_hash_state *from);
-    int (*reset) (struct s2n_hash_state *state);
-    int (*free) (struct s2n_hash_state *state);
+    int (*alloc)(struct s2n_hash_state *state);
+    int (*allow_md5_for_fips)(struct s2n_hash_state *state);
+    int (*init)(struct s2n_hash_state *state, s2n_hash_algorithm alg);
+    int (*update)(struct s2n_hash_state *state, const void *data, uint32_t size);
+    int (*digest)(struct s2n_hash_state *state, void *out, uint32_t size);
+    int (*copy)(struct s2n_hash_state *to, struct s2n_hash_state *from);
+    int (*reset)(struct s2n_hash_state *state);
+    int (*free)(struct s2n_hash_state *state);
 };
 
 bool s2n_hash_evp_fully_supported();
-const EVP_MD* s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg);
+const EVP_MD *s2n_hash_alg_to_evp_md(s2n_hash_algorithm alg);
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 extern int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size);
 extern bool s2n_hash_is_available(s2n_hash_algorithm alg);

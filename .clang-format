@@ -138,5 +138,6 @@ Standard:        Auto
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
+  - test_stack_blob_success
 TabWidth:        8
 UseTab:          Never

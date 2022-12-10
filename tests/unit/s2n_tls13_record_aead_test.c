@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
 #include <stdio.h>
-#include "api/s2n.h"
+#include <string.h>
 
+#include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
@@ -27,72 +26,72 @@
 #include "utils/s2n_safety.h"
 
 const char protected_record_hex[] = "d1ff334a56f5bf"
-    "f6594a07cc87b580233f500f45e489e7f33af35edf"
-    "7869fcf40aa40aa2b8ea73f848a7ca07612ef9f945"
-    "cb960b4068905123ea78b111b429ba9191cd05d2a3"
-    "89280f526134aadc7fc78c4b729df828b5ecf7b13b"
-    "d9aefb0e57f271585b8ea9bb355c7c79020716cfb9"
-    "b1183ef3ab20e37d57a6b9d7477609aee6e122a4cf"
-    "51427325250c7d0e509289444c9b3a648f1d71035d"
-    "2ed65b0e3cdd0cbae8bf2d0b227812cbb360987255"
-    "cc744110c453baa4fcd610928d809810e4b7ed1a8f"
-    "d991f06aa6248204797e36a6a73b70a2559c09ead6"
-    "86945ba246ab66e5edd8044b4c6de3fcf2a89441ac"
-    "66272fd8fb330ef8190579b3684596c960bd596eea"
-    "520a56a8d650f563aad27409960dca63d3e688611e"
-    "a5e22f4415cf9538d51a200c27034272968a264ed6"
-    "540c84838d89f72c24461aad6d26f59ecaba9acbbb"
-    "317b66d902f4f292a36ac1b639c637ce343117b659"
-    "622245317b49eeda0c6258f100d7d961ffb138647e"
-    "92ea330faeea6dfa31c7a84dc3bd7e1b7a6c7178af"
-    "36879018e3f252107f243d243dc7339d5684c8b037"
-    "8bf30244da8c87c843f5e56eb4c5e8280a2b48052c"
-    "f93b16499a66db7cca71e4599426f7d461e66f9988"
-    "2bd89fc50800becca62d6c74116dbd2972fda1fa80"
-    "f85df881edbe5a37668936b335583b599186dc5c69"
-    "18a396fa48a181d6b6fa4f9d62d513afbb992f2b99"
-    "2f67f8afe67f76913fa388cb5630c8ca01e0c65d11"
-    "c66a1e2ac4c85977b7c7a6999bbf10dc35ae69f551"
-    "5614636c0b9b68c19ed2e31c0b3b66763038ebba42"
-    "f3b38edc0399f3a9f23faa63978c317fc9fa66a73f"
-    "60f0504de93b5b845e275592c12335ee340bbc4fdd"
-    "d502784016e4b3be7ef04dda49f4b440a30cb5d2af"
-    "939828fd4ae3794e44f94df5a631ede42c1719bfda"
-    "bf0253fe5175be898e750edc53370d2b"; /* includes tag */
+                                    "f6594a07cc87b580233f500f45e489e7f33af35edf"
+                                    "7869fcf40aa40aa2b8ea73f848a7ca07612ef9f945"
+                                    "cb960b4068905123ea78b111b429ba9191cd05d2a3"
+                                    "89280f526134aadc7fc78c4b729df828b5ecf7b13b"
+                                    "d9aefb0e57f271585b8ea9bb355c7c79020716cfb9"
+                                    "b1183ef3ab20e37d57a6b9d7477609aee6e122a4cf"
+                                    "51427325250c7d0e509289444c9b3a648f1d71035d"
+                                    "2ed65b0e3cdd0cbae8bf2d0b227812cbb360987255"
+                                    "cc744110c453baa4fcd610928d809810e4b7ed1a8f"
+                                    "d991f06aa6248204797e36a6a73b70a2559c09ead6"
+                                    "86945ba246ab66e5edd8044b4c6de3fcf2a89441ac"
+                                    "66272fd8fb330ef8190579b3684596c960bd596eea"
+                                    "520a56a8d650f563aad27409960dca63d3e688611e"
+                                    "a5e22f4415cf9538d51a200c27034272968a264ed6"
+                                    "540c84838d89f72c24461aad6d26f59ecaba9acbbb"
+                                    "317b66d902f4f292a36ac1b639c637ce343117b659"
+                                    "622245317b49eeda0c6258f100d7d961ffb138647e"
+                                    "92ea330faeea6dfa31c7a84dc3bd7e1b7a6c7178af"
+                                    "36879018e3f252107f243d243dc7339d5684c8b037"
+                                    "8bf30244da8c87c843f5e56eb4c5e8280a2b48052c"
+                                    "f93b16499a66db7cca71e4599426f7d461e66f9988"
+                                    "2bd89fc50800becca62d6c74116dbd2972fda1fa80"
+                                    "f85df881edbe5a37668936b335583b599186dc5c69"
+                                    "18a396fa48a181d6b6fa4f9d62d513afbb992f2b99"
+                                    "2f67f8afe67f76913fa388cb5630c8ca01e0c65d11"
+                                    "c66a1e2ac4c85977b7c7a6999bbf10dc35ae69f551"
+                                    "5614636c0b9b68c19ed2e31c0b3b66763038ebba42"
+                                    "f3b38edc0399f3a9f23faa63978c317fc9fa66a73f"
+                                    "60f0504de93b5b845e275592c12335ee340bbc4fdd"
+                                    "d502784016e4b3be7ef04dda49f4b440a30cb5d2af"
+                                    "939828fd4ae3794e44f94df5a631ede42c1719bfda"
+                                    "bf0253fe5175be898e750edc53370d2b"; /* includes tag */
 
 const char plaintext_record_hex[] =
-    "080000240022000a00140012001d"
-    "00170018001901000101010201030104001c000240"
-    "01000000000b0001b9000001b50001b0308201ac30"
-    "820115a003020102020102300d06092a864886f70d"
-    "01010b0500300e310c300a06035504031303727361"
-    "301e170d3136303733303031323335395a170d3236"
-    "303733303031323335395a300e310c300a06035504"
-    "03130372736130819f300d06092a864886f70d0101"
-    "01050003818d0030818902818100b4bb498f827930"
-    "3d980836399b36c6988c0c68de55e1bdb826d3901a"
-    "2461eafd2de49a91d015abbc9a95137ace6c1af19e"
-    "aa6af98c7ced43120998e187a80ee0ccb0524b1b01"
-    "8c3e0b63264d449a6d38e22a5fda43084674803053"
-    "0ef0461c8ca9d9efbfae8ea6d1d03e2bd193eff0ab"
-    "9a8002c47428a6d35a8d88d79f7f1e3f0203010001"
-    "a31a301830090603551d1304023000300b0603551d"
-    "0f0404030205a0300d06092a864886f70d01010b05"
-    "000381810085aad2a0e5b9276b908c65f73a726717"
-    "0618a54c5f8a7b337d2df7a594365417f2eae8f8a5"
-    "8c8f8172f9319cf36b7fd6c55b80f21a0301515672"
-    "6096fd335e5e67f2dbf102702e608ccae6bec1fc63"
-    "a42a99be5c3eb7107c3c54e9b9eb2bd5203b1c3b84"
-    "e0a8b2f759409ba3eac9d91d402dcc0cc8f8961229"
-    "ac9187b42b4de100000f000084080400805a747c5d"
-    "88fa9bd2e55ab085a61015b7211f824cd484145ab3"
-    "ff52f1fda8477b0b7abc90db78e2d33a5c141a0786"
-    "53fa6bef780c5ea248eeaaa785c4f394cab6d30bbe"
-    "8d4859ee511f602957b15411ac027671459e46445c"
-    "9ea58c181e818e95b8c3fb0bf3278409d3be152a3d"
-    "a5043e063dda65cdf5aea20d53dfacd42f74f31400"
-    "00209b9b141d906337fbd2cbdce71df4deda4ab42c"
-    "309572cb7fffee5454b78f071816"; /* includes last byte for content type */
+        "080000240022000a00140012001d"
+        "00170018001901000101010201030104001c000240"
+        "01000000000b0001b9000001b50001b0308201ac30"
+        "820115a003020102020102300d06092a864886f70d"
+        "01010b0500300e310c300a06035504031303727361"
+        "301e170d3136303733303031323335395a170d3236"
+        "303733303031323335395a300e310c300a06035504"
+        "03130372736130819f300d06092a864886f70d0101"
+        "01050003818d0030818902818100b4bb498f827930"
+        "3d980836399b36c6988c0c68de55e1bdb826d3901a"
+        "2461eafd2de49a91d015abbc9a95137ace6c1af19e"
+        "aa6af98c7ced43120998e187a80ee0ccb0524b1b01"
+        "8c3e0b63264d449a6d38e22a5fda43084674803053"
+        "0ef0461c8ca9d9efbfae8ea6d1d03e2bd193eff0ab"
+        "9a8002c47428a6d35a8d88d79f7f1e3f0203010001"
+        "a31a301830090603551d1304023000300b0603551d"
+        "0f0404030205a0300d06092a864886f70d01010b05"
+        "000381810085aad2a0e5b9276b908c65f73a726717"
+        "0618a54c5f8a7b337d2df7a594365417f2eae8f8a5"
+        "8c8f8172f9319cf36b7fd6c55b80f21a0301515672"
+        "6096fd335e5e67f2dbf102702e608ccae6bec1fc63"
+        "a42a99be5c3eb7107c3c54e9b9eb2bd5203b1c3b84"
+        "e0a8b2f759409ba3eac9d91d402dcc0cc8f8961229"
+        "ac9187b42b4de100000f000084080400805a747c5d"
+        "88fa9bd2e55ab085a61015b7211f824cd484145ab3"
+        "ff52f1fda8477b0b7abc90db78e2d33a5c141a0786"
+        "53fa6bef780c5ea248eeaaa785c4f394cab6d30bbe"
+        "8d4859ee511f602957b15411ac027671459e46445c"
+        "9ea58c181e818e95b8c3fb0bf3278409d3be152a3d"
+        "a5043e063dda65cdf5aea20d53dfacd42f74f31400"
+        "00209b9b141d906337fbd2cbdce71df4deda4ab42c"
+        "309572cb7fffee5454b78f071816"; /* includes last byte for content type */
 
 int main(int argc, char **argv)
 {
@@ -149,14 +148,14 @@ int main(int argc, char **argv)
 
         /* Test parsing of tls 1.3 aead record */
         EXPECT_SUCCESS(s2n_record_parse_aead(
-            cipher_suite,
-            conn,
-            0, /* content_type doesn't matter for TLS 1.3 */
-            protected_record.size,
-            iv.data, /* implicit_iv */
-            NULL, /* mac not used for TLS 1.3 */
-            conn->secure->client_sequence_number,
-            &session_key));
+                cipher_suite,
+                conn,
+                0, /* content_type doesn't matter for TLS 1.3 */
+                protected_record.size,
+                iv.data, /* implicit_iv */
+                NULL,    /* mac not used for TLS 1.3 */
+                conn->secure->client_sequence_number,
+                &session_key));
 
         S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
 
@@ -170,46 +169,45 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&decrypted_stuffer, conn->in.blob.data, plaintext_record.size));
         S2N_BLOB_EXPECT_EQUAL(plaintext_record, decrypted_stuffer.blob);
 
-        #define RESET_TEST \
-            /* wipe conn in stuffer and refill protected record */ \
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in)); \
-            EXPECT_SUCCESS(s2n_stuffer_write(&conn->in, &protected_record)); \
-            /* reset sequence number */ \
-            conn->secure->client_sequence_number[7] = 0;
+#define RESET_TEST                                                   \
+    /* wipe conn in stuffer and refill protected record */           \
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));                     \
+    EXPECT_SUCCESS(s2n_stuffer_write(&conn->in, &protected_record)); \
+    /* reset sequence number */                                      \
+    conn->secure->client_sequence_number[7] = 0;
 
         /* Repeat the test to prove RESET_TEST works */
         RESET_TEST
         EXPECT_SUCCESS(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
+                iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test record parsing failure from aead tag change */
         RESET_TEST
-        conn->in.blob.data[protected_record.size-2]++;
+        conn->in.blob.data[protected_record.size - 2]++;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
+                iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test incorrect ciphertext changes fails parsing */
         RESET_TEST
         conn->in.blob.data[0]++;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
+                iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test wrong sequence number fails parsing */
         RESET_TEST
         conn->secure->client_sequence_number[7] = 1;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
+                iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test IV changes fails parsing */
         RESET_TEST
         iv.data[0]++;
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
-            iv.data, NULL, conn->secure->client_sequence_number, &session_key));
-
+                iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_session_key_free(&session_key));
-    }
+    };
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite ENCRYPTION with TLS 1.3 test vectors */
     {
@@ -266,7 +264,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(out, protected_record);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test encrypt-decrypt roundtrip */
     {
@@ -305,7 +303,7 @@ int main(int argc, char **argv)
         /* Reset sequence number */
         conn->secure->client_sequence_number[7] = 0;
 
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1)); /* tag length + content type */;
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1)); /* tag length + content type */
 
         /* Make a slice of output bytes to verify */
         struct s2n_blob encrypted = {
@@ -315,14 +313,14 @@ int main(int argc, char **argv)
 
         /* Decrypt payload */
         EXPECT_SUCCESS(s2n_record_parse_aead(
-            cipher_suite,
-            conn,
-            0, /* content_type */
-            encrypted.size,
-            iv.data, /* implicit_iv */
-            NULL, /* mac not used for TLS 1.3 */
-            conn->secure->client_sequence_number,
-            session_key));
+                cipher_suite,
+                conn,
+                0, /* content_type */
+                encrypted.size,
+                iv.data, /* implicit_iv */
+                NULL,    /* mac not used for TLS 1.3 */
+                conn->secure->client_sequence_number,
+                session_key));
 
         struct s2n_blob decrypted = {
             .data = &conn->in.blob.data[0],
@@ -333,7 +331,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(decrypted, expect_plaintext);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that CCS in TLS 1.3 modes should be sent without encryption */
     {
@@ -408,7 +406,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-    }
+    };
 
     END_TEST();
 }
