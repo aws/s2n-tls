@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_extension_list.h"
-#include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_internal.h"
-#include "tls/s2n_tls.h"
 
 #include "crypto/s2n_hash.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_client_server_name.h"
+#include "tls/extensions/s2n_extension_list.h"
+#include "tls/s2n_internal.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_socket.h"
 
 const uint8_t actual_version = 1, client_version = 2, server_version = 3;
@@ -38,9 +36,9 @@ static int s2n_set_test_protocol_versions(struct s2n_connection *conn)
 bool s2n_server_name_test_callback_flag = false;
 static int s2n_server_name_test_callback(struct s2n_connection *conn, void *ctx)
 {
-    const char* expected_server_name = *(const char**) ctx;
+    const char *expected_server_name = *(const char **) ctx;
 
-    const char* actual_server_name = NULL;
+    const char *actual_server_name = NULL;
     EXPECT_NOT_NULL(actual_server_name = s2n_get_server_name(conn));
     EXPECT_STRING_EQUAL(actual_server_name, expected_server_name);
 
@@ -133,18 +131,18 @@ int main(int argc, char **argv)
 
         if (connection_size > max_connection_size || connection_size < min_connection_size) {
             const char message[] = "s2n_connection size (%zu) no longer in (%i, %i). "
-                    "Please verify that this change was intentional and then update this test.";
+                                   "Please verify that this change was intentional and then update this test.";
             char message_buffer[sizeof(message) + 100] = { 0 };
             int r = snprintf(message_buffer, sizeof(message_buffer), message,
                     connection_size, min_connection_size, max_connection_size);
             EXPECT_TRUE(r < sizeof(message_buffer));
             FAIL_MSG(message_buffer);
         }
-    }
+    };
 
     /* s2n_get_server_name */
     {
-        const char* test_server_name = "A server name";
+        const char *test_server_name = "A server name";
 
         /* Safety check */
         EXPECT_NULL(s2n_get_server_name(NULL));
@@ -157,7 +155,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(s2n_get_server_name(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Return server_name if set */
         {
@@ -165,12 +163,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
 
-            const char* actual_server_name = NULL;
+            const char *actual_server_name = NULL;
             EXPECT_NOT_NULL(actual_server_name = s2n_get_server_name(conn));
             EXPECT_STRING_EQUAL(actual_server_name, test_server_name);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Return server_name if server_name extension parsed, but not yet processed */
         {
@@ -188,13 +186,13 @@ int main(int argc, char **argv)
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension_type = TLS_EXTENSION_SERVER_NAME;
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension = stuffer.blob;
 
-            const char* actual_server_name = NULL;
+            const char *actual_server_name = NULL;
             EXPECT_NOT_NULL(actual_server_name = s2n_get_server_name(server_conn));
             EXPECT_STRING_EQUAL(actual_server_name, test_server_name);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Test retrieving server_name via ClientHello callback,
          * which is when we expect this API to be called. */
@@ -227,8 +225,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_connection_get_protocol_version */
     {
@@ -253,7 +251,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test: get selected digest alg */
     {
@@ -273,11 +271,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
         EXPECT_EQUAL(S2N_TLS_HASH_NONE, output);
 
-        s2n_tls_hash_algorithm expected_output[] = { S2N_TLS_HASH_NONE, S2N_TLS_HASH_MD5,
-                                                     S2N_TLS_HASH_SHA1, S2N_TLS_HASH_SHA224,
-                                                     S2N_TLS_HASH_SHA256, S2N_TLS_HASH_SHA384,
-                                                     S2N_TLS_HASH_SHA512, S2N_TLS_HASH_MD5_SHA1,
-                                                     S2N_TLS_HASH_NONE };
+        s2n_tls_hash_algorithm expected_output[] = {
+            S2N_TLS_HASH_NONE, S2N_TLS_HASH_MD5,
+            S2N_TLS_HASH_SHA1, S2N_TLS_HASH_SHA224,
+            S2N_TLS_HASH_SHA256, S2N_TLS_HASH_SHA384,
+            S2N_TLS_HASH_SHA512, S2N_TLS_HASH_MD5_SHA1,
+            S2N_TLS_HASH_NONE
+        };
 
         for (size_t i = S2N_TLS_HASH_NONE; i <= UINT16_MAX; i++) {
             conn->handshake_params.client_cert_sig_scheme.hash_alg = i;
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: get selected signature alg */
     {
@@ -319,11 +319,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(S2N_TLS_SIGNATURE_ANONYMOUS, output);
 
         s2n_tls_signature_algorithm expected_output[] = {
-            [ S2N_SIGNATURE_ANONYMOUS ] = S2N_TLS_SIGNATURE_ANONYMOUS,
-            [ S2N_SIGNATURE_RSA ] = S2N_TLS_SIGNATURE_RSA,
-            [ S2N_SIGNATURE_ECDSA ] = S2N_TLS_SIGNATURE_ECDSA,
-            [ S2N_SIGNATURE_RSA_PSS_RSAE ] = S2N_TLS_SIGNATURE_RSA_PSS_RSAE,
-            [ S2N_SIGNATURE_RSA_PSS_PSS ] = S2N_TLS_SIGNATURE_RSA_PSS_PSS,
+            [S2N_SIGNATURE_ANONYMOUS] = S2N_TLS_SIGNATURE_ANONYMOUS,
+            [S2N_SIGNATURE_RSA] = S2N_TLS_SIGNATURE_RSA,
+            [S2N_SIGNATURE_ECDSA] = S2N_TLS_SIGNATURE_ECDSA,
+            [S2N_SIGNATURE_RSA_PSS_RSAE] = S2N_TLS_SIGNATURE_RSA_PSS_RSAE,
+            [S2N_SIGNATURE_RSA_PSS_PSS] = S2N_TLS_SIGNATURE_RSA_PSS_PSS,
         };
 
         for (size_t i = 0; i <= UINT16_MAX; i++) {
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test: signature algorithm and hash can be retrieved after the handshake.
      * Check both TLS1.2 and TLS1.3, because they use different signature negotiation logic.
@@ -417,8 +417,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_connection_set_max_fragment_length */
     {
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_max_fragment_length(conn, high_mfl));
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, high_mfl);
             EXPECT_EQUAL(conn->out.blob.size, 0);
-        }
+        };
 
         /* Default behavior - set low mfl */
         {
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_max_fragment_length(conn, low_mfl));
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, low_mfl);
             EXPECT_EQUAL(conn->out.blob.size, 0);
-        }
+        };
 
         /* After extension - don't set mfl higher than agreed with peer */
         {
@@ -456,7 +456,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_max_fragment_length(conn, high_mfl));
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_value);
             EXPECT_EQUAL(conn->out.blob.size, 0);
-        }
+        };
 
         /* After extension - set mfl lower than agreed with peer */
         {
@@ -465,14 +465,14 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_max_fragment_length(conn, low_mfl));
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, low_mfl);
             EXPECT_EQUAL(conn->out.blob.size, 0);
-        }
+        };
 
         /* After extension - invalid negotiated mfl */
         {
             conn->negotiated_mfl_code = UINT8_MAX;
             EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_max_fragment_length(conn, low_mfl), S2N_ERR_SAFETY);
             conn->negotiated_mfl_code = 0;
-        }
+        };
 
         /* output IO buffer already allocated: resize for higher mfl */
         {
@@ -481,7 +481,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
             EXPECT_EQUAL(conn->out.blob.size, S2N_TLS_MAXIMUM_RECORD_LENGTH);
             EXPECT_SUCCESS(s2n_free(&conn->out.blob));
-        }
+        };
 
         /* output IO buffer already allocated: do nothing for lower mfl */
         {
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_connection set fd functionality */
     {
@@ -533,7 +533,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(getWriteFd, WRITEFD);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_connection_set_fd can be called twice in a row */
     {
@@ -553,7 +553,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(getWriteFd, NEWFD);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_connection_set_read_fd and s2n_connection_set_write_fd can be called
      * after s2n_connection_set_fd */
@@ -575,7 +575,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(getWriteFd, NEWFD);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* The default s2n socket read/write setup can be used with a user-defined send/recv setup */
     {
@@ -597,7 +597,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, socket_ctx));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* The default s2n socket read/write setup can be overwritten by custom socket setup */
     {
@@ -630,7 +630,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(conn->recv_io_context);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_connection_get_config */
     {
@@ -647,7 +647,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test s2n_connection_get_wire_bytes_out */
     {
@@ -659,7 +659,7 @@ int main(int argc, char **argv)
         uint64_t magic_number = 123456;
         conn->wire_bytes_out = magic_number;
         EXPECT_EQUAL(magic_number, s2n_connection_get_wire_bytes_out(conn));
-    }
+    };
 
     /* Test connection reuse when memory freed */
     {
@@ -682,7 +682,7 @@ int main(int argc, char **argv)
         uint8_t app_data[100] = "hello world";
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-        for (size_t i = 0; i < 10; i ++) {
+        for (size_t i = 0; i < 10; i++) {
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -708,7 +708,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         }
-    }
+    };
 
     /* Test post-handshake buffer lifecycle */
     {
@@ -754,7 +754,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_EQUAL(conn->post_handshake.in.blob.size, 0);
             }
-        }
+        };
 
         /* Test s2n_connection_release_buffers */
         {
@@ -804,9 +804,9 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_release_buffers(conn),
                         S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
                 EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
-            }
-        }
-    }
+            };
+        };
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));

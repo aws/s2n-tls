@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_alpn.h"
 
 int main(int argc, char **argv)
@@ -37,7 +36,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_client_alpn_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test send */
     {
@@ -63,7 +62,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test receive can accept the output of send */
     {
@@ -83,7 +82,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test receive does nothing if no protocol preferences configured */
     {
@@ -101,7 +100,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Test receive does nothing if extension malformed */
     {
@@ -120,7 +119,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     END_TEST();
     return 0;

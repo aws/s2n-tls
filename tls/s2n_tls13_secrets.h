@@ -52,4 +52,3 @@ S2N_RESULT s2n_tls13_secrets_clean(struct s2n_connection *conn);
 
 S2N_RESULT s2n_derive_binder_key(struct s2n_psk *psk, struct s2n_blob *output);
 S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn);
-

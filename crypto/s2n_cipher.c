@@ -15,11 +15,10 @@
 
 #include <openssl/evp.h>
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-#include <openssl/mem.h>
+    #include <openssl/mem.h>
 #endif
 
 #include "crypto/s2n_cipher.h"
-
 #include "utils/s2n_safety.h"
 
 int s2n_session_key_alloc(struct s2n_session_key *key)

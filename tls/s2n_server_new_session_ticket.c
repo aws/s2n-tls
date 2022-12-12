@@ -14,23 +14,19 @@
  */
 
 #include <sys/param.h>
-
-#include "api/s2n.h"
 #include <time.h>
 
+#include "api/s2n.h"
 #include "error/s2n_errno.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_alerts.h"
-#include "tls/s2n_tls.h"
-#include "tls/s2n_resume.h"
-#include "tls/s2n_tls13_handshake.h"
-#include "tls/s2n_record.h"
-
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
+#include "tls/s2n_alerts.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
 /*
  * The maximum size of the NewSessionTicket message, not taking into account the
@@ -43,7 +39,8 @@
  */
 #define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 79
 
-int s2n_server_nst_recv(struct s2n_connection *conn) {
+int s2n_server_nst_recv(struct s2n_connection *conn)
+{
     POSIX_GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));
 
     uint16_t session_ticket_len;
@@ -59,8 +56,8 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
             /* Alloc some memory for the serialized session ticket */
             DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
-            POSIX_GUARD(s2n_alloc(&mem, S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + \
-                    conn->client_ticket.size + S2N_TLS12_STATE_SIZE_IN_BYTES));
+            POSIX_GUARD(s2n_alloc(&mem,
+                    S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + conn->client_ticket.size + S2N_TLS12_STATE_SIZE_IN_BYTES));
 
             POSIX_GUARD(s2n_connection_get_session(conn, mem.data, session_len));
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
@@ -68,7 +65,7 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
             struct s2n_session_ticket ticket = { .ticket_data = mem, .session_lifetime = session_lifetime };
 
             POSIX_ENSURE(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket) >= S2N_SUCCESS,
-                         S2N_ERR_CANCELLED);
+                    S2N_ERR_CANCELLED);
         }
     }
 
@@ -81,7 +78,8 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = { .data = data, .size = sizeof(data) };
     struct s2n_stuffer to;
-    uint32_t lifetime_hint_in_secs = (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
+    uint32_t lifetime_hint_in_secs =
+            (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
 
     /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
     if (!conn->config->use_tickets) {
@@ -199,7 +197,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
  *# unsigned integer in network byte order from the time of ticket
  *# issuance. 
  **/
-static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint32_t *ticket_lifetime) 
+static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint32_t *ticket_lifetime)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_MUT(ticket_lifetime);
@@ -405,11 +403,11 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
         RESULT_GUARD_POSIX(s2n_connection_get_session(conn, session_state.data, session_state.size));
 
         struct s2n_session_ticket ticket = {
-                .ticket_data = session_state,
-                .session_lifetime = ticket_lifetime
+            .ticket_data = session_state,
+            .session_lifetime = ticket_lifetime
         };
         RESULT_ENSURE(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket) >= S2N_SUCCESS,
-                      S2N_ERR_CANCELLED);
+                S2N_ERR_CANCELLED);
     }
 
     return S2N_RESULT_OK;

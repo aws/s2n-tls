@@ -14,7 +14,6 @@
  */
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_result.h"
@@ -22,7 +21,7 @@
 bool s2n_custom_send_fn_called = false;
 static int s2n_expect_concurrent_error_send_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_connection *conn = (struct s2n_connection*) io_context;
+    struct s2n_connection *conn = (struct s2n_connection *) io_context;
     s2n_custom_send_fn_called = true;
 
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -44,7 +43,7 @@ int main(int argc, char **argv)
 
         /* Setup bad callback */
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_expect_concurrent_error_send_fn));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) conn));
 
         /* Negotiate. When we attempt to send the ClientHello, the send callback
          * should fail due to a reentrancy error.
@@ -56,7 +55,7 @@ int main(int argc, char **argv)
 
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

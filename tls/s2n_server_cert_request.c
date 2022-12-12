@@ -14,19 +14,18 @@
  */
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
 #include "extensions/s2n_extension_list.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_tls.h"
-#include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_safety.h"
 #include "utils/s2n_array.h"
+#include "utils/s2n_safety.h"
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
@@ -52,7 +51,8 @@ static uint8_t s2n_cert_type_preference_list[] = {
 
 /*
  * Include DSS sign certificate type in server certificate request.
- * Only will be used if cert_req_dss_legacy_compat_enabled is set by calling s2n_config_enable_cert_req_dss_legacy_compat.
+ * Only will be used if cert_req_dss_legacy_compat_enabled is set by calling
+ * s2n_config_enable_cert_req_dss_legacy_compat.
  */
 static uint8_t s2n_cert_type_preference_list_legacy_dss[] = {
     S2N_CERT_TYPE_RSA_SIGN,
@@ -85,7 +85,7 @@ static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
     if (s2n_config_get_num_default_certs(conn->config) > 0) {
         POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.server_sig_hash_algs,
-                                                               &conn->handshake_params.client_cert_sig_scheme));
+                &conn->handshake_params.client_cert_sig_scheme));
 
         struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(conn->config);
         POSIX_ENSURE_REF(cert);
