@@ -465,9 +465,11 @@ static S2N_RESULT s2n_clone_tests(
     char process_child_stack[PROCESS_CHILD_STACK_SIZE];
     EXPECT_NOT_NULL(process_child_stack);
 
-    struct random_communication ipc = { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
+    struct random_communication ipc = {
+        .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
         .s2n_get_random_data_cb_2 = s2n_get_random_data_cb_clone,
-        .pipes = (int *) pipes };
+        .pipes = (int *) pipes
+    };
 
     proc_id = clone(s2n_clone_tests_child_process, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) &ipc);
     EXPECT_NOT_EQUAL(proc_id, -1);
