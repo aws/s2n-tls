@@ -14,16 +14,13 @@
  */
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_config.h"
-#include "tls/s2n_tls.h"
-
 #include "stuffer/s2n_stuffer.h"
-
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_config.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
@@ -74,7 +71,7 @@ static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn, struc
 
     uint32_t cert_size = 0;
     uint16_t extensions_size = 0;
-    while(s2n_stuffer_data_available(&cert_chain_in)) {
+    while (s2n_stuffer_data_available(&cert_chain_in)) {
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint24(&cert_chain_in, &cert_size));
         RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(&cert_chain_out, cert_size));
         RESULT_GUARD_POSIX(s2n_stuffer_copy(&cert_chain_in, &cert_chain_out, cert_size));
@@ -98,11 +95,11 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS13) {
         uint8_t certificate_request_context_len;
         POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
-        S2N_ERROR_IF(certificate_request_context_len != 0,S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR_IF(certificate_request_context_len != 0, S2N_ERR_BAD_MESSAGE);
     }
 
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob client_cert_chain = {0};
+    struct s2n_blob client_cert_chain = { 0 };
 
     POSIX_GUARD(s2n_stuffer_read_uint24(in, &client_cert_chain.size));
 
@@ -127,14 +124,13 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
     conn->handshake_params.client_cert_pkey_type = pkey_type;
     POSIX_GUARD(s2n_pkey_setup_for_type(&public_key, pkey_type));
-    
+
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
     POSIX_GUARD_RESULT(s2n_client_cert_chain_store(conn, &client_cert_chain));
     conn->handshake_params.client_public_key = public_key;
 
     return S2N_SUCCESS;
 }
-
 
 int s2n_client_cert_send(struct s2n_connection *conn)
 {
