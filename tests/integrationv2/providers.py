@@ -342,7 +342,7 @@ class CriterionS2N(S2N):
         if shortest is None:
             raise FileNotFoundError("Unable to find Cargo.toml")
         # Return the path, minus Cargo.toml
-        return str("/".join(shortest.split("/")[:-1]))
+        return os.path.dirname(shortest)
 
     def _cargo_bench(self):
         """
