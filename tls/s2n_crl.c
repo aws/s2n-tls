@@ -14,6 +14,7 @@
 */
 
 #include "s2n_crl.h"
+
 #include "tls/s2n_connection.h"
 
 struct s2n_crl *s2n_crl_new(void)
@@ -22,7 +23,7 @@ struct s2n_crl *s2n_crl_new(void)
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crl)));
     PTR_GUARD_POSIX(s2n_blob_zero(&mem));
 
-    struct s2n_crl *crl = (struct s2n_crl *)(void*) mem.data;
+    struct s2n_crl *crl = (struct s2n_crl *) (void *) mem.data;
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return crl;
@@ -40,7 +41,7 @@ int s2n_crl_load_pem(struct s2n_crl *crl, uint8_t *pem, size_t len)
     POSIX_GUARD(s2n_stuffer_init(&pem_stuffer, &pem_blob));
     POSIX_GUARD(s2n_stuffer_skip_write(&pem_stuffer, pem_blob.size));
 
-    DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = { 0 }, s2n_stuffer_free);
     POSIX_GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, len));
     POSIX_GUARD(s2n_stuffer_crl_from_pem(&pem_stuffer, &der_out_stuffer));
 
@@ -198,13 +199,13 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     RESULT_ENSURE_REF(validator->cert_chain_from_wire);
 
     int cert_count = sk_X509_num(validator->cert_chain_from_wire);
-    DEFER_CLEANUP(struct s2n_array *crl_lookup_list = s2n_array_new_with_capacity(sizeof(struct s2n_crl_lookup),
-            cert_count), s2n_array_free_p);
+    DEFER_CLEANUP(struct s2n_array *crl_lookup_list = s2n_array_new_with_capacity(sizeof(struct s2n_crl_lookup), cert_count),
+            s2n_array_free_p);
     RESULT_ENSURE_REF(crl_lookup_list);
 
     for (int i = 0; i < cert_count; ++i) {
-        struct s2n_crl_lookup * lookup = NULL;
-        RESULT_GUARD(s2n_array_pushback(crl_lookup_list, (void**) &lookup));
+        struct s2n_crl_lookup *lookup = NULL;
+        RESULT_GUARD(s2n_array_pushback(crl_lookup_list, (void **) &lookup));
 
         X509 *cert = sk_X509_value(validator->cert_chain_from_wire, i);
         RESULT_ENSURE_REF(cert);
@@ -221,7 +222,7 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     RESULT_GUARD(s2n_array_num_elements(validator->crl_lookup_list, &num_lookups));
     for (uint32_t i = 0; i < num_lookups; i++) {
         struct s2n_crl_lookup *lookup = NULL;
-        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void**) &lookup));
+        RESULT_GUARD(s2n_array_get(validator->crl_lookup_list, i, (void **) &lookup));
         RESULT_ENSURE_REF(lookup);
 
         int result = conn->config->crl_lookup_cb(lookup, conn->config->crl_lookup_ctx);
@@ -231,7 +232,8 @@ S2N_RESULT s2n_crl_invoke_lookup_callbacks(struct s2n_connection *conn, struct s
     return S2N_RESULT_OK;
 }
 
-int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx) {
+int s2n_crl_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
+{
     int err = X509_STORE_CTX_get_error(ctx);
     switch (err) {
         case X509_V_ERR_CRL_NOT_YET_VALID:

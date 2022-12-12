@@ -16,11 +16,10 @@
 #pragma once
 
 #include <stdint.h>
-#include "api/s2n.h"
 
+#include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_list.h"
-
 #include "utils/s2n_array.h"
 /*
  * the 'data' pointers in the below blobs
@@ -33,9 +32,9 @@ struct s2n_client_hello {
     struct s2n_blob cipher_suites;
     struct s2n_blob session_id;
 
-    unsigned int callback_invoked:1;
-    unsigned int callback_async_blocked:1;
-    unsigned int callback_async_done:1;
+    unsigned int callback_invoked : 1;
+    unsigned int callback_async_blocked : 1;
+    unsigned int callback_async_done : 1;
     /*
      * Marks if the client hello has been parsed.
      *
@@ -43,7 +42,7 @@ struct s2n_client_hello {
      * two different client_hello during a single handshake if the server
      * issues a hello retry.
      */
-    unsigned int parsed:1;
+    unsigned int parsed : 1;
 };
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);

@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_connection.h"
 #include "tls/s2n_handshake_type.h"
+
+#include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_handshake_type_set_flag(struct s2n_connection *conn, s2n_handshake_type_flag flag)
