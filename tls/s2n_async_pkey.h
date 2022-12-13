@@ -70,8 +70,8 @@ int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *da
 int s2n_async_pkey_op_set_validation_mode(struct s2n_async_pkey_op *op, s2n_async_pkey_validation_mode mode);
 
 S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
-                                    struct s2n_hash_state *digest, struct s2n_blob *signature);
+        struct s2n_hash_state *digest, struct s2n_blob *signature);
 S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *encrypted, struct s2n_blob *init_decrypted,
-                           s2n_async_pkey_decrypt_complete on_complete);
+        s2n_async_pkey_decrypt_complete on_complete);
 S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
-                        s2n_async_pkey_sign_complete on_complete);
+        s2n_async_pkey_sign_complete on_complete);

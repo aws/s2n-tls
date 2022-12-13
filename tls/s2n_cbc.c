@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <stdint.h>
-
-#include "error/s2n_errno.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_mem.h"
+#include <sys/param.h>
 
 #include "crypto/s2n_hmac.h"
-
+#include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 /* A TLS CBC record looks like ..
  *
