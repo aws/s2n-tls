@@ -460,7 +460,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_set_send_buffer_size */
     {
-        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
+        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE);
 
         /* Safety */
         {

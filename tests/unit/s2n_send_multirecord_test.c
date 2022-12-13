@@ -149,7 +149,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Unitialized buffer */
+            /* Uninitialized buffer */
             EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
 
             /* Empty buffer */
@@ -162,6 +162,32 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
 
             /* Insufficient space in buffer */
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
+            EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
+        };
+
+        /* Flush if buffer can't hold alert record */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Leave sufficient space for an alert */
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
+            size_t alert_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_ALERT_LENGTH);
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, buffer_size - alert_record_size));
+
+            /* Insufficient space for max size record,
+             * so set fragmentation length to minimum so that it's not a problem.
+             */
+            EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
+            conn->max_outgoing_fragment_length = 1;
+            EXPECT_TRUE(conn->max_outgoing_fragment_length < S2N_ALERT_LENGTH);
+
+            /* Sufficient space for alert */
+            EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
+
+            /* Insufficient space for alert */
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
             EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
         };
@@ -196,12 +222,12 @@ int main(int argc, char **argv)
      * Send smaller records.
      */
     {
-        /* The minimum buffer size we allow generates a fragment size of 2, to prevent
-         * fragmenting alert messages, which are always 2 bytes. At this minimum size,
-         * application data is also fragmented into 2 byte chucks, which is pretty silly,
+        /* The minimum buffer size we allow generates a fragment size of 5, to prevent
+         * fragmenting KeyUpdate messages, which are always 5 bytes. At this minimum size,
+         * application data is also fragmented into 5 byte chunks, which is pretty silly,
          * but is an edge case.
          */
-        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
+        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE);
 
         DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(min_buffer_config);
@@ -217,14 +243,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-        ssize_t send_size = 5;
+        ssize_t send_size = sizeof(test_data);
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, test_data, send_size, &blocked), send_size);
 
         /* Since each record only contains two bytes of payload,
          * we need to send a number of records equal to our total send ceil(size / 2).
          */
-        EXPECT_EQUAL(context.calls, (send_size + 1) / 2);
+        uint8_t remainder = (send_size % S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE) ? 1 : 0;
+        EXPECT_EQUAL(context.calls, (send_size / S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE) + remainder);
         EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
         EXPECT_TRUE(context.bytes_sent > send_size);
 

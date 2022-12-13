@@ -49,6 +49,12 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
     }
     max_payload_size = MIN(max_payload_size, remaining_payload_size);
 
+    /* We can't guarantee that the next record won't be an alert.
+     * TLS1.3 does not allow alerts to be fragmented, and some TLS implementations
+     * (for example, GnuTLS) reject fragmented TLS1.2 alerts.
+     */
+    max_payload_size = MAX(max_payload_size, S2N_ALERT_LENGTH);
+
     uint16_t max_write_size = 0;
     if (!s2n_result_is_ok(s2n_record_max_write_size(conn, max_payload_size, &max_write_size))) {
         /* When in doubt, flush */
