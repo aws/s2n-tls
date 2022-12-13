@@ -22,7 +22,7 @@ export XDIST_WORKERS=4
 export RUST_BACKTRACE=1
 
 export GIT_COMMIT=$(git log -n 1 --format="%h")
-export AWS_S3_REPORT_PATH="reports/${INTEGV2_TEST}/$(date +%Y%m%d_${GIT_COMMIT})"
+export AWS_S3_REPORT_PATH="reports/${INTEGV2_TEST}/$(date +%Y%m%d_%H%M_${GIT_COMMIT})"
 
 # CodeBuild artifacts are too limited;
 # scipting the baseline download steps here.

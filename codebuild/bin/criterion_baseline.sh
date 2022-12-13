@@ -21,7 +21,6 @@ export S2N_NO_PQ=1
 # Limit the number of child processes in the test run
 export XDIST_WORKERS=2
 export RUST_BACKTRACE=1
-export AWS_S3_URL="s3://s2n-tls-logs/release/"
 export TOX_TEST_NAME="$INTEGV2_TEST"
 
 # There can be only one artifact config per batch job,
@@ -45,7 +44,7 @@ if [ -z "${LOCAL_TESTING:-}" ]; then
   gh_login s2n_codebuild_PRs
   get_latest_release
   # Build a specific filename for this release
-  AWS_S3_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+  AWS_S2_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
   zip_count=$(aws s3 ls "${AWS_S3_URL}${AWS_S3_PATH}"|wc -l||true)
 
   # Only do the baseline if an artifact for the current release doesn't exist.
