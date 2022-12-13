@@ -14,7 +14,10 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format off */
+
 #include "s2n_test.h"
+
 #include "utils/s2n_safety.h"
 
 /**
@@ -626,7 +629,7 @@ static const char* PTR_GUARD_OSSL_harness(int result, int error)
     return "ok";
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
@@ -639,11 +642,11 @@ int main(int argc, char** argv)
 
     /* RESULT_DEBUG_ENSURE(condition, error) */
     EXPECT_OK(RESULT_DEBUG_ENSURE_harness(true));
-#ifdef NDEBUG
+    #ifdef NDEBUG
     EXPECT_OK(RESULT_DEBUG_ENSURE_harness(false));
-#else
+    #else
     EXPECT_ERROR_WITH_ERRNO(RESULT_DEBUG_ENSURE_harness(false), S2N_ERR_SAFETY);
-#endif
+    #endif
 
     /* RESULT_ENSURE_OK(result, error) */
     EXPECT_OK(RESULT_ENSURE_OK_harness(true));
@@ -733,11 +736,11 @@ int main(int argc, char** argv)
 
     /* RESULT_POSTCONDITION(result) */
     EXPECT_OK(RESULT_POSTCONDITION_harness(RESULT_POSTCONDITION_harness_check(true)));
-#ifdef NDEBUG
+    #ifdef NDEBUG
     EXPECT_OK(RESULT_POSTCONDITION_harness(RESULT_POSTCONDITION_harness_check(false)));
-#else
+    #else
     EXPECT_ERROR_WITH_ERRNO(RESULT_POSTCONDITION_harness(RESULT_POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);
-#endif
+    #endif
 
     /* RESULT_CHECKED_MEMCPY(destination, source, len) */
     uint32_t RESULT__checked_memcpy_dest = 1;
@@ -774,11 +777,11 @@ int main(int argc, char** argv)
 
     /* POSIX_DEBUG_ENSURE(condition, error) */
     EXPECT_SUCCESS(POSIX_DEBUG_ENSURE_harness(true));
-#ifdef NDEBUG
+    #ifdef NDEBUG
     EXPECT_SUCCESS(POSIX_DEBUG_ENSURE_harness(false));
-#else
+    #else
     EXPECT_FAILURE_WITH_ERRNO(POSIX_DEBUG_ENSURE_harness(false), S2N_ERR_SAFETY);
-#endif
+    #endif
 
     /* POSIX_ENSURE_OK(result, error) */
     EXPECT_SUCCESS(POSIX_ENSURE_OK_harness(true));
@@ -868,11 +871,11 @@ int main(int argc, char** argv)
 
     /* POSIX_POSTCONDITION(result) */
     EXPECT_SUCCESS(POSIX_POSTCONDITION_harness(POSIX_POSTCONDITION_harness_check(true)));
-#ifdef NDEBUG
+    #ifdef NDEBUG
     EXPECT_SUCCESS(POSIX_POSTCONDITION_harness(POSIX_POSTCONDITION_harness_check(false)));
-#else
+    #else
     EXPECT_FAILURE_WITH_ERRNO(POSIX_POSTCONDITION_harness(POSIX_POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);
-#endif
+    #endif
 
     /* POSIX_CHECKED_MEMCPY(destination, source, len) */
     uint32_t POSIX__checked_memcpy_dest = 1;
@@ -909,11 +912,11 @@ int main(int argc, char** argv)
 
     /* PTR_DEBUG_ENSURE(condition, error) */
     EXPECT_NOT_NULL(PTR_DEBUG_ENSURE_harness(true));
-#ifdef NDEBUG
+    #ifdef NDEBUG
     EXPECT_NOT_NULL(PTR_DEBUG_ENSURE_harness(false));
-#else
+    #else
     EXPECT_NULL_WITH_ERRNO(PTR_DEBUG_ENSURE_harness(false), S2N_ERR_SAFETY);
-#endif
+    #endif
 
     /* PTR_ENSURE_OK(result, error) */
     EXPECT_NOT_NULL(PTR_ENSURE_OK_harness(true));
@@ -1003,11 +1006,11 @@ int main(int argc, char** argv)
 
     /* PTR_POSTCONDITION(result) */
     EXPECT_NOT_NULL(PTR_POSTCONDITION_harness(PTR_POSTCONDITION_harness_check(true)));
-#ifdef NDEBUG
+    #ifdef NDEBUG
     EXPECT_NOT_NULL(PTR_POSTCONDITION_harness(PTR_POSTCONDITION_harness_check(false)));
-#else
+    #else
     EXPECT_NULL_WITH_ERRNO(PTR_POSTCONDITION_harness(PTR_POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);
-#endif
+    #endif
 
     /* PTR_CHECKED_MEMCPY(destination, source, len) */
     uint32_t PTR__checked_memcpy_dest = 1;
@@ -1034,6 +1037,7 @@ int main(int argc, char** argv)
     /* PTR_GUARD_OSSL(result, error) */
     EXPECT_NOT_NULL(PTR_GUARD_OSSL_harness(1, S2N_ERR_SAFETY));
     EXPECT_NULL_WITH_ERRNO(PTR_GUARD_OSSL_harness(0, S2N_ERR_SAFETY), S2N_ERR_SAFETY);
+
 
     END_TEST();
     return S2N_SUCCESS;
