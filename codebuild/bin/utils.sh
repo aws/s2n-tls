@@ -24,7 +24,7 @@ get_latest_release(){
 
 gh_login(){
     # Takes secrets manager key as an argument
-    # This GH personal access token must have 'repo' permsissions to work.
+    # This GH personal access token must have 'repo' permissions to work.
     gh auth status || aws secretsmanager get-secret-value --secret-id "$1" --query 'SecretString' --output text |jq -r '.secret_key'| gh auth login --with-token
 
     #gh auth status
