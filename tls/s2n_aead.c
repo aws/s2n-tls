@@ -14,16 +14,14 @@
  */
 
 #include "error/s2n_errno.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_mem.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 /* Derive the AAD for an AEAD mode cipher suite from the connection state, per
  * RFC 5246 section 6.2.3.3 */
-S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad)
+S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad)
 {
     RESULT_ENSURE_REF(ad);
     RESULT_ENSURE_GTE(ad->size, S2N_TLS_MAX_AAD_LEN);
@@ -34,7 +32,7 @@ S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequen
     /* ad = seq_num || record_type || version || length */
 
     size_t idx = 0;
-    for(; idx < S2N_TLS_SEQUENCE_NUM_LEN; idx++) {
+    for (; idx < S2N_TLS_SEQUENCE_NUM_LEN; idx++) {
         data[idx] = sequence_number[idx];
     }
 
