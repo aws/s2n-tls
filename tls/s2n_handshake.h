@@ -16,26 +16,24 @@
 #pragma once
 
 #include <stdint.h>
-#include "api/s2n.h"
 
+#include "api/s2n.h"
+#include "crypto/s2n_certificate.h"
+#include "crypto/s2n_hash.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_handshake_hashes.h"
 #include "tls/s2n_handshake_type.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_parameters.h"
 
-#include "stuffer/s2n_stuffer.h"
-
-#include "crypto/s2n_certificate.h"
-#include "crypto/s2n_hash.h"
-
 /* From RFC 8446: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
-#define TLS_HELLO_REQUEST              0
-#define TLS_CLIENT_HELLO               1
-#define TLS_SERVER_HELLO               2
-#define TLS_SERVER_NEW_SESSION_TICKET  4
-#define TLS_END_OF_EARLY_DATA          5
-#define TLS_ENCRYPTED_EXTENSIONS       8
+#define TLS_HELLO_REQUEST             0
+#define TLS_CLIENT_HELLO              1
+#define TLS_SERVER_HELLO              2
+#define TLS_SERVER_NEW_SESSION_TICKET 4
+#define TLS_END_OF_EARLY_DATA         5
+#define TLS_ENCRYPTED_EXTENSIONS      8
 #define TLS_CERTIFICATE               11
 #define TLS_SERVER_KEY                12
 #define TLS_CERT_REQ                  13
@@ -47,11 +45,11 @@
 #define TLS_SERVER_SESSION_LOOKUP     23
 #define TLS_KEY_UPDATE                24
 #define TLS_NPN                       67
-#define TLS_MESSAGE_HASH             254
+#define TLS_MESSAGE_HASH              254
 
 /* This is the list of message types that we support */
 typedef enum {
-    CLIENT_HELLO=0,
+    CLIENT_HELLO = 0,
     SERVER_HELLO,
     SERVER_CERT,
     SERVER_NEW_SESSION_TICKET,
@@ -176,16 +174,16 @@ struct s2n_handshake {
     struct s2n_offered_early_data early_data_async_state;
 
     /* Indicates the CLIENT_HELLO message has been completely received */
-    unsigned client_hello_received:1;
+    unsigned client_hello_received : 1;
 
     /* Indicates the handshake blocked while trying to read or write data, and has been paused */
-    unsigned paused:1;
+    unsigned paused : 1;
 
     /* Set to 1 if the RSA verification failed */
-    unsigned rsa_failed:1;
+    unsigned rsa_failed : 1;
 
     /* Indicates that this is a renegotiation handshake */
-    unsigned renegotiation:1;
+    unsigned renegotiation : 1;
 };
 
 /* Only used in our test cases. */
