@@ -378,9 +378,10 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
     if (cb_mode == S2N_CLIENT_HELLO_CB_NONBLOCKING && !ch_ctx->mark_done_during_callback) {
         /* swap the config and mark server_name_used in the async context */
         EXPECT_SUCCESS(s2n_negotiate_nonblocking_ch_cb(conn, ch_ctx, true));
-    } else { /* cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING or NONBLOCKING mode where
-            * a non blocking callback marks cb_done during the callback itself
-            */
+    } else {
+        /* cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING or NONBLOCKING mode where
+         * a non blocking callback marks cb_done during the callback itself
+         */
         EXPECT_SUCCESS(s2n_negotiate_blocking_ch_cb(conn, ch_ctx));
     }
 

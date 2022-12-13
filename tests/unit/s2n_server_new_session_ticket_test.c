@@ -92,7 +92,7 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
      **/
     S2N_BLOB_FROM_HEX(test_resumption_secret,
             "7d f2 35 f2 03 1d 2a 05 12 87 d0 2b 02 41 b0 bf \
-         da f8 6c c8 56 23 1f 2d 5a ba 46 c4 34 ec 19 6c");
+             da f8 6c c8 56 23 1f 2d 5a ba 46 c4 34 ec 19 6c");
 
     /* Set up resumption secret */
     struct s2n_blob secret = { 0 };
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
             /* Calculate extension list offset. Extension list should be last. */
             const uint32_t extension_list_offset = sizeof(uint32_t) /* max_early_data_size */
                     + sizeof(uint16_t)                              /* size of extension */
-                    + sizeof(uint16_t) /* type of extension */;
+                    + sizeof(uint16_t);                             /* type of extension */
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -428,9 +428,11 @@ int main(int argc, char **argv)
          *# expanded (32 octets):  4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c
          *# a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3
          **/
+        /* clang-format off */
         S2N_BLOB_FROM_HEX(expected_session_secret,
-                "4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
+                       "4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
             a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3");
+        /* clang-format on */
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
@@ -558,7 +560,7 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(ticket, test_ticket, ticket_size);
             };
 
-            /* Check the serialized ticket_age_add is what was in the arbitrary nst message*/
+            /* Check the serialized ticket_age_add is what was in the arbitrary nst message */
             {
                 uint8_t test_ticket_age_add[] = { TEST_TICKET_AGE_ADD };
                 uint8_t ticket_age_add_marker = sizeof(uint8_t) + /* client state format */
@@ -602,8 +604,9 @@ int main(int argc, char **argv)
              *#    5e 5b fb c3 88 e9 33 43 69 40 93 93 4a e4 d3 57 00 08 00 2a 00
              *#    04 00 00 04 00
              **/
+            /* clang-format off */
             S2N_BLOB_FROM_HEX(nst_message,
-                    "04 00 00 c9 00 00 00 1e fa d6 aa \
+                                             "04 00 00 c9 00 00 00 1e fa d6 aa \
                 c5 02 00 00 00 b2 2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00 \
                 00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70 ad 3c \
                 49 88 83 c9 36 7c 09 a2 be 78 5a bc 55 cd 22 60 97 a3 a9 82 11 \
@@ -614,6 +617,7 @@ int main(int argc, char **argv)
                 17 64 6f ac 5c 03 27 2e 97 07 27 c6 21 a7 91 41 ef 5f 7d e6 50 \
                 5e 5b fb c3 88 e9 33 43 69 40 93 93 4a e4 d3 57 00 08 00 2a 00 \
                 04 00 00 04 00");
+            /* clang-format on */
 
             struct s2n_config *config = s2n_config_new();
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);

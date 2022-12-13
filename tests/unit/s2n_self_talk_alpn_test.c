@@ -68,7 +68,9 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
     }
 
     const char *got = s2n_get_application_protocol(client_conn);
-    if ((got != NULL && expected == NULL) || (got == NULL && expected != NULL) || (got != NULL && expected != NULL && strcmp(expected, got) != 0)) {
+    if ((got != NULL && expected == NULL)
+            || (got == NULL && expected != NULL)
+            || (got != NULL && expected != NULL && strcmp(expected, got) != 0)) {
         result = 2;
     }
 

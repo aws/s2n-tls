@@ -66,9 +66,11 @@ int main(int argc, char **argv)
             /* Validate that s2n_tls13_default_sig_scheme() is successful on all TLS 1.3 Security Policies for all
              * TLS 1.3 Ciphers */
             {
-                struct s2n_cipher_suite tls_13_ciphers[] = { s2n_tls13_aes_128_gcm_sha256,
+                struct s2n_cipher_suite tls_13_ciphers[] = {
+                    s2n_tls13_aes_128_gcm_sha256,
                     s2n_tls13_aes_256_gcm_sha384,
-                    s2n_tls13_chacha20_poly1305_sha256 };
+                    s2n_tls13_chacha20_poly1305_sha256
+                };
 
                 for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i++) {
                     struct s2n_config *config = s2n_config_new();
@@ -127,9 +129,11 @@ int main(int argc, char **argv)
 
             /* Same as above test, but with ECDSA Certificates */
             {
-                struct s2n_cipher_suite tls_13_ciphers[] = { s2n_tls13_aes_128_gcm_sha256,
+                struct s2n_cipher_suite tls_13_ciphers[] = {
+                    s2n_tls13_aes_128_gcm_sha256,
                     s2n_tls13_aes_256_gcm_sha384,
-                    s2n_tls13_chacha20_poly1305_sha256 };
+                    s2n_tls13_chacha20_poly1305_sha256
+                };
 
                 for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i++) {
                     struct s2n_config *config = s2n_config_new();

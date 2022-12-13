@@ -22,22 +22,12 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
-#define CLOSED_SEND_RESULT           \
-    {                                \
-        .result = -1, .error = EPIPE \
-    }
-#define BLOCK_SEND_RESULT             \
-    {                                 \
-        .result = -1, .error = EAGAIN \
-    }
-#define PARTIAL_SEND_RESULT(bytes)       \
-    {                                    \
-        .result = bytes, .error = EAGAIN \
-    }
-#define OK_SEND_RESULT    \
-    {                     \
-        .result = INT_MAX \
-    }
+/* clang-format off */
+#define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
+#define BLOCK_SEND_RESULT { .result = -1, .error = EAGAIN }
+#define PARTIAL_SEND_RESULT(bytes) { .result = bytes, .error = EAGAIN }
+#define OK_SEND_RESULT { .result = INT_MAX }
+/* clang-format on */
 
 enum s2n_test_mfl {
     S2N_MFL_DEFAULT = 0,
@@ -532,8 +522,8 @@ int main(int argc, char **argv)
 
         struct s2n_send_result results[] = {
             /* Block before sending the first record so that we can examine
-                 * the connection state after buffering the first record.
-                 */
+             * the connection state after buffering the first record.
+             */
             BLOCK_SEND_RESULT, OK_SEND_RESULT,
             /* Send the second record */
             BLOCK_SEND_RESULT, OK_SEND_RESULT,

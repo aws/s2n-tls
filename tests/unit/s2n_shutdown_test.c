@@ -25,8 +25,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const uint8_t close_notify_alert[] = { 2 /* AlertLevel = fatal */,
-        0 /* AlertDescription = close_notify */ };
+    const uint8_t close_notify_alert[] = {
+        2 /* AlertLevel = fatal */,
+        0 /* AlertDescription = close_notify */
+    };
 
     /* Test s2n_shutdown */
     {

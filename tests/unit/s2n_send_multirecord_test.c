@@ -25,26 +25,13 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
-#define CLOSED_SEND_RESULT           \
-    {                                \
-        .result = -1, .error = EPIPE \
-    }
-#define BLOCK_SEND_RESULT             \
-    {                                 \
-        .result = -1, .error = EAGAIN \
-    }
-#define PARTIAL_SEND_RESULT(bytes)       \
-    {                                    \
-        .result = bytes, .error = EAGAIN \
-    }
-#define EXPECTED_SEND_RESULT(bytes)            \
-    {                                          \
-        .result = bytes, .assert_result = true \
-    }
-#define OK_SEND_RESULT    \
-    {                     \
-        .result = INT_MAX \
-    }
+/* clang-format off */
+#define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
+#define BLOCK_SEND_RESULT { .result = -1, .error = EAGAIN }
+#define PARTIAL_SEND_RESULT(bytes) { .result = bytes, .error = EAGAIN }
+#define EXPECTED_SEND_RESULT(bytes) { .result = bytes, .assert_result = true }
+#define OK_SEND_RESULT { .result = INT_MAX }
+/* clang-format on */
 
 int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size);
