@@ -14,13 +14,11 @@
  */
 
 #include "error/s2n_errno.h"
-#include "utils/s2n_safety.h"
 #include "stuffer/s2n_stuffer.h"
-
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "tls/extensions/s2n_extension_list.h"
+#include "utils/s2n_safety.h"
 
 /**
   * Specified in https://tools.ietf.org/html/rfc8446#section-4.3.1
