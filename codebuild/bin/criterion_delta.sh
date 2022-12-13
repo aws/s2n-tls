@@ -28,7 +28,7 @@ export AWS_S3_REPORT_PATH="reports/${INTEGV2_TEST}/$(date +%Y%m%d_${GIT_COMMIT})
 # scipting the baseline download steps here.
 download_artifacts(){
   mkdir -p ./tests/integrationv2/target/criterion || true
-  echo "Downloadingp ${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}"
+  echo "Downloading ${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}"
   pushd  ./tests/integrationv2/target/criterion/
   aws s3 cp "${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}" .
   unzip -o "${AWS_S3_BASE_PATH}"
