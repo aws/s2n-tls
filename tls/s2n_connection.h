@@ -282,8 +282,8 @@ struct s2n_connection {
      */
     uint16_t max_outgoing_fragment_length;
 
-    /* The number of bytes to send before changing the record size. 
-     * If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default). 
+    /* The number of bytes to send before changing the record size.
+     * If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default).
      */
     uint32_t dynamic_record_resize_threshold;
 
@@ -385,6 +385,9 @@ struct s2n_connection {
     uint32_t server_keying_material_lifetime;
 
     struct s2n_post_handshake post_handshake;
+
+    /* Marks if kTLS has been enabled for this connection. */
+    s2n_ktls_mode ktls_mode_enabled;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
@@ -417,3 +420,4 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);
+S2N_RESULT s2n_connection_mark_ktls_enabled(struct s2n_connection *conn, s2n_ktls_mode mode);

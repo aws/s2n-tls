@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_config.h"
+
 #include <strings.h>
 #include <time.h>
 
@@ -22,6 +24,7 @@
 #include "error/s2n_errno.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_internal.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_blob.h"
@@ -1066,4 +1069,27 @@ int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
     config->recv_multi_record = enabled;
 
     return S2N_SUCCESS;
+}
+
+/* Indicates if the connection should attempt to enable kTLS. */
+int s2n_config_ktls_enable(struct s2n_config *config, s2n_ktls_mode ktls_mode)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->ktls_mode_requested = ktls_mode;
+    return S2N_SUCCESS;
+}
+
+/* Enabling Duplex mode means that both Send and Recv are also requested. */
+bool s2n_config_is_ktls_requested(struct s2n_config *config, s2n_ktls_mode ktls_mode)
+{
+    POSIX_ENSURE_REF(config);
+
+    if (ktls_mode == S2N_KTLS_MODE_DUPLEX) {
+        return config->ktls_mode_requested == S2N_KTLS_MODE_DUPLEX;
+    }
+    if (ktls_mode == S2N_KTLS_MODE_DISABLED) {
+        return config->ktls_mode_requested == S2N_KTLS_MODE_DISABLED;
+    }
+    return config->ktls_mode_requested & ktls_mode;
 }

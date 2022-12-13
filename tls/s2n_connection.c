@@ -37,6 +37,7 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
@@ -1516,4 +1517,42 @@ S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
     }
 
     return S2N_RESULT_OK;
+}
+
+/* Marks s2n_ktls_mode enabled for the connection.
+ *
+ * Note: currently, kTLS cannot be disabled once enabled.
+ */
+S2N_RESULT s2n_connection_mark_ktls_enabled(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled
+     * if the application sets custom I/O. */
+    if ((ktls_mode == S2N_KTLS_MODE_SEND || ktls_mode == S2N_KTLS_MODE_DUPLEX) && !conn->managed_send_io) {
+        return S2N_RESULT_ERROR;
+    }
+    if ((ktls_mode == S2N_KTLS_MODE_RECV || ktls_mode == S2N_KTLS_MODE_DUPLEX) && !conn->managed_recv_io) {
+        return S2N_RESULT_ERROR;
+    }
+
+    conn->ktls_mode_enabled |= ktls_mode;
+
+    return S2N_RESULT_OK;
+}
+
+/* Indicates if the mode matches the connection's current kTLS configuration.
+ *
+ * Enabling Duplex mode means that both Send and Recv are also enabled. */
+bool s2n_connection_matches_ktls_mode(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    POSIX_ENSURE_REF(conn);
+
+    if (ktls_mode == S2N_KTLS_MODE_DUPLEX) {
+        return conn->ktls_mode_enabled == S2N_KTLS_MODE_DUPLEX;
+    }
+    if (ktls_mode == S2N_KTLS_MODE_DISABLED) {
+        return conn->ktls_mode_enabled == S2N_KTLS_MODE_DISABLED;
+    }
+    return conn->ktls_mode_enabled & ktls_mode;
 }
