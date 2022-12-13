@@ -1517,3 +1517,28 @@ S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_connection_mark_ktls_enabled(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled
+     * if the application sets custom I/O. */
+    if ((ktls_mode == S2N_KTLS_MODE_TX || ktls_mode == S2N_KTLS_MODE_DUPLEX) && !conn->managed_send_io) {
+        return S2N_RESULT_ERROR;
+    }
+    if ((ktls_mode == S2N_KTLS_MODE_RX || ktls_mode == S2N_KTLS_MODE_DUPLEX) && !conn->managed_recv_io) {
+        return S2N_RESULT_ERROR;
+    }
+
+    conn->ktls_mode_enabled |= ktls_mode;
+
+    return S2N_RESULT_OK;
+}
+
+bool s2n_connection_is_ktls_enabled(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    POSIX_ENSURE_REF(conn);
+
+    return s2n_ktls_is_ktls_mode_eq(conn->ktls_mode_enabled, ktls_mode);
+}

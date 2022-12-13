@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_config.h"
+
 #include <strings.h>
 #include <time.h>
 
@@ -1066,4 +1068,19 @@ int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
     config->recv_multi_record = enabled;
 
     return S2N_SUCCESS;
+}
+
+int s2n_config_ktls_enable(struct s2n_config *config, s2n_ktls_mode mode)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->ktls_mode_requested |= mode;
+    return S2N_SUCCESS;
+}
+
+bool s2n_config_is_ktls_requested(struct s2n_config *config, s2n_ktls_mode ktls_mode)
+{
+    POSIX_ENSURE_REF(config);
+
+    return s2n_ktls_is_ktls_mode_eq(config->ktls_mode_requested, ktls_mode);
 }
