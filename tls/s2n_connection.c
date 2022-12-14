@@ -37,6 +37,7 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
@@ -1522,14 +1523,8 @@ S2N_RESULT s2n_connection_mark_ktls_enabled(struct s2n_connection *conn, s2n_ktl
 {
     RESULT_ENSURE_REF(conn);
 
-    /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled
-     * if the application sets custom I/O. */
-    if ((ktls_mode == S2N_KTLS_MODE_TX || ktls_mode == S2N_KTLS_MODE_DUPLEX) && !conn->managed_send_io) {
-        return S2N_RESULT_ERROR;
-    }
-    if ((ktls_mode == S2N_KTLS_MODE_RX || ktls_mode == S2N_KTLS_MODE_DUPLEX) && !conn->managed_recv_io) {
-        return S2N_RESULT_ERROR;
-    }
+    /* perform sanity check. */
+    RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
 
     conn->ktls_mode_enabled |= ktls_mode;
 

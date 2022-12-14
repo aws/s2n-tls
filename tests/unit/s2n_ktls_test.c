@@ -125,6 +125,11 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->managed_send_io);
         EXPECT_TRUE(conn->managed_recv_io);
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_ktls_enable(config, S2N_KTLS_MODE_DUPLEX));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
         EXPECT_EQUAL(conn->ktls_mode_enabled, S2N_KTLS_MODE_DISABLED);
 
         EXPECT_OK(s2n_connection_mark_ktls_enabled(conn, S2N_KTLS_MODE_TX));
@@ -151,6 +156,11 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->managed_send_io);
         EXPECT_TRUE(conn->managed_recv_io);
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_ktls_enable(config, S2N_KTLS_MODE_DUPLEX));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
         EXPECT_EQUAL(conn->ktls_mode_enabled, S2N_KTLS_MODE_DISABLED);
 
         EXPECT_OK(s2n_connection_mark_ktls_enabled(conn, S2N_KTLS_MODE_DUPLEX));
@@ -160,9 +170,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_DUPLEX));
     };
 
-    /* disallow kTLS disable
-     *
-     * kTLS cannot be disabled once it has been enabled
+    /* disabling kTLS, once enabled is not supported so confirm this returns an error
      *
      * Note: This behavior might change if we introduce a kernel patch which
      * support user space fallback from kTLS.
@@ -177,17 +185,17 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->managed_send_io);
         EXPECT_TRUE(conn->managed_recv_io);
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_ktls_enable(config, S2N_KTLS_MODE_DUPLEX));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
         EXPECT_EQUAL(conn->ktls_mode_enabled, S2N_KTLS_MODE_DISABLED);
 
-        EXPECT_OK(s2n_connection_mark_ktls_enabled(conn, S2N_KTLS_MODE_DUPLEX));
-        EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_TX));
-        EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_RX));
-        EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_DUPLEX));
-
-        EXPECT_OK(s2n_connection_mark_ktls_enabled(conn, S2N_KTLS_MODE_DISABLED));
-        EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_TX));
-        EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_RX));
-        EXPECT_TRUE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_DUPLEX));
+        EXPECT_ERROR(s2n_connection_mark_ktls_enabled(conn, S2N_KTLS_MODE_DISABLED));
+        EXPECT_FALSE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_TX));
+        EXPECT_FALSE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_RX));
+        EXPECT_FALSE(s2n_connection_is_ktls_enabled(conn, S2N_KTLS_MODE_DUPLEX));
     };
 
     END_TEST();
