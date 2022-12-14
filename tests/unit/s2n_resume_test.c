@@ -37,6 +37,7 @@
 #define EARLY_DATA_CONTEXT 0x07, 0x08, 0x09
 
 #define SIZE_OF_MAX_EARLY_DATA_SIZE sizeof(uint32_t)
+#define SIZE_OF_KEYING_EXPIRATION sizeof(uint64_t)
 
 #define S2N_TLS12_STATE_SIZE_IN_BYTES_WITHOUT_EMS S2N_TLS12_STATE_SIZE_IN_BYTES - 1
 
@@ -367,9 +368,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        uint32_t tls13_client_state_size = 0;
-        uint32_t tls13_server_state_size = 0;
-
         /* Test TLS1.3 client serialization */
         {
             struct s2n_config *config = s2n_config_new();
@@ -389,7 +387,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
-            tls13_client_state_size = s2n_stuffer_data_available(&output);
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
@@ -452,8 +449,9 @@ int main(int argc, char **argv)
                 uint64_t expected_expiration_time = ticket_issue_time + ONE_SEC_IN_NANOS;
 
                 EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
-                tls13_server_state_size = s2n_stuffer_data_available(&output);
-                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, s2n_stuffer_data_available(&output)));
+                EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_MAX_EARLY_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_KEYING_EXPIRATION));
 
                 uint64_t actual_keying_material_expiration = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
@@ -474,8 +472,9 @@ int main(int argc, char **argv)
                 chosen_psk->keying_material_expiration = expected_expiration_time;
 
                 EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
-                tls13_server_state_size = s2n_stuffer_data_available(&output);
-                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, s2n_stuffer_data_available(&output)));
+                EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_MAX_EARLY_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_KEYING_EXPIRATION));
 
                 uint64_t actual_keying_material_expiration = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
@@ -491,8 +490,9 @@ int main(int argc, char **argv)
                 chosen_psk->keying_material_expiration = UINT64_MAX;
 
                 EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
-                tls13_server_state_size = s2n_stuffer_data_available(&output);
-                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, s2n_stuffer_data_available(&output)));
+                EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_MAX_EARLY_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_KEYING_EXPIRATION));
 
                 uint64_t actual_keying_material_expiration = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
@@ -514,7 +514,6 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, test_max_early_data_size));
             EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
             conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
@@ -526,8 +525,17 @@ int main(int argc, char **argv)
             conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
+            /* Write ticket without early data. Save size for comparison. */
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 0));
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_server_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+            size_t basic_state_size = s2n_stuffer_data_available(&output);
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+
+            /* Write ticket with early data. Skip the non-early-data information. */
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, test_max_early_data_size));
+            EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, basic_state_size));
+            EXPECT_SUCCESS(s2n_stuffer_rewind_read(&output, SIZE_OF_MAX_EARLY_DATA_SIZE));
 
             uint32_t max_early_data_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
