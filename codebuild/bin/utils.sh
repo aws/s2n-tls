@@ -16,10 +16,9 @@ set -e
 
 # Utility functions
 get_latest_release(){
-    LATEST_RELEASE_URL=$(gh api /repos/aws/s2n-tls/releases/latest|jq -r '.tarball_url')
-    LATEST_RELEASE_VER=$(echo "${LATEST_RELEASE_URL}" | sed 's|.*/||')
-    export LATEST_RELEASE_URL
-    export LATEST_RELEASE_VER
+    local LATEST_RELEASE_URL=$(gh api /repos/aws/s2n-tls/releases/latest|jq -r '.tarball_url')
+    local LATEST_RELEASE_VER=$(echo "${LATEST_RELEASE_URL}" | sed 's|.*/||')
+    echo "${LATEST_RELEASE_VER}"
 }
 
 gh_login(){

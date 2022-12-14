@@ -42,9 +42,9 @@ fi
 if [ -z "${LOCAL_TESTING:-}" ]; then
   # Fetch creds and the latest release number.
   gh_login s2n_codebuild_PRs
-  get_latest_release
+  LATEST_RELEASE_VER=$(get_latest_release)
   # Build a specific filename for this release
-  AWS_S2_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+  AWS_S3_PATH="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
   zip_count=$(aws s3 ls "${AWS_S3_URL}${AWS_S3_PATH}"|wc -l||true)
 
   # Only do the baseline if an artifact for the current release doesn't exist.
