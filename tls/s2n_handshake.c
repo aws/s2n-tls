@@ -16,16 +16,13 @@
 #include <stdint.h>
 
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
-#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_map.h"
+#include "utils/s2n_safety.h"
 
 int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type)
 {
@@ -57,7 +54,7 @@ int s2n_handshake_finish_header(struct s2n_stuffer *out)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t * message_type, uint32_t * length)
+S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t *message_type, uint32_t *length)
 {
     RESULT_ENSURE(s2n_stuffer_data_available(io) >= TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 
@@ -74,30 +71,30 @@ static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_has
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
     switch (hash_alg) {
-    case S2N_HASH_MD5:
-        *hash_state = &conn->handshake.hashes->md5;
-        break;
-    case S2N_HASH_SHA1:
-        *hash_state = &conn->handshake.hashes->sha1;
-        break;
-    case S2N_HASH_SHA224:
-        *hash_state = &conn->handshake.hashes->sha224;
-        break;
-    case S2N_HASH_SHA256:
-        *hash_state = &conn->handshake.hashes->sha256;
-        break;
-    case S2N_HASH_SHA384:
-        *hash_state = &conn->handshake.hashes->sha384;
-        break;
-    case S2N_HASH_SHA512:
-        *hash_state = &conn->handshake.hashes->sha512;
-        break;
-    case S2N_HASH_MD5_SHA1:
-        *hash_state = &conn->handshake.hashes->md5_sha1;
-        break;
-    default:
-        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
-        break;
+        case S2N_HASH_MD5:
+            *hash_state = &conn->handshake.hashes->md5;
+            break;
+        case S2N_HASH_SHA1:
+            *hash_state = &conn->handshake.hashes->sha1;
+            break;
+        case S2N_HASH_SHA224:
+            *hash_state = &conn->handshake.hashes->sha224;
+            break;
+        case S2N_HASH_SHA256:
+            *hash_state = &conn->handshake.hashes->sha256;
+            break;
+        case S2N_HASH_SHA384:
+            *hash_state = &conn->handshake.hashes->sha384;
+            break;
+        case S2N_HASH_SHA512:
+            *hash_state = &conn->handshake.hashes->sha512;
+            break;
+        case S2N_HASH_MD5_SHA1:
+            *hash_state = &conn->handshake.hashes->md5_sha1;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
+            break;
     }
 
     return S2N_SUCCESS;
@@ -162,23 +159,22 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 
     /* We don't need all of the hashes. Set the hash alg(s) required for the PRF */
     switch (conn->actual_protocol_version) {
-    case S2N_SSLv3:
-    case S2N_TLS10:
-    case S2N_TLS11:
-        POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_MD5));
-        POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_SHA1));
-        break;
-    case S2N_TLS12:
-        /* fall through */
-    case S2N_TLS13:
-    {
-        /* For TLS 1.2 and TLS 1.3, the cipher suite defines the PRF hash alg */
-        s2n_hmac_algorithm prf_alg = conn->secure->cipher_suite->prf_alg;
-        s2n_hash_algorithm hash_alg;
-        POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
-        POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
-        break;
-    }
+        case S2N_SSLv3:
+        case S2N_TLS10:
+        case S2N_TLS11:
+            POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_MD5));
+            POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_SHA1));
+            break;
+        case S2N_TLS12:
+            /* fall through */
+        case S2N_TLS13: {
+            /* For TLS 1.2 and TLS 1.3, the cipher suite defines the PRF hash alg */
+            s2n_hmac_algorithm prf_alg = conn->secure->cipher_suite->prf_alg;
+            s2n_hash_algorithm hash_alg;
+            POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+            POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
+            break;
+        }
     }
 
     return S2N_SUCCESS;
@@ -267,9 +263,9 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 
     /* Find the exact matches for the ServerName */
     POSIX_GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
-                &normalized_name,
-                conn->handshake_params.exact_sni_matches,
-                &(conn->handshake_params.exact_sni_match_exists)));
+            &normalized_name,
+            conn->handshake_params.exact_sni_matches,
+            &(conn->handshake_params.exact_sni_match_exists)));
 
     if (!conn->handshake_params.exact_sni_match_exists) {
         /* We have not yet found an exact domain match. Try to find wildcard matches. */
@@ -288,17 +284,17 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
         /* The client's SNI is wildcardified, do an exact match against the set of server certs. */
         wildcard_blob.size = wildcard_len;
         POSIX_GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
-                    &wildcard_blob,
-                    conn->handshake_params.wc_sni_matches,
-                    &(conn->handshake_params.wc_sni_match_exists)));
+                &wildcard_blob,
+                conn->handshake_params.wc_sni_matches,
+                &(conn->handshake_params.wc_sni_match_exists)));
     }
 
     /* If we found a suitable cert, we should send back the ServerName extension.
      * Note that this may have already been set by the client hello callback, so we won't override its value
      */
     conn->server_name_used = conn->server_name_used
-        || conn->handshake_params.exact_sni_match_exists
-        || conn->handshake_params.wc_sni_match_exists;
+            || conn->handshake_params.exact_sni_match_exists
+            || conn->handshake_params.wc_sni_match_exists;
 
     return S2N_SUCCESS;
 }
@@ -313,7 +309,8 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
     if (conn->handshake_params.exact_sni_match_exists) {
         /* This may return NULL if there was an SNI match, but not a match the cipher_suite's authentication type. */
         return conn->handshake_params.exact_sni_matches[cert_type];
-    } if (conn->handshake_params.wc_sni_match_exists) {
+    }
+    if (conn->handshake_params.wc_sni_match_exists) {
         return conn->handshake_params.wc_sni_matches[cert_type];
     } else {
         /* We don't have any name matches. Use the default certificate that works with the key type. */
