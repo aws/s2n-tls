@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
@@ -13,21 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "api/s2n.h"
-
 #include "crypto/s2n_fips.h"
-#include "utils/s2n_safety.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_bitmap.h"
+#include "utils/s2n_safety.h"
 
-#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
-#define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES     S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
+#define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
+#define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES         S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
@@ -93,18 +90,18 @@ int main(int argc, char **argv)
     uint8_t ticket_key_name1[1] = "A";
     uint8_t ticket_key_name2[4] = "BBBB";
     uint8_t ticket_key_name3[16] = "CCCCCCCCCCCCCCCC";
-    uint8_t ticket_key1[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
-                             0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
-                             0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
-                             0xb3, 0xe5 };
-    uint8_t ticket_key2[32] = {0x06, 0xa6, 0xb8, 0x8c, 0x58, 0x53, 0x36, 0x1a, 0x06, 0x10,
-                             0x4c, 0x9c, 0xeb, 0x35, 0xb4, 0x5c, 0xef, 0x76, 0x00, 0x14,
-                             0x90, 0x46, 0x71, 0x01, 0x4a, 0x19, 0x3f, 0x40, 0xc1, 0x5f,
-                             0xc2, 0x44 };
-    uint8_t ticket_key3[32] = {0x19, 0xef, 0x24, 0xa3, 0x2c, 0x71, 0x7b, 0x16, 0x7f, 0x33,
-                             0xa9, 0x1d, 0x6f, 0x64, 0x8b, 0xdf, 0x96, 0x59, 0x67, 0x76,
-                             0xaf, 0xdb, 0x63, 0x77, 0xac, 0x43, 0x4c, 0x1c, 0x29, 0x3c,
-                             0xcb, 0x04};
+    uint8_t ticket_key1[32] = { 0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+        0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+        0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+        0xb3, 0xe5 };
+    uint8_t ticket_key2[32] = { 0x06, 0xa6, 0xb8, 0x8c, 0x58, 0x53, 0x36, 0x1a, 0x06, 0x10,
+        0x4c, 0x9c, 0xeb, 0x35, 0xb4, 0x5c, 0xef, 0x76, 0x00, 0x14,
+        0x90, 0x46, 0x71, 0x01, 0x4a, 0x19, 0x3f, 0x40, 0xc1, 0x5f,
+        0xc2, 0x44 };
+    uint8_t ticket_key3[32] = { 0x19, 0xef, 0x24, 0xa3, 0x2c, 0x71, 0x7b, 0x16, 0x7f, 0x33,
+        0xa9, 0x1d, 0x6f, 0x64, 0x8b, 0xdf, 0x96, 0x59, 0x67, 0x76,
+        0xaf, 0xdb, 0x63, 0x77, 0xac, 0x43, 0x4c, 0x1c, 0x29, 0x3c,
+        0xcb, 0x04 };
 
     /* Testcases:
      * 1) Client sends empty ST extension. Server issues NST.
@@ -176,7 +173,7 @@ int main(int argc, char **argv)
         /* Ensure a ticket with a zero-padded name is not added */
         uint8_t padded_name[16] = { 0xAA, 0 };
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, padded_name, s2n_array_len(padded_name), ticket_key1, s2n_array_len(ticket_key1), 0), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
-    }
+    };
 
     /* Client sends empty ST extension. Server issues NST. */
     {
@@ -200,7 +197,7 @@ int main(int argc, char **argv)
 
         /* Add one ST key */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), now/ONE_SEC_IN_NANOS));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), now / ONE_SEC_IN_NANOS));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -228,7 +225,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends empty ST extension. Server does a full handshake, but is unable
      * to issue NST due to absence of an encrypt-decrypt key. */
@@ -265,7 +262,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does an abbreviated handshake without issuing NST. */
     {
@@ -318,7 +315,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does an abbreviated handshake and issues a NST
      * because the key is in decrypt-only state.
@@ -383,7 +380,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does an abbreviated handshake,
      * but does not issue a NST even though the key is in decrypt-only state due to
@@ -440,7 +437,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does a
      * full handshake and issues a NST because the key is not found.
@@ -493,7 +490,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does a full handshake and issues a NST
      * because the key has expired.
@@ -540,7 +537,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the server has only the unexpired key */
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &ticket_key));
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name2, s2n_array_len(ticket_key_name2));
         EXPECT_OK(s2n_set_len(server_config->ticket_keys, &ticket_keys_len));
         EXPECT_EQUAL(ticket_keys_len, 1);
@@ -560,7 +557,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension. Server does a full handshake and issues a NST because the ticket has non-standard size. */
     {
@@ -622,7 +619,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sends non-empty ST extension, but server cannot or does not want to honor the ticket. */
     {
@@ -669,7 +666,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Client sets corrupted ST extension. */
     {
@@ -681,7 +678,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     /* User tries adding a duplicate key to the server */
     {
@@ -702,7 +699,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_errno, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Testing expired keys are removed from the server config while adding new keys. */
     {
@@ -725,7 +722,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0), -1);
 
         /* Verify that the config has only one unexpired key */
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &ticket_key));
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name3, s2n_array_len(ticket_key_name3));
         EXPECT_OK(s2n_set_len(server_config->ticket_keys, &ticket_keys_len));
         EXPECT_EQUAL(ticket_keys_len, 1);
@@ -735,7 +732,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ticket_keys_len, 3);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST. */
     {
@@ -792,7 +789,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST */
     {
@@ -853,7 +850,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and
      * s2n_config_set_ticket_decrypt_key_lifetime calls */
@@ -921,7 +918,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Add keys out of order and pre-emptively add a key */
     {
@@ -946,13 +943,13 @@ int main(int argc, char **argv)
 
         /* Add a key. After 1 hour it will be considered an encrypt-decrypt key. */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), (now/ONE_SEC_IN_NANOS) + 3600));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), (now / ONE_SEC_IN_NANOS) + 3600));
 
         /* Add a key. After 1 hour it will reach it's peak */
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), now/ONE_SEC_IN_NANOS ));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), now / ONE_SEC_IN_NANOS));
 
         /* Add a key pre-emptively. It can be used only after 10 hours */
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, s2n_array_len(ticket_key_name3), ticket_key3, s2n_array_len(ticket_key3), now/ONE_SEC_IN_NANOS + 36000));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, s2n_array_len(ticket_key_name3), ticket_key3, s2n_array_len(ticket_key3), now / ONE_SEC_IN_NANOS + 36000));
 
         /* Add a mock delay such that negotiation happens after 1 hour */
         uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
@@ -972,11 +969,11 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify that the keys are stored from oldest to newest */
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **) &ticket_key));
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name2, s2n_array_len(ticket_key_name2));
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 1, (void **)&ticket_key));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 1, (void **) &ticket_key));
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name1, s2n_array_len(ticket_key_name1));
-        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 2, (void **)&ticket_key));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 2, (void **) &ticket_key));
         EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name3, s2n_array_len(ticket_key_name3));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -986,7 +983,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Handshake with client auth and session ticket enabled */
     {
@@ -1027,7 +1024,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* s2n_decrypt_session_ticket fails to decrypt when presented with a valid ticket_key, valid iv and invalid encrypted blob */
     {
@@ -1042,10 +1039,10 @@ int main(int argc, char **argv)
         /* Setup stuffers value containing the valid key name, valid iv and invalid encrypted blob */
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, ticket_key_name1, s2n_array_len(ticket_key_name1)));
 
-        uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = {0};
+        uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_iv, sizeof(valid_iv)));
 
-        uint8_t invalid_en_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
+        uint8_t invalid_en_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
@@ -1053,7 +1050,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* s2n_decrypt_session_ticket fails with a key not found error when presented with an invalid ticket_key, valid iv and invalid encrypted blob */
     {
@@ -1068,10 +1065,10 @@ int main(int argc, char **argv)
         /* Setup stuffers value containing the invalid key name, valid iv and invalid encrypted blob */
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, ticket_key_name2, s2n_array_len(ticket_key_name2)));
 
-        uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = {0};
+        uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_iv, sizeof(valid_iv)));
 
-        uint8_t invalid_en_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
+        uint8_t invalid_en_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
@@ -1079,7 +1076,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     /* Test s2n_connection_is_session_resumed */
     {
@@ -1100,7 +1097,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* TLS1.3 */
         {
@@ -1121,8 +1118,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Session resumption APIs and session_ticket_cb return the same values
      * when receiving a new ticket in TLS1.2
@@ -1152,7 +1149,7 @@ int main(int argc, char **argv)
 
         /* Add one ST key */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), now/ONE_SEC_IN_NANOS));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), now / ONE_SEC_IN_NANOS));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -1173,7 +1170,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
@@ -1257,7 +1254,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
-        EXPECT_SUCCESS(s2n_connection_set_session(client_conn,  tls13_serialized_session_state.blob.data,
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls13_serialized_session_state.blob.data,
                 s2n_stuffer_data_available(&tls13_serialized_session_state)));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

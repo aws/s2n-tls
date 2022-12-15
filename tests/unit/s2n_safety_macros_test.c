@@ -14,6 +14,8 @@
  * permissions and limitations under the License.
  */
 
+/* clang-format off */
+
 #include "s2n_test.h"
 
 #include "utils/s2n_safety.h"
