@@ -109,7 +109,6 @@ TLS13_CIPHERS = [
     Ciphers.AES256_GCM_SHA384,
 ]
 
-
 # List of ports available to tests.
 available_ports = AvailablePorts()
 
