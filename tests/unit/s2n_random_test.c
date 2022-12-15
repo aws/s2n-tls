@@ -644,10 +644,15 @@ static int s2n_random_test_case_without_pr_cb(struct random_test_case *test_case
 }
 
 /* Test case that turns off prediction resistance and all fork detection
- * mechanisms expect pthread_at_fork()
+ * mechanisms except pthread_at_fork()
  */
 static int s2n_random_test_case_without_pr_pthread_atfork_cb(struct random_test_case *test_case)
 {
+    if (s2n_is_pthread_atfork_supported() == false) {
+        TEST_DEBUG_PRINT("s2n_random_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
+        return S2N_SUCCESS;
+    }
+
     POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
 
     EXPECT_SUCCESS(s2n_init());

@@ -269,6 +269,10 @@ static int s2n_test_case_default_cb(struct fgn_test_case *test_case)
 
 static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 {
+    if (s2n_is_pthread_atfork_supported() == false) {
+        TEST_DEBUG_PRINT("s2n_fork_generation_number_test.c test case not supported. Skipping.\nTest case: %s\n", test_case->test_case_label);
+        return S2N_SUCCESS;
+    }
     POSIX_GUARD_RESULT(s2n_ignore_wipeonfork_and_inherit_zero_for_testing());
 
     EXPECT_SUCCESS(s2n_init());
