@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_server_alpn.h"
 #include "tls/s2n_connection.h"
 
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_alpn_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test send */
     {
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv */
     {
@@ -97,7 +96,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-        }
+        };
 
         /* Should ignore extension if protocol name list size incorrect */
         {
@@ -116,10 +115,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
     return 0;

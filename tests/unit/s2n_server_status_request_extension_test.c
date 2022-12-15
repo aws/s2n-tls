@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_server_status_request.h"
 
 const uint8_t ocsp_data[] = "OCSP DATA";
@@ -76,7 +75,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Set oscp data */
     EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(chain_and_key, ocsp_data, s2n_array_len(ocsp_data)));
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_OCSP);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;
