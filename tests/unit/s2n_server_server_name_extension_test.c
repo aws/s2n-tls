@@ -14,12 +14,11 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_server_server_name.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-#define S2N_TEST_RESUMPTION_HANDSHAKE (NEGOTIATED)
+#define S2N_TEST_RESUMPTION_HANDSHAKE     (NEGOTIATED)
 #define S2N_TEST_NOT_RESUMPTION_HANDSHAKE (NEGOTIATED | FULL_HANDSHAKE)
 
 int main(int argc, char **argv)
@@ -56,13 +55,13 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_server_server_name_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* send */
     {
         /* Send writes nothing and always succeeds. */
         EXPECT_SUCCESS(s2n_server_server_name_extension.send(NULL, NULL));
-    }
+    };
 
     /* recv */
     {
@@ -75,7 +74,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->server_name_used);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;

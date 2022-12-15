@@ -1,7 +1,6 @@
 import os
 import re
 import subprocess
-import string
 import threading
 import itertools
 

@@ -13,36 +13,34 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "utils/s2n_safety.h"
 
-#define CHECK_OVF_0(fn, type, a, b)             \
-  do {                                          \
-    type result_val;                            \
-    EXPECT_FAILURE(fn((a), (b), &result_val));  \
-  } while (0)
+#include "s2n_test.h"
 
+#define CHECK_OVF_0(fn, type, a, b)                \
+    do {                                           \
+        type result_val;                           \
+        EXPECT_FAILURE(fn((a), (b), &result_val)); \
+    } while (0)
 
-#define CHECK_OVF(fn, type, a, b)               \
-  do {                                          \
-    CHECK_OVF_0(fn, type, a, b);                \
-    CHECK_OVF_0(fn, type, b, a);                \
-  } while (0)
+#define CHECK_OVF(fn, type, a, b)    \
+    do {                             \
+        CHECK_OVF_0(fn, type, a, b); \
+        CHECK_OVF_0(fn, type, b, a); \
+    } while (0)
 
-#define CHECK_NO_OVF_0(fn, type, a, b, r)       \
-  do {                                          \
-    type result_val;                            \
-    EXPECT_SUCCESS(fn((a), (b), &result_val));  \
-    EXPECT_EQUAL(result_val,(r));               \
-  } while (0)
+#define CHECK_NO_OVF_0(fn, type, a, b, r)          \
+    do {                                           \
+        type result_val;                           \
+        EXPECT_SUCCESS(fn((a), (b), &result_val)); \
+        EXPECT_EQUAL(result_val, (r));             \
+    } while (0)
 
-#define CHECK_NO_OVF(fn, type, a, b, r)         \
-  do {                                          \
-    CHECK_NO_OVF_0(fn, type, a, b, r);          \
-    CHECK_NO_OVF_0(fn, type, b, a, r);          \
-  } while (0)
-
+#define CHECK_NO_OVF(fn, type, a, b, r)    \
+    do {                                   \
+        CHECK_NO_OVF_0(fn, type, a, b, r); \
+        CHECK_NO_OVF_0(fn, type, b, a, r); \
+    } while (0)
 
 static int failure_gte()
 {
@@ -121,7 +119,7 @@ static int failure_notnull()
 static int success_memcpy()
 {
     char dst[1024];
-    char src[1024] = {0};
+    char src[1024] = { 0 };
 
     POSIX_CHECKED_MEMCPY(dst, src, 1024);
 
@@ -252,7 +250,6 @@ static int success_ct_pkcs1_negative()
     return 0;
 }
 
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -314,16 +311,16 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++) {
-           x[0] = i;
-           y[0] = j;
+            x[0] = i;
+            y[0] = j;
 
-           int expected = 0;
+            int expected = 0;
 
-           if (i == j) {
+            if (i == j) {
                 expected = 1;
-           }
+            }
 
-           EXPECT_EQUAL(s2n_constant_time_equals(x, y, sizeof(x)), expected);
+            EXPECT_EQUAL(s2n_constant_time_equals(x, y, sizeof(x)), expected);
         }
     }
 

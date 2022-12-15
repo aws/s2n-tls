@@ -13,20 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "api/s2n.h"
-
+#include "error/s2n_errno.h"
 #include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 s2n_cert_public_key public_key;
@@ -133,7 +131,7 @@ int main(int argc, char **argv)
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &extensions),
                         S2N_ERR_BAD_MESSAGE);
-            }
+            };
 
             /* TLS1.3 DOES send extensions */
             {
@@ -149,10 +147,10 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
                 EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(extensions);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test: extensions only sent on first certificate */
         {
@@ -182,11 +180,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
                 EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
                 EXPECT_PARSED_EXTENSION_LIST_EMPTY(extensions);
-            } while(s2n_stuffer_data_available(&stuffer));
+            } while (s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_x509_validator_validate_cert_chain handles the output of s2n_send_cert_chain */
     {
@@ -204,7 +202,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test: with extensions */
         {
@@ -232,8 +230,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->ct_response.data, data, s2n_array_len(data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_x509_validator_validate_cert_chain receives extensions */
     {
@@ -245,7 +243,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            struct s2n_stuffer_reservation size = {0};
+            struct s2n_stuffer_reservation size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
             EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
             EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, setup_conn, &stuffer));
@@ -265,7 +263,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->status_response.data, NULL);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* TLS1.3 DOES process extensions */
             {
@@ -281,14 +279,14 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->status_response.data, data, s2n_array_len(data));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(setup_conn));
-        }
+        };
 
         /* Test: extensions only processed on first certificate */
         {
-            struct s2n_stuffer_reservation size = {0};
+            struct s2n_stuffer_reservation size = { 0 };
 
             /* Extensions on second cert ignored */
             {
@@ -311,7 +309,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->status_response.data, NULL);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Extensions on first cert processed */
             {
@@ -334,9 +332,9 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(conn->status_response.data, data, s2n_array_len(data));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-    }
+            };
+        };
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));

@@ -13,20 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <math.h>
-
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
+#include <sys/param.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
+/* clang-format off */
 #define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
 #define BLOCK_SEND_RESULT { .result = -1, .error = EAGAIN }
 #define PARTIAL_SEND_RESULT(bytes) { .result = bytes, .error = EAGAIN }
 #define OK_SEND_RESULT { .result = INT_MAX }
+/* clang-format on */
 
 enum s2n_test_mfl {
     S2N_MFL_DEFAULT = 0,
@@ -38,7 +39,7 @@ enum s2n_test_mfl {
 
 static S2N_RESULT s2n_set_test_max_fragment_len(struct s2n_connection *conn, enum s2n_test_mfl mfl)
 {
-    switch(mfl) {
+    switch (mfl) {
         case S2N_MFL_DEFAULT:
             break;
         case S2N_MFL_LARGE:
@@ -72,7 +73,7 @@ struct s2n_send_context {
 bool s2n_custom_send_fn_called = false;
 int s2n_expect_concurrent_error_send_fn(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_connection *conn = (struct s2n_connection*) io_context;
+    struct s2n_connection *conn = (struct s2n_connection *) io_context;
     s2n_custom_send_fn_called = true;
 
     s2n_blocked_status blocked = 0;
@@ -83,7 +84,7 @@ int s2n_expect_concurrent_error_send_fn(void *io_context, const uint8_t *buf, ui
 
 static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_send_context *context = (struct s2n_send_context*) io_context;
+    struct s2n_send_context *context = (struct s2n_send_context *) io_context;
     POSIX_ENSURE_REF(context);
 
     POSIX_ENSURE_LT(context->calls, context->results_len);
@@ -119,8 +120,8 @@ int main(int argc, char **argv)
         results_all_ok[i] = (struct s2n_send_result) OK_SEND_RESULT;
     }
     const struct s2n_send_context context_all_ok = {
-            .results = results_all_ok,
-            .results_len = s2n_array_len(results_all_ok)
+        .results = results_all_ok,
+        .results_len = s2n_array_len(results_all_ok)
     };
 
     /* Calculating the record size for given data can be tricky.
@@ -137,7 +138,7 @@ int main(int argc, char **argv)
 
         struct s2n_send_context context = context_all_ok;
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
         /* Set the expected record size for future tests */
         test_data_bytes_sent = context.bytes_sent;
         EXPECT_TRUE(test_data_bytes_sent > sizeof(test_data));
-    }
+    };
 
     /* Calculating the max record size for a given max fragment length can be tricky.
      * Instead, let's set the values based on the results of tests.
@@ -171,7 +172,7 @@ int main(int argc, char **argv)
 
         struct s2n_send_context context = context_all_ok;
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
 
@@ -211,7 +212,7 @@ int main(int argc, char **argv)
 
         /* Setup bad send callback */
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_expect_concurrent_error_send_fn));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) conn));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) conn));
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
         s2n_blocked_status blocked = 0;
@@ -220,7 +221,7 @@ int main(int argc, char **argv)
                 S2N_ERR_IO);
         EXPECT_TRUE(s2n_custom_send_fn_called);
         EXPECT_EQUAL(0, conn->wire_bytes_out);
-    }
+    };
 
     /* s2n_send tracks conn->wire_bytes_out on send */
     {
@@ -232,7 +233,7 @@ int main(int argc, char **argv)
 
         struct s2n_send_context context = context_all_ok;
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
@@ -241,7 +242,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(context.bytes_sent, test_data_bytes_sent);
         EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
         EXPECT_EQUAL(context.bytes_sent, s2n_connection_get_wire_bytes_out(conn));
-    }
+    };
 
     /* s2n_send tracks conn->wire_bytes_out on partial send */
     {
@@ -253,12 +254,12 @@ int main(int argc, char **argv)
 
         const uint32_t partial_send = 10;
         const struct s2n_send_result results[] = {
-                PARTIAL_SEND_RESULT(partial_send),
-                CLOSED_SEND_RESULT,
+            PARTIAL_SEND_RESULT(partial_send),
+            CLOSED_SEND_RESULT,
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, test_data, sizeof(test_data), &blocked), S2N_ERR_IO);
@@ -267,7 +268,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(context.bytes_sent, partial_send);
         EXPECT_EQUAL(context.bytes_sent, conn->wire_bytes_out);
         EXPECT_EQUAL(context.bytes_sent, s2n_connection_get_wire_bytes_out(conn));
-    }
+    };
 
     /* s2n_send sends all data, despite partial writes */
     {
@@ -277,14 +278,14 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
         const struct s2n_send_result results[] = {
-                PARTIAL_SEND_RESULT(1),
-                PARTIAL_SEND_RESULT(5),
-                PARTIAL_SEND_RESULT(2),
-                OK_SEND_RESULT,
+            PARTIAL_SEND_RESULT(1),
+            PARTIAL_SEND_RESULT(5),
+            PARTIAL_SEND_RESULT(2),
+            OK_SEND_RESULT,
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
@@ -294,7 +295,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send would block and must be retried */
     {
@@ -305,15 +306,15 @@ int main(int argc, char **argv)
 
         const uint32_t partial_send = 10;
         const struct s2n_send_result results[] = {
-                PARTIAL_SEND_RESULT(partial_send),
-                BLOCK_SEND_RESULT,
-                PARTIAL_SEND_RESULT(partial_send),
-                BLOCK_SEND_RESULT,
-                OK_SEND_RESULT
+            PARTIAL_SEND_RESULT(partial_send),
+            BLOCK_SEND_RESULT,
+            PARTIAL_SEND_RESULT(partial_send),
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
 
@@ -334,7 +335,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* Calculating the record size for given data can be tricky.
      * Instead, let's set the values based on the results of tests.
@@ -351,7 +352,7 @@ int main(int argc, char **argv)
         struct s2n_send_result results[] = { OK_SEND_RESULT, OK_SEND_RESULT, OK_SEND_RESULT };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
@@ -363,7 +364,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send sends all records and data, despite partial writes */
     {
@@ -373,13 +374,13 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
         struct s2n_send_result results[] = {
-                PARTIAL_SEND_RESULT(10), OK_SEND_RESULT,
-                OK_SEND_RESULT,
-                PARTIAL_SEND_RESULT(5), PARTIAL_SEND_RESULT(1), OK_SEND_RESULT
+            PARTIAL_SEND_RESULT(10), OK_SEND_RESULT,
+            OK_SEND_RESULT,
+            PARTIAL_SEND_RESULT(5), PARTIAL_SEND_RESULT(1), OK_SEND_RESULT
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
@@ -389,7 +390,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send would block while sending multiple records */
     {
@@ -400,16 +401,16 @@ int main(int argc, char **argv)
 
         const uint32_t partial_send = 10;
         struct s2n_send_result results[] = {
-                OK_SEND_RESULT,
-                PARTIAL_SEND_RESULT(partial_send),
-                BLOCK_SEND_RESULT,
-                PARTIAL_SEND_RESULT(partial_send),
-                BLOCK_SEND_RESULT,
-                OK_SEND_RESULT, OK_SEND_RESULT, OK_SEND_RESULT
+            OK_SEND_RESULT,
+            PARTIAL_SEND_RESULT(partial_send),
+            BLOCK_SEND_RESULT,
+            PARTIAL_SEND_RESULT(partial_send),
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT, OK_SEND_RESULT, OK_SEND_RESULT
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         ssize_t record_size = max_frag_bytes_sent[S2N_MFL_DEFAULT];
@@ -437,7 +438,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* s2n_send would block after sending multiple records.
      * ALL flushed records must be reported to the caller.
@@ -449,12 +450,14 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connection_set_secrets(conn));
 
         struct s2n_send_result results[] = {
-                OK_SEND_RESULT, OK_SEND_RESULT, BLOCK_SEND_RESULT,
-                OK_SEND_RESULT,
+            OK_SEND_RESULT,
+            OK_SEND_RESULT,
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT,
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         ssize_t record_size = max_frag_bytes_sent[S2N_MFL_DEFAULT];
@@ -476,7 +479,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     /* Sending multiple records supports different maximum fragment lengths */
     for (size_t mfl = 0; mfl < S2N_MFL_COUNT; mfl++) {
@@ -488,7 +491,7 @@ int main(int argc, char **argv)
 
         struct s2n_send_context context = context_all_ok;
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
         s2n_blocked_status blocked = 0;
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
@@ -518,18 +521,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_dynamic_record_threshold(conn, resize_threshold, UINT16_MAX));
 
         struct s2n_send_result results[] = {
-                /* Block before sending the first record so that we can examine
-                 * the connection state after buffering the first record.
-                 */
-                BLOCK_SEND_RESULT, OK_SEND_RESULT,
-                /* Send the second record */
-                BLOCK_SEND_RESULT, OK_SEND_RESULT,
-                /* Send the third record */
-                OK_SEND_RESULT,
-                BLOCK_SEND_RESULT
+            /* Block before sending the first record so that we can examine
+             * the connection state after buffering the first record.
+             */
+            BLOCK_SEND_RESULT, OK_SEND_RESULT,
+            /* Send the second record */
+            BLOCK_SEND_RESULT, OK_SEND_RESULT,
+            /* Send the third record */
+            OK_SEND_RESULT,
+            BLOCK_SEND_RESULT
         };
         struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void*) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
 
         s2n_blocked_status blocked = 0;
@@ -595,7 +598,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
-    }
+    };
 
     END_TEST();
 }

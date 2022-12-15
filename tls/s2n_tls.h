@@ -15,15 +15,15 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "tls/s2n_connection.h"
 
 extern uint8_t s2n_unknown_protocol_version;
 extern uint8_t s2n_highest_protocol_version;
 
-extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
+extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *more);
 S2N_RESULT s2n_client_hello_request_validate(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
@@ -81,29 +81,29 @@ extern int s2n_end_of_early_data_recv(struct s2n_connection *conn);
 extern int s2n_process_client_hello(struct s2n_connection *conn);
 extern int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type);
 extern int s2n_handshake_finish_header(struct s2n_stuffer *out);
-extern int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_type, uint32_t * length);
-extern int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2);
-extern int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked);
+S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t *message_type, uint32_t *length);
+extern int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2);
+extern int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 extern uint16_t mfl_code_to_length[5];
 
 #define s2n_server_received_server_name(conn) ((conn)->server_name[0] != 0)
 
 #define s2n_server_can_send_ec_point_formats(conn) \
-        ((conn)->ec_point_formats)
+    ((conn)->ec_point_formats)
 
-#define s2n_server_can_send_ocsp(conn) ((conn)->mode == S2N_SERVER && \
-        (conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
-        (conn)->handshake_params.our_chain_and_key && \
-        (conn)->handshake_params.our_chain_and_key->ocsp_status.size > 0)
+#define s2n_server_can_send_ocsp(conn) ((conn)->mode == S2N_SERVER \
+        && (conn)->status_type == S2N_STATUS_REQUEST_OCSP          \
+        && (conn)->handshake_params.our_chain_and_key              \
+        && (conn)->handshake_params.our_chain_and_key->ocsp_status.size > 0)
 
-#define s2n_server_sent_ocsp(conn) ((conn)->mode == S2N_CLIENT && \
-        (conn)->status_type == S2N_STATUS_REQUEST_OCSP)
+#define s2n_server_sent_ocsp(conn) ((conn)->mode == S2N_CLIENT \
+        && (conn)->status_type == S2N_STATUS_REQUEST_OCSP)
 
-#define s2n_server_can_send_sct_list(conn) ((conn)->mode == S2N_SERVER && \
-        (conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST && \
-        (conn)->handshake_params.our_chain_and_key && \
-        (conn)->handshake_params.our_chain_and_key->sct_list.size > 0)
+#define s2n_server_can_send_sct_list(conn) ((conn)->mode == S2N_SERVER \
+        && (conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST        \
+        && (conn)->handshake_params.our_chain_and_key                  \
+        && (conn)->handshake_params.our_chain_and_key->sct_list.size > 0)
 
-#define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
-        (conn)->session_ticket_status == S2N_NEW_TICKET)
+#define s2n_server_sending_nst(conn) ((conn)->config->use_tickets \
+        && (conn)->session_ticket_status == S2N_NEW_TICKET)

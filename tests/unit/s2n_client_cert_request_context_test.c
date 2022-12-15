@@ -14,13 +14,12 @@
  */
 
 #include <stdint.h>
+
 #include "api/s2n.h"
-
 #include "s2n_test.h"
-
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -58,8 +57,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_config_free(client_config));   
-    }
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+    };
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
@@ -86,7 +85,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-    }
+    };
 
     /* Test failure case of non-zero certificate_request_context */
     {
@@ -107,7 +106,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 

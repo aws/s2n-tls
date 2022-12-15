@@ -18,15 +18,15 @@
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
+#include "tls/s2n_crl.h"
 #include "tls/s2n_psk.h"
 #include "tls/s2n_renegotiate.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
-#include "tls/s2n_crl.h"
 
-#define S2N_MAX_TICKET_KEYS 48
+#define S2N_MAX_TICKET_KEYS       48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
 
 struct s2n_cipher_preferences;
@@ -38,44 +38,51 @@ typedef enum {
 } s2n_cert_ownership;
 
 struct s2n_config {
-    unsigned use_tickets:1;
+    unsigned use_tickets : 1;
 
     /* Whether a connection can be used by a QUIC implementation.
      * See s2n_quic_support.h */
-    unsigned quic_enabled:1;
+    unsigned quic_enabled : 1;
 
-    unsigned default_certs_are_explicit:1;
-    unsigned use_session_cache:1;
+    unsigned default_certs_are_explicit : 1;
+    unsigned use_session_cache : 1;
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
-    unsigned accept_mfl:1;
-    unsigned check_ocsp:1;
-    unsigned disable_x509_validation:1;
-    unsigned max_verify_cert_chain_depth_set:1;
+    unsigned accept_mfl : 1;
+    unsigned check_ocsp : 1;
+    unsigned disable_x509_validation : 1;
+    unsigned max_verify_cert_chain_depth_set : 1;
     /* Whether to add dss cert type during a server certificate request.
      * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md */
-    unsigned cert_req_dss_legacy_compat_enabled:1;
+    unsigned cert_req_dss_legacy_compat_enabled : 1;
     /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
      * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does
      * not support RSA PSS signing (which is required for TLS 1.3). */
-    unsigned is_rsa_cert_configured:1;
+    unsigned is_rsa_cert_configured : 1;
     /* It's possible to use a certificate without loading the private key,
      * but async signing must be enabled. Use this flag to enforce that restriction.
      */
-    unsigned no_signing_key:1;
+    unsigned no_signing_key : 1;
     /*
      * This option exists to allow for polling the client_hello callback.
      *
      * Note: This defaults to false to ensure backwards compatibility.
      */
-    unsigned client_hello_cb_enable_poll:1;
+    unsigned client_hello_cb_enable_poll : 1;
     /*
      * Whether to verify signatures locally before sending them over the wire.
      * See s2n_config_set_verify_after_sign.
      */
-    unsigned verify_after_sign:1;
+    unsigned verify_after_sign : 1;
 
     /* Indicates support for the npn extension */
-    unsigned npn_supported:1;
+    unsigned npn_supported : 1;
+
+    /* Indicates s2n_recv should read as much as it can into the output buffer
+     *
+     * Note: This defaults to false to ensure backwards compatability with
+     * applications which relied on s2n_recv returning a single record.
+     */
+    unsigned recv_multi_record : 1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is

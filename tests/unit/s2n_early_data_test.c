@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_early_data.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_early_data.h"
 
 #define TEST_SIZE 10
 
@@ -125,11 +125,14 @@ int main(int argc, char **argv)
         EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(NULL, 0), S2N_ERR_NULL);
 
         const s2n_early_data_state early_data_not_requested_seq[] = {
-                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_NOT_REQUESTED };
+            S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_NOT_REQUESTED
+        };
         const s2n_early_data_state early_data_rejected_seq[] = {
-                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_REJECTED };
+            S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_REJECTED
+        };
         const s2n_early_data_state early_data_success_seq[] = {
-                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
+            S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA
+        };
 
         /* Test known valid / invalid transitions */
         {
@@ -158,7 +161,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_EARLY_DATA_STATE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that only the expected sequences of states are possible.
          * Given every possible sequence of early data states, test that s2n_connection_set_early_data_state
@@ -167,9 +170,9 @@ int main(int argc, char **argv)
             /* Test with the correct expected sequences */
             {
                 const s2n_early_state_sequence valid_early_state_sequences[] = {
-                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
-                        { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
-                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                    { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                    { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
+                    { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
                 };
 
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -177,17 +180,18 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_test_all_early_data_sequences(conn, 0,
                         valid_early_state_sequences, s2n_array_len(valid_early_state_sequences)));
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Sanity check: adding an invalid expected sequence causes test to fail */
             {
                 const s2n_early_data_state invalid_seq[] = {
-                        S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
+                    S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA
+                };
                 const s2n_early_state_sequence test_early_state_sequences[] = {
-                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
-                        { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
-                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
-                        { .states = invalid_seq, .len = s2n_array_len(invalid_seq) },
+                    { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                    { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
+                    { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                    { .states = invalid_seq, .len = s2n_array_len(invalid_seq) },
                 };
 
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -195,13 +199,13 @@ int main(int argc, char **argv)
                 EXPECT_ERROR(s2n_test_all_early_data_sequences(conn, 0,
                         test_early_state_sequences, s2n_array_len(test_early_state_sequences)));
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /* Sanity check: removing one of the expected sequences causes test to fail */
             {
                 const s2n_early_state_sequence test_early_state_sequences[] = {
-                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
-                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                    { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                    { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
                 };
 
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -209,9 +213,9 @@ int main(int argc, char **argv)
                 EXPECT_ERROR(s2n_test_all_early_data_sequences(conn, 0,
                         test_early_state_sequences, s2n_array_len(test_early_state_sequences)));
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-    }
+            };
+        };
+    };
 
     /* Test s2n_early_data_config_free */
     {
@@ -225,7 +229,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_early_data_config_free(&config));
             EXPECT_OK(s2n_test_config_buffers_freed(&config));
-        }
+        };
 
         /* Called by s2n_psk_wipe */
         {
@@ -234,7 +238,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_psk_wipe(&psk));
             EXPECT_OK(s2n_test_config_buffers_freed(&psk.early_data_config));
-        }
+        };
 
         /* Called by s2n_psk_free */
         {
@@ -243,8 +247,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_psk_free(&psk));
             /* A memory leak in this test would indicate that s2n_psk_free isn't freeing the buffers. */
-        }
-    }
+        };
+    };
 
     /* Test s2n_psk_configure_early_data */
     {
@@ -263,7 +267,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(psk->early_data_config.max_early_data_size, expected_max_early_data_size);
             EXPECT_EQUAL(psk->early_data_config.protocol_version, S2N_TLS13);
             EXPECT_EQUAL(psk->early_data_config.cipher_suite, expected_cipher_suite);
-        }
+        };
 
         /* Set cipher suite must match hmac algorithm */
         {
@@ -272,14 +276,15 @@ int main(int argc, char **argv)
 
             psk->hmac_alg = cipher_suite->prf_alg + 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(psk, nonzero_max_early_data,
-                    cipher_suite->iana_value[0], cipher_suite->iana_value[1]), S2N_ERR_INVALID_ARGUMENT);
+                                              cipher_suite->iana_value[0], cipher_suite->iana_value[1]),
+                    S2N_ERR_INVALID_ARGUMENT);
 
             psk->hmac_alg = cipher_suite->prf_alg;
             EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, nonzero_max_early_data,
                     cipher_suite->iana_value[0], cipher_suite->iana_value[1]));
             EXPECT_EQUAL(psk->early_data_config.cipher_suite, cipher_suite);
-        }
-    }
+        };
+    };
 
     /* Test s2n_psk_set_application_protocol */
     {
@@ -288,7 +293,7 @@ int main(int argc, char **argv)
             struct s2n_psk psk = { 0 };
             EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_application_protocol(&psk, NULL, 1), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_application_protocol(NULL, test_value, 1), S2N_ERR_NULL);
-        }
+        };
 
         DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
         EXPECT_EQUAL(psk->early_data_config.application_protocol.size, 0);
@@ -318,7 +323,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_application_protocol(psk, test_value, 0));
         EXPECT_EQUAL(psk->early_data_config.application_protocol.size, 0);
         EXPECT_EQUAL(psk->early_data_config.application_protocol.allocated, 0);
-    }
+    };
 
     /* Test s2n_psk_set_early_data_context */
     {
@@ -327,7 +332,7 @@ int main(int argc, char **argv)
             struct s2n_psk psk = { 0 };
             EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_early_data_context(&psk, NULL, 1), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_early_data_context(NULL, test_value, 1), S2N_ERR_NULL);
-        }
+        };
 
         DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
         EXPECT_EQUAL(psk->early_data_config.context.size, 0);
@@ -357,7 +362,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_early_data_context(psk, test_value, 0));
         EXPECT_EQUAL(psk->early_data_config.context.size, 0);
         EXPECT_EQUAL(psk->early_data_config.context.allocated, 0);
-    }
+    };
 
     /* Test s2n_early_data_config_clone */
     {
@@ -410,7 +415,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(clone->early_data_config.cipher_suite, test_cipher_suite);
             EXPECT_EQUAL(clone->early_data_config.protocol_version, test_version);
         }
-    }
+    };
 
     /* Test s2n_early_data_is_valid_for_connection */
     {
@@ -448,7 +453,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /**
         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
@@ -478,7 +483,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /**
             *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
@@ -500,7 +505,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
+            };
 
             /**
             *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
@@ -528,7 +533,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
 
                 EXPECT_SUCCESS(s2n_psk_set_application_protocol(conn->psk_params.chosen_psk,
-                       required_protocol, sizeof(required_protocol)));
+                        required_protocol, sizeof(required_protocol)));
 
                 /* Early data alpn set, but no alpn negotiated */
                 EXPECT_MEMCPY_SUCCESS(conn->application_protocol, empty_protocol, sizeof(empty_protocol));
@@ -543,9 +548,9 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-    }
+            };
+        };
+    };
 
     /* Test s2n_early_data_accept_or_reject */
     {
@@ -586,7 +591,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Client */
         {
@@ -622,7 +627,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Triggers callback to let application reject early data */
         {
@@ -663,7 +668,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* Application rejects early data asynchronously */
         {
@@ -699,8 +704,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* Test s2n_connection_get_early_data_status */
     {
@@ -715,7 +720,7 @@ int main(int argc, char **argv)
 
             conn.early_data_state = S2N_EARLY_DATA_STATES_COUNT;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(&conn, &status), S2N_ERR_INVALID_EARLY_DATA_STATE);
-        }
+        };
 
         /* Correct status returned for current early data state */
         {
@@ -749,7 +754,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_END);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Sanity check that all valid early data states successfully report a status */
         {
@@ -764,8 +769,8 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_connection_get_remaining_early_data_size */
     {
@@ -777,7 +782,7 @@ int main(int argc, char **argv)
             uint32_t bytes = 0;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(NULL, &bytes), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(&conn, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* If early data allowed, return the remaining bytes allowed */
         {
@@ -815,7 +820,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that all valid early data states successfully report a zero size */
         {
@@ -830,7 +835,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that if S2N_EARLY_DATA_STATUS_OK, then non-zero size reported */
         {
@@ -854,8 +859,8 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_connection_get_max_early_data_size */
     {
@@ -866,7 +871,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_max_early_data_size(&conn, NULL), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_max_early_data_size(NULL, &bytes), S2N_ERR_NULL);
             EXPECT_EQUAL(bytes, 0);
-        }
+        };
 
         /* Retrieve the limit from the first PSK, or return 0 */
         {
@@ -897,7 +902,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_bytes, limit);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* If in server mode, apply the server limit */
         {
@@ -931,7 +936,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_bytes, server_limit);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* If in server mode, fall back to the server limit */
         {
@@ -961,8 +966,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_config_set_server_max_early_data_size */
     {
@@ -981,7 +986,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->server_max_early_data_size, UINT32_MAX);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test s2n_connection_set_server_max_early_data_size */
     {
@@ -1005,7 +1010,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->server_max_early_data_size_overridden);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_early_data_get_server_max_size */
     {
@@ -1056,7 +1061,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_connection_set_server_early_data_context */
     {
@@ -1084,7 +1089,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(conn->server_early_data_context.data, data, 1);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_early_data_record_bytes */
     {
@@ -1113,7 +1118,7 @@ int main(int argc, char **argv)
             conn->early_data_bytes = 1;
             EXPECT_OK(s2n_early_data_record_bytes(conn, 1));
             EXPECT_EQUAL(conn->early_data_bytes, 2);
-        }
+        };
 
         /* Error if exceeds max_early_data_size */
         {
@@ -1124,7 +1129,7 @@ int main(int argc, char **argv)
             conn->early_data_bytes = 1;
             EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, limit), S2N_ERR_MAX_EARLY_DATA_SIZE);
             EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
-        }
+        };
 
         /* Prevents early_data_bytes from overflowing */
         {
@@ -1139,7 +1144,7 @@ int main(int argc, char **argv)
             conn->early_data_bytes = UINT64_MAX;
             EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 1), S2N_ERR_INTEGER_OVERFLOW);
             EXPECT_EQUAL(conn->early_data_bytes, UINT64_MAX);
-        }
+        };
 
         /* Zero bytes are "recorded" */
         {
@@ -1154,7 +1159,7 @@ int main(int argc, char **argv)
             conn->early_data_bytes = limit + 1;
             EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 0), S2N_ERR_MAX_EARLY_DATA_SIZE);
             EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
-        }
+        };
 
         /* Negative bytes are "recorded" */
         {
@@ -1176,10 +1181,10 @@ int main(int argc, char **argv)
             conn->early_data_bytes = limit + 1;
             EXPECT_OK(s2n_early_data_record_bytes(conn, -1));
             EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_early_data_validate_send */
     {
@@ -1224,13 +1229,13 @@ int main(int argc, char **argv)
         conn = *valid_connection;
         conn.early_data_bytes = limit;
         conn.handshake.handshake_type = NEGOTIATED;
-        while(s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
+        while (s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
             conn.handshake.message_number++;
         }
         EXPECT_OK(s2n_early_data_validate_send(&conn, 1));
 
         EXPECT_SUCCESS(s2n_connection_free(valid_connection));
-    }
+    };
 
     /* Test s2n_early_data_validate_recv */
     {
@@ -1246,7 +1251,7 @@ int main(int argc, char **argv)
         valid_connection->early_data_bytes = 0;
         valid_connection->actual_protocol_version = S2N_TLS13;
         valid_connection->handshake.handshake_type = NEGOTIATED | WITH_EARLY_DATA;
-        while(s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
+        while (s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
             valid_connection->handshake.message_number++;
         }
 
@@ -1283,13 +1288,13 @@ int main(int argc, char **argv)
         conn = *valid_connection;
         conn.early_data_bytes = limit;
         conn.handshake.handshake_type = NEGOTIATED;
-        while(s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
+        while (s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
             conn.handshake.message_number++;
         }
         EXPECT_OK(s2n_early_data_validate_recv(&conn));
 
         EXPECT_SUCCESS(s2n_connection_free(valid_connection));
-    }
+    };
 
     /* Test s2n_config_set_early_data_cb */
     {
@@ -1308,7 +1313,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->early_data_cb, NULL);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test s2n_offered_early_data_get_context and s2n_offered_early_data_get_context_length */
     {
@@ -1333,7 +1338,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context_length(&early_data, &length), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context(&early_data, actual_context, 1), S2N_ERR_NULL);
             EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
-        }
+        };
 
         /* No context */
         {
@@ -1351,7 +1356,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_context, empty_context, sizeof(empty_context));
 
             EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
-        }
+        };
 
         /* Context */
         {
@@ -1370,8 +1375,8 @@ int main(int argc, char **argv)
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
             EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_offered_early_data_reject */
     {
@@ -1381,7 +1386,7 @@ int main(int argc, char **argv)
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_reject(NULL), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_reject(&early_data), S2N_ERR_NULL);
-        }
+        };
 
         /* Reject early data */
         {
@@ -1390,8 +1395,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_offered_early_data_reject(&early_data));
             EXPECT_EQUAL(early_data.conn->early_data_state, S2N_EARLY_DATA_REJECTED);
             EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_offered_early_data_accept */
     {
@@ -1401,7 +1406,7 @@ int main(int argc, char **argv)
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_accept(NULL), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_accept(&early_data), S2N_ERR_NULL);
-        }
+        };
 
         /* Accept early data */
         {
@@ -1410,8 +1415,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_offered_early_data_accept(&early_data));
             EXPECT_EQUAL(early_data.conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
             EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

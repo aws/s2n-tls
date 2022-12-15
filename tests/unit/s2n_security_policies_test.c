@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
+#include "tls/s2n_security_policies.h"
 
 #include "crypto/s2n_rsa_signing.h"
-#include "tls/s2n_security_policies.h"
-#include "tls/s2n_signature_algorithms.h"
-#include "tls/s2n_kem.h"
 #include "pq-crypto/s2n_pq.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_kem.h"
+#include "tls/s2n_signature_algorithms.h"
 
 int main(int argc, char **argv)
 {
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(security_policy->kem_preferences->tls13_kem_group_count <= S2N_SUPPORTED_KEM_GROUPS_COUNT);
 
             /* Ensure all TLS 1.3 KEM groups in all policies are in the global list of all supported KEM groups */
-            for(size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
+            for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
                 const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
 
                 bool kem_group_is_supported = false;
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
         /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test */
         bool has_tls_13_cipher = false;
-        for(size_t i = 0; i < security_policy->cipher_preferences->count; i++){
+        for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
             if (security_policy->cipher_preferences->suites[i]->minimum_required_tls_version == S2N_TLS13) {
                 has_tls_13_cipher = true;
                 break;
@@ -66,11 +66,13 @@ int main(int argc, char **argv)
             /* Validate that s2n_tls13_default_sig_scheme() is successful on all TLS 1.3 Security Policies for all
              * TLS 1.3 Ciphers */
             {
-                struct s2n_cipher_suite tls_13_ciphers[] = { s2n_tls13_aes_128_gcm_sha256,
-                                                             s2n_tls13_aes_256_gcm_sha384,
-                                                             s2n_tls13_chacha20_poly1305_sha256 };
+                struct s2n_cipher_suite tls_13_ciphers[] = {
+                    s2n_tls13_aes_128_gcm_sha256,
+                    s2n_tls13_aes_256_gcm_sha384,
+                    s2n_tls13_chacha20_poly1305_sha256
+                };
 
-                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
+                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i++) {
                     struct s2n_config *config = s2n_config_new();
                     EXPECT_NOT_NULL(config);
 
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
                     client_conn->secure->cipher_suite = &tls_13_ciphers[i];
                     server_conn->secure->cipher_suite = &tls_13_ciphers[i];
 
-                    struct s2n_signature_scheme chosen_scheme = {0};
+                    struct s2n_signature_scheme chosen_scheme = { 0 };
 
                     if (s2n_is_rsa_pss_signing_supported()) {
                         /* If RSA PSS signing is supported, then we should always be able to select a default Signature
@@ -127,11 +129,13 @@ int main(int argc, char **argv)
 
             /* Same as above test, but with ECDSA Certificates */
             {
-                struct s2n_cipher_suite tls_13_ciphers[] = { s2n_tls13_aes_128_gcm_sha256,
-                                                             s2n_tls13_aes_256_gcm_sha384,
-                                                             s2n_tls13_chacha20_poly1305_sha256 };
+                struct s2n_cipher_suite tls_13_ciphers[] = {
+                    s2n_tls13_aes_128_gcm_sha256,
+                    s2n_tls13_aes_256_gcm_sha384,
+                    s2n_tls13_chacha20_poly1305_sha256
+                };
 
-                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i ++) {
+                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i++) {
                     struct s2n_config *config = s2n_config_new();
                     EXPECT_NOT_NULL(config);
 
@@ -165,7 +169,7 @@ int main(int argc, char **argv)
                     client_conn->secure->cipher_suite = &tls_13_ciphers[i];
                     server_conn->secure->cipher_suite = &tls_13_ciphers[i];
 
-                    struct s2n_signature_scheme chosen_scheme = {0};
+                    struct s2n_signature_scheme chosen_scheme = { 0 };
 
                     /* If an ECDSA Certificate is configured, then we should always be able to pick a default Signature
                      * Scheme (even if RSA PSS is not supported by the libcrypto) */
@@ -182,7 +186,7 @@ int main(int argc, char **argv)
             bool has_tls_13_sig_alg = false;
             bool has_rsa_pss = false;
 
-            for(size_t i = 0; i < security_policy->signature_preferences->count; i++) {
+            for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
                 int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
                 int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
                 s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
@@ -518,6 +522,7 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
             "CloudFront-TLS-1-2-2021",
+            "CloudFront-TLS-1-2-2021-ChaCha20-Boosted",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
@@ -538,6 +543,37 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+    }
+
+    /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
+    if (s2n_chacha20_poly1305.is_available()) {
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            const struct s2n_cipher_preferences *cipher_preference = sec_policy->cipher_preferences;
+            EXPECT_NOT_NULL(cipher_preference);
+
+            /* No need to check cipher preferences with chacha20 boosting disabled */
+            if (!cipher_preference->allow_chacha20_boosting) {
+                continue;
+            }
+
+            bool cipher_preferences_has_chacha20_cipher_suite = false;
+
+            /* Iterate over cipher preferences and try to find a chacha20 ciphersuite */
+            for (size_t j = 0; j < cipher_preference->count; j++) {
+                struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
+                EXPECT_NOT_NULL(cipher);
+
+                if (s2n_cipher_suite_uses_chacha20_alg(cipher)) {
+                    cipher_preferences_has_chacha20_cipher_suite = true;
+                    break;
+                }
+            }
+
+            /* If chacha20 boosting support is enabled, then the cipher preference must have at least one chacha20 cipher suite */
+            EXPECT_TRUE(cipher_preferences_has_chacha20_cipher_suite);
+        }
     }
 
     /* Test a security policy not on the official list */
@@ -812,9 +848,9 @@ int main(int argc, char **argv)
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
     {
         const struct s2n_ecc_named_curve test_curve = {
-            .iana_id = 12345, 
-            .libcrypto_nid = 0, 
-            .name = "test_curve", 
+            .iana_id = 12345,
+            .libcrypto_nid = 0,
+            .name = "test_curve",
             .share_size = 0
         };
 
@@ -837,33 +873,33 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
 
         const struct s2n_kem_group *test_kem_group_list[] = {
-                &s2n_secp256r1_kyber_512_r3
+            &s2n_secp256r1_kyber_512_r3
         };
 
         const struct s2n_kem_preferences invalid_kem_prefs[] = {
             {
-                .kem_count = 1,
-                .kems = NULL,
-                .tls13_kem_group_count = 0,
-                .tls13_kem_groups = NULL,
+                    .kem_count = 1,
+                    .kems = NULL,
+                    .tls13_kem_group_count = 0,
+                    .tls13_kem_groups = NULL,
             },
             {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = 1,
-                .tls13_kem_groups = NULL,
+                    .kem_count = 0,
+                    .kems = NULL,
+                    .tls13_kem_group_count = 1,
+                    .tls13_kem_groups = NULL,
             },
             {
-                .kem_count = 0,
-                .kems = pq_kems_r3_2021_05,
-                .tls13_kem_group_count = 0,
-                .tls13_kem_groups = NULL,
+                    .kem_count = 0,
+                    .kems = pq_kems_r3_2021_05,
+                    .tls13_kem_group_count = 0,
+                    .tls13_kem_groups = NULL,
             },
             {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = 0,
-                .tls13_kem_groups = test_kem_group_list,
+                    .kem_count = 0,
+                    .kems = NULL,
+                    .tls13_kem_group_count = 0,
+                    .tls13_kem_groups = test_kem_group_list,
             },
         };
 
@@ -886,7 +922,7 @@ int main(int argc, char **argv)
                 size_t num_rsa_pss = 0;
                 for (size_t j = 0; j < security_policy->certificate_signature_preferences->count; j++) {
                     if (security_policy->certificate_signature_preferences->signature_schemes[j]->libcrypto_nid == NID_rsassaPss) {
-                        num_rsa_pss +=1;
+                        num_rsa_pss += 1;
                     }
                 }
                 EXPECT_TRUE(num_rsa_pss <= NUM_RSA_PSS_SCHEMES);
@@ -896,7 +932,7 @@ int main(int argc, char **argv)
 
     /* s2n_validate_certificate_signature_preferences will succeed if there are no rsa_pss schemes in the preference list */
     {
-        const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
+        const struct s2n_signature_scheme *const test_sig_scheme_pref_list[] = {
             &s2n_rsa_pkcs1_sha256,
         };
 
@@ -910,7 +946,7 @@ int main(int argc, char **argv)
 
     /* s2n_validate_certificate_signature_preferences will succeed if all rsa_pss schemes are included in the preference list */
     {
-        const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
+        const struct s2n_signature_scheme *const test_sig_scheme_pref_list[] = {
             &s2n_rsa_pss_pss_sha256,
             &s2n_rsa_pss_pss_sha384,
             &s2n_rsa_pss_pss_sha512,
@@ -929,7 +965,7 @@ int main(int argc, char **argv)
 
     /* s2n_validate_certificate_signature_preferences will fail if not all rsa_pss schemes are included in the preference list */
     {
-        const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
+        const struct s2n_signature_scheme *const test_sig_scheme_pref_list[] = {
             &s2n_rsa_pss_pss_sha256,
             &s2n_rsa_pss_pss_sha384,
         };

@@ -15,13 +15,11 @@
 
 #pragma once
 
-#include <stdint.h>
-#include "api/s2n.h"
-
 #include <openssl/rsa.h>
+#include <stdint.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_hash.h"
-
 #include "utils/s2n_blob.h"
 
 /* Forward declaration to avoid the circular dependency with s2n_pkey.h */

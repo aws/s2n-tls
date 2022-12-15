@@ -16,9 +16,8 @@
 #include "tls/s2n_quic_support.h"
 
 #include "tls/s2n_connection.h"
-#include "tls/s2n_tls13.h"
 #include "tls/s2n_tls.h"
-
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
@@ -52,8 +51,7 @@ int s2n_connection_enable_quic(struct s2n_connection *conn)
 
 bool s2n_connection_is_quic_enabled(struct s2n_connection *conn)
 {
-    return (conn && conn->quic_enabled) ||
-           (conn && conn->config && conn->config->quic_enabled);
+    return (conn && conn->quic_enabled) || (conn && conn->config && conn->config->quic_enabled);
 }
 
 int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
@@ -105,7 +103,7 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
     RESULT_GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
     uint32_t message_len;
-    RESULT_GUARD_POSIX(s2n_handshake_parse_header(conn, message_type, &message_len));
+    RESULT_GUARD(s2n_handshake_parse_header(&conn->handshake.io, message_type, &message_len));
     RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->handshake.io));
 
     RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
