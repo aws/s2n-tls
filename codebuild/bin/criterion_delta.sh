@@ -45,7 +45,7 @@ upload_report(){
 
 # Fetch creds and the latest release number.
 gh_login s2n_codebuild_PRs
-get_latest_release
+LATEST_RELEASE_VER=$(get_latest_release)
 AWS_S3_BASE_PATH="release/integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
 criterion_install_deps
 download_artifacts
