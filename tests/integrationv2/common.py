@@ -305,6 +305,8 @@ class Ciphers(object):
         "PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_0_2020_12 = Cipher(
         "PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
+    DEFAULT_FIPS = Cipher(
+        "default_fips", Protocols.TLS12, False, True, s2n=True, pq=False)
 
     @staticmethod
     def from_iana(iana_name):
@@ -383,6 +385,7 @@ class Signatures(object):
     RSA_SHA256 = Signature('RSA+SHA256', max_protocol=Protocols.TLS12)
     RSA_SHA384 = Signature('RSA+SHA384', max_protocol=Protocols.TLS12)
     RSA_SHA512 = Signature('RSA+SHA512', max_protocol=Protocols.TLS12)
+    MD5_SHA1 = Signature('RSA+MD5_SHA1', max_protocol=Protocols.TLS11)
 
     RSA_PSS_RSAE_SHA256 = Signature(
         'RSA-PSS+SHA256',
