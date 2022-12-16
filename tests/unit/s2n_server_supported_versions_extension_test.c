@@ -13,20 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/extensions/s2n_server_supported_versions.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_version) {
+int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_version)
+{
     POSIX_GUARD(s2n_stuffer_write_uint8(list, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_version / 10));
@@ -60,7 +59,7 @@ int main(int argc, char **argv)
 
         /* Check that size is correct */
         uint16_t extension_length = s2n_extensions_server_supported_versions_size(server_conn)
-                        - S2N_EXTENSION_TYPE_FIELD_LENGTH - S2N_EXTENSION_LENGTH_FIELD_LENGTH;
+                - S2N_EXTENSION_TYPE_FIELD_LENGTH - S2N_EXTENSION_LENGTH_FIELD_LENGTH;
         EXPECT_EQUAL(extension_length, s2n_stuffer_data_available(&extension));
 
         /* Check that the client can process the version */
@@ -77,7 +76,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Client alerts if supported_version less than min supported by client */
     {
@@ -97,7 +96,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Client alerts if supported_version greater than max supported by client */
     {
@@ -117,7 +116,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Client alerts if supported_version is empty */
     {
@@ -133,7 +132,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     /* Client alerts if supported_version is malformed */
     {
@@ -150,7 +149,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_config_free(config));
 
