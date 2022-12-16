@@ -495,5 +495,89 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->out.high_water_mark < context.bytes_sent);
     };
 
+    /* Send a post-handshake message when records are buffered, and IO blocks */
+    {
+        s2n_blocked_status blocked = 0;
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+
+        /* Find size of a KeyUpdate record */
+        size_t key_update_size = 0;
+        {
+            struct s2n_send_context context = context_all_ok;
+            EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
+
+            conn->key_update_pending = true;
+            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+            EXPECT_FALSE(conn->key_update_pending);
+            key_update_size = context.bytes_sent;
+        }
+        EXPECT_TRUE(key_update_size > 0);
+
+        /* Block the first two calls to send, only allowing the third to succeed. */
+        const struct s2n_send_result results[] = {
+            /* Initial ApplicationData records */
+            BLOCK_SEND_RESULT,
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT,
+            /* KeyUpdate record */
+            BLOCK_SEND_RESULT,
+            BLOCK_SEND_RESULT,
+            EXPECTED_SEND_RESULT(key_update_size),
+            /* Remaining ApplicationData records */
+            BLOCK_SEND_RESULT,
+            BLOCK_SEND_RESULT,
+            OK_SEND_RESULT,
+        };
+        struct s2n_send_context context = { .results = results, .results_len = s2n_array_len(results) };
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
+
+        /* Find record limit */
+        uint64_t limit = conn->secure->cipher_suite->record_alg->encryption_limit;
+        EXPECT_TRUE(limit > 0);
+
+        /* Initialize sequence number */
+        struct s2n_blob seq_num_blob = { 0 };
+        struct s2n_stuffer seq_num_stuffer = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        EXPECT_SUCCESS(s2n_stuffer_init(&seq_num_stuffer, &seq_num_blob));
+
+        /* Set the sequence number so that a KeyUpdate triggers after one more record. */
+        uint64_t initial_seq_num = limit - 1;
+        EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
+        EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
+        EXPECT_FALSE(conn->key_update_pending);
+
+        /* Send until all data written */
+        size_t total = 0;
+        while (total < sizeof(large_test_data)) {
+            ssize_t sent = s2n_send(conn, large_test_data + total, sizeof(large_test_data) - total, &blocked);
+            if (sent >= S2N_SUCCESS) {
+                total += sent;
+            } else {
+                EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
+                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+            }
+        }
+
+        /* Verify KeyUpdate happened: the sequence number was reset */
+        uint64_t final_seq_num = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint64(&seq_num_stuffer, &final_seq_num));
+        EXPECT_TRUE(final_seq_num < initial_seq_num);
+
+        /* Verify expected send behavior */
+        size_t expected_calls = s2n_array_len(results);
+        EXPECT_EQUAL(context.calls, expected_calls);
+        EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size + key_update_size);
+
+        /* Verify output buffer */
+        EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+    }
+
     END_TEST();
 }
