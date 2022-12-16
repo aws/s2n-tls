@@ -53,3 +53,4 @@ download_artifacts
 echo "Current dir: $(pwd)"
 S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
 upload_report
+

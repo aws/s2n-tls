@@ -64,3 +64,4 @@ else
   criterion_install_deps
   S2N_USE_CRITERION=baseline make -C tests/integrationv2 "$INTEGV2_TEST"
 fi
+
