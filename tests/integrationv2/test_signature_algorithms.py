@@ -66,7 +66,7 @@ def skip_ciphers(*args, **kwargs):
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
 @pytest.mark.parametrize("other_provider", [S2N])
-@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12, Protocols.TLS11], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("signature", all_sigs, ids=get_parameter_name)
 @pytest.mark.parametrize("client_auth", [True, False], ids=lambda val: "client-auth" if val else "no-client-auth")
