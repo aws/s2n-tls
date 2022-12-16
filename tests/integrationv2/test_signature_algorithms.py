@@ -66,7 +66,7 @@ def skip_ciphers(*args, **kwargs):
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
 @pytest.mark.parametrize("other_provider", [S2N])
-@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12, Protocols.TLS11], ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("signature", all_sigs, ids=get_parameter_name)
 @pytest.mark.parametrize("client_auth", [True, False], ids=lambda val: "client-auth" if val else "no-client-auth")
@@ -116,9 +116,13 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, othe
             assert signature_marker(
                 Provider.ServerMode, Signatures.MD5_SHA1
             ) in results.stdout
+            assert (signature_marker(Provider.ClientMode, Signatures.MD5_SHA1)
+                    in results.stdout) == client_auth
         else:
             assert signature_marker(Provider.ServerMode,
                                     signature) in results.stdout
+            assert (signature_marker(Provider.ClientMode, signature)
+                    in results.stdout) == client_auth
         assert random_bytes in results.stdout
 
 
@@ -189,9 +193,13 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, othe
             assert signature_marker(
                 Provider.ServerMode, Signatures.MD5_SHA1
             ) in results.stdout
+            assert (signature_marker(Provider.ClientMode, Signatures.MD5_SHA1)
+                    in results.stdout) == client_auth
         else:
             assert signature_marker(
                 Provider.ServerMode, signature) in results.stdout or not server_sigalg_used
+            assert (signature_marker(Provider.ClientMode, signature)
+                    in results.stdout) == client_auth
 
 
 @pytest.mark.uncollect_if(func=skip_ciphers)
