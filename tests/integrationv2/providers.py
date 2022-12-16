@@ -318,7 +318,7 @@ class CriterionS2N(S2N):
     criterion_off = 'off'
     criterion_delta = 'delta'
     criterion_baseline = 'baseline'
-    # Figure out what mode to run in: baseline, delta or report
+    # Figure out what mode to run in: baseline or delta
     criterion_mode = get_flag(S2N_USE_CRITERION)
 
     def _find_s2n_benchmark(self, pattern):
