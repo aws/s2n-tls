@@ -326,7 +326,7 @@ class CriterionS2N(S2N):
         result = find_files(pattern, root_dir=self.cargo_root, modes=['0o775','0o755'])
         if len(result) != 1:
             raise FileNotFoundError(
-                f"Exactly one s2n criterion benchmark not found {result} with expected file mask.")
+                f"Exactly one s2n criterion benchmark not found. Found {result}.")
         else:
             return result[0]
 
