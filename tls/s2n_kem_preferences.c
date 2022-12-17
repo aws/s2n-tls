@@ -32,6 +32,15 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05 = {
     .kems = pq_kems_r3_2021_05,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3),
     .tls13_kem_groups = pq_kem_groups_r3,
+    .pq_hybrid_draft_revision = 0
+};
+
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2023_01 = {
+    .kem_count = s2n_array_len(pq_kems_r3_2021_05),
+    .kems = pq_kems_r3_2021_05,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3),
+    .tls13_kem_groups = pq_kem_groups_r3,
+    .pq_hybrid_draft_revision = 5
 };
 
 const struct s2n_kem_preferences kem_preferences_null = {
@@ -39,6 +48,7 @@ const struct s2n_kem_preferences kem_preferences_null = {
     .kems = NULL,
     .tls13_kem_group_count = 0,
     .tls13_kem_groups = NULL,
+    .pq_hybrid_draft_revision = 0
 };
 
 /* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
@@ -56,4 +66,12 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
     }
 
     return false;
+}
+
+/* Whether the client should include the length prefix in the PQ TLS 1.3 KEM KeyShares that it sends. Earlier drafts of
+ * the PQ TLS 1.3 standard required length prefixing, and later drafts removed this length prefix. To not break
+ * backwards compatibility, we check what revision of the draft standard is configured to determin whether to send it. */
+bool s2n_kem_client_prefers_length_prefix(const struct s2n_kem_preferences *kem_pref)
+{
+    return (kem_pref->pq_hybrid_draft_revision == 0);
 }

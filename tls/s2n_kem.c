@@ -101,6 +101,33 @@ const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_CO
  * functions may return any non-zero value to indicate failure. */
 #define GUARD_PQ_AS_RESULT(x) RESULT_ENSURE((x) == 0, S2N_ERR_PQ_CRYPTO)
 
+/* Checks if the Hybrid KEM is using the old Hybrid KEM format (PQ Length, PQ Share, ECC Length, ECC Share) or the new
+ * format (PQ Share, ECC Share). The new format will always be 4 bytes shorter than the old format, so we check if the
+ * total length is 4 bytes longer than expected for the new format, and if so, fall back to the old format. */
+int s2n_is_hybrid_kem_length_prefixed(const s2n_mode mode, uint16_t actual_hybrid_share_size, const struct s2n_kem_group *kem_group, bool *is_length_prefixed)
+{
+    uint16_t unprefixed_hybrid_share_size = 0;
+
+    if (mode == S2N_CLIENT) {
+        unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
+    } else {
+        unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->ciphertext_length;
+    }
+
+    /* Initial draft versions of Hybrid PQ TLS spec required that each individual key share be prefixed by it's length.
+     * Later revisions dropped those extra lengths and shortened the total key share by 4 bytes. For backwards
+     * compatibility, check if the hybrid key share is 4 bytes longer than expected, and if it is, then parse those
+     * extra 4 bytes as lengths according to the previous draft standard. */
+    if (actual_hybrid_share_size == (unprefixed_hybrid_share_size + (2 * S2N_SIZE_OF_KEY_SHARE_SIZE))) {
+        *is_length_prefixed = 1;
+    } else {
+        *is_length_prefixed = 0;
+    }
+
+    POSIX_ENSURE((actual_hybrid_share_size == unprefixed_hybrid_share_size) || *is_length_prefixed, S2N_ERR_BAD_KEY_SHARE);
+    return S2N_SUCCESS;
+}
+
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 {
     RESULT_ENSURE_REF(kem_params);
@@ -285,7 +312,9 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 
     const struct s2n_kem *kem = kem_params->kem;
 
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
+    if (kem_params->len_prefixed) {
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
+    }
 
     /* We don't need to store the public key after sending it.
      * We write it directly to *out. */
@@ -313,15 +342,17 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_ENSURE_REF(kem_params->kem);
 
     const struct s2n_kem *kem = kem_params->kem;
-    kem_public_key_size public_key_length;
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
-    S2N_ERROR_IF(public_key_length != kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    if (kem_params->len_prefixed) {
+        kem_public_key_size public_key_length;
+        POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
+        S2N_ERROR_IF(public_key_length != kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    }
 
     /* Alloc memory for the public key; the peer receiving it will need it
      * later during the handshake to encapsulate the shared secret. */
-    POSIX_GUARD(s2n_alloc(&(kem_params->public_key), public_key_length));
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, kem_params->public_key.data, public_key_length));
+    POSIX_GUARD(s2n_alloc(&(kem_params->public_key), kem->public_key_length));
+    POSIX_GUARD(s2n_stuffer_read_bytes(in, kem_params->public_key.data, kem->public_key_length));
 
     return S2N_SUCCESS;
 }
@@ -335,7 +366,9 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 
     const struct s2n_kem *kem = kem_params->kem;
 
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
+    if (kem_params->len_prefixed) {
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
+    }
 
     /* Ciphertext will get written to *out */
     struct s2n_blob ciphertext = { 0 };
@@ -356,12 +389,14 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_ENSURE_REF(kem_params->private_key.data);
 
     const struct s2n_kem *kem = kem_params->kem;
-    kem_ciphertext_key_size ciphertext_length;
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
-    S2N_ERROR_IF(ciphertext_length != kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
+    if (kem_params->len_prefixed) {
+        kem_ciphertext_key_size ciphertext_length;
+        POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
+        S2N_ERROR_IF(ciphertext_length != kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
+    }
 
-    const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, ciphertext_length), .size = ciphertext_length };
+    const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, kem->ciphertext_length), .size = kem->ciphertext_length };
     POSIX_ENSURE_REF(ciphertext.data);
 
     /* Saves the shared secret in kem_params */

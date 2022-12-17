@@ -90,6 +90,7 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
      * that the public key size is correct. If the received public key passes,
      * we continue by calling s2n_kem_send_ciphertext to attempt to use the key
      * for encryption. */
+
     if (s2n_kem_recv_public_key(&public_key, kem_params) == S2N_SUCCESS) {
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
         POSIX_GUARD(s2n_stuffer_growable_alloc(&out, 8192));
