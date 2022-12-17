@@ -34,7 +34,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 
-static struct s2n_kem_params server_kem_params = {.kem = &s2n_kyber_512_r3};
+static struct s2n_kem_params server_kem_params = {.kem = &s2n_kyber_512_r3, .len_prefixed = true };
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.

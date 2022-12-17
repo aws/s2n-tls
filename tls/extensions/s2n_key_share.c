@@ -19,7 +19,6 @@
 #include "utils/s2n_safety.h"
 
 /* Generate and write an ecc point.
- * This is used to write the ecc portion of PQ hybrid keyshares, which does NOT include the curve id.
  */
 S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out)
 {

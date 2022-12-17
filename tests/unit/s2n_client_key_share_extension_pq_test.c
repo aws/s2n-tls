@@ -47,6 +47,7 @@ int main()
             .kems = NULL,
             .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
             .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
+            .pq_hybrid_draft_revision = 0
         };
 
         const struct s2n_security_policy security_policy_all = {
@@ -117,6 +118,7 @@ int main()
                         .kems = NULL,
                         .tls13_kem_group_count = s2n_array_len(test_kem_groups),
                         .tls13_kem_groups = test_kem_groups,
+                        .pq_hybrid_draft_revision = 0
                     };
 
                     const struct s2n_security_policy test_security_policy = {
@@ -459,6 +461,7 @@ int main()
                             .kems = NULL,
                             .tls13_kem_group_count = s2n_array_len(test_kem_groups),
                             .tls13_kem_groups = test_kem_groups,
+                            .pq_hybrid_draft_revision = 0
                         };
 
                         const struct s2n_security_policy test_security_policy = {
@@ -550,8 +553,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0] },
-                        { .kem_group = kem_pref->tls13_kem_groups[1] }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
                     };
 
                     struct s2n_stuffer key_share_extension = { 0 };
@@ -601,7 +604,8 @@ int main()
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
-                    struct s2n_kem_group_params client_pq_params = { .kem_group = kem_pref->tls13_kem_groups[0] };
+                    struct s2n_kem_group_params client_pq_params = { .kem_group = kem_pref->tls13_kem_groups[0],
+                        .kem_params = { .len_prefixed = true } };
 
                     struct s2n_stuffer key_share_extension = { 0 };
                     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 8192));
@@ -648,8 +652,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0] },
-                        { .kem_group = kem_pref->tls13_kem_groups[1] }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
                     };
 
                     struct s2n_stuffer key_share_extension = { 0 };
@@ -699,8 +703,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0] },
-                        { .kem_group = kem_pref->tls13_kem_groups[1] }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
                     };
 
                     /* Write share list length */
@@ -751,8 +755,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0] },
-                        { .kem_group = kem_pref->tls13_kem_groups[1] }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
                     };
 
                     /* Write share list length */

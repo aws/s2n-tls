@@ -234,17 +234,34 @@ int main()
         &s2n_secp256r1_kyber_512_r3,
     };
 
-    const struct s2n_kem_preferences kyber_test_prefs = {
+    const struct s2n_kem_preferences kyber_test_prefs_draft0 = {
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
         .tls13_kem_groups = kyber_test_groups,
+        .pq_hybrid_draft_revision = 0
     };
 
-    const struct s2n_security_policy kyber_test_policy = {
+    const struct s2n_security_policy kyber_test_policy_draft0 = {
         .minimum_protocol_version = S2N_TLS10,
         .cipher_preferences = &cipher_preferences_20190801,
-        .kem_preferences = &kyber_test_prefs,
+        .kem_preferences = &kyber_test_prefs_draft0,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20200310,
+    };
+
+    const struct s2n_kem_preferences kyber_test_prefs_draft5 = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
+        .tls13_kem_groups = kyber_test_groups,
+        .pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy kyber_test_policy_draft5 = {
+        .minimum_protocol_version = S2N_TLS10,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &kyber_test_prefs_draft5,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20200310,
     };
@@ -313,9 +330,46 @@ int main()
                 .expected_curve = NULL,
                 .hrr_expected = false,
         },
+        {
+                .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
+                .server_policy = &security_policy_pq_tls_1_0_2023_01_24,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+        },
+
+        /* Check that we're backwards and forwards compatible with different Hybrid PQ draft revisions*/
+        {
+                .client_policy = &kyber_test_policy_draft0,
+                .server_policy = &kyber_test_policy_draft5,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+        },
+        {
+                .client_policy = &kyber_test_policy_draft5,
+                .server_policy = &kyber_test_policy_draft0,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+        },
+        {
+                .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                .server_policy = &security_policy_pq_tls_1_0_2023_01_24,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+        },
+        {
+                .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
+                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+        },
 
         /* Server supports all KEM groups; client sends a PQ key share and an EC key
-             * share; server chooses to negotiate client's first choice PQ without HRR. */
+         * share; server chooses to negotiate client's first choice PQ without HRR. */
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
@@ -325,18 +379,29 @@ int main()
         },
 
         /* Server supports only one KEM group and it is the client's first choice;
-             * client sends a PQ share and an EC share; server chooses to negotiate PQ
-             * without HRR. */
+         * client sends a PQ share and an EC share; server chooses to negotiate PQ
+         * without HRR. */
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
-                .server_policy = &kyber_test_policy,
+                .server_policy = &kyber_test_policy_draft0,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+        },
+
+        /* Server supports only one KEM group and it is the client's first choice;
+         * client sends a PQ share and an EC share; server chooses to negotiate PQ
+         * without HRR. */
+        {
+                .client_policy = &security_policy_pq_tls_1_0_2020_12,
+                .server_policy = &kyber_test_policy_draft5,
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
         },
 
         /* Server does not support PQ; client sends a PQ key share and an EC key share;
-             * server should negotiate EC without HRR. */
+         * server should negotiate EC without HRR. */
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &security_policy_test_all_tls13,
@@ -346,7 +411,7 @@ int main()
         },
 
         /* Server does not support PQ; client sends a PQ key share, but no EC shares;
-             * server should negotiate EC and send HRR. */
+         * server should negotiate EC and send HRR. */
         {
                 .client_policy = &ecc_retry_policy,
                 .server_policy = &security_policy_test_all_tls13,
@@ -356,7 +421,7 @@ int main()
         },
 
         /* Server supports PQ, but client does not. Client sent an EC share,
-             * EC should be negotiated without HRR */
+         * EC should be negotiated without HRR */
         {
                 .client_policy = &security_policy_test_all_tls13,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
@@ -366,7 +431,7 @@ int main()
         },
 
         /* Server supports PQ, but client does not. Client did not send any EC shares,
-             * EC should be negotiated after exchanging HRR */
+         * EC should be negotiated after exchanging HRR */
         {
                 .client_policy = &security_policy_test_tls13_retry,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
