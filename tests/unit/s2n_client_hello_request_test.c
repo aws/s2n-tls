@@ -55,7 +55,7 @@ static S2N_RESULT s2n_send_client_hello_request(struct s2n_connection *server_co
 
     /* Send */
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    RESULT_GUARD_POSIX(s2n_record_write(server_conn, TLS_HANDSHAKE, &message_blob));
+    RESULT_GUARD(s2n_record_write(server_conn, TLS_HANDSHAKE, &message_blob));
     RESULT_GUARD_POSIX(s2n_flush(server_conn, &blocked));
 
     /* Cleanup */

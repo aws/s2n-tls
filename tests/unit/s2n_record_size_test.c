@@ -93,24 +93,24 @@ int main(int argc, char **argv)
         const int small_payload = S2N_SMALL_FRAGMENT_LENGTH;
         const int large_payload = S2N_LARGE_FRAGMENT_LENGTH;
         const int medium_payload = S2N_DEFAULT_FRAGMENT_LENGTH;
-        int bytes_written = 0;
+        struct s2n_blob fragment = r;
 
         /* Check the default: medium records */
+        fragment.size = medium_payload;
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-        EXPECT_EQUAL(bytes_written, medium_payload);
+        EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &fragment));
 
         /* Check explicitly small records */
+        fragment.size = small_payload;
         EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-        EXPECT_EQUAL(bytes_written, small_payload);
+        EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &fragment));
 
         /* Check explicitly large records */
+        fragment.size = large_payload;
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-        EXPECT_EQUAL(bytes_written, large_payload);
+        EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &fragment));
 
         /* Clean up */
         conn->secure->cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
@@ -264,13 +264,10 @@ int main(int argc, char **argv)
             const uint16_t HMAC_DIGEST = 20;
             EXPECT_EQUAL(size, after_overheads - HMAC_DIGEST - RECORD_IV_SIZE - PADDING_LENGTH_BYTE);
 
-            int bytes_written = 0;
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
-            EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
-            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         };
 
         /* AEAD */
@@ -287,13 +284,10 @@ int main(int argc, char **argv)
             const uint16_t TAG = 16;
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG);
 
-            int bytes_written = 0;
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
-            EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
-            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         };
 
         /* TLS1.3 AEAD */
@@ -312,13 +306,10 @@ int main(int argc, char **argv)
             const uint16_t TAG = 16;
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - S2N_TLS_CONTENT_TYPE_LENGTH);
 
-            int bytes_written = 0;
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
-            EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
-            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         };
 
         /* chacha20 */
@@ -338,13 +329,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN);
             r.size = size;
 
-            int bytes_written = 0;
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
-            EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
-            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
         /* TLS1.3 chacha20 */
@@ -365,13 +353,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN - S2N_TLS_CONTENT_TYPE_LENGTH);
             r.size = size;
 
-            int bytes_written = 0;
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
-            EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
-            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
         /* composite */
@@ -398,13 +383,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, size_after_overheads);
             r.size = size;
 
-            int bytes_written = 0;
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
-            EXPECT_EQUAL(bytes_written, size);
             EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
-            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
         r.size = sizeof(random_data);
@@ -440,27 +422,33 @@ int main(int argc, char **argv)
 
         /* Testing with a small blob */
         s2n_stack_blob(small_blob, ONE_BLOCK, ONE_BLOCK);
+        struct iovec small_io_vec = { 0 };
+        small_io_vec.iov_base = small_blob.data;
+        small_io_vec.iov_len = small_blob.size;
 
         int bytes_taken;
 
         const uint16_t TLS13_RECORD_OVERHEAD = 22;
-        EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob));
-        EXPECT_EQUAL(bytes_taken, ONE_BLOCK);                                                           /* we wrote the full blob size */
+        EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &small_io_vec, 1, 0, small_blob.size));
+        EXPECT_EQUAL(bytes_taken, ONE_BLOCK); /* we wrote the full blob size */
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), ONE_BLOCK + TLS13_RECORD_OVERHEAD); /* bytes on the wire */
 
         /* Check we get a friendly error if we use s2n_record_write again */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
-        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob));
+        EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Testing a big 100k blob to be written */
         s2n_stack_blob(big_blob, ONE_HUNDRED_K, ONE_HUNDRED_K);
+        struct iovec big_io_vec = { 0 };
+        big_io_vec.iov_base = big_blob.data;
+        big_io_vec.iov_len = big_blob.size;
 
         /* Test that s2n_record_write() doesn't error on writing large payloads.
          * Also asserts the bytes written on the wire.
          */
-        EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
+        EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &big_io_vec, 1, 0, big_blob.size));
 
         /* We verify that s2n_record_write() is able to send the maximum fragment length as specified by TLS RFCs */
         const uint16_t TLS_MAX_FRAG_LEN = 16384;
@@ -480,14 +468,14 @@ int main(int argc, char **argv)
         const uint16_t MAX_FORCED_OUTGOING_FRAGMENT_LENGTH = 16400;
 
         server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH; /* Trigger fragment length bounding */
-        EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
+        EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &big_io_vec, 1, 0, big_blob.size));
         EXPECT_EQUAL(bytes_taken, TLS_MAX_FRAG_LEN);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Force a generous 100k resize on the outgoing record stuffer */
         EXPECT_SUCCESS(s2n_stuffer_resize(&server_conn->out, ONE_HUNDRED_K));
         server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH;
-        EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
+        EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &big_io_vec, 1, 0, big_blob.size));
         EXPECT_EQUAL(bytes_taken, TLS_MAX_FRAG_LEN);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));

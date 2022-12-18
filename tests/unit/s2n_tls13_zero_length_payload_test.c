@@ -67,11 +67,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
 
-        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &zero_length_data));
+        EXPECT_OK(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &zero_length_data));
         EXPECT_SUCCESS(s2n_flush(client_conn, &blocked));
         EXPECT_TRUE(s2n_stuffer_data_available(&client_to_server) > 0);
 
-        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &zero_length_data));
+        EXPECT_OK(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &zero_length_data));
         EXPECT_SUCCESS(s2n_flush(server_conn, &blocked));
         EXPECT_TRUE(s2n_stuffer_data_available(&server_to_client) > 0);
 

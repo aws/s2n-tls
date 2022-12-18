@@ -96,13 +96,14 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
+        s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= max_fragment) {
-            EXPECT_EQUAL(bytes_written, i);
+            EXPECT_OK(result);
+            bytes_written = i;
         } else {
-            /* application data size of intended fragment size + 1 should only send max fragment */
-            EXPECT_EQUAL(bytes_written, max_fragment);
+            EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            bytes_written = max_fragment;
         }
 
         static const int overhead = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN /* Should be 0 */
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         /* Now lets corrupt some data and ensure the tests pass */
         /* Copy the encrypted out data to the in data */
@@ -190,7 +191,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -217,7 +218,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
