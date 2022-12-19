@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_server_sct_list.h"
 
 const uint8_t sct_list_data[] = "SCT LIST DATA";
@@ -76,7 +75,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test send */
     {
@@ -94,7 +93,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv */
     {
@@ -114,7 +113,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;

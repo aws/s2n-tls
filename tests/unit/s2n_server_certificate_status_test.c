@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_certificate_status.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_server_certificate_status.h"
 
 const uint8_t ocsp_data[] = "OCSP DATA";
 struct s2n_cert_chain_and_key *chain_and_key;
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test send */
     {
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv */
     {
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv - not ocsp */
     {
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test recv - bad ocsp data */
     {
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
     return 0;
