@@ -15,10 +15,12 @@
 
 #ifdef __FreeBSD__
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
- * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
+     * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
     #undef _POSIX_C_SOURCE
-    #include <sys/sysctl.h>
+    /* clang-format off */
     #include <sys/types.h>
+    #include <sys/sysctl.h>
+    /* clang-format on */
     #include <sys/user.h>
 #endif
 
