@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "tls/extensions/s2n_client_alpn.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_protocol_preferences.h"
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "tls/extensions/s2n_client_alpn.h"
+#include "tls/s2n_connection.h"
 
 #define LEN_PREFIX 1
 
@@ -28,9 +28,9 @@ int main(int argc, char **argv)
 
     /* input values */
     const uint8_t protocol1[] = "protocol1";
-    const size_t protocol1_len = strlen((const char *)protocol1);
+    const size_t protocol1_len = strlen((const char *) protocol1);
     const uint8_t protocol2[] = "protocol abc 2";
-    const size_t protocol2_len = strlen((const char *)protocol2);
+    const size_t protocol2_len = strlen((const char *) protocol2);
 
     const uint8_t large_value[255] = { 0 };
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->application_protocols.size, prev_size);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test connection append */
     {
@@ -90,9 +90,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
-    const char *protocols[] = { (const char *)protocol1, (const char *)protocol2 };
+    const char *protocols[] = { (const char *) protocol1, (const char *) protocol2 };
     const uint8_t protocols_count = s2n_array_len(protocols);
 
     char oversized_value[257] = { 0 };
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
         /* should clear the preference list */
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, NULL, protocols_count));
         EXPECT_EQUAL(config->application_protocols.size, 0);
-        
+
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_EQUAL(config->application_protocols.size, LEN_PREFIX + protocol1_len + LEN_PREFIX + protocol2_len);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, 0));
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->application_protocols.size, 0);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test connection set */
     {
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         /* should clear the preference list */
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, NULL, protocols_count));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, 0);
-        
+
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, protocols, protocols_count));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, LEN_PREFIX + protocol1_len + LEN_PREFIX + protocol2_len);
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, protocols, 0));
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->application_protocols_overridden.size, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_protocol_preferences_read */
     {
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
             struct s2n_blob blob = { 0 };
             EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_read(NULL, &blob), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_read(&stuffer, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Fail to read zero-length protocol */
         {
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(result.size, 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
-        }
+        };
 
         /* Read valid value */
         {
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(result.data, protocol1, sizeof(protocol1));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
-        }
+        };
 
         /* Read what we write */
         {
@@ -217,8 +217,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(result.data, protocol1, sizeof(protocol1));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* s2n_protocol_preferences_contain */
     {
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_contain(NULL, &blob, &match), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_contain(&blob, NULL, &match), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_contain(&blob, &blob, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* No supported protocols */
         {
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(result);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* No match */
         {
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(result);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Match */
         {
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(result);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
     return 0;
