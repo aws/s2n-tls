@@ -5,7 +5,7 @@ import threading
 from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from global_flags import S2N_USE_CRITERION
-from stat import *
+from stat import S_IMODE
 
 
 TLS_13_LIBCRYPTOS = {
@@ -50,9 +50,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            self.cmd_line = self.setup_server() # lgtm [py/init-calls-subclass]
+            self.cmd_line = self.setup_server()  # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            self.cmd_line = self.setup_client() # lgtm [py/init-calls-subclass]
+            self.cmd_line = self.setup_client()  # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -144,7 +144,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -323,7 +323,7 @@ class CriterionS2N(S2N):
 
     def _find_s2n_benchmark(self, pattern):
         # Use executable bit to find the correct file.
-        result = find_files(pattern, root_dir=self.cargo_root, modes=['0o775','0o755'])
+        result = find_files(pattern, root_dir=self.cargo_root, modes=['0o775', '0o755'])
         if len(result) != 1:
             raise FileNotFoundError(
                 f"Exactly one s2n criterion benchmark not found. Found {result}.")
@@ -384,7 +384,7 @@ class CriterionS2N(S2N):
 
     def capture_server_args(self):
         self.cmd_line = [self.s2nd_bench, "--bench",
-                        "s2nd", "--save-baseline", "main"]
+                         "s2nd", "--save-baseline", "main"]
 
     # Saves baseline data with the tag "main"
     # see https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
@@ -396,7 +396,7 @@ class CriterionS2N(S2N):
     # This run is stored with the tag "new"
     # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
     def capture_client_args_delta(self):
-        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters","--baseline","main"]
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters", "--baseline", "main"]
 
 
 class OpenSSL(Provider):
@@ -405,7 +405,7 @@ class OpenSSL(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
-        self.expect_stderr = True # lgtm [py/overwritten-inherited-attribute]
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -713,8 +713,8 @@ class GnuTLS(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.expect_stderr = True # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):
@@ -897,7 +897,6 @@ class GnuTLS(Provider):
     @classmethod
     def supports_signature(cls, signature):
         return GnuTLS.sigalg_to_priority_str(signature) is not None
-
 
 
 def find_files(file_glob, root_dir=".", modes=[]):
