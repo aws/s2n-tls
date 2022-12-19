@@ -430,7 +430,7 @@ int main(int argc, char **argv)
 
         const uint16_t TLS13_RECORD_OVERHEAD = 22;
         EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &small_io_vec, 1, 0, small_blob.size));
-        EXPECT_EQUAL(bytes_taken, ONE_BLOCK); /* we wrote the full blob size */
+        EXPECT_EQUAL(bytes_taken, ONE_BLOCK);                                                           /* we wrote the full blob size */
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), ONE_BLOCK + TLS13_RECORD_OVERHEAD); /* bytes on the wire */
 
         /* Check we get a friendly error if we use s2n_record_write again */
@@ -445,12 +445,12 @@ int main(int argc, char **argv)
         big_io_vec.iov_base = big_blob.data;
         big_io_vec.iov_len = big_blob.size;
 
-        /* Test that s2n_record_write() doesn't error on writing large payloads.
+        /* Test that s2n_record_writev() doesn't error on writing large payloads.
          * Also asserts the bytes written on the wire.
          */
         EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &big_io_vec, 1, 0, big_blob.size));
 
-        /* We verify that s2n_record_write() is able to send the maximum fragment length as specified by TLS RFCs */
+        /* We verify that s2n_record_writev() is able to send the maximum fragment length as specified by TLS RFCs */
         const uint16_t TLS_MAX_FRAG_LEN = 16384;
         EXPECT_EQUAL(bytes_taken, TLS_MAX_FRAG_LEN);                                                           /* plaintext bytes taken */
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), TLS_MAX_FRAG_LEN + TLS13_RECORD_OVERHEAD); /* bytes sent on the wire */
