@@ -13,23 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 #include <string.h>
 
-#include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_npn.h"
-#include "tls/extensions/s2n_client_alpn.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tests/s2n_test.h"
-#include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_client_alpn.h"
+#include "tls/extensions/s2n_npn.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 #define HTTP11 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31
-#define SPDY1 0x73, 0x70, 0x64, 0x79, 0x2f, 0x31
-#define SPDY2 0x73, 0x70, 0x64, 0x79, 0x2f, 0x32
-#define SPDY3 0x73, 0x70, 0x64, 0x79, 0x2f, 0x33
+#define SPDY1  0x73, 0x70, 0x64, 0x79, 0x2f, 0x31
+#define SPDY2  0x73, 0x70, 0x64, 0x79, 0x2f, 0x32
+#define SPDY3  0x73, 0x70, 0x64, 0x79, 0x2f, 0x33
 
 S2N_RESULT s2n_calculate_padding(uint8_t protocol_len, uint8_t *padding_len);
 
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
 
     const char *protocols[] = { "http/1.1", "spdy/1", "spdy/2" };
     const uint8_t protocols_count = s2n_array_len(protocols);
-    
+
     /* Should-send tests on the client side */
     {
         /* No connection */
@@ -76,7 +75,7 @@ int main(int argc, char **argv)
         client_conn->handshake.renegotiation = true;
         EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
         EXPECT_TRUE(s2n_client_alpn_extension.should_send(client_conn));
-    }
+    };
 
     /* s2n_client_npn_recv */
     {
@@ -89,7 +88,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
-        
+
         /* NPN not supported */
         EXPECT_SUCCESS(s2n_client_npn_extension.recv(server_conn, &extension));
         EXPECT_FALSE(server_conn->npn_negotiated);
@@ -105,7 +104,7 @@ int main(int argc, char **argv)
         server_conn->npn_negotiated = false;
         EXPECT_SUCCESS(s2n_client_npn_extension.recv(server_conn, &extension));
         EXPECT_FALSE(server_conn->npn_negotiated);
-    }
+    };
 
     /* Should-send tests on the server side */
     {
@@ -122,7 +121,7 @@ int main(int argc, char **argv)
         /* NPN negotiated */
         server_conn->npn_negotiated = true;
         EXPECT_TRUE(s2n_server_npn_extension.should_send(server_conn));
-    }
+    };
 
     /* s2n_server_npn_send */
     {
@@ -148,10 +147,10 @@ int main(int argc, char **argv)
         }
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&out), 0);
-    }
+    };
 
     /* s2n_server_npn_recv */
-    {   
+    {
         /* Client has no application protocols configured. Not sure how this
          * could happen, but added to be thorough. */
         {
@@ -162,7 +161,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NULL(s2n_get_application_protocol(client_conn));
-        }
+        };
 
         /* NPN recv extension can read NPN send extension */
         {
@@ -182,7 +181,7 @@ int main(int argc, char **argv)
             /* Server sent the same list that the client configured so the first protocol in the list is chosen */
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
-        }
+        };
 
         /* No match exists */
         {
@@ -210,7 +209,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
-        }
+        };
 
         /* Server sends empty list */
         {
@@ -234,7 +233,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
             EXPECT_NOT_NULL(s2n_get_application_protocol(client_conn));
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[0], strlen(protocols[0]));
-        }
+        };
 
         /* Multiple matches exist and server's preferred choice is selected */
         {
@@ -250,12 +249,15 @@ int main(int argc, char **argv)
 
             uint8_t wire_bytes[] = {
                 /* Size and bytes of first protocol */
-                0x06, SPDY1,
+                0x06,
+                SPDY1,
                 /* Size and bytes of second protocol */
-                0x08,  HTTP11,
+                0x08,
+                HTTP11,
                 /* Size and bytes of second protocol */
-                0x06, SPDY2,
-                };
+                0x06,
+                SPDY2,
+            };
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&extension, wire_bytes, sizeof(wire_bytes)));
             EXPECT_SUCCESS(s2n_server_npn_extension.recv(client_conn, &extension));
@@ -264,8 +266,8 @@ int main(int argc, char **argv)
 
             /* Client's second protocol is selected because the server prefers it over client's first protocol */
             EXPECT_BYTEARRAY_EQUAL(s2n_get_application_protocol(client_conn), protocols[1], strlen(protocols[1]));
-        }
-    }
+        };
+    };
 
     /* Check application protocol array can hold the largest uint8_t value.
      *
@@ -281,7 +283,7 @@ int main(int argc, char **argv)
         /* Not <= because the application protocol is a string, which needs to
          * be terminated by a null character */
         EXPECT_TRUE(UINT8_MAX < sizeof(server_conn->application_protocol));
-    }
+    };
 
     END_TEST();
 }

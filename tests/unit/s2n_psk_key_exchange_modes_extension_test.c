@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 
 int main(int argc, char **argv)
@@ -42,10 +41,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     /* Test: s2n_psk_key_exchange_modes_recv */
-    {   
+    {
         /* Receive an extension when running TLS1.2 */
         {
             struct s2n_stuffer out = { 0 };
@@ -65,7 +64,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Length of extension is greater than contents of extension */
         {
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Receives valid psk_ke mode */
         {
@@ -109,7 +108,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Receives list of supported and unsupported psk key exchange modes */
         {
@@ -132,7 +131,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Server receives GREASE values.
          *
@@ -201,7 +200,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_stuffer_reread(&extension));
-            }
+            };
 
             /* Valid non-GREASE option */
             {
@@ -218,9 +217,9 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_stuffer_reread(&extension));
-            }
-        }
-    }
+            };
+        };
+    };
 
     /* Functional test */
     {
@@ -244,7 +243,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     END_TEST();
 }

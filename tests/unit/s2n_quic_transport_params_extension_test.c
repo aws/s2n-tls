@@ -15,9 +15,7 @@
 
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_quic_transport_params.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls13.h"
@@ -29,7 +27,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     if (!s2n_is_tls13_fully_supported()) {
-       END_TEST();
+        END_TEST();
     }
 
     /* Test should_send */
@@ -53,7 +51,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test if_missing */
     {
@@ -85,7 +83,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test send */
     {
@@ -100,7 +98,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_quic_transport_parameters_extension.send(conn, NULL), S2N_ERR_NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Writes transport parameters */
         {
@@ -122,7 +120,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
+        };
 
         /* Writes empty transport parameters */
         {
@@ -143,8 +141,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
-    }
+        };
+    };
 
     /* Test recv */
     {
@@ -161,7 +159,7 @@ int main(int argc, char **argv)
                     S2N_ERR_UNSUPPORTED_EXTENSION);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Save transport parameters */
         {
@@ -183,7 +181,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-        }
+        };
 
         /* Save empty transport parameters */
         {
@@ -202,7 +200,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         /* recv processes the output of send */
         {
@@ -231,8 +229,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }
