@@ -114,13 +114,7 @@ int main(int argc, char **argv)
     /* Test: s2n_quic_write_handshake_message */
     {
         /* Safety checks */
-        {
-            struct s2n_connection conn = { 0 };
-            struct s2n_blob blob = { 0 };
-
-            EXPECT_ERROR(s2n_quic_write_handshake_message(NULL, &blob));
-            EXPECT_ERROR(s2n_quic_write_handshake_message(&conn, NULL));
-        };
+        EXPECT_ERROR(s2n_quic_write_handshake_message(NULL));
 
         /* Writes handshake message */
         {
@@ -128,10 +122,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             uint8_t message_data[] = "The client says hello";
-            struct s2n_blob in;
-            EXPECT_SUCCESS(s2n_blob_init(&in, message_data, sizeof(message_data)));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->handshake.io, message_data, sizeof(message_data)));
 
-            EXPECT_OK(s2n_quic_write_handshake_message(conn, &in));
+            EXPECT_OK(s2n_quic_write_handshake_message(conn));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), sizeof(message_data));
             EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->out, sizeof(message_data)),
                     message_data, sizeof(message_data));

@@ -22,6 +22,21 @@
 /* Length of the synthetic message header */
 #define MESSAGE_HASH_HEADER_LENGTH 4
 
+S2N_RESULT s2n_handshake_transcript_update(struct s2n_connection *conn)
+{
+    struct s2n_stuffer message = conn->handshake.io;
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(&message));
+
+    struct s2n_blob data = { 0 };
+    uint32_t len = s2n_stuffer_data_available(&message);
+    uint8_t *bytes = s2n_stuffer_raw_read(&message, len);
+    RESULT_ENSURE_REF(bytes);
+    RESULT_GUARD_POSIX(s2n_blob_init(&data, bytes, len));
+
+    RESULT_GUARD_POSIX(s2n_conn_update_handshake_hashes(conn, &data));
+    return S2N_RESULT_OK;
+}
+
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
     POSIX_ENSURE_REF(conn);
