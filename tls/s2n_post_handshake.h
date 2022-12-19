@@ -14,6 +14,12 @@
  */
 
 #pragma once
+#include <stdint.h>
+
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_result.h"
 
 struct s2n_connection;
 
