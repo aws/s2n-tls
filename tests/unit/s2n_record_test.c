@@ -13,23 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "tls/s2n_record.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "api/s2n.h"
-#include "tls/s2n_kex.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_cipher.h"
-#include "utils/s2n_random.h"
 #include "crypto/s2n_hmac.h"
-#include "tls/s2n_record.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_prf.h"
+#include "utils/s2n_random.h"
 
 /* Mock block cipher that does nothing */
 int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
@@ -41,10 +39,10 @@ struct s2n_cipher mock_block_cipher = {
     .type = S2N_CBC,
     .key_material_size = 0,
     .io.cbc = {
-               .block_size = 16,
-               .record_iv_size = 16,
-               .encrypt = mock_block_endecrypt,
-               .decrypt = mock_block_endecrypt},
+            .block_size = 16,
+            .record_iv_size = 16,
+            .encrypt = mock_block_endecrypt,
+            .decrypt = mock_block_endecrypt },
     .set_encryption_key = NULL,
     .set_decryption_key = NULL,
     .destroy_key = NULL,
@@ -58,7 +56,7 @@ struct s2n_record_algorithm mock_block_record_alg = {
 struct s2n_cipher_suite mock_block_cipher_suite = {
     .available = 1,
     .name = "TLS_MOCK_CBC",
-    .iana_value = {0x12, 0x34},
+    .iana_value = { 0x12, 0x34 },
     .key_exchange_alg = &s2n_rsa,
     .record_alg = &mock_block_record_alg,
 };
@@ -72,10 +70,10 @@ int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
-    struct s2n_blob fixed_iv = {.data = mac_key,.size = sizeof(mac_key) };
+    struct s2n_blob fixed_iv = { .data = mac_key, .size = sizeof(mac_key) };
     struct s2n_hmac_state check_mac;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
-    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -95,7 +93,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS11;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
@@ -137,7 +135,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS11;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
@@ -219,7 +217,7 @@ int main(int argc, char **argv)
     conn->initial->cipher_suite = &mock_block_cipher_suite;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
@@ -286,7 +284,7 @@ int main(int argc, char **argv)
     conn->initial->cipher_suite = &mock_block_cipher_suite;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
@@ -385,7 +383,7 @@ int main(int argc, char **argv)
         conn->header_in.blob.data[1] = 3;
         conn->header_in.blob.data[2] = 4;
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_header_parse(conn, &content_type, &fragment_length), S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     /* Test: ApplicationData MUST be encrypted */
     {
@@ -399,7 +397,7 @@ int main(int argc, char **argv)
         uint8_t header_bytes[] = { TLS_APPLICATION_DATA, 0x03, 0x04, 0x00, 0x00 };
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->header_in, header_bytes, sizeof(header_bytes)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_DECRYPT);
-    }
+    };
 
     /* Test s2n_sslv2_record_header_parse fails when fragment_length < 3 */
     {
@@ -417,7 +415,7 @@ int main(int argc, char **argv)
 
         /* Check the rest of the stuffer has not been read yet */
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
-    }
+    };
 
     EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 

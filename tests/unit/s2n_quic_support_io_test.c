@@ -15,10 +15,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_quic_support.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_mem.h"
 
@@ -61,10 +60,10 @@ static S2N_RESULT s2n_setup_conn_for_server_hello(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    if(conn->kex_params.server_ecc_evp_params.evp_pkey == NULL) {
+    if (conn->kex_params.server_ecc_evp_params.evp_pkey == NULL) {
         RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.server_ecc_evp_params));
     }
-    if(conn->kex_params.client_ecc_evp_params.evp_pkey == NULL) {
+    if (conn->kex_params.client_ecc_evp_params.evp_pkey == NULL) {
         RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
     }
 
@@ -90,13 +89,13 @@ static S2N_RESULT s2n_write_test_message(struct s2n_blob *out, message_type_t me
     return S2N_RESULT_OK;
 }
 
-static int s2n_test_write_handler(struct s2n_connection* conn)
+static int s2n_test_write_handler(struct s2n_connection *conn)
 {
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->handshake.io, TEST_DATA, TEST_DATA_SIZE));
     return S2N_SUCCESS;
 }
 
-static int s2n_test_read_handler(struct s2n_connection* conn)
+static int s2n_test_read_handler(struct s2n_connection *conn)
 {
     EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), TEST_DATA_SIZE);
     EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->handshake.io, TEST_DATA_SIZE),
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR(s2n_quic_write_handshake_message(NULL, &blob));
             EXPECT_ERROR(s2n_quic_write_handshake_message(&conn, NULL));
-        }
+        };
 
         /* Writes handshake message */
         {
@@ -138,8 +137,8 @@ int main(int argc, char **argv)
                     message_data, sizeof(message_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: s2n_quic_read_handshake_message */
     {
@@ -150,7 +149,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR(s2n_quic_read_handshake_message(NULL, &message_type));
             EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, NULL));
-        }
+        };
 
         /* Reads basic handshake message */
         {
@@ -177,7 +176,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Blocks on insufficient data for handshake message header */
         {
@@ -196,7 +195,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Blocks on insufficient data for handshake message data */
         {
@@ -217,7 +216,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Fails for an impossibly large handshake message */
         {
@@ -237,8 +236,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Functional Tests */
     {
@@ -277,10 +276,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&input_stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Functional: successfully reads fragmented handshake message */
-        for(size_t i = 1; i < server_hello.size - 1; i++) {
+        for (size_t i = 1; i < server_hello.size - 1; i++) {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
@@ -322,7 +321,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&input_stuffer), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Function: fails to read record instead of handshake message */
         {
@@ -342,7 +341,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Function: fails to read Change Cipher Spec record */
         {
@@ -362,7 +361,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         uint32_t client_hello_length = 0;
 
@@ -391,7 +390,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Functional: successfully retries after blocked write */
         {
@@ -416,12 +415,12 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&output_stuffer), client_hello_length);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&input_stuffer));
         EXPECT_SUCCESS(s2n_stuffer_free(&output_stuffer));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }
