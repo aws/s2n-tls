@@ -57,7 +57,6 @@ def skip_ciphers(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
-
 @pytest.mark.uncollect_if(func=skip_ciphers)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
@@ -205,9 +204,8 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, othe
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 # RSA_SHA224 signature algorithm is not included in security_policy_20210816[].
 @pytest.mark.parametrize("signature", [Signatures.RSA_SHA224], ids=get_parameter_name)
-@pytest.mark.parametrize("client_auth", [True, False], ids=lambda val: "client-auth" if val else "no-client-auth")
 def test_s2n_server_tls12_signature_algorithm_fallback(managed_process, cipher, provider, protocol, certificate,
-                                                       signature, client_auth):
+                                                       signature):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
