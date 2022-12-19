@@ -172,15 +172,6 @@ the benchmark and other housekeeping that slows things down a bit.  Running `car
 
 The CI will run `make install` and `make -C ./bindings/rust` to create and install the s2nc/d binaries in a system-wide location, then build the cargo criterion binary handlers for s2nc and s2nd.
 
-### What is happening inside the CriterionS2N provider?
-
-The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary and moves the s2nc/d command line arguments into an environment variable.  The binary created by `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds and replaces in the final testing command.
-The arguments to s2nc/d are moved to the environment variables `S2NC_ARGS` or `S2ND_ARGS`, which are read by the rust benchmark when spawning s2nc/d as subprocesses.
-
-The name of the criterion report is based on the test name; constructed from the s2nc/d command line arguments.
-
-Criterion needs 2 passes to generate a report showing changes between two runs. The first pass establishes a base line, the second run a delta dataset, and a report.
-These modes have slightly different command line arguments to criterion and are controlled with the environment variable S2N_USE_CRITERION in the provider.
 
 ### Running locally
 
