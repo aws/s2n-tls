@@ -178,8 +178,6 @@ for dir in $S2N_ERROR_IF_FREE; do
 done
 
 #############################################
-
-#############################################
 ## Assert all ".[c|h]" source files have the correct file mode.
 #############################################
 S2N_FILES_WITH_WRONG_MODE=$(find "$PWD" \( -name '*.c' -o -name '*.h' \) -a \! -perm 644)
@@ -189,6 +187,17 @@ if [[ -n $S2N_FILES_WITH_WRONG_MODE ]]; then
     printf "\\033[31;1mFile mode of %s is not 644.\\033[0m\\n" "$file"
   done
   printf "\\033[31;1mPlease run \`find s2n-tls/ -name '*.c' -o -name '*.h' -exec chmod 644 {} \\;\` to fix all file modes.\\033[0m\\n"
+fi
+
+#############################################
+## Assert "extern" is not added to function declarations unnecessarily.
+#############################################
+S2N_FILES_ASSERT_NO_UNNECESSARY_EXTERNS=$(find "$PWD" -type f -name "s2n*.[h]" \! -path "*/api/*" \! -path "*/bindings/*")
+S2N_UNNECESSARY_EXTERNS=$(grep -REs "extern (.*?) (.*?)\(" $S2N_FILES_ASSERT_NO_UNNECESSARY_EXTERNS)
+if [[ -n $S2N_UNNECESSARY_EXTERNS ]]; then
+  FAILED=1
+  echo "Found unnecessary 'extern' in function declaration"
+  echo "$S2N_UNNECESSARY_EXTERNS"
 fi
 
 if [ $FAILED == 1 ]; then
