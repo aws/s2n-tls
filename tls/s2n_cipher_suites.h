@@ -157,12 +157,12 @@ extern struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256;
 
-extern int s2n_cipher_suites_init(void);
+int s2n_cipher_suites_init(void);
 S2N_RESULT s2n_cipher_suites_cleanup(void);
 S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t *iana, size_t iana_len, struct s2n_cipher_suite **cipher_suite);
 bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite);
-extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
-extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
-extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
+int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
+int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
+int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
 bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher);
 bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher);

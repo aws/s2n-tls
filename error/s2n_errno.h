@@ -355,10 +355,10 @@ struct s2n_stacktrace {
     int trace_size;
 };
 
-extern bool s2n_stack_traces_enabled();
-extern int s2n_stack_traces_enabled_set(bool newval);
+bool s2n_stack_traces_enabled();
+int s2n_stack_traces_enabled_set(bool newval);
 
-extern int s2n_calculate_stacktrace(void);
-extern int s2n_print_stacktrace(FILE *fptr);
-extern int s2n_free_stacktrace(void);
-extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
+int s2n_calculate_stacktrace(void);
+int s2n_print_stacktrace(FILE *fptr);
+int s2n_free_stacktrace(void);
+int s2n_get_stacktrace(struct s2n_stacktrace *trace);
