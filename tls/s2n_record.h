@@ -81,7 +81,7 @@
 S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_record_size);
 S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size);
 S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size);
-int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
+S2N_RESULT s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write);
 int s2n_record_parse(struct s2n_connection *conn);
 int s2n_record_header_parse(struct s2n_connection *conn, uint8_t *content_type, uint16_t *fragment_length);

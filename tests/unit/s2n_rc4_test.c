@@ -69,13 +69,14 @@ int main(int argc, char **argv)
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
             }
 
             uint16_t predicted_length = bytes_written + 20;
