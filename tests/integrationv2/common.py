@@ -305,8 +305,9 @@ class Ciphers(object):
         "PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_0_2020_12 = Cipher(
         "PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
+
     SECURITY_POLICY_20210816 = Cipher(
-        "20210816", Protocols.TLS12, False, False, s2n=True, pq=True)
+        "20210816", Protocols.TLS12, False, False, s2n=True, pq=False)
 
 
     @staticmethod

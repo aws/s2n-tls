@@ -199,7 +199,7 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, othe
 
 @pytest.mark.uncollect_if(func=skip_ciphers)
 @pytest.mark.parametrize("cipher", [Ciphers.SECURITY_POLICY_20210816], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
+@pytest.mark.parametrize("provider", [OpenSSL])
 @pytest.mark.parametrize("protocol", [Protocols.TLS12], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 # RSA_SHA224 signature algorithm is not included in security_policy_20210816[].
@@ -217,10 +217,6 @@ def test_s2n_server_tls12_signature_algorithm_fallback(managed_process, cipher, 
         signature_algorithm=signature,
         protocol=protocol
     )
-
-    if provider == GnuTLS:
-        # GnuTLS fails the CA verification. It must be run with this check disabled.
-        client_options.extra_flags = ["--no-ca-verification"]
 
     server_options = copy.copy(client_options)
     server_options.extra_flags = None
