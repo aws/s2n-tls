@@ -7,8 +7,9 @@ use std::{env, process::Command, time::Duration};
 pub fn s2nd(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2nd");
     let s2nd_env: &str = &env::var("S2ND_ARGS").unwrap();
+    let s2nd_test_name: &str = &env::var("S2ND_TEST_NAME").unwrap();
+    let test_name = format!("s2nd_{}", s2nd_test_name);
     let s2nd_split = s2nd_env.split(' ').collect::<Vec<&str>>();
-    let test_name = format!("s2nd_{}_{}", s2nd_split[5], s2nd_split[6]);
     group.bench_function(test_name, move |b| {
         b.iter(|| {
             let s2nd_argvec = s2nd_split.clone();
