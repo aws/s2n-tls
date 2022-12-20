@@ -196,7 +196,7 @@ static uint8_t certificate_too_large[] = {
     0x00, 0x00, 0x10
 };
 
-extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_len, uint8_t *server_cert, uint32_t server_cert_len)
 {
