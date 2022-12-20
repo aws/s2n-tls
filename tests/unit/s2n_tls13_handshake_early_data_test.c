@@ -294,7 +294,7 @@ int main()
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_implicit_iv, iv.data, iv.size);
 
             /* Check payload encrypted correctly */
-            EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &payload));
+            EXPECT_OK(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &payload));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), complete_record.size);
             EXPECT_BYTEARRAY_EQUAL(client_conn->out.blob.data, complete_record.data, complete_record.size);
 

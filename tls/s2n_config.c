@@ -625,7 +625,7 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     return 0;
 }
 
-extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
+int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
 {
     POSIX_ENSURE_REF(clock_fn);
 
@@ -635,7 +635,7 @@ extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_n
     return 0;
 }
 
-extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
+int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
 {
     POSIX_ENSURE_REF(clock_fn);
 

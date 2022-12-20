@@ -23,6 +23,6 @@ struct s2n_timer {
     uint64_t time;
 };
 
-extern S2N_RESULT s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer);
-extern S2N_RESULT s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds);
-extern S2N_RESULT s2n_timer_reset(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds);
+S2N_RESULT s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer);
+S2N_RESULT s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds);
+S2N_RESULT s2n_timer_reset(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds);

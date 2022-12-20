@@ -98,7 +98,7 @@ WRITE:
         struct s2n_blob alert = { 0 };
         alert.data = conn->reader_alert_out.blob.data;
         alert.size = 2;
-        POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
         POSIX_GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
         POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
 
@@ -111,7 +111,7 @@ WRITE:
         struct s2n_blob alert = { 0 };
         alert.data = conn->writer_alert_out.blob.data;
         alert.size = 2;
-        POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
         POSIX_GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
         POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
 
