@@ -88,8 +88,8 @@ struct s2n_cipher {
     int (*destroy_key)(struct s2n_session_key *key);
 };
 
-extern int s2n_session_key_alloc(struct s2n_session_key *key);
-extern int s2n_session_key_free(struct s2n_session_key *key);
+int s2n_session_key_alloc(struct s2n_session_key *key);
+int s2n_session_key_free(struct s2n_session_key *key);
 
 extern const struct s2n_cipher s2n_null_cipher;
 extern const struct s2n_cipher s2n_rc4;

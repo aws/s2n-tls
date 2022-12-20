@@ -22,11 +22,11 @@
 
 struct s2n_map;
 
-extern struct s2n_map *s2n_map_new();
-extern struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity);
-extern S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
-extern S2N_RESULT s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
-extern S2N_RESULT s2n_map_complete(struct s2n_map *map);
-extern S2N_RESULT s2n_map_unlock(struct s2n_map *map);
-extern S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value, bool *key_found);
-extern S2N_RESULT s2n_map_free(struct s2n_map *map);
+struct s2n_map *s2n_map_new();
+struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity);
+S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
+S2N_RESULT s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
+S2N_RESULT s2n_map_complete(struct s2n_map *map);
+S2N_RESULT s2n_map_unlock(struct s2n_map *map);
+S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value, bool *key_found);
+S2N_RESULT s2n_map_free(struct s2n_map *map);

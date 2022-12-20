@@ -70,15 +70,15 @@ struct s2n_session_ticket {
     uint32_t session_lifetime;
 };
 
-extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN]);
-extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
-extern int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
-extern int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to);
-extern int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from);
-extern int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config);
-extern int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);
-extern int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);
-extern int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key);
+struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN]);
+int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
+int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
+int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to);
+int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from);
+int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config);
+int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);
+int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);
+int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key);
 
 typedef enum {
     S2N_STATE_WITH_SESSION_ID = 0,
@@ -92,8 +92,8 @@ typedef enum {
     S2N_SERIALIZED_FORMAT_TLS12_V3,
 } s2n_serial_format_version;
 
-extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
-extern int s2n_resume_from_cache(struct s2n_connection *conn);
+int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
+int s2n_resume_from_cache(struct s2n_connection *conn);
 S2N_RESULT s2n_store_to_cache(struct s2n_connection *conn);
 S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, size_t *state_size);
 S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_blob *psk_identity,
