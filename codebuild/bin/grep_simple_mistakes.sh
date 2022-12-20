@@ -192,8 +192,8 @@ fi
 #############################################
 ## Assert "extern" is not added to function declarations unnecessarily.
 #############################################
-S2N_FILES_ASSERT_NO_UNNECESSARY_EXTERNS=$(find "$PWD" -type f -name "s2n*.[h]" \! -path "*/api/*" \! -path "*/bindings/*")
-S2N_UNNECESSARY_EXTERNS=$(grep -REs "extern (.*?) (.*?)\(" $S2N_FILES_ASSERT_NO_UNNECESSARY_EXTERNS)
+S2N_UNNECESSARY_EXTERNS=$(find "$PWD" -type f -name "s2n*.[h]" \! -path "*/api/*" \! -path "*/bindings/*" \
+  -exec grep -RE "extern (.*?) (.*?)\(" {} +)
 if [[ -n $S2N_UNNECESSARY_EXTERNS ]]; then
   FAILED=1
   echo "Found unnecessary 'extern' in function declaration"
