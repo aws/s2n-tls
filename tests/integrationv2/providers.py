@@ -378,11 +378,13 @@ class CriterionS2N(S2N):
         # Copy the command arguments to an environment variable for the harness to read.
         if self.options.mode == Provider.ServerMode:
             self.options.env_overrides.update(
-                {'S2ND_ARGS': ' '.join(self.cmd_line)})
+                {'S2ND_ARGS': ' '.join(self.cmd_line),
+                 'S2ND_TEST_NAME': f"{self.options.cipher}_{self.options.host}"})
             self.capture_server_args()
         elif self.options.mode == Provider.ClientMode:
             self.options.env_overrides.update(
-                {'S2NC_ARGS': ' '.join(self.cmd_line)})
+                {'S2NC_ARGS': ' '.join(self.cmd_line),
+                 'S2NC_TEST_NAME': f"{self.options.cipher}_{self.options.host}"})
             if self.criterion_mode == CriterionS2N.criterion_baseline:
                 self.capture_client_args_baseline()
             if self.criterion_mode == CriterionS2N.criterion_delta:
