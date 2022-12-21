@@ -194,18 +194,16 @@ int main(int argc, char **argv)
 
     /* Send buffer was configured too small for even a single record.
      * Send smaller records.
+     *
+     * The minimum buffer size we allow generates a fragment size of 5, to prevent
+     * fragmenting KeyUpdate messages, which are always 5 bytes. At this minimum size,
+     * application data is also fragmented into 5 byte chunks, which is pretty silly,
+     * but is an edge case.
      */
     {
-        /* The minimum buffer size we allow generates a fragment size of 5, to prevent
-         * fragmenting KeyUpdate messages, which are always 5 bytes. At this minimum size,
-         * application data is also fragmented into 5 byte chunks, which is pretty silly,
-         * but is an edge case.
-         */
-        uint32_t min_buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE);
-
         DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(min_buffer_config);
-        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(min_buffer_config, min_buffer_size));
+        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(min_buffer_config, S2N_MIN_SEND_BUFFER_SIZE));
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -230,7 +228,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(context.bytes_sent > send_size);
 
         /* Verify output buffer */
-        EXPECT_EQUAL(conn->out.blob.size, min_buffer_size);
+        EXPECT_EQUAL(conn->out.blob.size, S2N_MIN_SEND_BUFFER_SIZE);
     };
 
     /* Total data fits in multiple records.

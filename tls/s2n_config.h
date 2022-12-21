@@ -23,6 +23,7 @@
 #include "tls/s2n_crl.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_psk.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_renegotiate.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_tls_parameters.h"
@@ -43,6 +44,7 @@
  * The send buffer must be able to hold an unfragmented KeyUpdate message.
  */
 #define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE MAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
+#define S2N_MIN_SEND_BUFFER_SIZE          S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE)
 
 struct s2n_cipher_preferences;
 
