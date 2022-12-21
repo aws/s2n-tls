@@ -45,6 +45,7 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
 #define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600000000000
 
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509_CRL) *, sk_X509_CRL_free);
+DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(GENERAL_NAME) *, GENERAL_NAMES_free);
 
 uint8_t s2n_x509_ocsp_stapling_supported(void)
 {
@@ -213,95 +214,155 @@ int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator,
     return 0;
 }
 
+static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *conn, GENERAL_NAME *current_name, bool *san_found)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(current_name);
+    RESULT_ENSURE_REF(san_found);
+
+    if (current_name->type == GEN_DNS || current_name->type == GEN_URI) {
+        *san_found = true;
+
+        const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
+        size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
+
+        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+
+        return S2N_RESULT_OK;
+    }
+
+    if (current_name->type == GEN_IPADD) {
+        *san_found = true;
+
+        /* try to validate an IP address if it's in the subject alt name. */
+        const unsigned char *ip_addr = current_name->d.iPAddress->data;
+        size_t ip_addr_len = (size_t) current_name->d.iPAddress->length;
+
+        RESULT_STACK_BLOB(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1);
+
+        if (ip_addr_len == 4) {
+            RESULT_GUARD(s2n_inet_ntop(AF_INET, ip_addr, &address));
+        } else if (ip_addr_len == 16) {
+            RESULT_GUARD(s2n_inet_ntop(AF_INET6, ip_addr, &address));
+        } else {
+            /* we aren't able to parse this value so skip it */
+            return S2N_RESULT_ERROR;
+        }
+
+        /* strlen should be safe here since we made sure we were null terminated AND that inet_ntop succeeded */
+        const char *name = (const char *) address.data;
+        size_t name_len = strlen(name);
+
+        RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+
+        return S2N_RESULT_OK;
+    }
+
+    /* we don't understand this entry type so skip it */
+    return S2N_RESULT_ERROR;
+}
+
+static S2N_RESULT s2n_verify_host_information_san(struct s2n_connection *conn, X509 *public_cert, bool *san_found)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(public_cert);
+    RESULT_ENSURE_REF(san_found);
+
+    *san_found = false;
+
+    DEFER_CLEANUP(STACK_OF(GENERAL_NAME) *names_list = NULL, GENERAL_NAMES_free_pointer);
+
+    names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
+
+    int n = sk_GENERAL_NAME_num(names_list);
+    for (int i = 0; i < n; i++) {
+        GENERAL_NAME *current_name = sk_GENERAL_NAME_value(names_list, i);
+
+        /* if we get any valid entries then return */
+        if (s2n_result_is_ok(s2n_verify_host_information_san_entry(conn, current_name, san_found))) {
+            return S2N_RESULT_OK;
+        }
+    }
+
+    /* if an error was set, then don't override it */
+    if (s2n_errno) {
+        return S2N_RESULT_ERROR;
+    }
+
+    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+}
+
+static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection *conn, X509 *public_cert, bool *cn_found)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(public_cert);
+    RESULT_ENSURE_REF(cn_found);
+
+    X509_NAME *subject_name = X509_get_subject_name(public_cert);
+    RESULT_ENSURE(subject_name, S2N_ERR_CERT_UNTRUSTED);
+
+    int next_idx = 0, curr_idx = -1;
+    while ((next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx)) >= 0) {
+        curr_idx = next_idx;
+    }
+
+    RESULT_ENSURE(curr_idx >= 0, S2N_ERR_CERT_UNTRUSTED);
+
+    ASN1_STRING *common_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
+    RESULT_ENSURE(common_name, S2N_ERR_CERT_UNTRUSTED);
+
+    /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
+    RESULT_ENSURE(ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING
+            || ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING
+            || ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING
+            || ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING
+            || ASN1_STRING_type(common_name) == V_ASN1_BMPSTRING, S2N_ERR_CERT_UNTRUSTED);
+
+    /* at this point we have a valid CN value */
+    *cn_found = true;
+
+    char peer_cn[255] = { 0 };
+    size_t len = (size_t) ASN1_STRING_length(common_name);
+
+    RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
+    RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
+    RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+
+    return S2N_RESULT_OK;
+}
+
 /*
  * For each name in the cert. Iterate them. Call the callback. If one returns true, then consider it validated,
  * if none of them return true, the cert is considered invalid.
  */
-static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator, struct s2n_connection *conn, X509 *public_cert)
+static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 *public_cert)
 {
-    (void) validator;
-    uint8_t verified = 0;
-    uint8_t san_found = 0;
+    bool entry_found = false;
 
     /* Check SubjectAltNames before CommonName as per RFC 6125 6.4.4 */
-    STACK_OF(GENERAL_NAME) *names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
-    int n = sk_GENERAL_NAME_num(names_list);
-    for (int i = 0; i < n && !verified; i++) {
-        GENERAL_NAME *current_name = sk_GENERAL_NAME_value(names_list, i);
-        if (current_name->type == GEN_DNS) {
-            san_found = 1;
+    s2n_result result = s2n_verify_host_information_san(conn, public_cert, &entry_found);
 
-            const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
-            size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
-
-            verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
-        } else if (current_name->type == GEN_URI) {
-            const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
-            size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
-
-            verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
-        } else if (current_name->type == GEN_IPADD) {
-            san_found = 1;
-            /* try to validate an IP address if it's in the subject alt name. */
-            const unsigned char *ip_addr = current_name->d.iPAddress->data;
-            size_t ip_addr_len = (size_t) current_name->d.iPAddress->length;
-
-            s2n_result parse_result = S2N_RESULT_ERROR;
-            s2n_stack_blob(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1);
-            if (ip_addr_len == 4) {
-                parse_result = s2n_inet_ntop(AF_INET, ip_addr, &address);
-            } else if (ip_addr_len == 16) {
-                parse_result = s2n_inet_ntop(AF_INET6, ip_addr, &address);
-            }
-
-            /* strlen should be safe here since we made sure we were null terminated AND that inet_ntop succeeded */
-            if (s2n_result_is_ok(parse_result)) {
-                verified = conn->verify_host_fn(
-                        (const char *) address.data,
-                        strlen((const char *) address.data),
-                        conn->data_for_verify_host);
-            }
-        }
+    /* we found at least one SAN so return the result */
+    if (entry_found) {
+        return result;
     }
-
-    GENERAL_NAMES_free(names_list);
 
     /* if no SubjectAltNames of type DNS found, go to the common name. */
-    if (!verified && !san_found) {
-        X509_NAME *subject_name = X509_get_subject_name(public_cert);
-        if (subject_name) {
-            int next_idx = 0, curr_idx = -1;
-            while ((next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx)) >= 0) {
-                curr_idx = next_idx;
-            }
+    result = s2n_verify_host_information_common_name(conn, public_cert, &entry_found);
 
-            if (curr_idx >= 0) {
-                ASN1_STRING *common_name =
-                        X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
-
-                if (common_name) {
-                    char peer_cn[255];
-                    static size_t peer_cn_size = sizeof(peer_cn);
-                    POSIX_CHECKED_MEMSET(&peer_cn, 0, peer_cn_size);
-
-                    /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
-                    if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING
-                            || ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING
-                            || ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING
-                            || ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING
-                            || ASN1_STRING_type(common_name) == V_ASN1_BMPSTRING) {
-                        size_t len = (size_t) ASN1_STRING_length(common_name);
-
-                        POSIX_ENSURE_LTE(len, sizeof(peer_cn) - 1);
-                        POSIX_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
-                        verified = conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host);
-                    }
-                }
-            }
-        }
+    /* we found a CN so return the result */
+    if (entry_found) {
+        return result;
     }
 
-    return verified;
+    /* make a null-terminated string in case the callback tries to use strlen */
+    const char *name = "\0";
+    size_t name_len = 0;
+
+    /* at this point, we don't have anything to identify the certificate with so pass an empty string to the callback */
+    RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
+
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
@@ -387,7 +448,7 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     RESULT_ENSURE_REF(leaf);
 
     if (conn->verify_host_fn) {
-        RESULT_ENSURE(s2n_verify_host_information(validator, conn, leaf), S2N_ERR_CERT_UNTRUSTED);
+        RESULT_GUARD(s2n_verify_host_information(conn, leaf));
     }
 
     RESULT_GUARD_OSSL(X509_STORE_CTX_init(validator->store_ctx, validator->trust_store->trust_store, leaf,

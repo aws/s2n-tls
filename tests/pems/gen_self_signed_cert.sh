@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -21,7 +21,9 @@ usage() {
 Options:
 --user-type Server or client depending on intended usage of the cert
 --hash-alg The type of hash algorithm to use to sign the cert in openssl format, ex; sha256
---san A DNS type subject alternative name to add to the cert. Can be repeated.
+--dns A DNS type subject alternative name to add to the cert. Can be repeated.
+--ip An IP type subject alternative name to add to the cert. Can be repeated.
+--uri A URI type subject alternative name to add to the cert. Can be repeated.
 --cn  The CN to add to the cert
 --key-type The type of key for the generated certificate to have. Either rsa or ecdsa.
 --rsa-key-size Size of rsa key for generated certificate.
@@ -31,8 +33,15 @@ Options:
     exit 0;
 }
 
+GETOPT="getopt"
+
+# use gnu-getopt on macos
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    GETOPT="/usr/local/opt/gnu-getopt/bin/getopt"
+fi
+
 # This only works with gnu getopt.
-PARSED_OPTS=`getopt -o vdn: --long help,user-type:,rsa-key-size:,curve-name:,hash-alg:,san:,cn:,key-type:,prefix: -n 'parse-options' -- "$@"`
+PARSED_OPTS=`$GETOPT -o vdn: --long help,user-type:,rsa-key-size:,curve-name:,hash-alg:,ip:,uri:,dns:,cn:,key-type:,prefix: -n 'parse-options' -- "$@"`
 eval set -- "$PARSED_OPTS"
 
 USER_TYPE="server"
@@ -47,10 +56,10 @@ PREFIX=
 while true; do
   case "$1" in
     --help ) usage ;;
-    # Will be picked up in "cert_config.cfg"
     --cn ) CN="$2" ; shift 2 ;;
-    # Will be picked up in "cert_config.cfg"
-    --san ) SANS="$SANS""DNS:$2,"  ; shift 2 ;;
+    --dns ) SANS="$SANS""DNS:$2,"  ; shift 2 ;;
+    --ip ) SANS="$SANS""IP:$2,"  ; shift 2 ;;
+    --uri ) SANS="$SANS""URI:$2,"  ; shift 2 ;;
     --hash-alg )    HASH_ALG="$2" ; shift 2 ;;
     --key-type ) KEY_TYPE="$2" ; shift 2 ;;
     --rsa-key-size ) RSA_KEY_SIZE="$2" ; shift 2 ;;
@@ -85,16 +94,50 @@ else
     usage ;
 fi
 
-export CN;
-export SANS;
-export KEY_USAGE;
+config="""
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = US
+ST = WA
+L = Seattle
+O = Amazon
+OU = s2n
+"""
+
+if [[ ! -z "$CN" ]]; then
+    config+="CN = $CN"
+fi
+
+config+="""
+
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment, digitalSignature
+extendedKeyUsage = $KEY_USAGE
+"""
+
+if [[ ! -z "$SANS" ]]; then
+    config+="subjectAltName = $SANS"
+fi
+
+cert_conf_path=$(mktemp)
+echo "$config" > $cert_conf_path
+
+# append an underscore if there's a prefix
+if [[ ! -z "$PREFIX" ]]; then
+  PREFIX="${PREFIX}_"
+fi
+
 if [ "$KEY_TYPE" == "rsa" ]; then
-    openssl req -x509 -config cert_config.cfg -newkey rsa:${RSA_KEY_SIZE} -${HASH_ALG} -nodes -keyout ${PREFIX}_rsa_key.pem -out ${PREFIX}_rsa_cert.pem -days 36500
+    openssl req -x509 -config "$cert_conf_path" -newkey rsa:${RSA_KEY_SIZE} -${HASH_ALG} -nodes -keyout ${PREFIX}rsa_key.pem -out ${PREFIX}rsa_cert.pem -days 36500
 elif [ "$KEY_TYPE" == "ecdsa" ]; then
-    openssl ecparam -out "${PREFIX}_ecdsa_key.pem" -name "$CURVE_NAME" -genkey
-    openssl req -new -config cert_config.cfg -days 36500 -nodes -x509 -key "${PREFIX}_ecdsa_key.pem" -out "${PREFIX}_ecdsa_cert.pem"
+    openssl ecparam -out "${PREFIX}ecdsa_key.pem" -name "$CURVE_NAME" -genkey
+    openssl req -new -config "$cert_conf_path" -days 36500 -nodes -x509 -key "${PREFIX}ecdsa_key.pem" -out "${PREFIX}ecdsa_cert.pem"
 else
     echo "Incorrect key-type: $KEY_TYPE"
     usage ;
 fi
 
+rm $cert_conf_path
