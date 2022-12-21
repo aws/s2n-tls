@@ -1,1 +1,3 @@
 /codebuild @dougch
+
+/tests/cbmc @feliperodri @danielsn @tautschnig @remi-delmas-3000
