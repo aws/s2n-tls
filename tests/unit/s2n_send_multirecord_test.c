@@ -165,32 +165,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
             EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
         };
-
-        /* Flush if buffer can't hold alert record */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-            /* Leave sufficient space for an alert */
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
-            size_t alert_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_ALERT_LENGTH);
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, buffer_size - alert_record_size));
-
-            /* Insufficient space for max size record,
-             * so set fragmentation length to minimum so that it's not a problem.
-             */
-            EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
-            conn->max_outgoing_fragment_length = 1;
-            EXPECT_TRUE(conn->max_outgoing_fragment_length < S2N_ALERT_LENGTH);
-
-            /* Sufficient space for alert */
-            EXPECT_FALSE(s2n_should_flush(conn, buffer_size));
-
-            /* Insufficient space for alert */
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->out, 1));
-            EXPECT_TRUE(s2n_should_flush(conn, buffer_size));
-        };
     };
 
     /* Total data fits in a single record.
@@ -478,6 +452,49 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, buffer_size);
+    };
+
+    /* Test: Alert records are not buffered with ApplicationData records
+     *
+     * We flush before sending an alert, even if there is sufficient
+     * space for the alert record in the send buffer.
+     *
+     * If this behavior changed, then s2n_should_flush would need to consider
+     * the size of a possible alert.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        struct s2n_send_context context = context_all_ok;
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
+
+        const uint32_t send_size = 10;
+        const uint32_t max_app_data_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(send_size);
+        const uint32_t max_alert_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_ALERT_LENGTH);
+        const uint32_t min_send_buffer_size = max_app_data_record_size + max_alert_record_size;
+        EXPECT_TRUE(min_send_buffer_size <= buffer_size);
+
+        /* Queue the alert */
+        EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
+
+        /* Send the Application Data and Alert */
+        s2n_blocked_status blocked = 0;
+        EXPECT_EQUAL(s2n_send(conn, large_test_data, send_size, &blocked), send_size);
+
+        /* We expect two separate send calls: one for the application data record
+         * and one for the alert record.
+         */
+        EXPECT_EQUAL(context.calls, 2);
+
+        /* We expect that the output buffer never contained all data sent,
+         * since that data was split between two records.
+         */
+        EXPECT_TRUE(conn->out.high_water_mark < context.bytes_sent);
     };
 
     END_TEST();

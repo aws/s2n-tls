@@ -29,6 +29,16 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
+/*
+ * Determine whether there is currently sufficient space in the send buffer to construct
+ * another record, or if we need to flush now.
+ *
+ * We only buffer multiple records when sending application data, NOT when
+ * sending handshake messages or alerts. If the next record is a post-handshake message
+ * or an alert, then the send buffer will be flushed regardless of the result of this method.
+ * Therefore we don't need to consider the size of any potential KeyUpdate messages,
+ * NewSessionTicket messages, or Alerts.
+ */
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 {
     /* Always flush if not buffering multiple records. */
@@ -48,12 +58,6 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
         return true;
     }
     max_payload_size = MIN(max_payload_size, remaining_payload_size);
-
-    /* We can't guarantee that the next record won't be an alert.
-     * TLS1.3 does not allow alerts to be fragmented, and some TLS implementations
-     * (for example, GnuTLS) reject fragmented TLS1.2 alerts.
-     */
-    max_payload_size = MAX(max_payload_size, S2N_ALERT_LENGTH);
 
     uint16_t max_write_size = 0;
     if (!s2n_result_is_ok(s2n_record_max_write_size(conn, max_payload_size, &max_write_size))) {
