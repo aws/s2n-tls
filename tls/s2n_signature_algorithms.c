@@ -24,7 +24,43 @@
 #include "tls/s2n_kex.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_security_policies.h"
 #include "utils/s2n_safety.h"
+
+int s2n_signature_schemes_init(void) {
+    POSIX_ENSURE_REF(security_policy_selection);
+    for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+        const struct s2n_security_policy *security_policy = security_policy_selection[i].security_policy;
+        POSIX_ENSURE_REF(security_policy);
+        const struct s2n_signature_preferences *preferences = security_policy->signature_preferences;
+        POSIX_ENSURE_REF(preferences);
+        for (int j = 0; j < preferences->count; j++) {
+            const struct s2n_signature_scheme *scheme = preferences->signature_schemes[j];
+            POSIX_ENSURE_REF(scheme);
+            /*
+             * Check that all possible s2n_signature_schemes (TODO: include certificate_signature_preferences?)
+             * have a reasonable minimum and maximum protocol version. This logic mirrors that which we have in
+             * the related unit test. But here the logic is inverted and doesn't rely on the the min and max.
+             */
+            uint8_t max_version = scheme->maximum_protocol_version;
+            uint8_t min_version = scheme->minimum_protocol_version;
+            POSIX_ENSURE(max_version == S2N_UNKNOWN_PROTOCOL_VERSION || min_version <= max_version, S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            /* IMPLIES(a,b) ===> a => b */
+            #define IMPLIES(a, b) (!(a) || ((a) && (b)))
+            /* TODO: invert the logic? Is this readable? */
+            if (!(scheme->hash_alg == S2N_HASH_SHA1
+                    && scheme->sig_alg == S2N_SIGNATURE_RSA
+                    && IMPLIES(scheme->sig_alg == S2N_SIGNATURE_ECDSA, scheme->signature_curve != NULL))) {
+                POSIX_ENSURE(!(max_version == S2N_UNKNOWN_PROTOCOL_VERSION || max_version >= S2N_TLS13), S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            }
+            #undef IMPLIES
+            if (!(scheme->signature_curve == NULL
+                        && scheme->sig_alg != S2N_SIGNATURE_RSA_PSS_PSS)) {
+                POSIX_ENSURE(!(min_version < S2N_TLS13), S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            }
+        }
+    }
+}
 
 static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
