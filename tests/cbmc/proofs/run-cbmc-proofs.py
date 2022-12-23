@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import uuid
 
 from lib.summarize import print_proof_results
 
@@ -153,8 +154,12 @@ def get_args():
     }, {
             "flags": ["--version"],
             "action": "version",
-            "version": "CBMC starter kit 2.5",
+            "version": "CBMC starter kit 2.8",
             "help": "display version and exit"
+    }, {
+            "flags": ["--no-coverage"],
+            "action": "store_true",
+            "help": "do property checking without coverage checking"
     }]:
         flags = arg.pop("flags")
         pars.add_argument(*flags, **arg)
@@ -297,7 +302,7 @@ def should_enable_pools(litani_caps, args):
 
 
 async def configure_proof_dirs( # pylint: disable=too-many-arguments
-    queue, counter, proof_uids, enable_pools, enable_memory_profiling, debug):
+        queue, counter, proof_uids, enable_pools, enable_memory_profiling, report_target, debug):
     while True:
         print_counter(counter)
         path = str(await queue.get())
@@ -311,7 +316,7 @@ async def configure_proof_dirs( # pylint: disable=too-many-arguments
         # Allow interactive tasks to preempt proof configuration
         proc = await asyncio.create_subprocess_exec(
             "nice", "-n", "15", "make", *pools,
-            *profiling, "-B", "_report", "" if debug else "--quiet", cwd=path,
+            *profiling, "-B", report_target, "" if debug else "--quiet", cwd=path,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await proc.communicate()
         logging.debug("returncode: %s", str(proc.returncode))
@@ -327,6 +332,22 @@ async def configure_proof_dirs( # pylint: disable=too-many-arguments
 
         print_counter(counter)
         queue.task_done()
+
+
+def add_tool_version_job():
+    cmd = [
+        "litani", "add-job",
+        "--command", "cbmc-starter-kit-print-tool-versions .",
+        "--description", "printing out tool versions",
+        "--phony-outputs", str(uuid.uuid4()),
+        "--pipeline-name", "print_tool_versions",
+        "--ci-stage", "report",
+        "--tags", "front-page-text",
+    ]
+    proc = subprocess.run(cmd)
+    if proc.returncode:
+        logging.critical("Could not add tool version printing job")
+        sys.exit(1)
 
 
 async def main(): # pylint: disable=too-many-locals
@@ -388,14 +409,17 @@ async def main(): # pylint: disable=too-many-locals
     tasks = []
 
     enable_memory_profiling = should_enable_memory_profiling(litani_caps, args)
+    report_target = "_report_no_coverage" if args.no_coverage else "_report"
 
     for _ in range(task_pool_size()):
         task = asyncio.create_task(configure_proof_dirs(
             proof_queue, counter, proof_uids, enable_pools,
-            enable_memory_profiling, args.debug))
+            enable_memory_profiling, report_target, args.debug))
         tasks.append(task)
 
     await proof_queue.join()
+
+    add_tool_version_job()
 
     print_counter(counter)
     print("", file=sys.stderr)
