@@ -26,45 +26,10 @@
 #include "tls/s2n_signature_scheme.h"
 #include "utils/s2n_safety.h"
 
-int s2n_signature_schemes_init(void)
-{
-    POSIX_ENSURE_REF(security_policy_selection);
-    for (int i = 0; security_policy_selection[i].version != NULL; i++) {
-        const struct s2n_security_policy *security_policy = security_policy_selection[i].security_policy;
-        POSIX_ENSURE_REF(security_policy);
-        const struct s2n_signature_preferences *preferences = security_policy->signature_preferences;
-        POSIX_ENSURE_REF(preferences);
-        for (int j = 0; j < preferences->count; j++) {
-            const struct s2n_signature_scheme *scheme = preferences->signature_schemes[j];
-            POSIX_ENSURE_REF(scheme);
-            /*
-             * Check that all possible s2n_signature_schemes (TODO: include certificate_signature_preferences?)
-             * have a reasonable minimum and maximum protocol version. This logic mirrors that which we have in
-             * the related unit test. But here the logic is inverted and doesn't rely on the the min and max.
-             */
-            uint8_t max_version = scheme->maximum_protocol_version;
-            uint8_t min_version = scheme->minimum_protocol_version;
-            POSIX_ENSURE(max_version == S2N_UNKNOWN_PROTOCOL_VERSION || min_version <= max_version, S2N_ERR_INVALID_SIGNATURE_SCHEME);
-/* IMPLIES(a,b) ===> a => b */
-#define IMPLIES(a, b) (!(a) || ((a) && (b)))
-            /* TODO: invert the logic? Is this readable? */
-            if (!(scheme->hash_alg == S2N_HASH_SHA1
-                        && scheme->sig_alg == S2N_SIGNATURE_RSA
-                        && IMPLIES(scheme->sig_alg == S2N_SIGNATURE_ECDSA, scheme->signature_curve != NULL))) {
-                POSIX_ENSURE(!(max_version == S2N_UNKNOWN_PROTOCOL_VERSION || max_version >= S2N_TLS13), S2N_ERR_INVALID_SIGNATURE_SCHEME);
-            }
-#undef IMPLIES
-            if (!(scheme->signature_curve == NULL
-                        && scheme->sig_alg != S2N_SIGNATURE_RSA_PSS_PSS)) {
-                POSIX_ENSURE(!(min_version < S2N_TLS13), S2N_ERR_INVALID_SIGNATURE_SCHEME);
-            }
-        }
-    }
-    return 0;
-}
-
 static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
     POSIX_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
@@ -87,11 +52,26 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
 static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
     POSIX_ENSURE_REF(scheme);
+    POSIX_ENSURE_REF(conn);
 
     POSIX_GUARD(s2n_signature_scheme_valid_to_offer(conn, scheme));
 
     if (scheme->maximum_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
         POSIX_ENSURE_LTE(conn->actual_protocol_version, scheme->maximum_protocol_version);
+    }
+
+    if (conn->actual_protocol_version >= S2N_TLS13
+            || conn->actual_protocol_version == S2N_UNKNOWN_PROTOCOL_VERSION) {
+        POSIX_ENSURE_NE(scheme->hash_alg, S2N_HASH_SHA1);
+        POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA);
+        if (scheme->sig_alg == S2N_SIGNATURE_ECDSA) {
+            POSIX_ENSURE_REF(scheme->signature_curve);
+        }
+    }
+
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        POSIX_ENSURE_EQ(scheme->signature_curve, NULL);
+        POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
     return 0;

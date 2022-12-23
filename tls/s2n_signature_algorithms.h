@@ -28,8 +28,6 @@ struct s2n_sig_scheme_list {
     uint8_t len;
 };
 
-int s2n_signature_schemes_init(void);
-
 int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out, s2n_mode signer);
 int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out);
 

@@ -62,6 +62,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         struct s2n_connection *verifying_conn = NULL, *sending_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
+        verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_NOT_NULL(sending_conn = s2n_connection_new(verifier_mode == S2N_CLIENT ? S2N_SERVER : S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
@@ -154,6 +155,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         struct s2n_connection *verifying_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
+        verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
@@ -222,6 +224,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         struct s2n_connection *verifying_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
+        verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
@@ -292,6 +295,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         struct s2n_connection *verifying_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
+        verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
