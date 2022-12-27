@@ -82,5 +82,8 @@ jobs:
         with:
           args: --recursive --in-place --exit-code ./tests/integrationv2
       - name: Fail if autopep8 made changes
+	env:
+          STEPS_CONTEXT: ${{ toJson(steps) }}
+        run: echo "Autopep8: $STEPS_CONTEXT"
         if: steps.autopep8.outputs.exit-code == 2
         run: exit 1
