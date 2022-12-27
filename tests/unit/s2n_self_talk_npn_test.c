@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* Client and server both support NPN. Wipe ALPN with the Client Hello callback so only NPN is received.
      * NPN is negotiated and not ALPN. */
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     /* Client and server both support NPN, however, they have no protocols in common.
      * Connection negotiates client's top protocol. */
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 

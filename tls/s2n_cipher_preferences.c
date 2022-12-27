@@ -14,14 +14,15 @@
  */
 
 #include "tls/s2n_cipher_preferences.h"
-#include "api/s2n.h"
+
 #include <stdint.h>
 #include <strings.h>
+
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
-
-#include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
 /* clang-format off */
@@ -992,6 +993,31 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016 =
     .allow_chacha20_boosting = false,
 };
 
+struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2017[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2017 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2017),
+    .suites = cipher_suites_cloudfront_tls_1_2_2017,
+    .allow_chacha20_boosting = false,
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2018[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
@@ -1279,6 +1305,13 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021 =
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2021),
     .suites = cipher_suites_cloudfront_tls_1_2_2021,
     .allow_chacha20_boosting = false,
+};
+
+/* Duplicate of cipher_preferences_cloudfront_tls_1_2_2021 but with allow_chacha20_boosting enabled */
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2021),
+    .suites = cipher_suites_cloudfront_tls_1_2_2021,
+    .allow_chacha20_boosting = true,
 };
 
 /* Based on cipher_preferences_cloudfront_tls_1_0_2016, but with ordering changed and AES256-SHA256, DES-CBC3-SHA, and

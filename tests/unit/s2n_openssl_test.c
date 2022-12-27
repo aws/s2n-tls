@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "crypto/s2n_openssl.h"
 
-int main(int argc, char **argv)
+#include "s2n_test.h"
+
+int main(int argc, char** argv)
 {
     BEGIN_TEST();
 

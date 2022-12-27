@@ -22,29 +22,29 @@
     #define _GNU_SOURCE
 #endif
 
-#include "s2n_test.h"
-#include "api/s2n.h"
-#include "utils/s2n_fork_detection.h"
 #include "utils/s2n_random.h"
 
 #include <pthread.h>
-#include <sys/wait.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 #include <unistd.h>
+
+#include "api/s2n.h"
+#include "s2n_test.h"
+#include "utils/s2n_fork_detection.h"
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
 
-#define CLONE_TEST_NO 0
-#define CLONE_TEST_YES 1
+#define CLONE_TEST_NO                   0
+#define CLONE_TEST_YES                  1
 #define CLONE_TEST_DETERMINE_AT_RUNTIME 2
 
-#define RANDOM_GENERATE_DATA_SIZE 100
+#define RANDOM_GENERATE_DATA_SIZE     100
 #define MAX_RANDOM_GENERATE_DATA_SIZE 5120
 
-#define NUMBER_OF_BOUNDS 10
+#define NUMBER_OF_BOUNDS               10
 #define NUMBER_OF_RANGE_FUNCTION_CALLS 200
-#define MAX_REPEATED_OUTPUT 4
-
+#define MAX_REPEATED_OUTPUT            4
 
 struct random_test_case {
     const char *test_case_label;
@@ -102,8 +102,8 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
     uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     uint8_t bit_set_run[8];
     uint8_t data[MAX_RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob = { .data = data }; 
-    int trailing_zeros[8] = {0};
+    struct s2n_blob blob = { .data = data };
+    int trailing_zeros[8] = { 0 };
 
     for (int size = 0; size < MAX_RANDOM_GENERATE_DATA_SIZE; size++) {
         blob.size = size;
@@ -154,23 +154,21 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
 
 int qsort_comparator(const void *pval1, const void *pval2)
 {
-    const uint64_t val1 = *(const uint64_t*) pval1;
-    const uint64_t val2 = *(const uint64_t*) pval2;
+    const uint64_t val1 = *(const uint64_t *) pval1;
+    const uint64_t val2 = *(const uint64_t *) pval2;
 
     if (val1 < val2) {
         return -1;
-    }
-    else if (val1 > val2) {
+    } else if (val1 > val2) {
         return 1;
-    }
-    else {
+    } else {
         return 0;
     }
 }
 
 static S2N_RESULT s2n_tests_get_range(void)
 {
-    uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS] = {0};
+    uint64_t range_results[NUMBER_OF_RANGE_FUNCTION_CALLS] = { 0 };
     uint64_t current_output = 0;
     /* The type of the `bound` parameter in s2n_public_random() is signed */
     int64_t chosen_upper_bound = 0;
@@ -199,7 +197,6 @@ static S2N_RESULT s2n_tests_get_range(void)
      */
     int64_t minimal_upper_bound = (int64_t) 0x40000000 * (int64_t) NUMBER_OF_RANGE_FUNCTION_CALLS;
     for (size_t bound_ctr = 0; bound_ctr < NUMBER_OF_BOUNDS; bound_ctr++) {
-
         /* chosen_upper_bound is supposedly chosen uniformly at random and
          * minimal_upper_bound is only 2^30 * NUMBER_OF_RANGE_FUNCTION_CALLS, so
          * this should not iterate for too long
@@ -237,12 +234,11 @@ static S2N_RESULT s2n_tests_get_range(void)
          * different value.
          */
         qsort(range_results, NUMBER_OF_RANGE_FUNCTION_CALLS, sizeof(uint64_t),
-            qsort_comparator);
+                qsort_comparator);
         uint64_t current_value = range_results[0];
         uint64_t next_value = 0;
         size_t repeat_count = 1;
         for (size_t ctr = 1; ctr < NUMBER_OF_RANGE_FUNCTION_CALLS - 1; ctr++) {
-
             next_value = range_results[ctr];
 
             if (current_value == next_value) {
@@ -263,7 +259,7 @@ static S2N_RESULT s2n_tests_get_range(void)
     return S2N_RESULT_OK;
 }
 
-void * s2n_thread_test_cb(void *thread_comms)
+void *s2n_thread_test_cb(void *thread_comms)
 {
     struct random_communication *thread_comms_ptr = (struct random_communication *) thread_comms;
 
@@ -282,17 +278,15 @@ void * s2n_thread_test_cb(void *thread_comms)
  * different.
  */
 static S2N_RESULT s2n_thread_test(
-    S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
-    S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
+        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+        S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
     uint8_t data[RANDOM_GENERATE_DATA_SIZE];
     struct s2n_blob blob = { .data = data };
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
-    struct random_communication thread_communication_0 =
-        { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
-    struct random_communication thread_communication_1 =
-        { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
+    struct random_communication thread_communication_0 = { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
+    struct random_communication thread_communication_1 = { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
 
     /* Create two threads and have them each grab RANDOM_GENERATE_DATA_SIZE
      * bytes.
@@ -320,7 +314,7 @@ static void s2n_fork_test_generate_randomness(int write_fd, S2N_RESULT (*s2n_get
 {
     uint8_t data[RANDOM_GENERATE_DATA_SIZE];
 
-    struct s2n_blob blob = {.data = data, .size = RANDOM_GENERATE_DATA_SIZE };
+    struct s2n_blob blob = { .data = data, .size = RANDOM_GENERATE_DATA_SIZE };
     EXPECT_OK(s2n_get_random_data_cb(&blob));
 
     /* Write the data we got to our pipe */
@@ -369,8 +363,8 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
  * child process.
  */
 static S2N_RESULT s2n_fork_test(
-    S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
-    S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
+        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+        S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
     pid_t proc_id;
     int pipes[2];
@@ -453,8 +447,8 @@ static int s2n_clone_tests_child_process(void *ipc)
 
 #define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
 static S2N_RESULT s2n_clone_tests(
-    S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
-    S2N_RESULT (*s2n_get_random_data_cb_clone)(struct s2n_blob *blob))
+        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+        S2N_RESULT (*s2n_get_random_data_cb_clone)(struct s2n_blob *blob))
 {
 #if defined(S2N_CLONE_SUPPORTED)
 
@@ -471,10 +465,11 @@ static S2N_RESULT s2n_clone_tests(
     char process_child_stack[PROCESS_CHILD_STACK_SIZE];
     EXPECT_NOT_NULL(process_child_stack);
 
-    struct random_communication ipc =
-        { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
-          .s2n_get_random_data_cb_2 = s2n_get_random_data_cb_clone,
-          .pipes = (int *) pipes };
+    struct random_communication ipc = {
+        .s2n_get_random_data_cb_1 = s2n_get_random_data_cb,
+        .s2n_get_random_data_cb_2 = s2n_get_random_data_cb_clone,
+        .pipes = (int *) pipes
+    };
 
     proc_id = clone(s2n_clone_tests_child_process, (void *) (process_child_stack + PROCESS_CHILD_STACK_SIZE), 0, (void *) &ipc);
     EXPECT_NOT_EQUAL(proc_id, -1);
@@ -484,8 +479,8 @@ static S2N_RESULT s2n_clone_tests(
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_execute_clone_tests(void) {
-
+static S2N_RESULT s2n_execute_clone_tests(void)
+{
     EXPECT_OK(s2n_clone_tests(s2n_get_public_random_data, s2n_get_public_random_data));
     EXPECT_OK(s2n_clone_tests(s2n_get_private_random_data, s2n_get_private_random_data));
     EXPECT_OK(s2n_clone_tests(s2n_get_public_random_data, s2n_get_private_random_data));
@@ -556,8 +551,7 @@ static int s2n_common_tests(struct random_test_case *test_case)
     if (test_case->test_case_must_pass_clone_test == CLONE_TEST_YES) {
         EXPECT_EQUAL(s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported(), true);
         EXPECT_OK(s2n_execute_clone_tests());
-    }
-    else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
+    } else if (test_case->test_case_must_pass_clone_test == CLONE_TEST_DETERMINE_AT_RUNTIME) {
         if (s2n_is_madv_wipeonfork_supported() || s2n_is_map_inherit_zero_supported()) {
             EXPECT_OK(s2n_execute_clone_tests());
         }
@@ -573,7 +567,7 @@ static int s2n_common_tests(struct random_test_case *test_case)
     /* Special range function tests */
     EXPECT_OK(s2n_tests_get_range());
 
-   /* Try to cleanup in the current thread and gather random data again for
+    /* Try to cleanup in the current thread and gather random data again for
      * each of the public functions. We did not call s2n_rand_cleanup(), so this
      * should still work properly.
      */
@@ -719,15 +713,15 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
 }
 
 struct random_test_case random_test_cases[] = {
-    {"Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
-    {"Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS},
-    {"Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS},
-    {"Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES, EXIT_SUCCESS},
-    {"Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES, EXIT_SUCCESS},
+    { "Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
+    { "Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
+    { "Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS },
+    { "Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES, EXIT_SUCCESS },
+    { "Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES, EXIT_SUCCESS },
     /* The s2n FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need
      * to use 1 below and in s2n_random_test_case_failure_cb().
      */
-    {"Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1},
+    { "Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1 },
 };
 
 int main(int argc, char **argv)
@@ -741,7 +735,6 @@ int main(int argc, char **argv)
      * are created before calling into the fork detection code.
      */
     for (size_t i = 0; i < s2n_array_len(random_test_cases); i++) {
-
         pid_t proc_id = 0;
 
         proc_id = fork();
@@ -757,8 +750,7 @@ int main(int argc, char **argv)
              * Also prevents child from creating more children.
              */
             exit(EXIT_SUCCESS);
-        }
-        else {
+        } else {
             s2n_verify_child_exit_status(proc_id, random_test_cases[i].expected_return_status);
         }
     }

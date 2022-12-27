@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include "pq-crypto/s2n_pq.h"
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/s2n_security_policies.h"
-#include "pq-crypto/s2n_pq.h"
 
 int main(int argc, char **argv)
 {
@@ -25,9 +24,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const char *pq_security_policy_versions[] = {
-            "PQ-TLS-1-0-2021-05-24",
-            "PQ-TLS-1-0-2021-05-25",
-            "PQ-TLS-1-0-2021-05-26",
+        "PQ-TLS-1-0-2021-05-24",
+        "PQ-TLS-1-0-2021-05-25",
+        "PQ-TLS-1-0-2021-05-26",
     };
 
     for (size_t policy_index = 0; policy_index < s2n_array_len(pq_security_policy_versions); policy_index++) {
@@ -53,7 +52,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test send */
         {
@@ -81,7 +80,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test receive - malformed length */
         {
@@ -101,7 +100,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test receive */
         {
@@ -117,7 +116,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_pq_kem_extension.recv(conn, &stuffer));
 
             if (s2n_pq_is_enabled()) {
-                EXPECT_EQUAL(conn->kex_params.client_pq_kem_extension.size,kem_preferences->kem_count * sizeof(kem_extension_size));
+                EXPECT_EQUAL(conn->kex_params.client_pq_kem_extension.size, kem_preferences->kem_count * sizeof(kem_extension_size));
                 EXPECT_NOT_NULL(conn->kex_params.client_pq_kem_extension.data);
                 EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
             } else {
@@ -128,7 +127,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
     }
 
     END_TEST();

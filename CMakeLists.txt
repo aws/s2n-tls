@@ -19,11 +19,11 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
-
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+option(S2N_AWSLC_KYBER_UNSTABLE "Prefer the AWS-LC provided PQ implementation." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -261,7 +261,7 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wa,--noexecstack
+        -Wno-missing-braces -Wno-strict-prototypes -Wa,--noexecstack
 )
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
@@ -425,6 +425,19 @@ try_compile(
 
 if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
+endif()
+
+# Determine if Kyber512 implementation from AWS-LC is available
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_KYBER_512
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kyber_512.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+if(S2N_AWSLC_KYBER_UNSTABLE AND LIBCRYPTO_SUPPORTS_EVP_KYBER_512)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_KYBER512)
 endif()
 
 if (NOT DEFINED CMAKE_AR)

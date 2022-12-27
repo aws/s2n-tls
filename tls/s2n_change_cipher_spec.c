@@ -16,17 +16,14 @@
 #include <stdint.h>
 
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_safety.h"
 
 /* From RFC5246 7.1: https://tools.ietf.org/html/rfc5246#section-7.1 */
-#define CHANGE_CIPHER_SPEC_TYPE  1
+#define CHANGE_CIPHER_SPEC_TYPE 1
 
 int s2n_basic_ccs_recv(struct s2n_connection *conn)
 {
@@ -46,7 +43,7 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_basic_ccs_recv(conn));
 
     /* Zero the sequence number */
-    struct s2n_blob seq = {.data = conn->secure->client_sequence_number,.size = sizeof(conn->secure->client_sequence_number) };
+    struct s2n_blob seq = { .data = conn->secure->client_sequence_number, .size = sizeof(conn->secure->client_sequence_number) };
     POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Update the client to use the cipher-suite */
@@ -68,7 +65,7 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_basic_ccs_recv(conn));
 
     /* Zero the sequence number */
-    struct s2n_blob seq = {.data = conn->secure->server_sequence_number,.size = sizeof(conn->secure->server_sequence_number) };
+    struct s2n_blob seq = { .data = conn->secure->server_sequence_number, .size = sizeof(conn->secure->server_sequence_number) };
     POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */

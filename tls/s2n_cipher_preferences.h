@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls13.h"
@@ -87,9 +88,11 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2017;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted;
 
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3_legacy;

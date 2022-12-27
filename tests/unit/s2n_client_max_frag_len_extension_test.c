@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_max_frag_len.h"
 #include "tls/s2n_tls.h"
 
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test send */
     {
@@ -66,7 +65,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test receive - accept_mfl not set */
     {
@@ -92,7 +91,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test receive - invalid mfl code
      *
@@ -126,7 +125,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test receive */
     {
@@ -153,7 +152,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
     return 0;

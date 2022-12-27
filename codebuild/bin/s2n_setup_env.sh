@@ -22,7 +22,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${BUILD_S2N:=false}"
 : "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
-: "${TESTS:=integration}"
+: "${TESTS:=unit}"
 : "${S2N_COVERAGE:=false}"
 : "${LD_LIBRARY_PATH:=NONE}"
 
@@ -48,7 +48,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${BORINGSSL_INSTALL_DIR:=$TEST_DEPS_DIR/boringssl}"
 : "${AWSLC_INSTALL_DIR:=$TEST_DEPS_DIR/awslc}"
 : "${AWSLC_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/awslc-fips}"
-: "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl-3.4.3}"
+: "${LIBRESSL_INSTALL_DIR:=$TEST_DEPS_DIR/libressl}"
 : "${CPPCHECK_INSTALL_DIR:=$TEST_DEPS_DIR/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$TEST_DEPS_DIR/ctverif}"
 : "${SIDETRAIL_INSTALL_DIR:=$TEST_DEPS_DIR/sidetrail}"
@@ -115,6 +115,8 @@ export GB_INSTALL_DIR
 export OS_NAME
 export S2N_CORKED_IO
 export S2N_NO_PQ
+# For use by criterion/ci run reports
+export AWS_S3_URL="s3://s2n-tls-logs/release/"
 
 # S2N_COVERAGE should not be used with fuzz tests, use FUZZ_COVERAGE instead
 if [[ "$S2N_COVERAGE" == "true" && "$TESTS" == "fuzz" ]]; then

@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "testlib/s2n_testlib.h"
+
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, NULL), S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
 }

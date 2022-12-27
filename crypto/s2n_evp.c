@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_evp.h"
+
 #include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"

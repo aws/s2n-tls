@@ -20,8 +20,6 @@
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 
-void s2n_calculate_stacktrace() {}
-
 void s2n_stuffer_read_bytes_harness()
 {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
