@@ -14,15 +14,14 @@
  */
 
 #include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
 
 int main(int argc, char **argv)
 {
     uint8_t pad[100];
-    struct s2n_blob b = {.data = pad,.size = sizeof(pad) };
+    struct s2n_blob b = { .data = pad, .size = sizeof(pad) };
     struct s2n_stuffer stuffer;
     uint8_t u8;
     uint16_t u16;
@@ -101,7 +100,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
     uint8_t hex[] = "f0F0Zz";
-    struct s2n_blob text = {.data = hex,.size = strlen((char *)hex) };
+    struct s2n_blob text = { .data = hex, .size = strlen((char *) hex) };
     EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &text));
 
     EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));

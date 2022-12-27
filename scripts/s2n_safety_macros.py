@@ -745,6 +745,8 @@ def write(f, contents):
 write("utils/s2n_safety_macros.h", header)
 
 test = copyright + '''
+/* clang-format off */
+
 #include "s2n_test.h"
 
 #include "utils/s2n_safety.h"

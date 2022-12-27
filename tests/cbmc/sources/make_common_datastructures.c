@@ -772,8 +772,8 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     s2n_connection->recv                     = malloc(sizeof(*(s2n_connection->recv))); /* Function pointer. */
     s2n_connection->send_io_context          = malloc(sizeof(*(s2n_connection->secret_cb)));
     s2n_connection->recv_io_context          = malloc(sizeof(*(s2n_connection->secret_cb)));
-    cbmc_populate_s2n_crypto_parameters(&(s2n_connection->initial));
-    cbmc_populate_s2n_crypto_parameters(&(s2n_connection->secure));
+    cbmc_populate_s2n_crypto_parameters(s2n_connection->initial);
+    cbmc_populate_s2n_crypto_parameters(s2n_connection->secure);
     cbmc_populate_s2n_kex_parameters(&(s2n_connection->kex_params));
     s2n_connection->client = cbmc_allocate_s2n_crypto_parameters();
     s2n_connection->server = cbmc_allocate_s2n_crypto_parameters();

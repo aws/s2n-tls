@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "utils/s2n_blob.h"
-
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "utils/s2n_blob.h"
 
 int raises_error()
 {
-  POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+    POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }
 
 int main(int argc, char **argv)
@@ -43,7 +41,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(trace.trace_size, 0);
 
     /* Test printing the stacktrace. */
-    FILE *stream = fopen("/dev/null","w");
+    FILE *stream = fopen("/dev/null", "w");
     EXPECT_SUCCESS(s2n_print_stacktrace(stream));
     fclose(stream);
 
