@@ -3,14 +3,16 @@
 
   inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
 
-  outputs = { self, nixpkgs }: {
-
-    defaultPackage.x86_64-linux =
-      # Notice the reference to nixpkgs here.
-      with import nixpkgs { system = "x86_64-linux"; };
-      stdenv.mkDerivation {
-        name = "s2n-tls";
+  outputs = { self, nix, nixpkgs }: 
+  let
+     system = builtins.currentSystem or "x86_64-linux";
+     pkgs = import nixpkgs { system = builtins.currentSystem or "x86_64-linux"; };
+   in {
+      packages.${system}.default = pkgs.stdenv.mkDerivation
+      {
         src = self;
+        name = "s2n-tls";
+        inherit system; 
         doCheck = true;
 
         buildInputs = [ pkgs.cmake
@@ -23,6 +25,7 @@
         ];
 
       };
-
-  };
-}
+      devShell.x86_64-linux = 
+        pkgs.mkShell { buildInputs = [ pkgs.openssl pkgs.cmake pkgs.gcc pkgs.clang pkgs.ninja ]; };
+   };
+ }

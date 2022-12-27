@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.22)
 project (s2n C)
 
 if(POLICY CMP0077)
@@ -13,6 +13,7 @@ set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header fi
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+set(CMAKE_CTEST_ARGUMENTS "--output-junit";"report_junit.xml")
 
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
@@ -34,6 +35,12 @@ version of libcrypto by interning the code and hiding symbols. This also enables
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
+
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+	    message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -583,8 +590,9 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
+
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
-        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+	add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
         set_property(
         TEST
