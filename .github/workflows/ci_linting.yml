@@ -1,12 +1,13 @@
 ---
 name: Linters
-
 on:
+  push:
+    branches:
+      - autopep8
   pull_request:
     branches:
       - master
       - main
-
 jobs:
   cppcheck:
     # ubuntu-latest introduced a newer gcc version that cannot compile cppcheck 2.3
@@ -76,11 +77,12 @@ jobs:
   pepeight:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: autopep8
-        uses: peter-evans/autopep8@v1
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: pep8 exp
+        uses: harrisonkaiser/autopep8_action@master
         with:
-          args: --recursive --in-place --exit-code ./tests/integrationv2
-      - name: Fail if autopep8 made changes
-        if: steps.autopep8.outputs.exit-code == 2
-        run: exit 1
+          dry: true
+          checkpath: ./tests/integrationv2/*.py
+
+
