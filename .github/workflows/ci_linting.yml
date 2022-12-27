@@ -81,7 +81,6 @@ jobs:
         uses: peter-evans/autopep8@v1
         with:
           args: --recursive --in-place --exit-code ./tests/integrationv2
-      - name: Fail if autopep8 made changes
 	env:
           STEPS_CONTEXT: ${{ toJson(steps) }}
         run: echo "Autopep8: $STEPS_CONTEXT"
