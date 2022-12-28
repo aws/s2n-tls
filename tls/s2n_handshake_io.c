@@ -1203,7 +1203,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         if (s2n_connection_is_quic_enabled(conn)) {
             POSIX_GUARD_RESULT(s2n_quic_write_handshake_message(conn, &out));
         } else {
-            POSIX_GUARD(s2n_record_write(conn, record_type, &out));
+            POSIX_GUARD_RESULT(s2n_record_write(conn, record_type, &out));
         }
 
         /* MD5 and SHA sum the handshake data too */

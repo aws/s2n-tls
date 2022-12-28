@@ -89,24 +89,24 @@ extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
 /* x25519 KEM Groups */
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
 
-extern S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
-extern S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
-extern S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext);
-extern int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
+S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
+S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
+S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext);
+int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
         struct s2n_blob *client_kem_ids, const struct s2n_kem *server_kem_pref_list[],
         const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem);
-extern int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
+int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
         const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems,
         const struct s2n_kem **chosen_kem);
-extern int s2n_kem_free(struct s2n_kem_params *kem_params);
-extern int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params);
-extern int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
+int s2n_kem_free(struct s2n_kem_params *kem_params);
+int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params);
+int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
         const struct s2n_iana_to_kem **supported_params);
-extern int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem);
-extern int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
-extern int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
-extern int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
-extern int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
+int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem);
+int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
+int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
+int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
+int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 
 /* The following are API signatures for PQ KEMs as defined by NIST. All functions return 0
  * on success, and !0 on failure. Avoid calling these functions directly within s2n. Instead,

@@ -13,23 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "tls/s2n_record.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "api/s2n.h"
-#include "tls/s2n_kex.h"
-
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_cipher.h"
-#include "utils/s2n_random.h"
 #include "crypto/s2n_hmac.h"
-#include "tls/s2n_record.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_prf.h"
+#include "utils/s2n_random.h"
 
 /* Mock block cipher that does nothing */
 int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
@@ -41,10 +39,10 @@ struct s2n_cipher mock_block_cipher = {
     .type = S2N_CBC,
     .key_material_size = 0,
     .io.cbc = {
-               .block_size = 16,
-               .record_iv_size = 16,
-               .encrypt = mock_block_endecrypt,
-               .decrypt = mock_block_endecrypt},
+            .block_size = 16,
+            .record_iv_size = 16,
+            .encrypt = mock_block_endecrypt,
+            .decrypt = mock_block_endecrypt },
     .set_encryption_key = NULL,
     .set_decryption_key = NULL,
     .destroy_key = NULL,
@@ -58,7 +56,7 @@ struct s2n_record_algorithm mock_block_record_alg = {
 struct s2n_cipher_suite mock_block_cipher_suite = {
     .available = 1,
     .name = "TLS_MOCK_CBC",
-    .iana_value = {0x12, 0x34},
+    .iana_value = { 0x12, 0x34 },
     .key_exchange_alg = &s2n_rsa,
     .record_alg = &mock_block_record_alg,
 };
@@ -72,10 +70,10 @@ int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
-    struct s2n_blob fixed_iv = {.data = mac_key,.size = sizeof(mac_key) };
+    struct s2n_blob fixed_iv = { .data = mac_key, .size = sizeof(mac_key) };
     struct s2n_hmac_state check_mac;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
-    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -95,17 +93,18 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS11;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &in));
 
-        if (i < S2N_DEFAULT_FRAGMENT_LENGTH) {
-            EXPECT_EQUAL(bytes_written, i);
+        s2n_result result = s2n_record_write(conn, TLS_ALERT, &in);
+        if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
+            EXPECT_OK(result);
+            bytes_written = i;
         } else {
-            /* application data size of intended fragment size + 1 should only send max fragment */
-            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
+            EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
         }
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_ALERT);
@@ -137,20 +136,21 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS11;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial->server_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &in));
 
+        s2n_result result = s2n_record_write(conn, TLS_ALERT, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
-            EXPECT_EQUAL(bytes_written, i);
+            EXPECT_OK(result);
+            bytes_written = i;
         } else {
-            /* application data size of intended fragment size + 1 should only send max fragment */
-            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
+            EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
         }
 
         uint16_t predicted_length = bytes_written + 20;
@@ -219,20 +219,21 @@ int main(int argc, char **argv)
     conn->initial->cipher_suite = &mock_block_cipher_suite;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial->client_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
+        s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
-            EXPECT_EQUAL(bytes_written, i);
+            EXPECT_OK(result);
+            bytes_written = i;
         } else {
-            /* application data size of intended fragment size + 1 should only send max fragment */
-            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
+            EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
         }
 
         uint16_t predicted_length = bytes_written + 1 + 20;
@@ -286,20 +287,21 @@ int main(int argc, char **argv)
     conn->initial->cipher_suite = &mock_block_cipher_suite;
 
     for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial->client_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
+        s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
-            EXPECT_EQUAL(bytes_written, i);
+            EXPECT_OK(result);
+            bytes_written = i;
         } else {
-            /* application data size of intended fragment size + 1 should only send max fragment */
-            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
+            EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
         }
 
         uint16_t predicted_length = bytes_written + 1 + 20 + 16;
@@ -354,14 +356,14 @@ int main(int argc, char **argv)
     EXPECT_MEMCPY_SUCCESS(conn->initial->server_sequence_number, max_num_records, sizeof(max_num_records));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     /* Sequence number should wrap around */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(conn, TLS_ALERT, &empty_blob), S2N_ERR_RECORD_LIMIT);
+    EXPECT_ERROR_WITH_ERRNO(s2n_record_write(conn, TLS_ALERT, &empty_blob), S2N_ERR_RECORD_LIMIT);
 
     /* Test TLS 1.3 Record should reflect as TLS 1.2 version on the wire */
     {
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_ALERT, &empty_blob));
+        EXPECT_OK(s2n_record_write(conn, TLS_ALERT, &empty_blob));
 
         /* Make sure that TLS 1.3 records appear as TLS 1.2 version */
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
@@ -385,7 +387,7 @@ int main(int argc, char **argv)
         conn->header_in.blob.data[1] = 3;
         conn->header_in.blob.data[2] = 4;
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_header_parse(conn, &content_type, &fragment_length), S2N_ERR_BAD_MESSAGE);
-    }
+    };
 
     /* Test: ApplicationData MUST be encrypted */
     {
@@ -393,13 +395,13 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
 
         /* Write fails with no secrets / cipher set */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob), S2N_ERR_ENCRYPT);
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob), S2N_ERR_ENCRYPT);
 
         /* Read fails with no secrets / cipher set */
         uint8_t header_bytes[] = { TLS_APPLICATION_DATA, 0x03, 0x04, 0x00, 0x00 };
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->header_in, header_bytes, sizeof(header_bytes)));
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_DECRYPT);
-    }
+    };
 
     /* Test s2n_sslv2_record_header_parse fails when fragment_length < 3 */
     {
@@ -417,7 +419,7 @@ int main(int argc, char **argv)
 
         /* Check the rest of the stuffer has not been read yet */
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
-    }
+    };
 
     EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 
