@@ -49,15 +49,15 @@ int s2n_in_unit_test_set(bool newval);
 #define S2N_IN_TEST       (s2n_in_unit_test() || S2N_IN_INTEG_TEST)
 
 /* Returns 1 if a and b are equal, in constant time */
-extern bool s2n_constant_time_equals(const uint8_t* a, const uint8_t* b, const uint32_t len);
+bool s2n_constant_time_equals(const uint8_t* a, const uint8_t* b, const uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */
-extern int s2n_constant_time_copy_or_dont(uint8_t* dst, const uint8_t* src, uint32_t len, uint8_t dont);
+int s2n_constant_time_copy_or_dont(uint8_t* dst, const uint8_t* src, uint32_t len, uint8_t dont);
 
 /* If src contains valid PKCS#1 v1.5 padding of exactly expectlen bytes, decode
  * it into dst, otherwise leave dst alone, in constant time.
  * Always returns zero. */
-extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t* dst, const uint8_t* src, uint32_t srclen, uint32_t expectlen);
+int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t* dst, const uint8_t* src, uint32_t srclen, uint32_t expectlen);
 
 /**
  * Runs _thecleanup function on _thealloc once _thealloc went out of scope
@@ -103,13 +103,13 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection** c
 
 #define s2n_array_len(array) ((array != NULL) ? (sizeof(array) / sizeof(array[0])) : 0)
 
-extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
+int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 
 /**
  * Rounds "initial" up to a multiple of "alignment", and stores the result in "out".
  * Raises an error if overflow would occur.
  * NOT CONSTANT TIME.
  */
-extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
-extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
-extern int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
+int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
+int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
+int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);

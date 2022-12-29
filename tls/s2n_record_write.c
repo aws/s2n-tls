@@ -519,10 +519,13 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     return data_bytes_to_take;
 }
 
-int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
+S2N_RESULT s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
 {
     struct iovec iov;
     iov.iov_base = in->data;
     iov.iov_len = in->size;
-    return s2n_record_writev(conn, content_type, &iov, 1, 0, in->size);
+    int written = s2n_record_writev(conn, content_type, &iov, 1, 0, in->size);
+    RESULT_GUARD_POSIX(written);
+    RESULT_ENSURE(written == in->size, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+    return S2N_RESULT_OK;
 }

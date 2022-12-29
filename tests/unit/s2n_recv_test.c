@@ -13,16 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "api/s2n.h"
 
 bool s2n_custom_recv_fn_called = false;
 
 int s2n_expect_concurrent_error_recv_fn(void *io_context, uint8_t *buf, uint32_t len)
 {
-    struct s2n_connection *conn = (struct s2n_connection*) io_context;
+    struct s2n_connection *conn = (struct s2n_connection *) io_context;
     s2n_custom_recv_fn_called = true;
 
     s2n_blocked_status blocked = 0;
@@ -35,7 +34,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key,
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
             s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
@@ -95,7 +94,7 @@ int main(int argc, char **argv)
 
             /* After the complete read, no data reported as available */
             EXPECT_EQUAL(s2n_peek(server_conn), 0);
-        }
+        };
 
         /* s2n_peek doesn't report bytes belonging to partially read, still encrypted records */
         {
@@ -132,7 +131,7 @@ int main(int argc, char **argv)
             /* conn->in contains data, but s2n_peek reports no data available */
             EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->in));
             EXPECT_EQUAL(s2n_peek(server_conn), 0);
-        }
+        };
 
         /* s2n_peek doesn't report bytes belonging to post-handshake messages */
         {
@@ -171,8 +170,8 @@ int main(int argc, char **argv)
             /* conn->in contains data, but s2n_peek reports no data available */
             EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->in));
             EXPECT_EQUAL(s2n_peek(server_conn), 0);
-        }
-    }
+        };
+    };
 
     /* s2n_recv cannot be called concurrently */
     {
@@ -182,7 +181,7 @@ int main(int argc, char **argv)
 
         /* Setup bad recv callback */
         EXPECT_SUCCESS(s2n_connection_set_recv_cb(conn, s2n_expect_concurrent_error_recv_fn));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, (void*) conn));
+        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, (void *) conn));
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
         uint8_t test_data[100] = { 0 };
@@ -194,11 +193,11 @@ int main(int argc, char **argv)
 
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_config_set_recv_multi_record */
     {
-        #define TEST_DATA_SIZE 100
+#define TEST_DATA_SIZE 100
         const uint8_t test_data[TEST_DATA_SIZE] = "hello world";
         const size_t test_data_size = sizeof(test_data);
         uint8_t output[TEST_DATA_SIZE * 2];
