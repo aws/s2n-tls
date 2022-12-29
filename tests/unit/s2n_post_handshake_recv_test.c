@@ -16,11 +16,10 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "api/unstable/renegotiate.h"
 #include "error/s2n_errno.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_post_handshake.h"
@@ -70,9 +69,7 @@ static S2N_RESULT s2n_test_send_records(struct s2n_connection *conn, struct s2n_
     while ((remaining = s2n_stuffer_data_available(&messages)) > 0) {
         record_data.size = MIN(record_data.size, remaining);
         RESULT_GUARD_POSIX(s2n_stuffer_read(&messages, &record_data));
-        int r = s2n_record_write(conn, TLS_HANDSHAKE, &record_data);
-        RESULT_GUARD_POSIX(r);
-        RESULT_ENSURE_EQ(r, record_data.size);
+        RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &record_data));
         RESULT_GUARD_POSIX(s2n_flush(conn, &blocked));
     };
 
@@ -204,7 +201,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
     EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, sizeof(ticket_key_name),
-            ticket_key, sizeof(ticket_key), current_time/ONE_SEC_IN_NANOS));
+            ticket_key, sizeof(ticket_key), current_time / ONE_SEC_IN_NANOS));
     config->initial_tickets_to_send = 0;
 
     const uint32_t fragment_sizes[] = {
@@ -388,7 +385,7 @@ int main(int argc, char **argv)
 
         /* No post-handshake message should trigger the server to allocate memory */
         EXPECT_EQUAL(mallocs_count, 0);
-    }
+    };
 
     /* Test: client receives empty post-handshake messages (HelloRequests)
      *

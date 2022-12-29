@@ -21,9 +21,9 @@
 
 extern const s2n_extension_type s2n_server_key_share_extension;
 
-extern int s2n_extensions_server_key_share_select(struct s2n_connection *conn);
+int s2n_extensions_server_key_share_select(struct s2n_connection *conn);
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
-extern int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn);
-extern int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-extern int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn);
+int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);

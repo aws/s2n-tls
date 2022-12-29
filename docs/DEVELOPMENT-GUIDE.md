@@ -270,16 +270,16 @@ To further encourage stream-oriented programming, the stuffer is also the place 
 
 ```c
 /* Read and write integers in network order */
-extern int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);
-extern int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u);
-extern int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u);
-extern int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u);
-extern int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u);
-extern int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, uint8_t u);
-extern int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u);
-extern int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u);
-extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u);
-extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u);
+int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);
+int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u);
+int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u);
+int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u);
+int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u);
+int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, uint8_t u);
+int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u);
+int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u);
+int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u);
+int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u);
 ```
 
 and there are other utility functions for handling base64 encoding to and from a stuffer, or text manipulation - like tokenization. The idea is to implement basic serializing just once, rather than spread out and duplicated across the message parsers, and to maximize the declarative nature of the I/O. For example, this code parses a TLS record header:

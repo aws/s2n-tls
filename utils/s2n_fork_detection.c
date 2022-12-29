@@ -153,10 +153,12 @@ static void s2n_pthread_atfork_on_fork(void)
 
 static S2N_RESULT s2n_inititalise_pthread_atfork(void)
 {
-    /* Register the fork handler pthread_atfork_on_fork that is excuted in the
+    /* Register the fork handler pthread_atfork_on_fork that is executed in the
      * child process after a fork.
      */
-    RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    if (s2n_is_pthread_atfork_supported() == true) {
+        RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    }
 
     return S2N_RESULT_OK;
 }
@@ -346,6 +348,22 @@ bool s2n_is_map_inherit_zero_supported(void)
     return true;
 #else
     return false;
+#endif
+}
+
+bool s2n_is_pthread_atfork_supported(void)
+{
+    /*
+     * There is a bug in OpenBSD's libc which is triggered by
+     * multi-generational forking of multi-threaded processes which call
+     * pthread_atfork(3). Under these conditions, a grandchild process will
+     * deadlock when trying to fork a great-grandchild.
+     * https://marc.info/?l=openbsd-tech&m=167047636422884&w=2
+     */
+#if defined(__OpenBSD__)
+    return false;
+#else
+    return true;
 #endif
 }
 
