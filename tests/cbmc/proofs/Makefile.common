@@ -4,7 +4,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.8
+CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.8.8
 
 ################################################################
 # The CBMC Starter Kit depends on the files Makefile.common and
