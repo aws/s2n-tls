@@ -27,7 +27,7 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 IS_FIPS=$3
-
+FIPS_VERSION="fips-2022-11-02"
 source codebuild/bin/jobs.sh
 
 mkdir -p "$BUILD_DIR"||true
@@ -36,7 +36,7 @@ git clone https://github.com/awslabs/aws-lc.git
 if [ "$IS_FIPS" == "1" ]; then
   echo "Checking out FIPS branch"
   cd aws-lc
-  git checkout -b fips-2021-10-20 origin/fips-2021-10-20
+  git checkout -b $FIPS_VERSION origin/$FIPS_VERSION
   cd ..
 fi
 
