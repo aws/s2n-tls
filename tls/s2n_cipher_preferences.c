@@ -1007,6 +1007,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2017[] = {
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
     &s2n_rsa_with_aes_128_cbc_sha256
