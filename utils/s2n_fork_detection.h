@@ -22,6 +22,7 @@
 S2N_RESULT s2n_get_fork_generation_number(uint64_t *return_fork_generation_number);
 bool s2n_is_madv_wipeonfork_supported(void);
 bool s2n_is_map_inherit_zero_supported(void);
+bool s2n_is_pthread_atfork_supported(void);
 
 /* Use for testing only */
 S2N_RESULT s2n_ignore_wipeonfork_and_inherit_zero_for_testing(void);
