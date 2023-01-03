@@ -47,9 +47,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            self.cmd_line = self.setup_server() # lgtm [py/init-calls-subclass]
+            self.cmd_line = self.setup_server()  # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            self.cmd_line = self.setup_client() # lgtm [py/init-calls-subclass]
+            self.cmd_line = self.setup_client()  # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -141,7 +141,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -315,7 +315,7 @@ class OpenSSL(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
-        self.expect_stderr = True # lgtm [py/overwritten-inherited-attribute]
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -623,8 +623,8 @@ class GnuTLS(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.expect_stderr = True # lgtm [py/overwritten-inherited-attribute]
-        self.send_with_newline = True # lgtm [py/overwritten-inherited-attribute]
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):

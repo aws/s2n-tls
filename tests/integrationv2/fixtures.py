@@ -4,7 +4,7 @@ import subprocess
 
 from processes import ManagedProcess
 from providers import Provider
-from common import ProviderOptions 
+from common import ProviderOptions
 
 
 @pytest.fixture
