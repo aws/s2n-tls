@@ -182,7 +182,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
         RESULT_ENSURE_REF(nst_data);
         RESULT_GUARD_POSIX(s2n_blob_init(&nst_blob, nst_data, nst_size));
 
-        RESULT_GUARD_POSIX(s2n_record_write(conn, TLS_HANDSHAKE, &nst_blob));
+        RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &nst_blob));
         RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
         RESULT_GUARD_POSIX(s2n_stuffer_wipe(nst_stuffer));
     }

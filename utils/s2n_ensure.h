@@ -92,9 +92,9 @@
  *
  */
 #if defined(S2N___RESTRICT__SUPPORTED)
-extern void *s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restrict__ from, size_t size, const char *debug_str);
+void *s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restrict__ from, size_t size, const char *debug_str);
 #else
-extern void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
+void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
 #endif
 
 /**
