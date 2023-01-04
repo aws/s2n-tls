@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
         /* Min buffer size */
         {
-            const uint32_t buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
+            const uint32_t buffer_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE);
             EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, buffer_size));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 
             uint16_t size = 0;
             EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
-            EXPECT_EQUAL(size, S2N_MAX_FRAGMENT_LENGTH_MIN);
+            EXPECT_EQUAL(size, S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE);
         };
 
         /* Small buffer size */
