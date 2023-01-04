@@ -112,6 +112,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_send(server_conn, send_data, sizeof(send_data), &blocked));
             EXPECT_EQUAL(server_conn->tickets_sent, tickets_to_send);
+            EXPECT_TRUE(s2n_stuffer_is_freed(&server_conn->handshake.io));
 
             uint64_t actual_record_count = 0;
             const uint32_t expected_record_count = S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send);
@@ -184,6 +185,7 @@ int main(int argc, char **argv)
                 block_count++;
             }
             EXPECT_EQUAL(server_conn->tickets_sent, tickets_to_send);
+            EXPECT_TRUE(s2n_stuffer_is_freed(&server_conn->handshake.io));
 
             uint64_t actual_record_count = 0;
             const uint32_t expected_record_count = S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send);

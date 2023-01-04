@@ -935,9 +935,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, record_len));
             EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
-            /* Check handshake.io is cleaned up */
-            EXPECT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
-
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
