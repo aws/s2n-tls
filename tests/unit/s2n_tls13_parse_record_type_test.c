@@ -98,8 +98,8 @@ int main(int argc, char **argv)
         /** test: padding without record type should fail
          *= https://tools.ietf.org/rfc/rfc8446#section-5.4
          *= type=test
-         *# if a receiving implementation does not
-         *# find a non-zero octet in the cleartext, it must terminate the
+         *# If a receiving implementation does not
+         *# find a non-zero octet in the cleartext, it MUST terminate the
          *# connection with an "unexpected_message" alert.
          **/
         S2N_BLOB_FROM_HEX(no_type, "00");
