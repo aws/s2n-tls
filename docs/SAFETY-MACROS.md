@@ -146,7 +146,7 @@ Ensures `result == _OSSL_SUCCESS`, otherwise the function will `RESULT_BAIL` wit
 
 ### RESULT_GUARD_POSIX(result)
 
-Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_RESULT_ERROR`
+Ensures `(result) > S2N_FAILURE`, otherwise the function will return `S2N_RESULT_ERROR`
 
 
 ### RESULT_GUARD_PTR(result)
@@ -187,7 +187,7 @@ NOTE: The condition will _only_ be checked when the code is compiled in debug mo
 
 DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
 
-Ensures `(result) >= S2N_SUCCESS`, otherwise the function will `POSIX_BAIL` with `error`
+Ensures `(result) > S2N_FAILURE`, otherwise the function will `POSIX_BAIL` with `error`
 
 This can be useful for overriding the global `s2n_errno`
 
@@ -325,7 +325,7 @@ Callers will still need to ensure the following:
 
 DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
 
-Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_FAILURE`
+Ensures `(result) > S2N_FAILURE`, otherwise the function will return `S2N_FAILURE`
 
 
 ### POSIX_GUARD_OSSL(result, error)
@@ -541,5 +541,5 @@ Ensures `s2n_result_is_ok(result)`, otherwise the function will return `NULL`
 
 DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
 
-Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
+Ensures `(result) > S2N_FAILURE`, otherwise the function will return `NULL`
 
