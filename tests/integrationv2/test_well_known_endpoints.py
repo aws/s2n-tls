@@ -3,7 +3,7 @@ import pytest
 from constants import TRUST_STORE_BUNDLE, TRUST_STORE_TRUSTED_BUNDLE
 from configuration import PROTOCOLS
 from common import ProviderOptions, Ciphers, pq_enabled
-from fixtures import managed_process # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]
 from global_flags import get_flag, S2N_FIPS_MODE
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
@@ -16,17 +16,17 @@ ENDPOINTS = [
     "s3.us-west-2.amazonaws.com",
     "www.apple.com",
     "www.att.com",
-#    "www.badssl.com",
-#    "mozilla-intermediate.badssl.com",
-#    "mozilla-modern.badssl.com",
-#    "rsa2048.badssl.com",
-#    "rsa4096.badssl.com",
-#    "sha256.badssl.com",
-#    "sha384.badssl.com",
-#    "sha512.badssl.com",
-#    "tls-v1-0.badssl.com",
-#    "tls-v1-1.badssl.com",
-#    "tls-v1-2.badssl.com",
+    #    "www.badssl.com",
+    #    "mozilla-intermediate.badssl.com",
+    #    "mozilla-modern.badssl.com",
+    #    "rsa2048.badssl.com",
+    #    "rsa4096.badssl.com",
+    #    "sha256.badssl.com",
+    #    "sha384.badssl.com",
+    #    "sha512.badssl.com",
+    #    "tls-v1-0.badssl.com",
+    #    "tls-v1-1.badssl.com",
+    #    "tls-v1-2.badssl.com",
     "www.cloudflare.com",
     "www.ebay.com",
     "www.f5.com",

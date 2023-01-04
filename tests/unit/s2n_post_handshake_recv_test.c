@@ -205,7 +205,9 @@ int main(int argc, char **argv)
     config->initial_tickets_to_send = 0;
 
     const uint32_t fragment_sizes[] = {
-        S2N_MAX_FRAGMENT_LENGTH_MIN,
+        1,
+        2,
+        S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE,
         TLS_HANDSHAKE_HEADER_LENGTH,
         TLS_HANDSHAKE_HEADER_LENGTH + 1,
         S2N_DEFAULT_FRAGMENT_LENGTH,

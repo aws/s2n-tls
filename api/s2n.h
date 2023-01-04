@@ -854,7 +854,7 @@ S2N_API extern int s2n_config_set_verify_after_sign(struct s2n_config *config, s
  *
  * Less memory can be allocated for the send buffer, but this will result in
  * smaller, more fragmented records and increased overhead. While the absolute
- * minimum size required is 1031 bytes, at least 2K bytes is recommended for
+ * minimum size required is 1034 bytes, at least 2K bytes is recommended for
  * reasonable record sizes.
  *
  * More memory can be allocated for the send buffer. This will result in s2n-tls
