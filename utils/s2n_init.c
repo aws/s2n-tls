@@ -24,7 +24,6 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls13_secrets.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
