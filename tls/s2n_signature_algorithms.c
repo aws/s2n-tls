@@ -65,9 +65,7 @@ static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, con
     if (conn->actual_protocol_version >= S2N_TLS13) {
         POSIX_ENSURE_NE(scheme->hash_alg, S2N_HASH_SHA1);
         POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA);
-    }
-
-    if (conn->actual_protocol_version < S2N_TLS13) {
+    } else {
         POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
