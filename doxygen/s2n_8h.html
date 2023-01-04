@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.31-f966bf3c</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.31-9f22dc14</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -4783,7 +4783,7 @@ Safety</h1>
 </div><div class="memdoc">
 <p >Set a custom send buffer size.</p>
 <p >This buffer is used to stage records for sending. By default, enough memory is allocated to hold a single record of the maximum size configured for the connection. With the default fragment size, that is about 8K bytes.</p>
-<p >Less memory can be allocated for the send buffer, but this will result in smaller, more fragmented records and increased overhead. While the absolute minimum size required is 1031 bytes, at least 2K bytes is recommended for reasonable record sizes.</p>
+<p >Less memory can be allocated for the send buffer, but this will result in smaller, more fragmented records and increased overhead. While the absolute minimum size required is 1034 bytes, at least 2K bytes is recommended for reasonable record sizes.</p>
 <p >More memory can be allocated for the send buffer. This will result in s2n-tls buffering multiple records before sending them, reducing system write calls. At least 17K bytes is recommended for this use case, or at least 35K bytes if larger fragment sizes are used via <code><a class="el" href="s2n_8h.html#a11c72914bfc09a9174b6a7b019e5aa5c">s2n_connection_prefer_throughput()</a></code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
