@@ -40,18 +40,6 @@
  */
 #define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH (1 << 14)
 
-/*
- * The minimum amount of space we need to reserve for a message
- * fragment. We cannot fragment alert messages because not all peer
- * implementations accept them, even in TLS1.2 where it is not
- * disallowed by RFC5246.
- * 
- * Specificity we found that GnuTLS rejects fragmented alert messages.
- * This is a simple solution for the Alert Attack, although it is
- * strictly speaking a violation of the standard.
- */
-#define S2N_MAX_FRAGMENT_LENGTH_MIN 2
-
 /* The TLS1.2 record length allows for 1024 bytes of compression expansion and
  * 1024 bytes of encryption expansion and padding.
  * Since S2N does not support compression, we can ignore the compression overhead.

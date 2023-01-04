@@ -460,15 +460,13 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_set_send_buffer_size */
     {
-        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN);
-
         /* Safety */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
             EXPECT_EQUAL(config->send_buffer_size_override, 0);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(NULL, min_size), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(NULL, S2N_MIN_SEND_BUFFER_SIZE), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(config, 0), S2N_ERR_INVALID_ARGUMENT);
             EXPECT_EQUAL(config->send_buffer_size_override, 0);
         };
@@ -490,13 +488,13 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, min_size));
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, S2N_MIN_SEND_BUFFER_SIZE));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_EQUAL(config->send_buffer_size_override, min_size);
+            EXPECT_EQUAL(config->send_buffer_size_override, S2N_MIN_SEND_BUFFER_SIZE);
             EXPECT_TRUE(conn->multirecord_send);
         };
     };
