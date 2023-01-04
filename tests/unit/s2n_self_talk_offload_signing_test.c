@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_rsa_signing.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "crypto/s2n_rsa_signing.h"
 
 #define S2N_TEST_CERT_MEM 5000
 
@@ -135,14 +135,14 @@ int main(int argc, char **argv)
     uint32_t pem_len = 0;
     uint8_t pem[S2N_TEST_CERT_MEM] = { 0 };
 
-    const char* tls12_policy = "ELBSecurityPolicy-2016-08";
-    const char* tls13_policy = "default_tls13";
+    const char *tls12_policy = "ELBSecurityPolicy-2016-08";
+    const char *tls13_policy = "default_tls13";
 
     /* Some TLS1.2 cipher suites use RSA for key exchange.
      * Doing so requires generating a random key and encrypting it with RSA,
      * which uses the private RSA key for a S2N_ASYNC_DECRYPT operation.
      */
-    const char* tls12_rsa_kex_policy = "test_all_rsa_kex";
+    const char *tls12_rsa_kex_policy = "test_all_rsa_kex";
 
     uint32_t basic_handshake = NEGOTIATED | FULL_HANDSHAKE;
     uint32_t tls_13_handshake = (basic_handshake | MIDDLEBOX_COMPAT);
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, ecdsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy));
-        }
+        };
 
         /* Handshake with mutual auth. Both the client and server sign. */
         {
@@ -210,10 +210,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, ecdsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy | CLIENT_AUTH));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* RSA */
     {
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, rsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy));
-        }
+        };
 
         /* Handshake with mutual auth. Both the client and server sign. */
         {
@@ -259,10 +259,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, tls13_policy));
             EXPECT_OK(s2n_do_test_handshake(config, rsa_complete_chain,
                     s2n_get_highest_fully_supported_tls_version(), expected_handshake_with_tls13_policy | CLIENT_AUTH));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_complete_chain));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_only_chain));
