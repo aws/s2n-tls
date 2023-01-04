@@ -71,7 +71,8 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     uint16_t signature_length;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_length));
 
-    struct s2n_blob signature = { .size = signature_length, .data = s2n_stuffer_raw_read(in, signature_length) };
+    struct s2n_blob signature = { 0 };
+    s2n_blob_init(&signature, s2n_stuffer_raw_read(in, signature_length), signature_length);
     POSIX_ENSURE_REF(signature.data);
     POSIX_ENSURE_GT(signature_length, 0);
 
@@ -164,7 +165,8 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     struct s2n_stuffer kem_id_stuffer = { 0 };
     uint8_t kem_id_arr[2];
     kem_extension_size kem_id;
-    struct s2n_blob kem_id_blob = { .data = kem_id_arr, .size = s2n_array_len(kem_id_arr) };
+    struct s2n_blob kem_id_blob = { 0 };
+    s2n_blob_init(&kem_id_blob, kem_id_arr, s2n_array_len(kem_id_arr));
     POSIX_GUARD(s2n_stuffer_init(&kem_id_stuffer, &kem_id_blob));
     POSIX_GUARD(s2n_stuffer_write(&kem_id_stuffer, &(kem_data->kem_name)));
     POSIX_GUARD(s2n_stuffer_read_uint16(&kem_id_stuffer, &kem_id));

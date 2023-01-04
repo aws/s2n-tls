@@ -41,13 +41,15 @@ int s2n_record_parse_aead(
     /* TLS 1.3 record protection uses a different 5 byte associated data than TLS 1.2's */
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 
-    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { 0 };
+    s2n_blob_init(&en, s2n_stuffer_raw_read(&conn->in, encrypted_length), encrypted_length);
     POSIX_ENSURE_REF(en.data);
     /* In AEAD mode, the explicit IV is in the record */
     POSIX_ENSURE_GTE(en.size, cipher_suite->record_alg->cipher->io.aead.record_iv_size);
 
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
-    struct s2n_blob iv = { .data = aad_iv, .size = sizeof(aad_iv) };
+    struct s2n_blob iv = { 0 };
+    s2n_blob_init(&iv, aad_iv, sizeof(aad_iv));
     struct s2n_stuffer iv_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
@@ -98,7 +100,8 @@ int s2n_record_parse_aead(
     POSIX_ENSURE_NE(en.size, 0);
 
     POSIX_GUARD(cipher_suite->record_alg->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
-    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = { 0 };
+    s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer

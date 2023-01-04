@@ -251,11 +251,13 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
     const char *name = conn->server_name;
-    struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) name, .size = strlen(name) };
+    struct s2n_blob hostname_blob = { 0 };
+    s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) name, strlen(name));
     POSIX_ENSURE_LTE(hostname_blob.size, S2N_MAX_SERVER_NAME);
     char normalized_hostname[S2N_MAX_SERVER_NAME + 1] = { 0 };
     POSIX_CHECKED_MEMCPY(normalized_hostname, hostname_blob.data, hostname_blob.size);
-    struct s2n_blob normalized_name = { .data = (uint8_t *) normalized_hostname, .size = hostname_blob.size };
+    struct s2n_blob normalized_name = { 0 };
+    s2n_blob_init(&normalized_name, (uint8_t *) normalized_hostname, hostname_blob.size);
     POSIX_GUARD(s2n_blob_char_to_lower(&normalized_name));
     struct s2n_stuffer normalized_hostname_stuffer;
     POSIX_GUARD(s2n_stuffer_init(&normalized_hostname_stuffer, &normalized_name));
@@ -270,7 +272,8 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     if (!conn->handshake_params.exact_sni_match_exists) {
         /* We have not yet found an exact domain match. Try to find wildcard matches. */
         char wildcard_hostname[S2N_MAX_SERVER_NAME + 1] = { 0 };
-        struct s2n_blob wildcard_blob = { .data = (uint8_t *) wildcard_hostname, .size = sizeof(wildcard_hostname) };
+        struct s2n_blob wildcard_blob = { 0 };
+        s2n_blob_init(&wildcard_blob, (uint8_t *) wildcard_hostname, sizeof(wildcard_hostname));
         struct s2n_stuffer wildcard_stuffer;
         POSIX_GUARD(s2n_stuffer_init(&wildcard_stuffer, &wildcard_blob));
         POSIX_GUARD(s2n_create_wildcard_hostname(&normalized_hostname_stuffer, &wildcard_stuffer));

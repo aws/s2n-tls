@@ -338,7 +338,8 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
 
     /* Ciphertext will get written to *out */
-    struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length };
+    struct s2n_blob ciphertext = { 0 };
+    s2n_blob_init(&ciphertext, s2n_stuffer_raw_write(out, kem->ciphertext_length), kem->ciphertext_length);
     POSIX_ENSURE_REF(ciphertext.data);
 
     /* Saves the shared secret in kem_params */

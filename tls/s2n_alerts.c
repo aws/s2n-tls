@@ -253,7 +253,8 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
     alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
-    struct s2n_blob out = { .data = alert, .size = sizeof(alert) };
+    struct s2n_blob out = { 0 };
+    s2n_blob_init(&out, alert, sizeof(alert));
 
     /* If there is an alert pending or we've already sent a close_notify, do nothing */
     if (s2n_stuffer_data_available(&conn->writer_alert_out) || conn->close_notify_queued) {
@@ -278,7 +279,8 @@ static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, ui
     alert[0] = level;
     alert[1] = error_code;
 
-    struct s2n_blob out = { .data = alert, .size = sizeof(alert) };
+    struct s2n_blob out = { 0 };
+    s2n_blob_init(&out, alert, sizeof(alert));
 
     /* If there is an alert pending, do nothing */
     if (s2n_stuffer_data_available(&conn->reader_alert_out)) {

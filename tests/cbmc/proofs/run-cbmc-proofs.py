@@ -154,7 +154,7 @@ def get_args():
     }, {
             "flags": ["--version"],
             "action": "version",
-            "version": "CBMC starter kit 2.8",
+            "version": "CBMC starter kit 2.8.8",
             "help": "display version and exit"
     }, {
             "flags": ["--no-coverage"],
@@ -337,7 +337,7 @@ async def configure_proof_dirs( # pylint: disable=too-many-arguments
 def add_tool_version_job():
     cmd = [
         "litani", "add-job",
-        "--command", "cbmc-starter-kit-print-tool-versions .",
+        "--command", "./lib/print_tool_versions.py .",
         "--description", "printing out tool versions",
         "--phony-outputs", str(uuid.uuid4()),
         "--pipeline-name", "print_tool_versions",
