@@ -6,6 +6,11 @@ use std::{env, process::Command, time::Duration};
 
 pub fn s2nd(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2nd");
+    /*
+    example S2ND_ARGS:
+    "-X --self-service-blinding --non-blocking --key ../pems/rsa_1024_sha256_client_key.pem --cert ../pems/rsa_1024_sha256_client_cert.pem -t ../pems/rsa_1024_sha256_client_cert.pem -c test_all_tls12 -m -T localhost 8500"
+    Set in CriterionS2N provider in tests/integrationv2/providers.py.
+    */
     let s2nd_env: &str = &env::var("S2ND_ARGS").unwrap();
     let s2nd_test_name: &str = &env::var("S2ND_TEST_NAME").unwrap();
     let test_name = format!("s2nd_{}", s2nd_test_name);

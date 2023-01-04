@@ -9,7 +9,7 @@ pub fn s2nc(c: &mut Criterion) {
     /*
     example S2NC_ARGS:
     "--non-blocking -T -f ../integration/trust-store/ca-bundle.crt -c test_all_tls13 www.netflix.com 443"
-    Set in tests/integrationv2/providers.py line 379-ish
+    Set in CriterionS2N provider in tests/integrationv2/providers.py.
     */
     let s2nc_env: &str = &env::var("S2NC_ARGS").unwrap();
     let s2nc_test_name: &str = &env::var("S2NC_TEST_NAME").unwrap();
