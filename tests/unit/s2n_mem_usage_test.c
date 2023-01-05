@@ -25,9 +25,11 @@
 #elif defined(__OpenBSD__)
     #undef _POSIX_C_SOURCE
     #include <kvm.h>
-    #include <unistd.h>
+    /* clang-format off */
     #include <sys/types.h>
     #include <sys/sysctl.h>
+    /* clang-format on */
+    #include <unistd.h>
 #endif
 
 #include <errno.h>
@@ -111,7 +113,7 @@ ssize_t get_vm_data_size()
 
     return lsize << PAGE_SHIFT;
 
-#elif defined (__OpenBSD__)
+#elif defined(__OpenBSD__)
     struct kinfo_proc *procinfo;
     kvm_t *kd;
     pid_t ppid;
