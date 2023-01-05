@@ -188,9 +188,9 @@
 #define RESULT_GUARD_OSSL(result, error)                       __S2N_ENSURE((result) == _OSSL_SUCCESS, RESULT_BAIL(error))
 
 /**
- * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_RESULT_ERROR`
+ * Ensures `(result) > S2N_FAILURE`, otherwise the function will return `S2N_RESULT_ERROR`
  */
-#define RESULT_GUARD_POSIX(result)                             __S2N_ENSURE((result) >= S2N_SUCCESS, return S2N_RESULT_ERROR)
+#define RESULT_GUARD_POSIX(result)                             __S2N_ENSURE((result) > S2N_FAILURE, return S2N_RESULT_ERROR)
 
 /**
  * Ensures `(result) != NULL`, otherwise the function will return `S2N_RESULT_ERROR`
@@ -226,11 +226,11 @@
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
- * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will `POSIX_BAIL` with `error`
+ * Ensures `(result) > S2N_FAILURE`, otherwise the function will `POSIX_BAIL` with `error`
  *
  * This can be useful for overriding the global `s2n_errno`
  */
-#define POSIX_ENSURE_OK(result, error)                        __S2N_ENSURE((result) >= S2N_SUCCESS, POSIX_BAIL(error))
+#define POSIX_ENSURE_OK(result, error)                        __S2N_ENSURE((result) > S2N_FAILURE, POSIX_BAIL(error))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -378,9 +378,9 @@
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
- * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `S2N_FAILURE`
+ * Ensures `(result) > S2N_FAILURE`, otherwise the function will return `S2N_FAILURE`
  */
-#define POSIX_GUARD(result)                                   __S2N_ENSURE((result) >= S2N_SUCCESS, return S2N_FAILURE)
+#define POSIX_GUARD(result)                                   __S2N_ENSURE((result) > S2N_FAILURE, return S2N_FAILURE)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -605,7 +605,7 @@
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
- * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
+ * Ensures `(result) > S2N_FAILURE`, otherwise the function will return `NULL`
  */
-#define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) >= S2N_SUCCESS, return NULL)
+#define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) > S2N_FAILURE, return NULL)
 

@@ -13,55 +13,53 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdlib.h>
 #include <string.h>
 
-#include "testlib/s2n_testlib.h"
-
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_config.h"
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_config.h"
+#include "tls/s2n_connection.h"
 
 static uint8_t unmatched_private_key[] =
-    "-----BEGIN RSA PRIVATE KEY-----\n"
-    "MIIEpQIBAAKCAQEA6ddvtO6DbX5GLrWeXD2jufmR6lvYuzwpIHbDf0RQr2AT50wf\n"
-    "vV+sMYVa/d4g68tqtihH691tqzKevVc25LXM0a0f0NfnrNibyA1/66CwFQsyy1j2\n"
-    "U90BdguI/ZxqEV58ee/PzerOoS5d/rgBALzGwwYwyvlzr35KGjfRZ4XOFoToKnkN\n"
-    "0mR44firCvb7dJ53QRXoPbkYpQQQ3vMWMOtDZoPsvP0dJJ50B7LaFL6nbOyJmZ2T\n"
-    "evaAov1Nuk5QSrZf2icpuQVXxuu2xLmTNL25OUiV3t7ZjiLtrOZrmrIzv8/sLcWp\n"
-    "VJcFWFoKizmjvpDfD086a9c81vo4kqgD/RZ9dQIDAQABAoIBAQDBNUzJ3MxgupW4\n"
-    "YD2BDzjpH2jNj6fKRBHjDd3HmKVl0eeAE2iiKpt2qy2cVl0zFfaMnUmXe3PyoLeB\n"
-    "z76+R+v8TqPcBZgZOzuzllvcTv9N09vbIh0c+50KcMt2aDdHNJ96jIdRJzIlAM+O\n"
-    "9290sYU0fDfybRuFo74MXZQ6idbWyNMjXEv2oPrmvMmOHm10sz9BCXWFUpDpDFKD\n"
-    "8xgw1GZ1QeHITWoQXMI2uJUFFj2hYbRAl6f8cMXVjUipmMNpfJk4CbtEdSMPkjrz\n"
-    "XgIVrMCorCiaLuVQgSQCHB01n8ETM6R9PYSgMSg3RYYqKq4N0nvREUf4VvKV8JOY\n"
-    "EGzNgq3BAoGBAPvHPoCKQawLEr4jE5ITMqhZXlBXh8aU7LetjSY1BfnsiH43eg1n\n"
-    "186lfOX0r1I2KkVZTehZohkEo8xeEpc+XMdux1z0mX2uz1tfmHl838sRaTBs1JZ0\n"
-    "slkBrASfDdOnLlHCMhRmFEEnA0eelNYCiy/Ak0UX7NpuhZ3bh2jGemixAoGBAO3D\n"
-    "MupFbCl64AFEuLCA3wSFRhG82AScYAF1txoTM01V/kqy66j2jJsqMXkVcyBcLBkJ\n"
-    "5ozW4kIKkh0dYtIjDpsnXKBK/kVcvJN+60hwVnAMFFJPlRCdejkKSsSe9xod+FzU\n"
-    "DvwWLpLaO3sFtykGHelFbzMDB6FaZQFSfSMsNhIFAoGBAKaNafor+z9s38wpdfPG\n"
-    "gVc+LxakoGur7l+fDeU9ZCOs5ang1vtxOyA29sVDtIqEzDet2MygJou4NwalIFUu\n"
-    "ar9+t6D1KWgrsH24YivTgFNbxCLFi2ev8J7SbVFtSf8983UgKnK2CCYFQbUp4Tkk\n"
-    "26AOGx20svjX7cm8A/o6eZUxAoGBANtedXSnNuOSpmklMc5QKPRvzrWA6kJe0Umn\n"
-    "hZf+TSA2jlf3eu07BYIITPst6jnaMSms89XQUZOjUyqfuVSu2cQXbiPK7Y2rwaXI\n"
-    "vWbplybsTjefi6Z31ZQZReDh1pV3P3bOhUDban898RFRtauZJDHdSXrkeb7Ku1Sb\n"
-    "+i9glEbNAoGAJngXJZ2djyzCxYtSNyUFP8AZfmSy+vmHVCCri1FCoFfj9D1HTw4h\n"
-    "G0guyN3/Qm51gJVeBTOu/dtoA5JAZi6CRyNuhClLCqV+jGsUr9xyMzA+t/JHVr+0\n"
-    "XQhx4wqVYQs2852qaJg+wYUi50FtRT6hLyDQmg9ttvS4YIwMTdVzl2Q=\n"
-    "-----END RSA PRIVATE KEY-----\n";
+        "-----BEGIN RSA PRIVATE KEY-----\n"
+        "MIIEpQIBAAKCAQEA6ddvtO6DbX5GLrWeXD2jufmR6lvYuzwpIHbDf0RQr2AT50wf\n"
+        "vV+sMYVa/d4g68tqtihH691tqzKevVc25LXM0a0f0NfnrNibyA1/66CwFQsyy1j2\n"
+        "U90BdguI/ZxqEV58ee/PzerOoS5d/rgBALzGwwYwyvlzr35KGjfRZ4XOFoToKnkN\n"
+        "0mR44firCvb7dJ53QRXoPbkYpQQQ3vMWMOtDZoPsvP0dJJ50B7LaFL6nbOyJmZ2T\n"
+        "evaAov1Nuk5QSrZf2icpuQVXxuu2xLmTNL25OUiV3t7ZjiLtrOZrmrIzv8/sLcWp\n"
+        "VJcFWFoKizmjvpDfD086a9c81vo4kqgD/RZ9dQIDAQABAoIBAQDBNUzJ3MxgupW4\n"
+        "YD2BDzjpH2jNj6fKRBHjDd3HmKVl0eeAE2iiKpt2qy2cVl0zFfaMnUmXe3PyoLeB\n"
+        "z76+R+v8TqPcBZgZOzuzllvcTv9N09vbIh0c+50KcMt2aDdHNJ96jIdRJzIlAM+O\n"
+        "9290sYU0fDfybRuFo74MXZQ6idbWyNMjXEv2oPrmvMmOHm10sz9BCXWFUpDpDFKD\n"
+        "8xgw1GZ1QeHITWoQXMI2uJUFFj2hYbRAl6f8cMXVjUipmMNpfJk4CbtEdSMPkjrz\n"
+        "XgIVrMCorCiaLuVQgSQCHB01n8ETM6R9PYSgMSg3RYYqKq4N0nvREUf4VvKV8JOY\n"
+        "EGzNgq3BAoGBAPvHPoCKQawLEr4jE5ITMqhZXlBXh8aU7LetjSY1BfnsiH43eg1n\n"
+        "186lfOX0r1I2KkVZTehZohkEo8xeEpc+XMdux1z0mX2uz1tfmHl838sRaTBs1JZ0\n"
+        "slkBrASfDdOnLlHCMhRmFEEnA0eelNYCiy/Ak0UX7NpuhZ3bh2jGemixAoGBAO3D\n"
+        "MupFbCl64AFEuLCA3wSFRhG82AScYAF1txoTM01V/kqy66j2jJsqMXkVcyBcLBkJ\n"
+        "5ozW4kIKkh0dYtIjDpsnXKBK/kVcvJN+60hwVnAMFFJPlRCdejkKSsSe9xod+FzU\n"
+        "DvwWLpLaO3sFtykGHelFbzMDB6FaZQFSfSMsNhIFAoGBAKaNafor+z9s38wpdfPG\n"
+        "gVc+LxakoGur7l+fDeU9ZCOs5ang1vtxOyA29sVDtIqEzDet2MygJou4NwalIFUu\n"
+        "ar9+t6D1KWgrsH24YivTgFNbxCLFi2ev8J7SbVFtSf8983UgKnK2CCYFQbUp4Tkk\n"
+        "26AOGx20svjX7cm8A/o6eZUxAoGBANtedXSnNuOSpmklMc5QKPRvzrWA6kJe0Umn\n"
+        "hZf+TSA2jlf3eu07BYIITPst6jnaMSms89XQUZOjUyqfuVSu2cQXbiPK7Y2rwaXI\n"
+        "vWbplybsTjefi6Z31ZQZReDh1pV3P3bOhUDban898RFRtauZJDHdSXrkeb7Ku1Sb\n"
+        "+i9glEbNAoGAJngXJZ2djyzCxYtSNyUFP8AZfmSy+vmHVCCri1FCoFfj9D1HTw4h\n"
+        "G0guyN3/Qm51gJVeBTOu/dtoA5JAZi6CRyNuhClLCqV+jGsUr9xyMzA+t/JHVr+0\n"
+        "XQhx4wqVYQs2852qaJg+wYUi50FtRT6hLyDQmg9ttvS4YIwMTdVzl2Q=\n"
+        "-----END RSA PRIVATE KEY-----\n";
 
 int main(int argc, char **argv)
 {
-    struct s2n_stuffer certificate_in = {0}, certificate_out = {0};
-    struct s2n_stuffer dhparams_in = {0}, dhparams_out = {0};
-    struct s2n_stuffer rsa_key_in = {0}, rsa_key_out = {0};
-    struct s2n_blob b = {0};
+    struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
+    struct s2n_stuffer dhparams_in = { 0 }, dhparams_out = { 0 };
+    struct s2n_stuffer rsa_key_in = { 0 }, rsa_key_out = { 0 };
+    struct s2n_blob b = { 0 };
     char *leaf_cert_pem = NULL;
     char *cert_chain_pem = NULL;
     char *private_key_pem = NULL;
@@ -102,9 +100,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&rsa_key_in, &rsa_key_out));
     EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
 
-    struct s2n_pkey priv_key = {0};
-    struct s2n_pkey pub_key = {0};
-    s2n_pkey_type pkey_type = {0};
+    struct s2n_pkey priv_key = { 0 };
+    struct s2n_pkey pub_key = { 0 };
+    s2n_pkey_type pkey_type = { 0 };
 
     uint32_t available_size = 0;
     available_size = s2n_stuffer_data_available(&certificate_out);
@@ -121,7 +119,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    struct s2n_dh_params dh_params = {0};
+    struct s2n_dh_params dh_params = { 0 };
     available_size = s2n_stuffer_data_available(&dhparams_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
@@ -130,11 +128,11 @@ int main(int argc, char **argv)
 
     /* Try signing and verification with RSA */
     uint8_t inputpad[] = "Hello world!";
-    struct s2n_blob signature = {0};
-    struct s2n_hash_state tls10_one = {0};
-    struct s2n_hash_state tls10_two = {0};
-    struct s2n_hash_state tls12_one = {0};
-    struct s2n_hash_state tls12_two = {0};
+    struct s2n_blob signature = { 0 };
+    struct s2n_hash_state tls10_one = { 0 };
+    struct s2n_hash_state tls10_two = { 0 };
+    struct s2n_hash_state tls12_one = { 0 };
+    struct s2n_hash_state tls12_two = { 0 };
 
     uint32_t maximum_signature_length = 0;
     EXPECT_OK(s2n_pkey_size(&pub_key, &maximum_signature_length));
@@ -178,7 +176,7 @@ int main(int argc, char **argv)
     /* Mismatched public/private key should fail */
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, (char *)unmatched_private_key));
+    EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, (char *) unmatched_private_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));
 

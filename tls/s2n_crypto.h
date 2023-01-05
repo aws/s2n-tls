@@ -24,7 +24,6 @@
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_signature.h"
 #include "crypto/s2n_tls13_keys.h"
-#include "tls/s2n_config.h"
 #include "tls/s2n_crypto_constants.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_scheme.h"

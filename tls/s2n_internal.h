@@ -43,7 +43,7 @@ struct s2n_connection;
  * Caution: A config can be associated with multiple connections and should not be
  * modified after it has been built. Doing so is undefined behavior.
  */
-S2N_PRIVATE_API extern int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config);
+S2N_PRIVATE_API int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config);
 
 /*
  * Enable polling the async client_hello callback to make progress.
@@ -51,4 +51,4 @@ S2N_PRIVATE_API extern int s2n_connection_get_config(struct s2n_connection *conn
  * `s2n_negotiate` must be called multiple times to poll the callback function
  * and make progress.
  */
-S2N_PRIVATE_API extern int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config);
+S2N_PRIVATE_API int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config);

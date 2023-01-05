@@ -625,7 +625,7 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     return 0;
 }
 
-extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
+int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
 {
     POSIX_ENSURE_REF(clock_fn);
 
@@ -635,7 +635,7 @@ extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_n
     return 0;
 }
 
-extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
+int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
 {
     POSIX_ENSURE_REF(clock_fn);
 
@@ -998,7 +998,7 @@ int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config)
 int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE(size >= S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN), S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(size >= S2N_MIN_SEND_BUFFER_SIZE, S2N_ERR_INVALID_ARGUMENT);
     config->send_buffer_size_override = size;
     return S2N_SUCCESS;
 }
