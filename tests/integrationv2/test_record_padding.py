@@ -31,10 +31,10 @@ OPENSSL_PAYLOAD_SIZES = [PAYLOAD_SIZE_SMALL,
 TLS13_CIPHERS_WITH_16_BYTE_TAGS = [
     Ciphers.AES128_GCM_SHA256,
     Ciphers.AES256_GCM_SHA384,
+    Ciphers.CHACHA20_POLY1305_SHA256
 ]
 
 
-@pytest.mark.skip
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS_WITH_16_BYTE_TAGS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
