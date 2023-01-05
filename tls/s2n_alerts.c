@@ -280,7 +280,7 @@ static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, ui
     alert[1] = error_code;
 
     struct s2n_blob out = { 0 };
-    s2n_blob_init(&out, alert, sizeof(alert));
+    POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
 
     /* If there is an alert pending, do nothing */
     if (s2n_stuffer_data_available(&conn->reader_alert_out)) {
