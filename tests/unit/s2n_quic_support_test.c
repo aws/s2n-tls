@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "tls/s2n_quic_support.h"
 
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 
 static const uint8_t TEST_DATA[] = "test";
 
-static int s2n_test_noop_secret_handler(void* context, struct s2n_connection *conn,
+static int s2n_test_noop_secret_handler(void *context, struct s2n_connection *conn,
         s2n_secret_type_t secret_type, uint8_t *secret, uint8_t secret_size)
 {
     return S2N_SUCCESS;
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_enable_quic(NULL), S2N_ERR_NULL);
             EXPECT_FALSE(config->quic_enabled);
             EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
-        }
+        };
 
         /* Check success */
         {
@@ -78,11 +78,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_enable_quic(config));
             EXPECT_TRUE(config->quic_enabled);
             EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test s2n_connection_enable_quic */
     {
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(NULL), S2N_ERR_NULL);
             EXPECT_FALSE(s2n_connection_is_quic_enabled(conn));
-        }
+        };
 
         /* Check success */
         {
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
             /* Enabling QUIC again still succeeds */
             EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
             EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
-        }
+        };
 
         /* Check with config enabled too */
         {
@@ -116,10 +116,10 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_is_quic_enabled(conn));
 
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
+        };
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test that if a connection enables quic via the config,
      * quic stays enabled for the connection even if the config changes.
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(non_quic_config));
         EXPECT_SUCCESS(s2n_config_free(quic_config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test s2n_connection_set_quic_transport_parameters */
     {
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
                     S2N_ERR_NULL);
             EXPECT_SUCCESS(s2n_connection_set_quic_transport_parameters(&conn, TEST_DATA, 0));
             EXPECT_EQUAL(conn.our_quic_transport_parameters.size, 0);
-        }
+        };
 
         /* Set transport data */
         {
@@ -175,8 +175,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->our_quic_transport_parameters.data, other_data, sizeof(other_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_connection_get_quic_transport_parameters */
     {
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
                     S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_quic_transport_parameters(&conn, &data_buffer, NULL),
                     S2N_ERR_NULL);
-        }
+        };
 
         /* Get empty transport parameters */
         {
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(data_buffer_len, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Get transport parameters */
         {
@@ -225,8 +225,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(data_buffer_len, conn->peer_quic_transport_parameters.size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_connection_set_secret_callback */
     {
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secret_cb_context, NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Succeeds with NULL context */
         {
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->secret_cb_context);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Succeeds with context */
         {
@@ -274,8 +274,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secret_cb_context, &test_context);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test: no API that sends/receives application data is allowed when QUIC is enabled */
     {
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     END_TEST();
 }

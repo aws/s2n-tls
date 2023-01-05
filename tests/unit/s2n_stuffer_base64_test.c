@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include <string.h>
-#include "api/s2n.h"
 
+#include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_random.h"
 
@@ -24,13 +24,12 @@ int main(int argc, char **argv)
 {
     char hello_world[] = "Hello world!";
     uint8_t hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
-    struct s2n_stuffer stuffer = {0}, known_data = {0}, scratch = {0}, entropy = {0}, mirror = {0};
+    struct s2n_stuffer stuffer = { 0 }, known_data = { 0 }, scratch = { 0 }, entropy = { 0 }, mirror = { 0 };
     uint8_t pad[50];
-    struct s2n_blob r = {.data = pad, .size = sizeof(pad)};
+    struct s2n_blob r = { .data = pad, .size = sizeof(pad) };
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000));
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&known_data));
 
     /* Check it against the known output */
-    EXPECT_EQUAL(memcmp(stuffer.blob.data, hello_world_base64, strlen((char *)hello_world)), 0);
+    EXPECT_EQUAL(memcmp(stuffer.blob.data, hello_world_base64, strlen((char *) hello_world)), 0);
 
     /* Check that we can read it again */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&scratch, 50));

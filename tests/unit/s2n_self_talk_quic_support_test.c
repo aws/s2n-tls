@@ -15,21 +15,20 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_quic_support.h"
 
-#define S2N_MODE_COUNT 2
+#define S2N_MODE_COUNT        2
 #define S2N_SECRET_TYPE_COUNT 5
 
 static const uint8_t CLIENT_TRANSPORT_PARAMS[] = "client transport params";
 static const uint8_t SERVER_TRANSPORT_PARAMS[] = "server transport params";
 
-static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
-                                   s2n_secret_type_t secret_type,
-                                   uint8_t *secret, uint8_t secret_size)
+static int s2n_test_secret_handler(void *context, struct s2n_connection *conn,
+        s2n_secret_type_t secret_type,
+        uint8_t *secret, uint8_t secret_size)
 {
     /* Verify context passed through correctly */
-    struct s2n_blob (*secrets)[S2N_SECRET_TYPE_COUNT] = context;
+    struct s2n_blob(*secrets)[S2N_SECRET_TYPE_COUNT] = context;
     EXPECT_NOT_NULL(secrets);
 
     /* Save secret for later */

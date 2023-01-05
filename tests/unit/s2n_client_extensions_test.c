@@ -59,7 +59,7 @@ static uint8_t sct_list[] = {
     0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 /* Helper function to allow us to easily repeat the PQ extension test for many scenarios.
  * If the KEM negotiation is expected to fail (because of e.g. a client/server extension
