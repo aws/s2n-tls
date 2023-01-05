@@ -28,6 +28,8 @@
 
 static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
     POSIX_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
@@ -50,11 +52,20 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
 static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
     POSIX_ENSURE_REF(scheme);
+    POSIX_ENSURE_REF(conn);
 
     POSIX_GUARD(s2n_signature_scheme_valid_to_offer(conn, scheme));
 
     if (scheme->maximum_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
         POSIX_ENSURE_LTE(conn->actual_protocol_version, scheme->maximum_protocol_version);
+    }
+
+    POSIX_ENSURE_NE(conn->actual_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        POSIX_ENSURE_NE(scheme->hash_alg, S2N_HASH_SHA1);
+        POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA);
+    } else {
+        POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
     return 0;
