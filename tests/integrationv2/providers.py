@@ -337,18 +337,7 @@ class CriterionS2N(S2N):
             return result[0]
 
     def _find_cargo(self):
-        # return a path to the highest level dir containing Cargo.toml
-        shortest = None
-        for file in find_files("Cargo.toml", root_dir="../.."):
-            if shortest is None:
-                shortest = file
-            else:
-                if len(file) < len(shortest):
-                    shortest = file
-        if shortest is None:
-            raise FileNotFoundError("Unable to find Cargo.toml")
-        # Return the path, minus Cargo.toml
-        return os.path.dirname(shortest)
+        return os.path.abspath("../../bindings/rust")
 
     def _cargo_bench(self):
         """
