@@ -824,7 +824,7 @@ static const char *tls13_handshake_type_names[] = {
     "EARLY_CLIENT_CCS|",
 };
 
-#define IS_TLS13_HANDSHAKE(conn) ((conn)->actual_protocol_version == S2N_TLS13)
+#define IS_TLS13_HANDSHAKE(conn) ((conn)->handshake.state_machine == S2N_STATE_MACHINE_TLS13)
 
 #define ACTIVE_STATE_MACHINE(conn) (IS_TLS13_HANDSHAKE(conn) ? tls13_state_machine : state_machine)
 #define ACTIVE_HANDSHAKES(conn)    (IS_TLS13_HANDSHAKE(conn) ? tls13_handshakes : handshakes)
@@ -1016,6 +1016,8 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
+    POSIX_GUARD_RESULT(s2n_conn_choose_state_machine(conn, conn->actual_protocol_version));
+
     if (IS_TLS13_HANDSHAKE(conn)) {
         POSIX_GUARD_RESULT(s2n_conn_set_tls13_handshake_type(conn));
         return S2N_SUCCESS;
@@ -1106,6 +1108,26 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, NO_CLIENT_CERT));
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t protocol_version)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* This should never be called before we know what version we're on */
+    RESULT_ENSURE_NE(protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
+
+    if (protocol_version == S2N_TLS13) {
+        /* State machine should not change once set */
+        RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS12);
+        conn->handshake.state_machine = S2N_STATE_MACHINE_TLS13;
+    } else {
+        /* State machine should not change once set */
+        RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS13);
+        conn->handshake.state_machine = S2N_STATE_MACHINE_TLS12;
+    }
+
+    return S2N_RESULT_OK;
 }
 
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
