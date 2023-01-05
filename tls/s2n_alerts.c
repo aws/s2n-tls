@@ -254,7 +254,7 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
     struct s2n_blob out = { 0 };
-    s2n_blob_init(&out, alert, sizeof(alert));
+    POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
 
     /* If there is an alert pending or we've already sent a close_notify, do nothing */
     if (s2n_stuffer_data_available(&conn->writer_alert_out) || conn->close_notify_queued) {

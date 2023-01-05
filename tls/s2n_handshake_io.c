@@ -901,7 +901,7 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
 {
     if (conn->mode == S2N_SERVER) {
         struct s2n_blob session_id = { 0 };
-        s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN);
+        POSIX_GUARD(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
 
         /* Generate a new session id */
         POSIX_GUARD_RESULT(s2n_get_public_random_data(&session_id));
@@ -1299,7 +1299,7 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 
     /* Add the message to our handshake hashes */
     struct s2n_blob hashed = { 0 };
-    s2n_blob_init(&hashed, conn->header_in.blob.data + 2, 3);
+    POSIX_GUARD(s2n_blob_init(&hashed, conn->header_in.blob.data + 2, 3));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
 
     hashed.data = conn->in.blob.data;

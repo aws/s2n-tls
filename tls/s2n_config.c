@@ -842,13 +842,13 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN] = { 0 };
     struct s2n_blob out_key = { 0 };
-    s2n_blob_init(&out_key, output_pad, s2n_array_len(output_pad));
+    POSIX_GUARD(s2n_blob_init(&out_key, output_pad, s2n_array_len(output_pad)));
     struct s2n_blob in_key = { 0 };
-    s2n_blob_init(&in_key, key, key_len);
+    POSIX_GUARD(s2n_blob_init(&in_key, key, key_len));
     struct s2n_blob salt = { 0 };
-    s2n_blob_init(&salt, NULL, 0);
+    POSIX_GUARD(s2n_blob_init(&salt, NULL, 0));
     struct s2n_blob info = { 0 };
-    s2n_blob_init(&info, NULL, 0);
+    POSIX_GUARD(s2n_blob_init(&info, NULL, 0));
 
     struct s2n_ticket_key *session_ticket_key = { 0 };
     DEFER_CLEANUP(struct s2n_blob allocator = { 0 }, s2n_free);
