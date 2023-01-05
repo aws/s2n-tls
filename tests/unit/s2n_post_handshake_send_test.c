@@ -150,7 +150,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_get_expected_record_count(nst_size, fragment_size, tickets_to_send, &expected_record_count));
             EXPECT_EQUAL(actual_record_count, expected_record_count);
         }
-    }
+    };
 
     /* Test: send fragmented post-handshake messages (NewSessionTicket) when IO blocks  */
     {
@@ -186,7 +186,6 @@ int main(int argc, char **argv)
             server_conn->tickets_sent = 0;
             server_conn->tickets_to_send = tickets_to_send;
 
-            size_t block_count = 0;
             while (s2n_send(server_conn, send_data, sizeof(send_data), &blocked) < S2N_SUCCESS) {
                 EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
                 EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
@@ -200,7 +199,6 @@ int main(int argc, char **argv)
                 size_t new_data_size = s2n_stuffer_data_available(&server_conn->out);
                 EXPECT_SUCCESS(s2n_stuffer_resize(server_out, existing_size + new_data_size));
                 server_out->growable = false;
-                block_count++;
             }
             EXPECT_EQUAL(server_conn->tickets_sent, tickets_to_send);
             EXPECT_TRUE(s2n_stuffer_is_freed(&server_conn->handshake.io));
@@ -229,7 +227,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_get_expected_record_count(nst_size, fragment_size, tickets_to_send, &expected_record_count));
             EXPECT_EQUAL(actual_record_count, expected_record_count);
         }
-    }
+    };
 
     END_TEST();
 }

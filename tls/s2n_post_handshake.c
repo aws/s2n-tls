@@ -173,6 +173,9 @@ S2N_RESULT s2n_post_handshake_write_records(struct s2n_connection *conn, s2n_blo
 
     uint32_t remaining = 0;
     while ((remaining = s2n_stuffer_data_available(message)) > 0) {
+        /* Flush any existing records before we write a new record.
+         * We do not support buffering multiple handshake records.
+         */
         if (s2n_stuffer_data_available(&conn->out)) {
             RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
         }

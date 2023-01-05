@@ -577,7 +577,7 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, buffer_size);
-    }
+    };
 
     END_TEST();
 }
