@@ -24,18 +24,29 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send) \
-    (ceil((1.0 * nst_size) / fragment_size) * tickets_to_send) + 1
-
-static S2N_RESULT s2n_read_then_zero_seq_num(uint8_t *seq_num_bytes, uint64_t *seq_num)
+static S2N_RESULT s2n_get_expected_record_count(uint32_t nst_size, uint32_t fragment_size, uint8_t tickets_to_send,
+        uint64_t *expected_record_count)
 {
+    uint32_t app_data_records = 1;
+    uint32_t records_per_nst = ceil((1.0 * nst_size) / fragment_size);
+    uint32_t nst_records = records_per_nst * tickets_to_send;
+    *expected_record_count = app_data_records + nst_records;
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_actual_record_count(uint8_t *cur_seq_num_bytes,
+        uint64_t *last_seq_num, uint64_t *actual_record_count)
+{
+    uint64_t cur_seq_num = 0;
     struct s2n_blob blob = { 0 };
     struct s2n_stuffer stuffer = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&blob, seq_num_bytes, S2N_TLS_SEQUENCE_NUM_LEN));
+    RESULT_GUARD_POSIX(s2n_blob_init(&blob, cur_seq_num_bytes, S2N_TLS_SEQUENCE_NUM_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_init(&stuffer, &blob));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&stuffer, S2N_TLS_SEQUENCE_NUM_LEN));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(&stuffer, seq_num));
-    RESULT_GUARD_POSIX(s2n_blob_zero(&blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(&stuffer, &cur_seq_num));
+
+    *actual_record_count = cur_seq_num - *last_seq_num;
+    *last_seq_num = cur_seq_num;
     return S2N_RESULT_OK;
 }
 
@@ -103,6 +114,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_get_nst_message_size(server_conn, &nst_size));
 
         /* Test: the messages are fragmented into the number of records expected */
+        uint64_t write_seq_num = 0;
         for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
             const uint32_t fragment_size = fragment_sizes[frag_i];
 
@@ -115,12 +127,15 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_stuffer_is_freed(&server_conn->handshake.io));
 
             uint64_t actual_record_count = 0;
-            const uint32_t expected_record_count = S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send);
-            EXPECT_OK(s2n_read_then_zero_seq_num(server_conn->server->server_sequence_number, &actual_record_count));
+            uint64_t expected_record_count = 0;
+            uint8_t *seq_num = server_conn->server->server_sequence_number;
+            EXPECT_OK(s2n_get_actual_record_count(seq_num, &write_seq_num, &actual_record_count));
+            EXPECT_OK(s2n_get_expected_record_count(nst_size, fragment_size, tickets_to_send, &expected_record_count));
             EXPECT_EQUAL(actual_record_count, expected_record_count);
         }
 
         /* Test: the full messages can be parsed by the client */
+        uint64_t read_seq_num = 0;
         for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
             const uint32_t fragment_size = fragment_sizes[frag_i];
 
@@ -129,8 +144,10 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(send_data, recv_data, sizeof(recv_data));
 
             uint64_t actual_record_count = 0;
-            const uint32_t expected_record_count = S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send);
-            EXPECT_OK(s2n_read_then_zero_seq_num(client_conn->server->server_sequence_number, &actual_record_count));
+            uint64_t expected_record_count = 0;
+            uint8_t *seq_num = client_conn->server->server_sequence_number;
+            EXPECT_OK(s2n_get_actual_record_count(seq_num, &read_seq_num, &actual_record_count));
+            EXPECT_OK(s2n_get_expected_record_count(nst_size, fragment_size, tickets_to_send, &expected_record_count));
             EXPECT_EQUAL(actual_record_count, expected_record_count);
         }
     }
@@ -161,6 +178,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_alloc(server_out, 0));
 
         /* Test: the messages can be sent despite constant IO blocking */
+        uint64_t write_seq_num = 0;
         for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
             const uint32_t fragment_size = fragment_sizes[frag_i];
 
@@ -188,13 +206,15 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_stuffer_is_freed(&server_conn->handshake.io));
 
             uint64_t actual_record_count = 0;
-            const uint32_t expected_record_count = S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send);
-            EXPECT_OK(s2n_read_then_zero_seq_num(server_conn->server->server_sequence_number, &actual_record_count));
+            uint64_t expected_record_count = 0;
+            uint8_t *seq_num = server_conn->server->server_sequence_number;
+            EXPECT_OK(s2n_get_actual_record_count(seq_num, &write_seq_num, &actual_record_count));
+            EXPECT_OK(s2n_get_expected_record_count(nst_size, fragment_size, tickets_to_send, &expected_record_count));
             EXPECT_EQUAL(actual_record_count, expected_record_count);
-            EXPECT_EQUAL(block_count, expected_record_count);
         }
 
         /* Test: the full messages can be parsed by the client */
+        uint64_t read_seq_num = 0;
         for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
             const uint32_t fragment_size = fragment_sizes[frag_i];
 
@@ -203,8 +223,10 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(send_data, recv_data, sizeof(recv_data));
 
             uint64_t actual_record_count = 0;
-            const uint32_t expected_record_count = S2N_RECORD_COUNT(nst_size, fragment_size, tickets_to_send);
-            EXPECT_OK(s2n_read_then_zero_seq_num(client_conn->server->server_sequence_number, &actual_record_count));
+            uint64_t expected_record_count = 0;
+            uint8_t *seq_num = client_conn->server->server_sequence_number;
+            EXPECT_OK(s2n_get_actual_record_count(seq_num, &read_seq_num, &actual_record_count));
+            EXPECT_OK(s2n_get_expected_record_count(nst_size, fragment_size, tickets_to_send, &expected_record_count));
             EXPECT_EQUAL(actual_record_count, expected_record_count);
         }
     }
