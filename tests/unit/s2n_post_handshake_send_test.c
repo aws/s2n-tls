@@ -24,6 +24,8 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+#define S2N_FRAG_LEN_SMALLER_THAN_NST 50
+
 static S2N_RESULT s2n_get_expected_record_count(uint32_t nst_size, uint32_t fragment_size, uint8_t tickets_to_send,
         uint64_t *expected_record_count)
 {
@@ -56,7 +58,7 @@ static S2N_RESULT s2n_get_nst_message_size(struct s2n_connection *conn, uint32_t
     RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&nst_message, 0));
     RESULT_GUARD(s2n_tls13_server_nst_write(conn, &nst_message));
     *size = s2n_stuffer_data_available(&nst_message);
-    EXPECT_TRUE(*size > 50);
+    EXPECT_TRUE(*size > S2N_FRAG_LEN_SMALLER_THAN_NST);
     return S2N_RESULT_OK;
 }
 
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
         2,
         TLS_HANDSHAKE_HEADER_LENGTH,
         TLS_HANDSHAKE_HEADER_LENGTH + 1,
-        50,
+        S2N_FRAG_LEN_SMALLER_THAN_NST,
         S2N_DEFAULT_FRAGMENT_LENGTH,
         S2N_TLS_MAXIMUM_FRAGMENT_LENGTH,
     };
