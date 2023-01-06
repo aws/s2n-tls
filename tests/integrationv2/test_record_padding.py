@@ -116,10 +116,8 @@ def test_s2n_13_client_handles_padded_records(managed_process, cipher, provider,
         key=certificate.key,
         insecure=True,
         protocol=protocol,
-        # openssl errors when sending session tickets and when padding is set > 2075 bytes.
-        # use -rev s.t the openssl server echoes back the s2nc payload (but reversed)
-        extra_flags=['-num_tickets', 0,
-                     '-record_padding', padding_size, '-rev']
+        extra_flags=[
+            '-record_padding', padding_size]
     )
 
     client_options = copy.copy(server_options)
@@ -143,14 +141,8 @@ def test_s2n_13_client_handles_padded_records(managed_process, cipher, provider,
         # if there is no padding, then the openssl server payload size must be the original payload size
         # + 16 bytes of aead tag + 1 byte of content type + 1 byte for the new-line char sent by s2n
         expected_total_length = PAYLOAD_SIZE + 16 + 1 + 1
-    elif padding_size < PAYLOAD_SIZE:
-        # if the padding size is smaller than the payload size then openssl will attempt to pad to
-        # the next largest multiple of padding_size + 16 bytes of aead tag
-        rounded = math.ceil(PAYLOAD_SIZE / padding_size)
-        expected_total_length = (padding_size * rounded) + 16
     else:
-        # else the padding size is larger than the payload size. The output payload size must be
-        # the padding size + 16 bytes of aead tag.
+        # else the openssl server payload size must be the padding size + 16 bytes of aead tag
         expected_total_length = padding_size + 16
 
     expected_record_header = get_record_header(expected_total_length)
