@@ -35,6 +35,8 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 
+message("the compiler is ${CMAKE_C_COMPILER_ID}")
+
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -116,7 +118,7 @@ else()
     # supports it and set proper compiler flags to be added later to the
     # Kyber compilation units.
     if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
-    
+
         set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mavx -mbmi2")
         try_compile(KYBER512R3_AVX2_BMI2_SUPPORTED
             ${CMAKE_BINARY_DIR}
@@ -364,6 +366,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
     # add cast-qual back in for non AWS-LC
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
+endif()
+
+if (COVERAGE_ENABLED)
+    message("looks like you want coverage turned on. Yay!")
+
+    target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
 endif()
 
 # For interning, we need to find the static libcrypto library. Cmake configs
