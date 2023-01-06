@@ -1,5 +1,4 @@
 import copy
-import math
 import pytest
 
 from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS
