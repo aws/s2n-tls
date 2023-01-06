@@ -39,15 +39,15 @@ struct s2n_socket_write_io_context {
     int original_cork_val;
 };
 
-extern int s2n_socket_quickack(struct s2n_connection *conn);
-extern int s2n_socket_read_snapshot(struct s2n_connection *conn);
-extern int s2n_socket_write_snapshot(struct s2n_connection *conn);
-extern int s2n_socket_read_restore(struct s2n_connection *conn);
-extern int s2n_socket_write_restore(struct s2n_connection *conn);
-extern int s2n_socket_was_corked(struct s2n_connection *conn);
-extern int s2n_socket_write_cork(struct s2n_connection *conn);
-extern int s2n_socket_write_uncork(struct s2n_connection *conn);
-extern int s2n_socket_set_read_size(struct s2n_connection *conn, int size);
-extern int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len);
-extern int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len);
-extern int s2n_socket_is_ipv6(int fd, uint8_t *ipv6);
+int s2n_socket_quickack(struct s2n_connection *conn);
+int s2n_socket_read_snapshot(struct s2n_connection *conn);
+int s2n_socket_write_snapshot(struct s2n_connection *conn);
+int s2n_socket_read_restore(struct s2n_connection *conn);
+int s2n_socket_write_restore(struct s2n_connection *conn);
+int s2n_socket_was_corked(struct s2n_connection *conn);
+int s2n_socket_write_cork(struct s2n_connection *conn);
+int s2n_socket_write_uncork(struct s2n_connection *conn);
+int s2n_socket_set_read_size(struct s2n_connection *conn, int size);
+int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len);
+int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len);
+int s2n_socket_is_ipv6(int fd, uint8_t *ipv6);

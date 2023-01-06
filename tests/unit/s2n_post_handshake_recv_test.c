@@ -69,9 +69,7 @@ static S2N_RESULT s2n_test_send_records(struct s2n_connection *conn, struct s2n_
     while ((remaining = s2n_stuffer_data_available(&messages)) > 0) {
         record_data.size = MIN(record_data.size, remaining);
         RESULT_GUARD_POSIX(s2n_stuffer_read(&messages, &record_data));
-        int r = s2n_record_write(conn, TLS_HANDSHAKE, &record_data);
-        RESULT_GUARD_POSIX(r);
-        RESULT_ENSURE_EQ(r, record_data.size);
+        RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &record_data));
         RESULT_GUARD_POSIX(s2n_flush(conn, &blocked));
     };
 
@@ -207,7 +205,9 @@ int main(int argc, char **argv)
     config->initial_tickets_to_send = 0;
 
     const uint32_t fragment_sizes[] = {
-        S2N_MAX_FRAGMENT_LENGTH_MIN,
+        1,
+        2,
+        S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE,
         TLS_HANDSHAKE_HEADER_LENGTH,
         TLS_HANDSHAKE_HEADER_LENGTH + 1,
         S2N_DEFAULT_FRAGMENT_LENGTH,

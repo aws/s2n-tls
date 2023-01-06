@@ -5,6 +5,7 @@ import subprocess
 from global_flags import get_flag, S2N_USE_CRITERION
 from processes import ManagedProcess
 from providers import Provider, CriterionS2N, S2N
+
 from common import ProviderOptions
 
 

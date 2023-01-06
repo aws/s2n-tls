@@ -2,7 +2,7 @@ import pytest
 
 from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, data_bytes
-from fixtures import managed_process # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 from enum import Enum, auto
