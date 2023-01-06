@@ -23,6 +23,7 @@ phases:
       - |
         if [ -d "third-party-src" ]; then
           cd third-party-src;
+          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - touch tests/fuzz/placeholder_results.txt tests/fuzz/placeholder_output.txt
