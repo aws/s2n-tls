@@ -28,7 +28,8 @@ int main(int argc, char **argv)
     printf("s2n_build_test:\nPrinting Environment Variables:\n");
     for (char **env = environ; *env != 0; env++)
     {
-        printf("%s\n", *env);
+        // printf("%s\n", *env);
+        (void) env;
     }
 
     const char *s2n_build_preset = getenv("S2N_BUILD_PRESET");
@@ -68,7 +69,7 @@ int main(int argc, char **argv)
 
     /* Open the command for reading. */
     /* TODO get the location of a binary (s2nd would work for instance) */
-    fp = popen("/bin/ldd ./s2nc", "r");
+    fp = popen("which s2nc", "r");
     if (fp == NULL) {
         printf("Failed to run command\n" );
         exit(1);
