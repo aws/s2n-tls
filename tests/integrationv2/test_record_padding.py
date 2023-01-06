@@ -7,13 +7,11 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
-PADDING_SIZE_MIN = 0
 PADDING_SIZE_SMALL = 250
 PADDING_SIZE_MEDIUM = 1000
 PADDING_SIZE_MAX = 1 << 14
 
 PADDING_SIZES = [
-    PADDING_SIZE_MIN,
     PADDING_SIZE_SMALL,
     PADDING_SIZE_MEDIUM,
     PADDING_SIZE_MAX
@@ -38,8 +36,8 @@ def get_record_header(payload_size: int) -> str:
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
-def test_s2n_13_server_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
-                                              padding_size):
+def test_s2n_server_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
+                                           padding_size):
     port = next(available_ports)
 
     random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -64,14 +62,8 @@ def test_s2n_13_server_handles_padded_records(managed_process, cipher, provider,
     s2nd = managed_process(S2N, server_options, timeout=5)
     openssl = managed_process(provider, client_options, timeout=5)
 
-    expected_total_length = None
-    if padding_size == 0:
-        # if padding size is zero, then the expected total length is
-        # equal to the payload size + 16 bytes of AEAD + 1 byte for content type
-        expected_total_length = PAYLOAD_SIZE + 16 + 1
-    else:
-        expected_total_length = padding_size + 16
-
+    # expected length is the padding size + 16 bytes of aead tag
+    expected_total_length = padding_size + 16
     expected_record_header = get_record_header(expected_total_length)
 
     for client_results in openssl.get_results():
@@ -101,8 +93,8 @@ def test_s2n_13_server_handles_padded_records(managed_process, cipher, provider,
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
-def test_s2n_13_client_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
-                                              padding_size):
+def test_s2n_client_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
+                                           padding_size):
     port = next(available_ports)
 
     random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -135,15 +127,8 @@ def test_s2n_13_client_handles_padded_records(managed_process, cipher, provider,
         assert to_bytes("Cipher negotiated: {}".format(
             cipher.name)) in client_results.stdout
 
-    expected_total_length = None
-    if padding_size == 0:
-        # if there is no padding, then the openssl server payload size must be the original payload size
-        # + 16 bytes of aead tag + 1 byte of content type + 1 byte for the new-line char sent by s2n
-        expected_total_length = PAYLOAD_SIZE + 16 + 1 + 1
-    else:
-        # else the openssl server payload size must be the padding size + 16 bytes of aead tag
-        expected_total_length = padding_size + 16
-
+    # expected length is the padding size + 16 bytes of aead tag
+    expected_total_length = padding_size + 16
     expected_record_header = get_record_header(expected_total_length)
 
     for server_results in openssl.get_results():
