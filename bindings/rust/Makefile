@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-all: s2n-tls-sys/src/api.rs target/release/deps/s2nc-%
+all: clean s2n-tls-sys/src/api.rs target/release/deps/s2nc-%
 
 target/release/deps/s2nc-%:
 	cargo bench --no-run
