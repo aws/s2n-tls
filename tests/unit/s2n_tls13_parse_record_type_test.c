@@ -96,6 +96,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(record_type, 0x16);
 
         /** test: padding without record type should fail
+         * 
          *= https://tools.ietf.org/rfc/rfc8446#section-5.4
          *= type=test
          *# If a receiving implementation does not

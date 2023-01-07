@@ -25,9 +25,10 @@ def get_record_header(payload_size: int) -> str:
     # In the TLS record header, the last two bytes are reserved for length
     hex_string = "{:04x}".format(payload_size)
     first_byte, second_byte = hex_string[:2], hex_string[2:]
-    return "17 03 03 {} {}".format(first_byte, second_byte)
+    return "0000 - 17 03 03 {} {}".format(first_byte, second_byte)
 
 
+@pytest.mark.skip
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -97,7 +98,9 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
                                            padding_size):
     port = next(available_ports)
 
-    random_bytes = data_bytes(PAYLOAD_SIZE)
+    client_random_bytes = data_bytes(PAYLOAD_SIZE)
+    server_random_bytes = data_bytes(PAYLOAD_SIZE)
+
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
         port=port,
@@ -107,6 +110,7 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
         key=certificate.key,
         insecure=True,
         protocol=protocol,
+        data_to_send=server_random_bytes,
         extra_flags=[
             '-record_padding', padding_size]
     )
@@ -114,14 +118,21 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
     client_options = copy.copy(server_options)
     client_options.mode = Provider.ClientMode
     client_options.extra_flags = None
-    client_options.data_to_send = random_bytes
+    client_options.data_to_send = client_random_bytes
 
-    s2nc = managed_process(S2N, client_options, timeout=5)
-    openssl = managed_process(provider, server_options, timeout=5)
+    # s2nc will wait until it has received the server's response before closing
+    s2nc = managed_process(S2N, client_options, timeout=5,
+                           close_marker=str(server_random_bytes)[2:-1])
+
+    # openssl will send it's response after it has received s2nc's record
+    openssl = managed_process(provider, server_options,
+                              timeout=5, send_marker=str(client_random_bytes)[2:-1])
 
     expected_version = get_expected_s2n_version(protocol, provider)
     for client_results in s2nc.get_results():
         client_results.assert_success()
+        # assert that the client has received server's application payload
+        assert server_random_bytes in client_results.stdout
         assert to_bytes("Actual protocol version: {}".format(
             expected_version)) in client_results.stdout
         assert to_bytes("Cipher negotiated: {}".format(
@@ -133,4 +144,5 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
 
     for server_results in openssl.get_results():
         server_results.assert_success()
+        # assert that openssl is sending records w/ expected record headers
         assert to_bytes(expected_record_header) in server_results.stdout

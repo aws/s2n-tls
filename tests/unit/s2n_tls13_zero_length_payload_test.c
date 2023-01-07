@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
     /** Test 0 length application data record handled gracefully in client and server mode
+     * 
      *= https://tools.ietf.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Application Data records may contain a zero-length 
@@ -94,6 +95,7 @@ int main(int argc, char **argv)
     };
 
     /** Test 0 length payload in handshake record terminates connection in client and server mode
+     * 
      *= https://tools.ietf.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
@@ -132,6 +134,7 @@ int main(int argc, char **argv)
     };
 
     /** Test 0 length payload in alert record terminates connection in client and server modes
+     * 
      *= https://tools.ietf.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
