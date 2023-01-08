@@ -31,7 +31,11 @@ impl Harness {
 }
 
 impl super::Connection for Harness {
-    fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>> {
+    fn poll<Ctx: Context>(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+        context: &mut Ctx,
+    ) -> Poll<Result<()>> {
         let mut callback: Callback<Ctx> = Callback {
             context,
             err: None,
@@ -44,7 +48,7 @@ impl super::Connection for Harness {
             callback.set(&mut self.connection);
         }
 
-        let result = self.connection.poll_negotiate().map_ok(|_| ());
+        let result = self.connection.poll_negotiate(cx).map_ok(|_| ());
 
         callback.unset(&mut self.connection)?;
 
@@ -203,19 +207,19 @@ mod tests {
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
-    use futures_test::task::new_count_waker;
+    use futures_test::task::{new_count_waker, noop_context};
     use std::{fs, path::Path, pin::Pin, sync::atomic::AtomicUsize};
 
     #[test]
     fn handshake_default() {
         let config = build_config(&security::DEFAULT).unwrap();
-        s2n_tls_pair(config);
+        s2n_tls_pair(config, &mut noop_context());
     }
 
     #[test]
     fn handshake_default_tls13() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
-        s2n_tls_pair(config)
+        s2n_tls_pair(config, &mut noop_context())
     }
 
     #[test]
@@ -285,14 +289,15 @@ mod tests {
         let mut server = crate::connection::Connection::new_server();
         server.set_config(config).unwrap();
 
-        assert!(server.waker().is_none());
+        assert!(server.with_async_context(|cx| cx.is_none()));
 
         let (waker, wake_count) = new_count_waker();
-        server.set_waker(Some(&waker)).unwrap();
-        assert!(server.waker().is_some());
+        let mut cx = std::task::Context::from_waker(&waker);
+        server.in_async_context(&mut cx, |server| {
+            assert!(server.with_async_context(|cx| cx.is_some()));
+        });
 
-        server.set_waker(None).unwrap();
-        assert!(server.waker().is_none());
+        assert!(server.with_async_context(|cx| cx.is_none()));
 
         assert_eq!(wake_count, 0);
     }
@@ -300,6 +305,8 @@ mod tests {
     #[test]
     fn failing_client_hello_callback_sync() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
+
         let handle = FailingCHHandler::default();
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
@@ -311,7 +318,6 @@ mod tests {
             // create and configure a server connection
             let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
@@ -324,7 +330,7 @@ mod tests {
 
         let mut pair = Pair::new(server, client, SAMPLES);
         loop {
-            match pair.poll() {
+            match pair.poll(&mut cx) {
                 Poll::Ready(result) => {
                     let err = result.expect_err("handshake should fail");
 
@@ -350,6 +356,7 @@ mod tests {
     #[test]
     fn failing_client_hello_callback_async() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
         let handle = FailingAsyncCHHandler::default();
         let config = {
             let mut config = config_builder(&security::DEFAULT_TLS13)?;
@@ -361,7 +368,6 @@ mod tests {
             // create and configure a server connection
             let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
@@ -374,7 +380,7 @@ mod tests {
 
         let mut pair = Pair::new(server, client, SAMPLES);
         loop {
-            match pair.poll() {
+            match pair.poll(&mut cx) {
                 Poll::Ready(result) => {
                     let err = result.expect_err("handshake should fail");
 
@@ -401,6 +407,8 @@ mod tests {
     #[test]
     fn client_hello_callback_async() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
+
         let require_pending_count = 10;
         let handle = MockClientHelloHandler::new(require_pending_count);
         let config = {
@@ -415,7 +423,6 @@ mod tests {
             // create and configure a server connection
             let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
@@ -428,7 +435,7 @@ mod tests {
 
         let pair = Pair::new(server, client, SAMPLES);
 
-        poll_tls_pair(pair);
+        poll_tls_pair(pair, &mut cx);
         // confirm that the callback returned Pending `require_pending_count` times
         assert_eq!(wake_count, require_pending_count);
         // confirm that the final invoked count is +1 more than `require_pending_count`
@@ -442,6 +449,8 @@ mod tests {
     #[test]
     fn client_hello_callback_sync() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
+
         #[derive(Clone)]
         struct ClientHelloSyncCallback(Arc<AtomicUsize>);
         impl ClientHelloSyncCallback {
@@ -484,7 +493,6 @@ mod tests {
             // create and configure a server connection
             let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
@@ -498,7 +506,7 @@ mod tests {
         let pair = Pair::new(server, client, SAMPLES);
 
         assert_eq!(callback.count(), 0);
-        poll_tls_pair(pair);
+        poll_tls_pair(pair, &mut cx);
         assert_eq!(callback.count(), 1);
         assert_eq!(wake_count, 0);
         Ok(())
@@ -534,7 +542,7 @@ mod tests {
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
-        s2n_tls_pair(builder.build()?);
+        s2n_tls_pair(builder.build()?, &mut noop_context());
         Ok(())
     }
 
@@ -561,7 +569,7 @@ mod tests {
         };
 
         let pair = Pair::new(server, client, SAMPLES);
-        let pair = poll_tls_pair(pair);
+        let pair = poll_tls_pair(pair, &mut noop_context());
         let server = pair.server.0.connection;
         let client = pair.client.0.connection;
 
@@ -601,7 +609,7 @@ mod tests {
         };
 
         let pair = Pair::new(server, client, SAMPLES);
-        let pair = poll_tls_pair(pair);
+        let pair = poll_tls_pair(pair, &mut noop_context());
         let server = pair.server.0.connection;
         let client = pair.client.0.connection;
 

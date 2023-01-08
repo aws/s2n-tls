@@ -10,6 +10,7 @@ s2n-tls = { path = "../s2n-tls", features = ["testing"] }
 s2n-tls-sys = { path = "../s2n-tls-sys" }
 criterion = { version = "0.3", features = ["html_reports"] }
 anyhow = "1"
+futures-test = "0.3"
 
 [[bench]]
 name = "handshake"

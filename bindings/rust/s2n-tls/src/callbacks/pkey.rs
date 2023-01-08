@@ -124,7 +124,7 @@ mod tests {
         config, connection, error, security, testing,
         testing::{s2n_tls::*, *},
     };
-    use core::task::{Poll, Waker};
+    use core::task::Poll;
     use futures_test::task::new_count_waker;
     use openssl::{ec::EcKey, ecdsa::EcdsaSig};
 
@@ -140,10 +140,7 @@ mod tests {
         "/../../../tests/pems/ecdsa_p384_pkcs1_cert.pem"
     ));
 
-    fn new_pair<T>(
-        callback: T,
-        waker: Waker,
-    ) -> Result<Pair<s2n_tls::Harness, s2n_tls::Harness>, Error>
+    fn new_pair<T>(callback: T) -> Result<Pair<s2n_tls::Harness, s2n_tls::Harness>, Error>
     where
         T: 'static + PrivateKeyCallback,
     {
@@ -161,7 +158,6 @@ mod tests {
         let server = {
             let mut server = connection::Connection::new_server();
             server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
@@ -213,13 +209,14 @@ mod tests {
         }
 
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let pair = new_pair(callback)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        poll_tls_pair(pair);
+        poll_tls_pair(pair, &mut cx);
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, 0);
 
@@ -271,13 +268,14 @@ mod tests {
         }
 
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let pair = new_pair(callback)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        poll_tls_pair(pair);
+        poll_tls_pair(pair, &mut cx);
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, POLL_COUNT);
 
@@ -301,13 +299,14 @@ mod tests {
         }
 
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let pair = new_pair(callback)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        let result = poll_tls_pair_result(pair);
+        let result = poll_tls_pair_result(pair, &mut cx);
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, 0);
 
@@ -357,13 +356,14 @@ mod tests {
         }
 
         let (waker, wake_count) = new_count_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let pair = new_pair(callback)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        let result = poll_tls_pair_result(pair);
+        let result = poll_tls_pair_result(pair, &mut cx);
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, POLL_COUNT);
 

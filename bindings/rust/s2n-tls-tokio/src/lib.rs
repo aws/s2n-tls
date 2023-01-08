@@ -105,7 +105,7 @@ where
 {
     type Output = Result<(), Error>;
 
-    fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         // Retrieve a result, either from the stored error
         // or by polling Connection::poll_negotiate().
         // Connection::poll_negotiate() only completes once,
@@ -113,10 +113,9 @@ where
         let result = match self.error.take() {
             Some(err) => Err(err),
             None => {
-                ready!(self.tls.with_io(ctx, |context| {
-                    let conn = context.get_mut().as_mut();
-                    conn.poll_negotiate().map(|r| r.map(|_| ()))
-                }))
+                ready!(self
+                    .tls
+                    .with_io(|conn| { conn.poll_negotiate(cx).map(|r| r.map(|_| ())) }))
             }
         };
         // If the result isn't a fatal error, return it immediately.
@@ -128,7 +127,7 @@ where
         match result {
             Ok(r) => Ok(r).into(),
             Err(e) if e.is_retryable() => Err(e).into(),
-            Err(e) => match Pin::new(&mut self.tls).poll_shutdown(ctx) {
+            Err(e) => match Pin::new(&mut self.tls).poll_shutdown(cx) {
                 Pending => {
                     self.error = Some(e);
                     Pending
@@ -181,9 +180,9 @@ where
         Ok(tls)
     }
 
-    fn with_io<F, R>(&mut self, ctx: &mut Context, action: F) -> Poll<Result<R, Error>>
+    fn with_io<F, R>(&mut self, action: F) -> Poll<Result<R, Error>>
     where
-        F: FnOnce(Pin<&mut Self>) -> Poll<Result<R, Error>>,
+        F: FnOnce(&mut Connection) -> Poll<Result<R, Error>>,
     {
         // Setting contexts on a connection is considered unsafe
         // because the raw pointers provide no lifetime or memory guarantees.
@@ -191,20 +190,20 @@ where
         // and clearing the context afterwards.
         unsafe {
             let context = self as *mut Self as *mut c_void;
+            let conn = self.as_mut();
 
-            self.as_mut().set_receive_callback(Some(Self::recv_io_cb))?;
-            self.as_mut().set_send_callback(Some(Self::send_io_cb))?;
-            self.as_mut().set_receive_context(context)?;
-            self.as_mut().set_send_context(context)?;
-            self.as_mut().set_waker(Some(ctx.waker()))?;
+            conn.set_receive_callback(Some(Self::recv_io_cb))?;
+            conn.set_send_callback(Some(Self::send_io_cb))?;
+            conn.set_receive_context(context)?;
+            conn.set_send_context(context)?;
 
-            let result = action(Pin::new(self));
+            let result = action(conn);
 
-            self.as_mut().set_receive_callback(None)?;
-            self.as_mut().set_send_callback(None)?;
-            self.as_mut().set_receive_context(std::ptr::null_mut())?;
-            self.as_mut().set_send_context(std::ptr::null_mut())?;
-            self.as_mut().set_waker(None)?;
+            conn.set_receive_callback(None)?;
+            conn.set_send_callback(None)?;
+            conn.set_receive_context(std::ptr::null_mut())?;
+            conn.set_send_context(std::ptr::null_mut())?;
+
             result
         }
     }
@@ -215,18 +214,20 @@ where
     {
         debug_assert_ne!(ctx, std::ptr::null_mut());
         let tls = unsafe { &mut *(ctx as *mut Self) };
-
-        let mut async_context = Context::from_waker(tls.conn.as_ref().waker().unwrap());
         let stream = Pin::new(&mut tls.stream);
 
-        match action(stream, &mut async_context) {
-            Poll::Ready(Ok(len)) => len as c_int,
-            Poll::Pending => {
-                set_errno(Errno(libc::EWOULDBLOCK));
-                CallbackResult::Failure.into()
+        tls.conn.as_mut().with_async_context(|async_context| {
+            let async_context = async_context.unwrap();
+
+            match action(stream, async_context) {
+                Poll::Ready(Ok(len)) => len as c_int,
+                Poll::Pending => {
+                    set_errno(Errno(libc::EWOULDBLOCK));
+                    CallbackResult::Failure.into()
+                }
+                _ => CallbackResult::Failure.into(),
             }
-            _ => CallbackResult::Failure.into(),
-        }
+        })
     }
 
     unsafe extern "C" fn recv_io_cb(ctx: *mut c_void, buf: *mut u8, len: u32) -> c_int {
@@ -288,14 +289,14 @@ where
     /// internally) returns ready.
     pub fn poll_blinding(
         mut self: Pin<&mut Self>,
-        ctx: &mut Context<'_>,
+        cx: &mut Context<'_>,
     ) -> Poll<Result<(), Error>> {
         self.as_mut().set_blinding_timer(Ok(()))?;
 
         let tls = self.get_mut();
 
         if let Some(blinding) = &mut tls.blinding {
-            ready!(blinding.as_mut().project().timer.as_mut().poll(ctx));
+            ready!(blinding.as_mut().project().timer.as_mut().poll(cx));
 
             // Set blinding to None to ensure the next go can have blinding
             let mut blinding = tls.blinding.take().unwrap();
@@ -340,17 +341,15 @@ where
 {
     fn poll_read(
         self: Pin<&mut Self>,
-        ctx: &mut Context<'_>,
+        cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
-        tls.with_io(ctx, |mut context| {
+        tls.with_io(|context| {
             context
-                .conn
-                .as_mut()
                 // Safe since poll_recv_uninitialized does not
                 // deinitialize any bytes.
-                .poll_recv_uninitialized(unsafe { buf.unfilled_mut() })
+                .poll_recv_uninitialized(cx, unsafe { buf.unfilled_mut() })
                 .map_ok(|size| {
                     unsafe {
                         // Safe since poll_recv_uninitialized guaranteed
@@ -372,41 +371,39 @@ where
 {
     fn poll_write(
         self: Pin<&mut Self>,
-        ctx: &mut Context<'_>,
+        cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
         let tls = self.get_mut();
-        tls.with_io(ctx, |mut context| context.conn.as_mut().poll_send(buf))
+        tls.with_io(|context| context.poll_send(cx, buf))
             .map_err(io::Error::from)
     }
 
-    fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let tls = self.get_mut();
 
-        ready!(tls.with_io(ctx, |mut context| {
-            context.conn.as_mut().poll_flush().map(|r| r.map(|_| ()))
-        }))
-        .map_err(io::Error::from)?;
+        ready!(tls.with_io(|context| { context.poll_flush(cx).map(|r| r.map(|_| ())) }))
+            .map_err(io::Error::from)?;
 
-        Pin::new(&mut tls.stream).poll_flush(ctx)
+        Pin::new(&mut tls.stream).poll_flush(cx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        ready!(self.as_mut().poll_blinding(ctx))?;
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        ready!(self.as_mut().poll_blinding(cx))?;
 
-        let status = ready!(self.as_mut().with_io(ctx, |mut context| {
-            context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
-        }));
+        let status = ready!(self
+            .as_mut()
+            .with_io(|context| { context.poll_shutdown(cx).map(|r| r.map(|_| ())) }));
 
         if let Err(e) = status {
             // In case of an error shutting down, make sure you wait for
             // the blinding timeout.
             self.as_mut().set_blinding_timer(Err(e))?;
-            ready!(self.as_mut().poll_blinding(ctx))?;
+            ready!(self.as_mut().poll_blinding(cx))?;
             unreachable!("should have returned the error we just put in!");
         }
 
-        Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx)
+        Pin::new(&mut self.as_mut().stream).poll_shutdown(cx)
     }
 }
 
@@ -437,7 +434,7 @@ where
 {
     type Output = Result<(), Error>;
 
-    fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut *self.as_mut().stream).poll_blinding(ctx)
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut *self.as_mut().stream).poll_blinding(cx)
     }
 }

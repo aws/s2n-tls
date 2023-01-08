@@ -22,11 +22,10 @@ impl ConnectionFuture for MockClientHelloFuture {
     fn poll(
         self: Pin<&mut Self>,
         connection: &mut crate::connection::Connection,
-        _ctx: &mut core::task::Context,
+        cx: &mut core::task::Context,
     ) -> Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < self.require_pending_count {
-            // confirm the callback can access the waker
-            connection.waker().unwrap().wake_by_ref();
+            cx.waker().wake_by_ref();
             return Poll::Pending;
         }
 
@@ -110,12 +109,11 @@ struct FailingCHFuture {
 impl ConnectionFuture for FailingCHFuture {
     fn poll(
         self: Pin<&mut Self>,
-        connection: &mut crate::connection::Connection,
-        _ctx: &mut core::task::Context,
+        _connection: &mut crate::connection::Connection,
+        cx: &mut core::task::Context,
     ) -> Poll<Result<(), error::Error>> {
         if self.invoked.fetch_add(1, Ordering::SeqCst) < 1 {
-            // confirm the callback can access the waker
-            connection.waker().unwrap().wake_by_ref();
+            cx.waker().wake_by_ref();
             return Poll::Pending;
         }
 

@@ -16,7 +16,7 @@ use core::{
     mem::{self, ManuallyDrop, MaybeUninit},
     pin::Pin,
     ptr::NonNull,
-    task::{Poll, Waker},
+    task::{self, Poll},
     time::Duration,
 };
 use libc::c_void;
@@ -380,12 +380,12 @@ impl Connection {
     ///
     /// The handshake does not continue execution (and therefore can't call
     /// any other callbacks) until the blocking async task reports completion.
-    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
+    pub fn poll_negotiate(&mut self, cx: &mut task::Context<'_>) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
         loop {
             // check if an async task exists and poll it to completion
-            if let Some(fut) = self.poll_async_task() {
+            if let Some(fut) = self.poll_async_task(cx) {
                 match fut {
                     Poll::Ready(Ok(())) => {
                         // happy case:
@@ -399,8 +399,9 @@ impl Connection {
                     Poll::Pending => return Poll::Pending,
                 }
             }
-
-            let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
+            let res = self.in_async_context(cx, |this| unsafe {
+                s2n_negotiate(this.connection.as_ptr(), &mut blocked).into_poll()
+            });
 
             match res {
                 Poll::Ready(res) => return Poll::Ready(res.map(|_| self)),
@@ -418,11 +419,10 @@ impl Connection {
     // Poll the connection future if it exists.
     //
     // If the future returns Pending, then re-set it back on the Connection.
-    fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
+    fn poll_async_task(&mut self, cx: &mut task::Context<'_>) -> Option<Poll<Result<(), Error>>> {
         self.take_async_callback().map(|mut callback| {
-            let waker = self.waker().ok_or(Error::MISSING_WAKER)?.clone();
-            let mut ctx = core::task::Context::from_waker(&waker);
-            match Pin::new(&mut callback).poll(self, &mut ctx) {
+            // Get a clone of the waker from the context.
+            match Pin::new(&mut callback).poll(self, cx) {
                 Poll::Ready(result) => Poll::Ready(result),
                 Poll::Pending => {
                     // replace the future if it hasn't completed yet
@@ -437,11 +437,17 @@ impl Connection {
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
-    pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+    pub fn poll_send(
+        &mut self,
+        cx: &mut task::Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
-        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.in_async_context(cx, |this| unsafe {
+            s2n_send(this.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
+        })
     }
 
     /// Reads and decrypts data from a connection where
@@ -449,11 +455,17 @@ impl Connection {
     ///
     /// Returns the number of bytes read, and may indicate a partial read.
     /// 0 bytes returned indicates EOF due to connection closure.
-    pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+    pub fn poll_recv(
+        &mut self,
+        cx: &mut task::Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.in_async_context(cx, |this| unsafe {
+            s2n_recv(this.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
+        })
     }
 
     /// Reads and decrypts data from a connection where
@@ -469,6 +481,7 @@ impl Connection {
     /// will have been initialized by this function.
     pub fn poll_recv_uninitialized(
         &mut self,
+        cx: &mut task::Context<'_>,
         buf: &mut [MaybeUninit<u8>],
     ) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
@@ -480,12 +493,14 @@ impl Connection {
         // 2. if s2n_recv returns `+n`, it guarantees that the first
         // `n` bytes of `buf` have been initialized, which allows this
         // function to return `Ok(n)`
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.in_async_context(cx, |this| unsafe {
+            s2n_recv(this.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
+        })
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
-    pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
-        self.poll_send(&[0; 0]).map_ok(|_| self)
+    pub fn poll_flush(&mut self, cx: &mut task::Context) -> Poll<Result<&mut Self, Error>> {
+        self.poll_send(cx, &[0; 0]).map_ok(|_| self)
     }
 
     /// Gets the number of bytes that are currently available in the buffer to be read.
@@ -498,16 +513,15 @@ impl Connection {
     /// The shutdown is not complete until the necessary shutdown messages
     /// have been successfully sent and received. If the peer does not respond
     /// correctly, the graceful shutdown may fail.
-    pub fn poll_shutdown(&mut self) -> Poll<Result<&mut Self, Error>> {
+    pub fn poll_shutdown(&mut self, cx: &mut task::Context<'_>) -> Poll<Result<&mut Self, Error>> {
         if !self.remaining_blinding_delay()?.is_zero() {
             return Poll::Pending;
         }
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        unsafe {
-            s2n_shutdown(self.connection.as_ptr(), &mut blocked)
-                .into_poll()
-                .map_ok(|_| self)
-        }
+        let result = self.in_async_context(cx, |this| unsafe {
+            s2n_shutdown(this.connection.as_ptr(), &mut blocked)
+        });
+        result.into_poll().map_ok(|_| self)
     }
 
     /// Returns the TLS alert code, if any
@@ -537,29 +551,48 @@ impl Connection {
         }
     }
 
-    /// Sets a Waker on the connection context or clears it if `None` is passed.
-    pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
+    /// Runs the inside code with the async context set to the desired context.
+    pub(crate) fn in_async_context<R>(
+        &mut self,
+        context: &mut std::task::Context<'_>,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
         let ctx = self.context_mut();
+        let old_context = ctx.async_context;
+        // This satisfies the invariant as long as we are within
+        // `in_context`.
+        // We hold an `&mut self` so no other thread can touch
+        // `async_context`.
+        ctx.async_context = Some(NonNull::from(context).cast());
 
-        if let Some(waker) = waker {
-            if let Some(prev_waker) = ctx.waker.as_mut() {
-                // only replace the Waker if they dont reference the same task
-                if !prev_waker.will_wake(waker) {
-                    *prev_waker = waker.clone();
-                }
-            } else {
-                ctx.waker = Some(waker.clone());
-            }
-        } else {
-            ctx.waker = None;
-        }
-        Ok(self)
+        let result = f(self);
+
+        // This ensures the invariant is satisfied even after this function returns
+        self.context_mut().async_context = old_context;
+
+        result
     }
 
-    /// Returns the Waker set on the connection context.
-    pub fn waker(&self) -> Option<&Waker> {
-        let ctx = self.context();
-        ctx.waker.as_ref()
+    /// Runs `f` within the current async context.
+    ///
+    /// This is basically a way of threading the `std::task::Context` to
+    /// the IO callbacks (these set by [`set_send_callback`] and
+    /// [`set_receive_callback`]) and should only be called
+    /// from them.
+    ///
+    /// In particular, during [ConnectionFuture::poll()](`crate::callbacks::ConnectionFuture::poll`), this function should *not* be called - just use the
+    /// `cx` argument to `poll`.
+    pub fn with_async_context<R>(
+        &mut self,
+        f: impl FnOnce(Option<&mut std::task::Context<'_>>) -> R,
+    ) -> R {
+        let ctx = self.context_mut();
+        // The opening of the existential is safe because we are within
+        // a single function.
+        //
+        // The &mut borrow is safe since we don't pass `self` to `f`.
+        let context_safe = ctx.async_context.map(|ptr| unsafe { ptr.cast().as_mut() });
+        f(context_safe)
     }
 
     /// Takes the [`Option::take`] the connection_future stored on the
@@ -718,7 +751,11 @@ impl Connection {
 
 struct Context {
     mode: Mode,
-    waker: Option<Waker>,
+    /// A pointer to the current async context. This is effectively
+    /// an `Option<exists 'a, 'b. &'a mut std::task::Context<'b>>`
+    /// where the lifetimes are known to be live through any function
+    /// that is not `in_context`.
+    async_context: Option<NonNull<()>>,
     async_callback: Option<AsyncCallback>,
 }
 
@@ -726,7 +763,7 @@ impl Context {
     fn new(mode: Mode) -> Self {
         Context {
             mode,
-            waker: None,
+            async_context: None,
             async_callback: None,
         }
     }

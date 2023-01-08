@@ -48,6 +48,7 @@ impl From<libc::c_int> for ErrorType {
 
 enum Context {
     InvalidInput,
+    #[allow(unused)]
     MissingWaker,
     Code(s2n_status_code::Type, Errno),
     Application(Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -150,7 +151,6 @@ impl<T: Fallible> Pollable for T {
 
 impl Error {
     pub(crate) const INVALID_INPUT: Error = Self(Context::InvalidInput);
-    pub(crate) const MISSING_WAKER: Error = Self(Context::MissingWaker);
 
     /// Converts an io::Error into an s2n-tls Error
     pub fn io_error(err: std::io::Error) -> Error {

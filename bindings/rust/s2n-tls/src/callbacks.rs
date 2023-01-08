@@ -19,8 +19,8 @@
 //!   [`VerifyHostNameCallback`] as an example.
 //! * "async" callbacks return a [Poll](`core::task::Poll`) and should not block the task performing the handshake.
 //!   They will be polled until they return [Poll::Ready](`core::task::Poll::Ready`).
-//!   [Connection::waker()](`crate::connection::Connection::waker()`)
-//!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
+//!   The `cx` argument to `poll` can be used to register the task for wakeup.
+//!   See [`ClientHelloCallback`] as an example.
 
 use crate::{config::Context, connection::Connection};
 use core::{mem::ManuallyDrop, ptr::NonNull, time::Duration};
