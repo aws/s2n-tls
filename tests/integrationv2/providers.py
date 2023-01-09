@@ -318,7 +318,7 @@ class CriterionS2N(S2N):
     and moves the s2nc/d command line arguments into an environment variable.  The binary created by 
     `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds 
     and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables 
-    `S2NC_ARGS` or `S2ND_ARGS`, along with the test naem, which are read by the rust benchmark when spawning 
+    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning 
     s2nc/d as subprocesses. 
     """
     criterion_off = 'off'
