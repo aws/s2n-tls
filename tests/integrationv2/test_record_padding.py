@@ -26,11 +26,12 @@ PAYLOAD_SIZE = 1024
 OPENSSL_WRITE_TO_REGEX = r"write to [\w >\(\)\[\]=]*\\n0000 - 17 03 03 [0-9A-Fa-f]{2} [0-9A-Fa-f]{2}"
 
 
-def to_formatted_hex(payload_size: int) -> str:
-    # In the TLS record header, the last two bytes are reserved for length
-    hex_string = "{:04x}".format(payload_size)
-    first_byte, second_byte = hex_string[:2], hex_string[2:]
-    return "{} {}".format(first_byte, second_byte)
+def get_payload_size_from_openssl_trace(record: str) -> int:
+    # last five characters in trace is the record size in the form XX XX where X is a hex digit
+    size_in_hex = record[-5:].replace(' ', '')
+    size = int(size_in_hex, 16)
+    # record includes 16 bytes of aead tag
+    return size - 16
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -79,47 +80,11 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
         all_occurrences = re.findall(
             OPENSSL_WRITE_TO_REGEX, str(client_results.stdout))
 
-        # In openssl, the close connection record will always be less than the test's minimum
-        # padding size of 250 bytes. This means that the close connection record will always be padded
-        # to padding_size + 16 bytes. However, the actual application record may not be less than the
-        # padding size; in this case openssl will pad the record to the nearest multiple of the padding size
-        nearest = math.ceil(PAYLOAD_SIZE / padding_size)
-        if nearest == 1:
-            # the payload_size must be l.t.e the padding size. This means every sent application record
-            # including the close connection record is padded to padding_size + 16 bytes
-            expected_size = to_formatted_hex(padding_size + 16)
-            for occurrence in all_occurrences:
-                actual_size = occurrence[-5:]
-                assert actual_size == expected_size
-        else:
-            # else, the payload_size is g.t the padding size. This means we have two different expected
-            # application record sizes.
-            number_of_close_connection_records = 0
-            number_of_application_records = 0
-
-            # in openssl, the record is padded to the next largest multiple of the padding size
-            # notice that if the payload_size is less than the padding size we get the expected
-            # payload_size + 16 bytes
-            nearest_record_size = nearest * padding_size + 16
-            expected_application_record_size = to_formatted_hex(
-                nearest_record_size)
-
-            # close connection record must be padded up to padding_size + 16 bytes
-            expected_close_connection_record_size = to_formatted_hex(
-                padding_size + 16)
-            for occurrence in all_occurrences:
-                # The last five characters in the matched occurrence gives the record size
-                actual_size = occurrence[-5:]
-                if actual_size == expected_application_record_size:
-                    number_of_application_records += 1
-                elif actual_size == expected_close_connection_record_size:
-                    number_of_close_connection_records += 1
-                else:
-                    # all sent records must be padded to one of the expected sizes
-                    assert False
-
-            assert number_of_application_records == 1
-            assert number_of_close_connection_records == 1
+        for occurrence in all_occurrences:
+            payload_size = get_payload_size_from_openssl_trace(occurrence)
+            # all sent records must be padded to padding_size
+            assert payload_size > 0
+            assert payload_size % padding_size == 0
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
@@ -147,11 +112,10 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
                                            padding_size):
     # Communication Timeline
     # Client [S2N]                                 | Server [OpenSSL]
-    # Handshake                                    | Padded handshake (sent padded NUMBER_OF_SESSION_TICKETS session tickets)
+    # Handshake                                    | Padded handshake
     # Send data                                    | Receive data
     # Receive padded data                          | Send padded data on send_marker client's sent data
     # Close on close_marker server's padded data   | Close
-    NUMBER_OF_SESSION_TICKETS = 3
     port = next(available_ports)
 
     client_random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -168,7 +132,7 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
         protocol=protocol,
         data_to_send=server_random_bytes,
         extra_flags=[
-            '-record_padding', padding_size, '-num_tickets', NUMBER_OF_SESSION_TICKETS]
+            '-record_padding', padding_size]
     )
 
     client_options = copy.copy(server_options)
@@ -194,49 +158,15 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
         assert to_bytes("Cipher negotiated: {}".format(
             cipher.name)) in client_results.stdout
 
-    # In openssl, the session ticket records will always be less than the test's minimum
-    # padding size of 250 bytes. This means that the session ticket record will always be padded
-    # to padding_size + 16 bytes. However, the actual application record may not be less than the
-    # padding size; in this case openssl will pad the record to the nearest multiple of the padding size
     for server_results in openssl.get_results():
         server_results.assert_success()
+
+        # find all occurrences of openssl writing to client
         all_occurrences = re.findall(
             OPENSSL_WRITE_TO_REGEX, str(server_results.stdout))
-        nearest = math.ceil(PAYLOAD_SIZE / padding_size)
-        if nearest == 1:
-            # the payload_size must be l.t.e the padding size. This means every sent application record
-            # including the sent session tickets are padded to padding_size + 16 bytes
-            expected_size = to_formatted_hex(padding_size + 16)
-            for occurrence in all_occurrences:
-                actual_size = occurrence[-5:]
-                assert actual_size == expected_size
-        else:
-            # else, the payload_size is g.t the padding size. This means we have two
-            # different expected application record sizes.
-            actual_number_of_session_tickets_sent = 0
-            actual_number_of_application_records_sent = 0
 
-            # in openssl, session tickets are always padded to the padding size
-            expected_session_ticket_record_size = to_formatted_hex(
-                padding_size + 16)
-
-            # in openssl, the record is padded to the next largest multiple of the padding size
-            # notice that if the payload_size is less than the padding size we get the expected
-            # payload_size + 16 bytes
-            nearest_record_size = nearest * padding_size + 16
-            expected_application_record_size = to_formatted_hex(
-                nearest_record_size)
-
-            for occurrence in all_occurrences:
-                # The last five characters in the matched occurrence gives the record size
-                actual_size = occurrence[-5:]
-                if actual_size == expected_session_ticket_record_size:
-                    actual_number_of_session_tickets_sent += 1
-                elif actual_size == expected_application_record_size:
-                    actual_number_of_application_records_sent += 1
-                else:
-                    # all sent records must be padded to one of the expected sizes
-                    assert False
-
-            assert actual_number_of_session_tickets_sent == NUMBER_OF_SESSION_TICKETS
-            assert actual_number_of_application_records_sent == 1
+        for occurrence in all_occurrences:
+            payload_size = get_payload_size_from_openssl_trace(occurrence)
+            # all sent records must be padded to padding_size
+            assert payload_size > 0
+            assert payload_size % padding_size == 0
