@@ -4,7 +4,7 @@ from constants import TRUST_STORE_BUNDLE, TRUST_STORE_TRUSTED_BUNDLE
 from configuration import PROTOCOLS
 from common import ProviderOptions, Ciphers, pq_enabled
 from fixtures import managed_process  # lgtm [py/unused-import]
-from global_flags import get_flag, S2N_FIPS_MODE, S2N_USE_CRITERION
+from global_flags import get_flag, is_criterion_on, S2N_FIPS_MODE, S2N_USE_CRITERION
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
@@ -106,7 +106,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
         client_options.trust_store = TRUST_STORE_TRUSTED_BUNDLE
 
     # TODO: Understand the failure with criterion and this endpoint.
-    if get_flag(S2N_USE_CRITERION) != "off" and 'www.netflix.com' in endpoint:
+    if is_criterion_on() and 'www.netflix.com' in endpoint:
         pytest.skip()
 
     # expect_stderr=True because S2N sometimes receives OCSP responses:

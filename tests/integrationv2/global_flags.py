@@ -15,6 +15,13 @@ S2N_PROVIDER_VERSION = 's2n_provider_version'
 # From S2N_USE_CRITERION env var.
 S2N_USE_CRITERION = 's2n_use_criterion'
 
+
+def is_criterion_on():
+    if _flags.get(S2N_USE_CRITERION, "off") in ["baseline", "delta"]:
+        return True
+    return False
+
+
 _flags = {}
 
 
