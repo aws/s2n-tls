@@ -458,13 +458,3 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
 
     return s2n_client_key_share_extension_size;
 }
-
-int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_key_share_extension, conn, out);
-}
-
-int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_key_share_extension, conn, extension);
-}

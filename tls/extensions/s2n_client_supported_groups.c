@@ -182,22 +182,3 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
 
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    POSIX_GUARD(s2n_extension_send(&s2n_client_supported_groups_extension, conn, out));
-
-    /* The original send method also sent ec point formats. To avoid breaking
-     * anything, I'm going to let it continue writing point formats.
-     */
-    POSIX_GUARD(s2n_extension_send(&s2n_client_ec_point_format_extension, conn, out));
-
-    return S2N_SUCCESS;
-}
-
-int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_supported_groups_extension, conn, extension);
-}

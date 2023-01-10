@@ -44,24 +44,3 @@ int s2n_server_status_request_recv(struct s2n_connection *conn, struct s2n_stuff
     conn->status_type = S2N_STATUS_REQUEST_OCSP;
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_server_extensions_status_request_send_size(struct s2n_connection *conn)
-{
-    if (s2n_server_can_send_ocsp(conn)) {
-        return 2 * sizeof(uint16_t);
-    }
-
-    return 0;
-}
-
-int s2n_server_extensions_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_status_request_extension, conn, out);
-}
-
-int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_server_status_request_extension, conn, extension);
-}
