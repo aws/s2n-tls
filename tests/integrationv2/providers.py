@@ -360,6 +360,7 @@ class CriterionS2N(S2N):
 
         # strip off the s2nc -e argument, criterion handler isn't sending any STDIN characters,
         # and makes it look like s2nc is hanging.
+        # WARNING: this is a blocker for any test that requires STDIN.
         if '-e' in self.cmd_line:
             self.cmd_line.remove('-e')
             print(f"***** cmd_line is now {self.cmd_line}")
