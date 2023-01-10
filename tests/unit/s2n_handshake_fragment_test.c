@@ -161,7 +161,7 @@ int main(int argc, char **argv)
         uint32_t client_fragment_size = fragment_sizes[i] + 1;
 
         /* Test: basic TLS1.3 handshake with fragmented messages */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_config *config = s2n_test_config_new(chain_and_key),
                     s2n_config_ptr_free);
 
@@ -304,6 +304,7 @@ int main(int argc, char **argv)
             while (s2n_negotiate_test_server_and_client(server_conn, client_conn) < S2N_SUCCESS) {
                 if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, server_conn));
+                    EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
                     async_block_triggered = true;
                 } else {
                     POSIX_ENSURE(s2n_errno, S2N_ERR_IO_BLOCKED);
@@ -319,7 +320,7 @@ int main(int argc, char **argv)
         };
 
         /* Test: handshake with early data and fragmented messages */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             uint8_t early_data_bytes[] = "hello world";
             struct s2n_blob early_data = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&early_data, early_data_bytes, sizeof(early_data_bytes)));
