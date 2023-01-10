@@ -12,6 +12,16 @@ S2N_FIPS_MODE = 's2n_fips_mode'
 # (set from the S2N_LIBCRYPTO env var, which is how the original integration test works)
 S2N_PROVIDER_VERSION = 's2n_provider_version'
 
+# From S2N_USE_CRITERION env var.
+S2N_USE_CRITERION = 's2n_use_criterion'
+
+
+def is_criterion_on():
+    if _flags.get(S2N_USE_CRITERION, "off") in ["baseline", "delta"]:
+        return True
+    return False
+
+
 _flags = {}
 
 
