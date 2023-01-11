@@ -21,8 +21,9 @@ PADDING_SIZES = [
 # arbitrarily large payload size
 PAYLOAD_SIZE = 1024
 
-OPENSSL_WRITE_TO_BYTE_TRACE = r"write to .*?\\n(.*?)\\n"
-OPENSSL_RECORD_HEADER_BYTE_TRACE = r"17 03 03 ([0-9a-f]{2} [0-9a-f]{2})"
+OPENSSL_RECORD_WRITTEN_PATTERN = r"write to .*?\\n(.*?)\\n"
+OPENSSL_APP_DATA_HEADER_PATTERN = r"17 03 03 ([0-9a-f]{2} [0-9a-f]{2})"
+RECORD_SIZE_GROUP = 1
 
 
 def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
@@ -36,24 +37,24 @@ def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
 def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_size: int):
     number_of_padded_application_records = 0
 
-    write_to_bytes_occurrences = re.findall(
-        OPENSSL_WRITE_TO_BYTE_TRACE, openssl_output)
-    assert len(write_to_bytes_occurrences) >= 2
+    records_written = re.findall(
+        OPENSSL_RECORD_WRITTEN_PATTERN, openssl_output)
+    for record_prefix in records_written:
+        app_data_header = re.search(
+            OPENSSL_APP_DATA_HEADER_PATTERN, record_prefix)
 
-    for write_to_bytes in write_to_bytes_occurrences:
-        application_record_size_occurrences = re.findall(
-            OPENSSL_RECORD_HEADER_BYTE_TRACE, write_to_bytes)
+        if app_data_header:
+            size_bytes = app_data_header.group(RECORD_SIZE_GROUP)
+            size = get_payload_size_from_openssl_trace(size_bytes)
 
-        for application_record_size in application_record_size_occurrences:
-            payload_size = get_payload_size_from_openssl_trace(
-                application_record_size)
-
-            assert payload_size > 0
-            assert payload_size % padding_size == 0
+            assert size > 0
+            assert size % padding_size == 0
 
             number_of_padded_application_records += 1
 
-    # At least one application data payload is sent and one close notify alert record.
+    # At least one application record sent + one close_notify alert. There may
+    # be an additional number of wrapped handshake records such as session_ticket
+    # records but this number is not fixed.
     assert number_of_padded_application_records >= 2
 
 
