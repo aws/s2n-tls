@@ -108,7 +108,6 @@ int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn)
     return 6;
 }
 
-/* used in fuzz test */
 int s2n_extensions_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_extension_recv(&s2n_server_supported_versions_extension, conn, extension);

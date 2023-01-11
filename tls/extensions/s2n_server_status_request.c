@@ -47,7 +47,6 @@ int s2n_server_status_request_recv(struct s2n_connection *conn, struct s2n_stuff
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 
-/* used in fuzz test */
 int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_extension_recv(&s2n_server_status_request_extension, conn, extension);
