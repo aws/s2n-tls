@@ -21,3 +21,6 @@
 
 extern const s2n_extension_type s2n_client_supported_groups_extension;
 bool s2n_extension_should_send_if_ecc_enabled(struct s2n_connection *conn);
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension);

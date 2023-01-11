@@ -182,3 +182,10 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
 
     return S2N_SUCCESS;
 }
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_client_supported_groups_extension, conn, extension);
+}
