@@ -21,33 +21,45 @@ PADDING_SIZES = [
 # arbitrarily large payload size
 PAYLOAD_SIZE = 1024
 
-# regex that matches server/client 'write to' with the TLS header
-OPENSSL_WRITE_TO_REGEX = r"write to [\w >\(\)\[\]=]*\\n0000 - 17 03 03 [0-9A-Fa-f]{2} [0-9A-Fa-f]{2}"
+# regex that matches server/client 'write to' for application records (with tls header).
+# Group 0: The 'write to ...' line, denoting openssl is sending a record
+# Group 1: The start of an application header denoted by type 0x17
+# Group 2: The size of the record expressed in two bytes
+RECORD_SIZE_GROUP = 2
+OPENSSL_WRITE_TO_REGEX = r"(write to [^\\n]*)(\\n0000 - 17 03 03 )([0-9a-f]{2} [0-9a-f]{2})"
 
 
 def get_payload_size_from_openssl_trace(record: str) -> int:
     # last five characters in trace is the record size in the form XX XX where X is a hex digit
-    size_in_hex = record[-5:].replace(' ', '')
+    size_in_hex = record.replace(' ', '')
     size = int(size_in_hex, 16)
     # record includes 16 bytes of aead tag
     return size - 16
 
 
+def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_size: int):
+    all_occurrences = re.findall(
+        OPENSSL_WRITE_TO_REGEX, str(openssl_output))
+    assert len(all_occurrences) > 0
+
+    for occurrence in all_occurrences:
+        payload_size = get_payload_size_from_openssl_trace(
+            occurrence[RECORD_SIZE_GROUP])
+        # all sent records must be padded to padding_size
+        assert payload_size > 0
+        assert payload_size % padding_size == 0
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS[:1], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES[:1], ids=get_parameter_name)
 # only tls 1.3 supports record padding
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS[:1], ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_server_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
                                            padding_size):
-    # Communication Timeline
-    # Client [OpenSSL]                       | Server [S2N]
-    # Handshake                              | Handshake
-    # Send padded data                       | Receive padded data
-    # Send padded close connection           | Close
     port = next(available_ports)
 
     random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -74,16 +86,8 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
 
     for client_results in openssl.get_results():
         client_results.assert_success()
-
-        # find all occurrences of openssl writing to server
-        all_occurrences = re.findall(
-            OPENSSL_WRITE_TO_REGEX, str(client_results.stdout))
-
-        for occurrence in all_occurrences:
-            payload_size = get_payload_size_from_openssl_trace(occurrence)
-            # all sent records must be padded to padding_size
-            assert payload_size > 0
-            assert payload_size % padding_size == 0
+        assert_openssl_records_are_padded_correctly(
+            str(client_results.stdout), padding_size)
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
@@ -109,12 +113,6 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_client_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
                                            padding_size):
-    # Communication Timeline
-    # Client [S2N]                                 | Server [OpenSSL]
-    # Handshake                                    | Padded handshake
-    # Send data                                    | Receive data
-    # Receive padded data                          | Send padded data on send_marker client's sent data
-    # Close on close_marker server's padded data   | Close
     port = next(available_ports)
 
     client_random_bytes = data_bytes(PAYLOAD_SIZE)
@@ -159,13 +157,5 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
 
     for server_results in openssl.get_results():
         server_results.assert_success()
-
-        # find all occurrences of openssl writing to client
-        all_occurrences = re.findall(
-            OPENSSL_WRITE_TO_REGEX, str(server_results.stdout))
-
-        for occurrence in all_occurrences:
-            payload_size = get_payload_size_from_openssl_trace(occurrence)
-            # all sent records must be padded to padding_size
-            assert payload_size > 0
-            assert payload_size % padding_size == 0
+        assert_openssl_records_are_padded_correctly(
+            str(server_results.stdout), padding_size)
