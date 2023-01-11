@@ -167,12 +167,45 @@ S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_post_handshake_write_records(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    struct s2n_stuffer *message = &conn->handshake.io;
+
+    uint32_t remaining = 0;
+    while ((remaining = s2n_stuffer_data_available(message)) > 0) {
+        /* Flush any existing records before we write a new record.
+         * We do not support buffering multiple handshake records.
+         */
+        if (s2n_stuffer_data_available(&conn->out)) {
+            RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
+        }
+
+        uint16_t max_payload_size = 0;
+        RESULT_GUARD(s2n_record_max_write_payload_size(conn, &max_payload_size));
+
+        struct s2n_blob fragment = { 0 };
+        uint32_t fragment_size = MIN(remaining, max_payload_size);
+        uint8_t *fragment_data = s2n_stuffer_raw_read(message, fragment_size);
+        RESULT_ENSURE_REF(fragment_data);
+        RESULT_GUARD_POSIX(s2n_blob_init(&fragment, fragment_data, fragment_size));
+
+        RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &fragment));
+        RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
+    }
+
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(message));
+    return S2N_RESULT_OK;
+}
+
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
 
+    POSIX_GUARD_RESULT(s2n_post_handshake_write_records(conn, blocked));
+
     POSIX_GUARD(s2n_key_update_send(conn, blocked));
     POSIX_GUARD_RESULT(s2n_tls13_server_nst_send(conn, blocked));
 
+    POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
     return S2N_SUCCESS;
 }
