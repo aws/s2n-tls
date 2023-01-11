@@ -20,3 +20,6 @@
 #include "tls/s2n_connection.h"
 
 extern const s2n_extension_type s2n_server_session_ticket_extension;
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);

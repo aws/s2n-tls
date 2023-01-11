@@ -149,3 +149,9 @@ int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn)
 
     return version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 5;
 }
+
+/* still used in fuzz test */
+int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_client_supported_versions_extension, conn, extension);
+}
