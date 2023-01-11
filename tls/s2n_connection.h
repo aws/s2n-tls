@@ -35,6 +35,7 @@
 #include "tls/s2n_prf.h"
 #include "tls/s2n_quic_support.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
