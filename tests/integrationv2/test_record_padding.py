@@ -21,42 +21,49 @@ PADDING_SIZES = [
 # arbitrarily large payload size
 PAYLOAD_SIZE = 1024
 
-# regex that matches server/client 'write to' for application records (with tls header).
-# Group 0: The 'write to ...' line, denoting openssl is sending a record
-# Group 1: The start of an application header denoted by type 0x17
-# Group 2: The size of the record expressed in two bytes
-RECORD_SIZE_GROUP = 2
-OPENSSL_WRITE_TO_REGEX = r"(write to [^\\n]*)(\\n0000 - 17 03 03 )([0-9a-f]{2} [0-9a-f]{2})"
+OPENSSL_WRITE_TO_BYTE_TRACE = r"write to .*?\\n(.*?)\\n"
+OPENSSL_RECORD_HEADER_BYTE_TRACE = r"17 03 03 ([0-9a-f]{2} [0-9a-f]{2})"
 
 
-def get_payload_size_from_openssl_trace(record: str) -> int:
-    # last five characters in trace is the record size in the form XX XX where X is a hex digit
-    size_in_hex = record.replace(' ', '')
+def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
+    # record_size_bytes is in the form XX XX where X is a hex digit
+    size_in_hex = record_size_bytes.replace(' ', '')
     size = int(size_in_hex, 16)
     # record includes 16 bytes of aead tag
     return size - 16
 
 
 def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_size: int):
-    all_occurrences = re.findall(
-        OPENSSL_WRITE_TO_REGEX, str(openssl_output))
-    assert len(all_occurrences) > 0
+    number_of_padded_application_records = 0
 
-    for occurrence in all_occurrences:
-        payload_size = get_payload_size_from_openssl_trace(
-            occurrence[RECORD_SIZE_GROUP])
-        # all sent records must be padded to padding_size
-        assert payload_size > 0
-        assert payload_size % padding_size == 0
+    write_to_bytes_occurrences = re.findall(
+        OPENSSL_WRITE_TO_BYTE_TRACE, openssl_output)
+    assert len(write_to_bytes_occurrences) >= 2
+
+    for write_to_bytes in write_to_bytes_occurrences:
+        application_record_size_occurrences = re.findall(
+            OPENSSL_RECORD_HEADER_BYTE_TRACE, write_to_bytes)
+
+        for application_record_size in application_record_size_occurrences:
+            payload_size = get_payload_size_from_openssl_trace(
+                application_record_size)
+
+            assert payload_size > 0
+            assert payload_size % padding_size == 0
+
+            number_of_padded_application_records += 1
+
+    # At least one application data payload is sent and one close notify alert record.
+    assert number_of_padded_application_records >= 2
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", TLS13_CIPHERS[:1], ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES[:1], ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 # only tls 1.3 supports record padding
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS[:1], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("padding_size", PADDING_SIZES, ids=get_parameter_name)
 def test_s2n_server_handles_padded_records(managed_process, cipher, provider, curve, protocol, certificate,
                                            padding_size):
