@@ -14,6 +14,8 @@
 version: 0.2
 
 env:
+  parameter-store:
+    CODECOV_TOKEN : codecov-upload-token
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
@@ -28,10 +30,10 @@ phases:
         fi
   build:
     commands:
-      - printenv
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - $CB_BIN_DIR/coverage_build.sh
   post-build:
     commands:
       - LLVM_PROFILE_FILE="ut_%p.profraw" CTEST_PARALLEL_LEVEL=2 make -C build test
       - $CB_BIN_DIR/coverage_report.sh
+      - $CB_BIN_DIR/coverage_upload.sh

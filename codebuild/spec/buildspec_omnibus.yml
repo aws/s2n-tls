@@ -249,6 +249,18 @@ batch:
           TESTS: unit
       identifier: s2nUnitBoringssl
 
+    - identifier: s2nUnitCoverage
+      buildspec: codebuild/spec/buildspec_unit_coverage.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
+        variables:
+          S2N_LIBCRYPTO: awslc
+          LATEST_CLANG: true
+          TESTS: unit
+          COVERAGE: true
+
     # Fuzz tests
     - identifier: s2nFuzzerOpenSSL111Coverage
       buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml

@@ -15,9 +15,13 @@
 # LLVM complains about corrupt coverage information
 # for static targets, so compile to a shared lib
 # instead.
+
+set -e
 cmake . -Bbuild \
     -DCMAKE_C_COMPILER=/usr/bin/clang-14 \
     -DCOVERAGE_ENABLED=ON \
     -DBUILD_SHARED_LIBS=ON
 
 cmake --build ./build -- -j $(nproc)
+
+echo "done with the build"

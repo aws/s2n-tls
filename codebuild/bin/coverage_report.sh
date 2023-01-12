@@ -25,3 +25,5 @@ llvm-cov export build/lib/libs2n.so \
     > unit_test_coverage.info
 
 genhtml unit_test_coverage.info -o coverage_report
+
+ls
