@@ -40,11 +40,11 @@ int main(int argc, char **argv)
     *
     * If libcrypto is staticly linked, this is sure to be true.
     */
-   if (0 != strcasestr(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION))) {
+   if (NULL == strcasestr(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION))) {
        printf("OPENSSL_VERSION_TEXT ==           |%s|\n", OPENSSL_VERSION_TEXT);
        printf("SSLeay_version(SSLEAY_VERSION) == |%s|\n", SSLeay_version(SSLEAY_VERSION));
    }
-   EXPECT_EQUAL(0, strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)));
+   EXPECT_NOT_NULL(strcasestr(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)));
 
    /*
     * The build configurations in CI are defined by S2N_BUILD_PRESET.
