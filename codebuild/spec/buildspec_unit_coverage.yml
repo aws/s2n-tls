@@ -1,0 +1,37 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+
+phases:
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
+        fi
+  build:
+    commands:
+      - printenv
+      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
+      - $CB_BIN_DIR/coverage_build.sh
+  post-build:
+    commands:
+      - LLVM_PROFILE_FILE="ut_%p.profraw" CTEST_PARALLEL_LEVEL=2 make -C build test
+      - $CB_BIN_DIR/coverage_report.sh
