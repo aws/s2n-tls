@@ -24,6 +24,8 @@
 
 S2N_RESULT s2n_handshake_transcript_update(struct s2n_connection *conn)
 {
+    RESULT_ENSURE_REF(conn);
+
     struct s2n_stuffer message = conn->handshake.io;
     RESULT_GUARD_POSIX(s2n_stuffer_reread(&message));
 

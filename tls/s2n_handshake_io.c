@@ -1168,6 +1168,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 
 S2N_RESULT s2n_handshake_message_send(struct s2n_connection *conn, uint8_t content_type, s2n_blocked_status *blocked)
 {
+    RESULT_ENSURE_REF(conn);
     struct s2n_stuffer *in = &conn->handshake.io;
 
     uint32_t size = s2n_stuffer_data_available(in);
