@@ -26,6 +26,11 @@ OPENSSL_APP_DATA_HEADER_PATTERN = r"17 03 03 ([0-9a-f]{2} [0-9a-f]{2})"
 RECORD_SIZE_GROUP = 1
 
 
+def strip_string_of_bytes(s: str) -> str:
+    # s has the form `b'<>'`. We need to strip the literal `b'` and the last `'`
+    return s[2:-1]
+
+
 def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
     # record_size_bytes is in the form XX XX where X is a hex digit
     size_in_hex = record_size_bytes.replace(' ', '')
@@ -52,8 +57,7 @@ def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_siz
             number_of_app_data_records += 1
 
     # The client and server write a variable number of encrypted handshake records,
-    # but each write at least one (Finished). We also send at least one ApplicationData record,
-    # and one final Alert record to end the connection.
+    # but each write at least one (Finished). We also send at least one ApplicationData record.
     assert number_of_app_data_records >= 2
 
 
@@ -145,11 +149,11 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
 
     # s2nc will wait until it has received the server's response before closing
     s2nc = managed_process(S2N, client_options, timeout=5,
-                           close_marker=str(server_random_bytes)[2:-1])
+                           close_marker=strip_string_of_bytes(str(server_random_bytes)))
 
     # openssl will send its response after it has received s2nc's record
     openssl = managed_process(provider, server_options,
-                              timeout=5, send_marker=str(client_random_bytes)[2:-1])
+                              timeout=5, send_marker=strip_string_of_bytes(str(client_random_bytes)))
 
     expected_version = get_expected_s2n_version(protocol, provider)
     for client_results in s2nc.get_results():
