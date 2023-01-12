@@ -40,7 +40,11 @@ int main(int argc, char **argv)
     *
     * If libcrypto is staticly linked, this is sure to be true.
     */
-   EXPECT_EQUAL(0, strcmp(OPENSSL_VERSION_TEXT, OpenSSL_version(OPENSSL_VERSION)));
+   if (0 != strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION))) {
+       printf("OPENSSL_VERSION_TEXT == %s", OPENSSL_VERSION_TEXT);
+       printf("SSLeay_version(SSLEAY_VERSION) == %s\n", SSLeay_version(SSLEAY_VERSION));
+   }
+   EXPECT_EQUAL(0, strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)));
 
    /*
     * The build configurations in CI are defined by S2N_BUILD_PRESET.
