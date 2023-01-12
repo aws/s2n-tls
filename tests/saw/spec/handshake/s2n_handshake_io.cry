@@ -7,10 +7,39 @@ module s2n_handshake_io where
 // This function models the update of the s2n_connection struct by the
 // s2n_conn_set_handshake_type function in s2n.
 conn_set_handshake_type : connection -> connection
-conn_set_handshake_type conn =
-  if IS_TLS13_HANDSHAKE conn
-  then conn_set_tls13_handshake_type conn
-  else conn_set_pre_tls13_handshake_type conn
+conn_set_handshake_type conn = conn''
+  where conn'' = if IS_TLS13_HANDSHAKE conn'
+                 then conn_set_tls13_handshake_type conn'
+                 else conn_set_pre_tls13_handshake_type conn'
+        conn' = conn_choose_state_machine conn conn.actual_protocol_version
+
+// This function models the state machine choosing by the
+// s2n_conn_choose_state_machine function in s2n.
+conn_choose_state_machine : connection -> [8] -> connection
+conn_choose_state_machine conn protocol_version = conn'
+ where conn' = {handshake = handshake'
+                ,mode = conn.mode
+                ,corked_io = conn.corked_io
+                ,corked = conn.corked
+                ,is_caching_enabled = conn.is_caching_enabled
+                ,resume_from_cache = conn.resume_from_cache
+                ,server_can_send_ocsp = conn.server_can_send_ocsp
+                ,key_exchange_eph = conn.key_exchange_eph
+                ,client_auth_flag = conn.client_auth_flag
+                ,actual_protocol_version = conn.actual_protocol_version
+                ,no_client_cert = conn.no_client_cert
+                ,early_data_state = conn.early_data_state
+                ,chosen_psk_null = conn.chosen_psk_null
+                ,quic_enabled = conn.quic_enabled
+                ,npn_negotiated = conn.npn_negotiated
+                }
+       (handshake' : handshake) = {handshake_type = conn.handshake.handshake_type
+                                  ,message_number = conn.handshake.message_number
+                                  ,state_machine = state_machine'
+                                  }
+       state_machine' = if protocol_version == S2N_TLS13
+                        then S2N_STATE_MACHINE_TLS13
+                        else S2N_STATE_MACHINE_TLS12
 
 // This function models the update of the s2n_connection struct by the
 // s2n_conn_set_handshake_type function in s2n. This only models the
@@ -36,6 +65,7 @@ conn_set_pre_tls13_handshake_type conn = conn'
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
+                                   ,state_machine = conn.handshake.state_machine
                                    }
         handshake_type' = NEGOTIATED || full_handshake ||  with_npn ||
                             (if (full_handshake != 0) then
@@ -79,6 +109,7 @@ conn_set_tls13_handshake_type conn = conn'
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
+                                   ,state_machine = conn.handshake.state_machine
                                    }
         handshake_type'  = (conn.handshake.handshake_type && (HELLO_RETRY_REQUEST || MIDDLEBOX_COMPAT || EARLY_CLIENT_CCS))
                            || NEGOTIATED || full_handshake || with_early_data || client_auth || middlebox_compat
@@ -116,7 +147,8 @@ advance_message conn = conn2
                 ,npn_negotiated = conn.npn_negotiated
                 }
         (handshake2 : handshake) = { handshake_type = conn.handshake.handshake_type,
-                                     message_number = message_number2 }
+                                     message_number = message_number2,
+                                     state_machine = conn.handshake.state_machine }
         cork2 = if (ACTIVE_STATE conn2).writer != (ACTIVE_STATE conn).writer
                 then if (ACTIVE_STATE conn2).writer == mode_writer conn2.mode
                      then s2n_cork conn else s2n_uncork conn
@@ -147,6 +179,7 @@ conn_set_handshake_no_client_cert conn = conn2
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
+                                   ,state_machine = conn.handshake.state_machine
                                    }
         handshake_type' = if conn.client_auth_flag
                           then conn.handshake.handshake_type || NO_CLIENT_CERT
@@ -227,6 +260,7 @@ type connection = {handshake : handshake
 
 type handshake = {handshake_type : [32]
                  ,message_number : [32]
+                 ,state_machine : [32]
                  }
 
 type S2N_HANDSHAKES_COUNT = 256
@@ -235,7 +269,7 @@ type S2N_MAX_HANDSHAKE_LENGTH = 32
 // functions model the corresponding macros in C
 
 IS_TLS13_HANDSHAKE : connection -> Bit
-IS_TLS13_HANDSHAKE conn = conn.actual_protocol_version == S2N_TLS13
+IS_TLS13_HANDSHAKE conn = conn.handshake.state_machine == S2N_STATE_MACHINE_TLS13
 
 ACTIVE_STATE_MACHINE : connection -> [TOTAL_HANDSHAKE_ACTIONS]handshake_action
 ACTIVE_STATE_MACHINE conn = if IS_TLS13_HANDSHAKE conn then tls13_state_machine else state_machine # zero
@@ -943,7 +977,11 @@ valid_handshake hs = handshakefn != zero /\
                      handshakefn = (handshakes_fn hs.handshake_type)
 
 valid_connection : connection -> Bit
-valid_connection conn = valid_handshake (conn.handshake)
+valid_connection conn = valid_handshake (conn.handshake) /\
+                        (conn.actual_protocol_version == S2N_TLS13 ==>
+                         conn.handshake.state_machine != S2N_STATE_MACHINE_TLS12) /\
+                        (conn.actual_protocol_version != S2N_TLS13 ==>
+                         conn.handshake.state_machine != S2N_STATE_MACHINE_TLS13)
 
 // Tells if the connection struct is in a valid initial state
 initial_connection : connection -> Bit
@@ -1070,3 +1108,8 @@ S2N_CERT_AUTH_REQUIRED = 1
 
 //S2N early data states
 S2N_EARLY_DATA_ACCEPTED = 3
+
+// s2n_state_machine version
+S2N_STATE_MACHINE_INITIAL = 0
+S2N_STATE_MACHINE_TLS12 = 1
+S2N_STATE_MACHINE_TLS13 = 2

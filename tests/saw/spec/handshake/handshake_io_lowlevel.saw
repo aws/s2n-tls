@@ -99,6 +99,10 @@ let conn_handshake_handshake_type pconn =
 let conn_handshake_message_number pconn =
     crucible_field (crucible_field pconn "handshake") "message_number";
 
+//conn->handshake.state_machine
+let conn_handshake_state_machine pconn =
+crucible_field (crucible_field pconn "handshake") "state_machine";
+
 //conn->handshake_params.our_chain_and_key
 let conn_chain_and_key pconn =
     crucible_field (crucible_field pconn "handshake_params") "our_chain_and_key";
@@ -142,6 +146,10 @@ let setup_connection_common chosen_psk_null = do {
    message_number <- crucible_fresh_var "message_number" (llvm_int 32);
    crucible_points_to (conn_handshake_message_number pconn)
                       (crucible_term message_number);
+
+   state_machine <- crucible_fresh_var "state_machine" (llvm_int 32);
+   crucible_points_to (conn_handshake_state_machine pconn)
+   (crucible_term state_machine);
 
    cork_val <- crucible_fresh_var "corked" (llvm_int 2);
    crucible_ghost_value corked cork_val;
@@ -229,7 +237,8 @@ let setup_connection_common chosen_psk_null = do {
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
                      ,handshake = {message_number = message_number
-                                  ,handshake_type = handshake_type}
+                                  ,handshake_type = handshake_type
+                                  ,state_machine = state_machine }
                      ,corked    = cork_val
                      ,is_caching_enabled = False
                      ,key_exchange_eph = eph_flag != zero
@@ -313,12 +322,15 @@ let s2n_connection_get_client_auth_type_spec = do{
 // by conn_set_handshake_type (low-level model function)
 let s2n_conn_set_handshake_type_spec chosen_psk_null = do {
     (pconn, conn) <- setup_connection_common chosen_psk_null;
-    // we assume that the handshake struct denotes a valid handshake state
+    // We assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
+    // In addition, it satisfies that if actual_protocol_version is set to
+    // S2N_TLS13 then handshake.state_machine != TLS_STATEMACHINE_TLS12 and
+    // otherwise handshake.state_machine != TLS_STATEMACHINE_TLS13
     // conn.handshake is defined in s2n_handshake_io.cry.
     // valid_handshake is defined in s2n_handshake_io.cry as well.
-    crucible_precond {{ valid_handshake conn.handshake }};
+    crucible_precond {{ valid_connection conn }};
 
     // symbolically execute s2n_conn_set_handshake_type
     crucible_execute_func [pconn];
@@ -349,7 +361,7 @@ let s2n_advance_message_spec = do {
     // we assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
-    crucible_precond {{ valid_handshake conn.handshake }};
+    crucible_precond {{ valid_connection conn }};
 
     // symbolically execute s2n_advance_message
     crucible_execute_func [pconn];
