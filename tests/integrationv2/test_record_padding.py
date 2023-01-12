@@ -51,9 +51,9 @@ def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_siz
 
             number_of_app_data_records += 1
 
-    # At least one application record is sent + one close_notify alert. If openssl is
-    # the server then we also expect additional wrapped handshake records. Instead
-    # we assert the lower bound, which would be when openssl is the client.
+    # The client and server write a variable number of encrypted handshake records,
+    # but each write at least one (Finished). We also send at least one ApplicationData record,
+    # and one final Alert record to end the connection.
     assert number_of_app_data_records >= 2
 
 
@@ -135,8 +135,7 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
         insecure=True,
         protocol=protocol,
         data_to_send=server_random_bytes,
-        extra_flags=[
-            '-record_padding', padding_size]
+        extra_flags=['-record_padding', padding_size]
     )
 
     client_options = copy.copy(server_options)
