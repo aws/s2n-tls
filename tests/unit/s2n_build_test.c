@@ -109,6 +109,7 @@ int main(int argc, char **argv)
    if (NULL == strcasestr(openssl_version, token)) {
        printf("SSLeay_version(SSLEAY_VERSION) == %s\n", openssl_version);
        printf("token == %s\n", token);
+       printf("s2n_libcrypto == %s\n", s2n_libcrypto);
    }
    EXPECT_NOT_NULL(strcasestr(openssl_version, token));
    /* The version number, if present should also be there. */
