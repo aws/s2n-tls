@@ -35,14 +35,13 @@ def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
 
 
 def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_size: int):
-    number_of_padded_application_records = 0
+    number_of_app_data_records = 0
 
     records_written = re.findall(
         OPENSSL_RECORD_WRITTEN_PATTERN, openssl_output)
     for record_prefix in records_written:
         app_data_header = re.search(
             OPENSSL_APP_DATA_HEADER_PATTERN, record_prefix)
-
         if app_data_header:
             size_bytes = app_data_header.group(RECORD_SIZE_GROUP)
             size = get_payload_size_from_openssl_trace(size_bytes)
@@ -50,12 +49,12 @@ def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_siz
             assert size > 0
             assert size % padding_size == 0
 
-            number_of_padded_application_records += 1
+            number_of_app_data_records += 1
 
-    # At least one application record sent + one close_notify alert. There may
-    # be an additional number of wrapped handshake records such as session_ticket
-    # records but this number is not fixed.
-    assert number_of_padded_application_records >= 2
+    # At least one application record is sent + one close_notify alert. If openssl is
+    # the server then we also expect additional wrapped handshake records. Instead
+    # we assert the lower bound, which would be when openssl is the client.
+    assert number_of_app_data_records >= 2
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -149,7 +148,7 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
     s2nc = managed_process(S2N, client_options, timeout=5,
                            close_marker=str(server_random_bytes)[2:-1])
 
-    # openssl will send it's response after it has received s2nc's record
+    # openssl will send its response after it has received s2nc's record
     openssl = managed_process(provider, server_options,
                               timeout=5, send_marker=str(client_random_bytes)[2:-1])
 
