@@ -372,7 +372,7 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 
 ## Config
 
-`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
 
 ### Overriding the Config
 
@@ -606,6 +606,10 @@ In TLS1.2, session ticket messages are sent during the handshake and are automat
 In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling `s2n_negotiate()`. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling `s2n_recv()` immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection.
 
 Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
+
+### Keying Material Lifetimes in Session Resumption
+
+Users may have questions on how long a secret generated from a full handshake is re-used with session resumption. The mechanism to expire old keying material varies based on TLS version. In TLS1.2, the server only issues a new session ticket when doing a full handshake. Therefore the lifetime of the keying material inside the ticket is tied to the lifetime of the key used to encrypt the ticket. In TLS13, the encrypted ticket has an explicit lifetime stored in it, after which the keying material inside cannot be re-used. Servers can call `s2n_connection_set_server_keying_material_lifetime()` to configure this value.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
