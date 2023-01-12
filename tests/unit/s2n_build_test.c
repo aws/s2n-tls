@@ -89,7 +89,7 @@ int main(int argc, char **argv)
            }
        }
    } else {
-       printf("\nTest didn't handle this combination of envariables\n");
+       printf("\nTest didn't handle this combination of variables\n");
        printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
        printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
        EXPECT_TRUE(0);
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
    /* Now that we can rely on the value of S2N_LIBCRYPTO lets check that it matches the version
     * that libcrypto reports. */
-   const char *openssl_version = OpenSSL_version(OPENSSL_VERSION);
+   const char *openssl_version = SSLeay_version(SSLEAY_VERSION);
    char s2n_libcrypto_copy[31] = { 0 };
    strncpy(s2n_libcrypto_copy, s2n_libcrypto, 30);
    char *token = strtok(s2n_libcrypto_copy, "-");
