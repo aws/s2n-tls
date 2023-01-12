@@ -106,7 +106,7 @@ int main(int argc, char **argv)
    strncpy(s2n_libcrypto_copy, s2n_libcrypto, 30);
    char *token = strtok(s2n_libcrypto_copy, "-");
    /* The name of the library should be included (AWS, BoringSSL, LibreSSL, OpenSSL, ect) */
-   if (NULL != strcasestr(openssl_version, token)) {
+   if (NULL == strcasestr(openssl_version, token)) {
        printf("SSLeay_version(SSLEAY_VERSION) == %s\n", openssl_version);
        printf("token == %s\n", token);
    }
