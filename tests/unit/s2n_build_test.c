@@ -26,6 +26,8 @@
 
 extern char **environ;
 
+
+
 int main(int argc, char **argv)
 {
    (void) argc, (void) argv;
@@ -107,6 +109,7 @@ int main(int argc, char **argv)
    char *token = strtok(s2n_libcrypto_copy, "-");
    /* The name of the library should be included (AWS, BoringSSL, LibreSSL, OpenSSL, ect) */
    if (NULL == strcasestr(openssl_version, token)) {
+       printf("OPENSSL_VERSION_TEXT == %s\n", OPENSSL_VERSION_TEXT);
        printf("SSLeay_version(SSLEAY_VERSION) == %s\n", openssl_version);
        printf("token == %s\n", token);
        printf("s2n_libcrypto == %s\n", s2n_libcrypto);
