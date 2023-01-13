@@ -19,6 +19,8 @@ env:
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
+    CC: "/usr/bin/clang"
+    CXX: "/usr/bin/clang++"
 
 phases:
   pre_build:
