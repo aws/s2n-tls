@@ -42,8 +42,8 @@ int main(int argc, char **argv)
     *
     * If libcrypto is staticly linked, this is sure to be true.
     */
-   if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
-       printf("\nOPENSSL_VERSION_NUMBER == %d\n", OPENSSL_VERSION_NUMBER);
+   if (SSLeay() != OPENSSL_VERSION_NUMBER) {
+       printf("\nOPENSSL_VERSION_NUMBER == %ld\n", OPENSSL_VERSION_NUMBER);
        printf("SSLeay() == %ld\n", SSLeay());
    }
    EXPECT_EQUAL(SSLeay(), OPENSSL_VERSION_NUMBER);
