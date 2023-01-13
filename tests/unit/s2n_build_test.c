@@ -42,11 +42,11 @@ int main(int argc, char **argv)
     *
     * If libcrypto is staticly linked, this is sure to be true.
     */
-   if (NULL == strcasestr(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION))) {
-       printf("\nOPENSSL_VERSION_TEXT ==           |%s|\n", OPENSSL_VERSION_TEXT);
-       printf("SSLeay_version(SSLEAY_VERSION) == |%s|\n", SSLeay_version(SSLEAY_VERSION));
+   if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
+       printf("\nOPENSSL_VERSION_NUMBER == %d\n", OPENSSL_VERSION_NUMBER);
+       printf("SSLeay()\n", SSLeay());
    }
-   EXPECT_NOT_NULL(strcasestr(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)));
+   EXPECT_EQUAL(SSLeay(), OPENSSL_VERSION_NUMBER);
 
    /*
     * The build configurations in CI are defined by S2N_BUILD_PRESET.
@@ -66,33 +66,39 @@ int main(int argc, char **argv)
 #define CONTAINS(x) strcasestr(s2n_build_preset, x) != NULL
 #define CHK_LC(x) EXPECT_EQUAL(strcmp(s2n_libcrypto, x), 0)
    /* Verify that the environment  */
-   if (CONTAINS("awslc")) {
-       if (CONTAINS("fips")) {
-           CHK_LC("awslc-fips");
-       } else {
-           CHK_LC("awslc");
-       }
+   if (CONTAINS("awslc") && CONTAINS("fips")) {
+       CHK_LC("awslc-fips");
+   } else if (CONTAINS("awslc")) {
+       CHK_LC("awslc");
    } else if (CONTAINS("libressl")) {
        CHK_LC("libressl");
    } else if (CONTAINS("boringssl")) {
        CHK_LC("boringssl");
-   } else if (CONTAINS("openssl")) {
-       if (CONTAINS("fips")) {
-           if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
-               CHK_LC("openssl-1.0.2-fips");
-           } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
-               CHK_LC("openssl-1.1.1-fips");
-           } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
-               CHK_LC("openssl-3.0-fips");
-           }
+   } else if (CONTAINS("openssl") && CONTAINS("fips")) {
+       if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
+           CHK_LC("openssl-1.0.2-fips");
+       } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
+           CHK_LC("openssl-1.1.1-fips");
+       } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
+           CHK_LC("openssl-3.0-fips");
        } else {
-           if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
-               CHK_LC("openssl-1.0.2");
-           } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
-               CHK_LC("openssl-1.1.1");
-           } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
-               CHK_LC("openssl-3.0");
-           }
+           printf("\nTest didn't handle this openssl version:\n");
+           printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
+           printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
+           EXPECT_TRUE(0);
+       }
+   } else if (CONTAINS("openssl") && CONTAINS("fips")) {
+       if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
+           CHK_LC("openssl-1.0.2");
+       } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
+           CHK_LC("openssl-1.1.1");
+       } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
+           CHK_LC("openssl-3.0");
+       } else {
+           printf("\nTest didn't handle this openssl fips version:\n");
+           printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
+           printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
+           EXPECT_TRUE(0);
        }
    } else {
        printf("\nTest didn't handle this combination of variables\n");
@@ -103,24 +109,38 @@ int main(int argc, char **argv)
 
    /* Now that we can rely on the value of S2N_LIBCRYPTO lets check that it matches the version
     * that libcrypto reports. */
+#define LC_IS(x) (strcmp(s2n_libcrypto, x) == 0)
    const char *openssl_version = SSLeay_version(SSLEAY_VERSION);
-   char s2n_libcrypto_copy[31] = { 0 };
-   strncpy(s2n_libcrypto_copy, s2n_libcrypto, 30);
-   char *token = strtok(s2n_libcrypto_copy, "-");
-   /* The name of the library should be included (AWS, BoringSSL, LibreSSL, OpenSSL, ect) */
-   if (NULL == strcasestr(openssl_version, token)) {
-       printf("OPENSSL_VERSION_TEXT == %s\n", OPENSSL_VERSION_TEXT);
-       printf("SSLeay_version(SSLEAY_VERSION) == %s\n", openssl_version);
-       printf("token == %s\n", token);
-       printf("s2n_libcrypto == %s\n", s2n_libcrypto);
-   }
-   EXPECT_NOT_NULL(strcasestr(openssl_version, token));
-   /* The version number, if present should also be there. */
-   strtok(NULL, "-");
-   if (token != NULL) {
-       EXPECT_NOT_NULL(strcasestr(openssl_version, token));
-   }
 
+   if (LC_IS("awslc-fips") || LC_IS("awslc")) {
+#ifndef OPENSSL_IS_AWSLC
+        printf("\nOpenSSL at build time wasn't AWS_LC, but S2N_LIBCRYPTO is\n");
+        EXPECT_TRUE(false);
+#endif
+#if AWSLC_API_VERSION == 16
+        EXPECT_EQUAL(0, strcmp(openssl_version, "BoringSSL"));
+#else
+       EXPECT_EQUAL(0, strcmp(openssl_version, "AWS-LC"));
+#endif
+   } else {
+       char s2n_libcrypto_copy[31] = { 0 };
+       strncpy(s2n_libcrypto_copy, s2n_libcrypto, 30);
+       char *token = strtok(s2n_libcrypto_copy, "-");
+
+       /* The name of the library should be included (BoringSSL, LibreSSL, OpenSSL, ect) */
+       if (NULL == strcasestr(openssl_version, token)) {
+           printf("OPENSSL_VERSION_TEXT == %s\n", OPENSSL_VERSION_TEXT);
+           printf("SSLeay_version(SSLEAY_VERSION) == %s\n", openssl_version);
+           printf("token == %s\n", token);
+           printf("s2n_libcrypto == %s\n", s2n_libcrypto);
+       }
+       EXPECT_NOT_NULL(strcasestr(openssl_version, token));
+       /* The version number, if present should also be there. */
+       strtok(NULL, "-");
+       if (token != NULL) {
+           EXPECT_NOT_NULL(strcasestr(openssl_version, token));
+       }
+   }
    END_TEST();
    return 0;
 }
