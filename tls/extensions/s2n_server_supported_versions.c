@@ -28,8 +28,8 @@
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.1
  *
- * "A server which negotiates TLS 1.3 MUST respond by sending a 
- * "supported_versions" extension containing the selected version value 
+ * "A server which negotiates TLS 1.3 MUST respond by sending a
+ * "supported_versions" extension containing the selected version value
  * (0x0304)."
  *
  * Structure:
@@ -111,9 +111,4 @@ int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn)
 int s2n_extensions_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_extension_recv(&s2n_server_supported_versions_extension, conn, extension);
-}
-
-int s2n_extensions_server_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_supported_versions_extension, conn, out);
 }
