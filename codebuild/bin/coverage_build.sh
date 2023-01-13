@@ -21,7 +21,6 @@ set -e
 source codebuild/bin/s2n_setup_env.sh
 
 cmake . -Bbuild \
-    -DCMAKE_C_COMPILER=/usr/bin/clang-14 \
     -DCOVERAGE_ENABLED=ON \
     -DBUILD_SHARED_LIBS=ON
 
