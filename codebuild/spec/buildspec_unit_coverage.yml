@@ -28,6 +28,7 @@ phases:
           cd third-party-src;
           ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
+      - source codebuild/bin/s2n_setup_env.sh
   build:
     commands:
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
