@@ -87,7 +87,7 @@ int main(int argc, char **argv)
            printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
            EXPECT_TRUE(0);
        }
-   } else if (CONTAINS("openssl") && CONTAINS("fips")) {
+   } else if (CONTAINS("openssl")) {
        if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
            CHK_LC("openssl-1.0.2");
        } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
