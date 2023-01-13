@@ -254,7 +254,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
-        image: aws/codebuild/standard:5.0
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           S2N_LIBCRYPTO: awslc
           LATEST_CLANG: true
