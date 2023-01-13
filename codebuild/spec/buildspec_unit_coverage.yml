@@ -29,10 +29,12 @@ phases:
         fi
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
   build:
+    on-failure: ABORT
     commands:
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - $CB_BIN_DIR/coverage_build.sh
   post_build:
+    on-failure: ABORT
     commands:
       - LLVM_PROFILE_FILE="ut_%p.profraw" CTEST_PARALLEL_LEVEL=2 make -C build test
       - $CB_BIN_DIR/coverage_report.sh
