@@ -613,7 +613,7 @@ Users may have questions on how long a secret generated from a full handshake is
 
 ## Client Hello Getters
 
-s2n-tls stores the received Client Hello and makes it available to users for logging purposes or to branch off of its content. Call `s2n_connection_get_client_hello()` to get a pointer the `s2n_client_hello` struct storing the Client Hello. NULL will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). 
+s2n-tls stores the received Client Hello and makes it available to users for logging purposes or to branch off of its content. Call `s2n_connection_get_client_hello()` to get a pointer the `s2n_client_hello` struct storing the Client Hello. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). 
 
 Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out. Note that SSLv2 Client Hello messages are structured differently than other versions and thus their raw messages should be parsed accordingly (see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).) Call `s2n_connection_get_client_hello_version()` to retrieve the received Client Hello version.
 
