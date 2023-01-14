@@ -35,8 +35,6 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 
-message("the compiler is ${CMAKE_C_COMPILER_ID}")
-
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -368,9 +366,11 @@ if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
 endif()
 
-if (COVERAGE_ENABLED)
-    message("looks like you want coverage turned on. Yay!")
-
+if (COVERAGE)
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
+    if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
+        message(FATAL_ERROR "This project requires clang for coverage support".)
+    endif()
     target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
 endif()

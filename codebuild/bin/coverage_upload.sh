@@ -13,16 +13,12 @@
 # permissions and limitations under the License.
 #
 
+set -e
+
 # upload to codecov.io
 curl -Os https://uploader.codecov.io/latest/linux/codecov
-
-echo "gonna try and upload"
 
 chmod +x codecov
 ./codecov -t ${CODECOV_TOKEN} -f unit_test_coverage.info
 
-echo "done trying the upload"
-# upload to s3 (which gets mirrors to S3)
 aws s3 sync coverage_report s3://s2n-tls-public-coverage-artifacts/latest
-
-echo "done trying to write to s3"

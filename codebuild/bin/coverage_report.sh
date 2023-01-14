@@ -12,11 +12,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# useful for my debugging at the moment
-find / -name '*profraw*'
+set -e
 
 # merge profiling data
-# i think this is a valid relative path, but not entirely sure, test locally before pushing
 llvm-profdata merge -sparse tests/unit/ut_*.profraw -o merged.profdata
 
 llvm-cov export build/lib/libs2n.so \
@@ -25,5 +23,3 @@ llvm-cov export build/lib/libs2n.so \
     > unit_test_coverage.info
 
 genhtml unit_test_coverage.info -o coverage_report
-
-ls

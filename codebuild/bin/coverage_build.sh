@@ -12,16 +12,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# LLVM complains about corrupt coverage information
-# for static targets, so compile to a shared lib
-# instead.
-
 set -e
 
 source codebuild/bin/s2n_setup_env.sh
 
+# LLVM complains about corrupt coverage information
+# for static targets, so compile to a shared lib
+# instead.
 cmake . -Bbuild \
-    -DCOVERAGE_ENABLED=ON \
+    -DCOVERAGE=ON \
     -DBUILD_SHARED_LIBS=ON
 
 cmake --build ./build -- -j $(nproc)

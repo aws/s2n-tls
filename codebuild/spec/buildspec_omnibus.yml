@@ -109,7 +109,7 @@ batch:
           S2N_LIBCRYPTO: 'awslc-fips'
           BUILD_S2N: 'true'
 
-    - identifier: s2nAsanOpenSSL111Coverage
+    - identifier: s2nAsanOpenSSL111
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
@@ -120,7 +120,6 @@ batch:
           GCC_VERSION: '6'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           BUILD_S2N: 'true'
-          S2N_COVERAGE: 'true'
 
     - identifier: s2nAsanOpenssl102
       buildspec: codebuild/spec/buildspec_ubuntu.yml
@@ -257,8 +256,6 @@ batch:
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
-          TESTS: unit
-          COVERAGE: true
 
     # Fuzz tests
     - identifier: s2nFuzzerOpenSSL111Coverage
