@@ -900,7 +900,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
 int s2n_generate_new_client_session_id(struct s2n_connection *conn)
 {
     if (conn->mode == S2N_SERVER) {
-        struct s2n_blob session_id= { 0 };
+        struct s2n_blob session_id = { 0 };
         POSIX_GUARD(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
 
         /* Generate a new session id */
