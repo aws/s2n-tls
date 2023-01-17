@@ -491,7 +491,6 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     struct s2n_blob half_secret = { 0 };
     POSIX_GUARD(s2n_blob_init(&half_secret, secret->data, (secret->size + 1) / 2));
 
-
     POSIX_GUARD(s2n_p_hash(conn->prf_space, S2N_HMAC_MD5, &half_secret, label, seed_a, seed_b, seed_c, out));
     half_secret.data += secret->size - half_secret.size;
     POSIX_GUARD(s2n_p_hash(conn->prf_space, S2N_HMAC_SHA1, &half_secret, label, seed_a, seed_b, seed_c, out));
