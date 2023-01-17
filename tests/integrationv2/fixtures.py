@@ -2,8 +2,10 @@ import os
 import pytest
 import subprocess
 
+from global_flags import get_flag, is_criterion_on, S2N_USE_CRITERION
 from processes import ManagedProcess
-from providers import Provider
+from providers import Provider, CriterionS2N, S2N
+
 from common import ProviderOptions
 
 
@@ -21,6 +23,11 @@ def managed_process():
 
     def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None,
             expect_stderr=None, kill_marker=None, send_with_newline=None):
+        if provider_class == S2N and is_criterion_on():
+            provider_class = CriterionS2N
+            # This comes from the number of iterations specific in the rust benchmark handler(s).
+            # currently set at 10 iterations, so give us 10x more time.
+            timeout = timeout * 10
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
         # The process will default to send markers in the providers.py file

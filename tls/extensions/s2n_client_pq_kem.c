@@ -82,15 +82,3 @@ static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffe
 
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out, uint16_t pq_kem_list_size)
-{
-    return s2n_extension_send(&s2n_client_pq_kem_extension, conn, out);
-}
-
-int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_pq_kem_extension, conn, extension);
-}

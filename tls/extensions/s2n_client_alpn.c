@@ -86,15 +86,3 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
 
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_alpn_extension, conn, out);
-}
-
-int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_alpn_extension, conn, extension);
-}
