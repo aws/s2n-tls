@@ -26,7 +26,6 @@
 #include "tls/extensions/s2n_client_server_name.h"
 #include "tls/extensions/s2n_client_session_ticket.h"
 #include "tls/extensions/s2n_client_signature_algorithms.h"
-#include "tls/extensions/s2n_requester_status_request.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/extensions/s2n_cookie.h"
@@ -36,8 +35,8 @@
 #include "tls/extensions/s2n_npn.h"
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "tls/extensions/s2n_quic_transport_params.h"
+#include "tls/extensions/s2n_requester_status_request.h"
 #include "tls/extensions/s2n_server_alpn.h"
-#include "tls/extensions/s2n_tls13_responder_status_request.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 #include "tls/extensions/s2n_server_psk.h"
@@ -48,6 +47,7 @@
 #include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "tls/extensions/s2n_server_status_request.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/extensions/s2n_tls13_responder_status_request.h"
 #include "tls/s2n_connection.h"
 
 static const s2n_extension_type *const client_hello_extensions[] = {
