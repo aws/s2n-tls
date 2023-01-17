@@ -36,7 +36,8 @@ int s2n_record_parse_cbc(
         uint8_t *sequence_number,
         struct s2n_session_key *session_key)
 {
-    struct s2n_blob iv = { .data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size };
+    struct s2n_blob iv = { 0 };
+    POSIX_GUARD(s2n_blob_init(&iv,  implicit_iv, cipher_suite->record_alg->cipher->io.cbc.record_iv_size));
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
 
     /* Add the header to the HMAC */
@@ -52,7 +53,8 @@ int s2n_record_parse_cbc(
         encrypted_length -= iv.size;
     }
 
-    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { 0 };
+    POSIX_GUARD(s2n_blob_init(&en, s2n_stuffer_raw_read(&conn->in, encrypted_length), encrypted_length));
     POSIX_ENSURE_REF(en.data);
 
     uint16_t payload_length = encrypted_length;
@@ -98,7 +100,8 @@ int s2n_record_parse_cbc(
         POSIX_GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
     }
 
-    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = { 0 };
+    POSIX_GUARD(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* Padding. This finalizes the provided HMAC. */

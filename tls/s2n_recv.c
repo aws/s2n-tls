@@ -111,7 +111,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
 ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
     ssize_t bytes_read = 0;
-    struct s2n_blob out = { .data = (uint8_t *) buf };
+    struct s2n_blob out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out, (uint8_t *) buf, 0));
 
     if (conn->closed) {
         return 0;

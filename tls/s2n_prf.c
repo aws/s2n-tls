@@ -488,7 +488,9 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
                 seed_c, out);
     }
 
-    struct s2n_blob half_secret = { .data = secret->data, .size = (secret->size + 1) / 2 };
+    struct s2n_blob half_secret = { 0 };
+    POSIX_GUARD(s2n_blob_init(&half_secret, secret->data, (secret->size + 1) / 2));
+
 
     POSIX_GUARD(s2n_p_hash(conn->prf_space, S2N_HMAC_MD5, &half_secret, label, seed_a, seed_b, seed_c, out));
     half_secret.data += secret->size - half_secret.size;
@@ -501,12 +503,16 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
 {
     POSIX_ENSURE_REF(conn);
 
-    struct s2n_blob client_random = { .size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random };
-    struct s2n_blob server_random = { .size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random };
-    struct s2n_blob master_secret = { .size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret };
+    struct s2n_blob client_random = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, sizeof(conn->handshake_params.client_random)));
+    struct s2n_blob server_random = { 0 };
+    POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
+    struct s2n_blob master_secret = { 0 };
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
 
     uint8_t master_secret_label[] = "master secret";
-    struct s2n_blob label = { .size = sizeof(master_secret_label) - 1, .data = master_secret_label };
+    struct s2n_blob label = { 0 };
+    POSIX_GUARD(s2n_blob_init(&label, master_secret_label, sizeof(master_secret_label) - 1));
 
     return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, NULL, &master_secret);
 }
@@ -515,12 +521,16 @@ int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *p
 {
     POSIX_ENSURE_REF(conn);
 
-    struct s2n_blob client_random = { .size = sizeof(conn->handshake_params.client_random), .data = conn->handshake_params.client_random };
-    struct s2n_blob server_random = { .size = sizeof(conn->handshake_params.server_random), .data = conn->handshake_params.server_random };
-    struct s2n_blob master_secret = { .size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret };
+    struct s2n_blob client_random = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, sizeof(conn->handshake_params.client_random)));
+    struct s2n_blob server_random = { 0 };
+    POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
+    struct s2n_blob master_secret = { 0 };
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
 
     uint8_t master_secret_label[] = "hybrid master secret";
-    struct s2n_blob label = { .size = sizeof(master_secret_label) - 1, .data = master_secret_label };
+    struct s2n_blob label = { 0 };
+    POSIX_GUARD(s2n_blob_init(&label, master_secret_label, sizeof(master_secret_label) - 1));
 
     return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &conn->kex_params.client_key_exchange_message, &master_secret);
 }
@@ -580,11 +590,13 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
 {
     RESULT_ENSURE_REF(conn);
 
-    struct s2n_blob extended_master_secret = { .size = sizeof(conn->secrets.tls12.master_secret), .data = conn->secrets.tls12.master_secret };
+    struct s2n_blob extended_master_secret = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&extended_master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
 
     uint8_t extended_master_secret_label[] = "extended master secret";
     /* Subtract one from the label size to remove the "\0" */
-    struct s2n_blob label = { .size = sizeof(extended_master_secret_label) - 1, .data = extended_master_secret_label };
+    struct s2n_blob label = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&label, extended_master_secret_label, sizeof(extended_master_secret_label) - 1));
 
     RESULT_GUARD_POSIX(s2n_prf(conn, premaster_secret, &label, session_hash, sha1_hash, NULL, &extended_master_secret));
 
@@ -833,9 +845,12 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
-    struct s2n_blob client_random = { .data = conn->handshake_params.client_random, .size = sizeof(conn->handshake_params.client_random) };
-    struct s2n_blob server_random = { .data = conn->handshake_params.server_random, .size = sizeof(conn->handshake_params.server_random) };
-    struct s2n_blob master_secret = { .data = conn->secrets.tls12.master_secret, .size = sizeof(conn->secrets.tls12.master_secret) };
+    struct s2n_blob client_random = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, sizeof(conn->handshake_params.client_random)));
+    struct s2n_blob server_random = { 0 };
+    POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
+    struct s2n_blob master_secret = { 0 };
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
     struct s2n_blob label, out;
     uint8_t key_expansion_label[] = "key expansion";
     uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
@@ -908,8 +923,10 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
             break;
     }
 
-    struct s2n_blob client_implicit_iv = { .data = conn->secure->client_implicit_iv, .size = implicit_iv_size };
-    struct s2n_blob server_implicit_iv = { .data = conn->secure->server_implicit_iv, .size = implicit_iv_size };
+    struct s2n_blob client_implicit_iv = { 0 };
+    POSIX_GUARD(s2n_blob_init(&client_implicit_iv, conn->secure->client_implicit_iv, implicit_iv_size));
+    struct s2n_blob server_implicit_iv = { 0 };
+    POSIX_GUARD(s2n_blob_init(&server_implicit_iv, conn->secure->server_implicit_iv, implicit_iv_size));
     POSIX_GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
     POSIX_GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
 
