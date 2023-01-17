@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-12
     name: CI FreeBSD
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build and test in FreeBSD
         id: test
         uses: vmactions/freebsd-vm@v0.3.0
