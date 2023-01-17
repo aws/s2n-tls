@@ -19,4 +19,7 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 
-extern const s2n_extension_type s2n_client_status_request_extension;
+extern const s2n_extension_type s2n_tls13_responder_status_request_extension;
+
+int s2n_tls13_responder_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_tls13_responder_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *in);

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/extensions/s2n_server_certificate_status.h"
+#include "tls/extensions/s2n_tls13_responder_status_request.h"
 
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -27,23 +27,23 @@
  * status request as well as the OCSP response. This contrasts to TLS 1.2 where
  * the OCSP response is sent in the Certificate Status handshake message */
 
-static bool s2n_tls13_server_status_request_should_send(struct s2n_connection *conn);
+static bool s2n_tls13_responder_status_request_should_send(struct s2n_connection *conn);
 
-const s2n_extension_type s2n_tls13_server_status_request_extension = {
+const s2n_extension_type s2n_tls13_responder_status_request_extension = {
     .iana_value = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = true,
-    .send = s2n_server_certificate_status_send,
-    .recv = s2n_server_certificate_status_recv,
-    .should_send = s2n_tls13_server_status_request_should_send,
+    .send = s2n_tls13_responder_status_request_send,
+    .recv = s2n_tls13_responder_status_request_recv,
+    .should_send = s2n_tls13_responder_status_request_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static bool s2n_tls13_server_status_request_should_send(struct s2n_connection *conn)
+static bool s2n_tls13_responder_status_request_should_send(struct s2n_connection *conn)
 {
     return s2n_server_can_send_ocsp(conn);
 }
 
-int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_tls13_responder_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
     struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
@@ -56,7 +56,7 @@ int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_s
     return S2N_SUCCESS;
 }
 
-int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
+int s2n_tls13_responder_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     POSIX_ENSURE_REF(conn);
     /**
