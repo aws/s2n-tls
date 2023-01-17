@@ -45,15 +45,3 @@ static int s2n_client_sct_list_recv(struct s2n_connection *conn, struct s2n_stuf
     /* Skip reading the extension, per RFC6962 (3.1.1) it SHOULD be empty anyway  */
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_sct_list_extension, conn, out);
-}
-
-int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_sct_list_extension, conn, extension);
-}

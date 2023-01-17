@@ -51,18 +51,3 @@ int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_s
 {
     return s2n_extension_recv(&s2n_server_session_ticket_extension, conn, extension);
 }
-
-int s2n_send_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_session_ticket_extension, conn, out);
-}
-
-int s2n_server_session_ticket_ext_size(struct s2n_connection *conn)
-{
-    if (s2n_session_ticket_should_send(conn)) {
-        /* 2 for extension type. 2 for extension length of 0 */
-        return 4;
-    }
-
-    return 0;
-}
