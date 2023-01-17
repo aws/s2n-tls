@@ -101,7 +101,7 @@ let conn_handshake_message_number pconn =
 
 //conn->handshake.state_machine
 let conn_handshake_state_machine pconn =
-crucible_field (crucible_field pconn "handshake") "state_machine";
+    crucible_field (crucible_field pconn "handshake") "state_machine";
 
 //conn->handshake_params.our_chain_and_key
 let conn_chain_and_key pconn =
@@ -322,14 +322,7 @@ let s2n_connection_get_client_auth_type_spec = do{
 // by conn_set_handshake_type (low-level model function)
 let s2n_conn_set_handshake_type_spec chosen_psk_null = do {
     (pconn, conn) <- setup_connection_common chosen_psk_null;
-    // We assume that the handshake struct denotes a valid handshake state
-    // (e.g. it will not index out of bounds in the state transition array
-    // "handshakes")
-    // In addition, it satisfies that if actual_protocol_version is set to
-    // S2N_TLS13 then handshake.state_machine != TLS_STATEMACHINE_TLS12 and
-    // otherwise handshake.state_machine != TLS_STATEMACHINE_TLS13
-    // conn.handshake is defined in s2n_handshake_io.cry.
-    // valid_handshake is defined in s2n_handshake_io.cry as well.
+    // We assume that the connection struct denotes a valid connection state
     crucible_precond {{ valid_connection conn }};
 
     // symbolically execute s2n_conn_set_handshake_type
@@ -358,9 +351,7 @@ let s2n_advance_message_spec = do {
     // chosen_psk, so we arbitrarily set it to NULL here by using
     // setup_connection. Using setup_psk_connection would work just as well.
     (pconn, conn) <- setup_connection;
-    // we assume that the handshake struct denotes a valid handshake state
-    // (e.g. it will not index out of bounds in the state transition array
-    // "handshakes")
+    // We assume that the connection struct denotes a valid connection state
     crucible_precond {{ valid_connection conn }};
 
     // symbolically execute s2n_advance_message

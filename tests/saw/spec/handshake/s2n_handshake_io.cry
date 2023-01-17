@@ -976,12 +976,19 @@ valid_handshake hs = handshakefn != zero /\
                      ((hs.message_number > 0) ==> (handshakefn@(hs.message_number + 1) != 0)) where
                      handshakefn = (handshakes_fn hs.handshake_type)
 
+// A predicate to tell whether a given connection struct is valid
 valid_connection : connection -> Bit
 valid_connection conn = valid_handshake (conn.handshake) /\
-                        (conn.actual_protocol_version == S2N_TLS13 ==>
-                         conn.handshake.state_machine != S2N_STATE_MACHINE_TLS12) /\
-                        (conn.actual_protocol_version != S2N_TLS13 ==>
-                         conn.handshake.state_machine != S2N_STATE_MACHINE_TLS13)
+                         // Either conn.handshake.state_machine is S2N_STATE_MACHINE_INITIAL
+                        ((conn.handshake.state_machine == S2N_STATE_MACHINE_INITIAL) \/
+                         // Or conn.actual_protocol_version is less than or equal to S2N_TLS12
+                         //    and conn.hanshake.state_machine has been set to S2N_STATE_MACHINE_TLS12
+                         (conn.actual_protocol_version <= S2N_TLS12 /\
+                          conn.handshake.state_machine == S2N_STATE_MACHINE_TLS12) \/
+                         // Or conn.actual_protocol_version is greater or equal to S2N_TLS13
+                         //    and conn.hanshake.state_machine has been set to S2N_STATE_MACHINE_TLS13
+                         (conn.actual_protocol_version >= S2N_TLS13 /\
+                          conn.handshake.state_machine == S2N_STATE_MACHINE_TLS13))
 
 // Tells if the connection struct is in a valid initial state
 initial_connection : connection -> Bit
