@@ -101,13 +101,3 @@ static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_s
 
     return S2N_SUCCESS;
 }
-
-int s2n_extensions_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_server_name_extension, conn, out);
-}
-
-int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_server_name_extension, conn, extension);
-}

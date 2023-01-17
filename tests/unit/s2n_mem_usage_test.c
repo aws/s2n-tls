@@ -22,6 +22,14 @@
     #include <sys/sysctl.h>
     /* clang-format on */
     #include <sys/user.h>
+#elif defined(__OpenBSD__)
+    #undef _POSIX_C_SOURCE
+    #include <kvm.h>
+    /* clang-format off */
+    #include <sys/types.h>
+    #include <sys/sysctl.h>
+    /* clang-format on */
+    #include <unistd.h>
 #endif
 
 #include <errno.h>
@@ -45,6 +53,8 @@
 /* This is roughly the current memory usage per connection, in KB */
 #ifdef __FreeBSD__
     #define MEM_PER_CONNECTION 57
+#elif defined(__OpenBSD__)
+    #define MEM_PER_CONNECTION 71
 #else
     #define MEM_PER_CONNECTION 49
 #endif
@@ -102,6 +112,33 @@ ssize_t get_vm_data_size()
     segsz_t lsize = (procinfo.ki_size >> PAGE_SHIFT) - procinfo.ki_dsize - procinfo.ki_ssize - procinfo.ki_tsize - 1;
 
     return lsize << PAGE_SHIFT;
+
+#elif defined(__OpenBSD__)
+    struct kinfo_proc *procinfo;
+    kvm_t *kd;
+    pid_t ppid;
+    long page_size;
+    ssize_t size;
+    int nentries;
+
+    kd = kvm_open(NULL, NULL, NULL, KVM_NO_FILES, NULL);
+    ppid = getpid();
+    procinfo = kvm_getprocs(kd, KERN_PROC_PID, ppid, sizeof(*procinfo), &nentries);
+    if (procinfo == NULL || nentries == 0) {
+        return -1;
+    }
+
+    /* Taken from ps(1)'s calculation of vsize
+     * https://github.com/openbsd/src/blob/329e3480337617df4d195c9a400c3f186254b137/bin/ps/print.c#L603 */
+    size = procinfo->p_vm_dsize + procinfo->p_vm_ssize + procinfo->p_vm_tsize;
+
+    page_size = sysconf(_SC_PAGESIZE);
+    if (page_size < 0) {
+        return -1;
+    }
+    kvm_close(kd);
+
+    return (size * page_size);
 #else
     /* Not implemented for other platforms */
     return 0;
