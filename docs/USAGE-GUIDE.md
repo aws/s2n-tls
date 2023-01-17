@@ -609,7 +609,7 @@ Additionally, in TLS1.3, multiple session tickets may be issued for the same con
 
 ### Keying Material Lifetimes in Session Resumption
 
-Users may have questions on how long a secret generated from a full handshake is re-used with session resumption. The mechanism to expire old keying material varies based on TLS version. In TLS1.2, the server only issues a new session ticket when doing a full handshake. Therefore the lifetime of the keying material inside the ticket is tied to the lifetime of the key used to encrypt the ticket. In TLS13, the encrypted ticket has an explicit lifetime stored in it, after which the keying material inside cannot be re-used. Servers can call `s2n_connection_set_server_keying_material_lifetime()` to configure this value.
+Users may have questions on how long a secret generated from a full handshake is re-used with session resumption. The mechanism to expire old keying material varies based on the TLS version. In TLS1.2, the server only issues a new session ticket when doing a full handshake. Therefore the lifetime of the keying material inside the ticket is tied to the lifetime of the key used to encrypt the ticket. In TLS1.3, the encrypted ticket has an explicit lifetime stored in it, after which the keying material inside cannot be re-used. Servers can call `s2n_connection_set_server_keying_material_lifetime()` to configure this value.
 
 ## Client Hello Getters
 
@@ -629,7 +629,7 @@ Users can gain access to the Client Hello during the handshake by setting the ca
 
 #### Callback Modes
 
-The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING**(default) and **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Blocking mode will invoke the callback only once before the handshake continues. The handshake is therefore "blocked" until the callback returns a response code. Non-blocking mode will cause the handshake to pause at the Client Hello and return control back to the user. Further calls to `s2n_negotiate()` will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED** error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue.
+The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING**(default) and **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode. Blocking mode will invoke the callback only once before the handshake continues. The handshake is therefore "blocked" until the callback returns a response code. Non-blocking mode will cause the handshake to pause at the Client Hello and return control back to the user. Further calls to `s2n_negotiate()` will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED** error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue. 
 
 ## Record sizes
 
