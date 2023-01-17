@@ -54,9 +54,11 @@ int main(int argc, char **argv)
     */
    const char *s2n_build_preset = getenv("S2N_BUILD_PRESET");
    if (s2n_build_preset == NULL) {
+       printf("S2N_BUILD_PRESET is not set.");
        /* Apparently we aren't in CI. */
        END_TEST();
    }
+   printf("S2N_BUILD_PRESET set to %s.", s2n_build_preset);
 
    /* CMake generated Makefiles can select a default LIBCRYPTO,
     * lets make sure that didn't happen. */
