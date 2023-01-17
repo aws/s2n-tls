@@ -61,6 +61,15 @@ def assert_openssl_records_are_padded_correctly(openssl_output: str, padding_siz
     assert number_of_app_data_records >= 2
 
 
+def test_nothing():
+    """
+    Sometimes the record padding test parameters in combination with the s2n libcrypto
+    results in no test cases existing. In this case, pass a nothing test to avoid
+    marking the entire codebuild run as failed.
+    """
+    assert True
+
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
