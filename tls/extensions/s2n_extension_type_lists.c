@@ -37,7 +37,6 @@
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "tls/extensions/s2n_quic_transport_params.h"
 #include "tls/extensions/s2n_server_alpn.h"
-#include "tls/extensions/s2n_server_certificate_status.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 #include "tls/extensions/s2n_server_psk.h"
@@ -46,8 +45,9 @@
 #include "tls/extensions/s2n_server_server_name.h"
 #include "tls/extensions/s2n_server_session_ticket.h"
 #include "tls/extensions/s2n_server_signature_algorithms.h"
-#include "tls/extensions/s2n_server_status_request.h"
+#include "tls/extensions/s2n_server_status_response.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/extensions/s2n_tls13_status_response.h"
 #include "tls/s2n_connection.h"
 
 static const s2n_extension_type *const client_hello_extensions[] = {
@@ -88,7 +88,7 @@ static const s2n_extension_type *const tls12_server_hello_extensions[] = {
     &s2n_server_ec_point_format_extension,
     &s2n_server_renegotiation_info_extension,
     &s2n_server_alpn_extension,
-    &s2n_server_status_request_extension,
+    &s2n_server_status_response_extension,
     &s2n_server_sct_list_extension,
     &s2n_server_max_fragment_length_extension,
     &s2n_server_session_ticket_extension,
@@ -132,7 +132,7 @@ static const s2n_extension_type *const cert_req_extensions[] = {
 };
 
 static const s2n_extension_type *const certificate_extensions[] = {
-    &s2n_tls13_server_status_request_extension,
+    &s2n_tls13_status_response_extension,
     &s2n_server_sct_list_extension,
 };
 
