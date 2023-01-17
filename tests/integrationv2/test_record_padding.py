@@ -147,13 +147,13 @@ def test_s2n_client_handles_padded_records(managed_process, cipher, provider, cu
     client_options.extra_flags = None
     client_options.data_to_send = client_random_bytes
 
-    # s2nc will wait until it has received the server's response before closing
-    s2nc = managed_process(S2N, client_options, timeout=5,
-                           close_marker=strip_string_of_bytes(str(server_random_bytes)))
-
     # openssl will send its response after it has received s2nc's record
     openssl = managed_process(provider, server_options,
                               timeout=5, send_marker=strip_string_of_bytes(str(client_random_bytes)))
+
+    # s2nc will wait until it has received the server's response before closing
+    s2nc = managed_process(S2N, client_options, timeout=5,
+                           close_marker=strip_string_of_bytes(str(server_random_bytes)))
 
     expected_version = get_expected_s2n_version(protocol, provider)
     for client_results in s2nc.get_results():
