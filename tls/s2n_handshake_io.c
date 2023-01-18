@@ -1043,15 +1043,16 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     if (conn->config->use_tickets) {
         if (conn->session_ticket_status == S2N_DECRYPT_TICKET) {
-            /* If ticket decryption is successful in TLS12, we can exit. TLS13
-             * decrypts session tickets in its extension processing logic. */
+            /* We reuse the session if a valid TLS12 ticket is provided. 
+             * Otherwise, we will perform a full handshake and then generate
+             * a new session ticket. */
             if (s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt) == S2N_SUCCESS) {
                 return S2N_SUCCESS;
             }
 
             POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
 
-            /* Set up the handshake to send a session ticket since ticket decryption was not successful */
+            /* Set up the handshake to send a session ticket since a valid ticket was not provided */
             if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
                 conn->session_ticket_status = S2N_NEW_TICKET;
                 POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));

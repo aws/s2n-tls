@@ -607,15 +607,23 @@ In TLS1.3, session ticket messages are sent after the handshake as "post-handsha
 
 Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
 
-### Keying Material Lifetimes in Session Resumption
+### Session Resumption Forward Secrecy
 
-Users may have questions on how long a secret generated from a full handshake is re-used with session resumption. The mechanism to expire old keying material varies based on the TLS version. In TLS1.2, the server only issues a new session ticket when doing a full handshake. Therefore the lifetime of the keying material inside the ticket is tied to the lifetime of the key used to encrypt the ticket. In TLS1.3, the encrypted ticket has an explicit lifetime stored in it, after which the keying material inside cannot be re-used. Servers can call `s2n_connection_set_server_keying_material_lifetime()` to configure this value.
+In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, that is, compromising the session ticket key exposes both current and past sessions' encrypted data.
 
-## Client Hello Getters
+In contrast, in TLS1.3 the stored secret is never directly used to encrypt data. Therefore, TLS1.3 session tickets are forward secret and compromising the session ticket key will not expose current and past sessions' encrypted data.
 
-s2n-tls stores the received Client Hello and makes it available to users for logging purposes or to branch off of its content. Call `s2n_connection_get_client_hello()` to get a pointer the `s2n_client_hello` struct storing the Client Hello. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). 
+### Keying Material Lifetimes in TLS1.2 and TLS1.3
 
-Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out. Note that SSLv2 Client Hello messages are structured differently than other versions and thus their raw messages should be parsed accordingly (see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).) Call `s2n_connection_get_client_hello_version()` to retrieve the received Client Hello version.
+In TLS1.2, the server only issues a new session ticket when doing a full handshake. Therefore the lifetime of the keying material inside the ticket is tied to the lifetime of the key used to encrypt the ticket. 
+ 
+In TLS1.3, the encrypted ticket has an explicit lifetime stored in it, after which the keying material inside cannot be re-used. Servers can call `s2n_connection_set_server_keying_material_lifetime()` to configure this value.
+
+## Examining the Client Hello
+
+s2n-tls stores the received Client Hello and makes it available to the application. Call `s2n_connection_get_client_hello()` to get a pointer to the `s2n_client_hello` struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). The stored Client Hello message will not be available after calling `s2n_connection_free_handshake()`.
+
+Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out. Note that SSLv2 Client Hello messages are structured differently than other versions and thus their raw messages should be parsed accordingly (see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).) Call `s2n_connection_get_client_hello_version()` to retrieve the Client Hello version.
 
 `s2n_client_hello_get_cipher_suites()` will retrieve the list of cipher suites sent by the client.
 
@@ -625,11 +633,15 @@ Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensio
 
 ### Client Hello Callback
 
-Users can gain access to the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()` with an implemented `s2n_client_hello_fn`. A common use-case for this is to switch the associated `s2n_config` based on information in the Client Hello. Note that `s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
+Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully as modifying the connection mid-handshake can be dangerous. In particular, switching from a `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. Note that `s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
 
 #### Callback Modes
 
-The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING**(default) and **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode. Blocking mode will invoke the callback only once before the handshake continues. The handshake is therefore "blocked" until the callback returns a response code. Non-blocking mode will cause the handshake to pause at the Client Hello and return control back to the user. Further calls to `s2n_negotiate()` will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED** error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue. 
+The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** and **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
+
+The default mode, "blocking mode", will not return from the `s2n_negotiate()` call until the Client Hello callback returns. In this mode the callback should contain quick work like logging or simple configuration changes.
+ 
+In contrast, "non-blocking mode" will return from the `s2n_negotiate()` call if the Client Hello callback isn't finished yet, allowing the application to do work asynchronously. This mode should be used if the callback needs to make a network call or offload an expensive calculation to another thread. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue.
 
 ## Record sizes
 

@@ -203,7 +203,7 @@ void usage()
     fprintf(stderr, "  --buffered-send <buffer size>\n");
     fprintf(stderr, "    Set s2n_send to buffer up to <buffer size> bytes before sending records over the wire.\n");
     fprintf(stderr, "  -X, --max-conns <max connections>\n");
-    fprintf(stderr, "    Sets the max number of connections s2nd will accept.\n");
+    fprintf(stderr, "    Sets the max number of connections s2nd will accept before shutting down.\n");
     /* clang-format on */
     exit(1);
 }
