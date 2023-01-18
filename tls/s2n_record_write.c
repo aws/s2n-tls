@@ -458,8 +458,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     }
 
     /* We are done with this sequence number, so we can increment it */
-    struct s2n_blob seq = { 0 };
-    POSIX_GUARD(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* Write the plaintext data */
@@ -526,8 +525,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     S2N_ERROR_IF(s2n_stuffer_space_remaining(&record_stuffer) < encrypted_length, S2N_ERR_RECORD_STUFFER_SIZE);
 
     /* Do the encryption */
-    struct s2n_blob en = { 0 };
-    POSIX_GUARD(s2n_blob_init(&en, s2n_stuffer_raw_write(&record_stuffer, encrypted_length), encrypted_length));
+    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&record_stuffer, encrypted_length) };
     POSIX_GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
 
     /* Sync the out stuffer write cursor with the record stuffer. */
