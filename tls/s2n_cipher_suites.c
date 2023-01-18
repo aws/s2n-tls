@@ -998,7 +998,8 @@ int s2n_cipher_suites_init(void)
 
         /* Initialize SSLv3 cipher suite if SSLv3 utilizes a different record algorithm */
         if (cur_suite->sslv3_record_alg && cur_suite->sslv3_record_alg->cipher->is_available()) {
-            struct s2n_blob cur_suite_mem = { .data = (uint8_t *) cur_suite, .size = sizeof(struct s2n_cipher_suite) };
+            struct s2n_blob cur_suite_mem = { 0 };
+            POSIX_GUARD(s2n_blob_init(&cur_suite_mem, (uint8_t *) cur_suite, sizeof(struct s2n_cipher_suite)));
             struct s2n_blob new_suite_mem = { 0 };
             POSIX_GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
 
