@@ -35,15 +35,16 @@ go env GOPRIVATE=*
 # BoringSSL doesn't have tags or versions in the Github repo.
 # This commit represents the latest version that S2N is compatible
 # with. It prevents our build system from breaking when BoringSSL
-# is updated.
+# is updated, last done on 2022-12-30.
+BSSL_VERSION=31bad2514d21f6207f3925ba56754611c462a873
 mkdir boringssl
 cd boringssl
 git init
 git remote add origin https://github.com/google/boringssl.git
-git fetch origin --depth=1 8bbefbfeee609b17622deedd100163c12f5c95dc # 3/21/22
+git fetch origin --depth=1 $BSSL_VERSION
 git reset --hard FETCH_HEAD
 
-git checkout 8bbefbfeee609b17622deedd100163c12f5c95dc
+git checkout $BSSL_VERSION
 mkdir ../build
 cd ../build
 
