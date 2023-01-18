@@ -189,7 +189,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return S2N_SUCCESS;
     }
 
-    struct s2n_blob new_memory = { NULL, .size = size, .allocated = 0, .growable = 1 };
+    struct s2n_blob new_memory = { .data = NULL, .size = size, .allocated = 0, .growable = 1 };
     if (s2n_mem_malloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) != 0) {
         S2N_ERROR_PRESERVE_ERRNO();
     }
