@@ -134,8 +134,10 @@ static S2N_RESULT s2n_init_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&public, s2n_public_drbg, sizeof(s2n_public_drbg)));
+    struct s2n_blob private = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
 
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
@@ -319,7 +321,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
-    struct s2n_blob out = { .data = buf, .size = num };
+    struct s2n_blob out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out, buf, num));
 
     if (s2n_result_is_error(s2n_get_private_random_data(&out))) {
         return 0;
@@ -465,7 +468,8 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
-    struct s2n_blob out = { .data = data, .size = size };
+    struct s2n_blob out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out, data, size));
     int space_remaining = 0;
     struct s2n_stuffer stuffer = { 0 };
     union {

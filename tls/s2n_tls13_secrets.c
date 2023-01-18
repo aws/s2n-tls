@@ -40,7 +40,8 @@
  */
 static uint8_t zero_value_bytes[S2N_MAX_HASHLEN] = { 0 };
 #define ZERO_VALUE(hmac_alg) ( \
-        (const struct s2n_blob){ .data = zero_value_bytes, .size = s2n_get_hash_len(hmac_alg) })
+        (const struct s2n_blob){ .data = zero_value_bytes, .size = s2n_get_hash_len(hmac_alg)})
+
 
 /**
  * When an operation doesn't need an actual transcript hash,
