@@ -292,7 +292,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
     RESULT_ENSURE_GT(bound, 0);
 
     while (1) {
-        struct s2n_blob blob = { .data = (void *) &r, sizeof(r) };
+        struct s2n_blob blob = { 0 };
+        RESULT_GUARD_POSIX(s2n_blob_init(&blob, (void *) &r, sizeof(r)));
         RESULT_GUARD(s2n_get_public_random_data(&blob));
 
         /* Imagine an int was one byte and UINT_MAX was 256. If the
