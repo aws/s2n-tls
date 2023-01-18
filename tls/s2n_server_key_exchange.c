@@ -73,6 +73,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 
     struct s2n_blob signature = { 0 };
     POSIX_GUARD(s2n_blob_init(&signature, s2n_stuffer_raw_read(in, signature_length), signature_length));
+
     POSIX_ENSURE_REF(signature.data);
     POSIX_ENSURE_GT(signature_length, 0);
 
