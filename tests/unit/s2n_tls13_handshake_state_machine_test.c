@@ -304,6 +304,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         EXPECT_EQUAL(ACTIVE_STATE_MACHINE(conn), tls13_state_machine);
         EXPECT_EQUAL(ACTIVE_HANDSHAKES(conn), tls13_handshakes);
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -313,6 +314,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -340,6 +342,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -367,6 +370,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -394,6 +398,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -421,6 +426,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         struct s2n_stuffer input;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -462,6 +468,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         struct s2n_stuffer input;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -505,6 +512,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
             struct s2n_stuffer input;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -531,6 +539,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
             struct s2n_stuffer input;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -556,6 +565,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
             struct s2n_stuffer input;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -591,6 +601,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
             struct s2n_stuffer input;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -618,6 +629,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             POSIX_GUARD(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL));
 
             struct s2n_stuffer input;
@@ -770,10 +782,13 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->handshake.handshake_type & WITH_SESSION_TICKET);
         EXPECT_TRUE(conn->handshake.handshake_type & CLIENT_AUTH);
 
+        /* Reset which state machine we're on */
         EXPECT_OK(s2n_handshake_type_reset(conn));
+        conn->handshake.state_machine = S2N_STATE_MACHINE_INITIAL;
 
         /* Verify that tls1.3 ONLY sets the flags allowed by tls1.3 */
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
         EXPECT_EQUAL(conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | MIDDLEBOX_COMPAT);
 
@@ -786,12 +801,17 @@ int main(int argc, char **argv)
 
         /* HELLO_RETRY_REQUEST allowed with tls1.3 */
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         conn->handshake.handshake_type = INITIAL | HELLO_RETRY_REQUEST;
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
         EXPECT_TRUE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 
+        /* Reset state machine */
+        conn->handshake.state_machine = S2N_STATE_MACHINE_INITIAL;
+
         /* HELLO_RETRY_REQUEST not allowed with tls1.2 */
         conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS12));
         conn->handshake.handshake_type = INITIAL | HELLO_RETRY_REQUEST;
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
         EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
@@ -805,6 +825,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_psk *psk = NULL;
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &psk));
 
         conn->psk_params.chosen_psk = psk;
@@ -945,6 +966,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         conn->handshake.handshake_type = test_handshake_type;
 
@@ -966,6 +988,7 @@ int main(int argc, char **argv)
 
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
         conn->handshake.handshake_type = test_handshake_type;
 
