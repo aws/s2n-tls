@@ -10,4 +10,4 @@ jobs:
         uses: jidicula/clang-format-action@v4.10.1
         with:
           clang-format-version: '15'
-          include-regex: "^(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|test\/testlib).*\.(c|h)$"
+          include-regex: "^(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|test\/testlib).*\\.(c|h)$"
