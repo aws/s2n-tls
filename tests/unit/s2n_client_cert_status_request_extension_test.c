@@ -14,7 +14,7 @@
  */
 
 #include "s2n_test.h"
-#include "tls/extensions/s2n_client_status_request.h"
+#include "tls/extensions/s2n_client_cert_status_request.h"
 #include "tls/s2n_resume.h"
 
 int main(int argc, char **argv)
@@ -32,11 +32,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* status request should NOT be sent by default */
-        EXPECT_FALSE(s2n_client_status_request_extension.should_send(conn));
+        EXPECT_FALSE(s2n_client_cert_status_request_extension.should_send(conn));
 
         /* status request should be sent if ocsp requested */
         config->status_request_type = S2N_STATUS_REQUEST_OCSP;
-        EXPECT_TRUE(s2n_client_status_request_extension.should_send(conn));
+        EXPECT_TRUE(s2n_client_cert_status_request_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        EXPECT_SUCCESS(s2n_client_status_request_extension.send(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.send(conn, &stuffer));
 
         uint8_t request_type;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &request_type));
@@ -78,10 +78,10 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        EXPECT_SUCCESS(s2n_client_status_request_extension.send(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.send(conn, &stuffer));
 
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_NONE);
-        EXPECT_SUCCESS(s2n_client_status_request_extension.recv(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.recv(conn, &stuffer));
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_OCSP);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -97,11 +97,11 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        EXPECT_SUCCESS(s2n_client_status_request_extension.send(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.send(conn, &stuffer));
         EXPECT_SUCCESS(s2n_stuffer_wipe_n(&stuffer, sizeof(uint16_t)));
 
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_NONE);
-        EXPECT_SUCCESS(s2n_client_status_request_extension.recv(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.recv(conn, &stuffer));
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_NONE);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -121,10 +121,10 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        EXPECT_SUCCESS(s2n_client_status_request_extension.send(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.send(conn, &stuffer));
 
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_NONE);
-        EXPECT_SUCCESS(s2n_client_status_request_extension.recv(conn, &stuffer));
+        EXPECT_SUCCESS(s2n_client_cert_status_request_extension.recv(conn, &stuffer));
         EXPECT_EQUAL(conn->status_type, S2N_STATUS_REQUEST_NONE);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

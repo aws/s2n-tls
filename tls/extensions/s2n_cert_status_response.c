@@ -13,31 +13,31 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/extensions/s2n_server_status_response.h"
+#include "tls/extensions/s2n_cert_status_response.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 
-static bool s2n_server_status_response_should_send(struct s2n_connection *conn);
-static int s2n_server_status_response_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static bool s2n_cert_status_response_should_send(struct s2n_connection *conn);
+static int s2n_cert_status_response_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
-const s2n_extension_type s2n_server_status_response_extension = {
+const s2n_extension_type s2n_cert_status_response_extension = {
     .iana_value = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = true,
     .send = s2n_extension_send_noop,
-    .recv = s2n_server_status_response_recv,
-    .should_send = s2n_server_status_response_should_send,
+    .recv = s2n_cert_status_response_recv,
+    .should_send = s2n_cert_status_response_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static bool s2n_server_status_response_should_send(struct s2n_connection *conn)
+static bool s2n_cert_status_response_should_send(struct s2n_connection *conn)
 {
     return s2n_server_can_send_ocsp(conn);
 }
 
-int s2n_server_status_response_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_cert_status_response_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* Read nothing. The extension just needs to exist. */
     POSIX_ENSURE_REF(conn);

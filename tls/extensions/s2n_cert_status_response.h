@@ -19,4 +19,4 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 
-extern const s2n_extension_type s2n_client_status_request_extension;
+extern const s2n_extension_type s2n_cert_status_response_extension;

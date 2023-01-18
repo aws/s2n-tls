@@ -16,7 +16,10 @@
 #include "tls/extensions/s2n_extension_type_lists.h"
 
 #include "api/s2n.h"
+#include "tls/extensions/s2n_cert_status.h"
+#include "tls/extensions/s2n_cert_status_response.h"
 #include "tls/extensions/s2n_client_alpn.h"
+#include "tls/extensions/s2n_client_cert_status_request.h"
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_client_max_frag_len.h"
 #include "tls/extensions/s2n_client_pq_kem.h"
@@ -26,7 +29,6 @@
 #include "tls/extensions/s2n_client_server_name.h"
 #include "tls/extensions/s2n_client_session_ticket.h"
 #include "tls/extensions/s2n_client_signature_algorithms.h"
-#include "tls/extensions/s2n_client_status_request.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/extensions/s2n_cookie.h"
@@ -45,9 +47,7 @@
 #include "tls/extensions/s2n_server_server_name.h"
 #include "tls/extensions/s2n_server_session_ticket.h"
 #include "tls/extensions/s2n_server_signature_algorithms.h"
-#include "tls/extensions/s2n_server_status_response.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
-#include "tls/extensions/s2n_tls13_status_response.h"
 #include "tls/s2n_connection.h"
 
 static const s2n_extension_type *const client_hello_extensions[] = {
@@ -67,7 +67,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
     &s2n_client_alpn_extension,
     &s2n_client_npn_extension,
 
-    &s2n_client_status_request_extension,
+    &s2n_client_cert_status_request_extension,
     &s2n_client_sct_list_extension,
     &s2n_client_max_frag_len_extension,
     &s2n_client_session_ticket_extension,
@@ -88,7 +88,7 @@ static const s2n_extension_type *const tls12_server_hello_extensions[] = {
     &s2n_server_ec_point_format_extension,
     &s2n_server_renegotiation_info_extension,
     &s2n_server_alpn_extension,
-    &s2n_server_status_response_extension,
+    &s2n_cert_status_response_extension,
     &s2n_server_sct_list_extension,
     &s2n_server_max_fragment_length_extension,
     &s2n_server_session_ticket_extension,
@@ -132,7 +132,7 @@ static const s2n_extension_type *const cert_req_extensions[] = {
 };
 
 static const s2n_extension_type *const certificate_extensions[] = {
-    &s2n_tls13_status_response_extension,
+    &s2n_cert_status_extension,
     &s2n_server_sct_list_extension,
 };
 
