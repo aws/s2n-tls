@@ -52,7 +52,7 @@ int s2n_record_parse_cbc(
         encrypted_length -= iv.size;
     }
 
-    struct s2n_blob en = {.size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
     POSIX_ENSURE_REF(en.data);
 
     uint16_t payload_length = encrypted_length;
