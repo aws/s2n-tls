@@ -4,34 +4,10 @@ jobs:
   formatting-check:
     name: Formatting Check
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        path:
-          - check: 'api'
-            exclude: ''
-          - check: 'bin'
-            exclude: ''
-          - check: 'crypto'
-            exclude: ''
-          - check: 'stuffer'
-            exclude: ''
-          - check: 'error'
-            exclude: ''
-          - check: 'tests/testlib'
-            exclude: ''
-          - check: 'tests/unit'
-            exclude: ''
-          - check: 'tls'
-            exclude: ''
-          - check: 'tls/extensions'
-            exclude: ''
-          - check: 'utils'
-            exclude: ''
     steps:
       - uses: actions/checkout@v3
       - name: Run clang-format style check for C.
-        uses: jidicula/clang-format-action@v4.9.0
+        uses: jidicula/clang-format-action@v4.10.1
         with:
           clang-format-version: '15'
-          check-path: ${{ matrix.path['check'] }}
-          exclude-regex: ${{ matrix.path['exclude'] }}
+          include-regex: "^(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|test\/testlib).*\.(c|h)$"
