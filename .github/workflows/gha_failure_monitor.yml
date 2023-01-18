@@ -18,7 +18,7 @@ jobs:
           - {ORG: "dougch", REPO: "s2n"}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python 3.x
         uses: actions/setup-python@v1
         with:

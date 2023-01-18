@@ -479,6 +479,8 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn);
                 EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
+
                 struct s2n_stuffer *io_stuffer = &conn->handshake.io;
 
                 /* Setup required for PSK extension */
@@ -621,6 +623,7 @@ int main(int argc, char **argv)
 
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->server_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(server_conn, S2N_TLS13));
             server_conn->psk_params.chosen_psk = &empty_psk;
             server_conn->psk_params.chosen_psk_wire_index = test_wire_index;
 
@@ -641,6 +644,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
                 client_conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(client_conn, S2N_TLS13));
 
                 EXPECT_SUCCESS(s2n_connection_mark_extension_received(client_conn, s2n_server_key_share_extension.iana_value));
 
