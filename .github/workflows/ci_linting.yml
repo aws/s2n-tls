@@ -81,5 +81,12 @@ jobs:
         with:
           dry: true
           checkpath: ./tests/integrationv2/*.py
-
-
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: clang-format check
+        uses: harrisonkaiser/clang-format-action@verbose
+        with:
+          clang-format-version: '15'
+          include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib).*\.(c|h)$'
