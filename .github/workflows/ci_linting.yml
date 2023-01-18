@@ -14,7 +14,7 @@ jobs:
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -37,7 +37,7 @@ jobs:
   copyright:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -48,7 +48,7 @@ jobs:
   simple-mistakes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -59,7 +59,7 @@ jobs:
   comments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: pep8 exp
         uses: harrisonkaiser/autopep8_action@python-latest
         with:

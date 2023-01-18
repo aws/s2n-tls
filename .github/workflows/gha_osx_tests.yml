@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Dependencies
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Prebuild
         run: |
