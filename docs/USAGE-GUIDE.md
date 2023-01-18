@@ -609,9 +609,9 @@ Additionally, in TLS1.3, multiple session tickets may be issued for the same con
 
 ### Session Resumption Forward Secrecy
 
-In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, that is, compromising the session ticket key exposes both current and past sessions' encrypted data.
+In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session secret exposes the original sessions' encrypted data.
 
-In contrast, in TLS1.3 the stored secret is never directly used to encrypt data. Therefore, TLS1.3 session tickets are forward secret and compromising the session ticket key will not expose current and past sessions' encrypted data.
+In contrast, in TLS1.3 the secret stored inside the ticket is derived from the original session's master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session secret will not expose the original sessions' encrypted data.
 
 ### Keying Material Lifetimes in TLS1.2 and TLS1.3
 
@@ -633,15 +633,17 @@ Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensio
 
 ### Client Hello Callback
 
-Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully as modifying the connection mid-handshake can be dangerous. In particular, switching from a `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. Note that `s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
+Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully as modifying the connection mid-handshake can be dangerous. In particular, switching from a `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. 
+
+`s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
 
 #### Callback Modes
 
-The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** and **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
+The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** or **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
 
 The default mode, "blocking mode", will not return from the `s2n_negotiate()` call until the Client Hello callback returns. In this mode the callback should contain quick work like logging or simple configuration changes.
  
-In contrast, "non-blocking mode" will return from the `s2n_negotiate()` call if the Client Hello callback isn't finished yet, allowing the application to do work asynchronously. This mode should be used if the callback needs to make a network call or offload an expensive calculation to another thread. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue.
+In contrast, "non-blocking mode" will return from the `s2n_negotiate()` call even if the Client Hello callback hasn't been marked as done yet. This will pause the handshake and allow the application to do work asynchronously. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue. This mode should be used if the callback needs to make a network call or offload an expensive calculation to another thread. 
 
 ## Record sizes
 
