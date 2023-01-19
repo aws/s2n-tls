@@ -435,6 +435,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             conn->actual_protocol_version = S2N_TLS13;
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
@@ -477,9 +478,14 @@ int main(int argc, char **argv)
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
                 conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS12));
                 EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
 
+                /* Reset state machine */
+                conn->handshake.state_machine = S2N_STATE_MACHINE_INITIAL;
+
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -495,6 +501,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn);
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
                 EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
@@ -519,6 +526,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
                 conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
                 const uint8_t empty_protocol[] = "";
@@ -683,6 +691,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             conn->actual_protocol_version = S2N_TLS13;
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
 
@@ -1250,6 +1259,7 @@ int main(int argc, char **argv)
         valid_connection->early_data_state = S2N_EARLY_DATA_ACCEPTED;
         valid_connection->early_data_bytes = 0;
         valid_connection->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(valid_connection, S2N_TLS13));
         valid_connection->handshake.handshake_type = NEGOTIATED | WITH_EARLY_DATA;
         while (s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
             valid_connection->handshake.message_number++;

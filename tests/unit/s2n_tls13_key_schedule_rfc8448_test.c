@@ -184,6 +184,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_handshake_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
@@ -236,6 +237,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.server_app_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
@@ -282,6 +284,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_app_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
@@ -343,6 +346,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_early_secret, secret));
 
