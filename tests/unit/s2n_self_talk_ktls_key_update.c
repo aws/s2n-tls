@@ -19,6 +19,8 @@
 #include "testlib/s2n_testlib.h"
 #include <sys/socket.h>
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/wait.h>
 
 #define S2N_MODE_COUNT 2
 #define S2N_SECRET_TYPE_COUNT 5
@@ -44,8 +46,7 @@ int s2n_io_pair_init_ktls(struct s2n_test_io_pair *io_pair)
 
     int socket_pair[2];
 
-    /* POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair)); */
-    POSIX_GUARD(socketpair(AF_INET, SOCK_STREAM, 0, socket_pair));
+    POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
 
     io_pair->client = socket_pair[0];
     io_pair->server = socket_pair[1];
@@ -65,6 +66,64 @@ int s2n_io_pair_ktls(struct s2n_test_io_pair *io_pair)
     POSIX_GUARD(s2n_fd_set_non_blocking_ktls(io_pair->server));
 
     return 0;
+}
+
+int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected)
+{
+    char buffer[0xffff];
+    struct s2n_connection *client_conn;
+    struct s2n_config *client_config;
+    s2n_blocked_status blocked;
+    int result = 0;
+
+    /* Give the server a chance to listen */
+    sleep(1);
+
+    client_conn = s2n_connection_new(S2N_CLIENT);
+    client_config = s2n_config_new();
+    s2n_config_set_protocol_preferences(client_config, protocols, count);
+    s2n_config_disable_x509_verification(client_config);
+    s2n_connection_set_config(client_conn, client_config);
+
+    s2n_connection_set_read_fd(client_conn, readfd);
+    s2n_connection_set_write_fd(client_conn, writefd);
+
+    result = s2n_negotiate(client_conn, &blocked);
+    if (result < 0) {
+        result = 1;
+    }
+
+    const char *got = s2n_get_application_protocol(client_conn);
+    if ((got != NULL && expected == NULL) ||
+        (got == NULL && expected != NULL) ||
+        (got != NULL && expected != NULL && strcmp(expected, got) != 0)) {
+        result = 2;
+    }
+
+    for (int i = 1; i < 0xffff; i += 100) {
+        for (int j = 0; j < i; j++) {
+            buffer[j] = 33;
+        }
+
+        s2n_send(client_conn, buffer, i, &blocked);
+    }
+
+    int shutdown_rc= -1;
+    if(!result) {
+        do {
+            shutdown_rc = s2n_shutdown(client_conn, &blocked);
+        } while (shutdown_rc != 0);
+    }
+
+    s2n_connection_free(client_conn);
+    s2n_config_free(client_config);
+
+    /* Give the server a chance to a void a sigpipe */
+    sleep(1);
+
+    s2n_cleanup();
+
+    _exit(result);
 }
 
 int main(int argc, char **argv)
@@ -104,14 +163,57 @@ int main(int argc, char **argv)
 
     /* Create nonblocking pipes */
     struct s2n_test_io_pair io_pair;
+
+
+
+
+    /* real socket */
+    /* int listener; */
+    /* struct sockaddr_in saddr; */
+    /* socklen_t addrlen; */
+    /* int ret; */
+    /* pid_t child; */
+    /* int fd; */
+
+	  /* listener = socket(AF_INET, SOCK_STREAM, 0); */
+    /* EXPECT_SUCCESS(listener); */
+
+	  /* memset(&saddr, 0, sizeof(saddr)); */
+	  /* saddr.sin_family = AF_INET; */
+	  /* saddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); */
+	  /* saddr.sin_port = 0; */
+
+    /* EXPECT_SUCCESS(bind(listener, (struct sockaddr*)&saddr, sizeof(saddr))); */
+    /* addrlen = sizeof(saddr); */
+    /* EXPECT_SUCCESS(getsockname(listener, (struct sockaddr*)&saddr, &addrlen)); */
+
+    /* child = fork(); */
+    /* EXPECT_FALSE(child < 0); */
+    /* int status; */
+	  /* if (child < 0) { */
+    /*     /1* client *1/ */
+    /*     fd = socket(AF_INET, SOCK_STREAM, 0); */
+    /*     EXPECT_SUCCESS(fd); */
+
+		    /* usleep(1000000); */
+		    /* EXPECT_SUCCESS(connect(fd, (struct sockaddr*)&saddr, addrlen)); */
+
+    /*     io_pair.client = fd; */
+    /*     EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair)); */
+    /*     exit(0); */
+    /* } else { */
+    /*     /1* server *1/ */
+    /*     EXPECT_SUCCESS(listen(listener, 1)); */
+    /*     fd = accept(listener, NULL, NULL); */
+    /*     io_pair.server = fd; */
+    /*     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair)); */
+    /* } */
+
+
+    /* local link */
     EXPECT_SUCCESS(s2n_io_pair_ktls(&io_pair));
     EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
-
-    /* Set secret handler */
-    struct s2n_blob secrets[S2N_MODE_COUNT][S2N_SECRET_TYPE_COUNT] = { 0 };
-    EXPECT_SUCCESS(s2n_connection_set_secret_callback(client_conn, s2n_test_secret_handler, secrets));
-    EXPECT_SUCCESS(s2n_connection_set_secret_callback(server_conn, s2n_test_secret_handler, secrets));
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -156,6 +258,9 @@ int main(int argc, char **argv)
 
     }
     /* KTLS KeyUpdate test */
+
+		/* wait(&status); */
+    /* EXPECT_EQUAL(waitpid(-1, &status, 0), child); */
 
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
     EXPECT_SUCCESS(s2n_connection_free(client_conn));
