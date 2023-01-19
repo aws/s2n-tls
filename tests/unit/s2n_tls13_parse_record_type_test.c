@@ -95,7 +95,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
         EXPECT_EQUAL(record_type, 0x16);
 
-        /* padding without record type should fail */
+        /** test: padding without record type should fail
+         * 
+         *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+         *= type=test
+         *# If a receiving implementation does not
+         *# find a non-zero octet in the cleartext, it MUST terminate the
+         *# connection with an "unexpected_message" alert.
+         **/
         S2N_BLOB_FROM_HEX(no_type, "00");
         EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
         EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &no_type));
