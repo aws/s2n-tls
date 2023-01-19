@@ -18,6 +18,7 @@
 #include "stdio.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -31,35 +32,6 @@ static void terminate(void)
 {
 	kill(child, SIGTERM);
 	exit(1);
-}
-
-int s2n_io_pair_init_ktls(struct s2n_test_io_pair *io_pair)
-{
-    signal(SIGPIPE, SIG_IGN);
-
-
-    int socket_pair[2];
-
-    POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
-
-    io_pair->client = socket_pair[0];
-    io_pair->server = socket_pair[1];
-
-    return 0;
-}
-
-int s2n_fd_set_non_blocking_ktls(int fd) {
-    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-}
-
-int s2n_io_pair_ktls(struct s2n_test_io_pair *io_pair)
-{
-    POSIX_GUARD(s2n_io_pair_init_ktls(io_pair));
-
-    POSIX_GUARD(s2n_fd_set_non_blocking_ktls(io_pair->client));
-    POSIX_GUARD(s2n_fd_set_non_blocking_ktls(io_pair->server));
-
-    return 0;
 }
 
 int mock_client(
@@ -91,21 +63,7 @@ int mock_client(
         result = 1;
     }
 
-/*     const char *got = s2n_get_application_protocol(client_conn); */
-/*     if ((got != NULL && expected == NULL) || */
-/*         (got == NULL && expected != NULL) || */
-/*         (got != NULL && expected != NULL && strcmp(expected, got) != 0)) { */
-/*         result = 2; */
-/*     } */
-
-/*     for (int i = 1; i < 0xffff; i += 100) { */
-/*         for (int j = 0; j < i; j++) { */
-/*             buffer[j] = 33; */
-/*         } */
-
-/*         s2n_send(client_conn, buffer, i, &blocked); */
-/*     } */
-
+    /* FIXME this never exits ??? */
     int shutdown_rc= -1;
     if(!result) {
         do {
@@ -162,7 +120,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(ktls_config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(ktls_config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(ktls_config, chain_and_key));
-    /* EXPECT_SUCCESS(s2n_config_ktls_enable(ktls_config)); */
+    EXPECT_SUCCESS(s2n_config_ktls_enable(ktls_config));
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, ktls_config));
 
     struct s2n_config *config;
@@ -170,6 +128,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    /* EXPECT_SUCCESS(s2n_config_ktls_enable(config)); */
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
 
@@ -184,11 +143,15 @@ int main(int argc, char **argv)
 
 	  listener = socket(AF_INET, SOCK_STREAM, 0);
     EXPECT_SUCCESS(listener);
+    fprintf(stderr, "server listen on fd---------- %d\n", listener);
+
+    /* int r = 1; */
+    /* EXPECT_SUCCESS(setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(int))); */
 
 	  memset(&saddr, 0, sizeof(saddr));
 	  saddr.sin_family = AF_INET;
 	  saddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	  saddr.sin_port = 0;
+	  saddr.sin_port = htons(5004);
 
     EXPECT_SUCCESS(bind(listener, (struct sockaddr*)&saddr, sizeof(saddr)));
     addrlen = sizeof(saddr);
@@ -196,9 +159,9 @@ int main(int argc, char **argv)
 
     child = fork();
     EXPECT_FALSE(child < 0);
+    /* /1* sleep(500); *1/ */
     int status;
-	  /* if (child < 0) { */
-    if (child == 0) {
+	  if (child == 0) {
         /* client */
         fd = socket(AF_INET, SOCK_STREAM, 0);
         EXPECT_SUCCESS(fd);
@@ -206,17 +169,22 @@ int main(int argc, char **argv)
         sleep(1);
 		    EXPECT_SUCCESS(connect(fd, (struct sockaddr*)&saddr, addrlen));
 
+        sleep(1);
         POSIX_GUARD(s2n_connection_set_fd(client_conn, fd));
+        fprintf(stderr, "client connect fd---------- %d\n", fd);
 
         mock_client(client_conn, NULL, 0, NULL);
+        exit(0);
 
     } else {
         /* server */
         EXPECT_SUCCESS(listen(listener, 1));
         fd = accept(listener, NULL, NULL);
+        EXPECT_SUCCESS(fd);
+        fprintf(stderr, "server accept fd---------- %d\n", fd);
+
         POSIX_GUARD(s2n_connection_set_fd(server_conn, fd));
     }
-
 
     /* local link */
     /* Create nonblocking pipes */
