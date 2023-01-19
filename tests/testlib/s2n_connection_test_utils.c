@@ -115,7 +115,8 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 
     int socket_pair[2];
 
-    POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
+    /* POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair)); */
+    POSIX_GUARD(socketpair(AF_INET, SOCK_STREAM, 0, socket_pair));
 
     io_pair->client = socket_pair[0];
     io_pair->server = socket_pair[1];
@@ -195,7 +196,7 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker)
         }
     }
     printf("\n");
- 
+
     printf("IN Stuffer (write: %d, read: %d, size: %d)\n", conn->in.write_cursor, conn->in.read_cursor, conn->in.blob.size);
     for (i = 0; i < conn->in.write_cursor; i++) {
         printf("%02x", conn->in.blob.data[i]);

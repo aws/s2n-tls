@@ -26,7 +26,7 @@
 #include "utils/s2n_safety.h"
 
 int s2n_key_update_write(struct s2n_blob *out);
-int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number); 
+int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 
 
 int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request)
@@ -42,6 +42,7 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     conn->key_update_pending = key_update_request;
 
     /* Update peer's key since a key_update was received */
+    printf("-------- s2n_update_application_traffic_keys RECEIVING\n");
     if (conn->mode == S2N_CLIENT){
         POSIX_GUARD(s2n_update_application_traffic_keys(conn, S2N_SERVER, RECEIVING));
     } else {
@@ -51,7 +52,7 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     return S2N_SUCCESS;
 }
 
-int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked) 
+int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
@@ -87,6 +88,7 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
 
         /* Update encryption key */
         POSIX_GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
+        printf("-------- s2n_update_application_traffic_keys SENDING\n");
         conn->key_update_pending = false;
 
         POSIX_GUARD(s2n_flush(conn, blocked));

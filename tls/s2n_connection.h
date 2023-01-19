@@ -16,12 +16,13 @@
 #pragma once
 
 #include <errno.h>
-#include "api/s2n.h"
 #include <signal.h>
 #include <stdint.h>
 
+#include "api/s2n.h"
+#include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
@@ -36,39 +37,31 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
-
-#include "crypto/s2n_hash.h"
-#include "crypto/s2n_hmac.h"
-
 #include "utils/s2n_mem.h"
 #include "utils/s2n_timer.h"
 
-#define S2N_TLS_PROTOCOL_VERSION_LEN    2
+#define S2N_TLS_PROTOCOL_VERSION_LEN 2
 
 #define S2N_PEER_MODE(our_mode) ((our_mode + 1) % 2)
 
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
-typedef enum {
-    S2N_NO_TICKET = 0,
-    S2N_DECRYPT_TICKET,
-    S2N_NEW_TICKET
-} s2n_session_ticket_status;
+typedef enum { S2N_NO_TICKET = 0, S2N_DECRYPT_TICKET, S2N_NEW_TICKET } s2n_session_ticket_status;
 
 struct s2n_connection {
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
      * managed_send_io
      */
-    unsigned corked_io:1;
+    unsigned corked_io : 1;
 
     /* Session resumption indicator on client side */
-    unsigned client_session_resumed:1;
+    unsigned client_session_resumed : 1;
 
     /* Connection can be used by a QUIC implementation */
-    unsigned quic_enabled:1;
+    unsigned quic_enabled : 1;
 
     /* Determines if we're currently sending or receiving in s2n_shutdown */
-    unsigned close_notify_queued:1;
+    unsigned close_notify_queued : 1;
 
     /* s2n does not support renegotiation.
      * RFC5746 Section 4.3 suggests servers implement a minimal version of the
@@ -76,71 +69,71 @@ struct s2n_connection {
      * Some clients may fail the handshake if a corresponding renegotiation_info
      * extension is not sent back by the server.
      */
-    unsigned secure_renegotiation:1;
+    unsigned secure_renegotiation : 1;
     /* Was the EC point formats sent by the client */
-    unsigned ec_point_formats:1;
+    unsigned ec_point_formats : 1;
 
     /* whether the connection address is ipv6 or not */
-    unsigned ipv6:1;
+    unsigned ipv6 : 1;
 
     /* Whether server_name extension was used to make a decision on cert selection.
      * RFC6066 Section 3 states that server which used server_name to make a decision
      * on certificate or security settings has to send an empty server_name.
      */
-    unsigned server_name_used:1;
+    unsigned server_name_used : 1;
 
     /* If write fd is broken */
-    unsigned write_fd_broken:1;
+    unsigned write_fd_broken : 1;
 
     /* Has the user set their own I/O callbacks or is this connection using the
      * default socket-based I/O set by s2n.
      *
      * `true` means that s2n-tls manages the io callback and associated context.
      * */
-    unsigned managed_send_io:1;
-    unsigned managed_recv_io:1;
+    unsigned managed_send_io : 1;
+    unsigned managed_recv_io : 1;
 
     /* Key update data */
-    unsigned key_update_pending:1;
+    unsigned key_update_pending : 1;
 
     /* Early data supported by caller.
      * If a caller does not use any APIs that support early data,
      * do not negotiate early data.
      */
-    unsigned early_data_expected:1;
+    unsigned early_data_expected : 1;
 
     /* Connection overrides server_max_early_data_size */
-    unsigned server_max_early_data_size_overridden:1;
+    unsigned server_max_early_data_size_overridden : 1;
 
     /* Connection overrides psk_mode.
      * This means that the connection will keep the existing value of psk_params->type,
      * even when setting a new config. */
-    unsigned psk_mode_overridden:1;
+    unsigned psk_mode_overridden : 1;
 
     /* Have we received a close notify alert from the peer. */
-    unsigned close_notify_received:1;
+    unsigned close_notify_received : 1;
 
     /* Connection negotiated an EMS */
-    unsigned ems_negotiated:1;
+    unsigned ems_negotiated : 1;
 
     /* Connection successfully set a ticket on the connection */
-    unsigned set_session:1;
+    unsigned set_session : 1;
 
     /* Buffer multiple records before flushing them.
      * This allows multiple records to be written with one socket send. */
-    unsigned multirecord_send:1;
+    unsigned multirecord_send : 1;
 
     /* If enabled, this connection will free each of its IO buffers after all data
      * has been flushed */
-    unsigned dynamic_buffers:1;
+    unsigned dynamic_buffers : 1;
 
     /* ktls is enabled for this connection.
      *
      * This means that UPL has been enabled, transport keys have been set
      * and ktls specific IO callback/context has been set.
      */
-    unsigned ktls_enabled_send_io:1;
-    unsigned ktls_enabled_recv_io:1;
+    unsigned ktls_enabled_send_io : 1;
+    unsigned ktls_enabled_recv_io : 1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -153,7 +146,7 @@ struct s2n_connection {
 
     /* The user defined secret callback and context */
     s2n_secret_cb secret_cb;
-    void *secret_cb_context;
+    void         *secret_cb_context;
 
     /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
     s2n_send_fn *send;
@@ -192,7 +185,7 @@ struct s2n_connection {
     uint64_t delay;
 
     /* The session id */
-    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
+    uint8_t session_id[ S2N_TLS_SESSION_ID_MAX_LEN ];
     uint8_t session_id_len;
 
     /* The version advertised by the client, by the
@@ -210,7 +203,7 @@ struct s2n_connection {
     /* Our crypto parameters */
     struct s2n_crypto_parameters *initial;
     struct s2n_crypto_parameters *secure;
-    union s2n_secrets secrets;
+    union s2n_secrets             secrets;
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;
@@ -242,7 +235,7 @@ struct s2n_connection {
     /* Our workhorse stuffers, used for buffering the plaintext
      * and encrypted data in both directions.
      */
-    uint8_t header_in_data[S2N_TLS_RECORD_HEADER_LENGTH];
+    uint8_t            header_in_data[ S2N_TLS_RECORD_HEADER_LENGTH ];
     struct s2n_stuffer header_in;
     struct s2n_stuffer in;
     struct s2n_stuffer out;
@@ -257,7 +250,7 @@ struct s2n_connection {
     /* An alert may be fragmented across multiple records,
      * this stuffer is used to re-assemble.
      */
-    uint8_t alert_in_data[S2N_ALERT_LENGTH];
+    uint8_t            alert_in_data[ S2N_ALERT_LENGTH ];
     struct s2n_stuffer alert_in;
 
     /* An alert may be partially written in the outbound
@@ -268,8 +261,8 @@ struct s2n_connection {
      * intentional shutdown) so that the s2n reader and writer
      * can be separate duplex I/O threads.
      */
-    uint8_t reader_alert_out_data[S2N_ALERT_LENGTH];
-    uint8_t writer_alert_out_data[S2N_ALERT_LENGTH];
+    uint8_t            reader_alert_out_data[ S2N_ALERT_LENGTH ];
+    uint8_t            writer_alert_out_data[ S2N_ALERT_LENGTH ];
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
 
@@ -326,22 +319,22 @@ struct s2n_connection {
     sig_atomic_t closed;
 
     /* TLS extension data */
-    char server_name[S2N_MAX_SERVER_NAME + 1];
+    char server_name[ S2N_MAX_SERVER_NAME + 1 ];
 
     /* The application protocol decided upon during the client hello.
      * If ALPN is being used, then:
      * In server mode, this will be set by the time client_hello_cb is invoked.
      * In client mode, this will be set after is_handshake_complete(connection) is true.
      */
-    char application_protocol[256];
+    char application_protocol[ 256 ];
 
     /* OCSP stapling response data */
     s2n_status_request_type status_type;
-    struct s2n_blob status_response;
+    struct s2n_blob         status_response;
 
     /* Certificate Transparency response data */
     s2n_ct_support_level ct_level_requested;
-    struct s2n_blob ct_response;
+    struct s2n_blob      ct_response;
 
     /* QUIC transport parameters data: https://tools.ietf.org/html/draft-ietf-quic-tls-29#section-8.2 */
     struct s2n_blob our_quic_transport_parameters;
@@ -356,17 +349,17 @@ struct s2n_connection {
      * from the user's perspective, it's sometimes simpler to manage state by attaching each validation function/data
      * to the connection, instead of globally to a single config.*/
     s2n_verify_host_fn verify_host_fn;
-    void *data_for_verify_host;
-    uint8_t verify_host_fn_overridden;
+    void              *data_for_verify_host;
+    uint8_t            verify_host_fn_overridden;
 
     /* Session ticket data */
     s2n_session_ticket_status session_ticket_status;
-    struct s2n_blob client_ticket;
-    uint32_t ticket_lifetime_hint;
-    struct s2n_ticket_fields tls13_ticket_fields;
+    struct s2n_blob           client_ticket;
+    uint32_t                  ticket_lifetime_hint;
+    struct s2n_ticket_fields  tls13_ticket_fields;
 
     /* Session ticket extension from client to attempt to decrypt as the server. */
-    uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
+    uint8_t            ticket_ext_data[ S2N_TLS12_TICKET_SIZE_IN_BYTES ];
     struct s2n_stuffer client_ticket_to_decrypt;
 
     /* application protocols overridden */
@@ -381,17 +374,17 @@ struct s2n_connection {
     bool send_in_use;
     bool recv_in_use;
     bool negotiate_in_use;
-    
+
     uint16_t tickets_to_send;
     uint16_t tickets_sent;
 
     s2n_early_data_state early_data_state;
-    uint32_t server_max_early_data_size;
-    struct s2n_blob server_early_data_context;
-    uint32_t server_keying_material_lifetime;
+    uint32_t             server_max_early_data_size;
+    struct s2n_blob      server_early_data_context;
+    uint32_t             server_keying_material_lifetime;
 
-    uint8_t client_key[16];
-    uint8_t server_key[16];
+    uint8_t client_key[ 16 ];
+    uint8_t server_key[ 16 ];
 
     uint8_t sendfd;
 };
@@ -414,15 +407,19 @@ S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn);
 S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn);
 S2N_RESULT s2n_connection_dynamic_free_out_buffer(struct s2n_connection *conn);
 
-int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences);
+int s2n_connection_get_cipher_preferences(struct s2n_connection                *conn,
+                                          const struct s2n_cipher_preferences **cipher_preferences);
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy);
 int s2n_connection_get_kem_preferences(struct s2n_connection *conn, const struct s2n_kem_preferences **kem_preferences);
-int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const struct s2n_signature_preferences **signature_preferences);
+int s2n_connection_get_signature_preferences(struct s2n_connection                   *conn,
+                                             const struct s2n_signature_preferences **signature_preferences);
 int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct s2n_ecc_preferences **ecc_preferences);
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences);
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
-int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
-int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
-uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
+int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out,
+                                         uint32_t *cert_chain_len);
+int s2n_connection_get_peer_cert_chain(const struct s2n_connection   *conn,
+                                       struct s2n_cert_chain_and_key *cert_chain_and_key);
+uint8_t    s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);

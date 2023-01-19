@@ -37,58 +37,58 @@ typedef enum {
 } s2n_cert_ownership;
 
 struct s2n_config {
-    unsigned use_tickets:1;
+    unsigned use_tickets : 1;
 
     /* Whether a connection can be used by a QUIC implementation.
      * See s2n_quic_support.h */
-    unsigned quic_enabled:1;
+    unsigned quic_enabled : 1;
 
-    unsigned default_certs_are_explicit:1;
-    unsigned use_session_cache:1;
+    unsigned default_certs_are_explicit : 1;
+    unsigned use_session_cache : 1;
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
-    unsigned accept_mfl:1;
-    unsigned check_ocsp:1;
-    unsigned disable_x509_validation:1;
-    unsigned max_verify_cert_chain_depth_set:1;
+    unsigned accept_mfl : 1;
+    unsigned check_ocsp : 1;
+    unsigned disable_x509_validation : 1;
+    unsigned max_verify_cert_chain_depth_set : 1;
     /* Whether to add dss cert type during a server certificate request.
      * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md */
-    unsigned cert_req_dss_legacy_compat_enabled:1;
+    unsigned cert_req_dss_legacy_compat_enabled : 1;
     /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
      * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does
      * not support RSA PSS signing (which is required for TLS 1.3). */
-    unsigned is_rsa_cert_configured:1;
+    unsigned is_rsa_cert_configured : 1;
     /* It's possible to use a certificate without loading the private key,
      * but async signing must be enabled. Use this flag to enforce that restriction.
      */
-    unsigned no_signing_key:1;
+    unsigned no_signing_key : 1;
     /*
      * This option exists to allow for polling the client_hello callback.
      *
      * Note: This defaults to false to ensure backwards compatibility.
      */
-    unsigned client_hello_cb_enable_poll:1;
+    unsigned client_hello_cb_enable_poll : 1;
     /*
      * Whether to verify signatures locally before sending them over the wire.
      * See s2n_config_set_verify_after_sign.
      */
-    unsigned verify_after_sign:1;
+    unsigned verify_after_sign : 1;
 
     /* Indicates support for the npn extension */
-    unsigned npn_supported:1;
+    unsigned npn_supported : 1;
 
     /* Depending on OS and hardware support its possible to use ktls.
      *
      * This option indicates if connections should attempt to use ktls if available. */
-    unsigned ktls_requested:1;
+    unsigned ktls_requested : 1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
      * does not have a reference to. */
-    struct s2n_map *domain_name_to_cert_map;
-    struct certs_by_type default_certs_by_type;
-    struct s2n_blob application_protocols;
-    s2n_status_request_type status_request_type;
+    struct s2n_map            *domain_name_to_cert_map;
+    struct certs_by_type       default_certs_by_type;
+    struct s2n_blob            application_protocols;
+    s2n_status_request_type    status_request_type;
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
 
@@ -97,7 +97,7 @@ struct s2n_config {
     void *sys_clock_ctx;
     void *monotonic_clock_ctx;
 
-    s2n_client_hello_fn *client_hello_cb;
+    s2n_client_hello_fn     *client_hello_cb;
     s2n_client_hello_cb_mode client_hello_cb_mode;
 
     void *client_hello_cb_ctx;
@@ -106,18 +106,18 @@ struct s2n_config {
 
     struct s2n_set *ticket_keys;
     struct s2n_set *ticket_key_hashes;
-    uint64_t encrypt_decrypt_key_lifetime_in_nanos;
-    uint64_t decrypt_key_lifetime_in_nanos;
+    uint64_t        encrypt_decrypt_key_lifetime_in_nanos;
+    uint64_t        decrypt_key_lifetime_in_nanos;
 
     /* If session cache is being used, these must all be set */
     s2n_cache_store_callback cache_store;
-    void *cache_store_data;
+    void                    *cache_store_data;
 
     s2n_cache_retrieve_callback cache_retrieve;
-    void *cache_retrieve_data;
+    void                       *cache_retrieve_data;
 
     s2n_cache_delete_callback cache_delete;
-    void *cache_delete_data;
+    void                     *cache_delete_data;
 
     s2n_ct_support_level ct_type;
 
@@ -138,18 +138,18 @@ struct s2n_config {
     uint8_t initial_tickets_to_send;
 
     struct s2n_x509_trust_store trust_store;
-    uint16_t max_verify_cert_chain_depth;
+    uint16_t                    max_verify_cert_chain_depth;
 
     s2n_async_pkey_fn async_pkey_cb;
 
     s2n_psk_selection_callback psk_selection_cb;
-    void *psk_selection_ctx;
+    void                      *psk_selection_ctx;
 
     s2n_key_log_fn key_log_cb;
-    void *key_log_ctx;
+    void          *key_log_ctx;
 
     s2n_session_ticket_fn session_ticket_cb;
-    void *session_ticket_ctx;
+    void                 *session_ticket_ctx;
 
     s2n_early_data_cb early_data_cb;
 
@@ -167,19 +167,19 @@ struct s2n_config {
     /* Used to override the stuffer size for a connection's `out` stuffer. */
     uint32_t send_buffer_size_override;
 
-    void *renegotiate_request_ctx;
+    void                      *renegotiate_request_ctx;
     s2n_renegotiate_request_cb renegotiate_request_cb;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
-int s2n_config_defaults_init(void);
+int                       s2n_config_defaults_init(void);
 extern struct s2n_config *s2n_fetch_default_config(void);
-int s2n_config_set_unsafe_for_testing(struct s2n_config *config);
+int                       s2n_config_set_unsafe_for_testing(struct s2n_config *config);
 
 int s2n_config_init_session_ticket_keys(struct s2n_config *config);
 int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
-void s2n_wipe_static_configs(void);
+void                                  s2n_wipe_static_configs(void);
 extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
-int s2n_config_get_num_default_certs(struct s2n_config *config);
+int                                   s2n_config_get_num_default_certs(struct s2n_config *config);

@@ -13,27 +13,27 @@
  * permissions and limitations under the License.
  */
 
-#include <linux/tls.h>
-#include <sys/socket.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/sendfile.h>
+#include <linux/tls.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/sendfile.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "bits/stdint-uintn.h"
 #include "utils/s2n_result.h"
-#define SOL_TCP        6
+#define SOL_TCP 6
 
 #include "api/s2n.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_ktls.h"
-
+#include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
 #include "utils/s2n_socket.h"
-#include "utils/s2n_safety.h"
 
 /* int s2n_ktls_rx_keys(struct s2n_connection *conn) { */
 /*     struct tls12_crypto_info_aes_gcm_128 crypto_info; */
@@ -79,28 +79,29 @@
 /* } */
 /* send TLS control message using record_type */
 
-S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length) {
-      struct msghdr msg = {0};
-      int cmsg_len = sizeof(record_type);
-      struct cmsghdr *cmsg;
-      char buf[CMSG_SPACE(cmsg_len)];
-      struct iovec msg_iov;   /* Vector of data to send/receive into.  */
+S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length)
+{
+    struct msghdr   msg      = { 0 };
+    int             cmsg_len = sizeof(record_type);
+    struct cmsghdr *cmsg;
+    char            buf[ CMSG_SPACE(cmsg_len) ];
+    struct iovec    msg_iov; /* Vector of data to send/receive into.  */
 
-      msg.msg_control = buf;
-      msg.msg_controllen = sizeof(buf);
-      cmsg = CMSG_FIRSTHDR(&msg);
-      cmsg->cmsg_level = SOL_TLS;
-      cmsg->cmsg_type = TLS_SET_RECORD_TYPE;
-      cmsg->cmsg_len = CMSG_LEN(cmsg_len);
-      *CMSG_DATA(cmsg) = TLS_ALERT;
-      msg.msg_controllen = cmsg->cmsg_len;
+    msg.msg_control    = buf;
+    msg.msg_controllen = sizeof(buf);
+    cmsg               = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level   = SOL_TLS;
+    cmsg->cmsg_type    = TLS_SET_RECORD_TYPE;
+    cmsg->cmsg_len     = CMSG_LEN(cmsg_len);
+    *CMSG_DATA(cmsg)   = TLS_ALERT;
+    msg.msg_controllen = cmsg->cmsg_len;
 
-      msg_iov.iov_base = data;
-      msg_iov.iov_len = length;
-      msg.msg_iov = &msg_iov;
-      msg.msg_iovlen = 1;
+    msg_iov.iov_base = data;
+    msg_iov.iov_len  = length;
+    msg.msg_iov      = &msg_iov;
+    msg.msg_iovlen   = 1;
 
-      int ret_val = sendmsg(sock, &msg, 0);
+    int ret_val = sendmsg(sock, &msg, 0);
     if (ret_val < 0) {
         fprintf(stderr, "ktls send cmsg xxxxxxxxxxxxxx: type: %d, errno %s\n", record_type, strerror(errno));
         return S2N_RESULT_ERROR;
@@ -111,10 +112,11 @@ S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, siz
     return S2N_RESULT_OK;
 }
 
-int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len) {
+int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len)
+{
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(buf);
-    int wfd = ((struct s2n_ktls_write_io_context*) io_context)->fd;
+    int wfd = (( struct s2n_ktls_write_io_context * )io_context)->fd;
     if (wfd < 0) {
         errno = EBADF;
         POSIX_BAIL(S2N_ERR_BAD_FD);
@@ -130,15 +132,16 @@ int s2n_ktls_write_fn(void *io_context, const uint8_t *buf, uint32_t len) {
     return result;
 }
 
-int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd) {
-    struct s2n_blob ctx_mem = {0};
+int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
+{
+    struct s2n_blob                   ctx_mem = { 0 };
     struct s2n_ktls_write_io_context *peer_ktls_ctx;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_ktls_write_io_context)));
 
-    peer_ktls_ctx = (struct s2n_ktls_write_io_context *)(void *)ctx_mem.data;
-    peer_ktls_ctx->fd = wfd;
+    peer_ktls_ctx                  = ( struct s2n_ktls_write_io_context                  *)( void                  *)ctx_mem.data;
+    peer_ktls_ctx->fd              = wfd;
     peer_ktls_ctx->ktls_socket_set = true;
 
     POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_ktls_write_fn));
@@ -151,9 +154,7 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd) {
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
     uint8_t ipv6;
-    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
-        conn->ipv6 = (ipv6 ? 1 : 0);
-    }
+    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) { conn->ipv6 = (ipv6 ? 1 : 0); }
 
     conn->write_fd_broken = 0;
 
@@ -161,13 +162,9 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd) {
 }
 
 /* currently only handles tls 1.2 */
-S2N_RESULT s2n_ktls_tx_keys(
-        struct s2n_connection *conn,
-        int fd,
-        uint8_t implicit_iv[S2N_TLS_MAX_IV_LEN],
-        uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN],
-        uint8_t key[16]
-) {
+S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implicit_iv[ S2N_TLS_MAX_IV_LEN ],
+                            uint8_t sequence_number[ S2N_TLS_SEQUENCE_NUM_LEN ], uint8_t key[ 16 ])
+{
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
 
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
@@ -181,14 +178,15 @@ S2N_RESULT s2n_ktls_tx_keys(
     } else if (conn->actual_protocol_version == S2N_TLS13) {
         crypto_info.info.version = TLS_1_3_VERSION;
 
-				/* RESULT_ENSURE_EQ(sizeof(implicit_iv), TLS_CIPHER_AES_GCM_128_SALT_SIZE + TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+        /* RESULT_ENSURE_EQ(sizeof(implicit_iv), TLS_CIPHER_AES_GCM_128_SALT_SIZE + TLS_CIPHER_AES_GCM_128_IV_SIZE); */
 
-				/* memcpy (crypto_info.iv, iv.data + TLS_CIPHER_AES_GCM_128_SALT_SIZE, */
-				/* TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+        /* memcpy (crypto_info.iv, iv.data + TLS_CIPHER_AES_GCM_128_SALT_SIZE, */
+        /* TLS_CIPHER_AES_GCM_128_IV_SIZE); */
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
-                TLS_CIPHER_AES_GCM_128_IV_SIZE);
+                              TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else {
-        fprintf(stderr, "ktls only supported for tls1.2 and tls1.3 xxxxxxxxxxxxxx: %d\n", conn->actual_protocol_version);
+        fprintf(stderr, "ktls only supported for tls1.2 and tls1.3 xxxxxxxxxxxxxx: %d\n",
+                conn->actual_protocol_version);
     }
 
     /* set keys */
@@ -203,15 +201,18 @@ S2N_RESULT s2n_ktls_tx_keys(
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
+S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
+{
     RESULT_ENSURE_REF(conn);
 
     if (conn->mode == S2N_SERVER) {
         RESULT_ENSURE_EQ(sizeof(conn->server_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number, conn->server_key));
+        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
+                                      conn->server_key));
     } else {
         RESULT_ENSURE_EQ(sizeof(conn->client_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, conn->client_key));
+        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number,
+                                      conn->client_key));
     }
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
@@ -226,7 +227,7 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
     /* char filename[] = "sample.txt.2k"; */
     /* int send_times = 1000000; // 2gb */
     char filename[] = "sample.txt.4k";
-    int send_times = 500000; // 2gb
+    int  send_times = 500000;  // 2gb
     /* char filename[] = "sample.txt.8k"; */
     /* int send_times = 250000; // 2gb */
     /* char filename[] = "sample.txt.16k"; */
@@ -247,7 +248,7 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 
     if (conn->mode == S2N_CLIENT) {
         for (int i = 0; i <= send_times; i++) {
-            int fd1;
+            int         fd1;
             struct stat stbuf;
             /* open */
             if ((fd1 = open(filename, O_RDWR)) < 0) {
@@ -292,7 +293,8 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd) {
 }
 
 /* Enable the "tls" Upper Level Protocols (ULP) over TCP for this connection */
-S2N_RESULT s2n_ktls_register_ulp(int fd) {
+S2N_RESULT s2n_ktls_register_ulp(int fd)
+{
     // todo see if this is already done
     int ret_val = setsockopt(fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
     if (ret_val < 0) {
@@ -308,7 +310,8 @@ S2N_RESULT s2n_ktls_register_ulp(int fd) {
 // todo
 // - RX mode
 // - cleanup if intermediate steps fails
-S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
+S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
+{
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_EQ(conn->config->ktls_requested, true);
 
@@ -335,21 +338,22 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn) {
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_ktls_switch_keys(struct s2n_connection *conn) {
-/*     if (conn->mode == S2N_SERVER) { */
-/*         return S2N_FAILURE; */
-/*     } */
+int s2n_connection_ktls_switch_keys(struct s2n_connection *conn)
+{
+    /*     if (conn->mode == S2N_SERVER) { */
+    /*         return S2N_FAILURE; */
+    /*     } */
 
-/*     POSIX_ENSURE_REF(conn); */
-/*     POSIX_ENSURE_EQ(conn->config->ktls_requested, true); */
-/*     POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true); */
+    /*     POSIX_ENSURE_REF(conn); */
+    /*     POSIX_ENSURE_EQ(conn->config->ktls_requested, true); */
+    /*     POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true); */
 
-/*     const struct s2n_ktls_write_io_context *peer_ktls_ctx = conn->send_io_context; */
-/*     int fd = peer_ktls_ctx->fd; */
+    /*     const struct s2n_ktls_write_io_context *peer_ktls_ctx = conn->send_io_context; */
+    /*     int fd = peer_ktls_ctx->fd; */
 
-/*     POSIX_GUARD_RESULT(s2n_ktls_register_ulp(fd)); */
+    /*     POSIX_GUARD_RESULT(s2n_ktls_register_ulp(fd)); */
 
-/*     POSIX_GUARD_RESULT(s2n_ktls_client_tx_keys(conn, fd, true)); */
+    /*     POSIX_GUARD_RESULT(s2n_ktls_client_tx_keys(conn, fd, true)); */
 
     return S2N_SUCCESS;
 }

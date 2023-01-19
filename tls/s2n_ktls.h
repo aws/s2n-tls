@@ -23,7 +23,7 @@ struct s2n_ktls_write_io_context {
     int fd;
 
     /* The "tls" UPL has been enabled. */
-    unsigned int ktls_socket_set:1;
+    unsigned int ktls_socket_set : 1;
 };
 
 /* /1* TODO: wip. implement the write first. *1/ */
@@ -43,9 +43,6 @@ struct s2n_ktls_write_io_context {
 /* TLS_APPLICATION_DATA */
 /* int s2n_ktls_send_control_msg(struct s2n_connection *conn, uint8_t record_type, void *data, size_t data_size); */
 /* int s2n_ktls_recv_control_msg(struct s2n_connection *conn, uint8_t record_type, void *data, size_t data_size); */
-
-
-
 
 /* Enables ktls for the connection.
  *
