@@ -18,10 +18,10 @@
 #include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_cert_status_response.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_psk.h"
-#include "tls/extensions/s2n_server_status_request.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
@@ -571,7 +571,7 @@ int main(int argc, char **argv)
             /* Write extensions - just status_request */
             struct s2n_stuffer_reservation extension_list_size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
-            EXPECT_SUCCESS(s2n_extension_send(&s2n_server_status_request_extension,
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_status_response_extension,
                     server_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_supported_versions_extension,
                     server_conn, &stuffer));
-            EXPECT_SUCCESS(s2n_extension_send(&s2n_server_status_request_extension,
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_status_response_extension,
                     server_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
