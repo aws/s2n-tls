@@ -88,8 +88,7 @@ int s2n_record_parse_composite(
     POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
     payload_length = out;
 
-    struct s2n_blob seq = { 0 };
-    POSIX_GUARD(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
