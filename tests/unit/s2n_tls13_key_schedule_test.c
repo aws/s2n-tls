@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     size_t test_cases_count = 0;
     struct s2n_connection handshake_test_conn = {
         .actual_protocol_version = S2N_TLS13,
-        .handshake = { .message_number = 1 },
+        .handshake = { .message_number = 1, .state_machine = S2N_STATE_MACHINE_TLS13 },
     };
     for (uint32_t handshake_type = 0; handshake_type < S2N_HANDSHAKES_COUNT; handshake_type++) {
         handshake_test_conn.handshake.handshake_type = handshake_type;
@@ -185,6 +185,8 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                         s2n_connection_ptr_free);
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
+
                 conn->handshake.handshake_type = test_cases[i].handshake_type;
                 conn->secure->cipher_suite = test_cases[i].cipher_suite;
                 if (test_cases[i].is_early_data_requested) {

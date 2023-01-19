@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/extensions/s2n_client_status_request.h"
+#include "tls/extensions/s2n_client_cert_status_request.h"
 
 #include <stdint.h>
 #include <sys/param.h>
@@ -22,25 +22,25 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
 
-static bool s2n_client_status_request_should_send(struct s2n_connection *conn);
-static int s2n_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static bool s2n_client_cert_status_request_should_send(struct s2n_connection *conn);
+static int s2n_client_cert_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int s2n_client_cert_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
-const s2n_extension_type s2n_client_status_request_extension = {
+const s2n_extension_type s2n_client_cert_status_request_extension = {
     .iana_value = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = false,
-    .send = s2n_client_status_request_send,
-    .recv = s2n_client_status_request_recv,
-    .should_send = s2n_client_status_request_should_send,
+    .send = s2n_client_cert_status_request_send,
+    .recv = s2n_client_cert_status_request_recv,
+    .should_send = s2n_client_cert_status_request_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static bool s2n_client_status_request_should_send(struct s2n_connection *conn)
+static bool s2n_client_cert_status_request_should_send(struct s2n_connection *conn)
 {
     return conn->config->status_request_type != S2N_STATUS_REQUEST_NONE;
 }
 
-static int s2n_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_client_cert_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
 
@@ -60,7 +60,7 @@ static int s2n_client_status_request_send(struct s2n_connection *conn, struct s2
     return S2N_SUCCESS;
 }
 
-static int s2n_client_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_client_cert_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (s2n_stuffer_data_available(extension) < 5) {
         /* Malformed length, ignore the extension */
@@ -76,16 +76,4 @@ static int s2n_client_status_request_recv(struct s2n_connection *conn, struct s2
 
     conn->status_type = (s2n_status_request_type) type;
     return S2N_SUCCESS;
-}
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_status_request_extension, conn, out);
-}
-
-int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_status_request_extension, conn, extension);
 }
