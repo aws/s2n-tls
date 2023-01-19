@@ -609,9 +609,9 @@ Additionally, in TLS1.3, multiple session tickets may be issued for the same con
 
 ### Session Resumption Forward Secrecy
 
-In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session secret exposes the original sessions' encrypted data.
+In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session's secret exposes the original session's encrypted data.
 
-In contrast, in TLS1.3 the secret stored inside the ticket is derived from the original session's master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session secret will not expose the original sessions' encrypted data.
+In contrast, in TLS1.3 the secret stored inside the ticket is derived from the original session's master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.
 
 ### Keying Material Lifetimes in TLS1.2 and TLS1.3
 
