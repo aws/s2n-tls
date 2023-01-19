@@ -19,8 +19,8 @@
 //
 ////////////////////////////////////////////////////////////////
 
-import "spec/HMAC_iterative.cry";
-import "spec/HMAC_properties.cry";
+import "HMAC/spec/HMAC_iterative.cry";
+import "HMAC/spec/HMAC_properties.cry";
 
 let check n = do {
     print (str_concat "Checking 'hmac_c_state_correct' for byte count " (show n));

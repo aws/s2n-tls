@@ -31,6 +31,7 @@ struct s2n_stuffer input_stuffer, output_stuffer;
 static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
+    EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&input_stuffer));
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&output_stuffer));
