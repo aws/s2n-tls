@@ -40,7 +40,8 @@ const s2n_extension_type s2n_cert_status_extension = {
 
 static bool s2n_cert_status_should_send(struct s2n_connection *conn)
 {
-    return s2n_server_can_send_ocsp(conn);
+    return conn->handshake_params.our_chain_and_key
+            && conn->handshake_params.our_chain_and_key->ocsp_status.size > 0;
 }
 
 int s2n_cert_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -80,7 +81,14 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
         /* We only support OCSP */
         return S2N_SUCCESS;
     }
-    conn->status_type = S2N_STATUS_REQUEST_OCSP;
+
+    /* status_type keeps track of the OCSP status of a connection when a client requests
+     * OCSP stapling from a server. status_type should not be updated if the server requested
+     * OCSP stapling.
+     */
+    if (conn->mode == S2N_CLIENT) {
+        conn->status_type = S2N_STATUS_REQUEST_OCSP;
+    }
 
     uint32_t status_size;
     POSIX_GUARD(s2n_stuffer_read_uint24(in, &status_size));
