@@ -165,7 +165,6 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
                     POSIX_GUARD(s2n_flush(conn, blocked));
                     break;
                 case TLS_HANDSHAKE:
-                    printf("---------------------8asd");
                     WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_post_handshake_recv(conn)));
                     break;
             }
@@ -174,7 +173,6 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
             conn->in_status = ENCRYPTED;
             continue;
         }
-        printf("==================8asd \n");
 
         out.size = MIN(size, s2n_stuffer_data_available(&conn->in));
 

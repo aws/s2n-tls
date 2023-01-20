@@ -28,6 +28,64 @@
 #define S2N_MODE_COUNT 2
 #define S2N_SECRET_TYPE_COUNT 5
 
+
+/* test cases */
+/*
+ * server always writes
+ *
+ * TX
+ * - ktls conn: send msg  (send key_update + rekey)     send msg
+ *   norm conn:       rx msg              rx key_update    rx msg
+ *
+ * RX
+ * - ktls conn:       rx msg          rx key_update   rx msg
+ *   norm conn: send msg   send key_update       send msg
+ *
+ */
+bool ktls_enable = true;
+
+#define KTLS_enable() \
+    if (ktls_enable) \
+        EXPECT_SUCCESS(s2n_config_ktls_enable(config));
+
+#define KTLS_enable_check(conn) \
+    if (ktls_enable) \
+        EXPECT_TRUE(conn->ktls_enabled_send_io);
+
+/*
+ * conn
+ * c: the char to write
+ */
+#define KTLS_send(conn, c) \
+    send_buffer[0] = c; \
+    if (ktls_enable) \
+        EXPECT_SUCCESS(write(fd, send_buffer, 1)); \
+    else \
+        EXPECT_SUCCESS(s2n_send(conn, send_buffer, 1, &blocked));
+
+/*
+ * conn
+ * curr_gen: the current generation
+ *
+* without kernel patch \
+*   expect fail \
+* with kernel patch \
+*   expect rekey and success \
+ */
+#define KTLS_send_ku(conn, curr_gen) \
+    EXPECT_TRUE(conn->generation == curr_gen); \
+    if (ktls_enable) { \
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE]; \
+        struct s2n_blob key_update_blob = {0}; \
+        EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data))); \
+        EXPECT_SUCCESS(s2n_key_update_write(&key_update_blob)); \
+        EXPECT_SUCCESS(s2n_klts_send_ctrl_msg(fd, TLS_HANDSHAKE, key_update_blob.data, S2N_KEY_UPDATE_MESSAGE_SIZE)); \
+    } else { \
+        conn->key_update_pending = true; \
+        EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked)); \
+        EXPECT_TRUE(conn->generation == (curr_gen + 1)); \
+    }
+
 pid_t child;
 const char a = 'a';
 const char b = 'b';
@@ -43,11 +101,11 @@ static void ch_handler(int sig)
 	  return;
 }
 
-static S2N_RESULT start_client(int fd, int sync_pipe)
+static S2N_RESULT start_client(int fd, int read_pipe)
 {
-    char read_sync;
+    char sync;
     s2n_blocked_status blocked = 0;
-    char recv_buffer[1];
+    char recv_buffer[10];
 
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
@@ -64,33 +122,40 @@ static S2N_RESULT start_client(int fd, int sync_pipe)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    /* EXPECT_SUCCESS(s2n_config_ktls_enable(config)); */
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
     EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
-    read(sync_pipe, &read_sync, 1);
-    printf("----------client read 1\n");
-    EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-    printf("----------char 2 %c\n", recv_buffer[0]);
-    EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
+    {
+        read(read_pipe, &sync, 1);
+        printf("----------client read 1\n");
+        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+        EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
+        EXPECT_TRUE(client_conn->generation == 0);
 
-    read(sync_pipe, &read_sync, 1);
-    printf("----------client read 2\n");
-    EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-    printf("----------char 2 %c\n", recv_buffer[0]);
-    EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
+        read(read_pipe, &sync, 1);
+        printf("----------client read 2\n");
+
+        int ret = s2n_recv(client_conn, recv_buffer, 1, &blocked);
+        EXPECT_TRUE(client_conn->generation == 1);
+
+        /* TODO we need to rekey before sending. needs patch */
+        if(!ktls_enable) {
+            EXPECT_SUCCESS(ret);
+            EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); \
+        }
+    }
 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT start_server(int fd, int sync_pipe)
+static S2N_RESULT start_server(int fd, int write_pipe)
 {
-    char write_sync = 0;
+    char sync = 0;
     s2n_blocked_status blocked = 0;
-    char send_buffer[1];
+    char send_buffer[10];
 
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -108,24 +173,25 @@ static S2N_RESULT start_server(int fd, int sync_pipe)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    /* EXPECT_SUCCESS(s2n_config_ktls_enable(config)); */
+    KTLS_enable();
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
-    write(sync_pipe, &write_sync, 1);
-    printf("----------server write 1\n");
-    send_buffer[0] = a;
-    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+    {
+        KTLS_enable_check(server_conn);
 
-    server_conn->key_update_pending = true;
-    EXPECT_SUCCESS(s2n_key_update_send(server_conn, &blocked));
-    write(sync_pipe, &write_sync, 1);
-    printf("----------server write 2\n");
-    send_buffer[0] = b;
-    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+        KTLS_send(server_conn, a);
+        write(write_pipe, &sync, 1);
+
+        /* send key update */
+        KTLS_send_ku(server_conn, 0);
+
+        KTLS_send(server_conn, b);
+        write(write_pipe, &sync, 1);
+    }
 
     return S2N_RESULT_OK;
 }

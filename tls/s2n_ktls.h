@@ -51,3 +51,4 @@ struct s2n_ktls_write_io_context {
  * a connection can continue to operate even if ktls is not enabled.
  */
 S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn);
+S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length);

@@ -154,7 +154,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-    
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
@@ -169,7 +169,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     } else {
         old_key = &conn->secure->server_key;
         POSIX_GUARD(s2n_blob_init(&old_app_secret, conn->secrets.tls13.server_app_secret, keys.size));
-        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
+        POSIX_GUARD(s2n_blob_init(&app_iv, conn->secure->server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     }
 
     /* Produce new application secret */
@@ -187,6 +187,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     } else {
         POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
     }
+    conn->generation = conn->generation + 1;
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and
@@ -194,7 +195,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
      * MUST use sequence number 0.
      */
     POSIX_GUARD(s2n_zero_sequence_number(conn, mode));
-    
+
     /* Save updated secret */
     struct s2n_stuffer old_secret_stuffer = {0};
     POSIX_GUARD(s2n_stuffer_init(&old_secret_stuffer, &old_app_secret));

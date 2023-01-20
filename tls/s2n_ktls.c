@@ -81,29 +81,60 @@
 
 S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length)
 {
-    struct msghdr   msg      = { 0 };
-    int             cmsg_len = sizeof(record_type);
-    struct cmsghdr *cmsg;
-    char            buf[ CMSG_SPACE(cmsg_len) ];
-    struct iovec    msg_iov; /* Vector of data to send/receive into.  */
+    const char *buf = data;
+    /* ssize_t ret; */
+    /* int sockin, sockout; */
+    size_t data_to_send = length;
 
-    msg.msg_control    = buf;
-    msg.msg_controllen = sizeof(buf);
-    cmsg               = CMSG_FIRSTHDR(&msg);
-    cmsg->cmsg_level   = SOL_TLS;
-    cmsg->cmsg_type    = TLS_SET_RECORD_TYPE;
-    cmsg->cmsg_len     = CMSG_LEN(cmsg_len);
-    *CMSG_DATA(cmsg)   = TLS_ALERT;
-    msg.msg_controllen = cmsg->cmsg_len;
+    char            cmsg[ CMSG_SPACE(sizeof(unsigned char)) ];
+    struct msghdr   msg = { 0 };
+    struct iovec    msg_iov; /* Vector of data to send/receive into. */
+    struct cmsghdr *hdr;
 
-    msg_iov.iov_base = data;
-    msg_iov.iov_len  = length;
-    msg.msg_iov      = &msg_iov;
-    msg.msg_iovlen   = 1;
+    msg.msg_control    = cmsg;
+    msg.msg_controllen = sizeof cmsg;
+
+    hdr             = CMSG_FIRSTHDR(&msg);
+    hdr->cmsg_level = SOL_TLS;
+    hdr->cmsg_type  = TLS_SET_RECORD_TYPE;
+    hdr->cmsg_len   = CMSG_LEN(sizeof(unsigned char));
+
+    // construct record header
+    *CMSG_DATA(hdr)    = record_type;
+    msg.msg_controllen = hdr->cmsg_len;
+
+    msg_iov.iov_base = ( void * )buf;
+    msg_iov.iov_len  = data_to_send;
+
+    msg.msg_iov    = &msg_iov;
+    msg.msg_iovlen = 1;
 
     int ret_val = sendmsg(sock, &msg, 0);
+
+    /* struct msghdr   msg      = { 0 }; */
+    /* int             cmsg_len = sizeof(record_type); */
+    /* struct cmsghdr *cmsg; */
+    /* char            buf[ CMSG_SPACE(cmsg_len) ]; */
+    /* struct iovec    msg_iov; /1* Vector of data to send/receive into.  *1/ */
+
+    /* msg.msg_control    = buf; */
+    /* msg.msg_controllen = sizeof(buf); */
+    /* cmsg               = CMSG_FIRSTHDR(&msg); */
+    /* cmsg->cmsg_level   = SOL_TLS; */
+    /* cmsg->cmsg_type    = TLS_SET_RECORD_TYPE; */
+    /* cmsg->cmsg_len     = CMSG_LEN(cmsg_len); */
+    /* *CMSG_DATA(cmsg)   = record_type; */
+    /* msg.msg_controllen = cmsg->cmsg_len; */
+
+    /* msg_iov.iov_base = data; */
+    /* msg_iov.iov_len  = length; */
+    /* msg.msg_iov      = &msg_iov; */
+    /* msg.msg_iovlen   = length; */
+
+    /* int ret_val = sendmsg(sock, &msg, 0); */
     if (ret_val < 0) {
-        fprintf(stderr, "ktls send cmsg xxxxxxxxxxxxxx: type: %d, errno %s\n", record_type, strerror(errno));
+        fprintf(stderr, "-------------ktls send cmsg xxxxxxxxxxxxxx: type: %d, errno %s\n", record_type,
+                strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
         fprintf(stderr, "ktls send cmsg ---------- : type: %d\n", record_type);
@@ -161,7 +192,6 @@ int s2n_connection_set_ktls_write_fd(struct s2n_connection *conn, int wfd)
     return 0;
 }
 
-/* currently only handles tls 1.2 */
 S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implicit_iv[ S2N_TLS_MAX_IV_LEN ],
                             uint8_t sequence_number[ S2N_TLS_SEQUENCE_NUM_LEN ], uint8_t key[ 16 ])
 {
@@ -177,11 +207,6 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implici
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else if (conn->actual_protocol_version == S2N_TLS13) {
         crypto_info.info.version = TLS_1_3_VERSION;
-
-        /* RESULT_ENSURE_EQ(sizeof(implicit_iv), TLS_CIPHER_AES_GCM_128_SALT_SIZE + TLS_CIPHER_AES_GCM_128_IV_SIZE); */
-
-        /* memcpy (crypto_info.iv, iv.data + TLS_CIPHER_AES_GCM_128_SALT_SIZE, */
-        /* TLS_CIPHER_AES_GCM_128_IV_SIZE); */
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
                               TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else {
@@ -280,11 +305,11 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
 
     /* send alert via ktls */
     /* { */
-    /*     int s2n_tls_alert_level_fatal = 2; */
-    /*     uint8_t alert[2]; */
-    /*     alert[0] = s2n_tls_alert_level_fatal; */
-    /*     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY; */
-    /*     RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH)); */
+    /* int     s2n_tls_alert_level_fatal = 2; */
+    /* uint8_t alert[ 2 ]; */
+    /* alert[ 0 ] = s2n_tls_alert_level_fatal; */
+    /* alert[ 1 ] = S2N_TLS_ALERT_CLOSE_NOTIFY; */
+    /* RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH)); */
     /* } */
 
     conn->ktls_enabled_send_io = true;

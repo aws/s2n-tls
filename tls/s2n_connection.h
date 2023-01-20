@@ -20,6 +20,7 @@
 #include <stdint.h>
 
 #include "api/s2n.h"
+#include "bits/stdint-uintn.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
@@ -387,6 +388,7 @@ struct s2n_connection {
     uint8_t server_key[ 16 ];
 
     uint8_t sendfd;
+    uint8_t generation;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

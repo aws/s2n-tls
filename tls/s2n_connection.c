@@ -106,6 +106,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     PTR_GUARD_RESULT(s2n_timer_start(conn->config, &conn->write_timer));
 
+    conn->generation = 0;
+
     /* NOTE: s2n_connection_wipe MUST be called last in this function.
      *
      * s2n_connection_wipe is used for initializing values but also used by customers to

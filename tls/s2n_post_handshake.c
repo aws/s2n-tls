@@ -20,7 +20,7 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-int s2n_post_handshake_recv(struct s2n_connection *conn) 
+int s2n_post_handshake_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
