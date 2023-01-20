@@ -35,10 +35,8 @@ static void terminate(void)
 	exit(1);
 }
 
-
 static void ch_handler(int sig)
 {
-    printf("-------- hi ch_handler\n");
 	  return;
 }
 
@@ -49,15 +47,14 @@ static S2N_RESULT client(int fd)
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
-    EXPECT_SUCCESS(s2n_connection_set_fd(client_conn, fd));
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
 
-    /* Setup config */
-    struct s2n_cert_chain_and_key *chain_and_key;
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
-    struct s2n_config *config;
-    EXPECT_NOT_NULL(config = s2n_config_new());
+    /* Setup config */
+    EXPECT_SUCCESS(s2n_connection_set_fd(client_conn, fd));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -69,7 +66,7 @@ static S2N_RESULT client(int fd)
     printf("----------client\n");
     EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
-    sleep(5);
+    sleep(3);
 
     return S2N_RESULT_OK;
 }
@@ -81,33 +78,30 @@ static S2N_RESULT server(int fd)
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
             s2n_connection_ptr_free);
-    EXPECT_SUCCESS(s2n_connection_set_fd(server_conn, fd));
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
 
-    /* Setup config */
-    struct s2n_cert_chain_and_key *chain_and_key;
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
-    struct s2n_config *ktls_config;
-    EXPECT_NOT_NULL(ktls_config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(ktls_config, "default_tls13"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(ktls_config));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(ktls_config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_ktls_enable(ktls_config));
-    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, ktls_config));
+    /* Setup config */
+    EXPECT_SUCCESS(s2n_connection_set_fd(server_conn, fd));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_ktls_enable(config));
+    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
     printf("----------server\n");
-    sleep(5);
+    sleep(3);
 
     /* Verify TLS1.3 */
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
-
     return S2N_RESULT_OK;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -115,12 +109,6 @@ int main(int argc, char **argv)
 
     signal(SIGPIPE, SIG_IGN);
 	  signal(SIGCHLD, ch_handler);
-
-    s2n_blocked_status blocked = 0;
-    char send_buffer[0xffff];
-    char recv_buffer[0xffff];
-
-
 
     /* real socket */
     int listener;
@@ -132,9 +120,6 @@ int main(int argc, char **argv)
 	  listener = socket(AF_INET, SOCK_STREAM, 0);
     EXPECT_SUCCESS(listener);
     fprintf(stderr, "server listen on fd---------- %d\n", listener);
-
-    /* int r = 1; */
-    /* EXPECT_SUCCESS(setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(int))); */
 
 	  memset(&saddr, 0, sizeof(saddr));
 	  saddr.sin_family = AF_INET;
@@ -157,14 +142,14 @@ int main(int argc, char **argv)
 
         EXPECT_OK(server(fd));
 
-		    /* wait(&status); */
-        /* EXPECT_EQUAL(waitpid(-1, &status, 0), child); */
+        EXPECT_EQUAL(wait(&status), child);
+        EXPECT_EQUAL(status, 0);
     } else {
         /* client */
         fd = socket(AF_INET, SOCK_STREAM, 0);
         EXPECT_SUCCESS(fd);
 
-        sleep(2);
+        sleep(1);
 		    EXPECT_SUCCESS(connect(fd, (struct sockaddr*)&saddr, addrlen));
 
         fprintf(stderr, "client connect fd---------- %d\n", fd);
@@ -173,21 +158,9 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    /* EXPECT_SUCCESS(s2n_connection_free(server_conn)); */
-    /* /1* EXPECT_SUCCESS(s2n_io_pair_close(&io_pair)); *1/ */
-    /* EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key)); */
-    /* EXPECT_SUCCESS(s2n_config_free(config)); */
-
-
-
-    /* local link */
-    /* Create nonblocking pipes */
-    /* struct s2n_test_io_pair io_pair; */
-    /* EXPECT_SUCCESS(s2n_io_pair_ktls(&io_pair)); */
-    /* EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair)); */
-    /* EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair)); */
-
-
+    s2n_blocked_status blocked = 0;
+    char send_buffer[0xffff];
+    char recv_buffer[0xffff];
 
     /* KTLS KeyUpdate test */
     /* { */
