@@ -40,8 +40,9 @@ static void ch_handler(int sig)
 	  return;
 }
 
-static S2N_RESULT client(int fd)
+static S2N_RESULT start_client(int fd, int sync_pipe)
 {
+    char sync;
     s2n_blocked_status blocked = 0;
 
     /* Setup connections */
@@ -63,16 +64,19 @@ static S2N_RESULT client(int fd)
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
-    printf("----------client\n");
     EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
-    sleep(3);
+    read(sync_pipe, &sync, 1);
+    printf("----------client read 1\n");
+    read(sync_pipe, &sync, 1);
+    printf("----------client read 2\n");
 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT server(int fd)
+static S2N_RESULT start_server(int fd, int sync_pipe)
 {
+    char sync = 0;
     s2n_blocked_status blocked = 0;
 
     /* Setup connections */
@@ -94,8 +98,13 @@ static S2N_RESULT server(int fd)
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
-    printf("----------server\n");
+
     sleep(3);
+    write(sync_pipe, &sync, 1);
+    printf("----------server write1\n");
+    sleep(3);
+    write(sync_pipe, &sync, 1);
+    printf("----------server write2\n");
 
     /* Verify TLS1.3 */
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
@@ -109,6 +118,10 @@ int main(int argc, char **argv)
 
     signal(SIGPIPE, SIG_IGN);
 	  signal(SIGCHLD, ch_handler);
+
+    //used for synchronizing read and writes between client and server
+	  int sync_pipe[2];
+	  pipe(sync_pipe);
 
     /* real socket */
     int listener;
@@ -140,7 +153,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(fd);
         fprintf(stderr, "server accept fd---------- %d\n", fd);
 
-        EXPECT_OK(server(fd));
+        close(sync_pipe[0]);
+        EXPECT_OK(start_server(fd, sync_pipe[1]));
 
         EXPECT_EQUAL(wait(&status), child);
         EXPECT_EQUAL(status, 0);
@@ -154,7 +168,8 @@ int main(int argc, char **argv)
 
         fprintf(stderr, "client connect fd---------- %d\n", fd);
 
-        EXPECT_OK(client(fd));
+        close(sync_pipe[1]);
+        EXPECT_OK(start_client(fd, sync_pipe[0]));
         exit(0);
     }
 
