@@ -85,8 +85,12 @@ setup_apache_server() {
 run_integration_v2_tests() {
     setup_apache_server
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
-    make clean
-    make integrationv2
+    cmake -DPython3_EXECUTABLE=$(which python3) .
+    for test_name in $TOX_TEST_NAME; do
+      test="${test_name//test_/}"
+      echo "Running... cmake --build . --target integ_""$test"
+	    cmake --build . --target integ_"$test"
+    done
 }
 
 run_unit_tests() {
