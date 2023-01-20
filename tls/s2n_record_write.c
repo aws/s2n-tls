@@ -458,7 +458,8 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     }
 
     /* We are done with this sequence number, so we can increment it */
-    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = { 0 };
+    POSIX_GUARD(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* Write the plaintext data */
