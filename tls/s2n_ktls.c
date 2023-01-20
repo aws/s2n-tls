@@ -226,8 +226,8 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     /* int send_times = 2000000; // 2gb */
     /* char filename[] = "sample.txt.2k"; */
     /* int send_times = 1000000; // 2gb */
-    char filename[] = "sample.txt.4k";
-    int  send_times = 500000;  // 2gb
+    /* char filename[] = "sample.txt.4k"; */
+    /* int  send_times = 500000;  // 2gb */
     /* char filename[] = "sample.txt.8k"; */
     /* int send_times = 250000; // 2gb */
     /* char filename[] = "sample.txt.16k"; */
@@ -244,7 +244,7 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     /* int send_times = 5000; // 2gb */
     /* char filename[] = "sample.txt.4m"; */
     /* int send_times = 500; // 2gb */
-    fprintf(stderr, "starting sendfile -------------- file: %s times: %d \n", filename, send_times);
+    /* fprintf(stderr, "starting sendfile -------------- file: %s times: %d \n", filename, send_times); */
 
     /* if (conn->mode == S2N_CLIENT) { */
     /*     for (int i = 0; i <= send_times; i++) { */
@@ -264,7 +264,7 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     /*         } */
     /*     } */
     /* } */
-    fprintf(stderr, "file sent -------------- \n");
+    /* fprintf(stderr, "file sent -------------- \n"); */
 
     /* send plaintext since we are using ktls */
     /* { */

@@ -59,11 +59,12 @@ static S2N_RESULT start_client(int fd, int sync_pipe)
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Setup config */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_fd(client_conn, fd));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_ktls_enable(config));
+    /* EXPECT_SUCCESS(s2n_config_ktls_enable(config)); */
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     /* Do handshake */
@@ -73,11 +74,13 @@ static S2N_RESULT start_client(int fd, int sync_pipe)
     read(sync_pipe, &read_sync, 1);
     printf("----------client read 1\n");
     EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+    printf("----------char 2 %c\n", recv_buffer[0]);
     EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
 
     read(sync_pipe, &read_sync, 1);
     printf("----------client read 2\n");
     EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+    printf("----------char 2 %c\n", recv_buffer[0]);
     EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
 
     return S2N_RESULT_OK;
@@ -88,7 +91,6 @@ static S2N_RESULT start_server(int fd, int sync_pipe)
     char write_sync = 0;
     s2n_blocked_status blocked = 0;
     char send_buffer[1];
-    /* char recv_buffer[0xffff]; */
 
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -100,30 +102,30 @@ static S2N_RESULT start_server(int fd, int sync_pipe)
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Setup config */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+    EXPECT_EQUAL(s2n_connection_get_delay(server_conn), 0);
     EXPECT_SUCCESS(s2n_connection_set_fd(server_conn, fd));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_ktls_enable(config));
+    /* EXPECT_SUCCESS(s2n_config_ktls_enable(config)); */
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
+    EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
-    sleep(3);
     write(sync_pipe, &write_sync, 1);
-    printf("----------server write1\n");
+    printf("----------server write 1\n");
     send_buffer[0] = a;
     EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
 
-    sleep(3);
+    server_conn->key_update_pending = true;
+    EXPECT_SUCCESS(s2n_key_update_send(server_conn, &blocked));
     write(sync_pipe, &write_sync, 1);
-    printf("----------server write2\n");
+    printf("----------server write 2\n");
     send_buffer[0] = b;
     EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
-
-    /* Verify TLS1.3 */
-    EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
     return S2N_RESULT_OK;
 }
@@ -188,45 +190,6 @@ int main(int argc, char **argv)
         EXPECT_OK(start_client(fd, sync_pipe[0]));
         exit(0);
     }
-
-    /* s2n_blocked_status blocked = 0; */
-    /* char send_buffer[0xffff]; */
-    /* char recv_buffer[0xffff]; */
-
-    /* KTLS KeyUpdate test */
-    /* { */
-    /*     const char a = 'a'; */
-    /*     const char b = 'b'; */
-    /*     const char c = 'c'; */
-
-    /*     send_buffer[0] = a; */
-    /*     EXPECT_SUCCESS(s2n_send(client_conn, send_buffer, 1, &blocked)); */
-    /*     EXPECT_SUCCESS(s2n_recv(server_conn, recv_buffer, 1, &blocked)); */
-    /*     printf("-------- %c %c %c\n", send_buffer[0], a, recv_buffer[0]); */
-    /*     EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0); */
-
-    /*     /1* -------------------------- client sends *1/ */
-    /*     client_conn->key_update_pending = true; */
-    /*     EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked)); */
-
-    /*     send_buffer[0] = b; */
-    /*     EXPECT_SUCCESS(s2n_send(client_conn, send_buffer, 1, &blocked)); */
-    /*     EXPECT_SUCCESS(s2n_recv(server_conn, recv_buffer, 1, &blocked)); */
-    /*     printf("-------- %c %c %c\n", send_buffer[0], b, recv_buffer[0]); */
-    /*     EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); */
-
-    /*     /1* -------------------------- server sends *1/ */
-    /*     server_conn->key_update_pending = true; */
-    /*     EXPECT_SUCCESS(s2n_key_update_send(server_conn, &blocked)); */
-
-    /*     send_buffer[0] = c; */
-    /*     EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked)); */
-    /*     EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked)); */
-    /*     printf("-------- %c %c %c\n", send_buffer[0], c, recv_buffer[0]); */
-    /*     EXPECT_TRUE(memcmp(&c, &recv_buffer[0], 1) == 0); */
-
-    /* } */
-    /* KTLS KeyUpdate test */
 
     END_TEST();
 }
