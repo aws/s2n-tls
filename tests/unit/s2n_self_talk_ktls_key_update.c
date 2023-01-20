@@ -29,6 +29,9 @@
 #define S2N_SECRET_TYPE_COUNT 5
 
 pid_t child;
+const char a = 'a';
+const char b = 'b';
+const char c = 'c';
 static void terminate(void)
 {
 	kill(child, SIGTERM);
@@ -42,8 +45,9 @@ static void ch_handler(int sig)
 
 static S2N_RESULT start_client(int fd, int sync_pipe)
 {
-    char sync;
+    char read_sync;
     s2n_blocked_status blocked = 0;
+    char recv_buffer[1];
 
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
@@ -66,18 +70,25 @@ static S2N_RESULT start_client(int fd, int sync_pipe)
     EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
     EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
-    read(sync_pipe, &sync, 1);
+    read(sync_pipe, &read_sync, 1);
     printf("----------client read 1\n");
-    read(sync_pipe, &sync, 1);
+    EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+    EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
+
+    read(sync_pipe, &read_sync, 1);
     printf("----------client read 2\n");
+    EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+    EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
 
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT start_server(int fd, int sync_pipe)
 {
-    char sync = 0;
+    char write_sync = 0;
     s2n_blocked_status blocked = 0;
+    char send_buffer[1];
+    /* char recv_buffer[0xffff]; */
 
     /* Setup connections */
     DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -100,11 +111,16 @@ static S2N_RESULT start_server(int fd, int sync_pipe)
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
 
     sleep(3);
-    write(sync_pipe, &sync, 1);
+    write(sync_pipe, &write_sync, 1);
     printf("----------server write1\n");
+    send_buffer[0] = a;
+    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+
     sleep(3);
-    write(sync_pipe, &sync, 1);
+    write(sync_pipe, &write_sync, 1);
     printf("----------server write2\n");
+    send_buffer[0] = b;
+    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
 
     /* Verify TLS1.3 */
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
@@ -173,9 +189,9 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    s2n_blocked_status blocked = 0;
-    char send_buffer[0xffff];
-    char recv_buffer[0xffff];
+    /* s2n_blocked_status blocked = 0; */
+    /* char send_buffer[0xffff]; */
+    /* char recv_buffer[0xffff]; */
 
     /* KTLS KeyUpdate test */
     /* { */
