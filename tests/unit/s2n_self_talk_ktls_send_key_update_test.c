@@ -42,8 +42,7 @@
  *   norm conn: send msg   send key_update       send msg
  *
  */
-bool ktls_enable_send = false;
-bool ktls_enable_recv = true;
+bool ktls_enable_send = true;
 
 #define KTLS_enable() \
     if (ktls_enable_send) \
@@ -63,13 +62,6 @@ bool ktls_enable_recv = true;
         EXPECT_SUCCESS(write(fd, send_buffer, 1)); \
     else \
         EXPECT_SUCCESS(s2n_send(conn, send_buffer, 1, &blocked));
-
-#define KTLS_recv(conn, c) \
-    if (ktls_enable_recv) \
-        EXPECT_SUCCESS(read(fd, recv_buffer, 1)); \
-    else \
-        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked)); \
-    EXPECT_TRUE(memcmp(&c, &recv_buffer[0], 1) == 0);
 
 
 /*
@@ -131,8 +123,6 @@ static S2N_RESULT start_client(int fd, int read_pipe)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    if (ktls_enable_recv)
-        EXPECT_SUCCESS(s2n_config_ktls_enable(config));
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     /* Do handshake */
@@ -141,31 +131,22 @@ static S2N_RESULT start_client(int fd, int read_pipe)
 
     printf("\n===========-----------=================\n");
     {
-        if (ktls_enable_recv)
-            EXPECT_TRUE(client_conn->ktls_enabled_recv_io);
-
         read(read_pipe, &sync, 1);
         printf("----------client read 1\n");
-        /* KTLS_recv(client_conn, a); */
-
-        /* EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked)); */
-        EXPECT_SUCCESS(read(fd, recv_buffer, 1));
+        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
 
         EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
         EXPECT_TRUE(client_conn->generation == 0);
 
         read(read_pipe, &sync, 1);
-        fprintf(stderr, "error open file sample.txt xxxxxxxxxxxxxx  %s\n", strerror(errno));
         printf("----------client read 2\n");
 
         int ret = s2n_recv(client_conn, recv_buffer, 1, &blocked);
         EXPECT_TRUE(client_conn->generation == 1);
 
-        /* TODO we need to rekey before sending. needs patch */
-        if(!ktls_enable_send) {
-            EXPECT_SUCCESS(ret);
-            EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); \
-        }
+        /* FIXME we need to rekey before sending. needs patch */
+        EXPECT_SUCCESS(ret);
+        EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); \
     }
 
     return S2N_RESULT_OK;
@@ -207,7 +188,7 @@ static S2N_RESULT start_server(int fd, int write_pipe)
         write(write_pipe, &sync, 1);
 
         /* send key update */
-        /* KTLS_send_ku(server_conn, 0); */
+        KTLS_send_ku(server_conn, 0);
 
         KTLS_send(server_conn, b);
         write(write_pipe, &sync, 1);
