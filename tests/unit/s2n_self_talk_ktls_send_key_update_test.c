@@ -144,7 +144,10 @@ static S2N_RESULT start_client(int fd, int read_pipe)
         int ret = s2n_recv(client_conn, recv_buffer, 1, &blocked);
         EXPECT_TRUE(client_conn->generation == 1);
 
-        /* FIXME we need to rekey before sending. needs patch */
+        /* FIXME expect to pass with the kernel patch
+         *
+         * need to call rekey API
+         */
         EXPECT_SUCCESS(ret);
         EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); \
     }

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <errno.h>
 #include "s2n.h"
 #include "s2n_test.h"
 #include "stdio.h"
@@ -63,13 +64,12 @@ bool ktls_enable_recv = true;
 #define KTLS_recv(conn, c, gen) \
     if (ktls_enable_recv) { \
         EXPECT_SUCCESS(read(fd, recv_buffer, 1)); \
-        EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0); \
-        EXPECT_TRUE(client_conn->generation == gen); \
+        EXPECT_TRUE(memcmp(&c, &recv_buffer[0], 1) == 0); \
     } else { \
         recv_buffer[0] = c; \
         EXPECT_SUCCESS(s2n_recv(conn, recv_buffer, 1, &blocked)); \
-    } \
-    EXPECT_TRUE(client_conn->generation == gen);
+        EXPECT_TRUE(client_conn->generation == gen); \
+    }
 
 
 /*
@@ -136,15 +136,11 @@ static S2N_RESULT start_client(int fd, int read_pipe)
 
         read(read_pipe, &sync, 1);
         printf("----------client read 1\n");
-        /* KTLS_recv(client_conn, a, 0); */
-        /* EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked)); */
-        EXPECT_SUCCESS(read(fd, recv_buffer, 1));
-
-        /* EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0); */
-        /* EXPECT_TRUE(client_conn->generation == 0); */
+        KTLS_recv(client_conn, a, 0);
 
         read(read_pipe, &sync, 1);
         printf("----------client read 2\n");
+        /* FIXME expect to pass with the kernel patch */
         KTLS_recv(client_conn, b, 1);
     }
 

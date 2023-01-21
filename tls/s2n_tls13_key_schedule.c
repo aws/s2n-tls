@@ -122,12 +122,22 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
 
     /* for ktls testing lets ensure TLS_CIPHER_AES_GCM_128_KEY_SIZE */
     if (conn->mode == mode) {
+        /* TX side */
         if (conn->mode == S2N_SERVER) {
             RESULT_ENSURE_EQ(16, key.size);
             RESULT_CHECKED_MEMCPY(conn->server_key, key.data, key.size);
         } else {
             RESULT_ENSURE_EQ(16, key.size);
             RESULT_CHECKED_MEMCPY(conn->client_key, key.data, key.size);
+        }
+    } else {
+        /* RX side */
+        if (conn->mode == S2N_SERVER) {
+            RESULT_ENSURE_EQ(16, key.size);
+            RESULT_CHECKED_MEMCPY(conn->client_key, key.data, key.size);
+        } else {
+            RESULT_ENSURE_EQ(16, key.size);
+            RESULT_CHECKED_MEMCPY(conn->server_key, key.data, key.size);
         }
     }
 
