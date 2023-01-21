@@ -245,24 +245,24 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
 {
     RESULT_ENSURE_REF(conn);
 
-    RESULT_ENSURE_EQ(sizeof(conn->client_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-    RESULT_ENSURE_EQ(sizeof(conn->server_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    RESULT_ENSURE_EQ(sizeof(conn->client_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    RESULT_ENSURE_EQ(sizeof(conn->server_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
     if (conn->mode == S2N_SERVER) {
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
-                                      conn->server_send_key));
+                                      conn->server_key));
 
         conn->ktls_enabled_send_io = true;
 
         RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
         /* RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
-        /*                               conn->client_send_key)); */
+        /*                               conn->client_key)); */
     } else {
         /* RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
-        /*                               conn->client_send_key)); */
+        /*                               conn->client_key)); */
 
-        RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number,
-                                      conn->client_send_key));
+        RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
+                                      conn->server_key));
         conn->ktls_enabled_recv_io = true;
 
         RESULT_GUARD_POSIX(s2n_connection_set_ktls_read_fd(conn, fd));

@@ -124,10 +124,10 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
     if (conn->mode == mode) {
         if (conn->mode == S2N_SERVER) {
             RESULT_ENSURE_EQ(16, key.size);
-            RESULT_CHECKED_MEMCPY(conn->server_send_key, key.data, key.size);
+            RESULT_CHECKED_MEMCPY(conn->server_key, key.data, key.size);
         } else {
             RESULT_ENSURE_EQ(16, key.size);
-            RESULT_CHECKED_MEMCPY(conn->client_send_key, key.data, key.size);
+            RESULT_CHECKED_MEMCPY(conn->client_key, key.data, key.size);
         }
     }
 

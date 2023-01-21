@@ -384,10 +384,8 @@ struct s2n_connection {
     struct s2n_blob      server_early_data_context;
     uint32_t             server_keying_material_lifetime;
 
-    uint8_t client_send_key[ 16 ];
-    uint8_t server_send_key[ 16 ];
-    uint8_t client_recv_key[ 16 ];
-    uint8_t server_recv_key[ 16 ];
+    uint8_t client_key[ 16 ];
+    uint8_t server_key[ 16 ];
 
     uint8_t sendfd;
     uint8_t generation;

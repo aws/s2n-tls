@@ -42,7 +42,7 @@
  *   norm conn: send msg   send key_update       send msg
  *
  */
-bool ktls_enable_send = true;
+bool ktls_enable_send = false;
 bool ktls_enable_recv = true;
 
 #define KTLS_enable() \
@@ -205,7 +205,7 @@ static S2N_RESULT start_server(int fd, int write_pipe)
         write(write_pipe, &sync, 1);
 
         /* send key update */
-        KTLS_send_ku(server_conn, 0);
+        /* KTLS_send_ku(server_conn, 0); */
 
         KTLS_send(server_conn, b);
         write(write_pipe, &sync, 1);
