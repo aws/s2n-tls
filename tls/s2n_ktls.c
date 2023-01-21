@@ -39,15 +39,15 @@ S2N_RESULT s2n_ktls_rx_keys(struct s2n_connection *conn, int fd, uint8_t implici
                             uint8_t sequence_number[ S2N_TLS_SEQUENCE_NUM_LEN ], uint8_t key[ 16 ])
 {
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
-    memset(&crypto_info, 0, sizeof(crypto_info));
 
     crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
-    /* assert(cipher_key.size == TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
+    RESULT_CHECKED_MEMCPY(crypto_info.salt, implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info.rec_seq, sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info.key, key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
     /* for TLS 1.2 IV is generated in kernel */
     if (conn->actual_protocol_version == S2N_TLS12) {
         crypto_info.info.version = TLS_1_2_VERSION;
-        /* memcpy(crypto_info.iv, sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE); */
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else if (conn->actual_protocol_version == S2N_TLS13) {
         crypto_info.info.version = TLS_1_3_VERSION;
@@ -58,10 +58,7 @@ S2N_RESULT s2n_ktls_rx_keys(struct s2n_connection *conn, int fd, uint8_t implici
                 conn->actual_protocol_version);
     }
 
-    memcpy(crypto_info.salt, implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-    memcpy(crypto_info.rec_seq, sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-    memcpy(crypto_info.key, key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-
+    /* set keys */
     int ret_val = setsockopt(fd, SOL_TLS, TLS_RX, &crypto_info, sizeof(crypto_info));
     if (ret_val < 0) {
         fprintf(stderr, "ktls set RX key xxxxxxxxxxxxxx: %s\n", strerror(errno));
@@ -101,8 +98,9 @@ int s2n_connection_set_ktls_read_fd(struct s2n_connection *conn, int rfd)
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_ktls_read_io_context)));
     POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
-    peer_ktls_ctx     = ( struct s2n_ktls_read_io_context     *)( void     *)ctx_mem.data;
-    peer_ktls_ctx->fd = rfd;
+    peer_ktls_ctx                  = ( struct s2n_ktls_read_io_context                  *)( void                  *)ctx_mem.data;
+    peer_ktls_ctx->fd              = rfd;
+    peer_ktls_ctx->ktls_socket_set = true;
 
     POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_ktls_read_fn));
     POSIX_GUARD(s2n_connection_set_recv_ctx(conn, peer_ktls_ctx));
@@ -250,23 +248,22 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     if (conn->mode == S2N_SERVER) {
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
                                       conn->server_key));
-
-        conn->ktls_enabled_send_io = true;
-
-        RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
-
         /* RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
         /*                               conn->client_key)); */
+
+        conn->ktls_enabled_send_io = true;
+        RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
     } else {
         /* RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
         /*                               conn->client_key)); */
-
         RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
                                       conn->server_key));
-        conn->ktls_enabled_recv_io = true;
 
+        conn->ktls_enabled_recv_io = true;
         RESULT_GUARD_POSIX(s2n_connection_set_ktls_read_fd(conn, fd));
     }
+
+    return S2N_RESULT_OK;
 
     /* char filename[] = "sample.txt"; */
     /* int send_times = 1000000; // 2gb */
@@ -337,8 +334,6 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     /* alert[ 1 ] = S2N_TLS_ALERT_CLOSE_NOTIFY; */
     /* RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH)); */
     /* } */
-
-    return S2N_RESULT_OK;
 }
 
 /* Enable the "tls" Upper Level Protocols (ULP) over TCP for this connection */
@@ -374,15 +369,13 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
     /* const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context; */
     int fd = conn->sendfd;
     /* int fd = 8; */
-    /* fprintf(stderr, "ktls upl for socket fd---------- %d\n", conn->sendfd); */
+    fprintf(stderr, "ktls upl for socket fd---------- %d\n", conn->sendfd);
 
     /* register the tls ULP */
     RESULT_GUARD(s2n_ktls_register_ulp(fd));
 
     /* set keys */
     RESULT_GUARD(s2n_ktls_set_keys(conn, fd));
-
-    /* conn->ktls_enabled_recv_io = true; */
 
     return S2N_RESULT_OK;
 }

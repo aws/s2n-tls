@@ -65,7 +65,6 @@ bool ktls_enable_recv = true;
         EXPECT_SUCCESS(s2n_send(conn, send_buffer, 1, &blocked));
 
 #define KTLS_recv(conn, c) \
-    recv_buffer[0] = c; \
     if (ktls_enable_recv) \
         EXPECT_SUCCESS(read(fd, recv_buffer, 1)); \
     else \
@@ -148,7 +147,10 @@ static S2N_RESULT start_client(int fd, int read_pipe)
         read(read_pipe, &sync, 1);
         printf("----------client read 1\n");
         /* KTLS_recv(client_conn, a); */
-        EXPECT_SUCCESS(read(fd, recv_buffer, 1)); \
+
+        /* EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked)); */
+        EXPECT_SUCCESS(read(fd, recv_buffer, 1));
+
         EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
         EXPECT_TRUE(client_conn->generation == 0);
 
@@ -268,7 +270,7 @@ int main(int argc, char **argv)
         sleep(1);
 		    EXPECT_SUCCESS(connect(fd, (struct sockaddr*)&saddr, addrlen));
 
-        /* fprintf(stderr, "client connect fd---------- %d\n", fd); */
+        fprintf(stderr, "client connect fd---------- %d\n", fd);
 
         close(sync_pipe[1]);
         EXPECT_OK(start_client(fd, sync_pipe[0]));
