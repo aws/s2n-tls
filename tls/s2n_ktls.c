@@ -110,28 +110,6 @@ S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, siz
     msg.msg_iovlen = 1;
 
     int ret_val = sendmsg(sock, &msg, 0);
-
-    /* struct msghdr   msg      = { 0 }; */
-    /* int             cmsg_len = sizeof(record_type); */
-    /* struct cmsghdr *cmsg; */
-    /* char            buf[ CMSG_SPACE(cmsg_len) ]; */
-    /* struct iovec    msg_iov; /1* Vector of data to send/receive into.  *1/ */
-
-    /* msg.msg_control    = buf; */
-    /* msg.msg_controllen = sizeof(buf); */
-    /* cmsg               = CMSG_FIRSTHDR(&msg); */
-    /* cmsg->cmsg_level   = SOL_TLS; */
-    /* cmsg->cmsg_type    = TLS_SET_RECORD_TYPE; */
-    /* cmsg->cmsg_len     = CMSG_LEN(cmsg_len); */
-    /* *CMSG_DATA(cmsg)   = record_type; */
-    /* msg.msg_controllen = cmsg->cmsg_len; */
-
-    /* msg_iov.iov_base = data; */
-    /* msg_iov.iov_len  = length; */
-    /* msg.msg_iov      = &msg_iov; */
-    /* msg.msg_iovlen   = length; */
-
-    /* int ret_val = sendmsg(sock, &msg, 0); */
     if (ret_val < 0) {
         fprintf(stderr, "-------------ktls send cmsg xxxxxxxxxxxxxx: type: %d, errno %s\n", record_type,
                 strerror(errno));
