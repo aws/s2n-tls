@@ -122,6 +122,7 @@ static S2N_RESULT start_client(int fd, int read_pipe)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    KTLS_enable();
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     /* Do handshake */

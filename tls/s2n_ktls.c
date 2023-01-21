@@ -209,13 +209,16 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     RESULT_ENSURE_REF(conn);
 
     if (conn->mode == S2N_SERVER) {
-        RESULT_ENSURE_EQ(sizeof(conn->server_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+        RESULT_ENSURE_EQ(sizeof(conn->server_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
-                                      conn->server_key));
+                                      conn->server_send_key));
     } else {
-        RESULT_ENSURE_EQ(sizeof(conn->client_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+        RESULT_ENSURE_EQ(sizeof(conn->client_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number,
-                                      conn->client_key));
+                                      conn->client_send_key));
+
+        /* RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
+        /*                               conn->client_send_key)); */
     }
 
     RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
@@ -304,7 +307,7 @@ S2N_RESULT s2n_ktls_register_ulp(int fd)
         fprintf(stderr, "ktls register upl failed 2 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
-        fprintf(stderr, "ktls upl enabled---------- \n");
+        /* fprintf(stderr, "ktls upl enabled---------- \n"); */
     }
 
     return S2N_RESULT_OK;
@@ -328,7 +331,7 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
     /* const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context; */
     int fd = conn->sendfd;
     /* int fd = 8; */
-    fprintf(stderr, "ktls upl for socket fd---------- %d\n", conn->sendfd);
+    /* fprintf(stderr, "ktls upl for socket fd---------- %d\n", conn->sendfd); */
 
     /* register the tls ULP */
     RESULT_GUARD(s2n_ktls_register_ulp(fd));
