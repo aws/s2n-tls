@@ -35,49 +35,86 @@
 #include "utils/s2n_safety_macros.h"
 #include "utils/s2n_socket.h"
 
-/* int s2n_ktls_rx_keys(struct s2n_connection *conn) { */
-/*     struct tls12_crypto_info_aes_gcm_128 crypto_info; */
+S2N_RESULT s2n_ktls_rx_keys(struct s2n_connection *conn, int fd, uint8_t implicit_iv[ S2N_TLS_MAX_IV_LEN ],
+                            uint8_t sequence_number[ S2N_TLS_SEQUENCE_NUM_LEN ], uint8_t key[ 16 ])
+{
+    struct tls12_crypto_info_aes_gcm_128 crypto_info;
+    memset(&crypto_info, 0, sizeof(crypto_info));
 
-/*     memset(&crypto_info, 0, sizeof(crypto_info)); */
+    crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
+    /* assert(cipher_key.size == TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
 
-/* 		crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128; */
+    /* for TLS 1.2 IV is generated in kernel */
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        crypto_info.info.version = TLS_1_2_VERSION;
+        /* memcpy(crypto_info.iv, sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+        RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
+    } else if (conn->actual_protocol_version == S2N_TLS13) {
+        crypto_info.info.version = TLS_1_3_VERSION;
+        RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
+                              TLS_CIPHER_AES_GCM_128_IV_SIZE);
+    } else {
+        fprintf(stderr, "ktls only supported for tls1.2 and tls1.3 xxxxxxxxxxxxxx: %d\n",
+                conn->actual_protocol_version);
+    }
 
-/*     struct s2n_tls12_secrets tls12_secret = conn->secrets.tls12; */
-/*     /1* uint8_t s = sizeof(tls12_secret.master_secret); *1/ */
-/*     POSIX_ENSURE_EQ(16, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
+    memcpy(crypto_info.salt, implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+    memcpy(crypto_info.rec_seq, sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
+    memcpy(crypto_info.key, key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
 
-/* 		/1* for TLS 1.2 IV is generated in kernel *1/ */
-/*     /1* tls 1.2 *1/ */
-/*     crypto_info.info.version = TLS_1_2_VERSION; */
-/*     RESULT_CHECKED_MEMCPY(crypto_info.iv, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_IV_SIZE); */
+    int ret_val = setsockopt(fd, SOL_TLS, TLS_RX, &crypto_info, sizeof(crypto_info));
+    if (ret_val < 0) {
+        fprintf(stderr, "ktls set RX key xxxxxxxxxxxxxx: %s\n", strerror(errno));
+        return S2N_RESULT_ERROR;
+    } else {
+        fprintf(stderr, "ktls RX keys set---------- \n");
+    }
 
-/*     /1* tls 1.3 *1/ */
-/*     /1* ... *1/ */
+    return S2N_RESULT_OK;
+}
 
-/*     /1* common *1/ */
-/*     RESULT_CHECKED_MEMCPY(crypto_info.salt, conn->client->client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE); */
-/*     RESULT_CHECKED_MEMCPY(crypto_info.rec_seq, conn->client->client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE); */
-/*     RESULT_CHECKED_MEMCPY(crypto_info.key, tls12_secret.master_secret, TLS_CIPHER_AES_GCM_128_KEY_SIZE); */
+int s2n_ktls_read_fn(void *io_context, uint8_t *buf, uint32_t len)
+{
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(buf);
+    int rfd = (( struct s2n_ktls_read_io_context * )io_context)->fd;
+    if (rfd < 0) {
+        errno = EBADF;
+        POSIX_BAIL(S2N_ERR_BAD_FD);
+    }
 
-/* 				/1* if (setsockopt (sockin, SOL_TLS, TLS_RX, *1/ */
-/* 				/1* 		&crypto_info, sizeof (crypto_info))) { *1/ */
-/* 				/1* 	session->internals.ktls_enabled &= ~GNUTLS_KTLS_RECV; *1/ */
-/* 				/1* 	return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR); *1/ */
-/* 				/1* } *1/ */
+    /* On success, the number of bytes read is returned. On failure, -1 is
+     * returned and errno is set appropriately. */
+    fprintf(stdout, "ktls reading---------- len: %d\n", len);
+    ssize_t result = read(rfd, buf, len);
+    fprintf(stdout, "ktls reading done---------- result: %zd\n", result);
+    POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
+    return result;
+}
 
-/*     /1* check managed_send_io *1/ */
-/*     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context; */
-/*     int ret_val = setsockopt(r_io_ctx->fd, SOL_TLS, TLS_RX, &crypto_info, sizeof (crypto_info)); */
-/*     if (ret_val < 0) { */
-/*         fprintf(stderr, "ktls set RX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno)); */
-/*         return S2N_RESULT_ERROR; */
-/*     } else { */
-/*         fprintf(stdout, "ktls RX keys set---------- \n"); */
-/*     } */
+int s2n_connection_set_ktls_read_fd(struct s2n_connection *conn, int rfd)
+{
+    struct s2n_blob                  ctx_mem = { 0 };
+    struct s2n_ktls_read_io_context *peer_ktls_ctx;
 
-/*     return S2N_SUCCESS; */
-/* } */
-/* send TLS control message using record_type */
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_ktls_read_io_context)));
+    POSIX_GUARD(s2n_blob_zero(&ctx_mem));
+
+    peer_ktls_ctx     = ( struct s2n_ktls_read_io_context     *)( void     *)ctx_mem.data;
+    peer_ktls_ctx->fd = rfd;
+
+    POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_ktls_read_fn));
+    POSIX_GUARD(s2n_connection_set_recv_ctx(conn, peer_ktls_ctx));
+    conn->managed_recv_io = true;
+
+    /* This is only needed if the user is using corked io.
+     * Take the snapshot in case optimized io is enabled after setting the fd.
+     */
+    POSIX_GUARD(s2n_socket_read_snapshot(conn));
+
+    return 0;
+}
 
 S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length)
 {
@@ -195,7 +232,7 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implici
     /* set keys */
     int ret_val = setsockopt(fd, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));
     if (ret_val < 0) {
-        fprintf(stderr, "ktls set TX key 3 xxxxxxxxxxxxxx: %s\n", strerror(errno));
+        fprintf(stderr, "ktls set TX key xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
         fprintf(stderr, "ktls TX keys set---------- \n");
@@ -208,20 +245,28 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
 {
     RESULT_ENSURE_REF(conn);
 
+    RESULT_ENSURE_EQ(sizeof(conn->client_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    RESULT_ENSURE_EQ(sizeof(conn->server_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
     if (conn->mode == S2N_SERVER) {
-        RESULT_ENSURE_EQ(sizeof(conn->server_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
         RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->server->server_implicit_iv, conn->server->server_sequence_number,
                                       conn->server_send_key));
-    } else {
-        RESULT_ENSURE_EQ(sizeof(conn->client_send_key), TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-        RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number,
-                                      conn->client_send_key));
+
+        conn->ktls_enabled_send_io = true;
+
+        RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
 
         /* RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
         /*                               conn->client_send_key)); */
-    }
+    } else {
+        /* RESULT_GUARD(s2n_ktls_tx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number, */
+        /*                               conn->client_send_key)); */
 
-    RESULT_GUARD_POSIX(s2n_connection_set_ktls_write_fd(conn, fd));
+        RESULT_GUARD(s2n_ktls_rx_keys(conn, fd, conn->client->client_implicit_iv, conn->client->client_sequence_number,
+                                      conn->client_send_key));
+        conn->ktls_enabled_recv_io = true;
+
+        RESULT_GUARD_POSIX(s2n_connection_set_ktls_read_fd(conn, fd));
+    }
 
     /* char filename[] = "sample.txt"; */
     /* int send_times = 1000000; // 2gb */
@@ -293,8 +338,6 @@ S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
     /* RESULT_GUARD(s2n_klts_send_ctrl_msg(fd, TLS_ALERT, alert, S2N_ALERT_LENGTH)); */
     /* } */
 
-    conn->ktls_enabled_send_io = true;
-
     return S2N_RESULT_OK;
 }
 
@@ -307,7 +350,7 @@ S2N_RESULT s2n_ktls_register_ulp(int fd)
         fprintf(stderr, "ktls register upl failed 2 xxxxxxxxxxxxxx: %s\n", strerror(errno));
         return S2N_RESULT_ERROR;
     } else {
-        /* fprintf(stderr, "ktls upl enabled---------- \n"); */
+        /* fprintf(stderr, "ktls ulp enabled---------- \n"); */
     }
 
     return S2N_RESULT_OK;

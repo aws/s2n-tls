@@ -42,14 +42,15 @@
  *   norm conn: send msg   send key_update       send msg
  *
  */
-bool ktls_enable = true;
+bool ktls_enable_send = true;
+bool ktls_enable_recv = true;
 
 #define KTLS_enable() \
-    if (ktls_enable) \
+    if (ktls_enable_send) \
         EXPECT_SUCCESS(s2n_config_ktls_enable(config));
 
 #define KTLS_enable_check(conn) \
-    if (ktls_enable) \
+    if (ktls_enable_send) \
         EXPECT_TRUE(conn->ktls_enabled_send_io);
 
 /*
@@ -58,10 +59,19 @@ bool ktls_enable = true;
  */
 #define KTLS_send(conn, c) \
     send_buffer[0] = c; \
-    if (ktls_enable) \
+    if (ktls_enable_send) \
         EXPECT_SUCCESS(write(fd, send_buffer, 1)); \
     else \
         EXPECT_SUCCESS(s2n_send(conn, send_buffer, 1, &blocked));
+
+#define KTLS_recv(conn, c) \
+    recv_buffer[0] = c; \
+    if (ktls_enable_recv) \
+        EXPECT_SUCCESS(read(fd, recv_buffer, 1)); \
+    else \
+        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked)); \
+    EXPECT_TRUE(memcmp(&c, &recv_buffer[0], 1) == 0);
+
 
 /*
  * conn
@@ -74,7 +84,7 @@ bool ktls_enable = true;
  */
 #define KTLS_send_ku(conn, curr_gen) \
     EXPECT_TRUE(conn->generation == curr_gen); \
-    if (ktls_enable) { \
+    if (ktls_enable_send) { \
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE]; \
         struct s2n_blob key_update_blob = {0}; \
         EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data))); \
@@ -122,28 +132,35 @@ static S2N_RESULT start_client(int fd, int read_pipe)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    KTLS_enable();
+    if (ktls_enable_recv)
+        EXPECT_SUCCESS(s2n_config_ktls_enable(config));
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
     EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
+    printf("\n===========-----------=================\n");
     {
+        if (ktls_enable_recv)
+            EXPECT_TRUE(client_conn->ktls_enabled_recv_io);
+
         read(read_pipe, &sync, 1);
         printf("----------client read 1\n");
-        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+        /* KTLS_recv(client_conn, a); */
+        EXPECT_SUCCESS(read(fd, recv_buffer, 1)); \
         EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
         EXPECT_TRUE(client_conn->generation == 0);
 
         read(read_pipe, &sync, 1);
+        fprintf(stderr, "error open file sample.txt xxxxxxxxxxxxxx  %s\n", strerror(errno));
         printf("----------client read 2\n");
 
         int ret = s2n_recv(client_conn, recv_buffer, 1, &blocked);
         EXPECT_TRUE(client_conn->generation == 1);
 
         /* TODO we need to rekey before sending. needs patch */
-        if(!ktls_enable) {
+        if(!ktls_enable_send) {
             EXPECT_SUCCESS(ret);
             EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); \
         }
@@ -217,7 +234,7 @@ int main(int argc, char **argv)
 
 	  listener = socket(AF_INET, SOCK_STREAM, 0);
     EXPECT_SUCCESS(listener);
-    fprintf(stderr, "server listen on fd---------- %d\n", listener);
+    /* fprintf(stderr, "server listen on fd---------- %d\n", listener); */
 
 	  memset(&saddr, 0, sizeof(saddr));
 	  saddr.sin_family = AF_INET;
@@ -236,7 +253,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(listen(listener, 1));
         fd = accept(listener, NULL, NULL);
         EXPECT_SUCCESS(fd);
-        fprintf(stderr, "server accept fd---------- %d\n", fd);
+        /* fprintf(stderr, "server accept fd---------- %d\n", fd); */
 
         close(sync_pipe[0]);
         EXPECT_OK(start_server(fd, sync_pipe[1]));
@@ -251,7 +268,7 @@ int main(int argc, char **argv)
         sleep(1);
 		    EXPECT_SUCCESS(connect(fd, (struct sockaddr*)&saddr, addrlen));
 
-        fprintf(stderr, "client connect fd---------- %d\n", fd);
+        /* fprintf(stderr, "client connect fd---------- %d\n", fd); */
 
         close(sync_pipe[1]);
         EXPECT_OK(start_client(fd, sync_pipe[0]));

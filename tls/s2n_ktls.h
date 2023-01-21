@@ -26,12 +26,15 @@ struct s2n_ktls_write_io_context {
     unsigned int ktls_socket_set : 1;
 };
 
-/* /1* TODO: wip. implement the write first. *1/ */
-/* /1* The default read I/O context for communication over a ktls socket *1/ */
-/* struct s2n_ktls_read_io_context { */
-/*     /1* The peer's fd *1/ */
-/*     int fd; */
-/* }; */
+/* TODO: wip. implement the write first. */
+/* The default read I/O context for communication over a ktls socket */
+struct s2n_ktls_read_io_context {
+    /* The peer's fd */
+    int fd;
+
+    /* The "tls" UPL has been enabled. */
+    unsigned int ktls_socket_set : 1;
+};
 
 /* /1* typedef int s2n_send_fn(void *io_context, const uint8_t *buf, uint32_t len); *1/ */
 /* int s2n_ktls_write(void *io_context, const uint8_t *buf, uint32_t len); */
