@@ -39,6 +39,19 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
     /* Write it */
     POSIX_GUARD(s2n_flush(conn, more));
 
+    /*
+     * The purpose of the peer responding to our close_notify
+     * with its own close_notify is to prevent application data truncation.
+     * However, application data is not a concern during the handshake.
+     *
+     * Additionally, decrypting alerts sent during the handshake can be error prone
+     * due to different encryption keys and may lead to unnecessary error reporting
+     * and unnecessary blinding.
+     */
+    if (!s2n_handshake_is_complete(conn)) {
+        return S2N_SUCCESS;
+    }
+
     /* Assume caller isn't interested in pending incoming data */
     if (conn->in_status == PLAINTEXT) {
         POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
