@@ -20,67 +20,78 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    struct s2n_connection *client_conn, *server_conn;
-    s2n_blocked_status server_blocked, client_blocked;
+    const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
-    /* Verify successful shutdown. Server initiated. */
-    {
-        /* Setup connections */
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-        /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(config);
+    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+    /* Self-Talk: shutdown during application data */
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-        /* Verify state prior to alert */
-        EXPECT_FALSE(server_conn->close_notify_received);
-        EXPECT_FALSE(client_conn->close_notify_received);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* Verify successful shutdown */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(server_conn, &server_blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        /* Both the client and server should send application data, but not read any.
+         * This leaves unread application data for both to handle.
+         */
+        uint8_t data[] = "hello world";
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_EQUAL(s2n_send(server_conn, data, sizeof(data), &blocked), sizeof(data));
+        EXPECT_EQUAL(s2n_send(client_conn, data, sizeof(data), &blocked), sizeof(data));
 
-        /* Verify state after alert */
-        EXPECT_TRUE(server_conn->close_notify_received);
-        EXPECT_TRUE(client_conn->close_notify_received);
+        /* Choose which connection will request the shutdown, and which will respond */
+        struct s2n_connection *request = server_conn;
+        struct s2n_connection *response = client_conn;
+        if (modes[mode_i] == S2N_CLIENT) {
+            request = client_conn;
+            response = server_conn;
+        }
 
-        /* Cleanup */
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    };
+        /* The first shutdown attempt will block on the peer's close_notify */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(request, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
-    /* Verify successful shutdown. Client initiated. */
-    {
-        /* Setup connections */
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        /* The next shutdown attempts should succeed */
+        EXPECT_SUCCESS(s2n_shutdown(response, &blocked));
+        EXPECT_SUCCESS(s2n_shutdown(request, &blocked));
 
-        /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+        /* Both connections successfully closed */
+        EXPECT_TRUE(server_conn->closed);
+        EXPECT_TRUE(client_conn->closed);
 
-        /* Verify state prior to alert */
-        EXPECT_FALSE(server_conn->close_notify_received);
-        EXPECT_FALSE(client_conn->close_notify_received);
+        /* Closed connections behave properly */
+        for (size_t i = 0; i < 5; i++) {
+            /* Future attempts to shutdown succeed (they are no-ops) */
+            EXPECT_SUCCESS(s2n_shutdown(server_conn, &blocked));
+            EXPECT_SUCCESS(s2n_shutdown(client_conn, &blocked));
 
-        /* Verify successful shutdown. */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client_conn, &client_blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
+            /* Future attempts to write fail */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send(server_conn, data, sizeof(data), &blocked), S2N_ERR_CLOSED);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send(client_conn, data, sizeof(data), &blocked), S2N_ERR_CLOSED);
 
-        /* Verify state after alert */
-        EXPECT_TRUE(server_conn->close_notify_received);
-        EXPECT_TRUE(client_conn->close_notify_received);
-
-        /* Cleanup */
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            /* Future attempts to read indicate end of stream */
+            EXPECT_EQUAL(s2n_recv(server_conn, data, sizeof(data), &blocked), 0);
+            EXPECT_EQUAL(s2n_recv(client_conn, data, sizeof(data), &blocked), 0);
+        }
     };
 
     END_TEST();

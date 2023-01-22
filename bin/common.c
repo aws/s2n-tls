@@ -486,3 +486,41 @@ uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *da
 
     return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
 }
+
+int wait_for_shutdown(struct s2n_connection *conn, int fd)
+{
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    while (s2n_shutdown(conn, &blocked) != S2N_SUCCESS) {
+        int errno_val = errno;
+        switch (s2n_error_get_type(s2n_errno)) {
+            case S2N_ERR_T_BLOCKED:
+                GUARD_RETURN(wait_for_event(fd, blocked), "Error polling IO for shutdown");
+                break;
+            case S2N_ERR_T_CLOSED:
+                /* We can't control the behavior of our peer. If the peer indicates end-of-stream
+                 * without sending a close_notify, don't treat it as an error, but print a warning.
+                 *
+                 * This is common in our integration tests both because OpenSSL s_server
+                 * never sends a close_notify (see https://github.com/openssl/openssl/issues/1806)
+                 * and because we tend to kill processes rather than waiting for a graceful shutdown.
+                 */
+                fprintf(stdout, "Connection closed by peer\n");
+                return S2N_SUCCESS;
+            case S2N_ERR_T_IO:
+                /* Again, we can't control the behavior of our peer, so just print a warning.
+                 * Killing a process can result in its peer receiving a ECONNRESET.
+                 */
+                if (errno_val == ECONNRESET) {
+                    fprintf(stdout, "Connection reset by peer\n");
+                    return S2N_SUCCESS;
+                }
+                /* Otherwise, IO errors are fatal and should be investigated */
+                fprintf(stderr, "Unexpected IO error during shutdown: %s\n", strerror(errno_val));
+                exit(1);
+            default:
+                fprintf(stderr, "Unexpected error during shutdown: %s\n", s2n_strerror(s2n_errno, NULL));
+                exit(1);
+        }
+    }
+    return S2N_SUCCESS;
+}
