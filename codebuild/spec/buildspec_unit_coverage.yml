@@ -25,15 +25,10 @@ env:
 phases:
   pre_build:
     commands:
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-        fi
       - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
   build:
     on-failure: ABORT
     commands:
-      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
       - $CB_BIN_DIR/coverage_build.sh
   post_build:
     on-failure: ABORT
