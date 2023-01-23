@@ -262,7 +262,7 @@ void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64
         ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, blocked);
         /* fprintf(stdout, "s2n_send data ------------ bytes: %zd\n", bytes_written); */
         if (bytes_written == 5) {
-            s2n_connection_ktls_switch_keys(conn);
+            s2n_connection_ktls_rekeys(conn);
         }
 
         if (bytes_written < 0) {

@@ -892,7 +892,7 @@ S2N_API
 extern int s2n_config_ktls_enable(struct s2n_config *config);
 
 S2N_API
-extern int s2n_connection_ktls_switch_keys(struct s2n_connection *conn);
+extern int s2n_connection_ktls_rekeys(struct s2n_connection *conn);
 
 S2N_API
 extern int s2n_connection_is_ktls_enabled(struct s2n_connection *conn, bool *enabled);

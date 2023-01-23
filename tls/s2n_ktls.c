@@ -27,6 +27,8 @@
 #include "bits/stdint-uintn.h"
 #include "utils/s2n_result.h"
 #define SOL_TCP 6
+/* #define TCP_ULP			 31 /1* Attach a ULP to a TCP connection.  *1/ */
+/* #define TLS_1_3_VERSION		34 */
 
 #include "api/s2n.h"
 #include "tls/s2n_alerts.h"
@@ -380,7 +382,7 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_ktls_switch_keys(struct s2n_connection *conn)
+int s2n_connection_ktls_rekeys(struct s2n_connection *conn)
 {
     /*     if (conn->mode == S2N_SERVER) { */
     /*         return S2N_FAILURE; */
