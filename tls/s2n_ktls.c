@@ -116,6 +116,48 @@ int s2n_connection_set_ktls_read_fd(struct s2n_connection *conn, int rfd)
     return 0;
 }
 
+S2N_RESULT s2n_klts_recv_ctrl_msg(int sock, uint8_t *record_type, void *data, size_t length)
+{
+    char   *buf = data;
+    ssize_t ret;
+
+    char            cmsg[ CMSG_SPACE(sizeof(unsigned char)) ];
+    struct msghdr   msg = { 0 };
+    struct iovec    msg_iov;
+    struct cmsghdr *hdr;
+
+    /* receive message */
+    msg.msg_control    = cmsg;
+    msg.msg_controllen = sizeof cmsg;
+
+    msg_iov.iov_base = buf;
+    msg_iov.iov_len  = length;
+
+    msg.msg_iov    = &msg_iov;
+    msg.msg_iovlen = 1;
+
+    ret = recvmsg(sock, &msg, MSG_DONTWAIT);
+
+    if (ret == -1) {
+        fprintf(stderr, "-------------ktls recv cmsg xxxxxxxxxxxxxx: errno %s\n", strerror(errno));
+        return S2N_RESULT_ERROR;
+    }
+
+    /* connection closed */
+    if (ret == 0) return S2N_RESULT_ERROR;
+
+    /* get record type from header */
+    hdr = CMSG_FIRSTHDR(&msg);
+    if (hdr == NULL) { return S2N_RESULT_ERROR; }
+    if (hdr->cmsg_level == SOL_TLS && hdr->cmsg_type == TLS_GET_RECORD_TYPE) {
+        *record_type = *( unsigned char * )CMSG_DATA(hdr);
+    } else {
+        *record_type = TLS_APPLICATION_DATA;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length)
 {
     const char *buf = data;
