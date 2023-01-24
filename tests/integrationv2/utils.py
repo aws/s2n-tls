@@ -1,4 +1,4 @@
-from common import Protocols
+from common import Protocols, Signatures
 from providers import S2N
 from global_flags import get_flag, S2N_FIPS_MODE
 
@@ -6,8 +6,10 @@ from global_flags import get_flag, S2N_FIPS_MODE
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
 
+
 def to_string(val: bytes):
     return val.decode(encoding="ascii", errors="backslashreplace")
+
 
 def get_expected_s2n_version(protocol, provider):
     """
@@ -47,6 +49,27 @@ def get_parameter_name(item):
     if isinstance(item, type):
         return item.__name__
     return str(item)
+
+
+def expected_signature(protocol, signature):
+    if protocol < Protocols.TLS12:
+        if signature.sig_type == 'ECDSA':
+            signature = Signatures.ECDSA_SHA1
+        else:
+            signature = Signatures.MD5_SHA1
+    else:
+        signature = signature
+    return signature
+
+# ECDSA by default hashes with SHA-1.
+#
+# This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
+def expected_signature_alg_tls12(signature):
+    if signature == Signatures.RSA_SHA224:
+        signature = Signatures.RSA_SHA1
+    else:
+        signature = Signatures.ECDSA_SHA1
+    return signature
 
 
 def invalid_test_parameters(*args, **kwargs):
