@@ -34,13 +34,13 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /*
-    * In the case that libcrypto is dynamicly linked there is a chance that the
+    * In the case that libcrypto is dynamically linked there is a chance that the
     * build version and the linked version don't match. OPENSSL_VERSION_TEXT is
     * a macro defined in openssl/crypto.h and should be returned from OpenSSL_version.
-    * In the event that we are dynamicly linked to the wrong libcrypto the function,
-    * call will return a diffrent version text than the one we used at a source level.
+    * In the event that we are dynamically linked to the wrong libcrypto the function,
+    * call will return a different version text than the one we used at a source level.
     *
-    * If libcrypto is staticly linked, this is sure to be true.
+    * If libcrypto is static linked, this is sure to be true.
     */
     if (SSLeay() != openssl_version_number) {
         printf("\nOPENSSL_VERSION_NUMBER == %ld\n", (long int) openssl_version_number);
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 
 #define CONTAINS(x) strcasestr(s2n_build_preset, x) != NULL
 #define CHK_LC(x)   EXPECT_EQUAL(strcmp(s2n_libcrypto, x), 0)
-    /* Verify that the environment  */
+    /* Verify that s2n_libcrypto matches s2n_build_preset.  */
     if (CONTAINS("awslc") && CONTAINS("fips")) {
         CHK_LC("awslc-fips");
     } else if (CONTAINS("awslc")) {
@@ -84,10 +84,9 @@ int main(int argc, char **argv)
         } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
             CHK_LC("openssl-3.0-fips");
         } else {
-            printf("\nTest didn't handle this openssl version:\n");
-            printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
+            printf("\nS2N_BUILD_PRESET == %s\n", s2n_build_preset);
             printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
-            EXPECT_TRUE(0);
+            FAIL_MSG("Test didn't handle this openssl fips version.\n");
         }
     } else if (CONTAINS("openssl")) {
         if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
@@ -97,16 +96,14 @@ int main(int argc, char **argv)
         } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
             CHK_LC("openssl-3.0");
         } else {
-            printf("\nTest didn't handle this openssl fips version:\n");
             printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
             printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
-            EXPECT_TRUE(0);
+            FAIL_MSG("\nTest didn't handle this openssl version.\n");
         }
     } else {
-        printf("\nTest didn't handle this combination of variables\n");
-        printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
+        printf("\nS2N_BUILD_PRESET == %s\n", s2n_build_preset);
         printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
-        EXPECT_TRUE(0);
+        FAIL_MSG("Test didn't handle this combination of variables\n");
     }
 
     /* Now that we can rely on the value of S2N_LIBCRYPTO lets check that it matches the version
@@ -116,9 +113,14 @@ int main(int argc, char **argv)
 
     if (LC_IS("awslc-fips") || LC_IS("awslc")) {
 #ifndef OPENSSL_IS_AWSLC
-        printf("\nOpenSSL at build time wasn't AWS_LC, but S2N_LIBCRYPTO is\n");
-        EXPECT_TRUE(false);
+        FAIL_MSG("\nOpenSSL at build time wasn't AWS_LC, but S2N_LIBCRYPTO says it should be.\n");
 #endif
+/* AWS-LC forked from BoringSSL but lagged in changing the OpenSSL version. We
+ * make an exception for fips-2021-10-20, which reports itself as BoringSSL.
+ *
+ * Note: We don't make a similar exception for other older (or newer) versions
+ *       of AWC-LC. As of fips-2022-11-02, AWS-LC reports itself as AWS-LC.
+ * */
 #if AWSLC_API_VERSION == 16
         EXPECT_EQUAL(0, strcmp(openssl_version, "BoringSSL"));
 #else
