@@ -61,10 +61,11 @@ def expected_signature(protocol, signature):
         signature = signature
     return signature
 
-# ECDSA by default hashes with SHA-1.
-#
-# This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
+
 def expected_signature_alg_tls12(signature):
+    # ECDSA by default hashes with SHA-1.
+    #
+    # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
     if signature == Signatures.RSA_SHA224:
         signature = Signatures.RSA_SHA1
     else:

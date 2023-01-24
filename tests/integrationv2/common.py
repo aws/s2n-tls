@@ -309,7 +309,6 @@ class Ciphers(object):
     SECURITY_POLICY_20210816 = Cipher(
         "20210816", Protocols.TLS12, False, False, s2n=True, pq=False)
 
-
     @staticmethod
     def from_iana(iana_name):
         ciphers = [
