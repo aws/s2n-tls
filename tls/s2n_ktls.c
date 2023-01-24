@@ -31,8 +31,9 @@
 #define SOL_TLS 282
 #define TLS_TX 1 /* Set transmit parameters */
 #define TLS_RX 2 /* Set receive parameters */
-#define TLS_VERSION_NUMBER(id) ((((id##_VERSION_MAJOR) & 0xFF) << 8) | ((id##_VERSION_MINOR) & 0xFF))
-#define _TLS_1_3_VERSION TLS_VERSION_NUMBER(TLS_1_3)
+#define _TLS_VERSION_NUMBER(id) ((((0x3) & 0xFF) << 8) | ((0x4) & 0xFF))
+#define _TLS_1_3_VERSION _TLS_VERSION_NUMBER(TLS_1_3)
+#define TLS_GET_RECORD_TYPE	2
 
 #include "api/s2n.h"
 #include "tls/s2n_alerts.h"
