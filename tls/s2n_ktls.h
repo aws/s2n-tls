@@ -55,3 +55,4 @@ struct s2n_ktls_read_io_context {
  */
 S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn);
 S2N_RESULT s2n_klts_send_ctrl_msg(int sock, uint8_t record_type, void *data, size_t length);
+S2N_RESULT s2n_connection_ktls_rekey(struct s2n_connection *conn);

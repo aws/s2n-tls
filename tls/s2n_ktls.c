@@ -428,22 +428,34 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_ktls_rekeys(struct s2n_connection *conn)
+S2N_RESULT s2n_connection_ktls_rekey(struct s2n_connection *conn)
 {
-    /*     if (conn->mode == S2N_SERVER) { */
-    /*         return S2N_FAILURE; */
-    /*     } */
+    RESULT_ENSURE_REF(conn);
+    conn->secure->cipher_suite      = &s2n_tls13_aes_128_gcm_sha256;
+    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
 
-    /*     POSIX_ENSURE_REF(conn); */
-    /*     POSIX_ENSURE_EQ(conn->config->ktls_requested, true); */
-    /*     POSIX_ENSURE_EQ(conn->ktls_enabled_send_io, true); */
+    uint8_t         client_key_bytes[ S2N_TLS13_SECRET_MAX_LEN ] = "client key";
+    struct s2n_blob client_key                                   = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_key, client_key_bytes, cipher->key_material_size));
+    RESULT_GUARD_POSIX(cipher->init(&conn->secure->client_key));
+    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure->client_key, &client_key));
 
-    /*     const struct s2n_ktls_write_io_context *peer_ktls_ctx = conn->send_io_context; */
-    /*     int fd = peer_ktls_ctx->fd; */
+    uint8_t         server_key_bytes[ S2N_TLS13_SECRET_MAX_LEN ] = "server key";
+    struct s2n_blob server_key                                   = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&server_key, server_key_bytes, cipher->key_material_size));
+    RESULT_GUARD_POSIX(cipher->init(&conn->secure->server_key));
+    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure->server_key, &server_key));
 
-    /*     POSIX_GUARD_RESULT(s2n_ktls_register_ulp(fd)); */
+    conn->client = conn->secure;
+    conn->server = conn->secure;
 
-    /*     POSIX_GUARD_RESULT(s2n_ktls_client_tx_keys(conn, fd, true)); */
+    RESULT_ENSURE_EQ(16, server_key.size);
+    RESULT_CHECKED_MEMCPY(conn->server_key, server_key.data, server_key.size);
 
-    return S2N_SUCCESS;
+    RESULT_ENSURE_EQ(16, client_key.size);
+    RESULT_CHECKED_MEMCPY(conn->client_key, client_key.data, client_key.size);
+
+    RESULT_GUARD(s2n_ktls_set_keys(conn, conn->sendfd));
+
+    return S2N_RESULT_OK;
 }

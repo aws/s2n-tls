@@ -265,7 +265,7 @@ S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_
 S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+    conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
 
     uint8_t client_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "client key";
