@@ -1209,8 +1209,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    fprintf(stderr, "proto version xxxxxxxxxxxxxxxxx %d %d %d\n",
-            conn->actual_protocol_version, conn->client_protocol_version, conn->server_protocol_version);
+    /* fprintf(stderr, "proto version xxxxxxxxxxxxxxxxx %d %d %d\n", */
+    /*         conn->actual_protocol_version, conn->client_protocol_version, conn->server_protocol_version); */
     /* s2n supports only server order */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
