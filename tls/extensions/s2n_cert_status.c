@@ -23,12 +23,14 @@
 
 #define U24_SIZE 3
 
-/* In TLS 1.3, a response to a Status Request extension is sent as an extension with
- * status request as well as the OCSP response. This contrasts to TLS 1.2 where
- * the OCSP response is sent in the Certificate Status handshake message */
-
 static bool s2n_cert_status_should_send(struct s2n_connection *conn);
 
+/*
+ * The cert_status extension is sent in response to OCSP status requests in TLS 1.3. The
+ * OCSP response is contained in the extension data. In TLS 1.2, the cert_status_response
+ * extension is sent instead, indicating that the OCSP response will be sent in a
+ * Certificate Status handshake message.
+ */
 const s2n_extension_type s2n_cert_status_extension = {
     .iana_value = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = true,

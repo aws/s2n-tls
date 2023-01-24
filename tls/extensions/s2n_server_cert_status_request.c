@@ -42,5 +42,5 @@ static int s2n_server_cert_status_request_send(struct s2n_connection *conn, stru
 
 static bool s2n_server_cert_status_request_should_send(struct s2n_connection *conn)
 {
-    return conn->config->status_request_type != S2N_STATUS_REQUEST_NONE;
+    return conn->config->status_request_type == S2N_STATUS_REQUEST_OCSP;
 }
