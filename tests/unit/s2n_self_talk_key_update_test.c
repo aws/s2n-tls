@@ -214,6 +214,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    printf("OSSL ---- version %s \n" , OPENSSL_VERSION_TEXT);
+    EXPECT_NOT_NULL(strstr(OPENSSL_VERSION_TEXT, "OpenSSL"));
+    EXPECT_NOT_NULL(strstr(OPENSSL_VERSION_TEXT, "1.1.1"));
+
     signal(SIGPIPE, SIG_IGN);
 	  signal(SIGCHLD, ch_handler);
 

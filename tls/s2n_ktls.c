@@ -27,8 +27,11 @@
 #include "bits/stdint-uintn.h"
 #include "utils/s2n_result.h"
 #define SOL_TCP 6
-/* #define TCP_ULP			 31 /1* Attach a ULP to a TCP connection.  *1/ */
-/* #define TLS_1_3_VERSION		34 */
+#define TCP_ULP 31 /* Attach a ULP to a TCP connection.  */
+#define SOL_TLS 282
+#define TLS_TX 1 /* Set transmit parameters */
+#define TLS_RX 2 /* Set receive parameters */
+#define TLS_1_3_VERSION_ 34
 
 #include "api/s2n.h"
 #include "tls/s2n_alerts.h"
@@ -52,7 +55,7 @@ S2N_RESULT s2n_ktls_rx_keys(struct s2n_connection *conn, int fd, uint8_t implici
         crypto_info.info.version = TLS_1_2_VERSION;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else if (conn->actual_protocol_version == S2N_TLS13) {
-        crypto_info.info.version = TLS_1_3_VERSION;
+        crypto_info.info.version = TLS_1_3_VERSION_;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
                               TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else {
@@ -263,7 +266,7 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implici
         crypto_info.info.version = TLS_1_2_VERSION;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else if (conn->actual_protocol_version == S2N_TLS13) {
-        crypto_info.info.version = TLS_1_3_VERSION;
+        crypto_info.info.version = TLS_1_3_VERSION_;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
                               TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else {
