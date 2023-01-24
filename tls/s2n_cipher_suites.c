@@ -1237,10 +1237,10 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             /* Make sure the cipher is valid for available certs */
-            /* if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) { */
-            /*     fprintf(stderr, "cert mis match xxxxxxxxxxxxxxxxxxxxxxx %d %s\n", i, match->name); */
-            /*     continue; */
-            /* } */
+            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
+                /* fprintf(stderr, "cert mis match xxxxxxxxxxxxxxxxxxxxxxx %d %s\n", i, match->name); */
+                continue;
+            }
 
             /* TLS 1.3 does not include key exchange in cipher suites */
             if (match->minimum_required_tls_version < S2N_TLS13) {
