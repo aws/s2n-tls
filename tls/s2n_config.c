@@ -841,10 +841,14 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     POSIX_ENSURE(s2n_find_ticket_key(config, name_data) == NULL, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
     uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN] = { 0 };
-    struct s2n_blob out_key = { .data = output_pad, .size = s2n_array_len(output_pad) };
-    struct s2n_blob in_key = { .data = key, .size = key_len };
-    struct s2n_blob salt = { .size = 0 };
-    struct s2n_blob info = { .size = 0 };
+    struct s2n_blob out_key = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out_key, output_pad, s2n_array_len(output_pad)));
+    struct s2n_blob in_key = { 0 };
+    POSIX_GUARD(s2n_blob_init(&in_key, key, key_len));
+    struct s2n_blob salt = { 0 };
+    POSIX_GUARD(s2n_blob_init(&salt, NULL, 0));
+    struct s2n_blob info = { 0 };
+    POSIX_GUARD(s2n_blob_init(&info, NULL, 0));
 
     struct s2n_ticket_key *session_ticket_key = { 0 };
     DEFER_CLEANUP(struct s2n_blob allocator = { 0 }, s2n_free);
@@ -998,7 +1002,7 @@ int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config)
 int s2n_config_set_send_buffer_size(struct s2n_config *config, uint32_t size)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE(size >= S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MAX_FRAGMENT_LENGTH_MIN), S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(size >= S2N_MIN_SEND_BUFFER_SIZE, S2N_ERR_INVALID_ARGUMENT);
     config->send_buffer_size_override = size;
     return S2N_SUCCESS;
 }

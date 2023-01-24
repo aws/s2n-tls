@@ -45,7 +45,7 @@ header = copyright + """
 
 POSIX = dict(
     name = "POSIX",
-    is_ok = "(result) >= S2N_SUCCESS",
+    is_ok = "(result) > S2N_FAILURE",
     ok = "S2N_SUCCESS",
     error = "S2N_FAILURE",
     ret = "int",
