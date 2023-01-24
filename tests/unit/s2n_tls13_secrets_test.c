@@ -206,6 +206,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->handshake.handshake_type = handshake_type;
             EXPECT_OK(s2n_set_test_key_shares(conn, &s2n_ecc_curve_secp256r1));
@@ -229,6 +230,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake.handshake_type = handshake_type;
             conn->handshake.message_number = message_nums[S2N_HANDSHAKE_SECRET];
@@ -251,6 +253,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             conn->secure->cipher_suite = test_cases[i].cipher_suite;
             conn->secrets.tls13.extract_secret_type = test_cases[i].curr_secret_type;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake.handshake_type = handshake_type;
             conn->handshake.message_number = message_nums[test_cases[i].next_secret_type];

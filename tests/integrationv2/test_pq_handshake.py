@@ -1,12 +1,12 @@
 import pytest
 import os
 
-from configuration import available_ports 
+from configuration import available_ports
 from common import Ciphers, ProviderOptions, Protocols, KemGroups, Certificates, pq_enabled
-from fixtures import managed_process # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
-from global_flags import get_flag, S2N_PROVIDER_VERSION 
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 CIPHERS = [
     None,  # `None` will default to the appropriate `test_all` cipher preference in the S2N client provider

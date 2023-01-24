@@ -115,7 +115,8 @@ int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s
         const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
 {
     uint8_t prk_pad[MAX_DIGEST_SIZE];
-    struct s2n_blob pseudo_rand_key = { .data = prk_pad, .size = sizeof(prk_pad) };
+    struct s2n_blob pseudo_rand_key = { 0 };
+    POSIX_GUARD(s2n_blob_init(&pseudo_rand_key, prk_pad, sizeof(prk_pad)));
 
     POSIX_GUARD(s2n_hkdf_extract(hmac, alg, salt, key, &pseudo_rand_key));
     POSIX_GUARD(s2n_hkdf_expand(hmac, alg, &pseudo_rand_key, info, output));

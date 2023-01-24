@@ -80,7 +80,7 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
         POSIX_GUARD(s2n_key_update_write(&key_update_blob));
 
         /* Encrypt the message */
-        POSIX_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &key_update_blob));
+        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_HANDSHAKE, &key_update_blob));
 
         /* Update encryption key */
         POSIX_GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));

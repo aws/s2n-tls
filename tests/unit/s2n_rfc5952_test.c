@@ -17,7 +17,7 @@
 
 #include "s2n_test.h"
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
     #include <netinet/in.h>
     #include <sys/socket.h>
     #include <sys/types.h>

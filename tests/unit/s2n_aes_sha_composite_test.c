@@ -100,7 +100,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -109,11 +108,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA_DIGEST_LENGTH + explicit_iv_len;
@@ -174,7 +175,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -183,11 +183,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA_DIGEST_LENGTH + explicit_iv_len;
@@ -248,7 +250,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -257,11 +258,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA256_DIGEST_LENGTH + explicit_iv_len;
@@ -322,7 +325,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -331,11 +333,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA256_DIGEST_LENGTH + explicit_iv_len;
