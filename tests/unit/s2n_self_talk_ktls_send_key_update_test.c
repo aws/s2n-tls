@@ -28,6 +28,16 @@
 #define S2N_MODE_COUNT 2
 #define S2N_SECRET_TYPE_COUNT 5
 
+#define WRITE_sync(ctr) \
+    sleep(1); /* allow time for data to flush */ \
+    write(write_pipe, &sync, 1); \
+    printf("-------------------------------server write %d\n", ctr); \
+    sleep(1); /* allow reader time time process current operation */
+
+#define READ_sync(ctr) \
+    read(read_pipe, &sync, 1); \
+    printf("-------------------------------client read %d\n", ctr);
+
 
 /* test cases */
 /*
@@ -131,25 +141,21 @@ static S2N_RESULT start_client(int fd, int read_pipe)
 
     printf("\n===========-----------=================\n");
     {
-        read(read_pipe, &sync, 1);
-        printf("----------client read 1\n");
-        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-
-        EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
+        READ_sync(1);
         EXPECT_TRUE(client_conn->generation == 0);
+        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+        EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
 
-        read(read_pipe, &sync, 1);
-        printf("----------client read 2\n");
-
-        int ret = s2n_recv(client_conn, recv_buffer, 1, &blocked);
+        READ_sync(2);
+        EXPECT_TRUE(client_conn->generation == 0);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, recv_buffer, 1, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         EXPECT_TRUE(client_conn->generation == 1);
 
-        /* FIXME expect to pass with the kernel patch
-         *
-         * need to call rekey API
-         */
-        EXPECT_SUCCESS(ret);
-        EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0); \
+        READ_sync(3);
+        EXPECT_TRUE(client_conn->generation == 1);
+        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+        EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
     }
 
     return S2N_RESULT_OK;
@@ -188,13 +194,16 @@ static S2N_RESULT start_server(int fd, int write_pipe)
         KTLS_enable_check(server_conn);
 
         KTLS_send(server_conn, a);
-        write(write_pipe, &sync, 1);
+        WRITE_sync(1);
 
         /* send key update */
+        EXPECT_TRUE(server_conn->generation == 0);
         KTLS_send_ku(server_conn, 0);
+        WRITE_sync(2);
 
+        EXPECT_TRUE(server_conn->generation == 1);
         KTLS_send(server_conn, b);
-        write(write_pipe, &sync, 1);
+        WRITE_sync(3);
     }
 
     return S2N_RESULT_OK;
@@ -203,6 +212,10 @@ static S2N_RESULT start_server(int fd, int write_pipe)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    printf("OSSL ---- version %s \n" , OPENSSL_VERSION_TEXT);
+    EXPECT_NOT_NULL(strstr(OPENSSL_VERSION_TEXT, "OpenSSL"));
+    EXPECT_NOT_NULL(strstr(OPENSSL_VERSION_TEXT, "1.1.1"));
 
     signal(SIGPIPE, SIG_IGN);
 	  signal(SIGCHLD, ch_handler);

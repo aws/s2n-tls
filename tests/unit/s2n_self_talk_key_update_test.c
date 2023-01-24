@@ -186,9 +186,6 @@ static S2N_RESULT start_server(int fd, int write_pipe)
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
-    int flags = fcntl(fd, F_GETFL, 0);
-    EXPECT_SUCCESS(fcntl(fd, F_SETFL, flags | O_NONBLOCK));
-
     {
         KTLS_enable_check(server_conn);
 
@@ -203,7 +200,6 @@ static S2N_RESULT start_server(int fd, int write_pipe)
 
         EXPECT_TRUE(server_conn->generation == 1);
         KTLS_send(server_conn, b);
-        s2n_flush(server_conn, &blocked);
         WRITE_sync(3);
     }
 

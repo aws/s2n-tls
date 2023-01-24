@@ -31,7 +31,8 @@
 #define SOL_TLS 282
 #define TLS_TX 1 /* Set transmit parameters */
 #define TLS_RX 2 /* Set receive parameters */
-#define TLS_1_3_VERSION_ 34
+#define TLS_VERSION_NUMBER(id) ((((id##_VERSION_MAJOR) & 0xFF) << 8) | ((id##_VERSION_MINOR) & 0xFF))
+#define _TLS_1_3_VERSION TLS_VERSION_NUMBER(TLS_1_3)
 
 #include "api/s2n.h"
 #include "tls/s2n_alerts.h"
@@ -55,7 +56,7 @@ S2N_RESULT s2n_ktls_rx_keys(struct s2n_connection *conn, int fd, uint8_t implici
         crypto_info.info.version = TLS_1_2_VERSION;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else if (conn->actual_protocol_version == S2N_TLS13) {
-        crypto_info.info.version = TLS_1_3_VERSION_;
+        crypto_info.info.version = _TLS_1_3_VERSION;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
                               TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else {
@@ -266,7 +267,7 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implici
         crypto_info.info.version = TLS_1_2_VERSION;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else if (conn->actual_protocol_version == S2N_TLS13) {
-        crypto_info.info.version = TLS_1_3_VERSION_;
+        crypto_info.info.version = _TLS_1_3_VERSION;
         RESULT_CHECKED_MEMCPY(crypto_info.iv, implicit_iv + TLS_CIPHER_AES_GCM_128_SALT_SIZE,
                               TLS_CIPHER_AES_GCM_128_IV_SIZE);
     } else {
