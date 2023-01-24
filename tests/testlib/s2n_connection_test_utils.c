@@ -115,8 +115,7 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 
     int socket_pair[2];
 
-    /* POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair)); */
-    POSIX_GUARD(socketpair(AF_INET, SOCK_STREAM, 0, socket_pair));
+    POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
 
     io_pair->client = socket_pair[0];
     io_pair->server = socket_pair[1];
