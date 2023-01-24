@@ -43,7 +43,13 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-    /* Test 0 length application data record handled gracefully in client and server mode */
+    /** Test 0 length application data record handled gracefully in client and server mode
+     * 
+     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= type=test
+     *# Application Data records may contain a zero-length 
+     *# TLSInnerPlaintext.content if the sender desires.
+     **/
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -88,7 +94,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     };
 
-    /* Test 0 length payload in handshake record terminates connection in client and server mode */
+    /** Test 0 length payload in handshake record terminates connection in client and server mode
+     * 
+     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= type=test
+     *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
+     *# TLSInnerPlaintext.content; if such a message is received, the receiving 
+     *# implementation MUST terminate the connection with an "unexpected_message" alert.
+     **/
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -120,7 +133,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     };
 
-    /* Test 0 length payload in alert record terminates connection in client and server modes */
+    /** Test 0 length payload in alert record terminates connection in client and server modes
+     * 
+     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= type=test
+     *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
+     *# TLSInnerPlaintext.content; if such a message is received, the receiving 
+     *# implementation MUST terminate the connection with an "unexpected_message" alert.
+     **/
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

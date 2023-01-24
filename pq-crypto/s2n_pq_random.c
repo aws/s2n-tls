@@ -30,7 +30,8 @@ S2N_RESULT s2n_get_random_bytes(uint8_t *buffer, uint32_t num_bytes) {
 }
 
 static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_bytes) {
-    struct s2n_blob out = { .data = buffer, .size = num_bytes };
+    struct s2n_blob out = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&out, buffer, num_bytes));
     RESULT_GUARD(s2n_get_private_random_data(&out));
 
     return S2N_RESULT_OK;

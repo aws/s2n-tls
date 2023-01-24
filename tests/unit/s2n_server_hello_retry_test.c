@@ -203,6 +203,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.client_ecc_evp_params));
 
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_conn_choose_state_machine(server_conn, S2N_TLS13));
 
         /* The client will need a key share extension to properly parse the hello */
         /* Total extension size + size of each extension */
@@ -237,6 +238,7 @@ int main(int argc, char **argv)
         conn->kex_params.client_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->kex_params.client_ecc_evp_params));
 
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
 
         EXPECT_TRUE(s2n_is_hello_retry_message(conn));
@@ -303,6 +305,7 @@ int main(int argc, char **argv)
         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->kex_params.client_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_conn_choose_state_machine(server_conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.client_ecc_evp_params));
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, extension_stuffer));
 
@@ -319,6 +322,7 @@ int main(int argc, char **argv)
 
         /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
+        EXPECT_OK(s2n_conn_choose_state_machine(client_conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
 
         /* Parse the key share */
