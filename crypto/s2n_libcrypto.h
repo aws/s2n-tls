@@ -20,3 +20,5 @@
 S2N_RESULT s2n_libcrypto_init(void);
 S2N_RESULT s2n_libcrypto_validate_runtime(void);
 S2N_RESULT s2n_libcrypto_cleanup(void);
+const char * s2n_libcrypto_get_version_name(void);
+

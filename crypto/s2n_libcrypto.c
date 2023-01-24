@@ -58,7 +58,7 @@
  * symbol OpenSSL_version binded to at link-time. This can be used as
  * verification at run-time that s2n linked against the expected libcrypto.
  */
-static const char * s2n_libcrypto_get_version_name(void)
+const char * s2n_libcrypto_get_version_name(void)
 {
     return SSLeay_version(SSLEAY_VERSION);
 }

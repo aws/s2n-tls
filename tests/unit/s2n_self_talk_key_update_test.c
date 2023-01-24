@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/wait.h>
+#include "crypto/s2n_libcrypto.h"
 
 #define S2N_MODE_COUNT 2
 #define S2N_SECRET_TYPE_COUNT 5
