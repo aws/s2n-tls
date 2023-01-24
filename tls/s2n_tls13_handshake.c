@@ -180,6 +180,27 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 
     s2n_tls13_key_blob(app_key, conn->secure->cipher_suite->record_alg->cipher->key_material_size);
 
+    /* for ktls testing lets ensure TLS_CIPHER_AES_GCM_128_KEY_SIZE */
+    if (mode == S2N_SERVER) {
+        /* TX side */
+        if (status == SENDING) {
+            POSIX_ENSURE_EQ(16, app_key.size);
+            POSIX_CHECKED_MEMCPY(conn->server_key, app_key.data, app_key.size);
+        } else {
+            POSIX_ENSURE_EQ(16, app_key.size);
+            POSIX_CHECKED_MEMCPY(conn->client_key, app_key.data, app_key.size);
+        }
+    } else {
+        /* RX side */
+        if (status == SENDING) {
+            POSIX_ENSURE_EQ(16, app_key.size);
+            POSIX_CHECKED_MEMCPY(conn->client_key, app_key.data, app_key.size);
+        } else {
+            POSIX_ENSURE_EQ(16, app_key.size);
+            POSIX_CHECKED_MEMCPY(conn->server_key, app_key.data, app_key.size);
+        }
+    }
+
     /* Derives next generation of traffic key */
     POSIX_GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
     if (status == RECEIVING) {
