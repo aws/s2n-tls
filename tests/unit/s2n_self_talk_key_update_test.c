@@ -44,6 +44,16 @@
  */
 bool ktls_enable_send = false;
 
+#define WRITE_sync(ctr) \
+    sleep(1); /* allow time for data to flush */ \
+    write(write_pipe, &sync, 1); \
+    printf("-------------------------------server write %d\n", ctr); \
+    sleep(1); /* allow reader time time process current operation */
+
+#define READ_sync(ctr) \
+    read(read_pipe, &sync, 1); \
+    printf("-------------------------------client read %d\n", ctr);
+
 #define KTLS_enable() \
     if (ktls_enable_send) \
         EXPECT_SUCCESS(s2n_config_ktls_enable(config));
@@ -98,7 +108,7 @@ static void ch_handler(int sig)
 static S2N_RESULT start_client(int fd, int read_pipe)
 {
     char sync;
-    s2n_blocked_status blocked = 0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     char recv_buffer[10];
 
     /* Setup connections */
@@ -122,21 +132,25 @@ static S2N_RESULT start_client(int fd, int read_pipe)
     EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
     EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
+    int flags = fcntl(fd, F_GETFL, 0);
+    EXPECT_SUCCESS(fcntl(fd, F_SETFL, flags | O_NONBLOCK));
+
     printf("\n===========-----------=================\n");
     {
-        read(read_pipe, &sync, 1);
-        printf("----------client read 1\n");
-
+        READ_sync(1);
+        EXPECT_TRUE(client_conn->generation == 0);
         EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
         EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
+
+        READ_sync(2);
         EXPECT_TRUE(client_conn->generation == 0);
-
-        read(read_pipe, &sync, 1);
-        printf("----------client read 2\n");
-
-        int ret = s2n_recv(client_conn, recv_buffer, 1, &blocked);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, recv_buffer, 1, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         EXPECT_TRUE(client_conn->generation == 1);
-        EXPECT_SUCCESS(ret);
+
+        READ_sync(3);
+        EXPECT_TRUE(client_conn->generation == 1);
+        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
         EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
     }
 
@@ -172,17 +186,25 @@ static S2N_RESULT start_server(int fd, int write_pipe)
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
+    int flags = fcntl(fd, F_GETFL, 0);
+    EXPECT_SUCCESS(fcntl(fd, F_SETFL, flags | O_NONBLOCK));
+
     {
         KTLS_enable_check(server_conn);
 
+        EXPECT_TRUE(server_conn->generation == 0);
         KTLS_send(server_conn, a);
-        write(write_pipe, &sync, 1);
+        WRITE_sync(1);
 
         /* send key update */
+        EXPECT_TRUE(server_conn->generation == 0);
         KTLS_send_ku(server_conn, 0);
+        WRITE_sync(2);
 
+        EXPECT_TRUE(server_conn->generation == 1);
         KTLS_send(server_conn, b);
-        write(write_pipe, &sync, 1);
+        s2n_flush(server_conn, &blocked);
+        WRITE_sync(3);
     }
 
     return S2N_RESULT_OK;
