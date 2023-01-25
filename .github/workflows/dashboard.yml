@@ -1,16 +1,8 @@
 name: Build Dashboard
 
 on:
-  pull_request_target:
-    types:
-      - opened
-      - reopened
-      - closed
-  issues:
-    types:
-      - opened
-      - reopened
-      - closed
+  schedule:
+    - cron: '0 0 * * 1-5'
 jobs:
   build:
     # This should only run in one place.
@@ -103,6 +95,7 @@ jobs:
 
       - name: Publish Documentation
         run: |
+          git pull
           git add .
           git config user.name 'GitHub Actions'
           git config user.email 'nobody@github.com'
