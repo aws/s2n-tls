@@ -84,9 +84,9 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
         return S2N_SUCCESS;
     }
 
-    /* status_type keeps track of the OCSP status of a connection when a client requests
-     * OCSP stapling from a server. status_type should not be updated if the server requested
-     * OCSP stapling.
+    /* The status_type variable is only used when a client requests OCSP stapling from a
+     * server. A server can request OCSP stapling from a client, but it is not tracked
+     * with this variable.
      */
     if (conn->mode == S2N_CLIENT) {
         conn->status_type = S2N_STATUS_REQUEST_OCSP;
