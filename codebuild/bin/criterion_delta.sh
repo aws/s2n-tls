@@ -31,7 +31,7 @@ download_artifacts(){
   echo "Downloading ${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}"
   pushd  ./tests/integrationv2/target/criterion/
   aws s3 cp "${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}" .
-  unzip -o "${AWS_S3_BASE_PATH}"
+  unzip -o "${AWS_ZIP_FILE}"
   echo "S3 download complete"
   popd
 }
@@ -46,7 +46,8 @@ upload_report(){
 # Fetch creds and the latest release number.
 gh_login s2n_codebuild_PRs
 LATEST_RELEASE_VER=$(get_latest_release)
-AWS_S3_BASE_PATH="release/integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+export AWS_ZIPFILE="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+export AWS_S3_BASE_PATH="release/${AWS_ZIPFILE}"
 criterion_install_deps
 download_artifacts
 
