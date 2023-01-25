@@ -21,6 +21,7 @@ source codebuild/bin/s2n_setup_env.sh
 # instead.
 cmake . -Bbuild \
     -DCOVERAGE=ON \
+    -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
     -DBUILD_SHARED_LIBS=ON
 
 cmake --build ./build -- -j $(nproc)

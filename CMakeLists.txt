@@ -34,6 +34,7 @@ version of libcrypto by interning the code and hiding symbols. This also enables
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
+option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -368,6 +369,9 @@ endif()
 
 if (COVERAGE)
     # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
+    # Coverage is done using LLVM source based coverage. This is only supported
+    # on LLVM compilers. GCC would fail with "unrecognized compile options"
+    # on -fprofile-instr-generate -fcoverage-mapping flags.
     if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
         message(FATAL_ERROR "This project requires clang for coverage support".)
     endif()
