@@ -425,6 +425,7 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
 
     /* set keys */
     RESULT_GUARD(s2n_ktls_set_keys(conn, fd));
+    /* RESULT_GUARD(s2n_connection_ktls_rekey(conn)); */
 
     return S2N_RESULT_OK;
 }
@@ -432,23 +433,19 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
 S2N_RESULT s2n_connection_ktls_rekey(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    conn->secure->cipher_suite      = &s2n_tls13_aes_128_gcm_sha256;
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
-    uint8_t         client_key_bytes[ S2N_TLS13_SECRET_MAX_LEN ] = "client key";
-    struct s2n_blob client_key                                   = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&client_key, client_key_bytes, cipher->key_material_size));
-    RESULT_GUARD_POSIX(cipher->init(&conn->secure->client_key));
-    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure->client_key, &client_key));
+    uint8_t         client_key_bytes[ 16 ] = "client key";
+    struct s2n_blob client_key             = { 0 };
+    client_key.size                        = 16;
+    client_key.data                        = client_key_bytes;
+    RESULT_ENSURE_REF(client_key.data);
 
-    uint8_t         server_key_bytes[ S2N_TLS13_SECRET_MAX_LEN ] = "server key";
-    struct s2n_blob server_key                                   = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&server_key, server_key_bytes, cipher->key_material_size));
-    RESULT_GUARD_POSIX(cipher->init(&conn->secure->server_key));
-    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure->server_key, &server_key));
-
-    conn->client = conn->secure;
-    conn->server = conn->secure;
+    uint8_t         server_key_bytes[ 16 ] = "server key";
+    struct s2n_blob server_key             = { 0 };
+    server_key.size                        = 16;
+    server_key.data                        = server_key_bytes;
+    RESULT_ENSURE_REF(server_key.data);
 
     RESULT_ENSURE_EQ(16, server_key.size);
     RESULT_CHECKED_MEMCPY(conn->server_key, server_key.data, server_key.size);
