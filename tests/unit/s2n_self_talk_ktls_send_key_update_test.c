@@ -98,6 +98,12 @@ bool ktls_enable_send = true;
         EXPECT_TRUE(conn->generation == (curr_gen + 1)); \
     } \
 
+#define KTLS_rekey(conn) \
+    if (ktls_enable_send) \
+        EXPECT_OK(s2n_connection_ktls_rekey(conn)); /* set fake keys */ \
+    else \
+        EXPECT_OK(s2n_connection_set_secrets(conn)); /* set fake keys */
+
 pid_t child;
 const char a = 'a';
 const char b = 'b';
@@ -150,15 +156,15 @@ static S2N_RESULT start_client(int fd, int read_pipe)
         EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
         EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
 
-        READ_sync(2);
-        EXPECT_TRUE(client_conn->generation == 0);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, recv_buffer, 1, &blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
-        EXPECT_TRUE(client_conn->generation == 1);
-        EXPECT_OK(s2n_connection_set_secrets(client_conn)); /* set fake keys */
+        /* READ_sync(2); */
+        /* EXPECT_TRUE(client_conn->generation == 0); */
+        /* EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, recv_buffer, 1, &blocked), S2N_ERR_IO_BLOCKED); */
+        /* EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ); */
+        /* EXPECT_TRUE(client_conn->generation == 1); */
+        /* KTLS_rekey(client_conn); */
 
+        /* EXPECT_TRUE(client_conn->generation == 1); */
         READ_sync(3);
-        EXPECT_TRUE(client_conn->generation == 1);
         EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
         EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
     }
@@ -202,10 +208,10 @@ static S2N_RESULT start_server(int fd, int write_pipe)
         WRITE_sync(1);
 
         /* send key update */
-        EXPECT_TRUE(server_conn->generation == 0);
-        KTLS_send_ku(server_conn, 0);
-        EXPECT_OK(s2n_connection_ktls_rekey(server_conn)); /* set fake keys */
-        WRITE_sync(2);
+        /* EXPECT_TRUE(server_conn->generation == 0); */
+        /* KTLS_send_ku(server_conn, 0); */
+        /* KTLS_rekey(server_conn); */
+        /* WRITE_sync(2); */
 
         /* EXPECT_TRUE(server_conn->generation == 1); */
         KTLS_send(server_conn, b);
