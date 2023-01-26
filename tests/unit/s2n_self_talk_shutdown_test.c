@@ -66,12 +66,20 @@ int main(int argc, char **argv)
             response = server_conn;
         }
 
-        /* The first shutdown attempt will block on the peer's close_notify */
+        /* The requester's first shutdown attempt will send a close_notify
+         * but then block on receiving the response close_notify.
+         */
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(request, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
-        /* The next shutdown attempts should succeed */
+        /* The responder's first shutdown attempt will receive the request close_notify,
+         * send the response close_notify, and then consider the shutdown successful.
+         */
         EXPECT_SUCCESS(s2n_shutdown(response, &blocked));
+
+        /* The requester's second shutdown attempt will receive the response close_notify
+         * and then consider the shutdown successful.
+         */
         EXPECT_SUCCESS(s2n_shutdown(request, &blocked));
 
         /* Both connections successfully closed */

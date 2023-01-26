@@ -743,7 +743,7 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(renegotiate(conn, sockfd, reneg_ctx.wait), "Renegotiation failed");
         }
 
-        wait_for_shutdown(conn, sockfd);
+        GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 

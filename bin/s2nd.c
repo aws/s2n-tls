@@ -236,7 +236,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         echo(conn, fd, &stop_echo);
     }
 
-    wait_for_shutdown(conn, fd);
+    GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
