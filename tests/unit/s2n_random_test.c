@@ -102,7 +102,8 @@ static S2N_RESULT s2n_basic_pattern_tests(S2N_RESULT (*s2n_get_random_data_cb)(s
     uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     uint8_t bit_set_run[8];
     uint8_t data[MAX_RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob = { .data = data };
+    struct s2n_blob blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob, data, 0));
     int trailing_zeros[8] = { 0 };
 
     for (int size = 0; size < MAX_RANDOM_GENERATE_DATA_SIZE; size++) {
@@ -172,7 +173,8 @@ static S2N_RESULT s2n_tests_get_range(void)
     uint64_t current_output = 0;
     /* The type of the `bound` parameter in s2n_public_random() is signed */
     int64_t chosen_upper_bound = 0;
-    struct s2n_blob upper_bound_blob = { .data = (void *) &chosen_upper_bound, .size = sizeof(chosen_upper_bound) };
+    struct s2n_blob upper_bound_blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&upper_bound_blob, (void *) &chosen_upper_bound, sizeof(chosen_upper_bound))) ;
 
     /* 0 is not a legal upper bound */
     chosen_upper_bound = 0;
@@ -263,7 +265,8 @@ void *s2n_thread_test_cb(void *thread_comms)
 {
     struct random_communication *thread_comms_ptr = (struct random_communication *) thread_comms;
 
-    struct s2n_blob thread_blob = { .data = thread_comms_ptr->thread_data, .size = RANDOM_GENERATE_DATA_SIZE };
+    struct s2n_blob thread_blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&thread_blob, thread_comms_ptr->thread_data, RANDOM_GENERATE_DATA_SIZE));
 
     EXPECT_NOT_NULL(thread_comms_ptr->s2n_get_random_data_cb_1);
     EXPECT_OK(thread_comms_ptr->s2n_get_random_data_cb_1(&thread_blob));
@@ -282,7 +285,8 @@ static S2N_RESULT s2n_thread_test(
         S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
     uint8_t data[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob = { .data = data };
+    struct s2n_blob blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob, data, 0));
     pthread_t threads[MAX_NUMBER_OF_TEST_THREADS];
 
     struct random_communication thread_communication_0 = { .s2n_get_random_data_cb_1 = s2n_get_random_data_cb_thread };
@@ -314,7 +318,8 @@ static void s2n_fork_test_generate_randomness(int write_fd, S2N_RESULT (*s2n_get
 {
     uint8_t data[RANDOM_GENERATE_DATA_SIZE];
 
-    struct s2n_blob blob = { .data = data, .size = RANDOM_GENERATE_DATA_SIZE };
+    struct s2n_blob blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob, data, RANDOM_GENERATE_DATA_SIZE));
     EXPECT_OK(s2n_get_random_data_cb(&blob));
 
     /* Write the data we got to our pipe */
@@ -331,7 +336,8 @@ static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESUL
 {
     uint8_t child_data[RANDOM_GENERATE_DATA_SIZE];
     uint8_t parent_data[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob parent_blob = { .data = parent_data, .size = RANDOM_GENERATE_DATA_SIZE };
+    struct s2n_blob parent_blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&parent_blob, parent_data, RANDOM_GENERATE_DATA_SIZE));
 
     /* Quickly verify we are in the parent process and not the child */
     EXPECT_NOT_EQUAL(proc_id, 0);
@@ -496,8 +502,10 @@ static S2N_RESULT s2n_basic_generate_tests(void)
 {
     uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
     uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob1 = { .data = data1 };
-    struct s2n_blob blob2 = { .data = data2 };
+    struct s2n_blob blob1 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
+    struct s2n_blob blob2 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
 
     /* Generate two random data blobs and confirm that they are unique */
     blob1.size = RANDOM_GENERATE_DATA_SIZE;
@@ -518,8 +526,10 @@ static int s2n_common_tests(struct random_test_case *test_case)
 {
     uint8_t data1[RANDOM_GENERATE_DATA_SIZE];
     uint8_t data2[RANDOM_GENERATE_DATA_SIZE];
-    struct s2n_blob blob1 = { .data = data1 };
-    struct s2n_blob blob2 = { .data = data2 };
+    struct s2n_blob blob1 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob1, data1, 0));
+    struct s2n_blob blob2 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob2, data2, 0));
     int64_t bound = 0;
     uint64_t output = 0;
 
