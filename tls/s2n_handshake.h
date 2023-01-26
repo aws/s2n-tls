@@ -222,6 +222,7 @@ S2N_RESULT s2n_handshake_message_send(struct s2n_connection *conn, uint8_t conte
 int s2n_conn_set_handshake_type(struct s2n_connection *conn);
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
 S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t protocol_version);
+bool s2n_handshake_is_complete(struct s2n_connection *conn);
 
 /* s2n_handshake_transcript */
 S2N_RESULT s2n_handshake_transcript_update(struct s2n_connection *conn);
