@@ -386,7 +386,7 @@ class Signatures(object):
     RSA_SHA256 = Signature('RSA+SHA256', max_protocol=Protocols.TLS12)
     RSA_SHA384 = Signature('RSA+SHA384', max_protocol=Protocols.TLS12)
     RSA_SHA512 = Signature('RSA+SHA512', max_protocol=Protocols.TLS12)
-    MD5_SHA1 = Signature('RSA+MD5_SHA1', max_protocol=Protocols.TLS11)
+    RSA_MD5_SHA1 = Signature('RSA+MD5_SHA1', max_protocol=Protocols.TLS11)
     ECDSA_SHA224 = Signature('ECDSA+SHA224', max_protocol=Protocols.TLS12)
     ECDSA_SHA1 = Signature('ECDSA+SHA1', max_protocol=Protocols.TLS12)
 

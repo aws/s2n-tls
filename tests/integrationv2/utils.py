@@ -51,28 +51,6 @@ def get_parameter_name(item):
     return str(item)
 
 
-def expected_signature(protocol, signature):
-    if protocol < Protocols.TLS12:
-        if signature.sig_type == 'ECDSA':
-            signature = Signatures.ECDSA_SHA1
-        else:
-            signature = Signatures.MD5_SHA1
-    else:
-        signature = signature
-    return signature
-
-
-def expected_signature_alg_tls12(signature):
-    # ECDSA by default hashes with SHA-1.
-    #
-    # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
-    if signature == Signatures.RSA_SHA224:
-        signature = Signatures.RSA_SHA1
-    else:
-        signature = Signatures.ECDSA_SHA1
-    return signature
-
-
 def invalid_test_parameters(*args, **kwargs):
     """
     Determine if the parameters chosen for a test makes sense.

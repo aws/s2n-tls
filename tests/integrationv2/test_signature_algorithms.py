@@ -5,8 +5,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Certificates, Signatures, data_bytes, Ciphers
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes, expected_signature, \
-    expected_signature_alg_tls12
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 certs = [
     Certificates.RSA_2048_SHA256,
@@ -29,11 +28,25 @@ all_sigs = [
     Signatures.ECDSA_SHA1,
 ]
 
-# RSA_SHA224, ECDSA_SHA224 signature algorithms is not included in security_policy_20210816[].
-sigs = [
-    Signatures.RSA_SHA224,
-    Signatures.ECDSA_SHA224,
-]
+
+def expected_signature(protocol, signature):
+    if protocol < Protocols.TLS12:
+        if signature.sig_type == 'ECDSA':
+            signature = Signatures.ECDSA_SHA1
+        else:
+            signature = Signatures.RSA_MD5_SHA1
+    return signature
+
+
+def expected_signature_alg_tls12(signature):
+    # ECDSA by default hashes with SHA-1.
+    #
+    # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
+    if signature == Signatures.RSA_SHA224:
+        signature = Signatures.RSA_SHA1
+    else:
+        signature = Signatures.ECDSA_SHA1
+    return signature
 
 
 def signature_marker(mode, signature):
@@ -195,7 +208,8 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, othe
 @pytest.mark.parametrize("provider", [OpenSSL])
 @pytest.mark.parametrize("protocol", [Protocols.TLS12], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-@pytest.mark.parametrize("signature", sigs, ids=get_parameter_name)
+# RSA_SHA224, ECDSA_SHA224 signature algorithms are not included in security_policy_20210816[].
+@pytest.mark.parametrize("signature", [Signatures.RSA_SHA224, Signatures.ECDSA_SHA224], ids=get_parameter_name)
 def test_s2n_server_tls12_signature_algorithm_fallback(managed_process, cipher, provider, protocol, certificate,
                                                        signature):
     port = next(available_ports)
