@@ -453,7 +453,8 @@ S2N_RESULT s2n_connection_ktls_rekey(struct s2n_connection *conn)
     RESULT_ENSURE_EQ(16, client_key.size);
     RESULT_CHECKED_MEMCPY(conn->client_key, client_key.data, client_key.size);
 
-    RESULT_GUARD(s2n_ktls_set_keys(conn, conn->sendfd));
+    /* RESULT_GUARD(s2n_ktls_set_keys(conn, conn->sendfd)); */
+    RESULT_GUARD(s2n_ktls_tx_keys(conn, conn->sendfd, 0, 0, conn->server_key));
 
     return S2N_RESULT_OK;
 }
