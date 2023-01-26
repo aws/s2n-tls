@@ -73,8 +73,8 @@ int number_from_version(char *version)
 
 int convert_version_number_to_string(struct libcrypto_info *li, char *version_string_out)
 {
-    /* Format major minor and patch version in a normalized version string (e.x. "1.1.1", "3.0", "3", "") */
-    /* If there is no major version, return -1 and leave version_string_out untouched. */
+    /* Format major minor and patch version in a normalized version string (e.x. "1.1.1", "3.0", "3", "")
+     * If there is no major version, return -1 and leave version_string_out untouched. */
     if (li->major_version != -1) {
         sprintf(version_string_out, "%d", li->major_version);
         version_string_out = &version_string_out[1];
@@ -156,8 +156,7 @@ int main()
      *  1 The #include headers (-I) (checked with macros, e.g. OPENSSL_VERSION_TEXT and OPENSSL_IS_AWSLC)
      *  2 The (dynamically) linked library (-L) (checked by calling function e.g. SSLeay_version)
      *  3 The intent of the CI (declared by environment variables S2N_BUILD_PRESET and S2N_LIBCYPTO)
-     * BEGIN_TEST calls s2n_init which checks that (1) and (2) match.
-     */
+     * BEGIN_TEST calls s2n_init which checks that (1) and (2) match. */
     BEGIN_TEST();
     /* The rest of the test checks that (3) matches (1) or (2). */
 
@@ -175,15 +174,20 @@ int main()
     struct libcrypto_info s2n_build_preset_info = { 0 };
     init_libcrypto_info(&s2n_build_preset_info);
     char s2n_build_preset_copy[100] = { 0 };
-    strcpy(s2n_build_preset_copy, s2n_build_preset);
-    int s2n_build_preset_parsed = extract_libcrypto_info_from_s2n_build_preset(s2n_build_preset_copy, &s2n_build_preset_info);
+    int s2n_build_preset_parsed = -1;
+    if (s2n_build_preset != NULL && s2n_build_preset[0] != '\0') {
+        strcpy(s2n_build_preset_copy, s2n_build_preset);
+        s2n_build_preset_parsed = extract_libcrypto_info_from_s2n_build_preset(s2n_build_preset_copy, &s2n_build_preset_info);
+    }
 
     struct libcrypto_info s2n_libcrypto_info = { 0 };
     init_libcrypto_info(&s2n_libcrypto_info);
     char s2n_libcrypto_copy[100] = { 0 };
-    strcpy(s2n_libcrypto_copy, s2n_libcrypto);
-    int s2n_libcrypto_parsed = extract_libcrypto_info_from_s2n_libcrypto(s2n_libcrypto_copy, &s2n_libcrypto_info);
-
+    int s2n_libcrypto_parsed = -1;
+    if (s2n_libcrypto != NULL && s2n_libcrypto[0] != '\0') {
+        strcpy(s2n_libcrypto_copy, s2n_libcrypto);
+        s2n_libcrypto_parsed = extract_libcrypto_info_from_s2n_libcrypto(s2n_libcrypto_copy, &s2n_libcrypto_info);
+    }
     printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
     print_libcrypto_info(&s2n_build_preset_info);
     printf("S2N_LIBCRYPTO == %s\n", s2n_libcrypto);
@@ -191,7 +195,6 @@ int main()
 
     if (s2n_libcrypto_parsed == -1 && s2n_build_preset_parsed == -1) {
         /* Neither intent parsed.  */
-        FAIL_MSG("TODO: remove - DEBUGGING CI both failed to parse\n");
         END_TEST();
         return 0;
     }
